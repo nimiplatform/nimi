@@ -10,8 +10,8 @@ test('local llama health uses runtime authoritative active model state', async (
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     localProviderModel: 'llama3',
     listRuntimeLocalModelsSnapshot: async () => ([{
-      localModelId: 'local-1',
-      modelId: 'llama3',
+      localAssetId: 'local-1',
+      assetId: 'llama3',
       engine: 'llama',
       status: 'active',
       endpoint: 'http://127.0.0.1:8080/v1',
@@ -34,8 +34,8 @@ test('local llama health returns unreachable when runtime authoritative model is
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     localProviderModel: 'llama3',
     listRuntimeLocalModelsSnapshot: async () => ([{
-      localModelId: 'local-1',
-      modelId: 'llama3',
+      localAssetId: 'local-1',
+      assetId: 'llama3',
       engine: 'llama',
       status: 'unhealthy',
       endpoint: 'http://127.0.0.1:8080/v1',
@@ -72,8 +72,8 @@ test('localOpenAiEndpoint still populates endpoint for runtime authoritative lla
     localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
     localProviderModel: 'llama3',
     listRuntimeLocalModelsSnapshot: async () => ([{
-      localModelId: 'local-1',
-      modelId: 'llama3',
+      localAssetId: 'local-1',
+      assetId: 'llama3',
       engine: 'llama',
       status: 'installed',
       endpoint: 'http://127.0.0.1:1234/v1',

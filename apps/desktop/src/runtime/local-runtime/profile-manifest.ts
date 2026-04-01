@@ -23,11 +23,15 @@ function normalizeBoolean(value: unknown, fallback = false): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-function normalizeArtifactKind(value: unknown): LocalRuntimeProfileEntryDescriptor['artifactKind'] {
+function normalizeAssetKind(value: unknown): LocalRuntimeProfileEntryDescriptor['assetKind'] {
   const normalized = String(value || '').trim().toLowerCase();
   if (
-    normalized === 'vae'
-    || normalized === 'llm'
+    normalized === 'chat'
+    || normalized === 'image'
+    || normalized === 'video'
+    || normalized === 'tts'
+    || normalized === 'stt'
+    || normalized === 'vae'
     || normalized === 'clip'
     || normalized === 'controlnet'
     || normalized === 'lora'
@@ -41,8 +45,7 @@ function normalizeArtifactKind(value: unknown): LocalRuntimeProfileEntryDescript
 function normalizeEntryKind(value: unknown): LocalRuntimeProfileEntryDescriptor['kind'] | null {
   const normalized = String(value || '').trim().toLowerCase();
   if (
-    normalized === 'model'
-    || normalized === 'artifact'
+    normalized === 'asset'
     || normalized === 'service'
     || normalized === 'node'
   ) {
@@ -66,13 +69,13 @@ function normalizeProfileEntry(value: unknown): LocalRuntimeProfileEntryDescript
     capability: String(record.capability || '').trim() || undefined,
     required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
     preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
-    modelId: String(record.modelId || '').trim() || undefined,
+    assetId: String(record.assetId || '').trim() || undefined,
+    assetKind: normalizeAssetKind(record.assetKind || record.kindHint),
+    engineSlot: String(record.engineSlot || '').trim() || undefined,
     repo: String(record.repo || '').trim() || undefined,
     serviceId: String(record.serviceId || '').trim() || undefined,
     nodeId: String(record.nodeId || '').trim() || undefined,
     engine: String(record.engine || '').trim() || undefined,
-    artifactId: String(record.artifactId || '').trim() || undefined,
-    artifactKind: normalizeArtifactKind(record.artifactKind || record.kindHint),
     templateId: String(record.templateId || '').trim() || undefined,
     revision: String(record.revision || '').trim() || undefined,
     tags: asStringArray(record.tags),
@@ -143,10 +146,10 @@ export function profileSupportsCapability(
 function toExecutionOption(entry: LocalRuntimeProfileEntryDescriptor): LocalRuntimeExecutionOptionDescriptor {
   return {
     entryId: entry.entryId,
-    kind: entry.kind === 'service' ? 'service' : (entry.kind === 'node' ? 'node' : 'model'),
+    kind: entry.kind === 'service' ? 'service' : (entry.kind === 'node' ? 'node' : 'asset'),
     capability: entry.capability,
     title: entry.title,
-    modelId: entry.modelId,
+    assetId: entry.assetId,
     repo: entry.repo,
     serviceId: entry.serviceId,
     nodeId: entry.nodeId,
@@ -164,11 +167,12 @@ export function bridgeLocalRuntimeProfile(
     || !String(entry.capability || '').trim()
     || String(entry.capability || '').trim() === normalizedCapability
   ));
-  const runtimeEntries = filteredEntries.filter((entry) => entry.kind !== 'artifact');
-  const required = runtimeEntries
+  const executionEntries = filteredEntries.filter((entry) => entry.kind === 'service' || entry.kind === 'node');
+  const assetEntries = filteredEntries.filter((entry) => entry.kind === 'asset');
+  const required = executionEntries
     .filter((entry) => entry.required !== false)
     .map((entry) => toExecutionOption(entry));
-  const optional = runtimeEntries
+  const optional = executionEntries
     .filter((entry) => entry.required === false)
     .map((entry) => toExecutionOption(entry));
 
@@ -179,6 +183,6 @@ export function bridgeLocalRuntimeProfile(
         optional: optional.length > 0 ? optional : undefined,
       }
       : undefined,
-    artifacts: filteredEntries.filter((entry) => entry.kind === 'artifact'),
+    assets: assetEntries,
   };
 }

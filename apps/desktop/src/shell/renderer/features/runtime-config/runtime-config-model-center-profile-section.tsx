@@ -93,8 +93,8 @@ export type ModelCenterProfileSectionProps = {
 
 function summaryLine(plan: LocalRuntimeProfileResolutionPlan): string {
   const selectedDependencies = plan.executionPlan.entries.filter((entry) => entry.selected).length;
-  const artifactCount = plan.artifactEntries.length;
-  return `${selectedDependencies} runtime entries · ${artifactCount} companion artifacts`;
+  const passiveAssetCount = plan.assetEntries.length;
+  return `${selectedDependencies} runtime entries · ${passiveAssetCount} passive assets`;
 }
 
 export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps) {
@@ -267,7 +267,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                       <p className="text-[var(--nimi-text-muted)]">
                         {entry.kind}
                         {entry.capability ? ` · ${entry.capability}` : ''}
-                        {entry.artifactKind ? ` · ${entry.artifactKind}` : ''}
+                        {entry.assetKind ? ` · ${entry.assetKind}` : ''}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -318,9 +318,9 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                         effectiveCapability || undefined,
                       );
                       setApplySummary(t('runtimeConfig.local.profileInstalled', {
-                        defaultValue: 'Installed {{profileId}}: {{artifactCount}} artifact(s)',
+                        defaultValue: 'Installed {{profileId}}: {{assetCount}} asset(s)',
                         profileId: selectedProfile.id,
-                        artifactCount: result.installedArtifacts.length,
+                        assetCount: result.installedAssets.length,
                       }));
                     } catch (e) {
                       setApplySummary(

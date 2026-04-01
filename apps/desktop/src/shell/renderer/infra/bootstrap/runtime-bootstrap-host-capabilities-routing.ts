@@ -1,4 +1,4 @@
-import { localRuntime, type LocalRuntimeModelRecord, } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeAssetRecord, } from '@runtime/local-runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
@@ -125,21 +125,21 @@ function localModelStatusPriority(status: string): number {
         return 3;
     return 4;
 }
-function pickDesktopLocalModel(models: LocalRuntimeModelRecord[], resolved: ModRuntimeResolvedBinding): LocalRuntimeModelRecord | null {
+function pickDesktopLocalModel(models: LocalRuntimeAssetRecord[], resolved: ModRuntimeResolvedBinding): LocalRuntimeAssetRecord | null {
     const targetLocalModelId = String(resolved.localModelId || '').trim();
     const targetModelId = normalizeLocalModelRoot(resolved.modelId || resolved.model);
     const targetEngine = normalizeLocalEngine(resolved.engine || resolved.provider || '');
     const candidates = models
         .filter((model) => model.status !== 'removed')
-        .filter((model) => ((targetLocalModelId && String(model.localModelId || '').trim() === targetLocalModelId)
-        || (normalizeLocalModelRoot(model.modelId) === targetModelId
+        .filter((model) => ((targetLocalModelId && String(model.localAssetId || '').trim() === targetLocalModelId)
+        || (normalizeLocalModelRoot(model.assetId) === targetModelId
             && normalizeLocalEngine(model.engine) === targetEngine)))
         .sort((left, right) => {
         const priorityDelta = localModelStatusPriority(left.status) - localModelStatusPriority(right.status);
         if (priorityDelta !== 0) {
             return priorityDelta;
         }
-        return String(left.localModelId || '').localeCompare(String(right.localModelId || ''));
+        return String(left.localAssetId || '').localeCompare(String(right.localAssetId || ''));
     });
     return candidates[0] || null;
 }
@@ -147,17 +147,17 @@ export async function ensureResolvedLocalModelAvailable(resolved: ModRuntimeReso
     if (resolved.source !== 'local') {
         return resolved;
     }
-    const desktopModels = await localRuntime.list();
+    const desktopModels = await localRuntime.listAssets();
   const desktopModel = pickDesktopLocalModel(desktopModels, resolved);
   if (!desktopModel) {
         return resolved;
   }
     return {
         ...resolved,
-        localModelId: String(resolved.localModelId || desktopModel.localModelId || '').trim() || undefined,
-        endpoint: String(resolved.endpoint || desktopModel.endpoint || '').trim() || undefined,
-        localProviderEndpoint: String(resolved.localProviderEndpoint || desktopModel.endpoint || resolved.endpoint || '').trim() || undefined,
-        goRuntimeLocalModelId: String(resolved.goRuntimeLocalModelId || desktopModel.localModelId || '').trim() || undefined,
+        localModelId: String(resolved.localModelId || desktopModel.localAssetId || '').trim() || undefined,
+        endpoint: String(resolved.endpoint || '').trim() || undefined,
+        localProviderEndpoint: String(resolved.localProviderEndpoint || resolved.endpoint || '').trim() || undefined,
+        goRuntimeLocalModelId: String(resolved.goRuntimeLocalModelId || desktopModel.localAssetId || '').trim() || undefined,
         goRuntimeStatus: String(resolved.goRuntimeStatus || desktopModel.status || '').trim() || undefined,
     };
 }

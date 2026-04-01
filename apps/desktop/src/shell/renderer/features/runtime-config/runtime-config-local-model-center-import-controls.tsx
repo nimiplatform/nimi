@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { LocalRuntimeArtifactKind } from '@runtime/local-runtime';
+import type { LocalRuntimeAssetKind } from '@runtime/local-runtime';
 import type {
   AssetClassOption,
   AssetEngineOption,
@@ -20,7 +20,7 @@ type LocalModelCenterImportControlsProps = {
   showImportFileDialog: boolean;
   importFileAssetClass: AssetClassOption;
   importFileModelType: ModelTypeOption;
-  importFileArtifactKind: LocalRuntimeArtifactKind;
+  importFileArtifactKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   onHealthCheck: () => void;
   onRefresh: () => void;
@@ -30,7 +30,7 @@ type LocalModelCenterImportControlsProps = {
   onImportManifest: () => void;
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (kind: LocalRuntimeArtifactKind) => void;
+  onArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;

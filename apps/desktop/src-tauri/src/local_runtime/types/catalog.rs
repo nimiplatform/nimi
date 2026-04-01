@@ -73,37 +73,6 @@ pub enum LocalAiEngineRuntimeMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OrphanModelFile {
-    pub filename: String,
-    pub path: String,
-    pub size_bytes: u64,
-    pub recommendation: Option<LocalAiRecommendationDescriptor>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiOrphanScanPreference {
-    pub capability: Option<String>,
-    pub engine: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsScanOrphansPayload {
-    #[serde(default)]
-    pub preferences: HashMap<String, LocalAiOrphanScanPreference>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OrphanArtifactFile {
-    pub filename: String,
-    pub path: String,
-    pub size_bytes: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct CatalogVariantDescriptor {
     pub filename: String,
     pub entry: String,

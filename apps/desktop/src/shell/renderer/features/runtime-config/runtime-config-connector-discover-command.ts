@@ -47,7 +47,7 @@ export async function runDiscoverLocalModelsCommand(input: {
     } catch (error) {
       await localRuntime.appendAudit({
         eventType: 'runtime_model_sync_failed_during_discovery',
-        modelId: 'local-models',
+        assetId: 'local-models',
         source: 'local',
         reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
         detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),

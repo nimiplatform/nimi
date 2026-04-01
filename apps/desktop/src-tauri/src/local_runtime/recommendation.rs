@@ -8,9 +8,9 @@ use super::types::{
     LocalAiHostSupportClass, LocalAiHostSupportDescriptor, LocalAiMemoryModel,
     LocalAiProviderHints, LocalAiRecommendationBaseline, LocalAiRecommendationConfidence,
     LocalAiRecommendationDescriptor, LocalAiRecommendationFormat, LocalAiRecommendationSource,
-    LocalAiRecommendationTier, LocalAiSuggestedArtifact,
+    LocalAiRecommendationTier, LocalAiSuggestedAsset,
 };
-use super::verified_artifacts::verified_artifact_list;
+use super::verified_artifacts::verified_asset_list;
 
 pub const REASON_BASELINE_IMAGE_DEFAULT_V1: &str = "baseline_image_default_v1";
 pub const REASON_BASELINE_VIDEO_DEFAULT_V1: &str = "baseline_video_default_v1";
@@ -561,11 +561,11 @@ mod tests {
         .expect("candidate");
         let recommendation =
             build_media_recommendation(&candidate, &profile).expect("recommendation");
-        assert!(!recommendation.suggested_artifacts.is_empty());
+        assert!(!recommendation.suggested_assets.is_empty());
         assert!(recommendation
-            .suggested_artifacts
+            .suggested_assets
             .iter()
-            .any(|artifact| artifact.family.as_deref() == Some("z-image")));
+            .any(|asset| asset.family.as_deref() == Some("z-image")));
     }
 
     #[test]

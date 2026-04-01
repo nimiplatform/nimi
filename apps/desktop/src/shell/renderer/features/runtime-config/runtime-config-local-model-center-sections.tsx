@@ -3,7 +3,7 @@ import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type {
   LocalRuntimeAssetDeclaration,
-  LocalRuntimeArtifactKind,
+  LocalRuntimeAssetKind,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeUnregisteredAssetDescriptor,
@@ -26,10 +26,10 @@ import {
   type ModelTypeOption,
 } from './runtime-config-model-center-utils';
 import {
-  ARTIFACT_KIND_OPTIONS,
+  ASSET_KIND_OPTIONS,
   DownloadIcon,
   FolderOpenIcon,
-  formatArtifactKindLabel,
+  formatAssetKindLabel,
   HeartPulseIcon,
   RefreshIcon,
   SearchIcon,
@@ -238,7 +238,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                 </div>
                 <div className="mt-0.5 text-[var(--nimi-text-muted)]">
                   {i18n.t('runtimeConfig.localModelCenter.supportedRuntimeManifestFileType', {
-                    defaultValue: 'manifest.json or artifact.manifest.json',
+                    defaultValue: 'asset.manifest.json',
                   })}
                 </div>
               </button>
@@ -254,11 +254,11 @@ type ImportDialogProps = {
   visible: boolean;
   assetClass: AssetClassOption;
   modelType: ModelTypeOption;
-  artifactKind: LocalRuntimeArtifactKind;
+  artifactKind: LocalRuntimeAssetKind;
   auxiliaryEngine: AssetEngineOption | '';
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (kind: LocalRuntimeArtifactKind) => void;
+  onArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onClose: () => void;
   onChooseFile: () => void;
@@ -296,7 +296,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
             className="w-36"
             options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
               value: assetClass,
-              label: assetClass === 'model' ? 'Main model' : 'Companion asset',
+              label: assetClass === 'model' ? 'Runnable asset' : 'Dependency asset',
             }))}
           />
         </div>
@@ -319,9 +319,9 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
             </span>
             <RuntimeSelect
               value={props.artifactKind}
-              onChange={(value) => props.onArtifactKindChange((value || 'vae') as LocalRuntimeArtifactKind)}
+              onChange={(value) => props.onArtifactKindChange((value || 'vae') as LocalRuntimeAssetKind)}
               className="w-36"
-              options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
+              options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
             />
           </div>
         )}
@@ -362,7 +362,7 @@ type UnregisteredAssetsSectionProps = {
   onRefresh: () => void;
   onAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
   onModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
+  onArtifactKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   onImport: (path: string) => void;
 };
@@ -415,10 +415,9 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
         {props.assets.map((asset) => {
           const draft = props.resolveDraft(asset);
           const importing = props.importingAssetPath === asset.path || Boolean(props.assetImportSessionByPath[asset.path]);
-          const requiresEngine = draft.assetClass === 'artifact' && draft.artifactKind === 'auxiliary';
-          const canImport = draft.assetClass === 'model'
-            ? Boolean(draft.modelType)
-            : Boolean(draft.artifactKind) && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
+          const draftIsRunnable = isRunnableAssetKind(draft.assetKind);
+          const requiresEngine = !draftIsRunnable && draft.assetKind === 'auxiliary';
+          const canImport = Boolean(draft.assetKind) && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
             : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
@@ -460,29 +459,29 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_50%,transparent)] pt-3">
                 <RuntimeSelect
-                  value={draft.assetClass}
+                  value={draftIsRunnable ? 'model' : 'artifact'}
                   onChange={(value) => props.onAssetClassChange(asset.path, (value || 'model') as AssetClassOption)}
                   className="w-36"
                   options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
                     value: assetClass,
                     label: assetClass === 'model'
-                      ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Main model' })
-                      : i18n.t('runtimeConfig.localModelCenter.companionAsset', { defaultValue: 'Companion asset' }),
+                      ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Runnable asset' })
+                      : i18n.t('runtimeConfig.localModelCenter.companionAsset', { defaultValue: 'Dependency asset' }),
                   }))}
                 />
-                {draft.assetClass === 'model' ? (
+                {draftIsRunnable ? (
                   <RuntimeSelect
-                    value={draft.modelType || 'chat'}
+                    value={draft.assetKind || 'chat'}
                     onChange={(value) => props.onModelTypeChange(asset.path, (value || 'chat') as ModelTypeOption)}
                     className="w-36"
                     options={MODEL_TYPE_OPTIONS.map((modelType) => ({ value: modelType, label: modelType }))}
                   />
                 ) : (
                   <RuntimeSelect
-                    value={draft.artifactKind || 'vae'}
-                    onChange={(value) => props.onArtifactKindChange(asset.path, (value || 'vae') as LocalRuntimeArtifactKind)}
+                    value={draft.assetKind || 'vae'}
+                    onChange={(value) => props.onArtifactKindChange(asset.path, (value || 'vae') as LocalRuntimeAssetKind)}
                     className="w-36"
-                    options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
+                    options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
                   />
                 )}
                 {requiresEngine ? (
@@ -513,6 +512,12 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
       </div>
     </div>
   );
+}
+
+const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt']);
+
+function isRunnableAssetKind(kind: string | undefined): boolean {
+  return RUNNABLE_ASSET_KINDS.has(String(kind || '').trim());
 }
 
 export { SearchIcon };

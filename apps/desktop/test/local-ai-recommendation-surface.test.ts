@@ -1,25 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type {
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeVerifiedAssetDescriptor,
 } from '../src/runtime/local-runtime/index.js';
 
 import {
   isRecommendedDescriptor,
-  relatedArtifactsForModel,
-  sortVerifiedArtifactsForDisplay,
-  sortVerifiedModelsForDisplay,
+  relatedPassiveAssetsForRunnable,
+  sortVerifiedAssetsForDisplay,
+  sortVerifiedPassiveAssetsForDisplay,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.js';
 
-test('sortVerifiedModelsForDisplay prioritizes recommended entries', () => {
-  const sorted = sortVerifiedModelsForDisplay([
+test('sortVerifiedAssetsForDisplay prioritizes recommended entries', () => {
+  const sorted = sortVerifiedAssetsForDisplay([
     {
       templateId: 'verified.chat.llama3_8b',
       title: 'Llama 3 8B Instruct',
       description: 'General chat model',
       installKind: 'download',
-      modelId: 'local/llama3.1',
+      assetId: 'local/llama3.1',
+      kind: 'chat',
+      logicalModelId: 'local/llama3.1',
       repo: 'nimiplatform/llama3.1-8b-instruct',
       revision: 'main',
       capabilities: ['chat'],
@@ -38,7 +39,9 @@ test('sortVerifiedModelsForDisplay prioritizes recommended entries', () => {
       title: 'Z-Image Turbo (GGUF)',
       description: 'Recommended image model',
       installKind: 'download',
-      modelId: 'local/z_image_turbo',
+      assetId: 'local/z_image_turbo',
+      kind: 'image',
+      logicalModelId: 'local/z_image_turbo',
       repo: 'jayn7/Z-Image-Turbo-GGUF',
       revision: 'main',
       capabilities: ['image'],
@@ -58,13 +61,14 @@ test('sortVerifiedModelsForDisplay prioritizes recommended entries', () => {
   assert.equal(isRecommendedDescriptor(sorted[0]?.tags), true);
 });
 
-test('sortVerifiedArtifactsForDisplay keeps recommended VAE and LLM ahead of generic assets', () => {
-  const sorted = sortVerifiedArtifactsForDisplay([
+test('sortVerifiedPassiveAssetsForDisplay keeps recommended VAE and LLM ahead of generic assets', () => {
+  const sorted = sortVerifiedPassiveAssetsForDisplay([
     {
-      templateId: 'verified.artifact.generic.clip',
+      templateId: 'verified.asset.generic.clip',
       title: 'Generic CLIP',
       description: 'Generic clip helper',
-      artifactId: 'local/generic_clip',
+      assetId: 'local/generic_clip',
+
       kind: 'clip',
       engine: 'localai',
       entry: 'clip/model.safetensors',
@@ -79,11 +83,12 @@ test('sortVerifiedArtifactsForDisplay keeps recommended VAE and LLM ahead of gen
       metadata: { family: 'generic-image' },
     },
     {
-      templateId: 'verified.artifact.z_image.qwen3_4b',
-      title: 'Qwen3 4B Companion LLM',
-      description: 'Recommended llm companion',
-      artifactId: 'local/qwen3_4b_companion',
-      kind: 'llm',
+      templateId: 'verified.asset.z_image.qwen3_4b',
+      title: 'Qwen3 4B Dependency Chat',
+      description: 'Recommended dependency chat asset',
+      assetId: 'local/qwen3_4b_companion',
+
+      kind: 'chat',
       engine: 'localai',
       entry: 'Qwen3-4B-Q4_K_M.gguf',
       files: ['Qwen3-4B-Q4_K_M.gguf'],
@@ -93,14 +98,15 @@ test('sortVerifiedArtifactsForDisplay keeps recommended VAE and LLM ahead of gen
       hashes: {},
       fileCount: 1,
       totalSizeBytes: 0,
-      tags: ['image', 'verified', 'recommended', 'z-image', 'llm'],
+      tags: ['image', 'verified', 'recommended', 'z-image', 'chat'],
       metadata: { family: 'z-image' },
     },
     {
-      templateId: 'verified.artifact.z_image.vae',
+      templateId: 'verified.asset.z_image.vae',
       title: 'Z-Image AE VAE',
-      description: 'Recommended vae companion',
-      artifactId: 'local/z_image_ae',
+      description: 'Recommended dependency VAE asset',
+      assetId: 'local/z_image_ae',
+
       kind: 'vae',
       engine: 'localai',
       entry: 'vae/diffusion_pytorch_model.safetensors',
@@ -119,20 +125,22 @@ test('sortVerifiedArtifactsForDisplay keeps recommended VAE and LLM ahead of gen
   assert.deepEqual(
     sorted.map((artifact) => artifact.templateId),
     [
-      'verified.artifact.z_image.vae',
-      'verified.artifact.z_image.qwen3_4b',
-      'verified.artifact.generic.clip',
+      'verified.asset.z_image.qwen3_4b',
+      'verified.asset.z_image.vae',
+      'verified.asset.generic.clip',
     ],
   );
 });
 
-test('relatedArtifactsForModel ignores recommended tag when matching image families', () => {
-  const model: LocalRuntimeVerifiedModelDescriptor = {
+test('relatedPassiveAssetsForRunnable ignores recommended tag when matching image families', () => {
+  const model: LocalRuntimeVerifiedAssetDescriptor = {
     templateId: 'verified.image.z_image_turbo',
     title: 'Z-Image Turbo (GGUF)',
     description: 'Recommended image model',
     installKind: 'download',
-    modelId: 'local/z_image_turbo',
+    assetId: 'local/z_image_turbo',
+    kind: 'image',
+    logicalModelId: 'local/z_image_turbo',
     repo: 'jayn7/Z-Image-Turbo-GGUF',
     revision: 'main',
     capabilities: ['image'],
@@ -147,12 +155,13 @@ test('relatedArtifactsForModel ignores recommended tag when matching image famil
     tags: ['image', 'verified', 'recommended', 'z-image'],
   };
 
-  const artifacts: LocalRuntimeVerifiedArtifactDescriptor[] = [
+  const artifacts: LocalRuntimeVerifiedAssetDescriptor[] = [
     {
-      templateId: 'verified.artifact.z_image.vae',
+      templateId: 'verified.asset.z_image.vae',
       title: 'Z-Image AE VAE',
-      description: 'Recommended vae companion',
-      artifactId: 'local/z_image_ae',
+      description: 'Recommended dependency VAE asset',
+      assetId: 'local/z_image_ae',
+
       kind: 'vae',
       engine: 'localai',
       entry: 'vae/diffusion_pytorch_model.safetensors',
@@ -167,10 +176,11 @@ test('relatedArtifactsForModel ignores recommended tag when matching image famil
       metadata: { family: 'z-image' },
     },
     {
-      templateId: 'verified.artifact.generic.vae',
+      templateId: 'verified.asset.generic.vae',
       title: 'Generic Recommended VAE',
       description: 'Recommended but unrelated',
-      artifactId: 'local/generic_vae',
+      assetId: 'local/generic_vae',
+
       kind: 'vae',
       engine: 'localai',
       entry: 'generic/model.safetensors',
@@ -187,7 +197,7 @@ test('relatedArtifactsForModel ignores recommended tag when matching image famil
   ];
 
   assert.deepEqual(
-    relatedArtifactsForModel(model, artifacts).map((artifact) => artifact.templateId),
-    ['verified.artifact.z_image.vae'],
+    relatedPassiveAssetsForRunnable(model, artifacts).map((artifact: LocalRuntimeVerifiedAssetDescriptor) => artifact.templateId),
+    ['verified.asset.z_image.vae'],
   );
 });

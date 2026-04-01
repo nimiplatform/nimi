@@ -1,15 +1,14 @@
 import type { JsonObject } from './shared.js';
 
-export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
-export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
 export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
 export type LocalRuntimeTransferSessionKind = 'download' | 'import';
 
-export type LocalRuntimeModelRecord = {
-  localModelId: string;
-  modelId: string;
-  capabilities: string[];
+export type LocalRuntimeAssetRecord = {
+  localAssetId: string;
+  assetId: string;
+  kind: LocalRuntimeAssetKind;
   engine: string;
   entry: string;
   files: string[];
@@ -20,46 +19,29 @@ export type LocalRuntimeModelRecord = {
   };
   integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
-  tags: string[];
-  knownTotalSizeBytes?: number;
-  endpoint: string;
-  status: LocalRuntimeModelStatus;
+  status: LocalRuntimeAssetStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  capabilities?: string[];
+  logicalModelId?: string;
+  family?: string;
+  artifactRoles?: string[];
+  preferredEngine?: string;
+  fallbackEngines?: string[];
   engineConfig?: JsonObject;
-};
-
-export type LocalRuntimeArtifactRecord = {
-  localArtifactId: string;
-  artifactId: string;
-  kind: LocalRuntimeArtifactKind;
-  engine: string;
-  entry: string;
-  files: string[];
-  license: string;
-  source: {
-    repo: string;
-    revision: string;
-  };
-  integrityMode: LocalRuntimeIntegrityMode;
-  hashes: Record<string, string>;
-  status: LocalRuntimeArtifactStatus;
-  installedAt: string;
-  updatedAt: string;
-  healthDetail?: string;
   metadata?: JsonObject;
 };
 
-export type LocalRuntimeModelHealth = {
-  localModelId: string;
-  status: LocalRuntimeModelStatus;
+export type LocalRuntimeAssetHealth = {
+  localAssetId: string;
+  status: LocalRuntimeAssetStatus;
   detail: string;
   endpoint: string;
 };
 
-export type LocalRuntimeModelsHealthResult = {
-  models: LocalRuntimeModelHealth[];
+export type LocalRuntimeAssetsHealthResult = {
+  assets: LocalRuntimeAssetHealth[];
 };
 
 export type LocalRuntimeInferenceAuditEventType =
@@ -159,8 +141,20 @@ export type LocalRuntimeAuditListPayload = {
   timeRange?: LocalRuntimeAuditTimeRange;
 };
 
+export type LocalRuntimeListAssetsPayload = {
+  status?: LocalRuntimeAssetStatus;
+  kind?: LocalRuntimeAssetKind;
+  engine?: string;
+};
+
+export type LocalRuntimeListVerifiedAssetsPayload = {
+  kind?: LocalRuntimeAssetKind;
+  engine?: string;
+};
+
 export type LocalRuntimeInstallPayload = {
   modelId: string;
+  kind: LocalRuntimeAssetKind;
   repo: string;
   revision?: string;
   capabilities?: string[];
@@ -173,71 +167,39 @@ export type LocalRuntimeInstallPayload = {
   engineConfig?: JsonObject;
 };
 
-export type LocalRuntimeVerifiedModelDescriptor = {
+export type LocalRuntimeVerifiedAssetDescriptor = {
   templateId: string;
   title: string;
   description: string;
-  installKind: string;
-  modelId: string;
+  installKind?: string;
+  assetId: string;
+  kind: LocalRuntimeAssetKind;
+  logicalModelId?: string;
   repo: string;
   revision: string;
-  capabilities: string[];
+  capabilities?: string[];
   engine: string;
   entry: string;
   files: string[];
   license: string;
   hashes: Record<string, string>;
-  endpoint: string;
+  endpoint?: string;
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
+  artifactRoles?: string[];
+  preferredEngine?: string;
+  fallbackEngines?: string[];
   engineConfig?: JsonObject;
-};
-
-export type LocalRuntimeVerifiedArtifactDescriptor = {
-  templateId: string;
-  title: string;
-  description: string;
-  artifactId: string;
-  kind: LocalRuntimeArtifactKind;
-  engine: string;
-  entry: string;
-  files: string[];
-  license: string;
-  repo: string;
-  revision: string;
-  hashes: Record<string, string>;
-  fileCount: number;
-  totalSizeBytes?: number;
-  tags: string[];
   metadata?: JsonObject;
 };
 
-export type LocalRuntimeInstallVerifiedPayload = {
+export type LocalRuntimeInstallVerifiedAssetPayload = {
   templateId: string;
   endpoint?: string;
 };
 
-export type LocalRuntimeInstallVerifiedArtifactPayload = {
-  templateId: string;
-};
-
-export type LocalRuntimeImportPayload = {
+export type LocalRuntimeImportAssetPayload = {
   manifestPath: string;
   endpoint?: string;
-};
-
-export type LocalRuntimeImportArtifactPayload = {
-  manifestPath: string;
-};
-
-export type LocalRuntimeListArtifactsPayload = {
-  status?: LocalRuntimeArtifactStatus;
-  kind?: LocalRuntimeArtifactKind;
-  engine?: string;
-};
-
-export type LocalRuntimeListVerifiedArtifactsPayload = {
-  kind?: LocalRuntimeArtifactKind;
-  engine?: string;
 };

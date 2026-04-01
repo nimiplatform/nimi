@@ -4,14 +4,14 @@ import { type RuntimeCanonicalCapability } from "@nimiplatform/sdk/mod";
 import type { HookStorageFileEntry, HookStorageFileReadResult, HookStorageFileWriteResult, HookStorageSqliteExecuteResult, HookStorageSqliteStatement } from "@nimiplatform/sdk/mod";
 export type HookModLocalProfileEntry = {
     entryId: string;
-    kind: 'model' | 'artifact' | 'service' | 'node';
+    kind: 'asset' | 'service' | 'node';
     capability?: RuntimeCanonicalCapability;
     required: boolean;
     selected: boolean;
     preferred: boolean;
-    modelId?: string;
-    artifactId?: string;
-    artifactKind?: 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+    assetId?: string;
+    assetKind?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
+    engineSlot?: string;
     templateId?: string;
     repo?: string;
     engine?: string;

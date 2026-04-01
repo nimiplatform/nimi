@@ -1,6 +1,6 @@
 import {
   localRuntime,
-  type LocalRuntimeModelRecord,
+  type LocalRuntimeAssetRecord,
 } from '@runtime/local-runtime';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
@@ -10,24 +10,24 @@ type GoRuntimeSyncResult = {
   modelId: string;
   engine: string;
   localModelId: string;
-  status: LocalRuntimeModelRecord['status'];
+  status: LocalRuntimeAssetRecord['status'];
   matchedBy: 'install' | 'localModelId' | 'modelId+engine';
 };
 
 type GoRuntimeBootstrapResult = {
   reconciled: GoRuntimeSyncResult[];
-  adopted: LocalRuntimeModelRecord[];
+  adopted: LocalRuntimeAssetRecord[];
 };
 
 type BootstrapLocalRuntimeDeps = {
-  listDesktopModels: () => Promise<LocalRuntimeModelRecord[]>;
-  reconcileModels: (models: LocalRuntimeModelRecord[]) => Promise<GoRuntimeBootstrapResult>;
+  listDesktopModels: () => Promise<LocalRuntimeAssetRecord[]>;
+  reconcileModels: (models: LocalRuntimeAssetRecord[]) => Promise<GoRuntimeBootstrapResult>;
   log: typeof logRendererEvent;
 };
 
 function defaultDeps(): BootstrapLocalRuntimeDeps {
   return {
-    listDesktopModels: () => localRuntime.list(),
+    listDesktopModels: () => localRuntime.listAssets(),
     reconcileModels: async (_models) => ({
       reconciled: [],
       adopted: [],

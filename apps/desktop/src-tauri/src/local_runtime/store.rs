@@ -112,9 +112,9 @@ fn sanitize_legacy_runtime_state(state: &mut LocalAiRuntimeState) {
                 .any(|engine| is_legacy_local_runtime_value(engine.as_str()))
     });
 
-    state.artifacts.retain(|artifact| {
-        !is_legacy_local_runtime_value(artifact.engine.as_str())
-            && !is_legacy_local_runtime_value(artifact.artifact_id.as_str())
+    state.artifacts.retain(|asset| {
+        !is_legacy_local_runtime_value(asset.engine.as_str())
+            && !is_legacy_local_runtime_value(asset.asset_id.as_str())
     });
 
     state.services.retain(|service| {
@@ -308,6 +308,7 @@ pub fn save_state(app: &AppHandle, state: &LocalAiRuntimeState) -> Result<(), St
 mod tests {
     use super::{load_state_from_path, save_state_to_path};
     use crate::local_runtime::types::{
+        LocalAiAssetKind, LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
         LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
         LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
         LocalAiRuntimeState, LocalAiTransferSessionKind,
@@ -356,6 +357,34 @@ mod tests {
             fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
+        }
+    }
+
+    fn asset_fixture(local_asset_id: &str) -> LocalAiAssetRecord {
+        LocalAiAssetRecord {
+            local_asset_id: local_asset_id.to_string(),
+            asset_id: format!("local:test/{local_asset_id}"),
+            kind: LocalAiAssetKind::Vae,
+            engine: "media".to_string(),
+            entry: "vae.safetensors".to_string(),
+            files: vec!["vae.safetensors".to_string()],
+            license: "apache-2.0".to_string(),
+            source: LocalAiAssetSource {
+                repo: "hf://test/asset".to_string(),
+                revision: "main".to_string(),
+            },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
+            hashes: HashMap::from([(
+                "vae.safetensors".to_string(),
+                "sha256:def".to_string(),
+            )]),
+            status: LocalAiAssetStatus::Installed,
+            installed_at: "2026-01-01T00:00:00.000Z".to_string(),
+            updated_at: "2026-01-01T00:00:00.000Z".to_string(),
+            health_detail: None,
+            metadata: Some(serde_json::json!({
+                "slot": "vae_path",
+            })),
         }
     }
 
@@ -427,6 +456,40 @@ mod tests {
     }
 
     #[test]
+    fn save_state_persists_single_assets_array() {
+        let temp = unique_temp_dir("assets-array");
+        let state_path = temp.join("state.json");
+        let state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![model_fixture("model-a")],
+            artifacts: vec![asset_fixture("asset-a")],
+            capability_index: HashMap::new(),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: Vec::new(),
+            audits: Vec::new(),
+        };
+
+        save_state_to_path(&state_path, &state).expect("save state");
+        let raw = fs::read_to_string(&state_path).expect("read state");
+        let parsed = serde_json::from_str::<serde_json::Value>(&raw).expect("parse state json");
+
+        assert!(parsed.get("models").is_none());
+        assert!(parsed.get("artifacts").is_none());
+        let assets = parsed
+            .get("assets")
+            .and_then(|value| value.as_array())
+            .expect("assets array");
+        assert_eq!(assets.len(), 2);
+        assert_eq!(assets[0]["assetRecordType"], "runnable");
+        assert_eq!(assets[0]["localAssetId"], "model-a");
+        assert_eq!(assets[1]["assetRecordType"], "passive");
+        assert_eq!(assets[1]["localAssetId"], "asset-a");
+
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
     fn save_state_atomic_leaves_no_temp_file() {
         let temp = unique_temp_dir("atomic");
         let state_path = temp.join("state.json");
@@ -484,6 +547,86 @@ mod tests {
 
         assert!(loaded.models.is_empty());
         assert!(loaded.capability_index.is_empty());
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn load_state_accepts_assets_only_payload() {
+        let temp = unique_temp_dir("assets-only");
+        let state_path = temp.join("state.json");
+        fs::write(
+            &state_path,
+            serde_json::json!({
+                "version": 11,
+                "assets": [
+                    {
+                        "assetRecordType": "runnable",
+                        "localAssetId": "model-a",
+                        "assetId": "hf:test/model-a",
+                        "modelType": "chat",
+                        "logicalModelId": "nimi/model-a",
+                        "capabilities": ["chat"],
+                        "engine": "llama",
+                        "entry": "model.gguf",
+                        "files": ["model.gguf"],
+                        "license": "apache-2.0",
+                        "source": {
+                            "repo": "hf://test/model",
+                            "revision": "main"
+                        },
+                        "integrityMode": "verified",
+                        "hashes": {
+                            "model.gguf": "sha256:abc"
+                        },
+                        "tags": [],
+                        "knownTotalSizeBytes": 1024,
+                        "endpoint": "http://127.0.0.1:1234/v1",
+                        "status": "installed",
+                        "installedAt": "2026-01-01T00:00:00.000Z",
+                        "updatedAt": "2026-01-01T00:00:00.000Z",
+                        "assetRoles": ["llm", "tokenizer"],
+                        "preferredEngine": "llama",
+                        "fallbackEngines": []
+                    },
+                    {
+                        "assetRecordType": "passive",
+                        "localAssetId": "asset-a",
+                        "assetId": "local:test/asset-a",
+                        "kind": "vae",
+                        "engine": "media",
+                        "entry": "vae.safetensors",
+                        "files": ["vae.safetensors"],
+                        "license": "apache-2.0",
+                        "source": {
+                            "repo": "hf://test/asset",
+                            "revision": "main"
+                        },
+                        "integrityMode": "verified",
+                        "hashes": {
+                            "vae.safetensors": "sha256:def"
+                        },
+                        "status": "installed",
+                        "installedAt": "2026-01-01T00:00:00.000Z",
+                        "updatedAt": "2026-01-01T00:00:00.000Z",
+                        "metadata": {
+                            "slot": "vae_path"
+                        }
+                    }
+                ]
+            })
+            .to_string(),
+        )
+        .expect("write assets-only state");
+
+        let loaded = load_state_from_path(&state_path).expect("load state");
+
+        assert_eq!(loaded.models.len(), 1);
+        assert_eq!(loaded.models[0].local_model_id, "model-a");
+        assert_eq!(loaded.models[0].artifact_roles, vec!["llm", "tokenizer"]);
+        assert_eq!(loaded.artifacts.len(), 1);
+        assert_eq!(loaded.artifacts[0].local_asset_id, "asset-a");
+        assert_eq!(loaded.artifacts[0].kind, LocalAiAssetKind::Vae);
+
         let _ = fs::remove_dir_all(&temp);
     }
 

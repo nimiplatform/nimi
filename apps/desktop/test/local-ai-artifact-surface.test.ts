@@ -2,15 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  parseArtifactRecord,
-  parseModelRecord,
-  parseVerifiedArtifactDescriptor,
+  parseAssetRecord as parseArtifactRecord,
+  parseAssetRecord as parseModelRecord,
+  parseVerifiedAssetDescriptor as parseVerifiedArtifactDescriptor,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseModelRecord decodes engineConfig struct payloads into plain objects', () => {
   const parsed = parseModelRecord({
-    localModelId: 'local-z-image',
-    modelId: 'local-import/z_image_turbo-Q4_K',
+    localAssetId: 'local-z-image',
+    assetId: 'local-import/z_image_turbo-Q4_K',
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K.gguf',
@@ -83,8 +83,8 @@ test('parseArtifactRecord and parseVerifiedArtifactDescriptor decode metadata in
   };
 
   const artifact = parseArtifactRecord({
-    localArtifactId: 'artifact-vae',
-    artifactId: 'z-image-ae',
+    localAssetId: 'artifact-vae',
+    assetId: 'z-image-ae',
     kind: 'vae',
     engine: 'localai',
     entry: 'ae.safetensors',
@@ -107,7 +107,7 @@ test('parseArtifactRecord and parseVerifiedArtifactDescriptor decode metadata in
     templateId: 'z-image-ae',
     title: 'Z-Image AE',
     description: 'Verified VAE',
-    artifactId: 'z-image-ae',
+    assetId: 'z-image-ae',
     kind: 'vae',
     engine: 'localai',
     entry: 'ae.safetensors',
@@ -125,18 +125,18 @@ test('parseArtifactRecord and parseVerifiedArtifactDescriptor decode metadata in
     role: 'companion',
     slots: ['vae', 'llm'],
   });
-  assert.equal(artifact.artifactId, 'local/z-image-ae');
+  assert.equal(artifact.assetId, 'local/z-image-ae');
   assert.deepEqual(verified.metadata, {
     role: 'companion',
     slots: ['vae', 'llm'],
   });
-  assert.equal(verified.artifactId, 'local/z-image-ae');
+  assert.equal(verified.assetId, 'z-image-ae');
 });
 
 test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => {
   const model = parseModelRecord({
-    localModelId: '01JMODEL',
-    modelId: 'z_image_turbo',
+    localAssetId: '01JMODEL',
+    assetId: 'z_image_turbo',
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K_M.gguf',
@@ -156,8 +156,8 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
   });
 
   const artifact = parseArtifactRecord({
-    localArtifactId: '01JART',
-    artifactId: 'media/z_image_ae',
+    localAssetId: '01JART',
+    assetId: 'media/z_image_ae',
     kind: 'vae',
     engine: 'media',
     entry: 'ae.safetensors',
@@ -173,9 +173,7 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
     updatedAt: '2026-03-08T00:00:00Z',
   });
 
-  assert.equal(model.modelId, 'local/z_image_turbo');
+  assert.equal(model.assetId, 'local/z_image_turbo');
   assert.deepEqual(model.files, ['z_image_turbo-Q4_K_M.gguf']);
-  assert.deepEqual(model.tags, ['image', 'z-image']);
-  assert.equal(model.knownTotalSizeBytes, 1234);
-  assert.equal(artifact.artifactId, 'local/z_image_ae');
+  assert.equal(artifact.assetId, 'local/z_image_ae');
 });

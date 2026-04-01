@@ -1,9 +1,4 @@
 #[tauri::command]
-pub fn runtime_local_models_list(app: AppHandle) -> Result<Vec<LocalAiModelRecord>, String> {
-    list_models(&app)
-}
-
-#[tauri::command]
 pub fn runtime_local_audits_list(
     app: AppHandle,
     payload: Option<LocalAiAuditsListPayload>,
@@ -126,35 +121,4 @@ pub fn runtime_local_audits_list(
         filtered.truncate(limit);
     }
     Ok(filtered)
-}
-
-#[tauri::command]
-pub fn runtime_local_pick_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
-    let models_root = runtime_models_dir(&app)?;
-    let selected = rfd::FileDialog::new()
-        .set_directory(&models_root)
-        .set_title("Select resolved manifest.json")
-        .add_filter("Model Manifest", &["json"])
-        .pick_file();
-    let Some(path) = selected else {
-        return Ok(None);
-    };
-    let canonical_path = validate_import_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
-    Ok(Some(canonical_path.to_string_lossy().to_string()))
-}
-
-#[tauri::command]
-pub fn runtime_local_pick_artifact_manifest_path(app: AppHandle) -> Result<Option<String>, String> {
-    let models_root = runtime_models_dir(&app)?;
-    let selected = rfd::FileDialog::new()
-        .set_directory(&models_root)
-        .set_title("Select artifact.manifest.json")
-        .add_filter("Artifact Manifest", &["json"])
-        .pick_file();
-    let Some(path) = selected else {
-        return Ok(None);
-    };
-    let canonical_path =
-        validate_import_artifact_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
-    Ok(Some(canonical_path.to_string_lossy().to_string()))
 }

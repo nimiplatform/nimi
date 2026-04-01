@@ -319,7 +319,9 @@ pub fn health(
 mod tests {
     use super::{is_supervised_llama_engine, preflight_model_start, should_mark_engine_crashed};
     use crate::local_runtime::types::LocalAiModelStatus;
-    use crate::local_runtime::types::{LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource};
+    use crate::local_runtime::types::{
+        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource,
+    };
     use std::collections::HashMap;
 
     fn model_fixture() -> LocalAiModelRecord {

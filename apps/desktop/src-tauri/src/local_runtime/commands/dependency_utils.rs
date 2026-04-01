@@ -63,28 +63,35 @@ fn profile_entry_matches_capability(
     }
 }
 
-fn profile_entry_is_artifact(entry: &LocalAiProfileEntryDescriptor) -> bool {
-    entry.kind.trim().eq_ignore_ascii_case("artifact")
+fn profile_entry_has_engine_slot(entry: &LocalAiProfileEntryDescriptor) -> bool {
+    entry.engine_slot
+        .as_deref()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
 }
 
-fn to_profile_artifact_plan_entry(
+fn profile_entry_is_asset(entry: &LocalAiProfileEntryDescriptor) -> bool {
+    entry.kind.trim().eq_ignore_ascii_case("asset")
+}
+
+fn to_profile_asset_plan_entry(
     entry: &LocalAiProfileEntryDescriptor,
-) -> LocalAiProfileArtifactPlanEntry {
-    LocalAiProfileArtifactPlanEntry {
+) -> LocalAiProfileAssetPlanEntry {
+    LocalAiProfileAssetPlanEntry {
         entry_id: entry.entry_id.clone(),
-        kind: "artifact".to_string(),
+        kind: "asset".to_string(),
         title: entry.title.clone(),
         description: entry.description.clone(),
         capability: entry.capability.clone(),
         required: entry.required,
         preferred: entry.preferred,
-        model_id: entry.model_id.clone(),
+        asset_id: entry.asset_id.clone(),
+        asset_kind: entry.asset_kind.clone(),
+        engine_slot: entry.engine_slot.clone(),
         repo: entry.repo.clone(),
         service_id: entry.service_id.clone(),
         node_id: entry.node_id.clone(),
         engine: entry.engine.clone(),
-        artifact_id: entry.artifact_id.clone(),
-        artifact_kind: entry.artifact_kind.clone(),
         template_id: entry.template_id.clone(),
         revision: entry.revision.clone(),
         tags: entry.tags.clone(),
@@ -100,7 +107,7 @@ fn to_dependency_option_input_from_profile(
         kind: normalize_dependency_kind(entry.kind.as_str()),
         capability: normalize_optional(entry.capability.clone()).map(|item| item.to_ascii_lowercase()),
         title: normalize_optional(entry.title.clone()),
-        model_id: normalize_optional(entry.model_id.clone()),
+        model_id: normalize_optional(entry.asset_id.clone()),
         repo: normalize_optional(entry.repo.clone()),
         engine: normalize_optional(entry.engine.clone()),
         service_id: normalize_optional(entry.service_id.clone()),
@@ -112,7 +119,7 @@ fn to_dependency_option_input_from_profile(
 fn bridge_profile_to_dependency_declaration(
     profile: &LocalAiProfileDescriptor,
     capability_filter: Option<&str>,
-) -> (DependencyDeclarationInput, Vec<LocalAiProfileArtifactPlanEntry>) {
+) -> (DependencyDeclarationInput, Vec<LocalAiProfileAssetPlanEntry>) {
     let filtered_entries = profile
         .entries
         .iter()
@@ -121,7 +128,7 @@ fn bridge_profile_to_dependency_declaration(
         .collect::<Vec<_>>();
     let dependency_entries = filtered_entries
         .iter()
-        .filter(|entry| !profile_entry_is_artifact(entry))
+        .filter(|entry| !profile_entry_is_asset(entry) || !profile_entry_has_engine_slot(entry))
         .cloned()
         .collect::<Vec<_>>();
     let required = dependency_entries
@@ -134,10 +141,10 @@ fn bridge_profile_to_dependency_declaration(
         .filter(|entry| entry.required == Some(false))
         .map(to_dependency_option_input_from_profile)
         .collect::<Vec<_>>();
-    let artifact_entries = filtered_entries
+    let asset_entries = filtered_entries
         .iter()
-        .filter(|entry| profile_entry_is_artifact(entry))
-        .map(to_profile_artifact_plan_entry)
+        .filter(|entry| profile_entry_is_asset(entry) && profile_entry_has_engine_slot(entry))
+        .map(to_profile_asset_plan_entry)
         .collect::<Vec<_>>();
 
     (
@@ -147,7 +154,7 @@ fn bridge_profile_to_dependency_declaration(
             alternatives: Vec::new(),
             preferred: std::collections::HashMap::new(),
         },
-        artifact_entries,
+        asset_entries,
     )
 }
 
@@ -178,7 +185,7 @@ fn resolve_profile_plan(
         .device_profile
         .clone()
         .unwrap_or_else(|| collect_device_profile(app));
-    let (declaration, artifact_entries) =
+    let (declaration, asset_entries) =
         bridge_profile_to_dependency_declaration(&payload.profile, capability_filter.as_deref());
     let mut state = load_state(app)?;
     if state.capability_matrix.is_empty() {
@@ -214,7 +221,7 @@ fn resolve_profile_plan(
         consume_capabilities: payload.profile.consume_capabilities.clone(),
         requirements: payload.profile.requirements.clone(),
         execution_plan,
-        artifact_entries,
+        asset_entries,
         warnings: resolved.warnings,
         reason_code: resolved.reason_code,
     })
@@ -417,57 +424,57 @@ mod profile_tests {
             entries: vec![
                 LocalAiProfileEntryDescriptor {
                     entry_id: "image-model".to_string(),
-                    kind: "model".to_string(),
+                    kind: "asset".to_string(),
                     title: Some("Primary image model".to_string()),
                     description: None,
                     capability: Some("image".to_string()),
                     required: Some(true),
                     preferred: Some(true),
-                    model_id: Some("black-forest-labs/flux-dev".to_string()),
+                    asset_id: Some("black-forest-labs/flux-dev".to_string()),
+                    asset_kind: Some("image".to_string()),
+                    engine_slot: None,
                     repo: Some("black-forest-labs/flux-dev".to_string()),
                     service_id: None,
                     node_id: None,
                     engine: Some("media".to_string()),
-                    artifact_id: None,
-                    artifact_kind: None,
                     template_id: None,
                     revision: None,
                     tags: vec!["recommended".to_string()],
                 },
                 LocalAiProfileEntryDescriptor {
-                    entry_id: "companion-vae".to_string(),
-                    kind: "artifact".to_string(),
+                    entry_id: "passive-vae".to_string(),
+                    kind: "asset".to_string(),
                     title: Some("Recommended VAE".to_string()),
                     description: None,
                     capability: Some("image".to_string()),
                     required: Some(true),
                     preferred: Some(true),
-                    model_id: None,
+                    asset_id: Some("flux/vae".to_string()),
+                    asset_kind: Some("vae".to_string()),
+                    engine_slot: Some("vae_path".to_string()),
                     repo: None,
                     service_id: None,
                     node_id: None,
                     engine: Some("media".to_string()),
-                    artifact_id: Some("flux/vae".to_string()),
-                    artifact_kind: Some("vae".to_string()),
                     template_id: Some("verified/flux-vae".to_string()),
                     revision: None,
                     tags: vec![],
                 },
                 LocalAiProfileEntryDescriptor {
                     entry_id: "chat-helper".to_string(),
-                    kind: "model".to_string(),
+                    kind: "asset".to_string(),
                     title: Some("Chat helper".to_string()),
                     description: None,
                     capability: Some("chat".to_string()),
                     required: Some(false),
                     preferred: Some(false),
-                    model_id: Some("qwen/qwen3".to_string()),
+                    asset_id: Some("qwen/qwen3".to_string()),
+                    asset_kind: Some("chat".to_string()),
+                    engine_slot: None,
                     repo: Some("qwen/qwen3".to_string()),
                     service_id: None,
                     node_id: None,
                     engine: Some("llama".to_string()),
-                    artifact_id: None,
-                    artifact_kind: None,
                     template_id: None,
                     revision: None,
                     tags: vec![],
@@ -478,7 +485,7 @@ mod profile_tests {
     }
 
     #[test]
-    fn bridge_profile_to_dependency_declaration_separates_runtime_and_artifact_entries() {
+    fn bridge_profile_to_dependency_declaration_separates_runtime_and_passive_asset_entries() {
         let profile = profile_fixture();
         let (declaration, artifacts) =
             bridge_profile_to_dependency_declaration(&profile, Some("image"));
@@ -487,8 +494,8 @@ mod profile_tests {
         assert_eq!(declaration.required[0].dependency_id, "image-model");
         assert!(declaration.optional.is_empty());
         assert_eq!(artifacts.len(), 1);
-        assert_eq!(artifacts[0].entry_id, "companion-vae");
-        assert_eq!(artifacts[0].kind, "artifact");
+        assert_eq!(artifacts[0].entry_id, "passive-vae");
+        assert_eq!(artifacts[0].kind, "asset");
         assert_eq!(artifacts[0].template_id.as_deref(), Some("verified/flux-vae"));
     }
 

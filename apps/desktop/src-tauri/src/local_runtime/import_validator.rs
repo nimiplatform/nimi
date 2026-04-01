@@ -3,22 +3,20 @@ use std::path::Path;
 
 mod helpers;
 mod manifest_checks;
-use helpers::{
-    err, normalize_manifest_hash, ARTIFACT_MANIFEST_FILE_NAME, MODEL_MANIFEST_FILE_NAME,
-};
+use helpers::{err, normalize_manifest_hash, ASSET_MANIFEST_FILE_NAME};
 pub(crate) use helpers::{normalize_and_validate_capabilities, validate_loopback_endpoint};
-use manifest_checks::normalize_artifact_kind;
+use manifest_checks::normalize_asset_kind;
 pub(crate) use manifest_checks::{
-    parse_and_validate_artifact_manifest, parse_and_validate_manifest,
-    validate_import_artifact_manifest_path, validate_import_manifest_path,
+    parse_and_validate_asset_manifest, parse_and_validate_manifest,
+    validate_import_asset_manifest_path,
 };
 
 use super::types::{
-    generate_ulid_string, infer_artifact_integrity_mode_from_source,
+    generate_ulid_string, infer_asset_integrity_mode_from_source,
     infer_model_integrity_mode_from_source, normalize_non_empty, now_iso_timestamp,
-    slugify_local_model_id, ImportedArtifactManifest, ImportedModelManifest,
-    LocalAiArtifactKind, LocalAiArtifactRecord, LocalAiArtifactSource, LocalAiArtifactStatus,
-    LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
+    slugify_local_model_id, ImportedAssetManifest, ImportedModelManifest, LocalAiAssetKind,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiModelRecord,
+    LocalAiModelSource, LocalAiModelStatus,
 };
 
 pub fn manifest_to_model_record(
@@ -69,10 +67,12 @@ pub fn manifest_to_model_record(
             revision: manifest.source.revision.trim().to_string(),
         },
         integrity_mode: manifest.integrity_mode.or_else(|| {
-            Some(infer_model_integrity_mode_from_source(&LocalAiModelSource {
-                repo: manifest.source.repo.trim().to_string(),
-                revision: manifest.source.revision.trim().to_string(),
-            }))
+            Some(infer_model_integrity_mode_from_source(
+                &LocalAiModelSource {
+                    repo: manifest.source.repo.trim().to_string(),
+                    revision: manifest.source.revision.trim().to_string(),
+                },
+            ))
         }),
         hashes: manifest
             .hashes
@@ -95,16 +95,16 @@ pub fn manifest_to_model_record(
 }
 
 pub fn manifest_to_artifact_record(
-    manifest: &ImportedArtifactManifest,
-) -> Result<LocalAiArtifactRecord, String> {
-    let slug = slugify_local_model_id(&manifest.artifact_id);
-    let local_artifact_id = format!("local_artifact_{slug}_{}", generate_ulid_string());
+    manifest: &ImportedAssetManifest,
+) -> Result<LocalAiAssetRecord, String> {
+    let slug = slugify_local_model_id(&manifest.asset_id);
+    let local_asset_id = format!("local_asset_{slug}_{}", generate_ulid_string());
     let now = now_iso_timestamp();
-    let kind = normalize_artifact_kind(&manifest.kind)?;
+    let kind = normalize_asset_kind(&manifest.kind)?;
 
-    Ok(LocalAiArtifactRecord {
-        local_artifact_id,
-        artifact_id: manifest.artifact_id.trim().to_string(),
+    Ok(LocalAiAssetRecord {
+        local_asset_id,
+        asset_id: manifest.asset_id.trim().to_string(),
         kind,
         engine: normalize_non_empty(&manifest.engine, "llama"),
         entry: manifest.entry.trim().to_string(),
@@ -118,18 +118,20 @@ pub fn manifest_to_artifact_record(
                 .collect()
         },
         license: manifest.license.trim().to_string(),
-        source: LocalAiArtifactSource {
+        source: LocalAiAssetSource {
             repo: manifest.source.repo.trim().to_string(),
             revision: manifest.source.revision.trim().to_string(),
         },
         integrity_mode: manifest.integrity_mode.or_else(|| {
-            Some(infer_artifact_integrity_mode_from_source(&LocalAiArtifactSource {
-                repo: manifest.source.repo.trim().to_string(),
-                revision: manifest.source.revision.trim().to_string(),
-            }))
+            Some(infer_asset_integrity_mode_from_source(
+                &LocalAiAssetSource {
+                    repo: manifest.source.repo.trim().to_string(),
+                    revision: manifest.source.revision.trim().to_string(),
+                },
+            ))
         }),
         hashes: manifest.hashes.clone(),
-        status: LocalAiArtifactStatus::Installed,
+        status: LocalAiAssetStatus::Installed,
         installed_at: now.clone(),
         updated_at: now,
         health_detail: None,
@@ -141,10 +143,8 @@ pub fn manifest_to_artifact_record(
 mod tests {
     use super::{
         manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
-        validate_import_artifact_manifest_path, validate_import_manifest_path,
-        validate_loopback_endpoint,
+        validate_import_asset_manifest_path, validate_loopback_endpoint,
     };
-    use crate::local_runtime::types::artifact_relative_dir;
     use sha2::{Digest, Sha256};
     use std::fs;
     use std::path::PathBuf;
@@ -174,48 +174,51 @@ mod tests {
     }
 
     #[test]
-    fn validate_import_manifest_path_requires_resolved_manifest_location() {
+    fn validate_import_asset_manifest_path_requires_resolved_manifest_location() {
         let temp = unique_temp_dir("manifest-path");
         let models_dir = temp.join("models");
         fs::create_dir_all(&models_dir).expect("create models dir");
         let manifest_dir = resolved_manifest_dir(&models_dir, "nimi/test-model");
-        let manifest_path = manifest_dir.join("manifest.json");
+        let manifest_path = manifest_dir.join("asset.manifest.json");
         fs::write(&manifest_path, "{}").expect("write manifest");
 
-        let validated =
-            validate_import_manifest_path(manifest_path.to_str().unwrap(), models_dir.as_path());
+        let validated = validate_import_asset_manifest_path(
+            manifest_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
         assert!(validated.is_ok());
 
         let legacy_path = models_dir.join("model.manifest.json");
         fs::write(&legacy_path, "{}").expect("write legacy manifest");
         let legacy =
-            validate_import_manifest_path(legacy_path.to_str().unwrap(), models_dir.as_path());
+            validate_import_asset_manifest_path(legacy_path.to_str().unwrap(), models_dir.as_path());
         assert!(legacy.is_err());
         assert!(legacy
             .unwrap_err()
-            .contains("LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID"));
+            .contains("LOCAL_AI_IMPORT_ASSET_MANIFEST_FILE_NAME_INVALID"));
 
         let outside_models_dir = temp.join("outside-models");
         fs::create_dir_all(&outside_models_dir).expect("create outside-models dir");
-        let invalid_path = outside_models_dir.join("manifest.json");
+        let invalid_path = outside_models_dir.join("asset.manifest.json");
         fs::write(&invalid_path, "{}").expect("write invalid manifest");
-        let invalid =
-            validate_import_manifest_path(invalid_path.to_str().unwrap(), models_dir.as_path());
+        let invalid = validate_import_asset_manifest_path(
+            invalid_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
         assert!(invalid.is_err());
 
         let _ = fs::remove_dir_all(&temp);
     }
 
     #[test]
-    fn validate_import_artifact_manifest_path_requires_models_ancestor_and_file_name() {
+    fn validate_import_asset_manifest_path_requires_models_ancestor_and_file_name() {
         let temp = unique_temp_dir("artifact-manifest-path");
         let models_dir = temp.join("models");
-        let artifact_dir = models_dir.join(artifact_relative_dir("companion-artifact"));
-        fs::create_dir_all(&artifact_dir).expect("create artifact dir");
-        let manifest_path = artifact_dir.join("artifact.manifest.json");
+        let artifact_dir = resolved_manifest_dir(&models_dir, "companion-artifact");
+        let manifest_path = artifact_dir.join("asset.manifest.json");
         fs::write(&manifest_path, "{}").expect("write artifact manifest");
 
-        let validated = validate_import_artifact_manifest_path(
+        let validated = validate_import_asset_manifest_path(
             manifest_path.to_str().unwrap(),
             models_dir.as_path(),
         );
@@ -223,20 +226,20 @@ mod tests {
 
         let invalid_name_path = artifact_dir.join("manifest.json");
         fs::write(&invalid_name_path, "{}").expect("write wrong manifest");
-        let invalid_name = validate_import_artifact_manifest_path(
+        let invalid_name = validate_import_asset_manifest_path(
             invalid_name_path.to_str().unwrap(),
             models_dir.as_path(),
         );
         assert!(invalid_name.is_err());
         assert!(invalid_name
             .unwrap_err()
-            .contains("LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID"));
+            .contains("LOCAL_AI_IMPORT_ASSET_MANIFEST_FILE_NAME_INVALID"));
 
         let outside_models_dir = temp.join("outside-artifacts");
         fs::create_dir_all(&outside_models_dir).expect("create outside artifacts dir");
-        let invalid_path = outside_models_dir.join("artifact.manifest.json");
+        let invalid_path = outside_models_dir.join("asset.manifest.json");
         fs::write(&invalid_path, "{}").expect("write outside artifact manifest");
-        let invalid = validate_import_artifact_manifest_path(
+        let invalid = validate_import_asset_manifest_path(
             invalid_path.to_str().unwrap(),
             models_dir.as_path(),
         );

@@ -360,7 +360,7 @@ fn memory_budget_bytes(
     }
 }
 
-fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSuggestedArtifact> {
+fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSuggestedAsset> {
     let haystack = format!(
         "{} {} {} {}",
         candidate.model_id,
@@ -372,10 +372,10 @@ fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSugg
     if !haystack.contains("z-image") {
         return Vec::new();
     }
-    verified_artifact_list()
+    verified_asset_list()
         .into_iter()
-        .filter_map(|artifact| {
-            let family = artifact
+        .filter_map(|asset| {
+            let family = asset
                 .metadata
                 .as_ref()
                 .and_then(|value| value.get("family"))
@@ -384,17 +384,20 @@ fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSugg
             if family.as_deref() != Some("z-image") {
                 return None;
             }
-            Some(LocalAiSuggestedArtifact {
-                template_id: Some(artifact.template_id),
-                artifact_id: Some(artifact.artifact_id),
-                kind: match artifact.kind {
-                    crate::local_runtime::types::LocalAiArtifactKind::Vae => "vae",
-                    crate::local_runtime::types::LocalAiArtifactKind::Ae => "ae",
-                    crate::local_runtime::types::LocalAiArtifactKind::Llm => "llm",
-                    crate::local_runtime::types::LocalAiArtifactKind::Clip => "clip",
-                    crate::local_runtime::types::LocalAiArtifactKind::Controlnet => "controlnet",
-                    crate::local_runtime::types::LocalAiArtifactKind::Lora => "lora",
-                    crate::local_runtime::types::LocalAiArtifactKind::Auxiliary => "auxiliary",
+            Some(LocalAiSuggestedAsset {
+                template_id: Some(asset.template_id),
+                asset_id: Some(asset.asset_id),
+                kind: match asset.kind {
+                    crate::local_runtime::types::LocalAiAssetKind::Chat => "chat",
+                    crate::local_runtime::types::LocalAiAssetKind::Image => "image",
+                    crate::local_runtime::types::LocalAiAssetKind::Video => "video",
+                    crate::local_runtime::types::LocalAiAssetKind::Tts => "tts",
+                    crate::local_runtime::types::LocalAiAssetKind::Stt => "stt",
+                    crate::local_runtime::types::LocalAiAssetKind::Vae => "vae",
+                    crate::local_runtime::types::LocalAiAssetKind::Clip => "clip",
+                    crate::local_runtime::types::LocalAiAssetKind::Controlnet => "controlnet",
+                    crate::local_runtime::types::LocalAiAssetKind::Lora => "lora",
+                    crate::local_runtime::types::LocalAiAssetKind::Auxiliary => "auxiliary",
                 }
                 .to_string(),
                 family,

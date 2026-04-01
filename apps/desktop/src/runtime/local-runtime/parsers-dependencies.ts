@@ -13,7 +13,7 @@ export function normalizeExecutionEntryKind(value: unknown): LocalRuntimeExecuti
   if (typeof value === 'number') {
     if (value === 2) return 'service';
     if (value === 3) return 'node';
-    return 'model';
+    return 'asset';
   }
   const raw = asString(value).toLowerCase();
   if (raw === 'local_execution_entry_kind_service' || raw === '2') return 'service';
@@ -21,7 +21,7 @@ export function normalizeExecutionEntryKind(value: unknown): LocalRuntimeExecuti
   if (raw === 'service' || raw === 'node') {
     return raw;
   }
-  return 'model';
+  return 'asset';
 }
 
 export function parseExecutionEntryDescriptor(value: unknown): LocalRuntimeExecutionEntryDescriptor {
@@ -36,7 +36,7 @@ export function parseExecutionEntryDescriptor(value: unknown): LocalRuntimeExecu
     required: Boolean(record.required),
     selected: Boolean(record.selected),
     preferred: Boolean(record.preferred),
-    modelId: asString(record.modelId) || undefined,
+    modelId: asString(record.assetId) || undefined,
     repo: asString(record.repo) || undefined,
     engine: asString(record.engine) || undefined,
     serviceId: asString(record.serviceId) || undefined,

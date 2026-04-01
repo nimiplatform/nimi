@@ -1,3 +1,50 @@
+const ASSET_MANIFEST_FILE_NAME: &str = "asset.manifest.json";
+const KNOWN_MODEL_EXTENSIONS: &[&str] = &["gguf", "safetensors", "bin", "pt", "onnx", "pth"];
+
+fn is_model_file_extension(path: &std::path::Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| KNOWN_MODEL_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+fn registered_model_paths(
+    models_root: &std::path::Path,
+    state: &LocalAiRuntimeState,
+) -> std::collections::HashSet<String> {
+    state
+        .models
+        .iter()
+        .filter_map(|record| {
+            let logical_model_id = if record.logical_model_id.trim().is_empty() {
+                default_logical_model_id(record.model_id.as_str())
+            } else {
+                record.logical_model_id.clone()
+            };
+            if record.entry.trim().is_empty() {
+                return None;
+            }
+            Some(
+                resolved_model_dir(models_root, logical_model_id.as_str())
+                    .join(record.entry.as_str())
+                    .to_string_lossy()
+                    .to_string(),
+            )
+        })
+        .collect()
+}
+
+fn is_managed_models_subdir(path: &std::path::Path) -> bool {
+    path.join(ASSET_MANIFEST_FILE_NAME).exists()
+}
+
+fn is_reserved_models_root_child(path: &std::path::Path) -> bool {
+    matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("resolved" | "quarantine")
+    )
+}
+
 fn registered_artifact_paths(
     models_root: &std::path::Path,
     state: &LocalAiRuntimeState,
@@ -5,13 +52,13 @@ fn registered_artifact_paths(
     state
         .artifacts
         .iter()
-        .filter_map(|artifact| {
-            let entry = artifact.entry.trim();
+        .filter_map(|asset| {
+            let entry = asset.entry.trim();
             if entry.is_empty() {
                 return None;
             }
             Some(
-                artifact_dir(models_root, artifact.artifact_id.as_str())
+                artifact_dir(models_root, asset.asset_id.as_str())
                     .join(entry)
                     .to_string_lossy()
                     .to_string(),
@@ -20,77 +67,45 @@ fn registered_artifact_paths(
         .collect()
 }
 
-fn typed_folder_model_type(folder_name: &str) -> Option<LocalAiModelType> {
+fn typed_folder_asset_kind(folder_name: &str) -> Option<LocalAiAssetKind> {
     match folder_name.trim().to_ascii_lowercase().as_str() {
-        "chat" => Some(LocalAiModelType::Chat),
-        "embedding" => Some(LocalAiModelType::Embedding),
-        "image" => Some(LocalAiModelType::Image),
-        "video" => Some(LocalAiModelType::Video),
-        "tts" => Some(LocalAiModelType::Tts),
-        "stt" => Some(LocalAiModelType::Stt),
-        "music" => Some(LocalAiModelType::Music),
+        "chat" => Some(LocalAiAssetKind::Chat),
+        "image" => Some(LocalAiAssetKind::Image),
+        "video" => Some(LocalAiAssetKind::Video),
+        "tts" => Some(LocalAiAssetKind::Tts),
+        "stt" => Some(LocalAiAssetKind::Stt),
+        "vae" => Some(LocalAiAssetKind::Vae),
+        "ae" => Some(LocalAiAssetKind::Vae),
+        "clip" => Some(LocalAiAssetKind::Clip),
+        "controlnet" => Some(LocalAiAssetKind::Controlnet),
+        "lora" => Some(LocalAiAssetKind::Lora),
+        "auxiliary" => Some(LocalAiAssetKind::Auxiliary),
         _ => None,
     }
 }
 
-fn typed_folder_artifact_kind(folder_name: &str) -> Option<LocalAiArtifactKind> {
-    match folder_name.trim().to_ascii_lowercase().as_str() {
-        "vae" => Some(LocalAiArtifactKind::Vae),
-        "ae" => Some(LocalAiArtifactKind::Ae),
-        "clip" => Some(LocalAiArtifactKind::Clip),
-        "controlnet" => Some(LocalAiArtifactKind::Controlnet),
-        "lora" => Some(LocalAiArtifactKind::Lora),
-        "llm" => Some(LocalAiArtifactKind::Llm),
-        "auxiliary" => Some(LocalAiArtifactKind::Auxiliary),
-        _ => None,
-    }
-}
-
-fn default_engine_for_model_type(model_type: &LocalAiModelType) -> &'static str {
-    match model_type {
-        LocalAiModelType::Chat | LocalAiModelType::Embedding => "llama",
-        LocalAiModelType::Image | LocalAiModelType::Video => "media",
-        LocalAiModelType::Tts | LocalAiModelType::Stt => "speech",
-        LocalAiModelType::Music => "sidecar",
-    }
-}
-
-fn default_engine_for_artifact_kind(kind: &LocalAiArtifactKind) -> Option<&'static str> {
+fn default_engine_for_asset_kind(kind: &LocalAiAssetKind) -> Option<&'static str> {
     match kind {
-        LocalAiArtifactKind::Vae
-        | LocalAiArtifactKind::Ae
-        | LocalAiArtifactKind::Clip
-        | LocalAiArtifactKind::Controlnet
-        | LocalAiArtifactKind::Lora => Some("media"),
-        LocalAiArtifactKind::Llm => Some("llama"),
-        LocalAiArtifactKind::Auxiliary => None,
+        LocalAiAssetKind::Chat => Some("llama"),
+        LocalAiAssetKind::Image | LocalAiAssetKind::Video => Some("media"),
+        LocalAiAssetKind::Tts | LocalAiAssetKind::Stt => Some("speech"),
+        LocalAiAssetKind::Vae
+        | LocalAiAssetKind::Clip
+        | LocalAiAssetKind::Controlnet
+        | LocalAiAssetKind::Lora => Some("media"),
+        LocalAiAssetKind::Auxiliary => None,
     }
 }
 
-fn model_declaration(model_type: Option<LocalAiModelType>) -> LocalAiAssetDeclaration {
+fn asset_declaration(kind: LocalAiAssetKind) -> LocalAiAssetDeclaration {
     LocalAiAssetDeclaration {
-        asset_class: LocalAiAssetClass::Model,
-        engine: model_type
-            .as_ref()
-            .map(|value| default_engine_for_model_type(value).to_string()),
-        model_type,
-        artifact_kind: None,
-    }
-}
-
-fn artifact_declaration(kind: LocalAiArtifactKind) -> LocalAiAssetDeclaration {
-    LocalAiAssetDeclaration {
-        asset_class: LocalAiAssetClass::Artifact,
-        engine: default_engine_for_artifact_kind(&kind).map(|value| value.to_string()),
-        model_type: None,
-        artifact_kind: Some(kind),
+        asset_kind: Some(kind.clone()),
+        engine: default_engine_for_asset_kind(&kind).map(|value| value.to_string()),
     }
 }
 
 fn declaration_from_folder(folder_name: &str) -> Option<LocalAiAssetDeclaration> {
-    typed_folder_model_type(folder_name)
-        .map(|model_type| model_declaration(Some(model_type)))
-        .or_else(|| typed_folder_artifact_kind(folder_name).map(artifact_declaration))
+    typed_folder_asset_kind(folder_name).map(asset_declaration)
 }
 
 fn declaration_from_filename(
@@ -99,45 +114,39 @@ fn declaration_from_filename(
 ) -> Option<LocalAiAssetDeclaration> {
     let lower = file_name.trim().to_ascii_lowercase();
     if lower.contains("controlnet") {
-        return Some(artifact_declaration(LocalAiArtifactKind::Controlnet));
+        return Some(asset_declaration(LocalAiAssetKind::Controlnet));
     }
     if lower.contains("lora") {
-        return Some(artifact_declaration(LocalAiArtifactKind::Lora));
+        return Some(asset_declaration(LocalAiAssetKind::Lora));
     }
     if lower.contains("clip") {
-        return Some(artifact_declaration(LocalAiArtifactKind::Clip));
+        return Some(asset_declaration(LocalAiAssetKind::Clip));
     }
     if lower.contains("autoencoder") || lower.contains("_ae") || lower.contains("-ae") {
-        return Some(artifact_declaration(LocalAiArtifactKind::Ae));
+        return Some(asset_declaration(LocalAiAssetKind::Vae));
     }
     if lower.contains("vae") {
-        return Some(artifact_declaration(LocalAiArtifactKind::Vae));
+        return Some(asset_declaration(LocalAiAssetKind::Vae));
     }
     if lower.contains("whisper") || lower.contains("transcribe") || lower.contains("stt") {
-        return Some(model_declaration(Some(LocalAiModelType::Stt)));
+        return Some(asset_declaration(LocalAiAssetKind::Stt));
     }
     if lower.contains("tts") {
-        return Some(model_declaration(Some(LocalAiModelType::Tts)));
-    }
-    if lower.contains("embed") {
-        return Some(model_declaration(Some(LocalAiModelType::Embedding)));
-    }
-    if lower.contains("music") || lower.contains("musicgen") {
-        return Some(model_declaration(Some(LocalAiModelType::Music)));
+        return Some(asset_declaration(LocalAiAssetKind::Tts));
     }
     match extension.trim().to_ascii_lowercase().as_str() {
-        "gguf" | "onnx" | "bin" | "pt" | "pth" => Some(model_declaration(None)),
+        "gguf" | "onnx" | "bin" | "pt" | "pth" => Some(asset_declaration(LocalAiAssetKind::Chat)),
         _ => None,
     }
 }
 
 fn declaration_is_complete(declaration: &LocalAiAssetDeclaration) -> bool {
-    match declaration.asset_class {
-        LocalAiAssetClass::Model => declaration.model_type.is_some(),
-        LocalAiAssetClass::Artifact => {
-            declaration.artifact_kind.is_some() && declaration.engine.as_deref().is_some()
-        }
-    }
+    declaration.asset_kind.is_some()
+        && declaration
+            .asset_kind
+            .as_ref()
+            .map(|kind| *kind != LocalAiAssetKind::Auxiliary || declaration.engine.as_deref().is_some())
+            .unwrap_or(false)
 }
 
 fn make_unregistered_asset_descriptor(
@@ -266,26 +275,19 @@ pub fn runtime_local_pick_asset_manifest_path(app: AppHandle) -> Result<Option<S
     let models_root = runtime_models_dir(&app)?;
     let selected = rfd::FileDialog::new()
         .set_directory(&models_root)
-        .set_title("Select manifest.json or artifact.manifest.json")
-        .add_filter("Runtime Manifest", &["json"])
+        .set_title("Select asset.manifest.json")
+        .add_filter("Asset Manifest", &["asset.manifest.json"])
         .pick_file();
     let Some(path) = selected else {
         return Ok(None);
     };
     let file_name = path.file_name().and_then(|value| value.to_str()).unwrap_or("");
-    let canonical_path = match file_name {
-        MODEL_MANIFEST_FILE_NAME => {
-            validate_import_manifest_path(path.to_string_lossy().as_ref(), &models_root)?
-        }
-        ARTIFACT_MANIFEST_FILE_NAME => {
-            validate_import_artifact_manifest_path(path.to_string_lossy().as_ref(), &models_root)?
-        }
-        _ => {
-            return Err(
-                "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only manifest.json or artifact.manifest.json can be imported"
-                    .to_string(),
-            )
-        }
-    };
+    if file_name != ASSET_MANIFEST_FILE_NAME {
+        return Err(
+            "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID: only asset.manifest.json can be imported"
+                .to_string(),
+        );
+    }
+    let canonical_path = validate_import_asset_manifest_path(path.to_string_lossy().as_ref(), &models_root)?;
     Ok(Some(canonical_path.to_string_lossy().to_string()))
 }

@@ -65,7 +65,7 @@ function recommendationFeedFixture() {
           canOpenLocalModel: false,
         },
         installPayload: {
-          modelId: 'local/z-image-turbo',
+          assetId: 'local/z-image-turbo',
           repo: 'Tongyi-MAI/Z-Image-Turbo',
           revision: 'main',
           capabilities: ['image'],
@@ -128,10 +128,10 @@ test('parseRecommendationFeedDescriptor drops items with invalid source or missi
     },
     {
       ...baseItem,
-      itemId: 'missing-install-model-id',
+      itemId: 'missing-install-asset-id',
       installPayload: {
         ...baseItem.installPayload,
-        modelId: '',
+        assetId: '',
       },
     },
   ] as typeof payload.items;

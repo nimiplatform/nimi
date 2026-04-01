@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseLocalRuntimeModelRecord } from '../src/shell/renderer/bridge/runtime-bridge/local-ai-parsers.js';
+import {
+  parseLocalRuntimeAssetRecord,
+  parseLocalRuntimeAssetsHealthResult,
+} from '../src/shell/renderer/bridge/runtime-bridge/local-ai-parsers.js';
 
-test('parseLocalRuntimeModelRecord keeps model recommendation inputs in bridge surface', () => {
-  const parsed = parseLocalRuntimeModelRecord({
-    localModelId: 'local-z-image',
-    modelId: 'local/z_image_turbo',
+test('parseLocalRuntimeAssetRecord requires hard-cut asset fields in bridge surface', () => {
+  const parsed = parseLocalRuntimeAssetRecord({
+    localAssetId: 'local-z-image',
+    assetId: 'local/z_image_turbo',
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K.gguf',
@@ -28,6 +31,18 @@ test('parseLocalRuntimeModelRecord keeps model recommendation inputs in bridge s
   });
 
   assert.deepEqual(parsed.files, ['z_image_turbo-Q4_K.gguf']);
-  assert.deepEqual(parsed.tags, ['image', 'z-image']);
-  assert.equal(parsed.knownTotalSizeBytes, 2048);
+});
+
+test('parseLocalRuntimeAssetsHealthResult reads assets key only', () => {
+  const parsed = parseLocalRuntimeAssetsHealthResult({
+    assets: [{
+      localAssetId: 'asset-1',
+      status: 'active',
+      detail: 'healthy',
+      endpoint: 'http://127.0.0.1:1234/v1',
+    }],
+  });
+
+  assert.equal(parsed.assets.length, 1);
+  assert.equal(parsed.assets[0]?.localAssetId, 'asset-1');
 });

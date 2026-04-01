@@ -49,18 +49,16 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
   }
 });
 
-test('asset manifest import routes artifact manifests to the artifact command and model manifests to the model command', () => {
-  assert.match(runtimeCommandsSource, /normalizedPath\.endsWith\('artifact\.manifest\.json'\)/);
-  assert.match(runtimeCommandsSource, /importLocalRuntimeArtifact\(\{ manifestPath: normalizedPath \}/);
-  assert.match(runtimeCommandsSource, /importLocalRuntimeModel\(\{ manifestPath: normalizedPath \}/);
+test('asset manifest import uses the unified importLocalRuntimeAsset command', () => {
+  assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{ manifestPath: normalizedPath \}/);
+  assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
 });
 
-test('asset file import scaffolds companion assets before artifact import and maps model types to capabilities', () => {
-  assert.match(runtimeCommandsSource, /scaffoldLocalRuntimeArtifactOrphan\(\{/);
-  assert.match(runtimeCommandsSource, /importLocalRuntimeArtifact\(\{\s*manifestPath: scaffolded\.manifestPath/);
-  assert.match(runtimeCommandsSource, /function capabilitiesForModelType/);
-  assert.match(runtimeCommandsSource, /if \(modelType === 'embedding'\) return \['embedding'\]/);
-  assert.match(runtimeCommandsSource, /if \(modelType === 'music'\) return \['music'\]/);
+test('asset file import uses unified importLocalRuntimeAssetFile and scaffoldLocalRuntimeOrphanAsset', () => {
+  assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);
+  assert.match(runtimeCommandsSource, /export async function scaffoldLocalRuntimeOrphanAsset/);
+  assert.match(runtimeCommandsSource, /runtime\.scaffoldOrphanAsset\(\{/);
+  assert.match(runtimeCommandsSource, /runtime\.importLocalAssetFile\(\{/);
 });
 
 test('local model center uses one runtime manifest import entry and one asset file import entry', () => {
@@ -70,6 +68,7 @@ test('local model center uses one runtime manifest import entry and one asset fi
   assert.doesNotMatch(localModelCenterSectionsSource, /Import Artifact Manifest/);
 });
 
-test('hook facade accepts ae as a first-class artifact kind', () => {
-  assert.match(runtimeHookFacadeSource, /artifactKind\?: 'vae' \| 'ae' \| 'llm'/);
+test('hook facade accepts vae as a first-class asset kind', () => {
+  assert.match(runtimeHookFacadeSource, /assetKind\?:/);
+  assert.match(runtimeHookFacadeSource, /'vae'/);
 });

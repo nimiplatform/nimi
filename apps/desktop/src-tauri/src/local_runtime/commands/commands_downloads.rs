@@ -1,5 +1,4 @@
-#[tauri::command]
-pub fn runtime_local_models_install(
+fn runtime_local_models_install(
     app: AppHandle,
     payload: LocalAiModelsInstallPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
@@ -42,53 +41,13 @@ pub fn runtime_local_models_install(
     })
 }
 
+// Unified asset command alias
 #[tauri::command]
-pub fn runtime_local_models_install_verified(
+pub fn runtime_local_assets_install(
     app: AppHandle,
-    payload: LocalAiModelsInstallVerifiedPayload,
+    payload: LocalAiModelsInstallPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
-    let template_id = payload.template_id.trim();
-    if template_id.is_empty() {
-        return Err("LOCAL_AI_VERIFIED_TEMPLATE_REQUIRED: templateId is required".to_string());
-    }
-    let descriptor = find_verified_model(template_id)
-        .ok_or_else(|| format!("LOCAL_AI_VERIFIED_TEMPLATE_NOT_FOUND: templateId={template_id}"))?;
-    let endpoint = validate_loopback_endpoint(
-        payload
-            .endpoint
-            .as_deref()
-            .unwrap_or(descriptor.endpoint.as_str()),
-    )?;
-    let install_request = LocalAiInstallRequest {
-        model_id: descriptor.model_id.clone(),
-        repo: descriptor.repo.clone(),
-        revision: Some(descriptor.revision.clone()),
-        capabilities: Some(descriptor.capabilities.clone()),
-        engine: Some(descriptor.engine.clone()),
-        entry: Some(descriptor.entry.clone()),
-        files: Some(descriptor.files.clone()),
-        license: Some(descriptor.license.clone()),
-        hashes: Some(descriptor.hashes.clone()),
-        endpoint: Some(endpoint),
-        provider_hints: None,
-        engine_config: descriptor.engine_config.clone(),
-    };
-    run_install_preflight(&app, &install_request)?;
-    let accepted = download_manager::enqueue_install(
-        &app,
-        install_request,
-        Some(serde_json::json!({
-            "templateId": descriptor.template_id,
-            "installKind": descriptor.install_kind,
-            "fileCount": descriptor.file_count,
-            "engine": descriptor.engine,
-        })),
-    )?;
-    Ok(LocalAiInstallAcceptedResponse {
-        install_session_id: accepted.install_session_id,
-        model_id: accepted.model_id,
-        local_model_id: accepted.local_model_id,
-    })
+    runtime_local_models_install(app, payload)
 }
 
 fn validated_install_session_id(payload: &LocalAiDownloadControlPayload) -> Result<String, String> {

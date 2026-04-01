@@ -8,8 +8,7 @@ import { createModLocalProfileSnapshotResolver } from '../src/shell/renderer/inf
 test('profile snapshot resolver maps canonical capability tokens for mod-facing output', async () => {
   const originalGetState = useAppStore.getState;
   const originalResolveProfile = localRuntime.resolveProfile;
-  const originalList = localRuntime.list;
-  const originalListArtifacts = localRuntime.listArtifacts;
+  const originalListAssets = localRuntime.listAssets;
   const originalListServices = localRuntime.listServices;
   const originalListNodesCatalog = localRuntime.listNodesCatalog;
 
@@ -52,7 +51,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
       consumeCapabilities: ['tts'],
       reasonCode: undefined,
       warnings: [],
-      artifactEntries: [],
+      assetEntries: [],
       executionPlan: {
         planId: 'plan-local-chat',
         modId: 'world.nimi.local-chat',
@@ -84,8 +83,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
       },
     };
   }) as unknown as typeof localRuntime.resolveProfile;
-  localRuntime.list = (async () => []) as unknown as typeof localRuntime.list;
-  localRuntime.listArtifacts = (async () => []) as unknown as typeof localRuntime.listArtifacts;
+  localRuntime.listAssets = (async () => []) as unknown as typeof localRuntime.listAssets;
   localRuntime.listServices = (async () => [{
     serviceId: 'qwen-tts-python',
     status: 'active',
@@ -112,8 +110,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   } finally {
     useAppStore.getState = originalGetState;
     localRuntime.resolveProfile = originalResolveProfile;
-    localRuntime.list = originalList;
-    localRuntime.listArtifacts = originalListArtifacts;
+    localRuntime.listAssets = originalListAssets;
     localRuntime.listServices = originalListServices;
     localRuntime.listNodesCatalog = originalListNodesCatalog;
   }

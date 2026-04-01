@@ -54,8 +54,7 @@ fn prepare_import_source_file(
     Ok((canonical_path, file, file_size))
 }
 
-#[tauri::command]
-pub fn runtime_local_models_import_file(
+fn runtime_local_models_import_file(
     app: AppHandle,
     payload: LocalAiModelsImportFilePayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
@@ -167,6 +166,14 @@ pub fn runtime_local_models_import_file(
     });
 
     Ok(accepted)
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_import_file(
+    app: AppHandle,
+    payload: LocalAiModelsImportFilePayload,
+) -> Result<LocalAiInstallAcceptedResponse, String> {
+    runtime_local_models_import_file(app, payload)
 }
 
 #[cfg(all(test, unix))]

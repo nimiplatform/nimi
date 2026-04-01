@@ -1,23 +1,18 @@
 import { localRuntime } from '@runtime/local-runtime';
 import type {
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetRecord,
   LocalRuntimeAuditEvent,
   LocalRuntimeAuditListPayload,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeInferenceAuditPayload,
-  LocalRuntimeImportArtifactPayload,
-  LocalRuntimeImportPayload,
-  LocalRuntimeInstallVerifiedArtifactPayload,
-  LocalRuntimeInstallPayload,
-  LocalRuntimeInstallVerifiedPayload,
-  LocalRuntimeListArtifactsPayload,
-  LocalRuntimeListVerifiedArtifactsPayload,
-  LocalRuntimeModelRecord,
-  LocalRuntimeModelsHealthResult,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
-} from './types';
+  LocalRuntimeImportAssetPayload,
+  LocalRuntimeInstallVerifiedAssetPayload,
+  LocalRuntimeListAssetsPayload,
+  LocalRuntimeListVerifiedAssetsPayload,
+  LocalRuntimeAssetsHealthResult,
+  LocalRuntimeVerifiedAssetDescriptor,
+} from './local-ai-types.js';
 
 export type LocalRuntimeLifecycleCaller = 'core' | 'builtin' | 'injected' | 'sideload' | string;
 
@@ -25,137 +20,97 @@ type LocalRuntimeWriteOptions = {
   caller?: LocalRuntimeLifecycleCaller;
 };
 
-export async function listLocalRuntimeModels(): Promise<LocalRuntimeModelRecord[]> {
-  return localRuntime.list();
+export async function listLocalRuntimeAssets(
+  payload?: LocalRuntimeListAssetsPayload,
+): Promise<LocalRuntimeAssetRecord[]> {
+  return localRuntime.listAssets(payload) as Promise<LocalRuntimeAssetRecord[]>;
 }
 
-export async function listLocalRuntimeArtifacts(
-  payload?: LocalRuntimeListArtifactsPayload,
-): Promise<LocalRuntimeArtifactRecord[]> {
-  return localRuntime.listArtifacts(payload);
-}
-
-export async function listLocalRuntimeVerifiedModels(): Promise<LocalRuntimeVerifiedModelDescriptor[]> {
-  return localRuntime.listVerified();
-}
-
-export async function listLocalRuntimeVerifiedArtifacts(
-  payload?: LocalRuntimeListVerifiedArtifactsPayload,
-): Promise<LocalRuntimeVerifiedArtifactDescriptor[]> {
-  return localRuntime.listVerifiedArtifacts(payload);
+export async function listLocalRuntimeVerifiedAssets(
+  payload?: LocalRuntimeListVerifiedAssetsPayload,
+): Promise<LocalRuntimeVerifiedAssetDescriptor[]> {
+  return localRuntime.listVerifiedAssets(payload) as Promise<LocalRuntimeVerifiedAssetDescriptor[]>;
 }
 
 export async function listLocalRuntimeAudits(payload?: LocalRuntimeAuditListPayload): Promise<LocalRuntimeAuditEvent[]> {
-  return localRuntime.listAudits(payload);
+  return localRuntime.listAudits(payload) as Promise<LocalRuntimeAuditEvent[]>;
 }
 
-export async function pickLocalRuntimeManifestPath(): Promise<string | null> {
-  return localRuntime.pickManifestPath();
+export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
+  return localRuntime.pickAssetManifestPath();
 }
 
-export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | null> {
-  return localRuntime.pickArtifactManifestPath();
-}
-
-export async function installLocalRuntimeModel(
-  payload: LocalRuntimeInstallPayload,
+export async function installLocalRuntimeVerifiedAsset(
+  payload: LocalRuntimeInstallVerifiedAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.install(payload, options);
-}
-
-export async function installLocalRuntimeVerifiedModel(
-  payload: LocalRuntimeInstallVerifiedPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.installVerified(payload, options);
-}
-
-export async function installLocalRuntimeVerifiedArtifact(
-  payload: LocalRuntimeInstallVerifiedArtifactPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  return localRuntime.installVerifiedArtifact(payload, options);
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.installVerifiedAsset(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
-  return localRuntime.listDownloads();
+  return localRuntime.listDownloads() as Promise<LocalRuntimeDownloadSessionSummary[]>;
 }
 
 export async function pauseLocalRuntimeDownloadSession(
   installSessionId: string,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.pauseDownload(installSessionId, options);
+  return localRuntime.pauseDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
 }
 
 export async function resumeLocalRuntimeDownloadSession(
   installSessionId: string,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.resumeDownload(installSessionId, options);
+  return localRuntime.resumeDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
 }
 
 export async function cancelLocalRuntimeDownloadSession(
   installSessionId: string,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeDownloadSessionSummary> {
-  return localRuntime.cancelDownload(installSessionId, options);
+  return localRuntime.cancelDownload(installSessionId, options) as Promise<LocalRuntimeDownloadSessionSummary>;
 }
 
-export async function importLocalRuntimeModel(
-  payload: LocalRuntimeImportPayload,
+export async function importLocalRuntimeAsset(
+  payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.import(payload, options);
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.importAsset(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
-export async function importLocalRuntimeArtifact(
-  payload: LocalRuntimeImportArtifactPayload,
+export async function removeLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  return localRuntime.importArtifact(payload, options);
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.remove(localAssetId, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
-export async function removeLocalRuntimeModel(
-  localModelId: string,
+export async function startLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.remove(localModelId, options);
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.start(localAssetId, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
-export async function removeLocalRuntimeArtifact(
-  localArtifactId: string,
+export async function stopLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  return localRuntime.removeArtifact(localArtifactId, options);
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.stop(localAssetId, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
-export async function startLocalRuntimeModel(
-  localModelId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.start(localModelId, options);
-}
-
-export async function stopLocalRuntimeModel(
-  localModelId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  return localRuntime.stop(localModelId, options);
-}
-
-export async function healthLocalRuntimeModels(localModelId?: string): Promise<LocalRuntimeModelsHealthResult> {
-  const models = await localRuntime.health(localModelId);
-  return { models };
+export async function healthLocalRuntimeAssets(localAssetId?: string): Promise<LocalRuntimeAssetsHealthResult> {
+  const assets = await localRuntime.health(localAssetId);
+  return { assets } as LocalRuntimeAssetsHealthResult;
 }
 
 export async function appendLocalRuntimeInferenceAudit(payload: LocalRuntimeInferenceAuditPayload): Promise<void> {
-  await localRuntime.appendInferenceAudit(payload);
+  await localRuntime.appendInferenceAudit(payload as Parameters<typeof localRuntime.appendInferenceAudit>[0]);
 }
 
 export async function subscribeLocalRuntimeDownloadProgress(
   listener: (event: LocalRuntimeDownloadProgressEvent) => void,
 ): Promise<() => void> {
-  return localRuntime.subscribeDownloadProgress(listener);
+  return localRuntime.subscribeDownloadProgress(listener as Parameters<typeof localRuntime.subscribeDownloadProgress>[0]);
 }

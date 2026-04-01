@@ -12,7 +12,12 @@ pub enum LocalAiIntegrityMode {
 }
 
 pub fn infer_model_integrity_mode_from_source(source: &LocalAiModelSource) -> LocalAiIntegrityMode {
-    if source.repo.trim().to_ascii_lowercase().starts_with("local-import/") {
+    if source
+        .repo
+        .trim()
+        .to_ascii_lowercase()
+        .starts_with("local-import/")
+    {
         return LocalAiIntegrityMode::LocalUnverified;
     }
     LocalAiIntegrityMode::Verified

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import {
   localRuntime,
+  type LocalRuntimeAssetKind,
   type LocalRuntimeCatalogVariantDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
@@ -55,9 +56,18 @@ export type RecommendDetailPageProps = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+function inferKindFromCapabilities(capabilities: string[]): LocalRuntimeAssetKind {
+  if (capabilities.includes('image')) return 'image';
+  if (capabilities.includes('video')) return 'video';
+  if (capabilities.includes('tts')) return 'tts';
+  if (capabilities.includes('stt')) return 'stt';
+  return 'chat';
+}
+
 function installPayloadFromPlan(plan: LocalRuntimeInstallPlanDescriptor): LocalRuntimeInstallPayload {
   return {
     modelId: plan.modelId,
+    kind: inferKindFromCapabilities(plan.capabilities),
     repo: plan.repo,
     revision: plan.revision,
     capabilities: plan.capabilities,

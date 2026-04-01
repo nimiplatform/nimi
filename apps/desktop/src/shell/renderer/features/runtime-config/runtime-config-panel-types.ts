@@ -5,11 +5,10 @@ import type {
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import type {
-  LocalRuntimeArtifactKind,
+  LocalRuntimeAssetKind,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeModelLifecycleOperation,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileResolutionPlan,
@@ -44,7 +43,7 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
-  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setLocalModelQuery: (value: string) => void;
@@ -78,7 +77,7 @@ export type RuntimeConfigPanelControllerModel = {
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
-  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;

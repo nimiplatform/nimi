@@ -2,16 +2,16 @@ use std::collections::HashMap;
 
 use serde_json::json;
 
-use super::types::{LocalAiArtifactKind, LocalAiVerifiedArtifactDescriptor};
+use super::types::{LocalAiAssetKind, LocalAiVerifiedAssetDescriptor};
 
-fn z_image_vae_descriptor() -> LocalAiVerifiedArtifactDescriptor {
-    LocalAiVerifiedArtifactDescriptor {
-        template_id: "verified.artifact.z_image.vae".to_string(),
+fn z_image_vae_descriptor() -> LocalAiVerifiedAssetDescriptor {
+    LocalAiVerifiedAssetDescriptor {
+        template_id: "verified.asset.z_image.vae".to_string(),
         title: "Z-Image AE VAE".to_string(),
-        description: "Recommended verified companion VAE for local media Z-Image workflows"
+        description: "Recommended verified dependency asset VAE for local media Z-Image workflows"
             .to_string(),
-        artifact_id: "local/z_image_ae".to_string(),
-        kind: LocalAiArtifactKind::Vae,
+        asset_id: "local/z_image_ae".to_string(),
+        kind: LocalAiAssetKind::Vae,
         engine: "media".to_string(),
         entry: "vae/diffusion_pytorch_model.safetensors".to_string(),
         files: vec!["vae/diffusion_pytorch_model.safetensors".to_string()],
@@ -35,14 +35,14 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     }
 }
 
-fn z_image_qwen_descriptor() -> LocalAiVerifiedArtifactDescriptor {
-    LocalAiVerifiedArtifactDescriptor {
-        template_id: "verified.artifact.z_image.qwen3_4b".to_string(),
-        title: "Qwen3 4B Companion LLM".to_string(),
-        description: "Recommended verified companion LLM for local media Z-Image workflows"
+fn z_image_qwen_descriptor() -> LocalAiVerifiedAssetDescriptor {
+    LocalAiVerifiedAssetDescriptor {
+        template_id: "verified.asset.z_image.qwen3_4b".to_string(),
+        title: "Qwen3 4B Dependency Chat".to_string(),
+        description: "Recommended verified dependency chat asset for local media Z-Image workflows"
             .to_string(),
-        artifact_id: "local/qwen3_4b_companion".to_string(),
-        kind: LocalAiArtifactKind::Llm,
+        asset_id: "local/qwen3_4b_companion".to_string(),
+        kind: LocalAiAssetKind::Chat,
         engine: "llama".to_string(),
         entry: "Qwen3-4B-Q4_K_M.gguf".to_string(),
         files: vec!["Qwen3-4B-Q4_K_M.gguf".to_string()],
@@ -57,7 +57,7 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedArtifactDescriptor {
             "verified".to_string(),
             "recommended".to_string(),
             "z-image".to_string(),
-            "llm".to_string(),
+            "chat".to_string(),
         ],
         metadata: Some(json!({
             "family": "z-image",
@@ -66,40 +66,39 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     }
 }
 
-pub fn verified_artifact_list() -> Vec<LocalAiVerifiedArtifactDescriptor> {
+pub fn verified_asset_list() -> Vec<LocalAiVerifiedAssetDescriptor> {
     vec![z_image_vae_descriptor(), z_image_qwen_descriptor()]
 }
 
-pub fn find_verified_artifact(template_id: &str) -> Option<LocalAiVerifiedArtifactDescriptor> {
+pub fn find_verified_asset(template_id: &str) -> Option<LocalAiVerifiedAssetDescriptor> {
     let normalized = template_id.trim();
     if normalized.is_empty() {
         return None;
     }
-    verified_artifact_list()
+    verified_asset_list()
         .into_iter()
         .find(|item| item.template_id == normalized)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{find_verified_artifact, verified_artifact_list};
+    use super::{find_verified_asset, verified_asset_list};
 
     #[test]
-    fn verified_artifact_registry_contains_z_image_entries() {
-        let rows = verified_artifact_list();
+    fn verified_asset_registry_contains_z_image_entries() {
+        let rows = verified_asset_list();
         assert!(rows
             .iter()
-            .any(|item| item.template_id == "verified.artifact.z_image.vae"));
+            .any(|item| item.template_id == "verified.asset.z_image.vae"));
         assert!(rows
             .iter()
-            .any(|item| item.template_id == "verified.artifact.z_image.qwen3_4b"));
+            .any(|item| item.template_id == "verified.asset.z_image.qwen3_4b"));
     }
 
     #[test]
-    fn find_verified_artifact_returns_descriptor_by_template_id() {
-        let descriptor =
-            find_verified_artifact("verified.artifact.z_image.vae").expect("descriptor");
-        assert_eq!(descriptor.artifact_id, "local/z_image_ae");
+    fn find_verified_asset_returns_descriptor_by_template_id() {
+        let descriptor = find_verified_asset("verified.asset.z_image.vae").expect("descriptor");
+        assert_eq!(descriptor.asset_id, "local/z_image_ae");
         assert_eq!(descriptor.engine, "media");
     }
 }

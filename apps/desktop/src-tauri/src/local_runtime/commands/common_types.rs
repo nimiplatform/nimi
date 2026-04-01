@@ -15,13 +15,6 @@ pub struct LocalAiModelsInstallPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsInstallVerifiedPayload {
-    pub template_id: String,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiModelsCatalogSearchPayload {
     pub query: Option<String>,
     pub capability: Option<String>,
@@ -56,13 +49,6 @@ pub struct LocalAiModelsCatalogResolveInstallPlanPayload {
     pub files: Option<Vec<String>>,
     pub license: Option<String>,
     pub hashes: Option<std::collections::HashMap<String, String>>,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsImportPayload {
-    pub manifest_path: String,
     pub endpoint: Option<String>,
 }
 
@@ -184,29 +170,4 @@ pub struct LocalAiNodesCatalogListPayload {
     pub capability: Option<String>,
     pub service_id: Option<String>,
     pub provider: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiScaffoldOrphanPayload {
-    pub path: String,
-    pub capabilities: Vec<String>,
-    pub engine: Option<String>,
-    pub endpoint: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiScaffoldArtifactPayload {
-    pub path: String,
-    pub kind: String,
-    pub engine: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalAiScaffoldArtifactResult {
-    pub manifest_path: String,
-    pub artifact_id: String,
-    pub kind: String,
 }

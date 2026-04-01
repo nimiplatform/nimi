@@ -144,9 +144,21 @@
             "id": "agent-e2e-alpha",
             "name": "Fixture Agent",
             "handle": "~fixture-agent",
-            "avatarUrl": null
+            "avatarUrl": null,
+            "bio": "Fixture agent profile used for desktop contract coverage.",
+            "activeRuleCount": 3
           }
         ],
+        "agentRuleSummary": {
+          "totalAgentRuleCount": 3,
+          "byLayer": {
+            "DNA": 1,
+            "BEHAVIORAL": 1,
+            "RELATIONAL": 0,
+            "CONTEXTUAL": 1
+          },
+          "worldLinkedRuleCount": 0
+        },
         "events": [],
         "levelAudits": [],
         "worldview": {

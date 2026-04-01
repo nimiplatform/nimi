@@ -257,6 +257,9 @@ export type AgentCoreDataCapabilityHandlers = {
   agentMemoryCoreList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only' }>;
   agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
   agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
+  agentMemoryRecallForEntity: (query: Record<string, unknown>) => Promise<{ core: AgentMemoryRecord[]; e2e: AgentMemoryRecord[]; entityId: string; recallSource: string }>;
+  agentMemoryE2EList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
+  agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<{ coreCount: number; dyadicCount: number }>;
 };
 
 function requireAgentId(query: Record<string, unknown>): string {
@@ -380,6 +383,60 @@ export function createAgentCoreDataCapabilityHandlers(
           .map((item) => item),
       };
     },
+
+    agentMemoryRecallForEntity: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
+      const memoryQuery = toMemorySliceQuery(queryRecord);
+      // Fail-close: let remote failures propagate so Local-Chat can
+      // exercise its own fallback chain (core.list → e2e.list).
+      const [coreResult, dyadicResult] = await Promise.all([
+        loadRemoteCoreMemories(client, agentId, memoryQuery),
+        loadRemoteDyadicMemories({ client, agentId, userId, query: memoryQuery }),
+      ]);
+      upsertMemoryIndex({ agentId, core: coreResult, userId, dyadic: dyadicResult });
+      return {
+        core: coreResult,
+        e2e: dyadicResult,
+        entityId: userId,
+        recallSource: 'remote-only',
+      };
+    },
+
+    agentMemoryE2EList: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
+      const memoryQuery = toMemorySliceQuery(queryRecord);
+      const localIndex = getMemoryIndex(agentId);
+      if (localIndex?.loadedDyadicUsers.has(userId)) {
+        const localItems = localIndex.dyadicByUser.get(userId) || [];
+        const limit = memoryQuery?.limit || localItems.length;
+        return {
+          items: takeTop(localItems, limit),
+          source: 'local-index-only' as const,
+          userId,
+        };
+      }
+      const remoteItems = await loadRemoteDyadicMemories({ client, agentId, userId, query: memoryQuery });
+      upsertMemoryIndex({ agentId, userId, dyadic: remoteItems });
+      return {
+        items: remoteItems,
+        source: 'remote-only' as const,
+        userId,
+      };
+    },
+
+    agentMemoryStatsGet: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const localIndex = getMemoryIndex(agentId);
+      return {
+        coreCount: localIndex?.core.length ?? 0,
+        dyadicCount: localIndex ? Array.from(localIndex.dyadicByUser.values()).reduce((sum, items) => sum + items.length, 0) : 0,
+      };
+    },
   };
 }
 
@@ -434,5 +491,17 @@ export async function registerCoreDataCapabilities(): Promise<void> {
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryProfilesList, async (query) => {
     return agentHandlers.agentMemoryProfilesList(toRecord(query));
+  });
+
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryRecallForEntity, async (query) => {
+    return agentHandlers.agentMemoryRecallForEntity(toRecord(query));
+  });
+
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryE2EList, async (query) => {
+    return agentHandlers.agentMemoryE2EList(toRecord(query));
+  });
+
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryStatsGet, async (query) => {
+    return agentHandlers.agentMemoryStatsGet(toRecord(query));
   });
 }

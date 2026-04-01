@@ -86,7 +86,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
         preflightDecisions: [],
         warnings: [],
       },
-      artifactEntries: [],
+      assetEntries: [],
       warnings: [],
     };
   }) as unknown as typeof localRuntime.resolveProfile;
@@ -100,7 +100,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
         planId: 'plan-balanced-fast',
         modId: 'world.nimi.local-image',
         entries: [],
-        installedModels: [],
+        installedAssets: [],
         services: [],
         capabilities: [],
         stageResults: [],
@@ -108,11 +108,11 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
         rollbackApplied: false,
         warnings: [],
       },
-      installedArtifacts: [],
+      installedAssets: [],
       warnings: [],
       reasonCode: ReasonCode.ACTION_EXECUTED,
     };
-  }) as typeof localRuntime.applyProfile;
+  }) as unknown as typeof localRuntime.applyProfile;
 
   try {
     const host = createHost();

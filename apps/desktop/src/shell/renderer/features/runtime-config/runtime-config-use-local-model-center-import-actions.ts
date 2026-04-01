@@ -84,11 +84,11 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const handleImportedAsset = useCallback(async (
     assetPath: string,
     imported: Awaited<ReturnType<typeof localRuntime.importAssetFile>> | {
-      assetClass: 'model';
-      model: Awaited<ReturnType<typeof localRuntime.scaffoldOrphan>>;
+      scaffolded: true;
+      model: Awaited<ReturnType<typeof localRuntime.scaffoldOrphanAsset>>;
     },
   ) => {
-    if (imported.assetClass === 'model') {
+    if ('scaffolded' in imported && imported.scaffolded) {
       await input.props.onDiscover();
       await input.onRefreshUnregisteredAssets();
       return;
@@ -102,37 +102,25 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     assetPath: string,
     declaration: LocalRuntimeAssetDeclaration,
   ) => {
-    const modelType = declaration.modelType;
-    if (!modelType) {
-      throw new Error('modelType is required for main model import');
+    const assetKind = declaration.assetKind;
+    if (!assetKind) {
+      throw new Error('assetKind is required for runnable asset import');
     }
-    const capabilities = modelType === 'embedding'
-      ? ['embedding']
-      : modelType === 'image'
-        ? ['image']
-        : modelType === 'video'
-          ? ['video']
-          : modelType === 'tts'
-            ? ['tts']
-            : modelType === 'stt'
-              ? ['stt']
-              : modelType === 'music'
-                ? ['music']
-                : ['chat'];
-    const accepted = await localRuntime.scaffoldOrphan({
+    const accepted = await localRuntime.scaffoldOrphanAsset({
       path: assetPath,
-      capabilities,
+      kind: assetKind,
       engine: declaration.engine,
       endpoint: defaultImportEndpointForAssetDeclaration(declaration),
     });
-    return { assetClass: 'model' as const, model: accepted };
+    return { scaffolded: true as const, model: accepted };
   }, []);
 
   const importAssetFromPath = useCallback(async (assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
     setImportingAssetPath(assetPath);
     setAssetImportError('');
+    const runnableKinds = new Set(['chat', 'image', 'video', 'tts', 'stt']);
     try {
-      const imported = declaration.assetClass === 'model'
+      const imported = runnableKinds.has(declaration.assetKind)
         ? await importManagedModelAssetFromPath(assetPath, declaration)
         : await localRuntime.importAssetFile({
           filePath: assetPath,
@@ -149,7 +137,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const importPickedAssetFile = useCallback(async (declaration: LocalRuntimeAssetDeclaration) => {
     setAssetImportError('');
-    const filePath = await localRuntime.pickModelFile();
+    const filePath = await localRuntime.pickAssetFile();
     if (!filePath) {
       return;
     }
@@ -177,7 +165,8 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
     const imported = await localRuntime.importAssetManifest(manifestPath, { caller: 'core' });
     await input.props.onDiscover();
-    if (imported.assetClass === 'artifact') {
+    const passiveKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
+    if (passiveKinds.has(imported.asset.kind)) {
       await input.onRefreshArtifactSections();
     }
     await input.onRefreshUnregisteredAssets();
@@ -268,15 +257,13 @@ function resolveAssetDeclarationEngine(declaration: LocalRuntimeAssetDeclaration
   if (explicitEngine) {
     return explicitEngine;
   }
-  switch (declaration.modelType) {
+  switch (declaration.assetKind) {
     case 'image':
     case 'video':
       return 'media';
     case 'tts':
     case 'stt':
       return 'speech';
-    case 'music':
-      return 'sidecar';
     default:
       return 'llama';
   }

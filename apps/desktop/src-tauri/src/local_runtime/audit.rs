@@ -8,7 +8,6 @@ pub const EVENT_MODEL_DOWNLOAD_RESUMED: &str = "model_download_resumed";
 pub const EVENT_MODEL_DOWNLOAD_CANCELLED: &str = "model_download_cancelled";
 pub const EVENT_MODEL_DOWNLOAD_INTERRUPTED: &str = "model_download_interrupted";
 pub const EVENT_MODEL_IMPORT_VALIDATED: &str = "model_import_validated";
-pub const EVENT_MODEL_IMPORT_FAILED: &str = "model_import_failed";
 pub const EVENT_ENGINE_STARTED: &str = "engine_started";
 pub const EVENT_ENGINE_STOPPED: &str = "engine_stopped";
 pub const EVENT_ENGINE_CRASHED: &str = "engine_crashed";

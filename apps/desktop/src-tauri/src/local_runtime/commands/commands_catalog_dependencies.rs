@@ -1,9 +1,4 @@
 #[tauri::command]
-pub fn runtime_local_models_verified_list() -> Result<Vec<LocalAiVerifiedModelDescriptor>, String> {
-    Ok(verified_model_list())
-}
-
-#[tauri::command]
 pub fn runtime_local_models_catalog_search(
     app: AppHandle,
     payload: Option<LocalAiModelsCatalogSearchPayload>,

@@ -134,7 +134,7 @@ pub fn build_media_recommendation(
     }
     push_unique_note(
         &mut suggested_notes,
-        "Companion assets may still be required and are not part of the main-model tier."
+        "Dependency assets may still be required and are not part of the runnable-asset tier."
             .to_string(),
     );
 
@@ -147,7 +147,7 @@ pub fn build_media_recommendation(
         reason_codes,
         recommended_entry: candidate.entry.clone(),
         fallback_entries: candidate.fallback_entries.clone(),
-        suggested_artifacts: companion_suggestions(candidate),
+        suggested_assets: companion_suggestions(candidate),
         suggested_notes,
         baseline,
     })

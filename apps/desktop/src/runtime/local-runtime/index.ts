@@ -1,16 +1,17 @@
 import {
   appendLocalRuntimeInferenceAudit,
   appendLocalRuntimeAudit,
-  revealLocalRuntimeModelInFolder,
+  revealLocalRuntimeAssetInFolder,
+  revealLocalRuntimeAssetsRootFolder,
   subscribeLocalRuntimeDownloadProgress,
   fetchLocalRuntimeSnapshot,
-  healthLocalRuntimeModels,
-  installLocalRuntimeVerifiedModel,
-  importLocalRuntimeModel,
-  importLocalRuntimeModelFile,
+  healthLocalRuntimeAssets,
+  installLocalRuntimeVerifiedAsset,
+  importLocalRuntimeAsset,
   importLocalRuntimeAssetFile,
+  importLocalRuntimeAssetFileUnified,
   importLocalRuntimeAssetManifest,
-  installLocalRuntimeModel,
+  installLocalRuntimeAsset,
   searchLocalRuntimeCatalog,
   listLocalRuntimeRepoGgufVariants,
   resolveLocalRuntimeInstallPlan,
@@ -29,42 +30,30 @@ import {
   healthLocalRuntimeServices,
   removeLocalRuntimeService,
   listLocalRuntimeNodesCatalog,
-  listLocalRuntimeArtifacts,
-  listLocalRuntimeVerifiedArtifacts,
-  listLocalRuntimeVerifiedModels,
+  listLocalRuntimeAssets,
+  listLocalRuntimeVerifiedAssets,
   listLocalRuntimeAudits,
-  listLocalRuntimeModels,
-  listRuntimeLocalModelsSnapshot,
-  pickLocalRuntimeManifestPath,
-  pickLocalRuntimeArtifactManifestPath,
   pickLocalRuntimeAssetManifestPath,
-  pickLocalRuntimeModelFile,
-  importLocalRuntimeArtifact,
-  removeLocalRuntimeModel,
-  removeLocalRuntimeArtifact,
-  startLocalRuntimeModel,
-  stopLocalRuntimeModel,
-  scanLocalRuntimeOrphans,
-  scanLocalRuntimeArtifactOrphans,
+  pickLocalRuntimeAssetFile,
+  removeLocalRuntimeAsset,
+  startLocalRuntimeAsset,
+  stopLocalRuntimeAsset,
+  scanLocalRuntimeOrphanAssets,
   scanLocalRuntimeUnregisteredAssets,
-  scaffoldLocalRuntimeOrphan,
-  scaffoldLocalRuntimeArtifactOrphan,
-  installLocalRuntimeVerifiedArtifact,
+  scaffoldLocalRuntimeOrphanAsset,
   resolveLocalRuntimeProfile,
 } from './commands';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeCatalogVariantDescriptor,
-  LocalRuntimeArtifactKind,
-  LocalRuntimeAssetClass,
-  LocalRuntimeModelType,
+  LocalRuntimeAssetKind,
   LocalRuntimeSuggestionSource,
   LocalRuntimeSuggestionConfidence,
   LocalRuntimeAssetDeclaration,
   LocalRuntimeUnregisteredAssetDescriptor,
-  LocalRuntimeArtifactRecord,
-  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeAssetRecord,
+  LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeAuditEvent,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeCatalogResolveInstallPlanPayload,
@@ -83,16 +72,14 @@ import type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeImportArtifactPayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallVerifiedArtifactPayload,
+  LocalRuntimeInstallVerifiedAssetPayload,
   LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeImportPayload,
+  LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
   LocalRuntimeInstallPayload,
-  LocalRuntimeInstallVerifiedPayload,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
   LocalRuntimeServiceDescriptor,
@@ -102,28 +89,25 @@ import type {
   LocalRuntimeExecutionPlan,
   LocalRuntimeCapabilityMatrixEntry,
   LocalRuntimeNodesCatalogListPayload,
-  LocalRuntimeModelHealth,
-  LocalRuntimeModelLifecycleOperation,
-  LocalRuntimeModelRecord,
+  LocalRuntimeAssetHealth,
+  LocalRuntimeAssetStatus,
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedItemDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeAuditPayload,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
-  LocalRuntimeListArtifactsPayload,
-  LocalRuntimeListVerifiedArtifactsPayload,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeListAssetsPayload,
+  LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeInferenceAuditPayload,
-  OrphanArtifactFile,
-  OrphanModelFile,
-  LocalRuntimeScaffoldArtifactPayload,
-  LocalRuntimeScaffoldArtifactResult,
+  OrphanAssetFile,
+  LocalRuntimeScaffoldAssetPayload,
+  LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import {
-  queryLocalRuntimeModelsByCapability,
+  queryLocalRuntimeAssetsByCapability,
   type LocalRuntimeCapability,
 } from './capability-query';
 import { startLocalRuntimePolling, type LocalRuntimePollingOptions } from './polling';
@@ -133,12 +117,11 @@ export {
   normalizeLocalRuntimeProfilesDeclaration,
   profileSupportsCapability,
 } from './profile-manifest';
-export { listRuntimeLocalModelsSnapshot };
+
+export { listLocalRuntimeAssets };
 
 export type {
-  LocalRuntimeArtifactKind,
-  LocalRuntimeAssetClass,
-  LocalRuntimeModelType,
+  LocalRuntimeAssetKind,
   LocalRuntimeSuggestionSource,
   LocalRuntimeSuggestionConfidence,
   LocalRuntimeAssetDeclaration,
@@ -146,8 +129,8 @@ export type {
   GgufVariantDescriptor,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeCatalogVariantDescriptor,
-  LocalRuntimeArtifactRecord,
-  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeAssetRecord,
+  LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeAuditEvent,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeCatalogResolveInstallPlanPayload,
@@ -166,16 +149,14 @@ export type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeImportArtifactPayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallVerifiedArtifactPayload,
+  LocalRuntimeInstallVerifiedAssetPayload,
   LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeImportPayload,
+  LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
   LocalRuntimeInstallPayload,
-  LocalRuntimeInstallVerifiedPayload,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
   LocalRuntimeServiceDescriptor,
@@ -185,9 +166,8 @@ export type {
   LocalRuntimeExecutionPlan,
   LocalRuntimeCapabilityMatrixEntry,
   LocalRuntimeNodesCatalogListPayload,
-  LocalRuntimeModelHealth,
-  LocalRuntimeModelLifecycleOperation,
-  LocalRuntimeModelRecord,
+  LocalRuntimeAssetHealth,
+  LocalRuntimeAssetStatus,
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedItemDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
@@ -196,20 +176,17 @@ export type {
   LocalRuntimePollingOptions,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
-  LocalRuntimeListArtifactsPayload,
-  LocalRuntimeListVerifiedArtifactsPayload,
-  LocalRuntimeVerifiedModelDescriptor,
-  OrphanArtifactFile,
-  OrphanModelFile,
-  LocalRuntimeScaffoldArtifactPayload,
-  LocalRuntimeScaffoldArtifactResult,
+  LocalRuntimeListAssetsPayload,
+  LocalRuntimeListVerifiedAssetsPayload,
+  OrphanAssetFile,
+  LocalRuntimeScaffoldAssetPayload,
+  LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 };
 
 export type LocalRuntimeFacade = {
-  list: () => Promise<LocalRuntimeModelRecord[]>;
-  listArtifacts: (payload?: LocalRuntimeListArtifactsPayload) => Promise<LocalRuntimeArtifactRecord[]>;
+  listAssets: (payload?: LocalRuntimeListAssetsPayload) => Promise<LocalRuntimeAssetRecord[]>;
   searchCatalog: (payload?: LocalRuntimeCatalogSearchPayload) => Promise<LocalRuntimeCatalogItemDescriptor[]>;
   listRepoGgufVariants: (repo: string) => Promise<GgufVariantDescriptor[]>;
   listRepoVariants: (repo: string) => Promise<LocalRuntimeCatalogVariantDescriptor[]>;
@@ -246,19 +223,14 @@ export type LocalRuntimeFacade = {
   install: (
     payload: LocalRuntimeInstallPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
-  listVerified: () => Promise<LocalRuntimeVerifiedModelDescriptor[]>;
-  listVerifiedArtifacts: (
-    payload?: LocalRuntimeListVerifiedArtifactsPayload,
-  ) => Promise<LocalRuntimeVerifiedArtifactDescriptor[]>;
-  installVerified: (
-    payload: LocalRuntimeInstallVerifiedPayload,
+  ) => Promise<LocalRuntimeAssetRecord>;
+  listVerifiedAssets: (
+    payload?: LocalRuntimeListVerifiedAssetsPayload,
+  ) => Promise<LocalRuntimeVerifiedAssetDescriptor[]>;
+  installVerifiedAsset: (
+    payload: LocalRuntimeInstallVerifiedAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
-  installVerifiedArtifact: (
-    payload: LocalRuntimeInstallVerifiedArtifactPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeArtifactRecord>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   listDownloads: () => Promise<LocalRuntimeDownloadSessionSummary[]>;
   pauseDownload: (
     installSessionId: string,
@@ -272,51 +244,44 @@ export type LocalRuntimeFacade = {
     installSessionId: string,
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeDownloadSessionSummary>;
-  import: (
-    payload: LocalRuntimeImportPayload,
+  importAsset: (
+    payload: LocalRuntimeImportAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
-  importArtifact: (
-    payload: LocalRuntimeImportArtifactPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeArtifactRecord>;
-  pickModelFile: () => Promise<string | null>;
+  ) => Promise<LocalRuntimeAssetRecord>;
+  pickAssetFile: () => Promise<string | null>;
   importFile: (
     payload: LocalRuntimeImportFilePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   remove: (
-    localModelId: string,
+    localAssetId: string,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
-  removeArtifact: (
-    localArtifactId: string,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeArtifactRecord>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   start: (
-    localModelId: string,
+    localAssetId: string,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
+  ) => Promise<LocalRuntimeAssetRecord>;
   stop: (
-    localModelId: string,
+    localAssetId: string,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeModelRecord>;
-  health: (localModelId?: string) => Promise<LocalRuntimeModelHealth[]>;
+  ) => Promise<LocalRuntimeAssetRecord>;
+  health: (localAssetId?: string) => Promise<LocalRuntimeAssetHealth[]>;
   appendAudit: (payload: LocalRuntimeAuditPayload) => Promise<void>;
   appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
-  pickManifestPath: () => Promise<string | null>;
-  pickArtifactManifestPath: () => Promise<string | null>;
   pickAssetManifestPath: () => Promise<string | null>;
-  queryByCapability: (capability: LocalRuntimeCapability) => Promise<LocalRuntimeModelRecord[]>;
-  pollSnapshot: (localModelId?: string) => Promise<LocalRuntimeSnapshot>;
+  queryByCapability: (capability: LocalRuntimeCapability) => Promise<LocalRuntimeAssetRecord[]>;
+  pollSnapshot: (localAssetId?: string) => Promise<LocalRuntimeSnapshot>;
   subscribeDownloadProgress: (
     listener: (event: LocalRuntimeDownloadProgressEvent) => void,
   ) => Promise<() => void>;
-  revealInFolder: (localModelId: string) => Promise<void>;
-  scanOrphans: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanModelFile[]>;
-  scaffoldOrphan: (payload: LocalRuntimeScaffoldOrphanPayload) => Promise<LocalRuntimeModelRecord>;
-  scanArtifactOrphans: () => Promise<OrphanArtifactFile[]>;
+  revealInFolder: (localAssetId: string) => Promise<void>;
+  revealRootFolder: () => Promise<void>;
+  scanOrphanAssets: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanAssetFile[]>;
+  scaffoldOrphanAsset: (
+    payload: LocalRuntimeScaffoldOrphanPayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeAssetRecord>;
   scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
   importAssetFile: (
     payload: LocalRuntimeImportAssetFilePayload,
@@ -326,15 +291,10 @@ export type LocalRuntimeFacade = {
     manifestPath: string,
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeAssetManifestImportResult>;
-  scaffoldArtifactOrphan: (
-    payload: LocalRuntimeScaffoldArtifactPayload,
-    options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeScaffoldArtifactResult>;
 };
 
 export const localRuntime: LocalRuntimeFacade = {
-  list: listLocalRuntimeModels,
-  listArtifacts: listLocalRuntimeArtifacts,
+  listAssets: listLocalRuntimeAssets,
   searchCatalog: searchLocalRuntimeCatalog,
   listRepoGgufVariants: listLocalRuntimeRepoGgufVariants,
   listRepoVariants: listLocalRuntimeRepoGgufVariants,
@@ -351,41 +311,34 @@ export const localRuntime: LocalRuntimeFacade = {
   healthServices: healthLocalRuntimeServices,
   removeService: removeLocalRuntimeService,
   listNodesCatalog: listLocalRuntimeNodesCatalog,
-  install: installLocalRuntimeModel,
-  listVerified: listLocalRuntimeVerifiedModels,
-  listVerifiedArtifacts: listLocalRuntimeVerifiedArtifacts,
-  installVerified: installLocalRuntimeVerifiedModel,
-  installVerifiedArtifact: installLocalRuntimeVerifiedArtifact,
+  install: installLocalRuntimeAsset,
+  listVerifiedAssets: listLocalRuntimeVerifiedAssets,
+  installVerifiedAsset: installLocalRuntimeVerifiedAsset,
   listDownloads: listLocalRuntimeDownloadSessions,
   pauseDownload: pauseLocalRuntimeDownload,
   resumeDownload: resumeLocalRuntimeDownload,
   cancelDownload: cancelLocalRuntimeDownload,
-  import: importLocalRuntimeModel,
-  importArtifact: importLocalRuntimeArtifact,
-  pickModelFile: pickLocalRuntimeModelFile,
-  importFile: importLocalRuntimeModelFile,
-  remove: removeLocalRuntimeModel,
-  removeArtifact: removeLocalRuntimeArtifact,
-  start: startLocalRuntimeModel,
-  stop: stopLocalRuntimeModel,
-  health: healthLocalRuntimeModels,
+  importAsset: importLocalRuntimeAsset,
+  pickAssetFile: pickLocalRuntimeAssetFile,
+  importFile: importLocalRuntimeAssetFile,
+  remove: removeLocalRuntimeAsset,
+  start: startLocalRuntimeAsset,
+  stop: stopLocalRuntimeAsset,
+  health: healthLocalRuntimeAssets,
   appendAudit: appendLocalRuntimeAudit,
   appendInferenceAudit: appendLocalRuntimeInferenceAudit,
   listAudits: listLocalRuntimeAudits,
-  pickManifestPath: pickLocalRuntimeManifestPath,
-  pickArtifactManifestPath: pickLocalRuntimeArtifactManifestPath,
   pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
-  queryByCapability: queryLocalRuntimeModelsByCapability,
+  queryByCapability: queryLocalRuntimeAssetsByCapability,
   pollSnapshot: fetchLocalRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
-  revealInFolder: revealLocalRuntimeModelInFolder,
-  scanOrphans: scanLocalRuntimeOrphans,
-  scaffoldOrphan: scaffoldLocalRuntimeOrphan,
-  scanArtifactOrphans: scanLocalRuntimeArtifactOrphans,
+  revealInFolder: revealLocalRuntimeAssetInFolder,
+  revealRootFolder: revealLocalRuntimeAssetsRootFolder,
+  scanOrphanAssets: scanLocalRuntimeOrphanAssets,
+  scaffoldOrphanAsset: scaffoldLocalRuntimeOrphanAsset,
   scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
-  importAssetFile: importLocalRuntimeAssetFile,
+  importAssetFile: importLocalRuntimeAssetFileUnified,
   importAssetManifest: importLocalRuntimeAssetManifest,
-  scaffoldArtifactOrphan: scaffoldLocalRuntimeArtifactOrphan,
 };
 
 export { startLocalRuntimePolling };

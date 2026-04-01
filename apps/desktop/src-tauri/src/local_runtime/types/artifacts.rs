@@ -4,10 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use super::models::LocalAiIntegrityMode;
 
-pub fn infer_artifact_integrity_mode_from_source(
-    source: &LocalAiArtifactSource,
-) -> LocalAiIntegrityMode {
-    if source.repo.trim().to_ascii_lowercase().starts_with("local-import/") {
+pub fn infer_asset_integrity_mode_from_source(source: &LocalAiAssetSource) -> LocalAiIntegrityMode {
+    if source
+        .repo
+        .trim()
+        .to_ascii_lowercase()
+        .starts_with("local-import/")
+    {
         return LocalAiIntegrityMode::LocalUnverified;
     }
     LocalAiIntegrityMode::Verified
@@ -15,10 +18,13 @@ pub fn infer_artifact_integrity_mode_from_source(
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum LocalAiArtifactKind {
+pub enum LocalAiAssetKind {
+    Chat,
+    Image,
+    Video,
+    Tts,
+    Stt,
     Vae,
-    Ae,
-    Llm,
     Clip,
     Controlnet,
     Lora,
@@ -27,7 +33,7 @@ pub enum LocalAiArtifactKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum LocalAiArtifactStatus {
+pub enum LocalAiAssetStatus {
     Installed,
     Active,
     Unhealthy,
@@ -36,23 +42,23 @@ pub enum LocalAiArtifactStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiArtifactSource {
+pub struct LocalAiAssetSource {
     pub repo: String,
     pub revision: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ImportedArtifactManifest {
+pub struct ImportedAssetManifest {
     pub schema_version: String,
-    pub artifact_id: String,
+    pub asset_id: String,
     pub kind: String,
     pub engine: String,
     pub entry: String,
     #[serde(default)]
     pub files: Vec<String>,
     pub license: String,
-    pub source: LocalAiArtifactSource,
+    pub source: LocalAiAssetSource,
     #[serde(default)]
     pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
@@ -61,20 +67,20 @@ pub struct ImportedArtifactManifest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiArtifactRecord {
-    pub local_artifact_id: String,
-    pub artifact_id: String,
-    pub kind: LocalAiArtifactKind,
+pub struct LocalAiAssetRecord {
+    pub local_asset_id: String,
+    pub asset_id: String,
+    pub kind: LocalAiAssetKind,
     pub engine: String,
     pub entry: String,
     #[serde(default)]
     pub files: Vec<String>,
     pub license: String,
-    pub source: LocalAiArtifactSource,
+    pub source: LocalAiAssetSource,
     #[serde(default)]
     pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
-    pub status: LocalAiArtifactStatus,
+    pub status: LocalAiAssetStatus,
     pub installed_at: String,
     pub updated_at: String,
     pub health_detail: Option<String>,
@@ -83,12 +89,12 @@ pub struct LocalAiArtifactRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiVerifiedArtifactDescriptor {
+pub struct LocalAiVerifiedAssetDescriptor {
     pub template_id: String,
     pub title: String,
     pub description: String,
-    pub artifact_id: String,
-    pub kind: LocalAiArtifactKind,
+    pub asset_id: String,
+    pub kind: LocalAiAssetKind,
     pub engine: String,
     pub entry: String,
     #[serde(default)]

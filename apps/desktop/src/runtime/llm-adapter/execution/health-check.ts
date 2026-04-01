@@ -1,4 +1,4 @@
-import { listRuntimeLocalModelsSnapshot } from '@runtime/local-runtime';
+import { listLocalRuntimeAssets } from '@runtime/local-runtime';
 import { inferRouteSourceFromEndpoint } from './inference-audit';
 import type { CheckLlmHealthInput, ProviderHealth } from './types';
 import { formatProviderError } from './utils';
@@ -72,21 +72,22 @@ async function checkRuntimeAuthoritativeLocalTextHealth(
     };
   }
 
-  const listModels = input.listRuntimeLocalModelsSnapshot || listRuntimeLocalModelsSnapshot;
-  const models = await listModels();
+  const listAssets = input.listRuntimeLocalModelsSnapshot
+    || (async () => (await listLocalRuntimeAssets()) as unknown as Array<Record<string, unknown>>);
+  const assets = await listAssets();
   const targetLocalModelId = String(input.goRuntimeLocalModelId || input.localModelId || '').trim();
   const targetModelRoot = normalizeModelRoot(model);
   const targetEngine = normalizeLocalEngine(provider);
 
-  const candidates = models
-    .map((item) => ({
-      localModelId: String(item.localModelId || '').trim(),
-      modelId: String(item.modelId || '').trim(),
+  const candidates = assets
+    .map((item: Record<string, unknown>) => ({
+      localModelId: String(item.localAssetId || '').trim(),
+      modelId: String(item.assetId || '').trim(),
       engine: normalizeLocalEngine(String(item.engine || '').trim()),
       status: normalizeLocalStatus(item.status),
       healthDetail: String(item.healthDetail || '').trim(),
     }))
-    .filter((item) => item.status !== 'removed');
+    .filter((item: { localModelId: string; modelId: string; engine: string; status: string; healthDetail: string }) => item.status !== 'removed');
 
   const candidate = (targetLocalModelId
     ? candidates.find((item) => item.localModelId === targetLocalModelId)

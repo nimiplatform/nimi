@@ -41,7 +41,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
     },
     requiredCapabilities: ['action.commit.runtime.local-ai.models.list'],
     handler: async () => {
-      const models = await localRuntime.list();
+      const models = await localRuntime.listAssets();
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
@@ -224,6 +224,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
       }
       const installed = await localRuntime.install({
         modelId,
+        kind: 'chat',
         repo,
         revision: String(input.input.revision || '').trim() || undefined,
         capabilities: Array.isArray(input.input.capabilities)
@@ -237,7 +238,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
-        output: { localModelId: installed.localModelId, modelId: installed.modelId },
+        output: { localModelId: installed.localAssetId, modelId: installed.assetId },
       };
     },
   });
@@ -269,7 +270,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-manifest-path',
         };
       }
-      const model = await localRuntime.import({
+      const model = await localRuntime.importAsset({
         manifestPath,
       }, { caller: 'core' });
       return {

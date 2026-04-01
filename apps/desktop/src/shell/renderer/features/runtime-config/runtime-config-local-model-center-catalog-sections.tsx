@@ -1,20 +1,19 @@
 import { i18n } from '@renderer/i18n';
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
 import type {
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
 import {
   DownloadIcon,
   FolderOpenIcon,
-  artifactTaskStatusLabel,
-  formatArtifactKindLabel,
+  assetTaskStatusLabel,
+  formatAssetKindLabel,
   isRecommendedDescriptor,
   RefreshIcon,
   StarIcon,
-  type ArtifactTaskEntry,
+  type AssetTaskEntry,
 } from './runtime-config-local-model-center-helpers';
 import {
   downloadStateLabel,
@@ -27,11 +26,11 @@ import {
 
 type ArtifactRequirementBadgesProps = {
   modelTemplateId: string;
-  relatedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
-  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  relatedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
+  installedArtifactsById: Map<string, LocalRuntimeAssetRecord>;
   artifactBusy: boolean;
   isArtifactPending: (templateId: string) => boolean;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallArtifact: (templateId: string) => void;
 };
 
@@ -41,7 +40,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
   }
 
   const missingArtifacts = props.relatedArtifacts.filter((artifact) => (
-    !props.installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.artifactId))
+    !props.installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.assetId))
   ));
   const hasPendingMissingArtifacts = missingArtifacts.some((artifact) => props.isArtifactPending(artifact.templateId));
 
@@ -63,7 +62,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
         </button>
       ) : null}
       {props.relatedArtifacts.map((artifact) => {
-        const installed = props.installedArtifactsById.get(toCanonicalLocalLookupKey(artifact.artifactId)) || null;
+        const installed = props.installedArtifactsById.get(toCanonicalLocalLookupKey(artifact.assetId)) || null;
         const pending = props.isArtifactPending(artifact.templateId);
         return (
           <div
@@ -74,7 +73,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
                 : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
             }`}
           >
-            <span>{formatArtifactKindLabel(artifact.kind)}</span>
+            <span>{formatAssetKindLabel(artifact.kind)}</span>
             <span>
               {installed
                 ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
@@ -108,7 +107,7 @@ type VerifiedArtifactsSectionProps = {
   hasSearchQuery: boolean;
   loadingVerifiedArtifacts: boolean;
   artifactBusy: boolean;
-  visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
+  visibleVerifiedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
   isArtifactPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallArtifact: (templateId: string) => void;
@@ -121,7 +120,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
         <div className="flex items-center gap-2">
           <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-text-muted)]" />
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-            {i18n.t('runtimeConfig.localModelCenter.verifiedCompanionAssets', { defaultValue: 'Verified Companion Assets' })}
+            {i18n.t('runtimeConfig.localModelCenter.verifiedCompanionAssets', { defaultValue: 'Verified Dependency Assets' })}
           </span>
         </div>
         <button
@@ -137,7 +136,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
       {props.loadingVerifiedArtifacts ? (
         <div className="py-6 text-center">
           <p className="text-sm text-[var(--nimi-text-muted)]">
-            {i18n.t('runtimeConfig.localModelCenter.loadingVerifiedArtifacts', { defaultValue: 'Loading verified artifacts...' })}
+            {i18n.t('runtimeConfig.localModelCenter.loadingVerifiedArtifacts', { defaultValue: 'Loading verified assets...' })}
           </p>
         </div>
       ) : props.visibleVerifiedArtifacts.length > 0 ? (
@@ -147,7 +146,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
             return (
               <div key={artifact.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-700 text-[11px] font-semibold text-white">
-                  {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                  {formatAssetKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -158,10 +157,10 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
                       </span>
                     ) : null}
                     <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
-                      {formatArtifactKindLabel(artifact.kind)}
+                      {formatAssetKindLabel(artifact.kind)}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.artifactId}</p>
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.assetId}</p>
                   {artifact.description ? <p className="mt-0.5 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{artifact.description}</p> : null}
                 </div>
                 <button
@@ -183,8 +182,8 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
         <div className="py-6 text-center">
           <p className="text-sm text-[var(--nimi-text-muted)]">
             {props.hasSearchQuery
-              ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No verified companion assets matched your search.' })
-              : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No verified companion assets available for the current filter.' })}
+              ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No verified dependency assets matched your search.' })
+              : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No verified dependency assets available for the current filter.' })}
           </p>
         </div>
       )}
@@ -385,7 +384,7 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
 }
 
 type ArtifactTasksSectionProps = {
-  tasks: ArtifactTaskEntry[];
+  tasks: AssetTaskEntry[];
   pendingTemplateIds: string[];
   onRetryTask: (templateId: string) => void;
 };
@@ -420,16 +419,16 @@ function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) 
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{task.title}</p>
                     <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
-                      {formatArtifactKindLabel(task.kind)}
+                      {formatAssetKindLabel(task.kind)}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{task.artifactId}</p>
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{task.assetId}</p>
                   {task.detail ? <p className={`mt-0.5 truncate text-[11px] ${isFailed ? 'text-[var(--nimi-status-danger)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>{task.detail}</p> : null}
                 </div>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
                   isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                 }`}>
-                  {artifactTaskStatusLabel(task.state)}
+                  {assetTaskStatusLabel(task.state)}
                 </span>
               </div>
               {isFailed && task.taskKind === 'verified-install' ? (
@@ -458,14 +457,14 @@ type QuickPicksSectionProps = {
   loadingVerifiedModels: boolean;
   installing: boolean;
   artifactBusy: boolean;
-  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
-  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
-  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
+  installedArtifactsById: Map<string, LocalRuntimeAssetRecord>;
   isArtifactPending: (templateId: string) => boolean;
   onRefresh: () => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallArtifact: (templateId: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
 };
 
 function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
@@ -509,7 +508,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
                     </span>
                   ) : null}
                 </div>
-                <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
+                <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.assetId}</p>
                 <ArtifactRequirementBadges
                   modelTemplateId={`${item.templateId}-quick`}
                   relatedArtifacts={relatedArtifacts}

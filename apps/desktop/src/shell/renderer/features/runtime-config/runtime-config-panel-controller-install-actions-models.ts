@@ -2,8 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   localRuntime,
-  type LocalRuntimeModelLifecycleOperation,
-  type LocalRuntimeModelRecord,
+  type LocalRuntimeAssetRecord,
 } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
@@ -19,7 +18,7 @@ export type RuntimeConfigModelManagementActions = {
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
   removeLocalArtifact: (localArtifactId: string) => Promise<void>;
-  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
 };
 
@@ -44,14 +43,14 @@ function translateRuntimeLocalText(
 }
 
 function toRuntimeConfigLocalModel(
-  model: LocalRuntimeModelRecord,
+  model: LocalRuntimeAssetRecord,
 ): RuntimeConfigStateV11['local']['models'][number] {
   return {
-    localModelId: model.localModelId,
+    localModelId: model.localAssetId || '',
     engine: model.engine || 'llama',
-    model: model.modelId,
-    endpoint: model.endpoint || '',
-    capabilities: model.capabilities.filter(
+    model: model.assetId || '',
+    endpoint: '',
+    capabilities: (model.capabilities || []).filter(
       (
         capability,
       ): capability is RuntimeConfigStateV11['local']['models'][number]['capabilities'][number] => (
@@ -78,12 +77,13 @@ function timestampRank(value?: string): number {
 
 function applyLocalModelSnapshotToState(
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void,
-  model: LocalRuntimeModelRecord,
+  model: LocalRuntimeAssetRecord,
 ): void {
   updateState((prev) => {
     const nextModel = toRuntimeConfigLocalModel(model);
+    const modelLocalId = model.localAssetId || '';
     const nextModels = prev.local.models
-      .filter((entry) => entry.localModelId !== model.localModelId)
+      .filter((entry) => entry.localModelId !== modelLocalId)
       .concat(model.status === 'removed' ? [] : [nextModel])
       .sort((left, right) => {
         const leftRank = timestampRank(left.installedAt) || timestampRank(left.updatedAt);
@@ -111,7 +111,7 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner,
     updateState,
   } = input;
-  const [localModelLifecycleById, setLocalModelLifecycleById] = useState<Record<string, LocalRuntimeModelLifecycleOperation>>({});
+  const [localModelLifecycleById, setLocalModelLifecycleById] = useState<Record<string, string>>({});
   const [localModelLifecycleErrorById, setLocalModelLifecycleErrorById] = useState<Record<string, string>>({});
   const lifecycleEpochRef = useRef<Record<string, number>>({});
 
@@ -144,7 +144,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const setLifecycleState = useCallback((
     localModelId: string,
-    state: LocalRuntimeModelLifecycleOperation,
+    state: string,
     error = '',
     epoch?: number,
   ) => {
@@ -174,11 +174,11 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModel = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localRuntime.pickManifestPath();
+      const manifestPath = await localRuntime.pickAssetManifestPath();
       if (!manifestPath) {
         return;
       }
-      await localRuntime.import({ manifestPath }, { caller: 'core' });
+      await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
@@ -204,13 +204,18 @@ export function useRuntimeConfigModelManagementActions(
   const importLocalModelFile = useCallback(async (capabilities: string[], engine?: string) => {
     try {
       assertRuntimeWriteAllowed();
-      const filePath = await localRuntime.pickModelFile();
+      const filePath = await localRuntime.pickAssetFile();
       if (!filePath) {
         return;
       }
+      const kind = capabilities.includes('image') ? 'image' as const
+        : capabilities.includes('video') ? 'video' as const
+        : capabilities.includes('tts') ? 'tts' as const
+        : capabilities.includes('stt') ? 'stt' as const
+        : 'chat' as const;
       const imported = await localRuntime.importFile({
         filePath,
-        capabilities,
+        kind,
         engine: engine || undefined,
       }, { caller: 'core' });
       applyLocalModelSnapshotToState(updateState, imported);
@@ -221,7 +226,7 @@ export function useRuntimeConfigModelManagementActions(
         message: translateRuntimeLocalText(
           'runtimeConfig.local.modelFileImported',
           'Model file imported: {{modelId}}',
-          { modelId: imported.modelId },
+          { modelId: imported.assetId },
         ),
       });
     } catch (error) {
@@ -423,12 +428,12 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalArtifact = useCallback(async (localArtifactId: string) => {
     assertRuntimeWriteAllowed();
-    const artifact = await localRuntime.removeArtifact(localArtifactId, { caller: 'core' }).catch((error) => {
+    const artifact = await localRuntime.remove(localArtifactId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
           'runtimeConfig.local.removeArtifactFailed',
-          'Remove artifact failed: {{message}}',
+          'Remove asset failed: {{message}}',
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
@@ -439,8 +444,8 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'success',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.artifactRemoved',
-        'Artifact removed: {{artifactId}}',
-        { artifactId: artifact.artifactId },
+        'Asset removed: {{artifactId}}',
+        { artifactId: artifact.assetId },
       ),
     });
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);

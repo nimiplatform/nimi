@@ -1,19 +1,17 @@
 import type { RefObject } from 'react';
 import type {
   LocalRuntimeAssetDeclaration,
-  LocalRuntimeArtifactKind,
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetKind,
+  LocalRuntimeAssetRecord,
   LocalRuntimeCatalogItemDescriptor,
   GgufVariantDescriptor,
   LocalRuntimeUnregisteredAssetDescriptor,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
-  OrphanArtifactFile,
-  OrphanModelFile,
+  LocalRuntimeVerifiedAssetDescriptor,
+  OrphanAssetFile,
 } from '@runtime/local-runtime';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type {
-  ArtifactTaskEntry,
+  AssetTaskEntry,
 } from './runtime-config-local-model-center-helpers';
 import { LocalModelCenterCatalogCard } from './runtime-config-local-model-center-catalog-card';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
@@ -39,10 +37,10 @@ type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
 
 type LocalModelCenterRuntimeViewProps = {
   artifactBusy: boolean;
-  artifactKindFilter: 'all' | LocalRuntimeArtifactKind;
+  artifactKindFilter: 'all' | LocalRuntimeAssetKind;
   artifactOrphanError: string;
-  artifactOrphanFiles: OrphanArtifactFile[];
-  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
+  artifactOrphanFiles: OrphanAssetFile[];
+  artifactOrphanKinds: Record<string, LocalRuntimeAssetKind>;
   artifactPendingTemplateIds: string[];
   catalogCapability: 'all' | CapabilityOption;
   catalogDisplayCount: number;
@@ -50,17 +48,17 @@ type LocalModelCenterRuntimeViewProps = {
   checkingHealth: boolean;
   deferredSearchQuery: string;
   discovering: boolean;
-  filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
+  filteredInstalledArtifacts: LocalRuntimeAssetRecord[];
   filteredInstalledModels: LocalModelOptionV11[];
   hasSearchQuery: boolean;
   importFileAssetClass: AssetClassOption;
   importFileModelType: ModelTypeOption;
-  importFileArtifactKind: LocalRuntimeArtifactKind;
+  importFileArtifactKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
   installing: boolean;
-  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  installedArtifactsById: Map<string, LocalRuntimeAssetRecord>;
   isArtifactPending: (templateId: string) => boolean;
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
@@ -70,11 +68,11 @@ type LocalModelCenterRuntimeViewProps = {
   localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
-  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
+  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onAssetModelTypeChange: (modelType: ModelTypeOption) => void;
-  onAssetArtifactKindChange: (kind: LocalRuntimeArtifactKind) => void;
+  onAssetArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
@@ -87,7 +85,7 @@ type LocalModelCenterRuntimeViewProps = {
   onImportManifest: () => void;
   onInstallArtifact: (templateId: string) => void;
   onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
   onOpenImportFile: () => void;
@@ -108,13 +106,13 @@ type LocalModelCenterRuntimeViewProps = {
   onImportUnregisteredAsset: (path: string) => void;
   onUnregisteredAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
   onUnregisteredModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onUnregisteredArtifactKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
+  onUnregisteredArtifactKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   orphanCapabilities: Record<string, CapabilityOption>;
   orphanError: string;
-  orphanFiles: OrphanModelFile[];
+  orphanFiles: OrphanAssetFile[];
   orphanImportSessionByPath: Record<string, string>;
-  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
   resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
   scaffoldingArtifactOrphan: string | null;
   scaffoldingOrphan: string | null;
@@ -127,9 +125,9 @@ type LocalModelCenterRuntimeViewProps = {
   variantError: string;
   variantList: GgufVariantDescriptor[];
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
-  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
-  visibleArtifactTasks: ArtifactTaskEntry[];
-  visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
+  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
+  visibleArtifactTasks: AssetTaskEntry[];
+  visibleVerifiedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
   downloads: DownloadState['activeDownloads'];
   imports: DownloadState['activeImports'];
   unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
@@ -205,7 +203,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           catalogItems={props.catalogItems}
           catalogDisplayCount={props.catalogDisplayCount}
           relatedArtifactsByModelTemplate={props.relatedArtifactsByModelTemplate}
-          installedArtifactsById={props.installedArtifactsById}
+          installedAssetsById={props.installedArtifactsById}
           variantPickerItem={props.variantPickerItem}
           variantList={props.variantList}
           variantError={props.variantError}

@@ -1,48 +1,4 @@
 #[tauri::command]
-pub fn runtime_local_models_remove(
-    app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    remove_model(&app, &payload.local_model_id)
-}
-
-#[tauri::command]
-pub async fn runtime_local_models_start(
-    app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || start_model(&app, &payload.local_model_id))
-        .await
-        .map_err(|error| format!("LOCAL_AI_MODEL_START_TASK_FAILED: {error}"))?
-}
-
-#[tauri::command]
-pub async fn runtime_local_models_stop(
-    app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || stop_model(&app, &payload.local_model_id))
-        .await
-        .map_err(|error| format!("LOCAL_AI_MODEL_STOP_TASK_FAILED: {error}"))?
-}
-
-#[tauri::command]
-pub async fn runtime_local_models_health(
-    app: AppHandle,
-    payload: Option<LocalAiModelsHealthPayload>,
-) -> Result<LocalAiModelsHealthResult, String> {
-    let local_model_id = payload
-        .and_then(|item| item.local_model_id)
-        .filter(|value| !value.trim().is_empty());
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        health(&app, local_model_id.as_deref())
-    })
-    .await
-    .map_err(|error| format!("LOCAL_AI_MODEL_HEALTH_TASK_FAILED: {error}"))??;
-    Ok(LocalAiModelsHealthResult { models: output })
-}
-
-#[tauri::command]
 pub fn runtime_local_append_inference_audit(
     app: AppHandle,
     payload: LocalAiInferenceAuditPayload,
@@ -152,8 +108,7 @@ pub fn runtime_local_append_runtime_audit(
     )
 }
 
-#[tauri::command]
-pub fn runtime_local_models_reveal_in_folder(
+fn runtime_local_models_reveal_in_folder(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<(), String> {
@@ -182,12 +137,70 @@ pub fn runtime_local_models_reveal_in_folder(
     reveal_path_in_os(target)
 }
 
-#[tauri::command]
-pub fn runtime_local_models_reveal_root_folder(app: AppHandle) -> Result<(), String> {
+fn runtime_local_models_reveal_root_folder(app: AppHandle) -> Result<(), String> {
     let models_root = runtime_models_dir(&app)?;
     if !models_root.exists() {
         std::fs::create_dir_all(&models_root)
             .map_err(|e| format!("failed to create models dir: {e}"))?;
     }
     reveal_path_in_os(&models_root)
+}
+
+// Unified asset command aliases (hard-cut: replaces old model/artifact split)
+
+#[tauri::command]
+pub fn runtime_local_assets_remove(
+    app: AppHandle,
+    payload: LocalAiModelIdPayload,
+) -> Result<LocalAiModelRecord, String> {
+    remove_model(&app, &payload.local_model_id)
+}
+
+#[tauri::command]
+pub async fn runtime_local_assets_start(
+    app: AppHandle,
+    payload: LocalAiModelIdPayload,
+) -> Result<LocalAiModelRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || start_model(&app, &payload.local_model_id))
+        .await
+        .map_err(|error| format!("LOCAL_AI_ASSET_START_TASK_FAILED: {error}"))?
+}
+
+#[tauri::command]
+pub async fn runtime_local_assets_stop(
+    app: AppHandle,
+    payload: LocalAiModelIdPayload,
+) -> Result<LocalAiModelRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || stop_model(&app, &payload.local_model_id))
+        .await
+        .map_err(|error| format!("LOCAL_AI_ASSET_STOP_TASK_FAILED: {error}"))?
+}
+
+#[tauri::command]
+pub async fn runtime_local_assets_health(
+    app: AppHandle,
+    payload: Option<LocalAiModelsHealthPayload>,
+) -> Result<LocalAiModelsHealthResult, String> {
+    let local_model_id = payload
+        .and_then(|item| item.local_model_id)
+        .filter(|value| !value.trim().is_empty());
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        health(&app, local_model_id.as_deref())
+    })
+    .await
+    .map_err(|error| format!("LOCAL_AI_ASSET_HEALTH_TASK_FAILED: {error}"))??;
+    Ok(LocalAiModelsHealthResult { models: output })
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_reveal_in_folder(
+    app: AppHandle,
+    payload: LocalAiModelIdPayload,
+) -> Result<(), String> {
+    runtime_local_models_reveal_in_folder(app, payload)
+}
+
+#[tauri::command]
+pub fn runtime_local_assets_reveal_root_folder(app: AppHandle) -> Result<(), String> {
+    runtime_local_models_reveal_root_folder(app)
 }

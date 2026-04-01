@@ -6,7 +6,7 @@ import {
   normalizeLocalRuntimeProfilesDeclaration,
 } from '../src/runtime/local-runtime/index.js';
 
-test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and artifact entries', () => {
+test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and asset entries', () => {
   const profiles = normalizeLocalRuntimeProfilesDeclaration([
     {
       id: 'quality-best',
@@ -22,17 +22,17 @@ test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and artifa
       entries: [
         {
           entryId: 'flux-main',
-          kind: 'model',
+          kind: 'asset',
           capability: 'image',
-          modelId: 'black-forest-labs/FLUX.1-dev',
+          assetId: 'black-forest-labs/FLUX.1-dev',
           repo: 'black-forest-labs/FLUX.1-dev',
           engine: 'localai',
         },
         {
           entryId: 'flux-vae',
-          kind: 'artifact',
-          artifactId: 'flux/vae',
-          artifactKind: 'vae',
+          kind: 'asset',
+          assetId: 'flux/vae',
+          assetKind: 'vae',
           templateId: 'verified.flux.vae',
           engine: 'localai',
         },
@@ -42,11 +42,11 @@ test('normalizeLocalRuntimeProfilesDeclaration parses profile bundles and artifa
 
   assert.equal(profiles.length, 1);
   assert.equal(profiles[0]?.recommended, true);
-  assert.equal(profiles[0]?.entries[1]?.kind, 'artifact');
+  assert.equal(profiles[0]?.entries[1]?.kind, 'asset');
   assert.equal(profiles[0]?.requirements?.minGpuMemoryGb, 12);
 });
 
-test('bridgeLocalRuntimeProfile separates runtime dependencies from companion artifacts', () => {
+test('bridgeLocalRuntimeProfile keeps asset entries on the unified asset contract', () => {
   const profile = normalizeLocalRuntimeProfilesDeclaration([
     {
       id: 'balanced-fast',
@@ -56,18 +56,19 @@ test('bridgeLocalRuntimeProfile separates runtime dependencies from companion ar
       entries: [
         {
           entryId: 'image-main',
-          kind: 'model',
+          kind: 'asset',
           capability: 'image',
-          modelId: 'nimi/image-fast',
+          assetId: 'nimi/image-fast',
           repo: 'nimi/image-fast',
           engine: 'localai',
         },
         {
-          entryId: 'clip-companion',
-          kind: 'artifact',
+          entryId: 'clip-slot',
+          kind: 'asset',
           capability: 'image',
-          artifactId: 'nimi/clip-fast',
-          artifactKind: 'clip',
+          assetId: 'nimi/clip-fast',
+          assetKind: 'clip',
+          engineSlot: 'clip_path',
           templateId: 'verified.clip.fast',
           engine: 'localai',
         },
@@ -77,8 +78,8 @@ test('bridgeLocalRuntimeProfile separates runtime dependencies from companion ar
 
   assert.ok(profile);
   const bridge = bridgeLocalRuntimeProfile(profile);
-  assert.equal(bridge.runtimeEntries?.required?.length, 1);
-  assert.equal(bridge.runtimeEntries?.required?.[0]?.modelId, 'nimi/image-fast');
-  assert.equal(bridge.artifacts.length, 1);
-  assert.equal(bridge.artifacts[0]?.artifactKind, 'clip');
+  assert.equal(bridge.assets.length, 2);
+  assert.equal(bridge.assets[0]?.assetId, 'nimi/image-fast');
+  assert.equal(bridge.assets[1]?.assetKind, 'clip');
+  assert.equal(bridge.assets[1]?.engineSlot, 'clip_path');
 });

@@ -39,7 +39,7 @@ test('toBridgeNimiError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
   assert.equal(error.reasonCode, 'LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID');
   assert.equal(
     String(error.details?.userMessage || ''),
-    'Only `artifact.manifest.json` manifest files can be imported.',
+    'Only `asset.manifest.json` manifest files can be imported.',
   );
 });
 
@@ -50,7 +50,7 @@ test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code',
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID');
   assert.equal(
     String(error.details?.userMessage || ''),
-    'Please choose a valid companion asset type.',
+    'Please choose a valid dependency asset type.',
   );
 });
 
@@ -61,7 +61,7 @@ test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', ()
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND');
   assert.equal(
     String(error.details?.userMessage || ''),
-    'The companion file to import was not found. Refresh and try again.',
+    'The dependency asset file to import was not found. Refresh and try again.',
   );
 });
 

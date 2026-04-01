@@ -5,6 +5,9 @@ import { reconcileLocalRuntimeBootstrapState } from '../src/shell/renderer/infra
 
 test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime models on startup', async () => {
   const desktopModels = [{
+    localAssetId: '01JMODEL',
+    assetId: 'local-import/z_image_turbo-q4_k',
+    kind: 'image' as const,
     localModelId: '01JMODEL',
     modelId: 'local-import/z_image_turbo-q4_k',
     capabilities: ['image'],
@@ -18,11 +21,9 @@ test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime mode
     },
     integrityMode: 'verified' as const,
     hashes: {},
-    endpoint: 'http://127.0.0.1:1234/v1',
     status: 'installed' as const,
     installedAt: '2026-03-08T00:00:00Z',
     updatedAt: '2026-03-08T00:00:00Z',
-    tags: ['image'],
   }];
   const logs: Array<Record<string, unknown>> = [];
   const result = await reconcileLocalRuntimeBootstrapState({

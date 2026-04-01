@@ -1,11 +1,8 @@
 import type {
-  LocalRuntimeArtifactKind,
-  LocalRuntimeArtifactRecord,
-  LocalRuntimeArtifactStatus,
-  LocalRuntimeModelStatus,
-  LocalRuntimeModelRecord,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeAssetKind,
+  LocalRuntimeAssetStatus,
+  LocalRuntimeAssetRecord,
+  LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeEngineRuntimeMode,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
@@ -13,7 +10,6 @@ import type {
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeExecutionApplyResult,
   LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileArtifactPlanEntry,
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileResolutionPlan,
@@ -54,15 +50,14 @@ export {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseGgufVariantDescriptor,
-  parseModelHealth,
-  parseOrphanArtifactFile,
-  parseOrphanModelFile,
+  parseAssetHealth,
+  parseOrphanAssetFile,
   parseUnregisteredAssetDescriptor,
   parseRecommendationFeedDescriptor,
   parseRecommendationFeedItemDescriptor,
-  parseScaffoldArtifactResult,
+  parseScaffoldAssetResult,
 } from './parsers-runtime-events';
-export function normalizeStatus(value: unknown): LocalRuntimeModelStatus {
+export function normalizeAssetStatus(value: unknown): LocalRuntimeAssetStatus {
   if (typeof value === 'number') {
     if (value === 2) return 'active';
     if (value === 3) return 'unhealthy';
@@ -71,9 +66,12 @@ export function normalizeStatus(value: unknown): LocalRuntimeModelStatus {
   }
   const raw = asString(value);
   if (raw === 'active' || raw === 'unhealthy' || raw === 'removed') return raw;
-  if (raw === 'LOCAL_MODEL_STATUS_ACTIVE' || raw === '2') return 'active';
-  if (raw === 'LOCAL_MODEL_STATUS_UNHEALTHY' || raw === '3') return 'unhealthy';
-  if (raw === 'LOCAL_MODEL_STATUS_REMOVED' || raw === '4') return 'removed';
+  if (raw === 'LOCAL_MODEL_STATUS_ACTIVE' || raw === 'LOCAL_ASSET_STATUS_ACTIVE' || raw === '2') return 'active';
+  if (raw === 'LOCAL_MODEL_STATUS_UNHEALTHY' || raw === 'LOCAL_ASSET_STATUS_UNHEALTHY' || raw === '3') return 'unhealthy';
+  if (raw === 'LOCAL_MODEL_STATUS_REMOVED' || raw === 'LOCAL_ASSET_STATUS_REMOVED' || raw === '4') return 'removed';
+  if (raw === 'LOCAL_ARTIFACT_STATUS_ACTIVE') return 'active';
+  if (raw === 'LOCAL_ARTIFACT_STATUS_UNHEALTHY') return 'unhealthy';
+  if (raw === 'LOCAL_ARTIFACT_STATUS_REMOVED') return 'removed';
   return 'installed';
 }
 
@@ -83,24 +81,17 @@ function inferIntegrityModeFromRepo(repo: string): 'verified' | 'local_unverifie
     : 'verified';
 }
 
-export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
+export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
   const record = asRecord(value);
   const source = asRecord(record.source);
   const hashes = asRecord(record.hashes);
-  const capabilities = Array.isArray(record.capabilities)
-    ? record.capabilities.map((item) => asString(item)).filter(Boolean)
-    : [];
   const files = Array.isArray(record.files)
     ? record.files.map((item) => asString(item)).filter(Boolean)
     : [];
-  const tags = Array.isArray(record.tags)
-    ? record.tags.map((item) => asString(item)).filter(Boolean)
-    : [];
-  const knownTotalSizeBytes = Number(record.knownTotalSizeBytes);
   return {
-    localModelId: asString(record.localModelId),
-    modelId: toCanonicalLocalId(record.modelId),
-    capabilities,
+    localAssetId: asString(record.localAssetId),
+    assetId: toCanonicalLocalId(record.assetId),
+    kind: normalizeAssetKind(record.kind),
     engine: asString(record.engine),
     entry: asString(record.entry),
     files,
@@ -118,15 +109,14 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
     ),
-    tags,
-    knownTotalSizeBytes: Number.isFinite(knownTotalSizeBytes) && knownTotalSizeBytes > 0
-      ? knownTotalSizeBytes
-      : undefined,
-    endpoint: asString(record.endpoint),
-    status: normalizeStatus(record.status),
+    status: normalizeAssetStatus(record.status),
     installedAt: asString(record.installedAt),
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
+    // Runnable-only
+    capabilities: Array.isArray(record.capabilities)
+      ? record.capabilities.map((item) => asString(item)).filter(Boolean)
+      : undefined,
     logicalModelId: asString(record.logicalModelId) || undefined,
     family: asString(record.family) || undefined,
     artifactRoles: Array.isArray(record.artifactRoles)
@@ -138,10 +128,12 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
       : undefined,
     engineConfig: asPlainObject(record.engineConfig),
     recommendation: parseCatalogRecommendation(record.recommendation),
+    // Passive-only
+    metadata: asPlainObject(record.metadata),
   };
 }
 
-export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifiedModelDescriptor {
+export function parseVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifiedAssetDescriptor {
   const record = asRecord(value);
   const hashes = asRecord(record.hashes);
   const files = Array.isArray(record.files)
@@ -159,12 +151,13 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
     templateId: asString(record.templateId),
     title: asString(record.title),
     description: asString(record.description),
-    installKind: asString(record.installKind),
-    modelId: asString(record.modelId),
+    installKind: asString(record.installKind) || undefined,
+    assetId: asString(record.assetId),
+    kind: normalizeAssetKind(record.kind),
     logicalModelId: asString(record.logicalModelId) || undefined,
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
-    capabilities,
+    capabilities: capabilities.length > 0 ? capabilities : undefined,
     engine: asString(record.engine),
     entry: asString(record.entry),
     files,
@@ -172,7 +165,7 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
     ),
-    endpoint: asString(record.endpoint),
+    endpoint: asString(record.endpoint) || undefined,
     fileCount: Number.isFinite(fileCountRaw) && fileCountRaw > 0 ? fileCountRaw : files.length,
     totalSizeBytes: Number.isFinite(totalSizeBytesRaw) && totalSizeBytesRaw > 0
       ? totalSizeBytesRaw
@@ -186,78 +179,39 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
       ? record.fallbackEngines.map((item) => asString(item)).filter(Boolean)
       : undefined,
     engineConfig: asPlainObject(record.engineConfig),
-  };
-}
-
-export function normalizeArtifactKind(value: unknown): LocalRuntimeArtifactKind {
-  if (typeof value === 'number') {
-    if (value === 7) return 'ae';
-    if (value === 2) return 'llm';
-    if (value === 3) return 'clip';
-    if (value === 4) return 'controlnet';
-    if (value === 5) return 'lora';
-    if (value === 6) return 'auxiliary';
-    return 'vae';
-  }
-  const raw = asString(value).toLowerCase();
-  if (raw === 'local_artifact_kind_ae' || raw === '7' || raw === 'ae') return 'ae';
-  if (raw === 'local_artifact_kind_llm' || raw === '2' || raw === 'llm') return 'llm';
-  if (raw === 'local_artifact_kind_clip' || raw === '3' || raw === 'clip') return 'clip';
-  if (raw === 'local_artifact_kind_controlnet' || raw === '4' || raw === 'controlnet') return 'controlnet';
-  if (raw === 'local_artifact_kind_lora' || raw === '5' || raw === 'lora') return 'lora';
-  if (raw === 'local_artifact_kind_auxiliary' || raw === '6' || raw === 'auxiliary') return 'auxiliary';
-  return 'vae';
-}
-
-export function normalizeArtifactStatus(value: unknown): LocalRuntimeArtifactStatus {
-  if (typeof value === 'number') {
-    if (value === 2) return 'active';
-    if (value === 3) return 'unhealthy';
-    if (value === 4) return 'removed';
-    return 'installed';
-  }
-  const raw = asString(value).toLowerCase();
-  if (raw === 'local_artifact_status_active' || raw === '2' || raw === 'active') return 'active';
-  if (raw === 'local_artifact_status_unhealthy' || raw === '3' || raw === 'unhealthy') return 'unhealthy';
-  if (raw === 'local_artifact_status_removed' || raw === '4' || raw === 'removed') return 'removed';
-  return 'installed';
-}
-
-export function parseArtifactRecord(value: unknown): LocalRuntimeArtifactRecord {
-  const record = asRecord(value);
-  const source = asRecord(record.source);
-  const hashes = asRecord(record.hashes);
-  const files = Array.isArray(record.files)
-    ? record.files.map((item) => asString(item)).filter(Boolean)
-    : [];
-  return {
-    localArtifactId: asString(record.localArtifactId),
-    artifactId: toCanonicalLocalId(record.artifactId),
-    kind: normalizeArtifactKind(record.kind),
-    engine: asString(record.engine),
-    entry: asString(record.entry),
-    files,
-    license: asString(record.license),
-    source: {
-      repo: asString(source.repo),
-      revision: asString(source.revision),
-    },
-    integrityMode: (
-      asString(record.integrityMode) === 'local_unverified'
-      || asString(record.integrityMode) === 'verified'
-    )
-      ? (asString(record.integrityMode) as 'verified' | 'local_unverified')
-      : inferIntegrityModeFromRepo(asString(source.repo)),
-    hashes: Object.fromEntries(
-      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
-    ),
-    status: normalizeArtifactStatus(record.status),
-    installedAt: asString(record.installedAt),
-    updatedAt: asString(record.updatedAt),
-    healthDetail: asString(record.healthDetail) || undefined,
     metadata: asPlainObject(record.metadata),
   };
 }
+
+export function normalizeAssetKind(value: unknown): LocalRuntimeAssetKind {
+  // Proto LocalAssetKind: CHAT=1, IMAGE=2, VIDEO=3, TTS=4, STT=5, VAE=10, CLIP=11, LORA=12, CONTROLNET=13, AUXILIARY=14
+  if (typeof value === 'number') {
+    if (value === 1) return 'chat';
+    if (value === 2) return 'image';
+    if (value === 3) return 'video';
+    if (value === 4) return 'tts';
+    if (value === 5) return 'stt';
+    if (value === 10) return 'vae';
+    if (value === 11) return 'clip';
+    if (value === 12) return 'lora';
+    if (value === 13) return 'controlnet';
+    if (value === 14) return 'auxiliary';
+    return 'chat';
+  }
+  const raw = asString(value).toLowerCase();
+  if (raw === 'chat' || raw === 'local_asset_kind_chat' || raw === '1') return 'chat';
+  if (raw === 'image' || raw === 'local_asset_kind_image' || raw === '2') return 'image';
+  if (raw === 'video' || raw === 'local_asset_kind_video' || raw === '3') return 'video';
+  if (raw === 'tts' || raw === 'local_asset_kind_tts' || raw === '4') return 'tts';
+  if (raw === 'stt' || raw === 'local_asset_kind_stt' || raw === '5') return 'stt';
+  if (raw === 'vae' || raw === 'local_asset_kind_vae' || raw === '10') return 'vae';
+  if (raw === 'clip' || raw === 'local_asset_kind_clip' || raw === '11') return 'clip';
+  if (raw === 'lora' || raw === 'local_asset_kind_lora' || raw === '12') return 'lora';
+  if (raw === 'controlnet' || raw === 'local_asset_kind_controlnet' || raw === '13') return 'controlnet';
+  if (raw === 'auxiliary' || raw === 'local_asset_kind_auxiliary' || raw === '14') return 'auxiliary';
+  return 'chat';
+}
+
 
 function parseProfileRequirementDescriptor(value: unknown): LocalRuntimeProfileRequirementDescriptor | undefined {
   const record = asRecord(value);
@@ -293,33 +247,23 @@ function parseProfileEntryDescriptor(value: unknown): LocalRuntimeProfileEntryDe
     capability: asString(record.capability) || undefined,
     required: typeof record.required === 'boolean' ? Boolean(record.required) : undefined,
     preferred: typeof record.preferred === 'boolean' ? Boolean(record.preferred) : undefined,
-    modelId: toCanonicalLocalId(record.modelId) || undefined,
+    assetId: toCanonicalLocalId(record.assetId) || undefined,
+    assetKind: asString(record.assetKind) as LocalRuntimeProfileEntryDescriptor['assetKind'] || undefined,
+    engineSlot: asString(record.engineSlot) || undefined,
     repo: asString(record.repo) || undefined,
     serviceId: asString(record.serviceId) || undefined,
     nodeId: asString(record.nodeId) || undefined,
     engine: asString(record.engine) || undefined,
-    artifactId: toCanonicalLocalId(record.artifactId) || undefined,
-    artifactKind: asString(record.artifactKind) as LocalRuntimeProfileEntryDescriptor['artifactKind'] || undefined,
     templateId: asString(record.templateId) || undefined,
     revision: asString(record.revision) || undefined,
     tags,
   };
 }
 
-function parseProfileArtifactPlanEntry(value: unknown): LocalRuntimeProfileArtifactPlanEntry {
-  const entry = parseProfileEntryDescriptor(value);
-  const record = asRecord(value);
-  return {
-    ...entry,
-    kind: 'artifact',
-    installed: Boolean(record.installed),
-  };
-}
-
 export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileResolutionPlan {
   const record = asRecord(value);
-  const artifactEntries = Array.isArray(record.artifactEntries)
-    ? record.artifactEntries.map((item) => parseProfileArtifactPlanEntry(item))
+  const assetEntries = Array.isArray(record.assetEntries)
+    ? record.assetEntries.map((item) => parseProfileEntryDescriptor(item))
     : [];
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => asString(item)).filter(Boolean)
@@ -336,7 +280,7 @@ export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileR
       : [],
     requirements: parseProfileRequirementDescriptor(record.requirements),
     executionPlan: parseExecutionPlan(record.executionPlan),
-    artifactEntries,
+    assetEntries,
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
   };
@@ -344,8 +288,8 @@ export function parseProfileResolutionPlan(value: unknown): LocalRuntimeProfileR
 
 export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileApplyResult {
   const record = asRecord(value);
-  const installedArtifacts = Array.isArray(record.installedArtifacts)
-    ? record.installedArtifacts.map((item) => parseArtifactRecord(item))
+  const installedAssets = Array.isArray(record.installedAssets)
+    ? record.installedAssets.map((item: unknown) => parseAssetRecord(item))
     : [];
   const warnings = Array.isArray(record.warnings)
     ? record.warnings.map((item) => asString(item)).filter(Boolean)
@@ -355,46 +299,12 @@ export function parseProfileApplyResult(value: unknown): LocalRuntimeProfileAppl
     modId: asString(record.modId),
     profileId: asString(record.profileId),
     executionResult: parseExecutionApplyResult(record.executionResult),
-    installedArtifacts,
+    installedAssets,
     warnings,
     reasonCode: asString(record.reasonCode) || undefined,
   };
 }
 
-export function parseVerifiedArtifactDescriptor(value: unknown): LocalRuntimeVerifiedArtifactDescriptor {
-  const record = asRecord(value);
-  const hashes = asRecord(record.hashes);
-  const files = Array.isArray(record.files)
-    ? record.files.map((item) => asString(item)).filter(Boolean)
-    : [];
-  const tags = Array.isArray(record.tags)
-    ? record.tags.map((item) => asString(item)).filter(Boolean)
-    : [];
-  const fileCountRaw = Number(record.fileCount);
-  const totalSizeBytesRaw = Number(record.totalSizeBytes);
-  return {
-    templateId: asString(record.templateId),
-    title: asString(record.title),
-    description: asString(record.description),
-    artifactId: toCanonicalLocalId(record.artifactId),
-    kind: normalizeArtifactKind(record.kind),
-    engine: asString(record.engine),
-    entry: asString(record.entry),
-    files,
-    license: asString(record.license),
-    repo: asString(record.repo),
-    revision: asString(record.revision) || 'main',
-    hashes: Object.fromEntries(
-      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
-    ),
-    fileCount: Number.isFinite(fileCountRaw) && fileCountRaw > 0 ? fileCountRaw : files.length,
-    totalSizeBytes: Number.isFinite(totalSizeBytesRaw) && totalSizeBytesRaw > 0
-      ? totalSizeBytesRaw
-      : undefined,
-    tags,
-    metadata: asPlainObject(record.metadata),
-  };
-}
 
 export function normalizeEngineRuntimeMode(value: unknown): LocalRuntimeEngineRuntimeMode {
   if (typeof value === 'number') {
@@ -500,7 +410,7 @@ export function parseCatalogItemDescriptor(value: unknown): LocalRuntimeCatalogI
     source: asString(record.source) || 'huggingface',
     title: asString(record.title),
     description: asString(record.description),
-    modelId: asString(record.modelId),
+    modelId: asString(record.modelId || record.assetId),
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
     templateId: asString(record.templateId) || undefined,
@@ -544,7 +454,7 @@ export function parseInstallPlanDescriptor(value: unknown): LocalRuntimeInstallP
     itemId: asString(record.itemId),
     source: asString(record.source) || 'huggingface',
     templateId: asString(record.templateId) || undefined,
-    modelId: asString(record.modelId),
+    modelId: asString(record.modelId || record.assetId),
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
     capabilities,
@@ -572,8 +482,8 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
   const entries = Array.isArray(record.entries)
     ? record.entries.map((item) => parseExecutionEntryDescriptor(item))
     : [];
-  const installedModels = Array.isArray(record.installedModels)
-    ? record.installedModels.map((item) => parseModelRecord(item))
+  const installedAssets = Array.isArray(record.installedAssets)
+    ? record.installedAssets.map((item: unknown) => parseAssetRecord(item))
     : [];
   const services = Array.isArray(record.services)
     ? record.services.map((item) => parseServiceDescriptor(item))
@@ -594,7 +504,7 @@ export function parseExecutionApplyResult(value: unknown): LocalRuntimeExecution
     planId: asString(record.planId),
     modId: asString(record.modId),
     entries,
-    installedModels,
+    installedAssets,
     services,
     capabilities,
     stageResults,
@@ -644,7 +554,7 @@ export function parseServiceDescriptor(value: unknown): LocalRuntimeServiceDescr
     artifactType: normalizeServiceArtifactType(record.artifactType),
     endpoint: asString(record.endpoint) || undefined,
     capabilities,
-    localModelId: asString(record.localModelId) || undefined,
+    localAssetId: asString(record.localAssetId) || undefined,
     status: normalizeServiceStatus(record.status),
     detail: asString(record.detail) || undefined,
     installedAt: asString(record.installedAt),

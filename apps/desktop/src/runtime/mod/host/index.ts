@@ -89,7 +89,7 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                 }),
             },
             local: {
-                listArtifacts: async () => { throw notReady(); },
+                listAssets: async () => { throw notReady(); },
                 listProfiles: async () => { throw notReady(); },
                 requestProfileInstall: async () => { throw notReady(); },
                 getProfileInstallStatus: async () => { throw notReady(); },

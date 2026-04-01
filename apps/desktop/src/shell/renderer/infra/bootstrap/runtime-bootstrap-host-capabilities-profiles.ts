@@ -4,7 +4,7 @@ import {
   profileSupportsCapability,
   type LocalRuntimeExecutionEntryDescriptor as LocalRuntimeDependencyDescriptor,
   type LocalRuntimeExecutionPlan as LocalRuntimeDependencyResolutionPlan,
-  type LocalRuntimeModelRecord,
+  type LocalRuntimeAssetRecord,
   type LocalRuntimeNodeDescriptor,
   type LocalRuntimeProfileDescriptor,
   type LocalRuntimeProfileEntryDescriptor,
@@ -16,6 +16,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { runtimeModMediaCachePut, type RuntimeModMediaCachePutInput, type RuntimeModMediaCachePutResult, } from '@runtime/llm-adapter/tauri-bridge';
 import { type ModRuntimeLocalProfileSnapshot, type RuntimeCanonicalCapability } from "@nimiplatform/sdk/mod";
+import type { HookModLocalProfileSnapshot } from '@runtime/hook/contracts/facade';
 function asRecord(value: unknown): Record<string, unknown> {
     return value && typeof value === 'object' && !Array.isArray(value)
         ? value as Record<string, unknown>
@@ -213,9 +214,8 @@ function toDependencyEntries(dependencies: LocalRuntimeDependencyResolutionPlan[
         required: item.required,
         selected: item.selected,
         preferred: item.preferred,
-        modelId: item.modelId,
-        artifactId: undefined,
-        artifactKind: undefined,
+        assetId: item.modelId,
+        assetKind: undefined,
         templateId: undefined,
         repo: item.repo,
         engine: item.engine,
@@ -236,9 +236,8 @@ function toDependencyEntry(item: LocalRuntimeDependencyDescriptor, input?: {
         required: item.required,
         selected: item.selected,
         preferred: item.preferred,
-        modelId: item.modelId,
-        artifactId: undefined,
-        artifactKind: undefined,
+        assetId: item.modelId,
+        assetKind: undefined,
         templateId: undefined,
         repo: item.repo,
         engine: item.engine,
@@ -248,64 +247,63 @@ function toDependencyEntry(item: LocalRuntimeDependencyDescriptor, input?: {
         warnings: input?.warnings ?? (Array.isArray(item.warnings) ? item.warnings : []),
     };
 }
-function artifactRepairLabel(entry: LocalRuntimeProfileEntryDescriptor): string {
-    const artifactId = String(entry.artifactId || '').trim() || entry.entryId;
-    return `Install artifact ${artifactId}`;
+function assetRepairLabel(entry: LocalRuntimeProfileEntryDescriptor): string {
+    const assetId = String(entry.assetId || '').trim() || entry.entryId;
+    return `Install asset ${assetId}`;
 }
-function findArtifactForEntry(entry: LocalRuntimeProfileEntryDescriptor, artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>>): Awaited<ReturnType<typeof localRuntime.listArtifacts>>[number] | null {
-    return artifacts.find((artifact) => {
-        const artifactId = String(entry.artifactId || '').trim();
-        const kind = String(entry.artifactKind || '').trim();
+function findAssetForEntry(entry: LocalRuntimeProfileEntryDescriptor, assets: Awaited<ReturnType<typeof localRuntime.listAssets>>): Awaited<ReturnType<typeof localRuntime.listAssets>>[number] | null {
+    return assets.find((asset) => {
+        const assetId = String(entry.assetId || '').trim();
+        const kind = String(entry.assetKind || '').trim();
         const engine = String(entry.engine || '').trim().toLowerCase();
-        if (artifactId && String(artifact.artifactId || '').trim() !== artifactId) {
+        if (assetId && String(asset.assetId || '').trim() !== assetId) {
             return false;
         }
-        if (kind && String(artifact.kind || '').trim() !== kind) {
+        if (kind && String(asset.kind || '').trim() !== kind) {
             return false;
         }
-        if (engine && String(artifact.engine || '').trim().toLowerCase() !== engine) {
+        if (engine && String(asset.engine || '').trim().toLowerCase() !== engine) {
             return false;
         }
-        return Boolean(artifactId || kind || String(entry.templateId || '').trim());
+        return Boolean(assetId || kind || String(entry.templateId || '').trim());
     }) || null;
 }
-function assessArtifactRuntimeState(input: {
+function assessPassiveAssetRuntimeState(input: {
     entry: LocalRuntimeProfileEntryDescriptor;
-    artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>>;
+    assets: Awaited<ReturnType<typeof localRuntime.listAssets>>;
 }): DependencyRuntimeAssessment {
     const warnings = [];
-    const artifact = findArtifactForEntry(input.entry, input.artifacts);
+    const asset = findAssetForEntry(input.entry, input.assets);
     let readiness: DependencyReadiness = 'ready';
     let reasonCode: string | undefined;
     const repairActions: ModRuntimeLocalProfileSnapshot['repairActions'] = [];
-    if (!artifact || artifact.status === 'removed') {
-        reasonCode = 'LOCAL_AI_DEPENDENCY_ARTIFACT_NOT_INSTALLED';
-        warnings.push('selected artifact entry is not installed');
+    if (!asset || asset.status === 'removed') {
+        reasonCode = 'LOCAL_AI_DEPENDENCY_ASSET_NOT_INSTALLED';
+        warnings.push('selected asset entry is not installed');
         readiness = input.entry.required === false ? 'degraded' : 'missing';
         repairActions.push({
             actionId: `install:${input.entry.entryId}`,
-            label: artifactRepairLabel(input.entry),
+            label: assetRepairLabel(input.entry),
             reasonCode,
             entryId: input.entry.entryId,
             capability: mapLocalRuntimeCapabilityToCanonical(input.entry.capability),
         });
     }
-    else if (artifact.status === 'unhealthy') {
-        reasonCode = 'LOCAL_AI_DEPENDENCY_ARTIFACT_UNHEALTHY';
-        warnings.push('selected artifact entry is unhealthy');
+    else if (asset.status === 'unhealthy') {
+        reasonCode = 'LOCAL_AI_DEPENDENCY_ASSET_UNHEALTHY';
+        warnings.push('selected asset entry is unhealthy');
         readiness = 'degraded';
     }
     return {
         entry: {
             entryId: input.entry.entryId,
-            kind: 'artifact',
+            kind: 'asset',
             capability: mapLocalRuntimeCapabilityToCanonical(input.entry.capability),
             required: input.entry.required !== false,
             selected: true,
             preferred: input.entry.preferred === true,
-            modelId: undefined,
-            artifactId: input.entry.artifactId,
-            artifactKind: input.entry.artifactKind,
+            assetId: input.entry.assetId,
+            assetKind: input.entry.assetKind as ModRuntimeLocalProfileSnapshot['entries'][number]['assetKind'],
             templateId: input.entry.templateId,
             repo: input.entry.repo,
             engine: input.entry.engine,
@@ -339,9 +337,9 @@ function buildDependencyRepairAction(input: {
     };
 }
 function dependencyRepairLabel(dep: LocalRuntimeDependencyDescriptor): string {
-    if (dep.kind === 'model') {
-        const modelId = String(dep.modelId || '').trim() || dep.entryId;
-        return `Install model ${modelId}`;
+    if (dep.kind === 'asset') {
+        const assetId = String(dep.modelId || '').trim() || dep.entryId;
+        return `Install asset ${assetId}`;
     }
     if (dep.kind === 'service') {
         const serviceId = String(dep.serviceId || '').trim() || dep.entryId;
@@ -353,11 +351,11 @@ function dependencyRepairLabel(dep: LocalRuntimeDependencyDescriptor): string {
     }
     return `Install runtime entry ${dep.entryId}`;
 }
-function findModelForDependency(dependency: LocalRuntimeDependencyDescriptor, models: LocalRuntimeModelRecord[]): LocalRuntimeModelRecord | null {
+function findModelForDependency(dependency: LocalRuntimeDependencyDescriptor, models: LocalRuntimeAssetRecord[]): LocalRuntimeAssetRecord | null {
     const targetModelId = normalizeIdentifier(dependency.modelId);
     const targetEngine = normalizeIdentifier(dependency.engine);
     return models.find((model) => {
-        if (normalizeIdentifier(model.modelId) !== targetModelId || !targetModelId)
+        if (normalizeIdentifier(model.assetId) !== targetModelId || !targetModelId)
             return false;
         if (!targetEngine)
             return true;
@@ -393,7 +391,7 @@ function selectedDependencyInstallAction(dependency: LocalRuntimeDependencyDescr
 }
 function assessDependencyRuntimeState(input: {
     dependency: LocalRuntimeDependencyDescriptor;
-    models: LocalRuntimeModelRecord[];
+    models: LocalRuntimeAssetRecord[];
     services: LocalRuntimeServiceDescriptor[];
     nodes: LocalRuntimeNodeDescriptor[];
 }): DependencyRuntimeAssessment {
@@ -418,7 +416,7 @@ function assessDependencyRuntimeState(input: {
             repairActions,
         };
     }
-    if (dependency.kind === 'model') {
+    if (dependency.kind === 'asset') {
         const model = findModelForDependency(dependency, models);
         if (!model || model.status === 'removed') {
             reasonCode = 'LOCAL_AI_DEPENDENCY_MODEL_NOT_INSTALLED';
@@ -434,7 +432,7 @@ function assessDependencyRuntimeState(input: {
                 actionId: `fix:model:${dependency.entryId}`,
                 dependency,
                 reasonCode,
-                label: `Repair model ${model.modelId}`,
+                label: `Repair model ${model.assetId}`,
             }));
         }
         else if (model.status !== 'active') {
@@ -445,7 +443,7 @@ function assessDependencyRuntimeState(input: {
                 actionId: `start:model:${dependency.entryId}`,
                 dependency,
                 reasonCode,
-                label: `Start model ${model.modelId}`,
+                label: `Start model ${model.assetId}`,
             }));
         }
     }
@@ -579,11 +577,25 @@ function buildRepairActionsFromPlan(plan: LocalRuntimeDependencyResolutionPlan):
     }
     return actions;
 }
+function toHookEntryKind(kind: string): HookModLocalProfileSnapshot['entries'][number]['kind'] {
+    if (kind === 'service') return 'service';
+    if (kind === 'node') return 'node';
+    return 'asset';
+}
+function toHookSnapshot(snapshot: ModRuntimeLocalProfileSnapshot): HookModLocalProfileSnapshot {
+    return {
+        ...snapshot,
+        entries: snapshot.entries.map((entry) => ({
+            ...entry,
+            kind: toHookEntryKind(entry.kind),
+        })),
+    };
+}
 export function createModLocalProfileSnapshotResolver(): (input: {
     modId: string;
     capability?: RuntimeCanonicalCapability;
     routeSourceHint?: 'cloud' | 'local';
-}) => Promise<ModRuntimeLocalProfileSnapshot> {
+}) => Promise<HookModLocalProfileSnapshot> {
     return async (input) => {
         const modId = String(input.modId || '').trim();
         const capability = input.capability;
@@ -655,18 +667,18 @@ export function createModLocalProfileSnapshotResolver(): (input: {
             capability: localRuntimeCapability,
             profile,
         });
-        let models: LocalRuntimeModelRecord[] = [];
+        let models: LocalRuntimeAssetRecord[] = [];
         let services: LocalRuntimeServiceDescriptor[] = [];
         let nodes: LocalRuntimeNodeDescriptor[] = [];
-        let artifacts: Awaited<ReturnType<typeof localRuntime.listArtifacts>> = [];
+        let assets: Awaited<ReturnType<typeof localRuntime.listAssets>> = [];
         const inventoryWarnings: string[] = [];
         try {
             // Keep inventory reads serialized to avoid spiking the runtime bridge with
             // four concurrent IPC calls every time mods refresh dependency status.
-            models = await localRuntime.list();
+            models = await localRuntime.listAssets();
             services = await localRuntime.listServices();
             nodes = await localRuntime.listNodesCatalog(localRuntimeCapability ? { capability: localRuntimeCapability } : undefined);
-            artifacts = await localRuntime.listArtifacts();
+            assets = models;
         }
         catch (error) {
             inventoryWarnings.push(`runtime inventory unavailable: ${error instanceof Error ? error.message : String(error || '')}`);
@@ -677,31 +689,32 @@ export function createModLocalProfileSnapshotResolver(): (input: {
             services,
             nodes,
         }));
-        const artifactAssessments = plan.artifactEntries.map((entry) => assessArtifactRuntimeState({
-            entry,
-            artifacts,
-        }));
         const runtimeEntries = assessments.map((item) => item.entry);
         const runtimeRepairActions = assessments.flatMap((item) => item.repairActions);
-        const artifactEntries = artifactAssessments.map((item) => item.entry);
-        const artifactRepairActions = artifactAssessments.flatMap((item) => item.repairActions);
+        const passiveAssetAssessments = plan.assetEntries.map((entry) => assessPassiveAssetRuntimeState({
+            entry,
+            assets,
+        }));
+        const assetEntries = passiveAssetAssessments.map((item) => item.entry);
+        const assetRepairActions = passiveAssetAssessments.flatMap((item) => item.repairActions);
         const hasMissingRequiredInRuntime = assessments.some((item) => item.readiness === 'missing' && item.entry.required);
-        const hasMissingRequiredArtifacts = artifactAssessments.some((item) => item.readiness === 'missing' && item.entry.required);
+        const hasMissingRequiredAssets = passiveAssetAssessments.some((item) => item.readiness === 'missing' && item.entry.required);
         const hasDegradedInRuntime = assessments.some((item) => item.readiness === 'degraded');
-        const hasDegradedArtifacts = artifactAssessments.some((item) => item.readiness === 'degraded');
-        const hasAnySelectedRuntimeDependency = assessments.some((item) => item.entry.selected) || artifactAssessments.some((item) => item.entry.selected);
+        const hasDegradedAssets = passiveAssetAssessments.some((item) => item.readiness === 'degraded');
+        const hasAnySelectedRuntimeDependency = assessments.some((item) => item.entry.selected);
         const hasAnyRuntimeReadySelection = assessments.some((item) => item.entry.selected && item.readiness === 'ready');
         const firstRuntimeReasonCode = assessments.find((item) => item.readiness !== 'ready' && String(item.entry.reasonCode || '').trim().length > 0)?.entry.reasonCode;
+        const firstAssetReasonCode = passiveAssetAssessments.find((item) => item.readiness !== 'ready' && String(item.entry.reasonCode || '').trim().length > 0)?.entry.reasonCode;
         const failedRequiredPreflight = plan.executionPlan.preflightDecisions.find((item) => !item.ok && isDependencyRequiredById(plan.executionPlan.entries, item.entryId));
         const hasFailedPreflight = plan.executionPlan.preflightDecisions.some((item) => !item.ok);
         const warnings = uniqueStrings([
             ...plan.warnings,
             ...inventoryWarnings,
             ...runtimeEntries.flatMap((item) => item.warnings),
-            ...artifactEntries.flatMap((item) => item.warnings),
+            ...assetEntries.flatMap((item) => item.warnings),
         ]);
-        const hasMissingRequired = hasMissingRequiredInRuntime || hasMissingRequiredArtifacts || Boolean(failedRequiredPreflight);
-        const hasDegraded = hasDegradedInRuntime || hasDegradedArtifacts || hasFailedPreflight || warnings.length > 0;
+        const hasMissingRequired = hasMissingRequiredInRuntime || hasMissingRequiredAssets || Boolean(failedRequiredPreflight);
+        const hasDegraded = hasDegradedInRuntime || hasDegradedAssets || hasFailedPreflight || warnings.length > 0;
         const status: ModRuntimeLocalProfileSnapshot['status'] = hasMissingRequired ? 'missing' : (hasDegraded ? 'degraded' : 'ready');
         const routeSource: ModRuntimeLocalProfileSnapshot['routeSource'] = !hasAnySelectedRuntimeDependency
             ? 'cloud'
@@ -710,25 +723,26 @@ export function createModLocalProfileSnapshotResolver(): (input: {
                         : (hasAnyRuntimeReadySelection ? 'mixed' : 'cloud');
         const repairActions = dedupeRepairActions([
             ...runtimeRepairActions,
-            ...artifactRepairActions,
+            ...assetRepairActions,
             ...buildRepairActionsFromPlan(plan.executionPlan),
         ]);
         const reasonCode = firstRuntimeReasonCode
+            || firstAssetReasonCode
             || failedRequiredPreflight?.reasonCode
             || plan.executionPlan.preflightDecisions.find((item) => !item.ok)?.reasonCode
             || plan.reasonCode;
-        return {
+        return toHookSnapshot({
             modId,
             planId: plan.planId,
             status,
             routeSource,
             reasonCode,
             warnings,
-            entries: [...runtimeEntries, ...artifactEntries].length > 0
-                ? [...runtimeEntries, ...artifactEntries]
+            entries: [...runtimeEntries, ...assetEntries].length > 0
+                ? [...runtimeEntries, ...assetEntries]
                 : toDependencyEntries(plan.executionPlan.entries),
             repairActions,
             updatedAt: new Date().toISOString(),
-        };
+        });
     };
 }

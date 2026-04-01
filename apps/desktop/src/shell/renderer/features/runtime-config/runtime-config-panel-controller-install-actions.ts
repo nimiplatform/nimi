@@ -3,9 +3,8 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
   localRuntime,
-  type LocalRuntimeModelLifecycleOperation,
   normalizeLocalRuntimeProfilesDeclaration,
-  type LocalRuntimeArtifactKind,
+  type LocalRuntimeAssetKind,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
@@ -78,14 +77,14 @@ export type RuntimeConfigInstallActions = {
   importLocalModel: () => Promise<void>;
   installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
   importLocalArtifact: () => Promise<void>;
-  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
+  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
   removeLocalArtifact: (localArtifactId: string) => Promise<void>;
-  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
 };
 
@@ -129,12 +128,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   ) => {
     assertRuntimeWriteAllowed();
     const installed = installSource === 'verified'
-      ? await localRuntime.installVerified({
+      ? await localRuntime.installVerifiedAsset({
         templateId: String(plan.templateId || '').trim(),
         endpoint: String(plan.endpoint || '').trim(),
       }, { caller: 'core' })
       : await localRuntime.install({
         modelId: plan.modelId,
+        kind: (plan.capabilities.includes('image') ? 'image'
+          : plan.capabilities.includes('video') ? 'video'
+          : plan.capabilities.includes('tts') ? 'tts'
+          : plan.capabilities.includes('stt') ? 'stt'
+          : 'chat') as import('@runtime/local-runtime').LocalRuntimeAssetKind,
         repo: plan.repo,
         revision: plan.revision,
         capabilities: plan.capabilities,
@@ -151,7 +155,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       message: translateRuntimeLocalText(
         'runtimeConfig.local.modelInstalledAndReady',
         'Model installed and ready: {{modelId}}',
-        { modelId: installed.modelId || plan.modelId },
+        { modelId: installed.assetId || plan.modelId },
       ),
     });
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
@@ -222,9 +226,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
           {
             modId,
             profileId,
-            modelCount: result.executionResult.installedModels.length,
+            modelCount: result.executionResult.installedAssets.length,
             serviceCount: result.executionResult.services.length,
-            artifactCount: result.installedArtifacts.length,
+            artifactCount: (result.installedAssets ?? []).length,
           },
         ),
       });
@@ -341,13 +345,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     try {
       assertRuntimeWriteAllowed();
-      const artifact = await localRuntime.installVerifiedArtifact({
+      const artifact = await localRuntime.installVerifiedAsset({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Artifact installed: ${artifact.artifactId}`,
+        message: `Artifact installed: ${artifact.assetId}`,
       });
     } catch (error) {
       setStatusBanner({
@@ -361,18 +365,18 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   const importLocalArtifact = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
-      const manifestPath = await localRuntime.pickArtifactManifestPath();
+      const manifestPath = await localRuntime.pickAssetManifestPath();
       if (!manifestPath) {
         return;
       }
-      const imported = await localRuntime.importArtifact({ manifestPath }, { caller: 'core' });
+      const imported = await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
           'runtimeConfig.local.artifactImported',
-          'Artifact imported: {{artifactId}}',
-          { artifactId: imported.artifactId },
+          'Asset imported: {{artifactId}}',
+          { artifactId: imported.assetId },
         ),
       });
     } catch (error) {
@@ -388,20 +392,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
-  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalRuntimeArtifactKind) => {
+  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalRuntimeAssetKind) => {
     try {
       assertRuntimeWriteAllowed();
-      const scaffolded = await localRuntime.scaffoldArtifactOrphan({
+      const imported = await localRuntime.scaffoldOrphanAsset({
         path,
         kind,
-      }, { caller: 'core' });
-      const imported = await localRuntime.importArtifact({
-        manifestPath: scaffolded.manifestPath,
       }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Artifact imported: ${imported.artifactId}`,
+        message: `Asset imported: ${imported.assetId}`,
       });
     } catch (error) {
       setStatusBanner({

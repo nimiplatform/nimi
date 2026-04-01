@@ -561,7 +561,7 @@ mod tests {
             reason_codes: vec!["a".to_string()],
             recommended_entry: None,
             fallback_entries: Vec::new(),
-            suggested_artifacts: Vec::new(),
+            suggested_assets: Vec::new(),
             suggested_notes: Vec::new(),
             baseline: None,
         };

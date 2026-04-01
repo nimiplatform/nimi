@@ -1,5 +1,5 @@
-import type { LocalRuntimeModelRecord } from './types';
-import { listLocalRuntimeModels } from './commands';
+import type { LocalRuntimeAssetRecord } from './types';
+import { listLocalRuntimeAssets } from './commands';
 
 export type LocalRuntimeCapability =
   | 'chat'
@@ -9,13 +9,13 @@ export type LocalRuntimeCapability =
   | 'stt'
   | 'embedding';
 
-function supportsCapability(model: LocalRuntimeModelRecord, capability: LocalRuntimeCapability): boolean {
-  return model.capabilities.some((item) => item === capability);
+function supportsCapability(asset: LocalRuntimeAssetRecord, capability: LocalRuntimeCapability): boolean {
+  return Array.isArray(asset.capabilities) && asset.capabilities.some((item) => item === capability);
 }
 
-export async function queryLocalRuntimeModelsByCapability(
+export async function queryLocalRuntimeAssetsByCapability(
   capability: LocalRuntimeCapability,
-): Promise<LocalRuntimeModelRecord[]> {
-  const models = await listLocalRuntimeModels();
-  return models.filter((model) => model.status !== 'removed' && supportsCapability(model, capability));
+): Promise<LocalRuntimeAssetRecord[]> {
+  const assets = await listLocalRuntimeAssets();
+  return assets.filter((asset) => asset.status !== 'removed' && supportsCapability(asset, capability));
 }

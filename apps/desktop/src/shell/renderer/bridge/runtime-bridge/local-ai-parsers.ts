@@ -6,32 +6,32 @@ import {
 } from './shared.js';
 import type {
   LocalRuntimeAuditEvent,
-  LocalRuntimeModelRecord,
-  LocalRuntimeModelStatus,
-  LocalRuntimeModelsHealthResult,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeAssetRecord,
+  LocalRuntimeAssetStatus,
+  LocalRuntimeAssetsHealthResult,
+  LocalRuntimeVerifiedAssetDescriptor,
 } from './local-ai-types.js';
 
-function inferIntegrityModeFromRepo(repo: string): LocalRuntimeModelRecord['integrityMode'] {
+function inferIntegrityModeFromRepo(repo: string): LocalRuntimeAssetRecord['integrityMode'] {
   return repo.trim().toLowerCase().startsWith('local-import/')
     ? 'local_unverified'
     : 'verified';
 }
 
-export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelRecord {
-  const record = assertRecord(value, 'local_runtime returned invalid model payload');
-  const source = assertRecord(record.source, 'local_runtime model source is invalid');
-  const hashes = assertRecord(record.hashes || {}, 'local_runtime model hashes is invalid');
+export function parseLocalRuntimeAssetRecord(value: unknown): LocalRuntimeAssetRecord {
+  const record = assertRecord(value, 'local_runtime returned invalid asset payload');
+  const source = assertRecord(record.source, 'local_runtime asset source is invalid');
+  const hashes = assertRecord(record.hashes || {}, 'local_runtime asset hashes is invalid');
   const rawCapabilities = Array.isArray(record.capabilities) ? record.capabilities : [];
   const files = Array.isArray(record.files)
     ? record.files.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
-  const tags = Array.isArray(record.tags)
+  const _tags = Array.isArray(record.tags)
     ? record.tags.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
-  const knownTotalSizeBytes = Number(record.knownTotalSizeBytes);
+  const _knownTotalSizeBytes = Number(record.knownTotalSizeBytes);
   const statusValue = String(record.status || '').trim();
-  const normalizedStatus: LocalRuntimeModelStatus = (
+  const normalizedStatus: LocalRuntimeAssetStatus = (
     statusValue === 'active'
     || statusValue === 'unhealthy'
     || statusValue === 'removed'
@@ -40,41 +40,37 @@ export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelR
     : 'installed';
 
   return {
-    localModelId: parseRequiredString(record.localModelId, 'localModelId', 'local_runtime model'),
-    modelId: parseRequiredString(record.modelId, 'modelId', 'local_runtime model'),
+    localAssetId: parseRequiredString(record.localAssetId, 'localAssetId', 'local_runtime asset'),
+    assetId: parseRequiredString(record.assetId, 'assetId', 'local_runtime asset'),
+    kind: (String(record.kind || record.assetKind || 'chat').trim() || 'chat') as LocalRuntimeAssetRecord['kind'],
     capabilities: rawCapabilities.map((capability) => String(capability || '').trim()).filter(Boolean),
-    engine: parseRequiredString(record.engine, 'engine', 'local_runtime model'),
-    entry: parseRequiredString(record.entry, 'entry', 'local_runtime model'),
+    engine: parseRequiredString(record.engine, 'engine', 'local_runtime asset'),
+    entry: parseRequiredString(record.entry, 'entry', 'local_runtime asset'),
     files,
-    license: parseRequiredString(record.license, 'license', 'local_runtime model'),
+    license: parseRequiredString(record.license, 'license', 'local_runtime asset'),
     source: {
-      repo: parseRequiredString(source.repo, 'source.repo', 'local_runtime model'),
-      revision: parseRequiredString(source.revision, 'source.revision', 'local_runtime model'),
+      repo: parseRequiredString(source.repo, 'source.repo', 'local_runtime asset'),
+      revision: parseRequiredString(source.revision, 'source.revision', 'local_runtime asset'),
     },
     integrityMode: (
       String(record.integrityMode || '').trim() === 'local_unverified'
       || String(record.integrityMode || '').trim() === 'verified'
     )
-      ? String(record.integrityMode || '').trim() as LocalRuntimeModelRecord['integrityMode']
+      ? String(record.integrityMode || '').trim() as LocalRuntimeAssetRecord['integrityMode']
       : inferIntegrityModeFromRepo(String(source.repo || '').trim()),
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hashValue]) => [String(key), String(hashValue || '').trim()]),
     ),
-    tags,
-    knownTotalSizeBytes: Number.isFinite(knownTotalSizeBytes) && knownTotalSizeBytes > 0
-      ? knownTotalSizeBytes
-      : undefined,
-    endpoint: parseRequiredString(record.endpoint, 'endpoint', 'local_runtime model'),
     status: normalizedStatus,
-    installedAt: parseRequiredString(record.installedAt, 'installedAt', 'local_runtime model'),
-    updatedAt: parseRequiredString(record.updatedAt, 'updatedAt', 'local_runtime model'),
+    installedAt: parseRequiredString(record.installedAt, 'installedAt', 'local_runtime asset'),
+    updatedAt: parseRequiredString(record.updatedAt, 'updatedAt', 'local_runtime asset'),
     healthDetail: parseOptionalString(record.healthDetail),
   };
 }
 
-export function parseLocalRuntimeVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifiedModelDescriptor {
-  const record = assertRecord(value, 'local_runtime_models_verified_list returned invalid payload');
-  const hashes = assertRecord(record.hashes || {}, 'local_runtime_models_verified_list hashes is invalid');
+export function parseLocalRuntimeVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifiedAssetDescriptor {
+  const record = assertRecord(value, 'local_runtime_assets_verified_list returned invalid payload');
+  const hashes = assertRecord(record.hashes || {}, 'local_runtime_assets_verified_list hashes is invalid');
   const files = Array.isArray(record.files)
     ? record.files.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
@@ -87,50 +83,51 @@ export function parseLocalRuntimeVerifiedModelDescriptor(value: unknown): LocalR
   const fileCountRaw = Number(record.fileCount);
   const totalSizeBytesRaw = Number(record.totalSizeBytes);
   return {
-    templateId: parseRequiredString(record.templateId, 'templateId', 'local_runtime_models_verified_list'),
-    title: parseRequiredString(record.title, 'title', 'local_runtime_models_verified_list'),
+    templateId: parseRequiredString(record.templateId, 'templateId', 'local_runtime_assets_verified_list'),
+    title: parseRequiredString(record.title, 'title', 'local_runtime_assets_verified_list'),
     description: String(record.description || '').trim(),
-    installKind: parseRequiredString(record.installKind, 'installKind', 'local_runtime_models_verified_list'),
-    modelId: parseRequiredString(record.modelId, 'modelId', 'local_runtime_models_verified_list'),
-    repo: parseRequiredString(record.repo, 'repo', 'local_runtime_models_verified_list'),
-    revision: parseRequiredString(record.revision, 'revision', 'local_runtime_models_verified_list'),
+    installKind: parseOptionalString(record.installKind),
+    assetId: parseRequiredString(record.assetId, 'assetId', 'local_runtime_assets_verified_list'),
+    kind: (String(record.kind || record.assetKind || 'chat').trim() || 'chat') as LocalRuntimeVerifiedAssetDescriptor['kind'],
+    repo: parseRequiredString(record.repo, 'repo', 'local_runtime_assets_verified_list'),
+    revision: parseRequiredString(record.revision, 'revision', 'local_runtime_assets_verified_list'),
     capabilities,
-    engine: parseRequiredString(record.engine, 'engine', 'local_runtime_models_verified_list'),
-    entry: parseRequiredString(record.entry, 'entry', 'local_runtime_models_verified_list'),
+    engine: parseRequiredString(record.engine, 'engine', 'local_runtime_assets_verified_list'),
+    entry: parseRequiredString(record.entry, 'entry', 'local_runtime_assets_verified_list'),
     files,
-    license: parseRequiredString(record.license, 'license', 'local_runtime_models_verified_list'),
+    license: parseRequiredString(record.license, 'license', 'local_runtime_assets_verified_list'),
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hashValue]) => [String(key), String(hashValue || '').trim()]),
     ),
-    endpoint: parseRequiredString(record.endpoint, 'endpoint', 'local_runtime_models_verified_list'),
+    endpoint: parseOptionalString(record.endpoint),
     fileCount: Number.isFinite(fileCountRaw) && fileCountRaw > 0 ? fileCountRaw : files.length,
     totalSizeBytes: Number.isFinite(totalSizeBytesRaw) && totalSizeBytesRaw > 0 ? totalSizeBytesRaw : undefined,
     tags,
   };
 }
 
-export function parseLocalRuntimeVerifiedModelDescriptorList(value: unknown): LocalRuntimeVerifiedModelDescriptor[] {
+export function parseLocalRuntimeVerifiedAssetDescriptorList(value: unknown): LocalRuntimeVerifiedAssetDescriptor[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseLocalRuntimeVerifiedModelDescriptor(item));
+  return value.map((item) => parseLocalRuntimeVerifiedAssetDescriptor(item));
 }
 
-export function parseLocalRuntimeModelRecordList(value: unknown): LocalRuntimeModelRecord[] {
+export function parseLocalRuntimeAssetRecordList(value: unknown): LocalRuntimeAssetRecord[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => parseLocalRuntimeModelRecord(item));
+  return value.map((item) => parseLocalRuntimeAssetRecord(item));
 }
 
-export function parseLocalRuntimeModelsHealthResult(value: unknown): LocalRuntimeModelsHealthResult {
-  const record = assertRecord(value, 'local_runtime_models_health returned invalid payload');
-  const rows = Array.isArray(record.models) ? record.models : [];
+export function parseLocalRuntimeAssetsHealthResult(value: unknown): LocalRuntimeAssetsHealthResult {
+  const record = assertRecord(value, 'local_runtime_assets_health returned invalid payload');
+  const rows = Array.isArray(record.assets) ? record.assets : [];
   return {
-    models: rows.map((item) => {
-      const row = assertRecord(item, 'local_runtime_models_health model payload is invalid');
+    assets: rows.map((item) => {
+      const row = assertRecord(item, 'local_runtime_assets_health asset payload is invalid');
       const statusValue = String(row.status || '').trim();
-      const status: LocalRuntimeModelStatus = (
+      const status: LocalRuntimeAssetStatus = (
         statusValue === 'active'
         || statusValue === 'unhealthy'
         || statusValue === 'removed'
@@ -138,7 +135,7 @@ export function parseLocalRuntimeModelsHealthResult(value: unknown): LocalRuntim
         ? statusValue
         : 'installed';
       return {
-        localModelId: parseRequiredString(row.localModelId, 'localModelId', 'local_runtime_models_health'),
+        localAssetId: parseRequiredString(row.localAssetId, 'localAssetId', 'local_runtime_assets_health'),
         status,
         detail: String(row.detail || '').trim(),
         endpoint: String(row.endpoint || '').trim(),
@@ -162,8 +159,8 @@ export function parseLocalRuntimeAuditEvent(value: unknown): LocalRuntimeAuditEv
     modality,
     reasonCode,
     detail,
-    modelId: parseOptionalString(record.modelId),
-    localModelId: parseOptionalString(record.localModelId),
+    modelId: parseOptionalString(record.modelId || record.assetId),
+    localModelId: parseOptionalString(record.localModelId || record.localAssetId),
     payload,
   };
 }

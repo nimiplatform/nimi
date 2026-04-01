@@ -48,9 +48,9 @@ pub enum LocalAiRecommendationBaseline {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiSuggestedArtifact {
+pub struct LocalAiSuggestedAsset {
     pub template_id: Option<String>,
-    pub artifact_id: Option<String>,
+    pub asset_id: Option<String>,
     pub kind: String,
     pub family: Option<String>,
 }
@@ -69,7 +69,7 @@ pub struct LocalAiRecommendationDescriptor {
     #[serde(default)]
     pub fallback_entries: Vec<String>,
     #[serde(default)]
-    pub suggested_artifacts: Vec<LocalAiSuggestedArtifact>,
+    pub suggested_assets: Vec<LocalAiSuggestedAsset>,
     #[serde(default)]
     pub suggested_notes: Vec<String>,
     pub baseline: Option<LocalAiRecommendationBaseline>,

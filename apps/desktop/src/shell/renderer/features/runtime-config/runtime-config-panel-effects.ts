@@ -30,14 +30,15 @@ function mergeLocalSnapshot(
   previous: RuntimeConfigStateV11,
   snapshot: LocalRuntimeSnapshot,
 ): RuntimeConfigStateV11 {
-  const nextModels = snapshot.models
+  const snapshotAssets = snapshot.assets ?? [];
+  const nextModels = snapshotAssets
     .filter((item) => item.status !== 'removed')
     .map((item) => ({
-      localModelId: item.localModelId,
+      localModelId: item.localAssetId || '',
       engine: item.engine,
-      model: item.modelId,
-      endpoint: item.endpoint,
-      capabilities: item.capabilities
+      model: item.assetId || '',
+      endpoint: '',
+      capabilities: (item.capabilities || [])
         .filter((capability): capability is 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' => (
           capability === 'chat'
           || capability === 'image'

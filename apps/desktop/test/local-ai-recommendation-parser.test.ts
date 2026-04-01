@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   parseCatalogRecommendation,
   parseGgufVariantDescriptor,
-  parseModelRecord,
+  parseAssetRecord as parseModelRecord,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseCatalogRecommendation fails closed when source is missing', () => {
@@ -63,6 +63,4 @@ test('parseModelRecord keeps recommendation inputs without synthesizing complete
   });
 
   assert.deepEqual(parsed.files, []);
-  assert.deepEqual(parsed.tags, []);
-  assert.equal(parsed.knownTotalSizeBytes, undefined);
 });

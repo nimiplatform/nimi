@@ -15,14 +15,16 @@ import {
 import {
   cacheProgressSessions,
   getCachedProgressSessions,
+  getDismissedSessionIds,
+  addDismissedSessionId,
 } from './runtime-config-local-model-center-helpers';
 
 type DownloadCompleteHandler = (
   installSessionId: string,
   success: boolean,
   message?: string,
-  localModelId?: string,
-  modelId?: string,
+  localAssetId?: string,
+  assetId?: string,
 ) => void;
 
 type UseLocalModelCenterDownloadsInput = {
@@ -36,7 +38,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     () => getCachedProgressSessions(),
   );
   const progressBySessionIdRef = useRef<Record<string, ProgressSessionState>>(getCachedProgressSessions());
-  const dismissedSessionIdsRef = useRef<Set<string>>(new Set());
+  const dismissedSessionIdsRef = useRef<Set<string>>(getDismissedSessionIds());
 
   useEffect(() => {
     progressBySessionIdRef.current = progressBySessionId;
@@ -175,6 +177,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   }, [mergeSessionSummary]);
 
   const onDismissSession = useCallback((installSessionId: string) => {
+    addDismissedSessionId(installSessionId);
     dismissedSessionIdsRef.current.add(installSessionId);
     setProgressBySessionId((prev) => {
       const next = { ...prev };

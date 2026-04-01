@@ -153,7 +153,7 @@ pub fn build_llmfit_recommendation(
         reason_codes,
         recommended_entry,
         fallback_entries,
-        suggested_artifacts: Vec::new(),
+        suggested_assets: Vec::new(),
         suggested_notes,
         baseline: None,
     })

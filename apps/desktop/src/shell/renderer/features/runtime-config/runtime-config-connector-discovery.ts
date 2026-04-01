@@ -69,16 +69,16 @@ export function normalizeRuntimeHealthResult(result: GetRuntimeHealthResponse): 
 export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV11) {
   const endpoint = String(state.local.endpoint || '').trim();
   const [models, nodes] = await Promise.all([
-    localRuntime.list(),
+    localRuntime.listAssets(),
     localRuntime.listNodesCatalog(),
   ]);
   const activeModels = models.filter((m) => m.status !== 'removed');
-  const discovered = activeModels.map((m) => m.modelId);
+  const discovered = activeModels.map((m) => m.assetId);
   const normalizedModels = activeModels.map((m) => ({
-    localModelId: m.localModelId || m.modelId,
+    localModelId: m.localAssetId || m.assetId,
     engine: m.engine || 'llama',
-    model: m.modelId,
-    endpoint: m.endpoint || endpoint,
+    model: m.assetId,
+    endpoint: endpoint,
     capabilities: (m.capabilities || ['chat']) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
     status: m.status as 'installed' | 'active' | 'unhealthy',
   }));

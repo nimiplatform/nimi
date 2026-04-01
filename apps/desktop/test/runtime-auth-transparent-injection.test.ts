@@ -316,22 +316,22 @@ test('platform local read-only calls omit authorization even when token provider
       accessTokenProvider: () => 'stale-realm-token',
     });
 
-    await getPlatformClient().runtime.local.listLocalModels({} as never);
-    await getPlatformClient().runtime.local.warmLocalModel({
-      localModelId: 'local-model-1',
+    await getPlatformClient().runtime.local.listLocalAssets({} as never);
+    await getPlatformClient().runtime.local.warmLocalAsset({
+      localAssetId: 'local-model-1',
       timeoutMs: 60_000,
     });
 
     const listCall = findUnaryCallByMethodId(
       calls,
-      '/nimi.runtime.v1.RuntimeLocalService/ListLocalModels',
+      '/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets',
     );
     assert.ok(listCall);
     assert.equal(listCall.payload.authorization, undefined);
 
     const warmCall = findUnaryCallByMethodId(
       calls,
-      '/nimi.runtime.v1.RuntimeLocalService/WarmLocalModel',
+      '/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset',
     );
     assert.ok(warmCall);
     assert.equal(warmCall.payload.authorization, undefined);

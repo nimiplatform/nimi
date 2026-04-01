@@ -13,31 +13,31 @@ pub fn runtime_local_profiles_apply(
             "profileId": payload.plan.profile_id.clone(),
             "planId": payload.plan.plan_id.clone(),
             "runtimeEntryCount": payload.plan.execution_plan.dependencies.len(),
-            "artifactEntryCount": payload.plan.artifact_entries.len(),
+            "assetEntryCount": payload.plan.asset_entries.len(),
         })),
     );
     match run_dependency_apply(&app, &payload.plan.execution_plan) {
         Ok(execution_result) => {
             let execution_reason_code = execution_result.reason_code.clone();
             let mut warnings = payload.plan.warnings.clone();
-            let mut installed_artifacts = Vec::new();
+            let mut installed_assets = Vec::new();
             let mut reason_code = execution_reason_code.clone();
-            for entry in &payload.plan.artifact_entries {
+            for entry in &payload.plan.asset_entries {
                 let template_id = normalize_optional(entry.template_id.clone());
                 if template_id.is_none() {
                     warnings.push(format!(
-                        "LOCAL_AI_PROFILE_ARTIFACT_TEMPLATE_ID_REQUIRED: entryId={} requires templateId",
+                        "LOCAL_AI_PROFILE_ASSET_TEMPLATE_ID_REQUIRED: entryId={} requires templateId",
                         entry.entry_id
                     ));
                     if entry.required != Some(false) {
-                        reason_code = Some("LOCAL_AI_PROFILE_ARTIFACT_TEMPLATE_ID_REQUIRED".to_string());
+                        reason_code = Some("LOCAL_AI_PROFILE_ASSET_TEMPLATE_ID_REQUIRED".to_string());
                         break;
                     }
                     continue;
                 }
-                match find_verified_artifact(template_id.as_deref().unwrap_or_default()) {
-                    Some(descriptor) => match install_verified_artifact_descriptor(&app, &descriptor) {
-                        Ok(record) => installed_artifacts.push(serde_json::to_value(record).unwrap_or_default()),
+                match find_verified_asset(template_id.as_deref().unwrap_or_default()) {
+                    Some(descriptor) => match install_verified_asset_descriptor(&app, &descriptor) {
+                        Ok(record) => installed_assets.push(serde_json::to_value(record).unwrap_or_default()),
                         Err(error) => {
                             warnings.push(error.clone());
                             if entry.required != Some(false) {
@@ -48,11 +48,11 @@ pub fn runtime_local_profiles_apply(
                     },
                     None => {
                         warnings.push(format!(
-                            "LOCAL_AI_VERIFIED_ARTIFACT_TEMPLATE_NOT_FOUND: templateId={}",
+                            "LOCAL_AI_VERIFIED_ASSET_TEMPLATE_NOT_FOUND: templateId={}",
                             template_id.unwrap_or_default()
                         ));
                         if entry.required != Some(false) {
-                            reason_code = Some("LOCAL_AI_VERIFIED_ARTIFACT_TEMPLATE_NOT_FOUND".to_string());
+                            reason_code = Some("LOCAL_AI_VERIFIED_ASSET_TEMPLATE_NOT_FOUND".to_string());
                             break;
                         }
                     }
@@ -63,7 +63,7 @@ pub fn runtime_local_profiles_apply(
                 mod_id: payload.plan.mod_id.clone(),
                 profile_id: payload.plan.profile_id.clone(),
                 execution_result,
-                installed_artifacts,
+                installed_assets,
                 warnings: warnings
                     .into_iter()
                     .filter(|value| !value.trim().is_empty())

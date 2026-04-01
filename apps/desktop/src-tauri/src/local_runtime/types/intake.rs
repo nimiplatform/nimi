@@ -1,13 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::LocalAiArtifactKind;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum LocalAiAssetClass {
-    Model,
-    Artifact,
-}
+use super::LocalAiAssetKind;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -41,9 +34,7 @@ pub enum LocalAiSuggestionConfidence {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalAiAssetDeclaration {
-    pub asset_class: LocalAiAssetClass,
-    pub model_type: Option<LocalAiModelType>,
-    pub artifact_kind: Option<LocalAiArtifactKind>,
+    pub asset_kind: Option<LocalAiAssetKind>,
     pub engine: Option<String>,
 }
 

@@ -33,12 +33,14 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
   await assert.rejects(
     () => loadLocalRouteMetadata('text.generate', {
       pollLocalSnapshotWithTimeout: async () => ({
-        models: [],
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
       }),
       listNodesCatalog: async () => {
         throw new Error('catalog offline');
       },
-      listRuntimeLocalModelsSnapshot: async () => [],
+      listRuntimeLocalAssets: async () => [],
     }),
     (error: unknown) => {
       const record = error as { reasonCode?: string; actionHint?: string };
@@ -55,7 +57,7 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
   assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'catalog offline');
 });
 
-test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalModelsSnapshot fails', async () => {
+test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalAssets fails', async () => {
   const logs: Array<Record<string, unknown>> = [];
   setRuntimeLogger((payload) => {
     logs.push(payload as Record<string, unknown>);
@@ -64,10 +66,12 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalMo
   await assert.rejects(
     () => loadLocalRouteMetadata('audio.synthesize', {
       pollLocalSnapshotWithTimeout: async () => ({
-        models: [],
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
       }),
       listNodesCatalog: async () => [],
-      listRuntimeLocalModelsSnapshot: async () => {
+      listRuntimeLocalAssets: async () => {
         throw new Error('go runtime unavailable');
       },
     }),
@@ -170,14 +174,24 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
     sdkListConnectorModelDescriptors: async () => ([]),
     loadLocalRouteMetadata: async () => ({
       snapshot: {
-        models: [{
-          localModelId: 'desktop-local-1',
+        assets: [{
+          localAssetId: 'desktop-local-1',
+          assetId: 'local/local-import/Qwen3-4B-Q4_K_M',
+          kind: 'chat' as const,
           engine: 'llama',
-          modelId: 'local/local-import/Qwen3-4B-Q4_K_M',
-          endpoint: 'http://127.0.0.1:1234/v1',
+          entry: '',
+          files: [],
+          license: '',
+          source: { repo: '', revision: '' },
+          integrityMode: 'verified' as const,
+          hashes: {},
           capabilities: ['chat', 'text.generate'],
-          status: 'active',
+          status: 'active' as const,
+          installedAt: '',
+          updatedAt: '',
         }],
+        health: [],
+        generatedAt: new Date().toISOString(),
       },
       nodeCatalog: [{
         provider: 'llama',

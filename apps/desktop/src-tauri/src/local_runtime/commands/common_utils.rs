@@ -405,7 +405,7 @@ mod audit_contract_tests {
             reason_codes: vec!["metadata_incomplete".to_string()],
             recommended_entry: None,
             fallback_entries: Vec::new(),
-            suggested_artifacts: Vec::new(),
+            suggested_assets: Vec::new(),
             suggested_notes: Vec::new(),
             baseline: None,
         }

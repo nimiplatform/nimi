@@ -79,18 +79,18 @@ test('runtime state refreshes unified unregistered assets and auto-imports high-
 });
 
 test('unregistered model imports use orphan scaffold fast-path while picked files stay on direct import', () => {
-  assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphan\(\{/);
-  assert.match(localModelCenterImportActionsSource, /const imported = declaration\.assetClass === 'model'/);
-  assert.match(localModelCenterImportActionsSource, /const imported = await localRuntime\.importAssetFile\(\{/);
-  assert.match(localModelCenterImportActionsSource, /const filePath = await localRuntime\.pickModelFile\(\)/);
+  assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphanAsset\(\{/);
+  assert.match(localModelCenterImportActionsSource, /runnableKinds\.has\(declaration\.assetKind\)/);
+  assert.match(localModelCenterImportActionsSource, /await localRuntime\.importAssetFile\(\{/);
+  assert.match(localModelCenterImportActionsSource, /const filePath = await localRuntime\.pickAssetFile\(\)/);
 });
 
-test('artifact kind helpers keep ae as a first-class companion asset', () => {
-  assert.match(localModelCenterHelpersSource, /'ae'/);
-  assert.match(localModelCenterHelpersSource, /case 'ae':/);
+test('asset kind helpers keep vae as a first-class passive asset', () => {
+  assert.match(localModelCenterHelpersSource, /'vae'/);
+  assert.match(localModelCenterHelpersSource, /case 'vae':/);
 });
 
-test('artifact tasks still expose retry only for failed verified installs', () => {
+test('verified asset tasks expose retry only for failed verified installs', () => {
   assert.match(localModelCenterCatalogSectionsSource, /task\.taskKind === 'verified-install'/);
   assert.match(localModelCenterCatalogSectionsSource, /Retry/);
   assert.match(localModelCenterCatalogSectionsSource, /props\.onRetryTask\(task\.templateId\)/);

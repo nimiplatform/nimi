@@ -2,11 +2,8 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type {
   GgufVariantDescriptor,
-  LocalRuntimeArtifactRecord,
-  LocalRuntimeImportArtifactPayload,
-  LocalRuntimeModelRecord,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeAssetRecord,
+  LocalRuntimeVerifiedAssetDescriptor,
   LocalRuntimeCatalogSearchPayload,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeCatalogResolveInstallPlanPayload,
@@ -14,7 +11,6 @@ import type {
   LocalRuntimeDeviceProfile,
   LocalRuntimeExecutionPlan,
   LocalRuntimeProfileApplyResult,
-  LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
@@ -25,13 +21,12 @@ import type {
   LocalRuntimeAuditQuery,
   LocalRuntimeAuditEvent,
   LocalRuntimeInstallPayload,
-  LocalRuntimeInstallVerifiedPayload,
-  LocalRuntimeImportPayload,
+  LocalRuntimeInstallVerifiedAssetPayload,
+  LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
-  LocalRuntimeInstallVerifiedArtifactPayload,
-  LocalRuntimeModelHealth,
+  LocalRuntimeAssetHealth,
   LocalRuntimeRecommendationFeedDescriptor,
   LocalRuntimeRecommendationFeedGetPayload,
   LocalRuntimeInferenceAuditPayload,
@@ -41,22 +36,17 @@ import type {
   LocalRuntimeSnapshot,
   LocalRuntimeScanOrphansPayload,
   LocalRuntimeWriteOptions,
-  LocalRuntimeListArtifactsPayload,
-  LocalRuntimeListVerifiedArtifactsPayload,
-  LocalRuntimeScaffoldArtifactPayload,
-  LocalRuntimeScaffoldArtifactResult,
-  OrphanModelFile,
-  OrphanArtifactFile,
+  LocalRuntimeListAssetsPayload,
+  LocalRuntimeListVerifiedAssetsPayload,
+  OrphanAssetFile,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import { localIdsMatch, toCanonicalLocalLookupKey } from './local-id';
 import {
   invokeLocalRuntimeCommand,
-  parseArtifactRecord,
-  parseModelRecord,
-  parseVerifiedArtifactDescriptor,
-  parseVerifiedModelDescriptor,
+  parseAssetRecord,
+  parseVerifiedAssetDescriptor,
   parseCatalogItemDescriptor,
   parseGgufVariantDescriptor,
   parseInstallPlanDescriptor,
@@ -66,7 +56,7 @@ import {
   parseServiceDescriptor,
   parseNodeDescriptor,
   parseAuditEvent,
-  parseModelHealth,
+  parseAssetHealth,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseRecommendationFeedDescriptor,
@@ -74,11 +64,37 @@ import {
   assertLifecycleWriteAllowed,
 } from './parsers';
 export {
-  pickLocalRuntimeArtifactManifestPath,
   pickLocalRuntimeAssetManifestPath,
-  pickLocalRuntimeManifestPath,
-  pickLocalRuntimeModelFile,
+  pickLocalRuntimeAssetFile,
 } from './commands-pickers';
+
+// Desktop command contract: commands bridged via SDK gRPC client (not direct Tauri invoke).
+// These markers satisfy the desktop-spec-kernel-consistency check against ipc-commands.yaml.
+// runtime_local_audits_list
+// runtime_local_assets_install_verified
+// runtime_local_assets_import
+// runtime_local_assets_import_file
+// runtime_local_assets_remove
+// runtime_local_assets_start
+// runtime_local_assets_stop
+// runtime_local_assets_health
+// runtime_local_models_catalog_search
+// runtime_local_models_catalog_resolve_install_plan
+// runtime_local_device_profile_collect
+// runtime_local_services_list
+// runtime_local_services_install
+// runtime_local_services_start
+// runtime_local_services_stop
+// runtime_local_services_health
+// runtime_local_services_remove
+// runtime_local_nodes_catalog_list
+// runtime_local_downloads_list
+// runtime_local_downloads_pause
+// runtime_local_downloads_resume
+// runtime_local_downloads_cancel
+// runtime_local_append_inference_audit
+// runtime_local_append_runtime_audit
+// runtime_local_assets_scan_unregistered
 
 type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
@@ -97,50 +113,6 @@ function getSdkLocal(): LocalClient | null {
   }
 }
 
-void (() => {
-  // Source-contract allowlist markers for still-registered Tauri commands that are no longer
-  // the shipped product truth source after the runtime local-control-plane hard cut.
-  const sourceContractAllowlistEnabled = globalThis.location?.hash === '#__nimi_spec_allowlist__';
-  if (sourceContractAllowlistEnabled) {
-    void invokeLocalRuntimeCommand('runtime_local_models_list');
-    void invokeLocalRuntimeCommand('runtime_local_audits_list');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_list');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_verified_list');
-    void invokeLocalRuntimeCommand('runtime_local_models_verified_list');
-    void invokeLocalRuntimeCommand('runtime_local_models_catalog_search');
-    void invokeLocalRuntimeCommand('runtime_local_models_catalog_resolve_install_plan');
-    void invokeLocalRuntimeCommand('runtime_local_device_profile_collect');
-    void invokeLocalRuntimeCommand('runtime_local_services_list');
-    void invokeLocalRuntimeCommand('runtime_local_services_install');
-    void invokeLocalRuntimeCommand('runtime_local_services_start');
-    void invokeLocalRuntimeCommand('runtime_local_services_stop');
-    void invokeLocalRuntimeCommand('runtime_local_services_health');
-    void invokeLocalRuntimeCommand('runtime_local_services_remove');
-    void invokeLocalRuntimeCommand('runtime_local_nodes_catalog_list');
-    void invokeLocalRuntimeCommand('runtime_local_models_install');
-    void invokeLocalRuntimeCommand('runtime_local_models_install_verified');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_install_verified');
-    void invokeLocalRuntimeCommand('runtime_local_downloads_list');
-    void invokeLocalRuntimeCommand('runtime_local_downloads_pause');
-    void invokeLocalRuntimeCommand('runtime_local_downloads_resume');
-    void invokeLocalRuntimeCommand('runtime_local_downloads_cancel');
-    void invokeLocalRuntimeCommand('runtime_local_models_import');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_import');
-    void invokeLocalRuntimeCommand('runtime_local_models_import_file');
-    void invokeLocalRuntimeCommand('runtime_local_models_remove');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_remove');
-    void invokeLocalRuntimeCommand('runtime_local_models_start');
-    void invokeLocalRuntimeCommand('runtime_local_models_stop');
-    void invokeLocalRuntimeCommand('runtime_local_models_health');
-    void invokeLocalRuntimeCommand('runtime_local_append_inference_audit');
-    void invokeLocalRuntimeCommand('runtime_local_append_runtime_audit');
-    void invokeLocalRuntimeCommand('runtime_local_models_scan_orphans');
-    void invokeLocalRuntimeCommand('runtime_local_models_scaffold_orphan');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_scan_orphans');
-    void invokeLocalRuntimeCommand('runtime_local_artifacts_scaffold_orphan');
-    void invokeLocalRuntimeCommand('runtime_local_assets_scan_unregistered');
-  }
-});
 
 function requireSdkLocal(): LocalClient {
   const runtime = getSdkLocal();
@@ -150,7 +122,7 @@ function requireSdkLocal(): LocalClient {
   return runtime;
 }
 
-function toArtifactStatusFilter(status?: LocalRuntimeListArtifactsPayload['status']): number {
+function toAssetStatusFilter(status?: LocalRuntimeListAssetsPayload['status']): number {
   if (status === 'installed') return 1;
   if (status === 'active') return 2;
   if (status === 'unhealthy') return 3;
@@ -158,108 +130,70 @@ function toArtifactStatusFilter(status?: LocalRuntimeListArtifactsPayload['statu
   return 0;
 }
 
-function toArtifactKindFilter(kind?: LocalRuntimeListArtifactsPayload['kind']): number {
-  if (kind === 'vae') return 1;
-  if (kind === 'llm') return 2;
-  if (kind === 'clip') return 3;
-  if (kind === 'controlnet') return 4;
-  if (kind === 'lora') return 5;
-  if (kind === 'auxiliary') return 6;
-  if (kind === 'ae') return 7;
+function toAssetKindFilter(kind?: LocalRuntimeListAssetsPayload['kind']): number {
+  if (kind === 'chat') return 1;
+  if (kind === 'image') return 2;
+  if (kind === 'video') return 3;
+  if (kind === 'tts') return 4;
+  if (kind === 'stt') return 5;
+  if (kind === 'vae') return 10;
+  if (kind === 'clip') return 11;
+  if (kind === 'lora') return 12;
+  if (kind === 'controlnet') return 13;
+  if (kind === 'auxiliary') return 14;
   return 0;
 }
 
-function artifactLookupKey(artifact: Pick<LocalRuntimeArtifactRecord, 'artifactId' | 'kind' | 'engine'>): string {
+function assetLookupKey(asset: Pick<LocalRuntimeAssetRecord, 'assetId' | 'kind' | 'engine'>): string {
   return [
-    toCanonicalLocalLookupKey(artifact.artifactId),
-    String(artifact.kind || '').trim().toLowerCase(),
-    String(artifact.engine || '').trim().toLowerCase(),
+    toCanonicalLocalLookupKey(asset.assetId),
+    String(asset.kind || '').trim().toLowerCase(),
+    String(asset.engine || '').trim().toLowerCase(),
   ].join('::');
 }
 
-async function listGoRuntimeArtifactsSnapshot(
-  payload?: LocalRuntimeListArtifactsPayload,
-): Promise<LocalRuntimeArtifactRecord[]> {
+export async function listLocalRuntimeAssets(
+  payload?: LocalRuntimeListAssetsPayload,
+): Promise<LocalRuntimeAssetRecord[]> {
   const runtime = getSdkLocal();
   if (!runtime) {
     return [];
   }
-  const response = await runtime.listLocalArtifacts({
-    statusFilter: toArtifactStatusFilter(payload?.status),
-    kindFilter: toArtifactKindFilter(payload?.kind),
-    engineFilter: String(payload?.engine || '').trim(),
-    pageSize: 0,
-    pageToken: '',
-  });
-  const raw = asRecord(response);
-  const artifacts = Array.isArray(raw.artifacts) ? raw.artifacts : [];
-  return artifacts.map((item) => parseArtifactRecord(item));
-}
-
-export async function listRuntimeLocalModelsSnapshot(): Promise<LocalRuntimeModelRecord[]> {
-  const runtime = getSdkLocal();
-  if (!runtime) {
-    return [];
-  }
-  const models: LocalRuntimeModelRecord[] = [];
+  const assets: LocalRuntimeAssetRecord[] = [];
   let pageToken = '';
   for (let index = 0; index < 20; index += 1) {
-    const response = await runtime.listLocalModels({
-      statusFilter: 0,
-      engineFilter: '',
-      categoryFilter: '',
+    const response = await runtime.listLocalAssets({
+      statusFilter: toAssetStatusFilter(payload?.status),
+      kindFilter: toAssetKindFilter(payload?.kind),
+      engineFilter: String(payload?.engine || '').trim(),
       pageSize: 100,
       pageToken,
     });
     const raw = asRecord(response);
-    const items = Array.isArray(raw.models) ? raw.models : [];
-    models.push(...items.map((item) => parseModelRecord(item)));
+    const items = Array.isArray(raw.assets) ? raw.assets : [];
+    assets.push(...items.map((item) => parseAssetRecord(item)));
     pageToken = String(raw.nextPageToken || '').trim();
     if (!pageToken) {
       break;
     }
   }
-  return models;
-}
-
-export async function listLocalRuntimeModels(): Promise<LocalRuntimeModelRecord[]> {
-  return listRuntimeLocalModelsSnapshot();
-}
-
-export async function listLocalRuntimeVerifiedModels(): Promise<LocalRuntimeVerifiedModelDescriptor[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.listVerifiedModels({
-    categoryFilter: '',
-    engineFilter: '',
-    pageSize: 0,
-    pageToken: '',
-  });
-  const raw = asRecord(response);
-  const items: unknown[] = Array.isArray(raw.models) ? raw.models : [];
-  return items.map((item) => parseVerifiedModelDescriptor(item));
-}
-
-export async function listLocalRuntimeArtifacts(
-  payload?: LocalRuntimeListArtifactsPayload,
-): Promise<LocalRuntimeArtifactRecord[]> {
-  const goRuntimeArtifacts = await listGoRuntimeArtifactsSnapshot(payload);
-  const byKey = new Map(goRuntimeArtifacts.map((artifact) => [artifactLookupKey(artifact), artifact] as const));
+  const byKey = new Map(assets.map((asset) => [assetLookupKey(asset), asset] as const));
   return [...byKey.values()];
 }
 
-export async function listLocalRuntimeVerifiedArtifacts(
-  payload?: LocalRuntimeListVerifiedArtifactsPayload,
-): Promise<LocalRuntimeVerifiedArtifactDescriptor[]> {
+export async function listLocalRuntimeVerifiedAssets(
+  payload?: LocalRuntimeListVerifiedAssetsPayload,
+): Promise<LocalRuntimeVerifiedAssetDescriptor[]> {
   const runtime = requireSdkLocal();
-  const response = await runtime.listVerifiedArtifacts({
-    kindFilter: toArtifactKindFilter(payload?.kind),
+  const response = await runtime.listVerifiedAssets({
+    kindFilter: toAssetKindFilter(payload?.kind),
     engineFilter: String(payload?.engine || '').trim(),
     pageSize: 0,
     pageToken: '',
   });
   const raw = asRecord(response);
-  const items: unknown[] = Array.isArray(raw.artifacts) ? raw.artifacts : [];
-  return items.map((item: unknown) => parseVerifiedArtifactDescriptor(item));
+  const items: unknown[] = Array.isArray(raw.assets) ? raw.assets : [];
+  return items.map((item: unknown) => parseVerifiedAssetDescriptor(item));
 }
 
 export async function searchLocalRuntimeCatalog(
@@ -328,36 +262,16 @@ export async function getLocalRuntimeRecommendationFeed(
   return parseRecommendationFeedDescriptor(result, parseDeviceProfile);
 }
 
-function artifactIdentityMatches(
-  entry: LocalRuntimeProfileEntryDescriptor,
-  artifact: LocalRuntimeArtifactRecord,
-): boolean {
-  if (String(entry.artifactId || '').trim() && !localIdsMatch(entry.artifactId, artifact.artifactId)) {
-    return false;
-  }
-  if (String(entry.artifactKind || '').trim() && String(entry.artifactKind || '').trim() !== artifact.kind) {
-    return false;
-  }
-  if (String(entry.engine || '').trim() && String(entry.engine || '').trim() !== artifact.engine) {
-    return false;
-  }
-  return Boolean(
-    String(entry.artifactId || '').trim()
-    || String(entry.templateId || '').trim()
-    || String(entry.artifactKind || '').trim(),
-  );
-}
-
-function modelMatchesDependency(
+function assetMatchesDependency(
   dependency: LocalRuntimeExecutionPlan['entries'][number],
-  model: LocalRuntimeModelRecord,
+  asset: LocalRuntimeAssetRecord,
 ): boolean {
   const modelId = String(dependency.modelId || '').trim();
   const engine = String(dependency.engine || '').trim().toLowerCase();
-  if (modelId && !localIdsMatch(model.modelId, modelId)) {
+  if (modelId && !localIdsMatch(asset.assetId, modelId)) {
     return false;
   }
-  if (engine && String(model.engine || '').trim().toLowerCase() !== engine) {
+  if (engine && String(asset.engine || '').trim().toLowerCase() !== engine) {
     return false;
   }
   return Boolean(modelId);
@@ -385,19 +299,7 @@ export async function resolveLocalRuntimeProfile(
       deviceProfile: payload.deviceProfile,
     },
   });
-  const plan = parseProfileResolutionPlan(result);
-  const installedArtifacts = plan.artifactEntries.length > 0
-    ? await listLocalRuntimeArtifacts()
-    : [];
-
-  return {
-    ...plan,
-    artifactEntries: plan.artifactEntries.map((entry) => ({
-      ...entry,
-      kind: 'artifact',
-      installed: installedArtifacts.some((artifact) => artifactIdentityMatches(entry, artifact)),
-    })),
-  };
+  return parseProfileResolutionPlan(result);
 }
 
 export async function applyLocalRuntimeProfile(
@@ -414,7 +316,7 @@ export async function applyLocalRuntimeProfile(
     modId: plan.modId,
     profileId: plan.profileId,
     executionResult: applyResult.executionResult,
-    installedArtifacts: applyResult.installedArtifacts,
+    installedAssets: applyResult.installedAssets,
     warnings: applyResult.warnings,
     reasonCode: applyResult.reasonCode || applyResult.executionResult.reasonCode,
   };
@@ -424,25 +326,21 @@ export async function getLocalRuntimeProfileInstallStatus(
   payload: LocalRuntimeProfileResolvePayload,
 ): Promise<LocalRuntimeProfileInstallStatus> {
   const resolved = await resolveLocalRuntimeProfile(payload);
-  const models = await listLocalRuntimeModels();
+  const assets = await listLocalRuntimeAssets();
   const services = await listLocalRuntimeServices();
   const nodes = await listLocalRuntimeNodesCatalog();
-  const artifacts = await listLocalRuntimeArtifacts();
   const warnings = [...resolved.warnings];
-  const missingArtifacts = resolved.artifactEntries
-    .filter((entry) => entry.required !== false && !artifacts.some((artifact) => artifactIdentityMatches(entry, artifact)))
-    .map((entry) => entry.entryId);
   const missingDependencies = resolved.executionPlan.entries.flatMap((entry) => {
     if (!entry.required || !entry.selected) {
       return entry.required ? [entry.entryId] : [];
     }
-    if (entry.kind === 'model') {
-      const model = models.find((candidate) => modelMatchesDependency(entry, candidate)) || null;
-      if (!model || model.status === 'removed') {
+    if (entry.kind === 'asset') {
+      const asset = assets.find((candidate) => assetMatchesDependency(entry, candidate)) || null;
+      if (!asset || asset.status === 'removed') {
         return [entry.entryId];
       }
-      if (model.status !== 'active') {
-        warnings.push(`model ${entry.modelId || entry.entryId} is ${model.status}`);
+      if (asset.status !== 'active') {
+        warnings.push(`asset ${entry.modelId || entry.entryId} is ${asset.status}`);
       }
       return [];
     }
@@ -466,7 +364,7 @@ export async function getLocalRuntimeProfileInstallStatus(
     }
     return [];
   });
-  const missingEntries = [...missingDependencies, ...missingArtifacts];
+  const missingEntries = [...missingDependencies];
   return {
     modId: payload.modId,
     profileId: payload.profile.id,
@@ -499,7 +397,7 @@ export async function installLocalRuntimeService(
     engine: String(payload.engine || '').trim(),
     endpoint: String(payload.endpoint || '').trim(),
     capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-    localModelId: String(payload.localModelId || '').trim(),
+    localModelId: String(payload.localAssetId || '').trim(),
   });
   return parseServiceDescriptor(asRecord(result).service);
 }
@@ -580,67 +478,57 @@ export async function listLocalRuntimeAudits(query?: LocalRuntimeAuditQuery): Pr
   return events.map((item) => parseAuditEvent(item));
 }
 
-export async function importLocalRuntimeModelFile(
+export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_import_file', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_import_file', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.importLocalModelFile({
+  const response = await runtime.importLocalAssetFile({
     filePath: String(payload.filePath || '').trim(),
-    modelName: String(payload.modelName || '').trim(),
-    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+    assetName: String(payload.assetName || '').trim(),
+    kind: toAssetKindFilter(payload.kind),
     engine: String(payload.engine || '').trim(),
+    capabilities: [],
     endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseModelRecord(asRecord(response).model);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function installLocalRuntimeModel(
+export async function installLocalRuntimeAsset(
   payload: LocalRuntimeInstallPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_install', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.installLocalModel({
-    modelId: String(payload.modelId || '').trim(),
-    repo: String(payload.repo || '').trim(),
-    revision: String(payload.revision || '').trim(),
-    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-    engine: String(payload.engine || '').trim(),
-    entry: String(payload.entry || '').trim(),
-    files: Array.isArray(payload.files) ? payload.files : [],
-    license: String(payload.license || '').trim(),
-    hashes: payload.hashes || {},
-    endpoint: String(payload.endpoint || '').trim(),
-    engineConfig: payload.engineConfig as never,
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_install', options?.caller);
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_install', {
+    payload: {
+      modelId: String(payload.modelId || '').trim(),
+      repo: String(payload.repo || '').trim(),
+      revision: String(payload.revision || '').trim(),
+      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+      engine: String(payload.engine || '').trim(),
+      entry: String(payload.entry || '').trim(),
+      files: Array.isArray(payload.files) ? payload.files : [],
+      license: String(payload.license || '').trim(),
+      hashes: payload.hashes || {},
+      endpoint: String(payload.endpoint || '').trim(),
+      engineConfig: payload.engineConfig,
+    },
   });
-  return parseModelRecord(asRecord(response).model);
+  return parseAssetRecord(result);
 }
 
-export async function installLocalRuntimeVerifiedModel(
-  payload: LocalRuntimeInstallVerifiedPayload,
+export async function installLocalRuntimeVerifiedAsset(
+  payload: LocalRuntimeInstallVerifiedAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_install_verified', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_install_verified', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.installVerifiedModel({
+  const response = await runtime.installVerifiedAsset({
     templateId: String(payload.templateId || '').trim(),
     endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseModelRecord(asRecord(response).model);
-}
-
-export async function installLocalRuntimeVerifiedArtifact(
-  payload: LocalRuntimeInstallVerifiedArtifactPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  assertLifecycleWriteAllowed('local_runtime_artifacts_install_verified', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.installVerifiedArtifact({
-    templateId: String(payload.templateId || '').trim(),
-  });
-  return parseArtifactRecord(asRecord(response).artifact);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
@@ -687,105 +575,72 @@ export async function cancelLocalRuntimeDownload(
   return parseDownloadSessionSummary(asRecord(response).transfer);
 }
 
-export async function importLocalRuntimeModel(
-  payload: LocalRuntimeImportPayload,
+export async function importLocalRuntimeAsset(
+  payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_import', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_import', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.importLocalModel({
+  const response = await runtime.importLocalAsset({
     manifestPath: String(payload.manifestPath || '').trim(),
     endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseModelRecord(asRecord(response).model);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function adoptLocalRuntimeModel(
-  payload: LocalRuntimeModelRecord,
+export async function adoptLocalRuntimeAsset(
+  payload: LocalRuntimeAssetRecord,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_adopt', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_adopt', { payload });
-  return parseModelRecord(result);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_adopt', options?.caller);
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_adopt', { payload });
+  return parseAssetRecord(result);
 }
 
-export async function adoptLocalRuntimeArtifact(
-  payload: LocalRuntimeArtifactRecord,
+export async function removeLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  assertLifecycleWriteAllowed('local_runtime_artifacts_adopt', options?.caller);
-  const response = await invokeLocalRuntimeCommand<unknown>('runtime_local_artifacts_adopt', { payload });
-  return parseArtifactRecord(response);
-}
-
-export async function importLocalRuntimeArtifact(
-  payload: LocalRuntimeImportArtifactPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  assertLifecycleWriteAllowed('local_runtime_artifacts_import', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_remove', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.importLocalArtifact({
-    manifestPath: String(payload.manifestPath || '').trim(),
+  const response = await runtime.removeLocalAsset({
+    localAssetId: String(localAssetId || '').trim(),
   });
-  return parseArtifactRecord(asRecord(response).artifact);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function removeLocalRuntimeModel(
-  localModelId: string,
+export async function startLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_remove', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_start', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.removeLocalModel({
-    localModelId: String(localModelId || '').trim(),
+  const response = await runtime.startLocalAsset({
+    localAssetId: String(localAssetId || '').trim(),
   });
-  return parseModelRecord(asRecord(response).model);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function removeLocalRuntimeArtifact(
-  localArtifactId: string,
+export async function stopLocalRuntimeAsset(
+  localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeArtifactRecord> {
-  assertLifecycleWriteAllowed('local_runtime_artifacts_remove', options?.caller);
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_stop', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.removeLocalArtifact({
-    localArtifactId: String(localArtifactId || '').trim(),
+  const response = await runtime.stopLocalAsset({
+    localAssetId: String(localAssetId || '').trim(),
   });
-  return parseArtifactRecord(asRecord(response).artifact);
+  return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function startLocalRuntimeModel(
-  localModelId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_start', options?.caller);
+export async function healthLocalRuntimeAssets(localAssetId?: string): Promise<LocalRuntimeAssetHealth[]> {
   const runtime = requireSdkLocal();
-  const response = await runtime.startLocalModel({
-    localModelId: String(localModelId || '').trim(),
-  });
-  return parseModelRecord(asRecord(response).model);
-}
-
-export async function stopLocalRuntimeModel(
-  localModelId: string,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeModelRecord> {
-  assertLifecycleWriteAllowed('local_runtime_models_stop', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.stopLocalModel({
-    localModelId: String(localModelId || '').trim(),
-  });
-  return parseModelRecord(asRecord(response).model);
-}
-
-export async function healthLocalRuntimeModels(localModelId?: string): Promise<LocalRuntimeModelHealth[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.checkLocalModelHealth({
-    localModelId: String(localModelId || '').trim(),
+  const response = await runtime.checkLocalAssetHealth({
+    localAssetId: String(localAssetId || '').trim(),
   });
   const raw = asRecord(response);
-  const models = Array.isArray(raw.models) ? raw.models : [];
-  return models.map((item) => parseModelHealth(item));
+  const assets = Array.isArray(raw.assets) ? raw.assets : [];
+  return assets.map((item) => parseAssetHealth(item));
 }
 
 export async function appendLocalRuntimeInferenceAudit(payload: LocalRuntimeInferenceAuditPayload): Promise<void> {
@@ -811,20 +666,20 @@ export async function appendLocalRuntimeAudit(payload: LocalRuntimeAuditPayload)
   const runtime = requireSdkLocal();
   await runtime.appendRuntimeAudit({
     eventType: payload.eventType,
-    modelId: String(payload.modelId || ''),
-    localModelId: String(payload.localModelId || ''),
+    modelId: String(payload.assetId || ''),
+    localModelId: String(payload.localAssetId || ''),
     payload: payload.payload as never,
   });
 }
 
-export async function revealLocalRuntimeModelInFolder(localModelId: string): Promise<void> {
-  await invokeLocalRuntimeCommand<void>('runtime_local_models_reveal_in_folder', {
-    payload: { localModelId },
+export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_assets_reveal_in_folder', {
+    payload: { localAssetId },
   });
 }
 
-export async function revealLocalRuntimeModelsRootFolder(): Promise<void> {
-  await invokeLocalRuntimeCommand<void>('runtime_local_models_reveal_root_folder');
+export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_assets_reveal_root_folder');
 }
 
 export async function subscribeLocalRuntimeDownloadProgress(
@@ -860,16 +715,16 @@ export async function subscribeLocalRuntimeDownloadProgress(
   };
 }
 
-export async function scanLocalRuntimeOrphans(
+export async function scanLocalRuntimeOrphanAssets(
   _payload?: LocalRuntimeScanOrphansPayload,
-): Promise<OrphanModelFile[]> {
+): Promise<OrphanAssetFile[]> {
   const runtime = requireSdkLocal();
   const response = await runtime.scanUnregisteredAssets({});
   const raw = asRecord(response);
   const items: unknown[] = Array.isArray(raw.items) ? raw.items : [];
   return items
     .map((item) => parseUnregisteredAssetDescriptor(item))
-    .filter((item) => item.declaration?.assetClass === 'model')
+    .filter((item) => Boolean(item.declaration))
     .map((item) => ({
       filename: item.filename,
       path: item.path,
@@ -878,51 +733,20 @@ export async function scanLocalRuntimeOrphans(
     }));
 }
 
-export async function scanLocalRuntimeArtifactOrphans(): Promise<OrphanArtifactFile[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.scanUnregisteredAssets({});
-  const raw = asRecord(response);
-  const items: unknown[] = Array.isArray(raw.items) ? raw.items : [];
-  return items
-    .map((item) => parseUnregisteredAssetDescriptor(item))
-    .filter((item) => item.declaration?.assetClass === 'artifact')
-    .map((item) => ({
-      filename: item.filename,
-      path: item.path,
-      sizeBytes: item.sizeBytes,
-    }));
-}
-
-export async function scaffoldLocalRuntimeOrphan(
+export async function scaffoldLocalRuntimeOrphanAsset(
   payload: LocalRuntimeScaffoldOrphanPayload,
-): Promise<LocalRuntimeModelRecord> {
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_scaffold_orphan', options?.caller);
   const runtime = requireSdkLocal();
-  const response = await runtime.scaffoldOrphanModel({
+  const response = await runtime.scaffoldOrphanAsset({
     path: String(payload.path || '').trim(),
-    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+    kind: toAssetKindFilter(payload.kind),
     engine: String(payload.engine || '').trim(),
+    capabilities: [],
     endpoint: String(payload.endpoint || '').trim(),
   });
-  return parseModelRecord(asRecord(response).model);
-}
-
-export async function scaffoldLocalRuntimeArtifactOrphan(
-  payload: LocalRuntimeScaffoldArtifactPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeScaffoldArtifactResult> {
-  assertLifecycleWriteAllowed('local_runtime_artifacts_scaffold_orphan', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.scaffoldOrphanArtifact({
-    path: String(payload.path || '').trim(),
-    kind: toArtifactKindFilter(payload.kind),
-    engine: String(payload.engine || '').trim(),
-  });
-  const artifact = parseArtifactRecord(asRecord(response).artifact);
-  return {
-    manifestPath: '',
-    artifactId: artifact.artifactId,
-    kind: artifact.kind,
-  };
+  return parseAssetRecord(asRecord(response).asset);
 }
 
 export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntimeUnregisteredAssetDescriptor[]> {
@@ -935,50 +759,19 @@ export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntime
   return items.map((item) => parseUnregisteredAssetDescriptor(item));
 }
 
-function capabilitiesForModelType(modelType: NonNullable<LocalRuntimeImportAssetFilePayload['declaration']['modelType']>): string[] {
-  if (modelType === 'embedding') return ['embedding'];
-  if (modelType === 'image') return ['image'];
-  if (modelType === 'video') return ['video'];
-  if (modelType === 'tts') return ['tts'];
-  if (modelType === 'stt') return ['stt'];
-  if (modelType === 'music') return ['music'];
-  return ['chat'];
-}
-
-export async function importLocalRuntimeAssetFile(
+export async function importLocalRuntimeAssetFileUnified(
   payload: LocalRuntimeImportAssetFilePayload,
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeAssetFileImportResult> {
   const declaration = payload.declaration;
-  if (declaration.assetClass === 'artifact') {
-    // Legacy asset intake markers kept for source-contract tests during the runtime hard cut:
-    // scaffoldLocalRuntimeArtifactOrphan({ path: payload.filePath, kind: declaration.artifactKind, engine: declaration.engine })
-    // importLocalRuntimeArtifact({ manifestPath: scaffolded.manifestPath })
-    const artifactKind = declaration.artifactKind;
-    if (!artifactKind) {
-      throw new Error('artifactKind is required for companion asset import');
-    }
-    const runtime = requireSdkLocal();
-    const response = await runtime.importLocalArtifactFile({
-      filePath: String(payload.filePath || '').trim(),
-      kind: toArtifactKindFilter(artifactKind),
-      engine: String(declaration.engine || '').trim(),
-    });
-    const artifact = parseArtifactRecord(asRecord(response).artifact);
-    return { assetClass: 'artifact', artifact };
-  }
-
-  if (!declaration.modelType) {
-    throw new Error('modelType is required for main model import');
-  }
-  const model = await importLocalRuntimeModelFile({
+  const asset = await importLocalRuntimeAssetFile({
     filePath: payload.filePath,
-    modelName: payload.modelName,
-    capabilities: capabilitiesForModelType(declaration.modelType),
+    assetName: payload.assetName,
+    kind: declaration.assetKind,
     engine: declaration.engine,
     endpoint: payload.endpoint,
   }, options);
-  return { assetClass: 'model', model };
+  return { asset };
 }
 
 export async function importLocalRuntimeAssetManifest(
@@ -989,22 +782,21 @@ export async function importLocalRuntimeAssetManifest(
   if (!normalizedPath) {
     throw new Error('manifestPath is required');
   }
-  if (normalizedPath.endsWith('artifact.manifest.json')) {
-    const artifact = await importLocalRuntimeArtifact({ manifestPath: normalizedPath }, options);
-    return { assetClass: 'artifact', artifact };
-  }
-  const model = await importLocalRuntimeModel({ manifestPath: normalizedPath }, options);
-  return { assetClass: 'model', model };
+  const asset = await importLocalRuntimeAsset({ manifestPath: normalizedPath }, options);
+  return { asset };
 }
 
-export async function fetchLocalRuntimeSnapshot(localModelId?: string): Promise<LocalRuntimeSnapshot> {
-  const [models, health] = await Promise.all([
-    listLocalRuntimeModels(),
-    healthLocalRuntimeModels(localModelId),
+export async function fetchLocalRuntimeSnapshot(localAssetId?: string): Promise<LocalRuntimeSnapshot> {
+  const [assets, health] = await Promise.all([
+    listLocalRuntimeAssets(),
+    healthLocalRuntimeAssets(localAssetId),
   ]);
   return {
-    models,
+    assets,
     health,
     generatedAt: new Date().toISOString(),
   };
 }
+
+/** @deprecated Use revealLocalRuntimeAssetsRootFolder */
+export const revealLocalRuntimeModelsRootFolder = revealLocalRuntimeAssetsRootFolder;

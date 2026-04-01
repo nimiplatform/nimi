@@ -4,14 +4,14 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::local_runtime::types::{
-    default_fallback_engines_for_engine, default_logical_model_id, normalize_local_engine,
-    infer_artifact_integrity_mode_from_source, infer_model_integrity_mode_from_source,
-    LocalAiArtifactSource, LocalAiIntegrityMode, LocalAiModelSource,
+    default_fallback_engines_for_engine, default_logical_model_id,
+    infer_asset_integrity_mode_from_source, infer_model_integrity_mode_from_source,
+    normalize_local_engine, LocalAiAssetSource, LocalAiIntegrityMode, LocalAiModelSource,
 };
 
 use super::{
-    err, normalize_manifest_hash, ImportedArtifactManifest, ImportedModelManifest,
-    LocalAiArtifactKind, ARTIFACT_MANIFEST_FILE_NAME, MODEL_MANIFEST_FILE_NAME,
+    err, normalize_manifest_hash, ImportedAssetManifest, ImportedModelManifest,
+    LocalAiAssetKind, ASSET_MANIFEST_FILE_NAME,
 };
 
 fn resolved_manifest_integrity_mode(manifest: &ImportedModelManifest) -> LocalAiIntegrityMode {
@@ -28,17 +28,17 @@ fn manifest_hashes_required(manifest: &ImportedModelManifest) -> bool {
 }
 
 fn resolved_artifact_manifest_integrity_mode(
-    manifest: &ImportedArtifactManifest,
+    manifest: &ImportedAssetManifest,
 ) -> LocalAiIntegrityMode {
     manifest.integrity_mode.unwrap_or_else(|| {
-        infer_artifact_integrity_mode_from_source(&LocalAiArtifactSource {
+        infer_asset_integrity_mode_from_source(&LocalAiAssetSource {
             repo: manifest.source.repo.clone(),
             revision: manifest.source.revision.clone(),
         })
     })
 }
 
-fn artifact_manifest_hashes_required(manifest: &ImportedArtifactManifest) -> bool {
+fn asset_manifest_hashes_required(manifest: &ImportedAssetManifest) -> bool {
     resolved_artifact_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
 }
 
@@ -60,45 +60,14 @@ fn ensure_resolved_manifest_location(
     let Some(first) = components.next() else {
         return Err(err(
             invalid_file_name_code,
-            "仅支持导入 resolved/<logical-model-id>/manifest.json",
+            "仅支持导入 resolved/<asset-id>/asset.manifest.json",
         ));
     };
     let remaining = components.collect::<Vec<_>>();
     if first.as_os_str() != "resolved" || remaining.len() < 2 {
         return Err(err(
             invalid_file_name_code,
-            "仅支持导入 resolved/<logical-model-id>/manifest.json",
-        ));
-    }
-    Ok(())
-}
-
-fn ensure_artifact_manifest_location(
-    canonical_manifest: &Path,
-    canonical_root: &Path,
-    invalid_file_name_code: &str,
-) -> Result<(), String> {
-    let Ok(relative_path) = canonical_manifest.strip_prefix(canonical_root) else {
-        return Err(err(
-            "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT",
-            format!(
-                "导入路径必须位于 runtime models 目录下: {}",
-                canonical_root.display()
-            ),
-        ));
-    };
-    let mut components = relative_path.components();
-    let Some(first) = components.next() else {
-        return Err(err(
-            invalid_file_name_code,
-            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json",
-        ));
-    };
-    let remaining = components.collect::<Vec<_>>();
-    if first.as_os_str() != "artifacts" || remaining.len() < 2 {
-        return Err(err(
-            invalid_file_name_code,
-            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json",
+            "仅支持导入 resolved/<asset-id>/asset.manifest.json",
         ));
     }
     Ok(())
@@ -181,24 +150,27 @@ pub(super) fn assert_required_manifest_fields(
     Ok(())
 }
 
-pub(super) fn normalize_artifact_kind(value: &str) -> Result<LocalAiArtifactKind, String> {
+pub(super) fn normalize_asset_kind(value: &str) -> Result<LocalAiAssetKind, String> {
     match value.trim().to_ascii_lowercase().as_str() {
-        "vae" => Ok(LocalAiArtifactKind::Vae),
-        "ae" | "autoencoder" => Ok(LocalAiArtifactKind::Ae),
-        "llm" => Ok(LocalAiArtifactKind::Llm),
-        "clip" => Ok(LocalAiArtifactKind::Clip),
-        "controlnet" => Ok(LocalAiArtifactKind::Controlnet),
-        "lora" => Ok(LocalAiArtifactKind::Lora),
-        "auxiliary" | "aux" => Ok(LocalAiArtifactKind::Auxiliary),
+        "chat" | "llm" => Ok(LocalAiAssetKind::Chat),
+        "image" => Ok(LocalAiAssetKind::Image),
+        "video" => Ok(LocalAiAssetKind::Video),
+        "tts" => Ok(LocalAiAssetKind::Tts),
+        "stt" => Ok(LocalAiAssetKind::Stt),
+        "vae" => Ok(LocalAiAssetKind::Vae),
+        "clip" => Ok(LocalAiAssetKind::Clip),
+        "controlnet" => Ok(LocalAiAssetKind::Controlnet),
+        "lora" => Ok(LocalAiAssetKind::Lora),
+        "auxiliary" | "aux" => Ok(LocalAiAssetKind::Auxiliary),
         other => Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_KIND_INVALID",
-            format!("artifact kind 不受支持: {other}"),
+            "LOCAL_AI_IMPORT_ASSET_KIND_INVALID",
+            format!("asset kind 不受支持: {other}"),
         )),
     }
 }
 
 pub(super) fn assert_required_artifact_manifest_fields(
-    manifest: &ImportedArtifactManifest,
+    manifest: &ImportedAssetManifest,
 ) -> Result<(), String> {
     if manifest.schema_version.trim().is_empty() {
         return Err(err(
@@ -206,13 +178,13 @@ pub(super) fn assert_required_artifact_manifest_fields(
             "artifact manifest.schemaVersion 不能为空",
         ));
     }
-    if manifest.artifact_id.trim().is_empty() {
+    if manifest.asset_id.trim().is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_ARTIFACT_ID_MISSING",
-            "artifact manifest.artifactId 不能为空",
+            "asset manifest.assetId 不能为空",
         ));
     }
-    let _ = normalize_artifact_kind(&manifest.kind)?;
+    let _ = normalize_asset_kind(&manifest.kind)?;
     if manifest.engine.trim().is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_ARTIFACT_ENGINE_MISSING",
@@ -252,7 +224,7 @@ pub(super) fn assert_required_artifact_manifest_fields(
             "artifact manifest.source.revision 不能为空",
         ));
     }
-    if artifact_manifest_hashes_required(manifest) && manifest.hashes.is_empty() {
+    if asset_manifest_hashes_required(manifest) && manifest.hashes.is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_ARTIFACT_HASHES_MISSING",
             "artifact manifest.hashes 不能为空",
@@ -320,10 +292,9 @@ fn assert_manifest_hashes(
     Ok(())
 }
 
-fn validate_import_manifest_path_with_expected_file_name(
+fn validate_import_asset_manifest_path_impl(
     manifest_path: &str,
     runtime_models_root: &Path,
-    expected_file_name: &str,
     invalid_file_name_code: &str,
 ) -> Result<PathBuf, String> {
     let path = PathBuf::from(manifest_path.trim());
@@ -344,15 +315,11 @@ fn validate_import_manifest_path_with_expected_file_name(
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("");
-    if file_name != expected_file_name {
-        let message = if expected_file_name == MODEL_MANIFEST_FILE_NAME {
-            "仅支持导入 resolved/<logical-model-id>/manifest.json".to_string()
-        } else if expected_file_name == ARTIFACT_MANIFEST_FILE_NAME {
-            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json".to_string()
-        } else {
-            format!("仅支持导入 {expected_file_name}")
-        };
-        return Err(err(invalid_file_name_code, message));
+    if file_name != ASSET_MANIFEST_FILE_NAME {
+        return Err(err(
+            invalid_file_name_code,
+            "仅支持导入 resolved/<asset-id>/asset.manifest.json",
+        ));
     }
 
     let canonical_root = runtime_models_root.canonicalize().map_err(|error| {
@@ -381,44 +348,23 @@ fn validate_import_manifest_path_with_expected_file_name(
         ));
     }
 
-    if expected_file_name == MODEL_MANIFEST_FILE_NAME {
-        ensure_resolved_manifest_location(
-            canonical_manifest.as_path(),
-            canonical_root.as_path(),
-            invalid_file_name_code,
-        )?;
-    } else if expected_file_name == ARTIFACT_MANIFEST_FILE_NAME {
-        ensure_artifact_manifest_location(
-            canonical_manifest.as_path(),
-            canonical_root.as_path(),
-            invalid_file_name_code,
-        )?;
-    }
+    ensure_resolved_manifest_location(
+        canonical_manifest.as_path(),
+        canonical_root.as_path(),
+        invalid_file_name_code,
+    )?;
 
     Ok(canonical_manifest)
 }
 
-pub(crate) fn validate_import_manifest_path(
+pub(crate) fn validate_import_asset_manifest_path(
     manifest_path: &str,
     runtime_models_root: &Path,
 ) -> Result<PathBuf, String> {
-    validate_import_manifest_path_with_expected_file_name(
+    validate_import_asset_manifest_path_impl(
         manifest_path,
         runtime_models_root,
-        MODEL_MANIFEST_FILE_NAME,
-        "LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID",
-    )
-}
-
-pub(crate) fn validate_import_artifact_manifest_path(
-    manifest_path: &str,
-    runtime_models_root: &Path,
-) -> Result<PathBuf, String> {
-    validate_import_manifest_path_with_expected_file_name(
-        manifest_path,
-        runtime_models_root,
-        ARTIFACT_MANIFEST_FILE_NAME,
-        "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID",
+        "LOCAL_AI_IMPORT_ASSET_MANIFEST_FILE_NAME_INVALID",
     )
 }
 
@@ -440,16 +386,16 @@ pub(crate) fn parse_and_validate_manifest(path: &Path) -> Result<ImportedModelMa
     Ok(manifest)
 }
 
-pub(crate) fn parse_and_validate_artifact_manifest(
+pub(crate) fn parse_and_validate_asset_manifest(
     path: &Path,
-) -> Result<ImportedArtifactManifest, String> {
+) -> Result<ImportedAssetManifest, String> {
     let raw = fs::read_to_string(path).map_err(|error| {
         err(
             "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_READ_FAILED",
             format!("读取 artifact manifest 失败 ({}): {error}", path.display()),
         )
     })?;
-    let manifest = serde_json::from_str::<ImportedArtifactManifest>(&raw).map_err(|error| {
+    let manifest = serde_json::from_str::<ImportedAssetManifest>(&raw).map_err(|error| {
         err(
             "LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_PARSE_FAILED",
             format!("解析 artifact manifest JSON 失败: {error}"),
@@ -458,8 +404,8 @@ pub(crate) fn parse_and_validate_artifact_manifest(
     assert_required_artifact_manifest_fields(&manifest)?;
     let model_like_manifest = ImportedModelManifest {
         schema_version: manifest.schema_version.clone(),
-        model_id: manifest.artifact_id.clone(),
-        logical_model_id: default_logical_model_id(manifest.artifact_id.as_str()),
+        model_id: manifest.asset_id.clone(),
+        logical_model_id: default_logical_model_id(manifest.asset_id.as_str()),
         capabilities: vec!["image".to_string()],
         engine: manifest.engine.clone(),
         entry: manifest.entry.clone(),

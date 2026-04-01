@@ -2,106 +2,67 @@ use tauri::AppHandle;
 
 use super::store::{load_state, save_state};
 use super::types::{
-    normalize_local_inventory_id, now_iso_timestamp, LocalAiArtifactRecord, LocalAiArtifactStatus,
+    normalize_local_inventory_id, now_iso_timestamp, LocalAiAssetRecord, LocalAiAssetStatus,
     LocalAiRuntimeState,
 };
 
-fn find_artifact_index(state: &LocalAiRuntimeState, local_artifact_id: &str) -> Option<usize> {
-    let normalized = local_artifact_id.trim().to_ascii_lowercase();
+fn find_asset_index(state: &LocalAiRuntimeState, local_asset_id: &str) -> Option<usize> {
+    let normalized = local_asset_id.trim().to_ascii_lowercase();
     state
         .artifacts
         .iter()
-        .position(|item| item.local_artifact_id.trim().to_ascii_lowercase() == normalized)
+        .position(|item| item.local_asset_id.trim().to_ascii_lowercase() == normalized)
 }
 
-fn find_artifact_identity_index(
+fn find_asset_identity_index(
     state: &LocalAiRuntimeState,
-    artifact_id: &str,
-    kind: &super::types::LocalAiArtifactKind,
+    asset_id: &str,
+    kind: &super::types::LocalAiAssetKind,
     engine: &str,
     include_removed: bool,
 ) -> Option<usize> {
-    let artifact_id = normalize_local_inventory_id(artifact_id);
+    let asset_id = normalize_local_inventory_id(asset_id);
     let engine = engine.trim();
     state.artifacts.iter().position(|item| {
-        (include_removed || item.status != LocalAiArtifactStatus::Removed)
-            && normalize_local_inventory_id(item.artifact_id.as_str()) == artifact_id
+        (include_removed || item.status != LocalAiAssetStatus::Removed)
+            && normalize_local_inventory_id(item.asset_id.as_str()) == asset_id
             && &item.kind == kind
             && item.engine.trim().eq_ignore_ascii_case(engine)
     })
 }
 
-pub fn list_artifacts(app: &AppHandle) -> Result<Vec<LocalAiArtifactRecord>, String> {
-    let state = load_state(app)?;
-    Ok(state.artifacts)
-}
-
-pub fn find_installed_artifact_by_identity(
+pub fn find_installed_asset_by_identity(
     app: &AppHandle,
-    artifact_id: &str,
-    kind: &super::types::LocalAiArtifactKind,
+    asset_id: &str,
+    kind: &super::types::LocalAiAssetKind,
     engine: &str,
-) -> Result<Option<LocalAiArtifactRecord>, String> {
+) -> Result<Option<LocalAiAssetRecord>, String> {
     let state = load_state(app)?;
     Ok(
-        find_artifact_identity_index(&state, artifact_id, kind, engine, false)
+        find_asset_identity_index(&state, asset_id, kind, engine, false)
             .map(|index| state.artifacts[index].clone()),
     )
 }
 
-pub fn upsert_artifact(
+pub fn upsert_asset(
     app: &AppHandle,
-    mut record: LocalAiArtifactRecord,
-) -> Result<LocalAiArtifactRecord, String> {
+    mut record: LocalAiAssetRecord,
+) -> Result<LocalAiAssetRecord, String> {
     let mut state = load_state(app)?;
     let now = now_iso_timestamp();
-    record.artifact_id = normalize_local_inventory_id(record.artifact_id.as_str());
+    record.asset_id = normalize_local_inventory_id(record.asset_id.as_str());
     record.updated_at = now;
 
-    if let Some(index) = find_artifact_index(&state, &record.local_artifact_id) {
+    if let Some(index) = find_asset_index(&state, &record.local_asset_id) {
         state.artifacts[index] = record.clone();
-    } else if let Some(index) = find_artifact_identity_index(
-        &state,
-        &record.artifact_id,
-        &record.kind,
-        &record.engine,
-        true,
-    ) {
-        record.local_artifact_id = state.artifacts[index].local_artifact_id.clone();
+    } else if let Some(index) =
+        find_asset_identity_index(&state, &record.asset_id, &record.kind, &record.engine, true)
+    {
+        record.local_asset_id = state.artifacts[index].local_asset_id.clone();
         state.artifacts[index] = record.clone();
     } else {
         state.artifacts.push(record.clone());
     }
     save_state(app, &state)?;
     Ok(record)
-}
-
-pub fn mark_artifact_status(
-    app: &AppHandle,
-    local_artifact_id: &str,
-    status: LocalAiArtifactStatus,
-    detail: Option<String>,
-) -> Result<LocalAiArtifactRecord, String> {
-    let mut state = load_state(app)?;
-    let index = find_artifact_index(&state, local_artifact_id)
-        .ok_or_else(|| format!("artifact 不存在: {local_artifact_id}"))?;
-    let artifact = &mut state.artifacts[index];
-    artifact.status = status;
-    artifact.updated_at = now_iso_timestamp();
-    artifact.health_detail = detail.filter(|value| !value.trim().is_empty());
-    let snapshot = artifact.clone();
-    save_state(app, &state)?;
-    Ok(snapshot)
-}
-
-pub fn remove_artifact(
-    app: &AppHandle,
-    local_artifact_id: &str,
-) -> Result<LocalAiArtifactRecord, String> {
-    mark_artifact_status(
-        app,
-        local_artifact_id,
-        LocalAiArtifactStatus::Removed,
-        Some("artifact removed".to_string()),
-    )
 }

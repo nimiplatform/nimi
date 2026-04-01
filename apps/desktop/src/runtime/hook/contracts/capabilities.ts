@@ -44,7 +44,7 @@ const DEFAULT_RUNTIME_ALLOWLIST = [
   'runtime.route.list.options',
   'runtime.route.resolve',
   'runtime.route.check.health',
-  'runtime.local.artifacts.list',
+  'runtime.local.assets.list',
   'runtime.local.profiles.list',
   'runtime.local.profiles.install.request',
   'runtime.profile.read.agent',

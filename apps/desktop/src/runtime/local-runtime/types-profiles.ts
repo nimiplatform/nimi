@@ -1,6 +1,6 @@
 import type {
-  LocalRuntimeArtifactKind,
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetKind,
+  LocalRuntimeAssetRecord,
 } from './types';
 import type {
   LocalRuntimeExecutionDeclarationDescriptor,
@@ -9,7 +9,7 @@ import type {
   LocalRuntimeDeviceProfile,
 } from './types-dependencies';
 
-export type LocalRuntimeProfileEntryKind = 'model' | 'artifact' | 'service' | 'node';
+export type LocalRuntimeProfileEntryKind = 'asset' | 'service' | 'node';
 
 export type LocalRuntimeProfileRequirementDescriptor = {
   minGpuMemoryGb?: number;
@@ -26,13 +26,13 @@ export type LocalRuntimeProfileEntryDescriptor = {
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   required?: boolean;
   preferred?: boolean;
-  modelId?: string;
+  assetId?: string;
+  assetKind?: LocalRuntimeAssetKind;
+  engineSlot?: string;
   repo?: string;
   serviceId?: string;
   nodeId?: string;
   engine?: string;
-  artifactId?: string;
-  artifactKind?: LocalRuntimeArtifactKind;
   templateId?: string;
   revision?: string;
   tags?: string[];
@@ -55,11 +55,6 @@ export type LocalRuntimeProfileTargetDescriptor = {
   profiles: LocalRuntimeProfileDescriptor[];
 };
 
-export type LocalRuntimeProfileArtifactPlanEntry = LocalRuntimeProfileEntryDescriptor & {
-  kind: 'artifact';
-  installed: boolean;
-};
-
 export type LocalRuntimeProfileResolutionPlan = {
   planId: string;
   modId: string;
@@ -70,7 +65,7 @@ export type LocalRuntimeProfileResolutionPlan = {
   consumeCapabilities: Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string>;
   requirements?: LocalRuntimeProfileRequirementDescriptor;
   executionPlan: LocalRuntimeExecutionPlan;
-  artifactEntries: LocalRuntimeProfileArtifactPlanEntry[];
+  assetEntries: LocalRuntimeProfileEntryDescriptor[];
   warnings: string[];
   reasonCode?: string;
 };
@@ -80,7 +75,7 @@ export type LocalRuntimeProfileApplyResult = {
   modId: string;
   profileId: string;
   executionResult: LocalRuntimeExecutionApplyResult;
-  installedArtifacts: LocalRuntimeArtifactRecord[];
+  installedAssets: LocalRuntimeAssetRecord[];
   warnings: string[];
   reasonCode?: string;
 };
@@ -119,5 +114,5 @@ export type LocalRuntimeProfileInstallRequestResult = {
 
 export type LocalRuntimeProfileExecutionBridge = {
   runtimeEntries?: LocalRuntimeExecutionDeclarationDescriptor;
-  artifacts: LocalRuntimeProfileEntryDescriptor[];
+  assets: LocalRuntimeProfileEntryDescriptor[];
 };

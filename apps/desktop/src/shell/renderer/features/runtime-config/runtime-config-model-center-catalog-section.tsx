@@ -5,7 +5,7 @@ import {
   localRuntime,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPlanDescriptor,
-  type LocalRuntimeVerifiedModelDescriptor,
+  type LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
 import { CAPABILITY_OPTIONS, type CapabilityOption } from './runtime-config-model-center-utils';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -177,7 +177,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
   const [planPreview, setPlanPreview] = useState<LocalRuntimeInstallPlanDescriptor | null>(null);
   const [loadingPlanPreview, setLoadingPlanPreview] = useState(false);
   const [installingCatalogItemId, setInstallingCatalogItemId] = useState('');
-  const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedModelDescriptor[]>([]);
+  const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
   const [verifiedModelQuery, setVerifiedModelQuery] = useState('');
   const [installingVerifiedTemplateId, setInstallingVerifiedTemplateId] = useState('');
@@ -186,7 +186,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
     try {
-      const rows = await localRuntime.listVerified();
+      const rows = await localRuntime.listVerifiedAssets();
       setVerifiedModels(rows);
     } catch {
       setVerifiedModels([]);
@@ -296,11 +296,11 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
     const query = String(verifiedModelQuery || '').trim().toLowerCase();
     if (!query) return verifiedModels;
     return verifiedModels.filter((item) => {
-      const modelId = String(item.modelId || '').toLowerCase();
+      const assetId = String(item.assetId || '').toLowerCase();
       const title = String(item.title || '').toLowerCase();
       const description = String(item.description || '').toLowerCase();
       const tags = (item.tags || []).join(' ').toLowerCase();
-      return modelId.includes(query)
+      return assetId.includes(query)
         || title.includes(query)
         || description.includes(query)
         || tags.includes(query);
@@ -566,7 +566,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{item.title}</p>
-                      <p className="text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
+                      <p className="text-xs text-[var(--nimi-text-muted)]">{item.assetId}</p>
                       {item.description ? (
                         <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] line-clamp-2">{item.description}</p>
                       ) : null}
@@ -580,7 +580,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                           setInstallingVerifiedTemplateId(item.templateId);
                           try {
                             await props.onInstallVerified(item.templateId);
-                            props.onPendingHighlightModel(item.modelId);
+                            props.onPendingHighlightModel(item.assetId);
                           } finally {
                             setInstallingVerifiedTemplateId('');
                           }

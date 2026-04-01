@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import type {
   GgufVariantDescriptor,
-  LocalRuntimeArtifactKind,
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetKind,
+  LocalRuntimeAssetRecord,
   LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
-  OrphanArtifactFile,
-  OrphanModelFile,
+  LocalRuntimeVerifiedAssetDescriptor,
+  OrphanAssetFile,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
@@ -22,10 +20,10 @@ import {
   normalizeInstallEngine,
 } from './runtime-config-model-center-utils';
 import {
-  ARTIFACT_KIND_OPTIONS,
+  ASSET_KIND_OPTIONS,
   DownloadIcon,
   FolderOpenIcon,
-  formatArtifactKindLabel,
+  formatAssetKindLabel,
   isRecommendedDescriptor,
   ModelIcon,
   PackageIcon,
@@ -47,27 +45,27 @@ type CatalogCardProps = {
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
   filteredInstalledModels: LocalModelOptionV11[];
-  filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
+  filteredInstalledArtifacts: LocalRuntimeAssetRecord[];
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
   loadingVerifiedArtifacts: boolean;
-  artifactKindFilter: 'all' | LocalRuntimeArtifactKind;
+  artifactKindFilter: 'all' | LocalRuntimeAssetKind;
   artifactBusy: boolean;
-  orphanFiles: OrphanModelFile[];
+  orphanFiles: OrphanAssetFile[];
   orphanError: string;
   orphanCapabilities: Record<string, CapabilityOption>;
   orphanImportSessionByPath: Record<string, string>;
   scaffoldingOrphan: string | null;
-  artifactOrphanFiles: OrphanArtifactFile[];
+  artifactOrphanFiles: OrphanAssetFile[];
   artifactOrphanError: string;
-  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
+  artifactOrphanKinds: Record<string, LocalRuntimeAssetKind>;
   scaffoldingArtifactOrphan: string | null;
   hasSearchQuery: boolean;
-  verifiedModels: LocalRuntimeVerifiedModelDescriptor[];
+  verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
   catalogItems: LocalRuntimeCatalogItemDescriptor[];
   catalogDisplayCount: number;
-  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
-  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
+  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
   variantList: GgufVariantDescriptor[];
   variantError: string;
@@ -78,14 +76,14 @@ type CatalogCardProps = {
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onRemoveModel: (localModelId: string) => void;
-  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
+  onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
   onRefreshArtifacts: () => void;
   onRemoveArtifact: (localArtifactId: string) => void;
   onOrphanCapabilityChange: (path: string, capability: CapabilityOption) => void;
   onScaffoldOrphan: (path: string) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
+  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onScaffoldArtifactOrphan: (path: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallArtifact: (templateId: string) => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
@@ -98,13 +96,13 @@ type CatalogCardProps = {
 };
 
 function VerifiedModelSearchRow(props: {
-  item: LocalRuntimeVerifiedModelDescriptor;
-  relatedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
-  installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
+  item: LocalRuntimeVerifiedAssetDescriptor;
+  relatedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
+  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
   artifactBusy: boolean;
   installing: boolean;
   isArtifactPending: (templateId: string) => boolean;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedArtifactDescriptor[]) => void;
+  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallArtifact: (templateId: string) => void;
   onInstallVerifiedModel: (templateId: string) => void;
 }) {
@@ -125,12 +123,12 @@ function VerifiedModelSearchRow(props: {
             {i18n.t('runtimeConfig.localModelCenter.verified', { defaultValue: 'Verified' })}
           </span>
         </div>
-        <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.item.modelId}</p>
+        <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.item.assetId}</p>
         {props.item.description ? <p className="mt-0.5 line-clamp-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.item.description}</p> : null}
         <ArtifactRequirementBadges
           modelTemplateId={props.item.templateId}
           relatedArtifacts={props.relatedArtifacts}
-          installedArtifactsById={props.installedArtifactsById}
+          installedArtifactsById={props.installedAssetsById}
           artifactBusy={props.artifactBusy}
           isArtifactPending={props.isArtifactPending}
           onInstallMissingArtifacts={props.onInstallMissingArtifacts}
@@ -435,21 +433,21 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.companionAssetsCount', {
                 count: props.filteredInstalledArtifacts.length,
-                defaultValue: 'Companion Assets ({{count}})',
+                defaultValue: 'Dependency Assets ({{count}})',
               })}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <RuntimeSelect
               value={props.artifactKindFilter}
-              onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalRuntimeArtifactKind)}
+              onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalRuntimeAssetKind)}
               className="w-36"
               options={[
                 {
                   value: 'all',
                   label: i18n.t('runtimeConfig.localModelCenter.allKinds', { defaultValue: 'All Kinds' }),
                 },
-                ...ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) })),
+                ...ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) })),
               ]}
             />
             <button
@@ -466,25 +464,25 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
         {props.loadingInstalledArtifacts ? (
           <div className="px-4 py-6 text-center">
             <p className="text-sm text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.loadingCompanionAssets', { defaultValue: 'Loading companion assets...' })}
+              {i18n.t('runtimeConfig.localModelCenter.loadingCompanionAssets', { defaultValue: 'Loading dependency assets...' })}
             </p>
           </div>
         ) : props.filteredInstalledArtifacts.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
             {props.filteredInstalledArtifacts.map((artifact) => (
-              <div key={artifact.localArtifactId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
+              <div key={artifact.localAssetId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
-                  {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                  {formatAssetKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{artifact.artifactId}</span>
+                    <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{artifact.assetId}</span>
                     <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
-                      {formatArtifactKindLabel(artifact.kind)}
+                      {formatAssetKindLabel(artifact.kind)}
                     </span>
                     <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{artifact.engine}</span>
                   </div>
-                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.localArtifactId}</p>
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.localAssetId}</p>
                   <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{artifact.entry}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -495,27 +493,27 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setConfirmRemoveArtifactId(artifact.localArtifactId)}
-                    disabled={props.artifactBusy || confirmRemoveArtifactId === artifact.localArtifactId}
+                    onClick={() => setConfirmRemoveArtifactId(artifact.localAssetId)}
+                    disabled={props.artifactBusy || confirmRemoveArtifactId === artifact.localAssetId}
                     className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
-                    title={i18n.t('runtimeConfig.localModelCenter.removeArtifact', { defaultValue: 'Remove artifact' })}
+                    title={i18n.t('runtimeConfig.localModelCenter.removeAsset', { defaultValue: 'Remove asset' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
-                {confirmRemoveArtifactId === artifact.localArtifactId ? (
+                {confirmRemoveArtifactId === artifact.localAssetId ? (
                   <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
                     <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
                       {i18n.t('runtimeConfig.localModelCenter.confirmRemoveArtifact', {
-                        defaultValue: 'Remove "{{name}}"? Artifact files will be permanently deleted.',
-                        name: artifact.artifactId,
+                        defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
+                        name: artifact.assetId,
                       })}
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setConfirmRemoveArtifactId('');
-                        props.onRemoveArtifact(artifact.localArtifactId);
+                        props.onRemoveArtifact(artifact.localAssetId);
                       }}
                       disabled={props.artifactBusy}
                       className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
@@ -540,11 +538,11 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <FolderOpenIcon className="h-6 w-6" />
             </div>
             <h3 className="mb-1 text-sm font-medium text-[var(--nimi-text-primary)]">
-              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssets', { defaultValue: 'No Companion Assets' })}
+              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssets', { defaultValue: 'No Dependency Assets' })}
             </h3>
             <p className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.noCompanionAssetsDescription', {
-                defaultValue: 'Import `artifact.manifest.json` files or install verified VAE/LLM assets below.',
+                defaultValue: 'Import `asset.manifest.json` files or install verified dependency assets below.',
               })}
             </p>
           </div>
@@ -562,13 +560,13 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-secondary)]">
               {i18n.t('runtimeConfig.localModelCenter.unregisteredCompanionAssets', {
                 count: props.artifactOrphanFiles.length,
-                defaultValue: 'Unregistered Companion Assets ({{count}})',
+                defaultValue: 'Unregistered Dependency Assets ({{count}})',
               })}
             </span>
           </div>
           <div className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]/70 px-4 py-2 text-[11px] text-[var(--nimi-text-secondary)]">
             {i18n.t('runtimeConfig.localModelCenter.unclassifiedFilesDescription', {
-              defaultValue: 'Unclassified files can appear in both model and companion lanes until you import them.',
+              defaultValue: 'Unclassified files can appear in both runnable and dependency asset lanes until you import them.',
             })}
           </div>
           {props.artifactOrphanError ? (
@@ -589,9 +587,9 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 <div className="flex items-center gap-2">
                   <RuntimeSelect
                     value={props.artifactOrphanKinds[orphan.path] || 'vae'}
-                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalRuntimeArtifactKind)}
+                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalRuntimeAssetKind)}
                     className="w-36"
-                    options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
+                    options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
                   />
                   <button
                     type="button"
@@ -716,7 +714,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                 key={item.templateId}
                 item={item}
                 relatedArtifacts={props.relatedArtifactsByModelTemplate.get(item.templateId) || []}
-                installedArtifactsById={props.installedArtifactsById}
+                installedAssetsById={props.installedAssetsById}
                 artifactBusy={props.artifactBusy}
                 installing={props.installing}
                 isArtifactPending={props.isArtifactPending}

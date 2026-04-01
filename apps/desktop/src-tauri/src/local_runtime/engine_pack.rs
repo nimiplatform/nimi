@@ -76,7 +76,9 @@ fn runtime_root_path() -> Result<PathBuf, String> {
 
 fn cache_bundle_dir_path() -> Result<PathBuf, String> {
     let runtime_root = runtime_root_path()?;
-    Ok(runtime_root.join(LLAMA_ENGINE_PACK_SUBDIR).join(platform_id()))
+    Ok(runtime_root
+        .join(LLAMA_ENGINE_PACK_SUBDIR)
+        .join(platform_id()))
 }
 
 fn ensure_cache_bundle_dir() -> Result<PathBuf, String> {
@@ -147,7 +149,10 @@ fn collect_bundle_runtime_files(root: &Path) -> Result<Vec<String>, String> {
                 continue;
             }
             let entry_name = entry.file_name();
-            if entry_name.to_string_lossy().eq_ignore_ascii_case(BUNDLE_MANIFEST_FILE_NAME) {
+            if entry_name
+                .to_string_lossy()
+                .eq_ignore_ascii_case(BUNDLE_MANIFEST_FILE_NAME)
+            {
                 continue;
             }
             let relative = normalize_bundle_relative_path(root, path.as_path())?;
@@ -1001,8 +1006,8 @@ mod tests {
                 .is_symlink());
         }
         assert!(bundle_manifest_path(cache_dir.as_path()).exists());
-        let runtime_files =
-            collect_bundle_runtime_files(cache_dir.as_path()).expect("collect copied runtime files");
+        let runtime_files = collect_bundle_runtime_files(cache_dir.as_path())
+            .expect("collect copied runtime files");
         assert!(runtime_files.iter().any(|item| item == binary_name()));
         assert!(runtime_files.iter().any(|item| item == "libmtmd.0.dylib"));
         #[cfg(unix)]
@@ -1015,7 +1020,10 @@ mod tests {
     fn resolve_existing_binary_rejects_partial_cached_bundle() {
         let _guard = env_lock().lock().expect("lock env");
         let runtime_root = temp_dir("runtime-root");
-        std::env::set_var("NIMI_LOCAL_AI_RUNTIME_ROOT", runtime_root.display().to_string());
+        std::env::set_var(
+            "NIMI_LOCAL_AI_RUNTIME_ROOT",
+            runtime_root.display().to_string(),
+        );
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         let cache_dir = cache_bundle_dir_path().expect("cache bundle dir path");
         fs::create_dir_all(&cache_dir).expect("create cache dir");
@@ -1033,7 +1041,10 @@ mod tests {
     fn resolve_existing_binary_accepts_manifest_complete_bundle() {
         let _guard = env_lock().lock().expect("lock env");
         let runtime_root = temp_dir("runtime-root-valid");
-        std::env::set_var("NIMI_LOCAL_AI_RUNTIME_ROOT", runtime_root.display().to_string());
+        std::env::set_var(
+            "NIMI_LOCAL_AI_RUNTIME_ROOT",
+            runtime_root.display().to_string(),
+        );
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         let cache_dir = cache_bundle_dir_path().expect("cache bundle dir path");
         fs::create_dir_all(&cache_dir).expect("create cache dir");

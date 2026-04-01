@@ -192,12 +192,12 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 },
             },
             local: {
-                listArtifacts: async ({ modId, ...payload }) => {
+                listAssets: async ({ modId, ...payload }) => {
                     authorizeRuntimeCapability({
                         modId,
-                        capabilityKey: 'runtime.local.artifacts.list',
+                        capabilityKey: 'runtime.local.assets.list',
                     });
-                    return localRuntime.listArtifacts(payload);
+                    return localRuntime.listAssets(payload);
                 },
                 listProfiles: async ({ modId }) => {
                     authorizeRuntimeCapability({

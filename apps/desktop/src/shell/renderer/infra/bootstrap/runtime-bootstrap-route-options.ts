@@ -1,7 +1,7 @@
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { localRuntime, listRuntimeLocalModelsSnapshot } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeAssetRecord, type LocalRuntimeSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteConnectorOption, type RuntimeRouteLocalOption, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
@@ -253,16 +253,7 @@ function pickMatchingLocalOption(localModels: RuntimeRouteLocalOption[], binding
     }
     return localModels.find((item) => (normalizeLocalModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId)) || null;
 }
-async function pollLocalSnapshotWithTimeout(): Promise<{
-    models: Array<{
-        localModelId: string;
-        engine: string;
-        modelId: string;
-        endpoint: string;
-        capabilities: string[];
-        status: 'installed' | 'active' | 'unhealthy' | 'removed';
-    }>;
-}> {
+async function pollLocalSnapshotWithTimeout(): Promise<LocalRuntimeSnapshot> {
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
     try {
         return await Promise.race([
@@ -294,12 +285,12 @@ async function pollLocalSnapshotWithTimeout(): Promise<{
 type LocalRouteMetadata = {
     snapshot: Awaited<ReturnType<typeof pollLocalSnapshotWithTimeout>>;
     nodeCatalog: Awaited<ReturnType<typeof localRuntime.listNodesCatalog>>;
-    runtimeLocalModels: Awaited<ReturnType<typeof listRuntimeLocalModelsSnapshot>>;
+    runtimeLocalModels: LocalRuntimeAssetRecord[];
 };
 type LocalRouteMetadataDeps = {
     pollLocalSnapshotWithTimeout: typeof pollLocalSnapshotWithTimeout;
     listNodesCatalog: typeof localRuntime.listNodesCatalog;
-    listRuntimeLocalModelsSnapshot: typeof listRuntimeLocalModelsSnapshot;
+    listRuntimeLocalAssets: () => Promise<LocalRuntimeAssetRecord[]>;
 };
 function rethrowLocalRouteMetadataError(input: {
     error: unknown;
@@ -330,7 +321,7 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
     const resolvedDeps: LocalRouteMetadataDeps = {
         pollLocalSnapshotWithTimeout,
         listNodesCatalog: localRuntime.listNodesCatalog,
-        listRuntimeLocalModelsSnapshot,
+        listRuntimeLocalAssets: () => localRuntime.listAssets(),
         ...deps,
     };
     const snapshot = await resolvedDeps.pollLocalSnapshotWithTimeout().catch((error) => {
@@ -354,15 +345,17 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
             },
         });
         return {
-            models: [],
-        };
+            assets: [],
+            health: [],
+            generatedAt: new Date().toISOString(),
+        } satisfies LocalRuntimeSnapshot;
     });
     const [nodeCatalog, runtimeLocalModels] = await Promise.all([
-        resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error) => rethrowLocalRouteMetadataError({
+        resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error: unknown) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-nodes-catalog',
         })),
-        resolvedDeps.listRuntimeLocalModelsSnapshot().catch((error) => rethrowLocalRouteMetadataError({
+        resolvedDeps.listRuntimeLocalAssets().catch((error: unknown) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-runtime-local-models',
         })),
@@ -401,7 +394,9 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
     });
     return {
         snapshot: {
-            models: [],
+            assets: [],
+            health: [],
+            generatedAt: new Date().toISOString(),
         },
         nodeCatalog: [],
         runtimeLocalModels: [],
@@ -555,14 +550,14 @@ export async function loadRuntimeRouteOptions(input: {
             });
         }
     }
-    const snapshotByLocalModelId = new Map(snapshot.models.map((item) => [String(item.localModelId || '').trim(), item]));
-    const snapshotByLookup = new Map(snapshot.models.map((item) => [syncLookup(item.modelId, item.engine), item]));
+    const snapshotByLocalModelId = new Map(snapshot.assets.map((item: LocalRuntimeAssetRecord) => [String(item.localAssetId || '').trim(), item]));
+    const snapshotByLookup = new Map(snapshot.assets.map((item: LocalRuntimeAssetRecord) => [syncLookup(item.assetId, item.engine), item]));
     const localModels: RuntimeRouteLocalOption[] = runtimeLocalModels
-        .filter((item) => item.status !== 'removed')
-        .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
-        .map((item) => {
-        const snapshotModel = snapshotByLocalModelId.get(String(item.localModelId || '').trim())
-            || snapshotByLookup.get(syncLookup(item.modelId, item.engine))
+        .filter((item: LocalRuntimeAssetRecord) => item.status !== 'removed')
+        .filter((item: LocalRuntimeAssetRecord) => modelSupportsCapability(item.capabilities, input.capability))
+        .map((item: LocalRuntimeAssetRecord) => {
+        const snapshotModel = snapshotByLocalModelId.get(String(item.localAssetId || '').trim())
+            || snapshotByLookup.get(syncLookup(item.assetId, item.engine))
             || null;
         if (snapshotModel && String(snapshotModel.status || '').trim().toLowerCase() !== String(item.status || '').trim().toLowerCase()) {
             emitRuntimeLog({
@@ -571,8 +566,8 @@ export async function loadRuntimeRouteOptions(input: {
                 message: 'action:local-route-status-mismatch',
                 details: {
                     capability: input.capability,
-                    localModelId: item.localModelId,
-                    modelId: item.modelId,
+                    localModelId: item.localAssetId,
+                    modelId: item.assetId,
                     engine: item.engine,
                     runtimeStatus: item.status,
                     snapshotStatus: snapshotModel.status,
@@ -580,25 +575,25 @@ export async function loadRuntimeRouteOptions(input: {
             });
         }
         return {
-            localModelId: item.localModelId,
-            label: item.modelId,
+            localModelId: item.localAssetId,
+            label: item.assetId,
             engine: item.engine,
-            model: item.modelId,
-            modelId: item.modelId,
+            model: item.assetId,
+            modelId: item.assetId,
             provider: normalizeLocalEngine(item.engine),
             adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
                 || defaultLocalAdapter(item.engine, input.capability),
             providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
-            endpoint: String(item.endpoint || snapshotModel?.endpoint || '').trim() || undefined,
+            endpoint: undefined,
             status: item.status,
-            goRuntimeLocalModelId: String(item.localModelId || '').trim() || undefined,
+            goRuntimeLocalModelId: String(item.localAssetId || '').trim() || undefined,
             goRuntimeStatus: String(item.status || '').trim() || undefined,
-            capabilities: item.capabilities
-                .map((capability) => normalizeCapabilityToken(capability))
-                .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),
+            capabilities: (item.capabilities || [])
+                .map((capability: string) => normalizeCapabilityToken(capability))
+                .filter((capability: RuntimeCanonicalCapability | null): capability is RuntimeCanonicalCapability => Boolean(capability)),
         };
     })
-        .sort((left, right) => {
+        .sort((left: RuntimeRouteLocalOption, right: RuntimeRouteLocalOption) => {
         const rankDelta = providerDefaultRank(left.providerHints) - providerDefaultRank(right.providerHints);
         if (rankDelta !== 0) {
             return rankDelta;

@@ -1,13 +1,13 @@
-import type { LocalRuntimeModelRecord, LocalRuntimeServiceDescriptor } from './types';
+import type { LocalRuntimeAssetRecord, LocalRuntimeServiceDescriptor } from './types';
 
-export type LocalRuntimeExecutionEntryKind = 'model' | 'service' | 'node';
+export type LocalRuntimeExecutionEntryKind = 'asset' | 'service' | 'node';
 
 export type LocalRuntimeExecutionOptionDescriptor = {
   entryId: string;
   kind: LocalRuntimeExecutionEntryKind;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   title?: string;
-  modelId?: string;
+  assetId?: string;
   repo?: string;
   serviceId?: string;
   nodeId?: string;
@@ -121,7 +121,7 @@ export type LocalRuntimeExecutionApplyResult = {
   planId: string;
   modId: string;
   entries: LocalRuntimeExecutionEntryDescriptor[];
-  installedModels: LocalRuntimeModelRecord[];
+  installedAssets: LocalRuntimeAssetRecord[];
   services: LocalRuntimeServiceDescriptor[];
   capabilities: string[];
   stageResults: LocalRuntimeExecutionStageResult[];

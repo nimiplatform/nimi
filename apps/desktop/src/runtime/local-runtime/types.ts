@@ -6,20 +6,16 @@ import type {
   LocalRuntimeProfileResolvePayload,
 } from './types-profiles';
 
-export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeModelLifecycleOperation = 'idle' | 'starting' | 'stopping' | 'restarting' | 'syncing' | 'error';
-export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
-export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
 export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
-export type LocalRuntimeAssetClass = 'model' | 'artifact';
-export type LocalRuntimeModelType = 'chat' | 'embedding' | 'image' | 'video' | 'tts' | 'stt' | 'music';
 export type LocalRuntimeSuggestionSource = 'manifest' | 'folder' | 'download-metadata' | 'filename' | 'unknown';
 export type LocalRuntimeSuggestionConfidence = 'high' | 'low';
 
-export type LocalRuntimeModelRecord = {
-  localModelId: string;
-  modelId: string;
-  capabilities: string[];
+export type LocalRuntimeAssetRecord = {
+  localAssetId: string;
+  assetId: string;
+  kind: LocalRuntimeAssetKind;
   engine: string;
   entry: string;
   files: string[];
@@ -30,13 +26,12 @@ export type LocalRuntimeModelRecord = {
   };
   integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
-  tags: string[];
-  knownTotalSizeBytes?: number;
-  endpoint: string;
-  status: LocalRuntimeModelStatus;
+  status: LocalRuntimeAssetStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
+  // Runnable-only
+  capabilities?: string[];
   logicalModelId?: string;
   family?: string;
   artifactRoles?: string[];
@@ -44,38 +39,20 @@ export type LocalRuntimeModelRecord = {
   fallbackEngines?: string[];
   engineConfig?: Record<string, unknown>;
   recommendation?: LocalRuntimeCatalogRecommendation;
-};
-
-export type LocalRuntimeArtifactRecord = {
-  localArtifactId: string;
-  artifactId: string;
-  kind: LocalRuntimeArtifactKind;
-  engine: string;
-  entry: string;
-  files: string[];
-  license: string;
-  source: {
-    repo: string;
-    revision: string;
-  };
-  integrityMode: LocalRuntimeIntegrityMode;
-  hashes: Record<string, string>;
-  status: LocalRuntimeArtifactStatus;
-  installedAt: string;
-  updatedAt: string;
-  healthDetail?: string;
+  // Passive-only
   metadata?: Record<string, unknown>;
 };
 
-export type LocalRuntimeModelHealth = {
-  localModelId: string;
-  status: LocalRuntimeModelStatus;
+export type LocalRuntimeAssetHealth = {
+  localAssetId: string;
+  status: LocalRuntimeAssetStatus;
   detail: string;
   endpoint: string;
 };
 
 export type LocalRuntimeInstallPayload = {
   modelId: string;
+  kind: LocalRuntimeAssetKind;
   repo: string;
   revision?: string;
   capabilities?: string[];
@@ -88,22 +65,23 @@ export type LocalRuntimeInstallPayload = {
   engineConfig?: Record<string, unknown>;
 };
 
-export type LocalRuntimeVerifiedModelDescriptor = {
+export type LocalRuntimeVerifiedAssetDescriptor = {
   templateId: string;
   title: string;
   description: string;
-  installKind: string;
-  modelId: string;
+  installKind?: string;
+  assetId: string;
+  kind: LocalRuntimeAssetKind;
   logicalModelId?: string;
   repo: string;
   revision: string;
-  capabilities: string[];
+  capabilities?: string[];
   engine: string;
   entry: string;
   files: string[];
   license: string;
   hashes: Record<string, string>;
-  endpoint: string;
+  endpoint?: string;
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
@@ -111,24 +89,6 @@ export type LocalRuntimeVerifiedModelDescriptor = {
   preferredEngine?: string;
   fallbackEngines?: string[];
   engineConfig?: Record<string, unknown>;
-};
-
-export type LocalRuntimeVerifiedArtifactDescriptor = {
-  templateId: string;
-  title: string;
-  description: string;
-  artifactId: string;
-  kind: LocalRuntimeArtifactKind;
-  engine: string;
-  entry: string;
-  files: string[];
-  license: string;
-  repo: string;
-  revision: string;
-  hashes: Record<string, string>;
-  fileCount: number;
-  totalSizeBytes?: number;
-  tags: string[];
   metadata?: Record<string, unknown>;
 };
 
@@ -186,9 +146,9 @@ export type LocalRuntimeRecommendationFeedCacheState = 'fresh' | 'stale' | 'empt
 export type LocalRuntimeRecommendationFeedCapability = 'chat' | 'image' | 'video';
 export type LocalRuntimeRecommendationFeedSource = 'model-index';
 
-export type LocalRuntimeSuggestedArtifact = {
+export type LocalRuntimeSuggestedAsset = {
   templateId?: string;
-  artifactId?: string;
+  assetId?: string;
   kind: string;
   family?: string;
 };
@@ -202,7 +162,7 @@ export type LocalRuntimeCatalogRecommendation = {
   reasonCodes: string[];
   recommendedEntry?: string;
   fallbackEntries: string[];
-  suggestedArtifacts: LocalRuntimeSuggestedArtifact[];
+  suggestedAssets: LocalRuntimeSuggestedAsset[];
   suggestedNotes: string[];
   baseline?: LocalRuntimeRecommendationBaseline;
 };
@@ -218,14 +178,14 @@ export type LocalRuntimeRecommendationFeedEntryDescriptor = {
 
 export type LocalRuntimeRecommendationInstalledState = {
   installed: boolean;
-  localModelId?: string;
-  status?: LocalRuntimeModelStatus;
+  localAssetId?: string;
+  status?: LocalRuntimeAssetStatus;
 };
 
 export type LocalRuntimeRecommendationActionState = {
   canReviewInstallPlan: boolean;
   canOpenVariants: boolean;
-  canOpenLocalModel: boolean;
+  canOpenLocalAsset: boolean;
 };
 
 export type LocalRuntimeRecommendationFeedItemDescriptor = {
@@ -335,14 +295,14 @@ export type LocalRuntimeRecommendationFeedGetPayload = {
   pageSize?: number;
 };
 
-export type LocalRuntimeListArtifactsPayload = {
-  status?: LocalRuntimeArtifactStatus;
-  kind?: LocalRuntimeArtifactKind;
+export type LocalRuntimeListAssetsPayload = {
+  status?: LocalRuntimeAssetStatus;
+  kind?: LocalRuntimeAssetKind;
   engine?: string;
 };
 
-export type LocalRuntimeListVerifiedArtifactsPayload = {
-  kind?: LocalRuntimeArtifactKind;
+export type LocalRuntimeListVerifiedAssetsPayload = {
+  kind?: LocalRuntimeAssetKind;
   engine?: string;
 };
 
@@ -386,7 +346,6 @@ export type {
   LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileTargetDescriptor,
-  LocalRuntimeProfileArtifactPlanEntry,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileInstallStatus,
@@ -414,7 +373,7 @@ export type LocalRuntimeServiceDescriptor = {
   artifactType?: 'python-env' | 'binary' | 'attached-endpoint';
   endpoint?: string;
   capabilities: string[];
-  localModelId?: string;
+  localAssetId?: string;
   status: LocalRuntimeServiceStatus;
   detail?: string;
   installedAt: string;
@@ -427,7 +386,7 @@ export type LocalRuntimeServicesInstallPayload = {
   engine?: string;
   endpoint?: string;
   capabilities?: string[];
-  localModelId?: string;
+  localAssetId?: string;
 };
 
 export type LocalRuntimeNodesCatalogListPayload = {
@@ -471,28 +430,20 @@ export type LocalRuntimeCapabilityMatrixEntry = {
   policyGate?: string;
 };
 
-export type LocalRuntimeInstallVerifiedPayload = {
+export type LocalRuntimeInstallVerifiedAssetPayload = {
   templateId: string;
   endpoint?: string;
 };
 
-export type LocalRuntimeInstallVerifiedArtifactPayload = {
-  templateId: string;
-};
-
-export type LocalRuntimeImportPayload = {
+export type LocalRuntimeImportAssetPayload = {
   manifestPath: string;
   endpoint?: string;
-};
-
-export type LocalRuntimeImportArtifactPayload = {
-  manifestPath: string;
 };
 
 export type LocalRuntimeImportFilePayload = {
   filePath: string;
-  modelName?: string;
-  capabilities: string[];
+  assetName?: string;
+  kind: LocalRuntimeAssetKind;
   engine?: string;
   endpoint?: string;
 };
@@ -516,9 +467,9 @@ export type LocalRuntimeInferenceAuditPayload = {
 };
 
 export type LocalRuntimeAuditPayload = {
-  eventType: 'runtime_model_ready_after_install' | string;
-  modelId?: string;
-  localModelId?: string;
+  eventType: 'runtime_asset_ready_after_install' | string;
+  assetId?: string;
+  localAssetId?: string;
   source?: LocalRuntimeAuditSource;
   modality?: LocalRuntimeAuditModality;
   reasonCode?: string;
@@ -571,8 +522,8 @@ export type LocalRuntimeAuditQuery = {
 };
 
 export type LocalRuntimeSnapshot = {
-  models: LocalRuntimeModelRecord[];
-  health: LocalRuntimeModelHealth[];
+  assets: LocalRuntimeAssetRecord[];
+  health: LocalRuntimeAssetHealth[];
   generatedAt: string;
 };
 
@@ -619,23 +570,15 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
-export type OrphanModelFile = {
+export type OrphanAssetFile = {
   filename: string;
   path: string;
   sizeBytes: number;
   recommendation?: LocalRuntimeCatalogRecommendation;
 };
 
-export type OrphanArtifactFile = {
-  filename: string;
-  path: string;
-  sizeBytes: number;
-};
-
 export type LocalRuntimeAssetDeclaration = {
-  assetClass: LocalRuntimeAssetClass;
-  modelType?: LocalRuntimeModelType;
-  artifactKind?: LocalRuntimeArtifactKind;
+  assetKind: LocalRuntimeAssetKind;
   engine?: string;
 };
 
@@ -662,46 +605,34 @@ export type LocalRuntimeScanOrphansPayload = {
 
 export type LocalRuntimeScaffoldOrphanPayload = {
   path: string;
-  capabilities: string[];
+  kind: LocalRuntimeAssetKind;
   engine?: string;
   endpoint?: string;
 };
 
-export type LocalRuntimeScaffoldArtifactPayload = {
+export type LocalRuntimeScaffoldAssetPayload = {
   path: string;
-  kind: LocalRuntimeArtifactKind;
+  kind: LocalRuntimeAssetKind;
   engine?: string;
 };
 
-export type LocalRuntimeScaffoldArtifactResult = {
+export type LocalRuntimeScaffoldAssetResult = {
   manifestPath: string;
-  artifactId: string;
-  kind: LocalRuntimeArtifactKind;
+  assetId: string;
+  kind: LocalRuntimeAssetKind;
 };
 
 export type LocalRuntimeImportAssetFilePayload = {
   filePath: string;
   declaration: LocalRuntimeAssetDeclaration;
-  modelName?: string;
+  assetName?: string;
   endpoint?: string;
 };
 
-export type LocalRuntimeAssetFileImportResult =
-  | {
-    assetClass: 'model';
-    model: LocalRuntimeModelRecord;
-  }
-  | {
-    assetClass: 'artifact';
-    artifact: LocalRuntimeArtifactRecord;
-  };
+export type LocalRuntimeAssetFileImportResult = {
+  asset: LocalRuntimeAssetRecord;
+};
 
-export type LocalRuntimeAssetManifestImportResult =
-  | {
-    assetClass: 'model';
-    model: LocalRuntimeModelRecord;
-  }
-  | {
-    assetClass: 'artifact';
-    artifact: LocalRuntimeArtifactRecord;
-  };
+export type LocalRuntimeAssetManifestImportResult = {
+  asset: LocalRuntimeAssetRecord;
+};

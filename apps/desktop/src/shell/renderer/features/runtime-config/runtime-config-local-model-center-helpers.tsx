@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import type {
-  LocalRuntimeArtifactKind,
-  LocalRuntimeArtifactRecord,
+  LocalRuntimeAssetKind,
+  LocalRuntimeAssetRecord,
   LocalRuntimeCatalogRecommendation,
-  LocalRuntimeVerifiedArtifactDescriptor,
-  LocalRuntimeVerifiedModelDescriptor,
+  LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
 import { formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { parseTimestamp } from './runtime-config-model-center-utils';
@@ -23,26 +22,33 @@ export {
 export {
   cacheProgressSessions,
   getCachedProgressSessions,
+  getDismissedSessionIds,
+  addDismissedSessionId,
+  removeDismissedSessionId,
 } from './runtime-config-local-model-center-progress-cache';
 
-export const ARTIFACT_KIND_OPTIONS = [
+export const ASSET_KIND_OPTIONS = [
   'vae',
-  'ae',
-  'llm',
   'clip',
   'controlnet',
   'lora',
   'auxiliary',
-] as const satisfies readonly LocalRuntimeArtifactKind[];
+] as const satisfies readonly LocalRuntimeAssetKind[];
 
-export function formatArtifactKindLabel(value: LocalRuntimeArtifactKind): string {
+export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
   switch (value) {
+    case 'chat':
+      return 'Chat';
+    case 'image':
+      return 'Image';
+    case 'video':
+      return 'Video';
+    case 'tts':
+      return 'TTS';
+    case 'stt':
+      return 'STT';
     case 'vae':
       return 'VAE';
-    case 'ae':
-      return 'AE';
-    case 'llm':
-      return 'LLM';
     case 'clip':
       return 'CLIP';
     case 'controlnet':
@@ -74,9 +80,9 @@ function normalizeDescriptorToken(value: string | undefined | null): string {
   return String(value || '').trim().toLowerCase();
 }
 
-function collectModelFamilyHints(model: LocalRuntimeVerifiedModelDescriptor): string[] {
+function collectAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescriptor): string[] {
   const hints = new Set<string>();
-  for (const tag of model.tags || []) {
+  for (const tag of asset.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
     if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
       continue;
@@ -114,10 +120,10 @@ function compareDescriptorTitles(
   return leftId.localeCompare(rightId, undefined, { sensitivity: 'base' });
 }
 
-export function sortVerifiedModelsForDisplay(
-  models: LocalRuntimeVerifiedModelDescriptor[],
-): LocalRuntimeVerifiedModelDescriptor[] {
-  return [...models].sort((left, right) => {
+export function sortVerifiedAssetsForDisplay(
+  assets: LocalRuntimeVerifiedAssetDescriptor[],
+): LocalRuntimeVerifiedAssetDescriptor[] {
+  return [...assets].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
     if (leftRecommended !== rightRecommended) {
@@ -127,27 +133,25 @@ export function sortVerifiedModelsForDisplay(
   });
 }
 
-const ARTIFACT_KIND_RANK: Record<LocalRuntimeArtifactKind, number> = {
+const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = {
   vae: 0,
-  ae: 1,
-  llm: 2,
-  clip: 3,
-  controlnet: 4,
-  lora: 5,
-  auxiliary: 6,
+  clip: 1,
+  controlnet: 2,
+  lora: 3,
+  auxiliary: 4,
 };
 
-export function sortVerifiedArtifactsForDisplay(
-  artifacts: LocalRuntimeVerifiedArtifactDescriptor[],
-): LocalRuntimeVerifiedArtifactDescriptor[] {
-  return [...artifacts].sort((left, right) => {
+export function sortVerifiedPassiveAssetsForDisplay(
+  assets: LocalRuntimeVerifiedAssetDescriptor[],
+): LocalRuntimeVerifiedAssetDescriptor[] {
+  return [...assets].sort((left, right) => {
     const leftRecommended = isRecommendedDescriptor(left.tags);
     const rightRecommended = isRecommendedDescriptor(right.tags);
     if (leftRecommended !== rightRecommended) {
       return leftRecommended ? -1 : 1;
     }
-    const leftKindRank = ARTIFACT_KIND_RANK[left.kind] ?? Number.MAX_SAFE_INTEGER;
-    const rightKindRank = ARTIFACT_KIND_RANK[right.kind] ?? Number.MAX_SAFE_INTEGER;
+    const leftKindRank = ASSET_KIND_RANK[left.kind] ?? Number.MAX_SAFE_INTEGER;
+    const rightKindRank = ASSET_KIND_RANK[right.kind] ?? Number.MAX_SAFE_INTEGER;
     if (leftKindRank !== rightKindRank) {
       return leftKindRank - rightKindRank;
     }
@@ -155,13 +159,13 @@ export function sortVerifiedArtifactsForDisplay(
   });
 }
 
-function collectArtifactFamilyHints(artifact: LocalRuntimeVerifiedArtifactDescriptor): string[] {
+function collectPassiveAssetFamilyHints(asset: LocalRuntimeVerifiedAssetDescriptor): string[] {
   const hints = new Set<string>();
-  const family = normalizeDescriptorToken(typeof artifact.metadata?.family === 'string' ? artifact.metadata.family : '');
+  const family = normalizeDescriptorToken(typeof asset.metadata?.family === 'string' ? asset.metadata.family : '');
   if (family) {
     hints.add(family);
   }
-  for (const tag of artifact.tags || []) {
+  for (const tag of asset.tags || []) {
     const normalized = normalizeDescriptorToken(tag);
     if (!normalized || GENERIC_MODEL_TAGS.has(normalized)) {
       continue;
@@ -171,61 +175,62 @@ function collectArtifactFamilyHints(artifact: LocalRuntimeVerifiedArtifactDescri
   return [...hints];
 }
 
-export function filterInstalledArtifacts(
-  artifacts: LocalRuntimeArtifactRecord[],
-  kindFilter: 'all' | LocalRuntimeArtifactKind,
+export function filterInstalledAssets(
+  assets: LocalRuntimeAssetRecord[],
+  kindFilter: 'all' | LocalRuntimeAssetKind,
   query: string,
-): LocalRuntimeArtifactRecord[] {
-  return artifacts.filter((artifact) => {
-    const matchesKind = kindFilter === 'all' || artifact.kind === kindFilter;
+): LocalRuntimeAssetRecord[] {
+  return assets.filter((asset) => {
+    if (asset.status === 'removed') return false;
+    const matchesKind = kindFilter === 'all' || asset.kind === kindFilter;
     if (!matchesKind) return false;
     if (!query) return true;
     return (
-      artifact.artifactId.toLowerCase().includes(query)
-      || artifact.localArtifactId.toLowerCase().includes(query)
-      || artifact.engine.toLowerCase().includes(query)
-      || artifact.kind.toLowerCase().includes(query)
-      || artifact.source.repo.toLowerCase().includes(query)
+      asset.assetId.toLowerCase().includes(query)
+      || asset.localAssetId.toLowerCase().includes(query)
+      || asset.engine.toLowerCase().includes(query)
+      || asset.kind.toLowerCase().includes(query)
+      || asset.source.repo.toLowerCase().includes(query)
     );
   });
 }
 
-export function relatedArtifactsForModel(
-  model: LocalRuntimeVerifiedModelDescriptor,
-  artifacts: LocalRuntimeVerifiedArtifactDescriptor[],
-): LocalRuntimeVerifiedArtifactDescriptor[] {
-  const capabilities = new Set((model.capabilities || []).map((value) => normalizeDescriptorToken(value)));
+export function relatedPassiveAssetsForRunnable(
+  runnable: LocalRuntimeVerifiedAssetDescriptor,
+  passiveAssets: LocalRuntimeVerifiedAssetDescriptor[],
+): LocalRuntimeVerifiedAssetDescriptor[] {
+  const capabilities = new Set((runnable.capabilities || []).map((value) => normalizeDescriptorToken(value)));
   if (!capabilities.has('image')) {
     return [];
   }
-  const modelFamilies = new Set(collectModelFamilyHints(model));
-  if (modelFamilies.size === 0) {
+  const runnableFamilies = new Set(collectAssetFamilyHints(runnable));
+  if (runnableFamilies.size === 0) {
     return [];
   }
-  return artifacts.filter((artifact) => {
-    const artifactFamilies = collectArtifactFamilyHints(artifact);
-    return artifactFamilies.some((family) => modelFamilies.has(family));
+  return passiveAssets.filter((asset) => {
+    const assetFamilies = collectPassiveAssetFamilyHints(asset);
+    return assetFamilies.some((family) => runnableFamilies.has(family));
   });
 }
 
-export type ArtifactTaskState = 'running' | 'completed' | 'failed';
+export type AssetTaskState = 'running' | 'completed' | 'failed';
 
-export type ArtifactTaskEntry = {
+export type AssetTaskEntry = {
   templateId: string;
-  artifactId: string;
+  assetId: string;
   title: string;
-  kind: LocalRuntimeArtifactKind;
+  kind: LocalRuntimeAssetKind;
   taskKind: 'verified-install';
-  state: ArtifactTaskState;
+  state: AssetTaskState;
   detail?: string;
   updatedAtMs: number;
 };
 
-export function isArtifactTaskTerminal(state: ArtifactTaskState): boolean {
+export function isAssetTaskTerminal(state: AssetTaskState): boolean {
   return state === 'completed' || state === 'failed';
 }
 
-export function artifactTaskStatusLabel(state: ArtifactTaskState): string {
+export function assetTaskStatusLabel(state: AssetTaskState): string {
   if (state === 'running') return 'Installing';
   if (state === 'completed') return 'Installed';
   return 'Failed';
@@ -384,7 +389,7 @@ export function recommendationReasonLabel(code: string): string {
       });
     case 'main_size_unknown':
       return i18n.t('runtimeConfig.local.recommendationReasonMainSizeUnknown', {
-        defaultValue: 'The main model size was unavailable, so the estimate is conservative.',
+        defaultValue: 'The runnable asset size was unavailable, so the estimate is conservative.',
       });
     case 'metadata_incomplete':
       return i18n.t('runtimeConfig.local.recommendationReasonMetadataIncomplete', {

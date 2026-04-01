@@ -41,7 +41,7 @@ test('desktop local page no longer wires start\\/stop\\/restart product actions 
 });
 
 test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {
-  assert.match(controllerSource, /localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>/);
+  assert.match(controllerSource, /localModelLifecycleById: Record<string, string>/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'starting', '', epoch\)/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'stopping', '', epoch\)/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'restarting', '', epoch\)/);
@@ -53,10 +53,10 @@ test('runtime local lifecycle controller remains available only as non-product m
 });
 
 test('local model tauri lifecycle commands run on a background blocking task', () => {
-  assert.match(tauriCommandsSource, /pub async fn runtime_local_models_start/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_models_start/);
   assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| start_model\(&app, &payload\.local_model_id\)\)/);
-  assert.match(tauriCommandsSource, /pub async fn runtime_local_models_stop/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_models_stop/);
   assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| stop_model\(&app, &payload\.local_model_id\)\)/);
-  assert.match(tauriCommandsSource, /pub async fn runtime_local_models_health/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_models_health/);
   assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| \{\s*health\(&app, local_model_id\.as_deref\(\)\)/);
 });

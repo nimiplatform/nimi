@@ -1,15 +1,12 @@
 import type {
-  LocalRuntimeAssetClass,
   LocalRuntimeAssetDeclaration,
-  LocalRuntimeArtifactKind,
+  LocalRuntimeAssetKind,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeModelLifecycleOperation,
-  LocalRuntimeModelType,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
@@ -46,7 +43,7 @@ export type LocalModelCenterProps = {
   onImport: () => Promise<void>;
   onInstallVerifiedArtifact: (templateId: string) => Promise<void>;
   onImportArtifact: () => Promise<void>;
-  onScaffoldArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
+  onScaffoldArtifactOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveArtifact: (localArtifactId: string) => Promise<void>;
@@ -68,9 +65,9 @@ export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embe
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
 export const INSTALL_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
 export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
-export const ASSET_CLASS_OPTIONS = ['model', 'artifact'] as const satisfies readonly LocalRuntimeAssetClass[];
+export const ASSET_CLASS_OPTIONS = ['model', 'artifact'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
-export const MODEL_TYPE_OPTIONS = ['chat', 'embedding', 'image', 'video', 'tts', 'stt', 'music'] as const satisfies readonly LocalRuntimeModelType[];
+export const MODEL_TYPE_OPTIONS = ['chat', 'embedding', 'image', 'video', 'tts', 'stt', 'music'] as const;
 export type ModelTypeOption = typeof MODEL_TYPE_OPTIONS[number];
 export const ASSET_ENGINE_OPTIONS = INSTALL_ENGINE_OPTIONS;
 export type AssetEngineOption = InstallEngineOption;
@@ -82,13 +79,13 @@ export type ProgressSessionState = {
 };
 
 export function isLocalModelLifecycleBusy(
-  value: LocalRuntimeModelLifecycleOperation | undefined,
+  value: string | undefined,
 ): boolean {
   return value === 'starting' || value === 'stopping' || value === 'restarting';
 }
 
 export function isLocalModelLifecycleVisible(
-  value: LocalRuntimeModelLifecycleOperation | undefined,
+  value: string | undefined,
 ): boolean {
   return Boolean(value) && value !== 'idle' && value !== 'error';
 }
@@ -219,14 +216,12 @@ export function normalizeModelTypeOption(value: string | undefined): ModelTypeOp
 export function defaultAssetDeclaration(assetClass: AssetClassOption = 'model'): LocalRuntimeAssetDeclaration {
   if (assetClass === 'artifact') {
     return {
-      assetClass,
-      artifactKind: 'vae',
+      assetKind: 'vae',
       engine: 'media',
     };
   }
   return {
-    assetClass,
-    modelType: 'chat',
+    assetKind: 'chat',
     engine: 'llama',
   };
 }

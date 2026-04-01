@@ -15,16 +15,14 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeTransferSessionKind,
-  LocalRuntimeScaffoldArtifactResult,
-  LocalRuntimeModelHealth,
-  LocalRuntimeModelType,
+  LocalRuntimeScaffoldAssetResult,
+  LocalRuntimeAssetHealth,
   LocalRuntimeUnregisteredAssetDescriptor,
-  OrphanArtifactFile,
-  OrphanModelFile,
+  OrphanAssetFile,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
-import { normalizeArtifactKind, normalizeStatus } from './parsers';
+import { normalizeAssetKind, normalizeAssetStatus } from './parsers';
 
 const RECOMMENDATION_SOURCES = new Set<LocalRuntimeCatalogRecommendation['source']>(['llmfit', 'media-fit']);
 const RECOMMENDATION_FORMATS = new Set<NonNullable<LocalRuntimeCatalogRecommendation['format']>>(['gguf', 'safetensors']);
@@ -92,12 +90,13 @@ export function parseCatalogRecommendation(value: unknown): LocalRuntimeCatalogR
   const fallbackEntries = Array.isArray(record.fallbackEntries)
     ? record.fallbackEntries.map((item) => asString(item)).filter(Boolean)
     : [];
-  const suggestedArtifacts = Array.isArray(record.suggestedArtifacts)
-    ? record.suggestedArtifacts.map((item) => {
+  const rawSuggestedAssets = record.suggestedAssets;
+  const suggestedAssets = Array.isArray(rawSuggestedAssets)
+    ? rawSuggestedAssets.map((item: unknown) => {
       const row = asRecord(item);
       return {
         templateId: asString(row.templateId) || undefined,
-        artifactId: asString(row.artifactId) || undefined,
+        assetId: asString(row.assetId || row.assetId) || undefined,
         kind: asString(row.kind),
         family: asString(row.family) || undefined,
       };
@@ -115,17 +114,17 @@ export function parseCatalogRecommendation(value: unknown): LocalRuntimeCatalogR
     reasonCodes,
     recommendedEntry: asString(record.recommendedEntry) || undefined,
     fallbackEntries,
-    suggestedArtifacts,
+    suggestedAssets,
     suggestedNotes,
     baseline: parseEnumValue(record.baseline, RECOMMENDATION_BASELINES),
   };
 }
 
-export function parseModelHealth(value: unknown): LocalRuntimeModelHealth {
+export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
   const record = asRecord(value);
   return {
-    localModelId: asString(record.localModelId),
-    status: normalizeStatus(record.status),
+    localAssetId: asString(record.localAssetId),
+    status: normalizeAssetStatus(record.status),
     detail: asString(record.detail),
     endpoint: asString(record.endpoint),
   };
@@ -165,8 +164,8 @@ export function parseRecommendationInstalledState(value: unknown): LocalRuntimeR
   const record = asRecord(value);
   return {
     installed: Boolean(record.installed),
-    localModelId: asString(record.localModelId) || undefined,
-    status: record.status ? normalizeStatus(record.status) : undefined,
+    localAssetId: asString(record.localAssetId) || undefined,
+    status: record.status ? normalizeAssetStatus(record.status) : undefined,
   };
 }
 
@@ -175,7 +174,7 @@ export function parseRecommendationActionState(value: unknown): LocalRuntimeReco
   return {
     canReviewInstallPlan: Boolean(record.canReviewInstallPlan),
     canOpenVariants: Boolean(record.canOpenVariants),
-    canOpenLocalModel: Boolean(record.canOpenLocalModel),
+    canOpenLocalAsset: Boolean(record.canOpenLocalAsset || record.canOpenLocalModel),
   };
 }
 
@@ -187,9 +186,9 @@ export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRunt
   const repo = asString(record.repo);
   const title = asString(record.title);
   const preferredEngine = asString(record.preferredEngine);
-  const installModelId = asString(installPayload.modelId);
+  const installAssetId = asString(installPayload.assetId || installPayload.assetId);
   const installRepo = asString(installPayload.repo);
-  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
+  if (!source || !itemId || !repo || !title || !preferredEngine || !installAssetId || !installRepo) {
     return undefined;
   }
   const downloads = Number(record.downloads);
@@ -228,7 +227,8 @@ export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRunt
     installedState: parseRecommendationInstalledState(record.installedState),
     actionState: parseRecommendationActionState(record.actionState),
     installPayload: {
-      modelId: installModelId,
+      modelId: installAssetId,
+      kind: normalizeAssetKind(installPayload.kind),
       repo: installRepo,
       revision: asString(installPayload.revision) || undefined,
       capabilities: Array.isArray(installPayload.capabilities)
@@ -277,7 +277,7 @@ export function parseRecommendationFeedDescriptor(
   };
 }
 
-export function parseOrphanModelFile(value: unknown): OrphanModelFile {
+export function parseOrphanAssetFile(value: unknown): OrphanAssetFile {
   const record = asRecord(value);
   return {
     filename: asString(record.filename),
@@ -287,39 +287,14 @@ export function parseOrphanModelFile(value: unknown): OrphanModelFile {
   };
 }
 
-export function parseOrphanArtifactFile(value: unknown): OrphanArtifactFile {
-  const record = asRecord(value);
-  return {
-    filename: asString(record.filename),
-    path: asString(record.path),
-    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
-  };
-}
-
 export function parseUnregisteredAssetDescriptor(value: unknown): LocalRuntimeUnregisteredAssetDescriptor {
   const record = asRecord(value);
   const declaration = asRecord(record.declaration);
-  const assetClass = asString(declaration.assetClass);
-  const modelType = asString(declaration.modelType);
-  const normalizedModelType = (
-    modelType === 'chat'
-    || modelType === 'embedding'
-    || modelType === 'image'
-    || modelType === 'video'
-    || modelType === 'tts'
-    || modelType === 'stt'
-    || modelType === 'music'
-  )
-    ? modelType as LocalRuntimeModelType
-    : undefined;
+  const assetKindRaw = asString(declaration.assetKind);
   let parsedDeclaration: LocalRuntimeAssetDeclaration | undefined;
-  if (assetClass === 'model' || assetClass === 'artifact') {
+  if (assetKindRaw) {
     parsedDeclaration = {
-      assetClass,
-      modelType: normalizedModelType,
-      artifactKind: asString(declaration.artifactKind)
-        ? normalizeArtifactKind(declaration.artifactKind)
-        : undefined,
+      assetKind: normalizeAssetKind(assetKindRaw),
       engine: asString(declaration.engine) || undefined,
     };
   }
@@ -353,8 +328,8 @@ export function parseAuditEvent(value: unknown): LocalRuntimeAuditEvent {
     modality,
     reasonCode,
     detail,
-    modelId: toCanonicalLocalId(record.modelId) || undefined,
-    localModelId: asString(record.localModelId) || undefined,
+    modelId: toCanonicalLocalId(record.modelId || record.assetId) || undefined,
+    localModelId: asString(record.localModelId || record.localAssetId) || undefined,
     payload,
   };
 }
@@ -396,8 +371,8 @@ export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownload
   const retryable = typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined;
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: toCanonicalLocalId(record.modelId),
-    localModelId: asString(record.localModelId) || undefined,
+    modelId: toCanonicalLocalId(record.modelId || record.assetId),
+    localModelId: asString(record.localModelId || record.localAssetId) || undefined,
     sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
     bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,
@@ -421,8 +396,8 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
   const etaRaw = Number(record.etaSeconds);
   return {
     installSessionId: asString(record.installSessionId),
-    modelId: toCanonicalLocalId(record.modelId),
-    localModelId: asString(record.localModelId),
+    modelId: toCanonicalLocalId(record.modelId || record.assetId),
+    localModelId: asString(record.localModelId || record.localAssetId),
     sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
     state: normalizeDownloadState(record.state),
@@ -438,11 +413,11 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
   };
 }
 
-export function parseScaffoldArtifactResult(value: unknown): LocalRuntimeScaffoldArtifactResult {
+export function parseScaffoldAssetResult(value: unknown): LocalRuntimeScaffoldAssetResult {
   const record = asRecord(value);
   return {
     manifestPath: asString(record.manifestPath),
-    artifactId: toCanonicalLocalId(record.artifactId),
-    kind: normalizeArtifactKind(record.kind),
+    assetId: toCanonicalLocalId(record.assetId),
+    kind: normalizeAssetKind(record.kind),
   };
 }

@@ -43,8 +43,8 @@ const AI_REASON_CODE_NUMERIC: Record<number, string> = {
 const DEFAULT_RUNTIME_ACTION_HINT = 'retry_or_check_runtime_status';
 
 type RuntimeLocalWarmCandidate = {
-  localModelId: string;
-  modelId: string;
+  localAssetId: string;
+  assetId: string;
   engine: string;
   endpoint: string;
   updatedAt: string;
@@ -127,7 +127,7 @@ function resolveWarmTimeoutMs(timeoutMs: number | undefined): number {
 
 function localWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
   return [
-    String(candidate.localModelId || '').trim(),
+    String(candidate.localAssetId || '').trim(),
     String(candidate.endpoint || '').trim(),
   ].join('|');
 }
@@ -143,24 +143,24 @@ function selectRuntimeLocalWarmCandidate(
 
   const candidates = models
     .map((item) => ({
-      localModelId: String(item.localModelId || '').trim(),
-      modelId: String(item.modelId || '').trim(),
+      localAssetId: String(item.localAssetId || '').trim(),
+      assetId: String(item.assetId || '').trim(),
       engine: String(item.engine || '').trim(),
       endpoint: String(item.endpoint || '').trim(),
       updatedAt: String(item.updatedAt || '').trim(),
       status: Number(item.status || 0),
     }))
-    .filter((item) => item.localModelId && item.modelId && item.status !== 3 && item.status !== 4);
+    .filter((item) => item.localAssetId && item.assetId && item.status !== 3 && item.status !== 4);
 
   if (targetLocalModelId) {
-    const direct = candidates.find((item) => item.localModelId === targetLocalModelId) || null;
+    const direct = candidates.find((item) => item.localAssetId === targetLocalModelId) || null;
     if (direct) {
       return direct;
     }
   }
 
   const scored = candidates
-    .filter((item) => normalizeModelRoot(item.modelId) === targetModelRoot)
+    .filter((item) => normalizeModelRoot(item.assetId) === targetModelRoot)
     .map((item) => {
       let score = 0;
       if (targetEndpoint && item.endpoint === targetEndpoint) score += 4;
@@ -172,7 +172,7 @@ function selectRuntimeLocalWarmCandidate(
       if (right.score !== left.score) {
         return right.score - left.score;
       }
-      return left.item.localModelId.localeCompare(right.item.localModelId);
+      return left.item.localAssetId.localeCompare(right.item.localAssetId);
     });
 
   return scored[0]?.item || null;
@@ -183,14 +183,14 @@ async function listAllRuntimeLocalModels(): Promise<Array<Record<string, unknown
   const models: Array<Record<string, unknown>> = [];
   let pageToken = '';
   for (let index = 0; index < LOCAL_WARM_MAX_PAGES; index += 1) {
-    const response = await runtime.local.listLocalModels({
+    const response = await runtime.local.listLocalAssets({
       statusFilter: 0,
+      kindFilter: 0,
       engineFilter: '',
-      categoryFilter: '',
       pageSize: LOCAL_WARM_PAGE_SIZE,
       pageToken,
     });
-    for (const model of response.models || []) {
+    for (const model of response.assets || []) {
       if (model && typeof model === 'object' && !Array.isArray(model)) {
         models.push(model as unknown as Record<string, unknown>);
       }
@@ -251,15 +251,15 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
       source: 'local',
       providerEndpoint: initialCandidate.endpoint,
     });
-    await getRuntimeClient().local.warmLocalModel({
-      localModelId: initialCandidate.localModelId,
+    await getRuntimeClient().local.warmLocalAsset({
+      localAssetId: initialCandidate.localAssetId,
       timeoutMs,
     }, callOptions);
     const refreshedCandidate = selectRuntimeLocalWarmCandidate(
       {
         ...selectionInput,
-        localModelId: initialCandidate.localModelId,
-        goRuntimeLocalModelId: initialCandidate.localModelId,
+        localModelId: initialCandidate.localAssetId,
+        goRuntimeLocalModelId: initialCandidate.localAssetId,
       },
       await listAllRuntimeLocalModels(),
     ) || initialCandidate;
