@@ -11,6 +11,7 @@ Explore home presents all available historical periods as a timeline:
 2. Fetch public worlds via `GET /api/world` (per `api-surface.yaml`) and join only catalog-listed `worldId`s
 3. Render order follows catalog `sortOrder`; `startYear` / `endYear` are used for timeline positioning and labels
 4. Display each world as a timeline node with: display name, era label, content badge, truth badge, and banner thumbnail
+5. If the Realm API fetch fails, display a retriable error on the Explore surface; do not fall back to cached or partial world lists that might present stale eligibility
 
 ## SJ-EXPL-002 — Timeline Visualization
 
@@ -84,5 +85,32 @@ Explore provides structured filtering over the catalog:
 
 1. Filter by `contentType` using the values defined in `content-classification.yaml`
 2. Filter by `truthMode` using the values defined in `content-classification.yaml`; student-facing labels come from table display labels rather than raw enum keys
-3. Filter by `gradeBand` using the values defined in `world-catalog.yaml`
-4. Typed filters are derived from `world-catalog.yaml` and `content-classification.yaml`
+3. Typed filters are derived from `world-catalog.yaml` and `content-classification.yaml`
+
+## SJ-EXPL-010 — Classification Pair Validation
+
+Catalog entries with invalid classification must not reach stable UI:
+
+1. On catalog load, validate each entry's `contentType` + `truthMode` against `content-classification.yaml` `allowed_pairs`
+2. Entries whose pair is not in `allowed_pairs` are excluded from all Explore surfaces, with the same effect as `status != ACTIVE`
+3. Validation failures are logged for operational visibility but do not surface error UI to the student
+
+## SJ-EXPL-011 — Timeline Narrative Transitions
+
+The timeline is not a static menu; transitions between eras carry narrative context:
+
+1. When the student scrolls or navigates between adjacent eras on the timeline, a brief transition text may appear — e.g., "秦帝国崩塌了，天下大乱，两个人站了出来争夺天下——"
+2. Transition texts are pre-authored content tied to the gap between consecutive `world-catalog.yaml` entries, stored as part of catalog or world metadata
+3. Transitions are optional per era pair; if no transition text exists, the timeline scrolls without narrative overlay
+4. Transition text is dismissible and non-blocking — the student can skip or scroll past it
+5. Transitions play only on first encounter per learner; revisited era boundaries show no overlay
+
+## SJ-EXPL-012 — Multi-Perspective Replayability
+
+The same historical period yields different stories through different characters:
+
+1. World detail pages (per SJ-EXPL-004) must communicate that each agent offers a distinct perspective — e.g., "跟李世民聊大唐，看到的是帝王视角；跟杜甫聊大唐，看到的是百姓苦难"
+2. Agent cards (per SJ-EXPL-005) include a one-line perspective hint describing what this character's viewpoint uniquely reveals
+3. After completing a session with one agent, the world detail page highlights unseen agents with a "换个视角再看这段历史" prompt
+4. Progress overview (per SJ-PROG-003) tracks per-world agent coverage — e.g., "大唐盛世：已对话 1/3 位人物"
+5. Knowledge graph (per SJ-KNOW-005) may show which concepts were learned through which agent, reinforcing that different agents teach different things

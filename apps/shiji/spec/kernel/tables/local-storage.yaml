@@ -24,6 +24,7 @@ tables:
       - trunkEventIndex
       - startedAt
       - updatedAt
+      - completedAt
     indexes:
       - learnerId, updatedAt DESC
       - learnerId, worldId, agentId, sessionStatus
@@ -57,6 +58,8 @@ tables:
       - turnId
       - choiceKey
       - choiceLabel
+      - choiceDescription
+      - consequencePreview
       - selectedAt
     indexes:
       - sessionId, selectedAt
@@ -91,11 +94,11 @@ tables:
       - authUserId
       - displayName
       - age
-      - gradeBand
       - communicationStyle
       - guardianGoals
       - profileVersion
       - isActive
+      - encounterCompletedAt
       - createdAt
       - updatedAt
     json_columns:

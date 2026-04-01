@@ -20,8 +20,8 @@ User Input → Intent → Assembly → Prompt Build → Generate → Post-Proces
 
 Context assembly gathers data from Realm and local state before prompt construction:
 
-1. **Catalog metadata** — read from `world-catalog.yaml`: display name and grade band
-2. **Learner profile** — read from local SQLite: age, grade band, interests, strengths, communication style, guardian goals
+1. **Catalog metadata** — read from `world-catalog.yaml`: display name, era label, and classification pair
+2. **Learner profile** — read from local SQLite: age, interests, strengths, communication style, guardian goals
 3. **Learner adaptation notes** — read from local SQLite: approved interaction preferences and observed style notes
 4. **WorldRules** — fetched via `GET /api/world/by-id/{worldId}/rules`, cached per session
 5. **AgentRules** — fetched via `GET /api/world/by-id/{worldId}/agent-rules`, filtered by active agent
@@ -31,16 +31,21 @@ Context assembly gathers data from Realm and local state before prompt construct
 9. **Session state** — read from local SQLite: chapter index, scene type, rhythm counter, trunk event index, knowledge flags, and the session's snapshotted `contentType` / `truthMode`
 10. **Dialogue history** — read from local SQLite: recent N turns for continuity window
 
-Assembly results are cached per session with TTL-based invalidation for Realm data. Local state is always read fresh. Classification used for stable dialogue comes from the session snapshot after session creation, not from live catalog re-reads.
+Assembly sources 3 (learner adaptation notes) and 8 (agent memory) serve distinct roles:
+- **Agent DYADIC memory** records what the agent character remembers about this student across sessions: past events discussed, promises made, relationship milestones. Written by the dialogue engine at session pause/complete based on session summary. Stored in Realm.
+- **Learner adaptation notes** record what the app observes about the student's learning style: communication preferences, pacing sensitivity, analogy affinity. Stored in local SQLite only, never written to Realm.
+The two may overlap in topic but differ in authority: memory is in-character relationship state, notes are pedagogical app state.
+
+Assembly results are cached per session with TTL-based invalidation for Realm data. Default cache TTL: 15 minutes for WorldRules, AgentRules, and Lorebooks; 30 minutes for trunk events. Local state (session, dialogue history, knowledge flags) is always read fresh. Classification used for stable dialogue comes from the session snapshot after session creation, not from live catalog re-reads.
 
 ## SJ-DIAL-003 — Prompt Builder
 
 The prompt builder (`engine/prompt-builder.ts`) assembles an LLM system prompt dynamically from assembled context:
 
 1. **Identity block** — from AgentRules: who the agent is, core philosophy, speech style
-2. **Relationship block** — from AgentRules: relationship with Snow, interaction mode
+2. **Relationship block** — from AgentRules: relationship with Snow, interaction mode. The default framing positions the student as an advisor, confidant, or companion whom the character actively seeks out — not a passive audience receiving a lecture. The agent should ask for the student's opinion, share dilemmas, and treat the student's input as meaningful within the roleplay context
 3. **World context block** — from WorldRules: era, setting, political system, key constraints
-4. **Classification block** — from session snapshot: `contentType`, `truthMode`, grade band, and any resulting truth-boundary constraints
+4. **Classification block** — from session snapshot: `contentType`, `truthMode`, and any resulting truth-boundary constraints
 5. **Learner profile block** — from guardian-entered profile: age-appropriate framing, interests, strengths, support notes, communication preferences
 6. **Adaptation block** — from approved local notes: preferred analogy systems, response brevity expectations, pacing sensitivities, verification preferences
 7. **Narrative governance block** — from WorldRules: pacing rules, choice format, knowledge scaffolding rules, perspective rules
@@ -84,6 +89,7 @@ Text generation uses the SDK runtime client:
 3. Stream tokens to the narrative display component as they arrive
 4. Generation failure retries once (transient transport only), then surfaces error
 5. User may cancel in-flight generation via UI button
+6. If streaming is interrupted mid-generation (network failure after partial tokens), partial output remains visible with a "generation interrupted" indicator; user may retry the turn
 
 ## SJ-DIAL-005 — Choice Parser
 
@@ -109,6 +115,8 @@ The pacing enforcer (`engine/pacing-enforcer.ts`) maintains narrative rhythm:
 6. **Metacognition trigger** — when trunk event is reached (chapter boundary), scene type switches to metacognition for "looking back" reflection
 7. `campfire` and other non-`crisis` scene types may render without structured A/B choices
 
+8. Scene types (`crisis | campfire | verification | metacognition | transition`) are ShiJi app-layer enums assigned by the pacing enforcer. They are not sourced from the Realm `Scene` entity's `sceneType` field. Realm scenes (via `GET /api/world/by-id/{worldId}/scenes`) provide location and setting metadata; ShiJi pacing scene types are an orthogonal pedagogical rhythm concept.
+
 Pacing state persists in SQLite `sessions` table and survives app restart.
 
 ## SJ-DIAL-007 — Trunk Convergence
@@ -122,6 +130,8 @@ Trunk convergence (`engine/trunk-convergence.ts`) manages the "locked trunk + fr
 5. **Arrival detection** — when AI output references or describes the trunk event, index advances and chapter progress is recorded
 6. **Never block user choice** — convergence guides, not forces. If user's choices diverge, the prompt explains structural constraints through character dialogue ("not that your idea was wrong, but the forces of the era...") per the roleplay design
 
+> **Phase 2 dependency**: trunk events require `GET /api/world/by-id/{worldId}/events` which is not yet available. Phase 1 dialogue runs without trunk convergence; the pipeline omits steps 6 and 7 of this rule until the endpoint ships.
+
 ## SJ-DIAL-008 — Session Lifecycle
 
 Session management for dialogue continuity:
@@ -132,6 +142,11 @@ Session management for dialogue continuity:
 4. **Complete** — final trunk event reached; session marked complete, summary generated
 5. **Multiple sessions** — one active session per world+agent pair; starting a new session with same pair offers to continue or restart
 6. **Catalog drift isolation** — later catalog reclassification does not retroactively alter the snapshotted classification of an existing session
+7. **Restart** — when user chooses restart for an existing world+agent pair:
+   a. Old session is marked `sessionStatus = ABANDONED`
+   b. Knowledge entries from the old session are retained (knowledge belongs to the learner, not the session)
+   c. Chapter progress from the old session is retained for historical review
+   d. A new session is created with fresh `chapterIndex=1`, `rhythmCounter=0`, `trunkEventIndex=0`
 
 ## SJ-DIAL-009 — Dialogue History Persistence
 
@@ -195,7 +210,7 @@ Dialogue must not collapse literary or mythic material into canonical history:
 Prompt construction must incorporate guardian-entered learner context:
 
 1. Stable dialogue paths require an active local learner profile bound to the session
-2. Learner profile injection includes age, grade band, interest tags, strengths, communication style, guardian guidance notes, and learning goals
+2. Learner profile injection includes age, interest tags, strengths, communication style, guardian guidance notes, and learning goals
 3. This block is used to tune explanation density, analogy choice, question framing, and emotional tone without changing world truth
 
 ## SJ-DIAL-016 — Adaptive Pedagogy and Style Memory
@@ -206,3 +221,36 @@ ShiJi adapts to the learner's established interaction style:
 2. Adaptive notes may come from guardian entry or post-session confirmed observations, but they remain local app data
 3. The dialogue engine may use these notes to bias pacing, verification style, and metaphor selection
 4. The engine must not invent unsupported diagnoses, psychometric claims, or personality assertions beyond explicit guardian input or approved notes
+
+## SJ-DIAL-017 — Lorebook Injection Strategy
+
+Lorebook injection is bounded by matching scope, context window, and entry limit:
+
+1. **Matching method** — exact keyword match: each lorebook entry's `key` field is matched against tokens in the context window
+2. **Context window** — last 10 dialogue turns (smaller than the 20-turn dialogue history window per SJ-DIAL-009) to keep matching focused on recent narrative
+3. **Entry limit** — maximum 5 lorebook entries injected per turn; when more than 5 match, entries whose keywords appear in the most recent user input rank highest
+4. **Concept limit interaction** — SJ-KNOW-002 clause 3 independently limits new concepts to 3 per turn; a single lorebook entry may introduce multiple concepts, so the entry limit (5) and concept limit (3) are enforced separately
+5. **No-match behavior** — if no lorebook entries match the context window, the lorebook injection block in the prompt builder (SJ-DIAL-003 block 11) is omitted entirely
+
+## SJ-DIAL-018 — Lightweight Interaction Points
+
+Dialogue must maintain frequent interaction even outside high-stakes crisis scenes:
+
+1. Non-crisis scenes (campfire, transition) should include lightweight interaction prompts — not structured A/B choices, but conversational forks such as: "你想听我继续说战争的事，还是先聊聊当时老百姓的生活？" or "你知道这是为什么吗？"
+2. The prompt builder (per SJ-DIAL-003) includes a directive in the scene directive block (block 8) instructing the agent to offer at least one lightweight interaction prompt per non-crisis turn
+3. Lightweight prompts do not require choice parsing (per SJ-DIAL-005); the student responds in free text and the agent continues naturally
+4. The purpose is engagement rhythm: the student should never read more than 2 consecutive turns of pure narration without an opportunity to participate
+5. Lightweight prompts are pedagogically valuable — they invite the student to think, predict, or express preference, even when the narrative outcome is not branching
+
+## SJ-DIAL-019 — Temporal Immersion
+
+The dialogue page displays the in-story historical date to create a sense of being inside that time period:
+
+1. The dialogue view includes a persistent date display showing the current narrative date in both era notation and CE — e.g., "贞观三年 腊月十五 / 公元 629 年"
+2. The narrative date is initialized from the session's first trunk event timestamp and advances as the story progresses through trunk events and scene transitions
+3. Date advancement is driven by trunk event metadata (per SJ-DIAL-007): each trunk event carries a `timelineSeq` that maps to a historical date; when a trunk event is reached, the display updates
+4. Between trunk events, the date may advance incrementally based on pacing cues in the AI output (e.g., "三天后" or "转眼到了春天") detected by post-processing
+5. The date display is decorative and immersive — it does not create gameplay pressure and has no mechanical consequence
+6. If precise date data is unavailable for a trunk event, the temporal display is omitted rather than showing imprecise data
+
+> **Phase 2 dependency**: temporal display requires trunk event timestamps from the events endpoint. Phase 1 dialogue runs without temporal display; the date header is omitted until trunk events ship.

@@ -1,0 +1,191 @@
+{
+  "bootstrap": {
+    "loading": "正在启动时迹...",
+    "error": "启动失败：{{message}}"
+  },
+  "auth": {
+    "login": "登录",
+    "logout": "退出登录",
+    "loginTitle": "欢迎来到时迹",
+    "loginSubtitle": "沉浸式历史学习体验"
+  },
+  "nav": {
+    "explore": "探索",
+    "knowledge": "知识",
+    "progress": "进度",
+    "settings": "设置"
+  },
+  "explore": {
+    "title": "时间长河",
+    "loadError": "无法加载历史时期，请重试",
+    "retry": "重新加载",
+    "empty": "暂无可浏览的历史时期"
+  },
+  "encounter": {
+    "accept": "好",
+    "next": "换一个人",
+    "dismiss": "自己去看看",
+    "moreWaiting": "还有更多人物在时间长河中等你"
+  },
+  "session": {
+    "start": "开始对话",
+    "resume": "继续上次",
+    "restart": "重新开始",
+    "exit": "结束对话",
+    "inputPlaceholder": "输入你的回应…",
+    "send": "发送",
+    "stop": "停止",
+    "generating": "正在生成…",
+    "interrupted": "生成中断，点击重试",
+    "retry": "重试",
+    "choicePrompt": "选择你的回应：",
+    "sessionEnded": "对话结束",
+    "noSession": "找不到对话",
+    "loadError": "加载对话失败",
+    "firstGreeting": "开始对话"
+  },
+  "onboarding": {
+    "title": "开始之前",
+    "subtitle": "需要先了解你，才能为你定制历史之旅",
+    "cta": "创建学习者档案"
+  },
+  "profile": {
+    "title": "学习者档案",
+    "create": "创建档案",
+    "edit": "编辑档案",
+    "displayName": "昵称",
+    "age": "年龄",
+    "communicationStyle": "表达风格",
+    "communicationStyleHint": "例如：喜欢简短直接的解释，不喜欢冗长说教",
+    "guardianGoals": "学习目标",
+    "guardianGoalsHint": "例如：理解历史因果关系，培养批判性思维",
+    "strengthTags": "擅长领域",
+    "interestTags": "兴趣方向",
+    "tagsHint": "用逗号分隔，例如：历史, 语文, 地理",
+    "supportNotes": "注意事项",
+    "notesHint": "每行一条，例如注意力集中时间短",
+    "guardianGuidance": "学习指导",
+    "guardianGuidanceHint": "其他指导说明，例如适合用历史故事类比",
+    "save": "保存",
+    "cancel": "取消",
+    "errorNameRequired": "请填写昵称",
+    "errorAgeInvalid": "请填写有效年龄（1-100）"
+  },
+  "settings": {
+    "title": "设置",
+    "aiSection": "AI 模型",
+    "timerSection": "学习提醒",
+    "timerDescription": "到时间后会收到提醒，建议每次学习不超过 45 分钟",
+    "timerUnit": "分钟",
+    "voiceSection": "语音功能",
+    "voicePhase": "语音朗读与语音输入",
+    "parentModeSection": "家长模式",
+    "model": "AI 模型",
+    "voice": "语音朗读",
+    "voiceInput": "语音输入",
+    "sessionTimer": "学习提醒",
+    "enterPin": "输入 PIN 码",
+    "timerOptions": {
+      "off": "关闭",
+      "15": "15 分钟",
+      "30": "30 分钟",
+      "45": "45 分钟",
+      "60": "60 分钟"
+    },
+    "models": {
+      "gemini20flash": "Gemini 2.0 Flash",
+      "gemini20flashDesc": "快速响应，适合日常对话",
+      "gemini15pro": "Gemini 1.5 Pro",
+      "gemini15proDesc": "更高质量，适合深度学习场景",
+      "deepseekChat": "DeepSeek Chat",
+      "deepseekChatDesc": "经济实惠，中文支持良好"
+    },
+    "parentMode": {
+      "description": "管理学习者档案，查看学习数据",
+      "setPinDescription": "设置一个 4 位数字 PIN 码来保护家长模式",
+      "enterPinDescription": "输入家长模式 PIN 码",
+      "pinPlaceholder": "设置 PIN",
+      "pinConfirmPlaceholder": "再次输入",
+      "setPin": "设置 PIN",
+      "unlock": "解锁",
+      "resetPin": "忘记 PIN？重新设置",
+      "lock": "锁定家长模式",
+      "wrongPin": "PIN 码不正确，请重试",
+      "pinMismatch": "两次输入的 PIN 码不一致",
+      "pinInvalidFormat": "PIN 码须为 4 位数字",
+      "noProfiles": "暂无学习者档案，请添加",
+      "addProfile": "添加学习者",
+      "editProfile": "编辑",
+      "switchProfile": "切换",
+      "activeProfile": "当前使用",
+      "ageLabel": "{{age}} 岁"
+    }
+  },
+  "knowledge": {
+    "title": "我的知识",
+    "empty": "完成第一次对话后，知识点会出现在这里",
+    "depth": {
+      "0": "提及",
+      "1": "理解",
+      "2": "已验证"
+    },
+    "totalConcepts": "共 {{count}} 个知识点",
+    "verifiedPercent": "{{percent}}% 已验证",
+    "depthMentioned": "提及",
+    "depthExplained": "理解",
+    "depthVerified": "验证",
+    "domains": {
+      "politics": "政治",
+      "military": "军事",
+      "philosophy": "哲学",
+      "economy": "经济",
+      "culture": "文化",
+      "geography": "地理",
+      "institution": "制度",
+      "unknown": "其他"
+    },
+    "crossWorld": "跨时期关联",
+    "conceptDetail": "知识详情",
+    "firstSeen": "首次出现于",
+    "verificationStatus": "验证状态",
+    "notVerified": "尚未验证",
+    "backToGraph": "返回知识图谱",
+    "worldKnowledge": "{{world}} · 知识详情",
+    "domainDistribution": "领域分布",
+    "noConceptsInDomain": "该领域暂无知识点",
+    "noConcepts": "暂无知识点",
+    "allWorlds": "全部时期"
+  },
+  "progress": {
+    "title": "学习进度",
+    "achievements": "成就勋章",
+    "totalHours": "总学习时间",
+    "hoursUnit": "小时",
+    "minutesUnit": "分钟",
+    "worldsExplored": "探索时期",
+    "worldsUnit": "个",
+    "conceptsLearned": "已学概念",
+    "verificationRate": "验证通过率",
+    "worldProgress": "时期进度",
+    "chapterProgress": "{{completed}}/{{total}} 章",
+    "recentSessions": "最近对话",
+    "noSessions": "暂无对话记录",
+    "sessionWith": "与 {{agent}} 的对话",
+    "timeline": "学习时间线",
+    "noChapters": "暂无章节记录",
+    "achievementsEmpty": "继续探索，解锁你的第一个成就",
+    "achievementUnlocked": "已解锁",
+    "achievementLocked": "未解锁",
+    "achievementCategories": {
+      "explore": "探索成就",
+      "knowledge": "知识成就",
+      "dialogue": "对话成就",
+      "special": "特殊成就"
+    }
+  },
+  "error": {
+    "generic": "发生了错误",
+    "retry": "重试",
+    "mapUnavailable": "地图数据暂不可用"
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "bootstrap": {
+    "loading": "Starting ShiJi...",
+    "error": "Startup failed: {{message}}"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "loginTitle": "Welcome to ShiJi",
+    "loginSubtitle": "Immersive history learning"
+  },
+  "nav": {
+    "explore": "Explore",
+    "knowledge": "Knowledge",
+    "progress": "Progress",
+    "settings": "Settings"
+  },
+  "explore": {
+    "title": "History River",
+    "loadError": "Could not load historical periods, please retry",
+    "retry": "Reload",
+    "empty": "No historical periods available"
+  },
+  "encounter": {
+    "accept": "Yes",
+    "next": "Next person",
+    "dismiss": "Browse on my own",
+    "moreWaiting": "More figures await you in the river of time"
+  },
+  "session": {
+    "start": "Start Dialogue",
+    "resume": "Resume",
+    "restart": "Start over",
+    "exit": "End dialogue",
+    "inputPlaceholder": "Type your response...",
+    "send": "Send",
+    "stop": "Stop",
+    "generating": "Generating…",
+    "interrupted": "Generation interrupted — tap Retry to continue",
+    "retry": "Retry",
+    "choicePrompt": "Choose your path:",
+    "sessionEnded": "Dialogue complete",
+    "noSession": "Session not found",
+    "loadError": "Failed to load session",
+    "firstGreeting": "Begin conversation"
+  },
+  "onboarding": {
+    "title": "Before you begin",
+    "subtitle": "We need to know you to customize your history journey",
+    "cta": "Create learner profile"
+  },
+  "profile": {
+    "title": "Learner Profile",
+    "create": "Create profile",
+    "edit": "Edit profile",
+    "displayName": "Name",
+    "age": "Age",
+    "communicationStyle": "Communication style",
+    "communicationStyleHint": "e.g. prefers concise explanations, dislikes long lectures",
+    "guardianGoals": "Learning goals",
+    "guardianGoalsHint": "e.g. understand historical causation, develop critical thinking",
+    "strengthTags": "Strengths",
+    "interestTags": "Interests",
+    "tagsHint": "Comma-separated, e.g. history, literature, geography",
+    "supportNotes": "Support notes",
+    "notesHint": "One note per line, e.g. short attention span",
+    "guardianGuidance": "Guardian guidance",
+    "guardianGuidanceHint": "Other guidance, e.g. responds well to historical analogies",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errorNameRequired": "Please enter a name",
+    "errorAgeInvalid": "Please enter a valid age (1-100)"
+  },
+  "settings": {
+    "title": "Settings",
+    "aiSection": "AI Model",
+    "timerSection": "Session reminder",
+    "timerDescription": "You'll be reminded when time is up. Recommended: no more than 45 minutes per session.",
+    "timerUnit": "min",
+    "voiceSection": "Voice",
+    "voicePhase": "Voice playback and voice input",
+    "parentModeSection": "Parent mode",
+    "model": "AI Model",
+    "voice": "Voice playback",
+    "voiceInput": "Voice input",
+    "sessionTimer": "Session reminder",
+    "enterPin": "Enter PIN",
+    "timerOptions": {
+      "off": "Off",
+      "15": "15 minutes",
+      "30": "30 minutes",
+      "45": "45 minutes",
+      "60": "60 minutes"
+    },
+    "models": {
+      "gemini20flash": "Gemini 2.0 Flash",
+      "gemini20flashDesc": "Fast responses, great for everyday dialogue",
+      "gemini15pro": "Gemini 1.5 Pro",
+      "gemini15proDesc": "Higher quality, suited for deep learning sessions",
+      "deepseekChat": "DeepSeek Chat",
+      "deepseekChatDesc": "Cost-effective with strong Chinese language support"
+    },
+    "parentMode": {
+      "description": "Manage learner profiles and review learning data",
+      "setPinDescription": "Set a 4-digit PIN to protect parent mode",
+      "enterPinDescription": "Enter your parent mode PIN",
+      "pinPlaceholder": "Set PIN",
+      "pinConfirmPlaceholder": "Confirm PIN",
+      "setPin": "Set PIN",
+      "unlock": "Unlock",
+      "resetPin": "Forgot PIN? Reset",
+      "lock": "Lock parent mode",
+      "wrongPin": "Incorrect PIN, please try again",
+      "pinMismatch": "PINs do not match",
+      "pinInvalidFormat": "PIN must be 4 digits",
+      "noProfiles": "No learner profiles yet. Add one below.",
+      "addProfile": "Add learner",
+      "editProfile": "Edit",
+      "switchProfile": "Switch",
+      "activeProfile": "Active",
+      "ageLabel": "Age {{age}}"
+    }
+  },
+  "knowledge": {
+    "title": "My Knowledge",
+    "empty": "Knowledge points will appear here after your first dialogue",
+    "depth": {
+      "0": "Mentioned",
+      "1": "Explained",
+      "2": "Verified"
+    },
+    "totalConcepts": "{{count}} concepts",
+    "verifiedPercent": "{{percent}}% verified",
+    "depthMentioned": "Mentioned",
+    "depthExplained": "Explained",
+    "depthVerified": "Verified",
+    "domains": {
+      "politics": "Politics",
+      "military": "Military",
+      "philosophy": "Philosophy",
+      "economy": "Economy",
+      "culture": "Culture",
+      "geography": "Geography",
+      "institution": "Institutions",
+      "unknown": "Other"
+    },
+    "crossWorld": "Cross-period connections",
+    "conceptDetail": "Concept Detail",
+    "firstSeen": "First encountered in",
+    "verificationStatus": "Verification",
+    "notVerified": "Not yet verified",
+    "backToGraph": "Back to Knowledge Graph",
+    "worldKnowledge": "{{world}} Knowledge",
+    "domainDistribution": "Domain Distribution",
+    "noConceptsInDomain": "No concepts in this domain yet",
+    "noConcepts": "No concepts yet",
+    "allWorlds": "All periods"
+  },
+  "progress": {
+    "title": "Progress",
+    "achievements": "Achievements",
+    "totalHours": "Total study time",
+    "hoursUnit": "hours",
+    "minutesUnit": "min",
+    "worldsExplored": "Periods explored",
+    "worldsUnit": "",
+    "conceptsLearned": "Concepts learned",
+    "verificationRate": "Verification rate",
+    "worldProgress": "Period progress",
+    "chapterProgress": "{{completed}}/{{total}} chapters",
+    "recentSessions": "Recent sessions",
+    "noSessions": "No sessions yet",
+    "sessionWith": "Dialogue with {{agent}}",
+    "timeline": "Learning timeline",
+    "noChapters": "No chapters completed yet",
+    "achievementsEmpty": "Keep exploring to unlock your first achievement",
+    "achievementUnlocked": "Unlocked",
+    "achievementLocked": "Locked",
+    "achievementCategories": {
+      "explore": "Exploration",
+      "knowledge": "Knowledge",
+      "dialogue": "Dialogue",
+      "special": "Special"
+    }
+  },
+  "error": {
+    "generic": "An error occurred",
+    "retry": "Retry",
+    "mapUnavailable": "Map data unavailable"
+  }
+}

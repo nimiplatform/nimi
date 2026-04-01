@@ -8,31 +8,31 @@ features:
     name: App Shell + Bootstrap + Auth
     phase: 1
     priority: P0
-    contract: SJ-SHELL-*
+    contract: SJ-SHELL-001 ~ 004, SJ-SHELL-008 ~ 009
     dependencies:
       - "@nimiplatform/sdk"
       - "@nimiplatform/nimi-kit"
-    description: Tauri shell, SDK bootstrap, auth flow, error boundary
+    description: Tauri shell, SDK bootstrap, auth flow, error boundary, 首次体验人物邂逅
 
   - id: settings
     name: 应用设置
     phase: 1
     priority: P1
-    contract: SJ-SHELL-005 ~ 006
+    contract: SJ-SHELL-005 ~ 007
     dependencies:
       - app-shell
-    description: 模型选择、语音开关、学习提醒、家长模式、learner profile
+    description: 模型选择、语音开关、学习提醒、家长模式、learner profile、多 Profile 管理、版本控制
 
   - id: explore-home
     name: 时间长河浏览
     phase: 1
     priority: P0
-    contract: SJ-EXPL-001 ~ 003, SJ-EXPL-007 ~ 009
+    contract: SJ-EXPL-001 ~ 003, SJ-EXPL-007 ~ 012
     dependencies:
       - app-shell
     realm-apis:
       - GET /api/world
-    description: 目录白名单驱动的统一时间长河浏览
+    description: 目录白名单驱动的统一时间长河浏览、分类校验、叙事过渡、多视角重玩信号
 
   - id: explore-world-detail
     name: 时期详情 + 人物列表
@@ -62,7 +62,7 @@ features:
     name: 沉浸式对话
     phase: 1
     priority: P0
-    contract: SJ-DIAL-001 ~ 009, SJ-DIAL-013 ~ 016
+    contract: SJ-DIAL-001 ~ 009, SJ-DIAL-013 ~ 019
     dependencies:
       - explore-agent-detail
     realm-apis:
@@ -75,7 +75,7 @@ features:
       - POST /api/agent/{agentId}/memory/write
     runtime-apis:
       - runtime.ai.text.generate (streaming)
-    description: 对话引擎全管线 — session classification snapshot、prompt 构建、流式生成、选项解析、节奏控制
+    description: 对话引擎全管线 — session classification snapshot、prompt 构建、流式生成、选项解析、节奏控制。注：trunk convergence (SJ-DIAL-007) 和 temporal immersion (SJ-DIAL-019) 在 Phase 1 不可用，阻塞于 /events 端点
 
   # ── Phase 2: Education ───────────────────────────────
   - id: knowledge-graph
@@ -91,7 +91,7 @@ features:
     name: 单时期知识详情
     phase: 2
     priority: P1
-    contract: SJ-KNOW-005, SJ-KNOW-007
+    contract: SJ-KNOW-005, SJ-KNOW-007 ~ 008
     dependencies:
       - knowledge-graph
     description: 单个 World 内的知识 depth 分布

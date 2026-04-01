@@ -8,13 +8,15 @@ routes:
     feature: explore-home
     component: ExploreHomePage
     lazy: true
-    description: 首页 — 时间长河视图，浏览时迹白名单 world
+    redirect: /explore
+    description: 首页重定向到 /explore
 
   - path: /explore
     feature: explore-home
     component: ExploreHomePage
     lazy: true
-    description: 时期浏览主入口（与首页同构，目录白名单驱动）
+    canonical: true
+    description: 时期浏览主入口（目录白名单驱动）
 
   - path: /explore/:worldId
     feature: explore-world-detail

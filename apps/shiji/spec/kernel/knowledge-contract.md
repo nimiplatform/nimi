@@ -24,6 +24,7 @@ Knowledge state informs the prompt builder (per SJ-DIAL-003):
 2. Concepts at depth 0 that are contextually relevant are flagged as "may explain if natural" — agent should weave in explanation
 3. New concepts (not yet in tracker) that appear in lorebook injection are limited to 3 per turn maximum
 4. The `knowledge-scaffolder.ts` module reads the tracker, compares against current lorebook injections, and produces the knowledge state block for the prompt builder
+5. Knowledge delivery must follow a discovery-based principle: the agent character weaves concepts into narrative, dialogue, and personal experience rather than delivering textbook-style explanations — e.g., Du Fu does not lecture about the imperial examination system; he complains about failing it for years and the student understands the system through his frustration
 
 ## SJ-KNOW-003 — Explanation Detection
 
@@ -73,3 +74,13 @@ Knowledge records must retain content provenance:
 1. Each `knowledge_entries` row stores `worldId`, `contentType`, and `truthMode` alongside `concept_key` and `depth`
 2. Knowledge graph and world detail views must distinguish canonical historical knowledge from non-canonical story or cultural knowledge according to `content-classification.yaml`, using display labels rather than raw enum keys in student-facing UI
 3. Verification progress for non-canonical classification pairs must not be presented as canonical history mastery
+
+## SJ-KNOW-008 — World-Scoped Knowledge Detail View
+
+The `/knowledge/:worldId` route presents knowledge depth within a single historical period:
+
+1. Entry point: clicking a World group node in the knowledge graph (per SJ-KNOW-005 clause 1)
+2. Concepts are grouped by domain (politics, military, philosophy, etc.) with per-domain depth distribution
+3. Each concept shows: name, depth indicator (color-coded per SJ-KNOW-005 clause 3), definition preview, and the session in which it was first encountered
+4. Concepts at depth 2 (verified) display the verification question and student response summary
+5. Classification provenance (per SJ-KNOW-007) is inherited from the parent world's `contentType` / `truthMode` and displayed as a page-level badge, not repeated per concept

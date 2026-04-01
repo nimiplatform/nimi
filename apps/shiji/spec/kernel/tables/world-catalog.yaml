@@ -26,9 +26,6 @@ field_contract:
   truthMode:
     type: enum
     source: content-classification.yaml#truth_modes
-  gradeBand:
-    type: enum
-    values: [PRIMARY_UPPER, MIDDLE_SCHOOL, CROSS_STAGE]
   status:
     type: enum
     values: [ACTIVE, PLANNED, RETIRED]
@@ -44,7 +41,7 @@ field_contract:
     description: Featured agents shown first in detail and session entry
   relatedWorldIds:
     type: string[]
-    description: Catalog-linked adjacent worlds for comparison or follow-on study
+    description: Reserved for Phase 2. Catalog-linked adjacent worlds for comparison or follow-on study. No current contract consumes this field.
 
 constraints:
   - Eligibility for ShiJi display is determined by this catalog, not by world tags
@@ -54,5 +51,6 @@ constraints:
   - `contentType` / `truthMode` must match an allowed pair in `content-classification.yaml`
   - Student-facing displays must use classification labels/badges from `content-classification.yaml`, not raw enum keys
   - `mapAvailability = true` requires a matching enabled profile in `map-surface.yaml`
+  - Display metadata (name, tagline, description, bannerUrl) is sourced from Realm API responses; this catalog provides eligibility gating, sort order, and classification overlay only
 
 entries: []
