@@ -53,15 +53,27 @@ describe('image settings source regressions', () => {
       'settings drawer should persist explicit cloud image route selection',
     );
     assert.ok(
-      settingsDrawerSource.includes("capability: 'image.generate'"),
-      'settings drawer should load image-specific route options',
+      settingsDrawerSource.includes('RELAY_LOCAL_IMAGE_PROFILES'),
+      'settings drawer should expose local image profile selection',
     );
   });
 
   it('exposes profile override editing for local image workflows', () => {
     assert.ok(
-      settingsDrawerSource.includes('profileOverrides'),
-      'settings drawer should expose profile override editing',
+      settingsDrawerSource.includes('ProfileEntryOverrideField'),
+      'settings drawer should expose profile entry override controls',
+    );
+    assert.ok(
+      settingsDrawerSource.includes('profileEntryOverrides'),
+      'settings drawer should persist profile entry overrides',
+    );
+    assert.ok(
+      settingsDrawerSource.includes('showAdvancedOverrides'),
+      'settings drawer should gate dependency overrides behind explicit advanced mode',
+    );
+    assert.ok(
+      settingsDrawerSource.includes('Advanced dependency overrides'),
+      'settings drawer should label advanced dependency override controls explicitly',
     );
   });
 });

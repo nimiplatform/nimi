@@ -44,14 +44,6 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   // ── Local Runtime (RL-IPC-011) ──────────────────────────────────────
 
-  safeHandle('relay:local:models:list', async (_e, input) => {
-    try {
-      return await runtime.local.listLocalAssets(input ?? {});
-    } catch (error) {
-      throw toIpcError(error);
-    }
-  });
-
   safeHandle('relay:local:assets:list', async (_e, input) => {
     try {
       return await runtime.local.listLocalAssets(input ?? {});
@@ -60,7 +52,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:verified', async (_e, input) => {
+  safeHandle('relay:local:assets:verified', async (_e, input) => {
     try {
       return await runtime.local.listVerifiedAssets(input ?? {});
     } catch (error) {
@@ -68,7 +60,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:catalog-search', async (_e, input) => {
+  safeHandle('relay:local:assets:catalog-search', async (_e, input) => {
     try {
       return await runtime.local.searchCatalogModels(input);
     } catch (error) {
@@ -76,7 +68,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:install-plan', async (_e, input) => {
+  safeHandle('relay:local:assets:install-plan', async (_e, input) => {
     try {
       return await runtime.local.resolveModelInstallPlan(input);
     } catch (error) {
@@ -84,7 +76,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:install', async (_e, input) => {
+  safeHandle('relay:local:assets:install', async (_e, input) => {
     try {
       return await runtime.local.installVerifiedAsset(input);
     } catch (error) {
@@ -92,7 +84,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:install-verified', async (_e, input) => {
+  safeHandle('relay:local:assets:install-verified', async (_e, input) => {
     try {
       return await runtime.local.installVerifiedAsset(input);
     } catch (error) {
@@ -100,7 +92,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:import', async (_e, input) => {
+  safeHandle('relay:local:assets:import', async (_e, input) => {
     try {
       return await runtime.local.importLocalAsset(input);
     } catch (error) {
@@ -108,7 +100,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:remove', async (_e, input) => {
+  safeHandle('relay:local:assets:remove', async (_e, input) => {
     try {
       return await runtime.local.removeLocalAsset(input);
     } catch (error) {
@@ -116,7 +108,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:start', async (_e, input) => {
+  safeHandle('relay:local:assets:start', async (_e, input) => {
     try {
       return await runtime.local.startLocalAsset(input);
     } catch (error) {
@@ -124,7 +116,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:stop', async (_e, input) => {
+  safeHandle('relay:local:assets:stop', async (_e, input) => {
     try {
       return await runtime.local.stopLocalAsset(input);
     } catch (error) {
@@ -132,7 +124,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:health', async (_e, input) => {
+  safeHandle('relay:local:assets:health', async (_e, input) => {
     try {
       return await runtime.local.checkLocalAssetHealth(input);
     } catch (error) {
@@ -140,7 +132,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
-  safeHandle('relay:local:models:warm', async (_e, input) => {
+  safeHandle('relay:local:assets:warm', async (_e, input) => {
     try {
       return await runtime.local.warmLocalAsset(input);
     } catch (error) {

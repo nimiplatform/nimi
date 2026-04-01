@@ -42,13 +42,13 @@ import {
 } from './helpers.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
-export interface LocalImageProfileEntryOverride {
+export interface ProfileEntryOverride {
   entryId: string;
   localAssetId: string;
 }
 
-export interface LocalImageProfileExtensionInput {
-  entryOverrides?: LocalImageProfileEntryOverride[];
+export interface LocalProfileExtensionInput {
+  entryOverrides?: ProfileEntryOverride[];
   profileOverrides?: JsonObject;
 }
 
@@ -145,8 +145,8 @@ function isValidMusicIterationBase64(value: string): boolean {
   return false;
 }
 
-export function buildLocalImageProfileExtensions(
-  workflow: LocalImageProfileExtensionInput,
+export function buildLocalProfileExtensions(
+  workflow: LocalProfileExtensionInput,
   baseExtensions?: JsonObject,
 ): JsonObject {
   const merged: JsonObject = { ...(baseExtensions || {}) };

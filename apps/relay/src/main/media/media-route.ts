@@ -1,5 +1,8 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type { JsonObject } from '../../shared/json.js';
+import {
+  buildRelayLocalImageProfileExtensions,
+  relayLocalImageProfileRequestedModel,
+} from '../../shared/local-image-profiles.js';
 import type { LocalChatResolvedMediaRoute } from '../chat-pipeline/types.js';
 import type { LocalChatDefaultSettings } from '../settings/types.js';
 
@@ -41,8 +44,7 @@ export type ResolvedImageGenerateTarget = {
   routeSource: 'local' | 'cloud';
   model: string;
   connectorId?: string;
-  localModelId?: string;
-  extensions?: JsonObject;
+  extensions?: Record<string, unknown>;
 };
 
 function resolveConfiguredCloudBinding(input: {
@@ -85,10 +87,11 @@ function resolveConfiguredImageBinding(
   const routeSource = normalizeRouteSource(settings.imageRouteSource);
   const connectorId = asTrimmedString(settings.imageConnectorId);
   const model = asTrimmedString(settings.imageModel);
-  const localModelId = asTrimmedString(settings.imageLocalModelId);
+  const selectedProfileId = asTrimmedString(settings.selectedProfileId);
+  const localModel = relayLocalImageProfileRequestedModel(selectedProfileId);
 
   if (routeSource === 'local') {
-    if (!localModelId) {
+    if (!selectedProfileId || !localModel) {
       return {
         routeSource,
         model: undefined,
@@ -99,10 +102,9 @@ function resolveConfiguredImageBinding(
       routeBinding: {
         source: 'local',
         connectorId: '',
-        model,
-        localModelId,
+        model: localModel,
       },
-      model: model || undefined,
+      model: localModel,
     };
   }
 
@@ -113,16 +115,15 @@ function resolveConfiguredImageBinding(
   if (connectorId) {
     return resolveConfiguredCloudBinding({ routeSource, connectorId, model });
   }
-  if (localModelId) {
+  if (selectedProfileId && localModel) {
     return {
       routeSource,
       routeBinding: {
         source: 'local',
         connectorId: '',
-        model,
-        localModelId,
+        model: localModel,
       },
-      model: model || undefined,
+      model: localModel,
     };
   }
   return {
@@ -149,17 +150,13 @@ export function resolveMediaRouteConfig(input: {
   return resolveConfiguredCloudBinding({ routeSource, connectorId, model });
 }
 
-export function resolveConfiguredImageWorkflowExtensions(
+export function resolveConfiguredImageProfileExtensions(
   settings: LocalChatDefaultSettings,
-): JsonObject | undefined {
-  const extensions: Record<string, unknown> = {};
-  if (settings.imageProfileOverrides && typeof settings.imageProfileOverrides === 'object') {
-    Object.assign(extensions, settings.imageProfileOverrides);
-  }
-  if (Object.keys(extensions).length === 0) {
-    return undefined;
-  }
-  return extensions as JsonObject;
+): Record<string, unknown> | undefined {
+  return buildRelayLocalImageProfileExtensions({
+    profileId: settings.selectedProfileId,
+    entryOverrides: settings.profileEntryOverrides,
+  });
 }
 
 export function resolveConfiguredImageGenerateTarget(
@@ -179,27 +176,26 @@ export function resolveConfiguredImageGenerateTarget(
   }
 
   if (binding.source === 'local') {
-    const localModelId = asTrimmedString(binding.localModelId);
-    if (!localModelId) {
+    const selectedProfileId = asTrimmedString(settings.selectedProfileId);
+    if (!selectedProfileId) {
       throw createRelayMediaRouteError(
-        'Local image model is required. Select a local image model before generating.',
+        'Local image profile is required. Select a local image profile before generating.',
         ReasonCode.AI_INPUT_INVALID,
-        'select_local_image_model',
+        'select_local_image_profile',
       );
     }
     const model = asTrimmedString(binding.model);
     if (!model) {
       throw createRelayMediaRouteError(
-        'Local image model metadata is incomplete. Re-select the local image model.',
+        'Local image profile metadata is incomplete. Re-select the local image profile.',
         ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE,
-        'select_local_image_model',
+        'select_local_image_profile',
       );
     }
-    const extensions = resolveConfiguredImageWorkflowExtensions(settings);
+    const extensions = resolveConfiguredImageProfileExtensions(settings);
     return {
       routeSource: 'local',
-      model: `local/${model}`,
-      localModelId,
+      model,
       extensions,
     };
   }
@@ -249,7 +245,7 @@ export function isMediaRouteReady(input: {
     return false;
   }
   if (binding.source === 'local') {
-    return Boolean(asTrimmedString(binding.localModelId));
+    return Boolean(asTrimmedString(binding.model) && asTrimmedString(input.settings.selectedProfileId));
   }
   return Boolean(asTrimmedString(binding.connectorId));
 }
@@ -270,8 +266,7 @@ export function resolveMediaRouteFromOptions(input: {
   const binding = routeConfig.routeBinding;
   const model = asTrimmedString(binding.model);
   const connectorId = asTrimmedString(binding.connectorId);
-  const localModelId = asTrimmedString(binding.localModelId);
-  if (binding.source === 'local' && !localModelId) {
+  if (binding.source === 'local' && (!model || !asTrimmedString(input.settings.selectedProfileId))) {
     return null;
   }
   if (binding.source === 'cloud' && (!connectorId || !model)) {
@@ -281,8 +276,7 @@ export function resolveMediaRouteFromOptions(input: {
   return {
     source: binding.source,
     ...(connectorId ? { connectorId } : {}),
-    ...(localModelId ? { localModelId } : {}),
-    model: binding.source === 'local' ? `local/${model}` : model,
+    model,
     resolvedBy: 'selected',
     resolvedAt: new Date().toISOString(),
     settingsRevision: buildMediaSettingsRevision({
@@ -306,7 +300,10 @@ export function buildMediaSettingsRevision(input: {
     routeConfig.routeSource,
     asTrimmedString(routeConfig.routeBinding?.connectorId),
     asTrimmedString(routeConfig.routeBinding?.model),
-    asTrimmedString(routeConfig.routeBinding?.localModelId),
+    asTrimmedString(input.settings.selectedProfileId),
+    JSON.stringify((input.settings.profileEntryOverrides || [])
+      .map((item) => `${asTrimmedString(item.entryId)}:${asTrimmedString(item.localAssetId)}`)
+      .sort()),
   ].join('|');
 }
 

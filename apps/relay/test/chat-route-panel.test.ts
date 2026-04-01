@@ -38,7 +38,7 @@ describe('RL-BOOT-005 — ChatRoutePanel uses kit data hook', () => {
 
   it('creates a bridge-based data provider for Electron IPC', () => {
     assert.match(source, /createBridgeRouteDataProvider/, 'ChatRoutePanel must create a bridge data provider');
-    assert.match(providerSource, /bridge\.local\.listModels/, 'Provider must call bridge.local.listModels');
+    assert.match(providerSource, /bridge\.local\.listAssets/, 'Provider must call bridge.local.listAssets');
     assert.match(providerSource, /bridge\.connector\.list/, 'Provider must call bridge.connector.list');
     assert.match(providerSource, /bridge\.connector\.listModels/, 'Provider must call bridge.connector.listModels');
   });

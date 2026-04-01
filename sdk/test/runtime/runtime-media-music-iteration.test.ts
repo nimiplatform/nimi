@@ -6,7 +6,7 @@ import { ScenarioJobStatus, SpeechTimingMode } from '../../src/runtime/generated
 import { musicGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 import {
   buildMusicIterationExtensions,
-  buildLocalImageProfileExtensions,
+  buildLocalProfileExtensions,
   toSpeechTimingMode,
 } from '../../src/runtime/runtime-media.js';
 import { runtimeGenerateMusicIteration } from '../../src/runtime/runtime-modality.js';
@@ -153,20 +153,20 @@ test('runtimeGenerateMusicIteration fails fast on invalid iteration input', asyn
   assert.equal(invoked, false);
 });
 
-test('buildLocalImageProfileExtensions: entryOverrides not an array returns empty merged', () => {
-  const result = buildLocalImageProfileExtensions({ entryOverrides: undefined });
+test('buildLocalProfileExtensions: entryOverrides not an array returns empty merged', () => {
+  const result = buildLocalProfileExtensions({ entryOverrides: undefined });
   assert.deepEqual(result, {});
 });
 
-test('buildLocalImageProfileExtensions: entryOverrides is non-array value treated as empty', () => {
-  const result = buildLocalImageProfileExtensions(
+test('buildLocalProfileExtensions: entryOverrides is non-array value treated as empty', () => {
+  const result = buildLocalProfileExtensions(
     { entryOverrides: 'not-an-array' as never },
   );
   assert.deepEqual(result, {});
 });
 
-test('buildLocalImageProfileExtensions: all entryOverrides filtered out (empty entryId/localAssetId)', () => {
-  const result = buildLocalImageProfileExtensions({
+test('buildLocalProfileExtensions: all entryOverrides filtered out (empty entryId/localAssetId)', () => {
+  const result = buildLocalProfileExtensions({
     entryOverrides: [
       { entryId: '', localAssetId: 'a' },
       { entryId: 'b', localAssetId: '' },
@@ -176,8 +176,8 @@ test('buildLocalImageProfileExtensions: all entryOverrides filtered out (empty e
   assert.equal('entry_overrides' in result, false);
 });
 
-test('buildLocalImageProfileExtensions: no baseExtensions defaults to empty', () => {
-  const result = buildLocalImageProfileExtensions({
+test('buildLocalProfileExtensions: no baseExtensions defaults to empty', () => {
+  const result = buildLocalProfileExtensions({
     entryOverrides: [{ entryId: 'image-vae', localAssetId: 'art-1' }],
   });
   assert.deepEqual(result, {
@@ -185,15 +185,15 @@ test('buildLocalImageProfileExtensions: no baseExtensions defaults to empty', ()
   });
 });
 
-test('buildLocalImageProfileExtensions: empty profileOverrides omitted', () => {
-  const result = buildLocalImageProfileExtensions({
+test('buildLocalProfileExtensions: empty profileOverrides omitted', () => {
+  const result = buildLocalProfileExtensions({
     profileOverrides: {},
   });
   assert.equal('profile_overrides' in result, false);
 });
 
-test('buildLocalImageProfileExtensions: no profileOverrides omitted', () => {
-  const result = buildLocalImageProfileExtensions({});
+test('buildLocalProfileExtensions: no profileOverrides omitted', () => {
+  const result = buildLocalProfileExtensions({});
   assert.equal('profile_overrides' in result, false);
 });
 

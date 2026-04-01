@@ -436,7 +436,7 @@ func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
 		return result, err
 	}
 	if result.SchemaVersion != 0 && result.SchemaVersion != localStateSchemaVersion {
-		return result, fmt.Errorf("unsupported local-state.json schemaVersion=%d (expected %d); delete local-state.json or run migration script", result.SchemaVersion, localStateSchemaVersion)
+		return result, fmt.Errorf("unsupported local-state.json schemaVersion=%d (expected %d); delete local-state.json or migrate it with an external development script", result.SchemaVersion, localStateSchemaVersion)
 	}
 	return result, nil
 }

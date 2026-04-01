@@ -424,55 +424,51 @@ export type RelayInvokeMap = {
     request: ModelHealthInput;
     response: ModelHealthResponse;
   };
-  'relay:local:models:list': {
-    request: LocalListAssetsInput | undefined;
-    response: LocalListAssetsResponse;
-  };
   'relay:local:assets:list': {
     request: LocalListAssetsInput | undefined;
     response: LocalListAssetsResponse;
   };
-  'relay:local:models:verified': {
+  'relay:local:assets:verified': {
     request: LocalListVerifiedAssetsInput | undefined;
     response: LocalListVerifiedAssetsResponse;
   };
-  'relay:local:models:catalog-search': {
+  'relay:local:assets:catalog-search': {
     request: LocalSearchCatalogInput;
     response: LocalSearchCatalogResponse;
   };
-  'relay:local:models:install-plan': {
+  'relay:local:assets:install-plan': {
     request: LocalResolveInstallPlanInput;
     response: LocalResolveInstallPlanResponse;
   };
-  'relay:local:models:install': {
+  'relay:local:assets:install': {
     request: LocalInstallVerifiedAssetInput;
     response: LocalInstallVerifiedAssetResponse;
   };
-  'relay:local:models:install-verified': {
+  'relay:local:assets:install-verified': {
     request: LocalInstallVerifiedAssetInput;
     response: LocalInstallVerifiedAssetResponse;
   };
-  'relay:local:models:import': {
+  'relay:local:assets:import': {
     request: LocalImportAssetInput;
     response: LocalImportAssetResponse;
   };
-  'relay:local:models:remove': {
+  'relay:local:assets:remove': {
     request: LocalRemoveAssetInput;
     response: LocalRemoveAssetResponse;
   };
-  'relay:local:models:start': {
+  'relay:local:assets:start': {
     request: LocalStartAssetInput;
     response: LocalStartAssetResponse;
   };
-  'relay:local:models:stop': {
+  'relay:local:assets:stop': {
     request: LocalStopAssetInput;
     response: LocalStopAssetResponse;
   };
-  'relay:local:models:health': {
+  'relay:local:assets:health': {
     request: LocalCheckHealthInput;
     response: LocalCheckHealthResponse;
   };
-  'relay:local:models:warm': {
+  'relay:local:assets:warm': {
     request: LocalWarmAssetInput;
     response: LocalWarmAssetResponse;
   };
@@ -717,19 +713,18 @@ export interface NimiRelayBridge {
     checkHealth: (...args: RelayInvokeArgs<'relay:model:health'>) => Promise<RelayInvokeResponse<'relay:model:health'>>;
   };
   local: {
-    listModels: (...args: RelayInvokeArgs<'relay:local:models:list'>) => Promise<RelayInvokeResponse<'relay:local:models:list'>>;
     listAssets: (...args: RelayInvokeArgs<'relay:local:assets:list'>) => Promise<RelayInvokeResponse<'relay:local:assets:list'>>;
-    listVerifiedModels: (...args: RelayInvokeArgs<'relay:local:models:verified'>) => Promise<RelayInvokeResponse<'relay:local:models:verified'>>;
-    searchCatalog: (...args: RelayInvokeArgs<'relay:local:models:catalog-search'>) => Promise<RelayInvokeResponse<'relay:local:models:catalog-search'>>;
-    resolveInstallPlan: (...args: RelayInvokeArgs<'relay:local:models:install-plan'>) => Promise<RelayInvokeResponse<'relay:local:models:install-plan'>>;
-    installModel: (...args: RelayInvokeArgs<'relay:local:models:install'>) => Promise<RelayInvokeResponse<'relay:local:models:install'>>;
-    installVerifiedModel: (...args: RelayInvokeArgs<'relay:local:models:install-verified'>) => Promise<RelayInvokeResponse<'relay:local:models:install-verified'>>;
-    importModel: (...args: RelayInvokeArgs<'relay:local:models:import'>) => Promise<RelayInvokeResponse<'relay:local:models:import'>>;
-    removeModel: (...args: RelayInvokeArgs<'relay:local:models:remove'>) => Promise<RelayInvokeResponse<'relay:local:models:remove'>>;
-    startModel: (...args: RelayInvokeArgs<'relay:local:models:start'>) => Promise<RelayInvokeResponse<'relay:local:models:start'>>;
-    stopModel: (...args: RelayInvokeArgs<'relay:local:models:stop'>) => Promise<RelayInvokeResponse<'relay:local:models:stop'>>;
-    checkModelHealth: (...args: RelayInvokeArgs<'relay:local:models:health'>) => Promise<RelayInvokeResponse<'relay:local:models:health'>>;
-    warmModel: (...args: RelayInvokeArgs<'relay:local:models:warm'>) => Promise<RelayInvokeResponse<'relay:local:models:warm'>>;
+    listVerifiedAssets: (...args: RelayInvokeArgs<'relay:local:assets:verified'>) => Promise<RelayInvokeResponse<'relay:local:assets:verified'>>;
+    searchAssetCatalog: (...args: RelayInvokeArgs<'relay:local:assets:catalog-search'>) => Promise<RelayInvokeResponse<'relay:local:assets:catalog-search'>>;
+    resolveAssetInstallPlan: (...args: RelayInvokeArgs<'relay:local:assets:install-plan'>) => Promise<RelayInvokeResponse<'relay:local:assets:install-plan'>>;
+    installAsset: (...args: RelayInvokeArgs<'relay:local:assets:install'>) => Promise<RelayInvokeResponse<'relay:local:assets:install'>>;
+    installVerifiedAsset: (...args: RelayInvokeArgs<'relay:local:assets:install-verified'>) => Promise<RelayInvokeResponse<'relay:local:assets:install-verified'>>;
+    importAsset: (...args: RelayInvokeArgs<'relay:local:assets:import'>) => Promise<RelayInvokeResponse<'relay:local:assets:import'>>;
+    removeAsset: (...args: RelayInvokeArgs<'relay:local:assets:remove'>) => Promise<RelayInvokeResponse<'relay:local:assets:remove'>>;
+    startAsset: (...args: RelayInvokeArgs<'relay:local:assets:start'>) => Promise<RelayInvokeResponse<'relay:local:assets:start'>>;
+    stopAsset: (...args: RelayInvokeArgs<'relay:local:assets:stop'>) => Promise<RelayInvokeResponse<'relay:local:assets:stop'>>;
+    checkAssetHealth: (...args: RelayInvokeArgs<'relay:local:assets:health'>) => Promise<RelayInvokeResponse<'relay:local:assets:health'>>;
+    warmAsset: (...args: RelayInvokeArgs<'relay:local:assets:warm'>) => Promise<RelayInvokeResponse<'relay:local:assets:warm'>>;
     collectDeviceProfile: (...args: RelayInvokeArgs<'relay:local:device-profile'>) => Promise<RelayInvokeResponse<'relay:local:device-profile'>>;
     resolveProfile: (...args: RelayInvokeArgs<'relay:local:profile:resolve'>) => Promise<RelayInvokeResponse<'relay:local:profile:resolve'>>;
     listNodeCatalog: (...args: RelayInvokeArgs<'relay:local:catalog:nodes'>) => Promise<RelayInvokeResponse<'relay:local:catalog:nodes'>>;

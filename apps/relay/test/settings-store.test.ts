@@ -165,28 +165,34 @@ describe('normalizeLocalChatInspectSettings', () => {
     assert.equal(result.ttsModel, 'model-1');
   });
 
-  it('normalizes local image workflow fields without inferring missing values', () => {
+  it('normalizes local image profile fields without inferring missing values', () => {
     const result = normalizeLocalChatInspectSettings({
       imageRouteSource: 'local',
-      imageLocalModelId: '  local-image-1  ',
-      imageModel: '  flux-local-dev  ',
-      imageProfileOverrides: {
-        scheduler: 'ddim',
-      },
+      selectedProfileId: '  local-chat-default  ',
+      profileEntryOverrides: [
+        {
+          entryId: ' local-chat/image-z-image-ae ',
+          localAssetId: ' asset-vae-1 ',
+        },
+      ],
     });
 
     assert.equal(result.imageRouteSource, 'local');
-    assert.equal(result.imageLocalModelId, 'local-image-1');
-    assert.equal(result.imageModel, 'flux-local-dev');
-    assert.deepEqual(result.imageProfileOverrides, { scheduler: 'ddim' });
+    assert.equal(result.selectedProfileId, 'local-chat-default');
+    assert.deepEqual(result.profileEntryOverrides, [
+      {
+        entryId: 'local-chat/image-z-image-ae',
+        localAssetId: 'asset-vae-1',
+      },
+    ]);
   });
 
-  it('drops empty profile overrides', () => {
+  it('drops invalid profile entry overrides', () => {
     const result = normalizeLocalChatInspectSettings({
-      imageProfileOverrides: {},
+      profileEntryOverrides: [{}],
     });
 
-    assert.equal(result.imageProfileOverrides, null);
+    assert.deepEqual(result.profileEntryOverrides, []);
   });
 
   it('accepts renderer alias ttsVoiceId for voiceName', () => {
@@ -250,24 +256,20 @@ describe('mergeLocalChatSettings', () => {
     assert.equal(merged.ttsRouteSource, 'cloud');
   });
 
-  it('preserves local image workflow settings in merged defaults', () => {
+  it('preserves local image profile settings in merged defaults', () => {
     const merged = mergeLocalChatSettings({
       product: { ...DEFAULT_LOCAL_CHAT_PRODUCT_SETTINGS },
       inspect: {
         ...DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS,
         imageRouteSource: 'local',
-        imageLocalModelId: 'local-image-1',
-        imageModel: 'flux-local-dev',
-        imageWorkflowComponents: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
-        imageProfileOverrides: { scheduler: 'ddim' },
+        selectedProfileId: 'local-chat-default',
+        profileEntryOverrides: [{ entryId: 'local-chat/image-z-image-ae', localAssetId: 'asset-vae-1' }],
       },
     });
 
     assert.equal(merged.imageRouteSource, 'local');
-    assert.equal(merged.imageLocalModelId, 'local-image-1');
-    assert.equal(merged.imageModel, 'flux-local-dev');
-    assert.deepEqual(merged.imageWorkflowComponents, [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }]);
-    assert.deepEqual(merged.imageProfileOverrides, { scheduler: 'ddim' });
+    assert.equal(merged.selectedProfileId, 'local-chat-default');
+    assert.deepEqual(merged.profileEntryOverrides, [{ entryId: 'local-chat/image-z-image-ae', localAssetId: 'asset-vae-1' }]);
   });
 });
 

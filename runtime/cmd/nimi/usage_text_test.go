@@ -51,6 +51,9 @@ func TestPrintUsageUsesAppAuthCommand(t *testing.T) {
 	if !strings.Contains(output, "config") {
 		t.Fatalf("usage should include config command group: %q", output)
 	}
+	if strings.Contains(output, "local-state") {
+		t.Fatalf("usage should not expose local-state command group after hard cut: %q", output)
+	}
 	for _, command := range []string{
 		"pnpm dlx @nimiplatform/dev-tools nimi-mod",
 		"pnpm dlx @nimiplatform/dev-tools nimi-app",

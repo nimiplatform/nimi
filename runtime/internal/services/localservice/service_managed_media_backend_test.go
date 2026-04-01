@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,18 +15,34 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func writeManagedAssetEntryFixture(t *testing.T, modelsRoot string, asset *runtimev1.LocalAssetRecord, content string) string {
+	t.Helper()
+	if asset == nil {
+		t.Fatal("asset fixture requires record")
+	}
+	cleanEntry := filepath.Clean(strings.TrimSpace(asset.GetEntry()))
+	if cleanEntry == "." || cleanEntry == "" {
+		t.Fatal("asset fixture requires entry path")
+	}
+	var target string
+	if isRunnableKind(asset.GetKind()) && strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/") != "" {
+		target = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/")), cleanEntry)
+	} else {
+		target = filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(asset.GetAssetId()), cleanEntry)
+	}
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("mkdir asset fixture dir: %v", err)
+	}
+	if err := os.WriteFile(target, []byte(content), 0o600); err != nil {
+		t.Fatalf("write asset fixture: %v", err)
+	}
+	return target
+}
+
 func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
-
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"options": []any{
@@ -50,14 +67,8 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
-	vaePath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
-	if err := os.MkdirAll(filepath.Dir(vaePath), 0o755); err != nil {
-		t.Fatalf("mkdir vae dir: %v", err)
-	}
-	if err := os.WriteFile(vaePath, []byte("vae"), 0o600); err != nil {
-		t.Fatalf("write vae file: %v", err)
-	}
 	vaeRecord := &runtimev1.LocalAssetRecord{
 		LocalAssetId: "artifact_" + ulid.Make().String(),
 		AssetId:      "z_image_ae",
@@ -68,24 +79,20 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 		Source:       &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
 
-	llmPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(llmPath), 0o755); err != nil {
-		t.Fatalf("mkdir llm dir: %v", err)
-	}
-	if err := os.WriteFile(llmPath, []byte("llm"), 0o600); err != nil {
-		t.Fatalf("write llm file: %v", err)
-	}
 	llmRecord := &runtimev1.LocalAssetRecord{
-		LocalAssetId: "artifact_" + ulid.Make().String(),
-		AssetId:      "qwen3_4b_companion",
-		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Engine:       "llama",
-		Entry:        "Qwen3-4B-Q4_K_M.gguf",
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		Source:       &runtimev1.LocalAssetSource{},
+		LocalAssetId:   "artifact_" + ulid.Make().String(),
+		AssetId:        "qwen3_4b_companion",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Entry:          "Qwen3-4B-Q4_K_M.gguf",
+		LogicalModelId: "nimi/qwen3_4b_companion",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
 
 	alias, profile, forwarded, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -133,11 +140,11 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	if profile["name"] != alias {
 		t.Fatalf("profile name mismatch: got=%v want=%s", profile["name"], alias)
 	}
-	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "z-image-turbo/z_image_turbo-Q4_K_M.gguf" {
+	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "resolved/z_image_turbo/z_image_turbo-Q4_K_M.gguf" {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
 	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "llm_path:resolved/local_qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
+	if !containsString(options, "llm_path:resolved/nimi/qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected llm_path option, got=%v", options)
 	}
 	if !containsString(options, "vae_path:resolved/local_z_image_ae/vae/diffusion_pytorch_model.safetensors") {
@@ -164,14 +171,6 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
-
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 	})
@@ -188,42 +187,33 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
-	defaultLLMPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(defaultLLMPath), 0o755); err != nil {
-		t.Fatalf("mkdir default llm dir: %v", err)
-	}
-	if err := os.WriteFile(defaultLLMPath, []byte("default-llm"), 0o600); err != nil {
-		t.Fatalf("write default llm file: %v", err)
-	}
 	defaultLLM := &runtimev1.LocalAssetRecord{
-		LocalAssetId: "asset_" + ulid.Make().String(),
-		AssetId:      "qwen3_4b_companion",
-		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Engine:       "llama",
-		Entry:        "Qwen3-4B-Q4_K_M.gguf",
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		Source:       &runtimev1.LocalAssetSource{},
+		LocalAssetId:   "asset_" + ulid.Make().String(),
+		AssetId:        "qwen3_4b_companion",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Entry:          "Qwen3-4B-Q4_K_M.gguf",
+		LogicalModelId: "nimi/qwen3_4b_companion",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[defaultLLM.GetLocalAssetId()] = defaultLLM
+	writeManagedAssetEntryFixture(t, modelsRoot, defaultLLM, "default-llm")
 
-	overrideLLMPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_override"), "Qwen3-4B-Override.gguf")
-	if err := os.MkdirAll(filepath.Dir(overrideLLMPath), 0o755); err != nil {
-		t.Fatalf("mkdir override llm dir: %v", err)
-	}
-	if err := os.WriteFile(overrideLLMPath, []byte("override-llm"), 0o600); err != nil {
-		t.Fatalf("write override llm file: %v", err)
-	}
 	overrideLLM := &runtimev1.LocalAssetRecord{
-		LocalAssetId: "asset_" + ulid.Make().String(),
-		AssetId:      "qwen3_4b_override",
-		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
-		Engine:       "llama",
-		Entry:        "Qwen3-4B-Override.gguf",
-		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
-		Source:       &runtimev1.LocalAssetSource{},
+		LocalAssetId:   "asset_" + ulid.Make().String(),
+		AssetId:        "qwen3_4b_override",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Entry:          "Qwen3-4B-Override.gguf",
+		LogicalModelId: "nimi/qwen3_4b_override",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{},
 	}
 	svc.assets[overrideLLM.GetLocalAssetId()] = overrideLLM
+	writeManagedAssetEntryFixture(t, modelsRoot, overrideLLM, "override-llm")
 
 	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -255,10 +245,10 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 		t.Fatalf("resolve local media image profile with entry override: %v", err)
 	}
 	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "llm_path:resolved/local_qwen3_4b_override/Qwen3-4B-Override.gguf") {
+	if !containsString(options, "llm_path:resolved/nimi/qwen3_4b_override/Qwen3-4B-Override.gguf") {
 		t.Fatalf("expected overridden llm_path option, got=%v", options)
 	}
-	if containsString(options, "llm_path:resolved/local_qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
+	if containsString(options, "llm_path:resolved/nimi/qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected default llm_path to be replaced, got=%v", options)
 	}
 }
@@ -268,13 +258,6 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 	})
@@ -291,6 +274,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
@@ -310,13 +294,6 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testi
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 		"parameters": map[string]any{
@@ -336,6 +313,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testi
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_overrides": map[string]any{
@@ -353,13 +331,6 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{
 		"backend": "stablediffusion-ggml",
 	})
@@ -376,6 +347,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	required := true
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
@@ -412,13 +384,6 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
@@ -433,6 +398,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	optional := false
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
@@ -468,13 +434,6 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
@@ -489,6 +448,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
 		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
@@ -514,13 +474,6 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
-	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
-		t.Fatalf("mkdir main model dir: %v", err)
-	}
-	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
-		t.Fatalf("write main model file: %v", err)
-	}
 	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
@@ -535,6 +488,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	svc.mu.Lock()
 	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
 	firstSlotPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_vae_a"), "vae", "diffusion_pytorch_model.safetensors")
 	if err := os.MkdirAll(filepath.Dir(firstSlotPath), 0o755); err != nil {

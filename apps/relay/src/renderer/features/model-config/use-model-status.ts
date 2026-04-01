@@ -50,7 +50,13 @@ export function useModelStatus(): ModelStatus {
       try {
         const [modelResult, localResult] = await Promise.allSettled([
           bridge.model.list(),
-          bridge.local.listModels(),
+          bridge.local.listAssets({
+            statusFilter: 0,
+            kindFilter: 0,
+            engineFilter: '',
+            pageSize: 0,
+            pageToken: '',
+          }),
         ]);
 
         if (cancelled) return;

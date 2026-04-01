@@ -3,7 +3,10 @@
 
 import { create } from 'zustand';
 import { getBridge } from '../../bridge/electron-bridge.js';
-import type { JsonObject } from '../../../shared/json.js';
+import {
+  normalizeRelayLocalProfileEntryOverrides,
+  type RelayLocalProfileEntryOverride,
+} from '../../../shared/local-image-profiles.js';
 
 export type MediaAutonomy = 'off' | 'explicit-only' | 'natural';
 export type VoiceAutonomy = 'off' | 'explicit-only' | 'natural';
@@ -22,8 +25,8 @@ export interface InspectSettings {
   imageRouteSource: 'auto' | 'local' | 'cloud';
   imageConnectorId: string;
   imageModel: string;
-  imageLocalModelId: string;
-  imageProfileOverrides: JsonObject | null;
+  selectedProfileId: string;
+  profileEntryOverrides: RelayLocalProfileEntryOverride[];
   videoConnectorId: string;
   videoModel: string;
   ttsConnectorId: string;
@@ -46,8 +49,8 @@ const DEFAULT_INSPECT_SETTINGS: InspectSettings = {
   imageRouteSource: 'auto',
   imageConnectorId: '',
   imageModel: '',
-  imageLocalModelId: '',
-  imageProfileOverrides: null,
+  selectedProfileId: '',
+  profileEntryOverrides: [],
   videoConnectorId: '',
   videoModel: '',
   ttsConnectorId: '',
@@ -144,7 +147,7 @@ function pickInspectFields(value: unknown): Partial<InspectSettings> {
     result.imageRouteSource = imageRouteSource;
   }
   for (const key of [
-    'imageConnectorId', 'imageModel', 'imageLocalModelId',
+    'imageConnectorId', 'imageModel', 'selectedProfileId',
     'videoConnectorId', 'videoModel',
     'ttsConnectorId', 'ttsModel', 'ttsVoiceId',
     'sttConnectorId', 'sttModel',
@@ -153,9 +156,7 @@ function pickInspectFields(value: unknown): Partial<InspectSettings> {
       result[key] = r[key].trim() as InspectSettings[typeof key];
     }
   }
-  if (r.imageProfileOverrides && typeof r.imageProfileOverrides === 'object' && !Array.isArray(r.imageProfileOverrides)) {
-    result.imageProfileOverrides = r.imageProfileOverrides as JsonObject;
-  }
+  result.profileEntryOverrides = normalizeRelayLocalProfileEntryOverrides(r.profileEntryOverrides);
   // Map voiceName (main process canonical field) → ttsVoiceId (renderer field)
   if (!result.ttsVoiceId && typeof r.voiceName === 'string' && r.voiceName) {
     result.ttsVoiceId = r.voiceName;

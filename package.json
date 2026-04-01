@@ -21,6 +21,7 @@
     "runtime:logs": "pnpm build:runtime && node scripts/run-runtime-dist.mjs logs",
     "runtime:health": "pnpm runtime:cmd -- health --source grpc",
     "runtime:providers": "pnpm runtime:cmd -- providers --source grpc",
+    "runtime:local-state:migrate": "pnpm runtime:cmd -- local-state migrate --json",
     "runtime:config:init": "pnpm runtime:cmd -- config init --json",
     "runtime:config:validate": "pnpm runtime:cmd -- config validate --json",
     "runtime:config:get": "pnpm runtime:cmd -- config get --json",

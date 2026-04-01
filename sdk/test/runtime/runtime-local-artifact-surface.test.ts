@@ -8,7 +8,7 @@ import {
   isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
 } from '../../src/runtime/method-ids.js';
-import { buildLocalImageProfileExtensions } from '../../src/runtime/runtime-media.js';
+import { buildLocalProfileExtensions } from '../../src/runtime/runtime-media.js';
 
 test('runtime method groups classify local asset RPCs correctly', () => {
   const anonymousMethods = [
@@ -44,8 +44,8 @@ test('runtime method groups classify local profile RPCs correctly', () => {
   assert.equal(isRuntimeLocalAnonymousMethod(RuntimeMethodIds.local.applyProfile), false);
 });
 
-test('buildLocalImageProfileExtensions normalizes entry overrides and preserves unrelated extensions', () => {
-  const extensions = buildLocalImageProfileExtensions(
+test('buildLocalProfileExtensions normalizes entry overrides and preserves unrelated extensions', () => {
+  const extensions = buildLocalProfileExtensions(
     {
       entryOverrides: [
         { entryId: '  image-vae  ', localAssetId: ' asset-vae ' },

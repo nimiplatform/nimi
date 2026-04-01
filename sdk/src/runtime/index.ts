@@ -86,5 +86,6 @@ export {
 } from './runtime-realm-bridge.js';
 export {
   buildMusicIterationExtensions,
+  buildLocalProfileExtensions,
 } from './runtime-media.js';
 export { toProtoStruct } from './helpers.js';

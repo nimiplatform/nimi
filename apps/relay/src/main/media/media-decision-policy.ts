@@ -295,9 +295,6 @@ async function resolveAuthorityMediaRoute(input: {
   }
   const connectorId = String(binding.connectorId || '').trim();
   const localModelId = String(binding.localModelId || '').trim();
-  if (binding.source === 'local' && !localModelId) {
-    return null;
-  }
   if (binding.source === 'cloud' && !connectorId) {
     return null;
   }
@@ -307,7 +304,7 @@ async function resolveAuthorityMediaRoute(input: {
       source: binding.source,
       ...(connectorId ? { connectorId } : {}),
       ...(localModelId ? { localModelId } : {}),
-      model: binding.source === 'local' ? `local/${model}` : model,
+      model,
       resolvedBy: 'selected',
       resolvedAt: new Date().toISOString(),
       settingsRevision: buildMediaSettingsRevision({ kind: input.kind, settings: input.defaultSettings }),

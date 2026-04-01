@@ -6,7 +6,7 @@ import {
   resolveMediaRouteConfig,
   isMediaRouteReady,
   buildMediaSettingsRevision,
-  resolveConfiguredImageWorkflowExtensions,
+  resolveConfiguredImageProfileExtensions,
   resolveConfiguredImageGenerateTarget,
 } from '../src/main/media/media-route.js';
 import type { LocalChatDefaultSettings } from '../src/main/settings/types.js';
@@ -52,15 +52,13 @@ describe('resolveMediaRouteConfig', () => {
   it('local image route resolves to a local binding without cloud fallback', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
-      imageLocalModelId: 'local-image-1',
-      imageModel: 'flux-local-dev',
+      selectedProfileId: 'local-chat-default',
     });
     const result = resolveMediaRouteConfig({ kind: 'image', settings });
     assert.equal(result.routeSource, 'local');
     assert.equal(result.routeBinding?.source, 'local');
-    assert.equal(result.routeBinding?.localModelId, 'local-image-1');
     assert.equal(result.routeBinding?.connectorId, '');
-    assert.equal(result.routeBinding?.model, 'flux-local-dev');
+    assert.equal(result.routeBinding?.model, 'media/local/z_image_turbo');
   });
 
   it('auto image route prefers configured cloud binding before local binding', () => {
@@ -68,7 +66,7 @@ describe('resolveMediaRouteConfig', () => {
       imageRouteSource: 'auto',
       imageConnectorId: 'conn-1',
       imageModel: 'cloud-image-1',
-      imageLocalModelId: 'local-image-1',
+      selectedProfileId: 'local-chat-default',
     });
     const result = resolveMediaRouteConfig({ kind: 'image', settings });
     assert.equal(result.routeSource, 'auto');
@@ -79,13 +77,12 @@ describe('resolveMediaRouteConfig', () => {
   it('auto image route resolves to local when only local config exists', () => {
     const settings = createSettings({
       imageRouteSource: 'auto',
-      imageLocalModelId: 'local-image-1',
-      imageModel: 'flux-local-dev',
+      selectedProfileId: 'local-chat-default',
     });
     const result = resolveMediaRouteConfig({ kind: 'image', settings });
     assert.equal(result.routeSource, 'auto');
     assert.equal(result.routeBinding?.source, 'local');
-    assert.equal(result.routeBinding?.localModelId, 'local-image-1');
+    assert.equal(result.routeBinding?.model, 'media/local/z_image_turbo');
   });
 
   it('unknown route source normalizes to auto', () => {
@@ -119,17 +116,16 @@ describe('isMediaRouteReady', () => {
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
-  it('local route is ready when imageLocalModelId exists', () => {
+  it('local route is ready when selectedProfileId exists', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
-      imageLocalModelId: 'local-image-1',
-      imageModel: 'flux-local-dev',
+      selectedProfileId: 'local-chat-default',
     });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), true);
   });
 
-  it('local route is not ready when imageLocalModelId is missing', () => {
-    const settings = createSettings({ imageRouteSource: 'local', imageModel: 'flux-local-dev' });
+  it('local route is not ready when selectedProfileId is missing', () => {
+    const settings = createSettings({ imageRouteSource: 'local' });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
@@ -186,75 +182,90 @@ describe('buildMediaSettingsRevision', () => {
     assert.notEqual(a, b);
   });
 
-  it('different local model selections produce different hashes', () => {
-    const settingsA = createSettings({ imageRouteSource: 'local', imageLocalModelId: 'local-image-1', imageModel: 'flux-local-dev' });
-    const settingsB = createSettings({ imageRouteSource: 'local', imageLocalModelId: 'local-image-2', imageModel: 'flux-local-dev' });
+  it('different local profile selections produce different hashes', () => {
+    const settingsA = createSettings({ imageRouteSource: 'local', selectedProfileId: 'local-chat-default' });
+    const settingsB = createSettings({ imageRouteSource: 'local', selectedProfileId: 'local-chat-compact' });
     const a = buildMediaSettingsRevision({ kind: 'image', settings: settingsA });
     const b = buildMediaSettingsRevision({ kind: 'image', settings: settingsB });
     assert.notEqual(a, b);
   });
 });
 
-describe('resolveConfiguredImageWorkflowExtensions', () => {
-  it('returns undefined when no workflow config is present', () => {
+describe('resolveConfiguredImageProfileExtensions', () => {
+  it('returns undefined when no profile config is present', () => {
     const settings = createSettings();
-    assert.equal(resolveConfiguredImageWorkflowExtensions(settings), undefined);
+    assert.equal(resolveConfiguredImageProfileExtensions(settings), undefined);
   });
 
-  it('includes profile overrides as flat extension keys', () => {
+  it('includes profile entries and entry overrides', () => {
     const settings = createSettings({
-      imageProfileOverrides: { scheduler: 'ddim', cfg_scale: 7 },
+      selectedProfileId: 'local-chat-default',
+      profileEntryOverrides: [
+        {
+          entryId: 'local-chat/image-z-image-ae',
+          localAssetId: 'asset-vae-1',
+        },
+      ],
     });
 
-    const extensions = resolveConfiguredImageWorkflowExtensions(settings);
-    assert.deepEqual(extensions, { scheduler: 'ddim', cfg_scale: 7 });
+    const extensions = resolveConfiguredImageProfileExtensions(settings);
+    assert.equal(Array.isArray(extensions?.profile_entries), true);
+    assert.deepEqual(extensions?.entry_overrides, [
+      {
+        entry_id: 'local-chat/image-z-image-ae',
+        local_asset_id: 'asset-vae-1',
+      },
+    ]);
   });
 });
 
 describe('resolveConfiguredImageGenerateTarget', () => {
-  it('returns local route target with local-prefixed model and profile override extensions', () => {
+  it('returns local route target with profile-derived model and entry override extensions', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
-      imageLocalModelId: 'local-image-1',
-      imageModel: 'flux-local-dev',
-      imageProfileOverrides: { scheduler: 'ddim' },
+      selectedProfileId: 'local-chat-default',
+      profileEntryOverrides: [
+        {
+          entryId: 'local-chat/image-z-image-ae',
+          localAssetId: 'asset-vae-1',
+        },
+      ],
     });
 
     const result = resolveConfiguredImageGenerateTarget(settings);
-    assert.deepEqual(result, {
-      routeSource: 'local',
-      model: 'local/flux-local-dev',
-      localModelId: 'local-image-1',
-      extensions: { scheduler: 'ddim' },
-    });
+    assert.equal(result.routeSource, 'local');
+    assert.equal(result.model, 'media/local/z_image_turbo');
+    assert.equal(Array.isArray(result.extensions?.profile_entries), true);
+    assert.deepEqual(result.extensions?.entry_overrides, [
+      {
+        entry_id: 'local-chat/image-z-image-ae',
+        local_asset_id: 'asset-vae-1',
+      },
+    ]);
   });
 
-  it('fails closed when local image route lacks an explicit local model selection', () => {
+  it('fails closed when local image route lacks an explicit selected profile', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
-      imageWorkflowComponents: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
     });
 
     assert.throws(
       () => resolveConfiguredImageGenerateTarget(settings),
-      /Image route is not configured|Local image model is required/,
+      /Image route is not configured|Local image profile is required/,
     );
   });
 
-  it('succeeds without profile overrides and returns extensions undefined', () => {
+  it('succeeds without entry overrides and still emits profile entries', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
-      imageLocalModelId: 'local-image-1',
-      imageModel: 'flux-local-dev',
+      selectedProfileId: 'local-chat-default',
     });
 
     const result = resolveConfiguredImageGenerateTarget(settings);
-    assert.deepEqual(result, {
-      routeSource: 'local',
-      model: 'local/flux-local-dev',
-      localModelId: 'local-image-1',
-      extensions: undefined,
-    });
+    assert.equal(result.routeSource, 'local');
+    assert.equal(result.model, 'media/local/z_image_turbo');
+    assert.equal(Array.isArray(result.extensions?.profile_entries), true);
+    assert.equal(result.extensions?.entry_overrides, undefined);
   });
 
   it('returns cloud route target unchanged for cloud settings', () => {

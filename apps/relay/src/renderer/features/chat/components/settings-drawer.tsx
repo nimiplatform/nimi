@@ -25,7 +25,12 @@ import { useRelayRoute } from '../../model-config/use-relay-route.js';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { MediaRouteSelector } from '../../model-config/media-route-selector.js';
 import { TtsVoiceSelector } from '../../model-config/tts-voice-selector.js';
-import type { RelayMediaRouteOptionsResponse } from '../../../../shared/ipc-contract.js';
+import {
+  findRelayLocalImageProfile,
+  RELAY_LOCAL_IMAGE_PROFILES,
+  relayLocalImageProfileRequestedModel,
+  type RelayLocalImageProfileEntry,
+} from '../../../../shared/local-image-profiles.js';
 
 // ---------------------------------------------------------------------------
 // Model name formatting
@@ -36,7 +41,13 @@ function formatModelDisplayName(raw: string): string {
   return parts.length > 1 ? parts[parts.length - 1]! : raw;
 }
 
-type LocalImageModelOption = RelayMediaRouteOptionsResponse['local']['models'][number];
+type LocalAssetOption = {
+  localAssetId: string;
+  assetId: string;
+  assetKind: string;
+  title: string;
+  status: string;
+};
 
 // ---------------------------------------------------------------------------
 // SettingsDrawer
@@ -356,27 +367,36 @@ function InlineNotice({ children, tone }: { children: ReactNode; tone: 'danger' 
 function ImageModelSettings() {
   const { t } = useTranslation();
   const { inspect, updateInspect } = useSettingsStore();
-  const [routeOptions, setRouteOptions] = useState<RelayMediaRouteOptionsResponse | null>(null);
+  const [localAssets, setLocalAssets] = useState<LocalAssetOption[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [profileOverridesText, setProfileOverridesText] = useState(() => JSON.stringify(inspect.imageProfileOverrides ?? {}, null, 2));
-  const [profileOverridesError, setProfileOverridesError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setProfileOverridesText(JSON.stringify(inspect.imageProfileOverrides ?? {}, null, 2));
-  }, [inspect.imageProfileOverrides]);
+  const [showAdvancedOverrides, setShowAdvancedOverrides] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void getBridge().mediaRoute.getOptions({ capability: 'image.generate' })
-      .then((mediaOptions) => {
+    void getBridge().local.listAssets({
+      statusFilter: 0,
+      kindFilter: 0,
+      engineFilter: '',
+      pageSize: 0,
+      pageToken: '',
+    })
+      .then((response) => {
         if (cancelled) return;
-        setRouteOptions(mediaOptions);
+        setLocalAssets((response.assets || [])
+          .map((asset) => ({
+            localAssetId: String(asset.localAssetId || '').trim(),
+            assetId: String(asset.assetId || '').trim(),
+            assetKind: normalizeAssetKind(asset.kind),
+            title: String(asset.logicalModelId || asset.assetId || asset.localAssetId || '').trim(),
+            status: normalizeAssetStatus(asset.status),
+          }))
+          .filter((asset) => asset.localAssetId && asset.assetId && asset.assetKind && asset.status !== 'removed'));
         setLoadError(null);
       })
       .catch((error) => {
         if (cancelled) return;
-        setRouteOptions(null);
-        setLoadError(error instanceof Error ? error.message : 'Failed to load image route options');
+        setLocalAssets([]);
+        setLoadError(error instanceof Error ? error.message : 'Failed to load local assets');
       });
     return () => {
       cancelled = true;
@@ -387,26 +407,44 @@ function ImageModelSettings() {
     ? 'local'
     : inspect.imageRouteSource === 'cloud'
       ? 'cloud'
-      : inspect.imageLocalModelId
+      : inspect.selectedProfileId
         ? 'local'
         : 'cloud';
-  const localModels: LocalImageModelOption[] = routeOptions?.local.models ?? [];
+  const selectedProfileId = inspect.selectedProfileId || RELAY_LOCAL_IMAGE_PROFILES[0]?.id || '';
+  const selectedProfile = findRelayLocalImageProfile(selectedProfileId);
+  const selectedLocalModel = relayLocalImageProfileRequestedModel(selectedProfileId) || '';
+  const overrideMap = useMemo(() => new Map(
+    (inspect.profileEntryOverrides || []).map((item) => [item.entryId, item.localAssetId]),
+  ), [inspect.profileEntryOverrides]);
+  const dependencyEntries = useMemo(
+    () => (selectedProfile?.entries || []).filter((entry) => entry.engineSlot),
+    [selectedProfile],
+  );
 
   const handleImageSourceChange = useCallback((value: string) => {
     if (value !== 'local' && value !== 'cloud') {
       return;
     }
+    if (value === 'local') {
+      const nextProfileId = inspect.selectedProfileId || RELAY_LOCAL_IMAGE_PROFILES[0]?.id || '';
+      void updateInspect({
+        imageRouteSource: value,
+        selectedProfileId: nextProfileId,
+        imageModel: relayLocalImageProfileRequestedModel(nextProfileId) || '',
+      });
+      return;
+    }
     void updateInspect({ imageRouteSource: value });
-  }, [updateInspect]);
+  }, [inspect.selectedProfileId, updateInspect]);
 
-  const handleLocalModelChange = useCallback((localModelId: string) => {
-    const selected = localModels.find((model: LocalImageModelOption) => model.localModelId === localModelId);
+  const handleProfileChange = useCallback((profileId: string) => {
     void updateInspect({
       imageRouteSource: 'local',
-      imageLocalModelId: localModelId,
-      imageModel: selected?.modelId ?? '',
+      selectedProfileId: profileId,
+      imageModel: relayLocalImageProfileRequestedModel(profileId) || '',
+      profileEntryOverrides: [],
     });
-  }, [localModels, updateInspect]);
+  }, [updateInspect]);
 
   const handleCloudRouteChange = useCallback((connectorId: string, model: string) => {
     void updateInspect({
@@ -416,24 +454,16 @@ function ImageModelSettings() {
     });
   }, [updateInspect]);
 
-  const handleProfileOverridesBlur = useCallback(() => {
-    const trimmed = profileOverridesText.trim();
-    if (!trimmed || trimmed === '{}') {
-      setProfileOverridesError(null);
-      void updateInspect({ imageProfileOverrides: null });
+  const handleEntryOverrideChange = useCallback((entryId: string, localAssetId: string) => {
+    const remaining = (inspect.profileEntryOverrides || []).filter((item) => item.entryId !== entryId);
+    if (!localAssetId) {
+      void updateInspect({ profileEntryOverrides: remaining });
       return;
     }
-    try {
-      const parsed = JSON.parse(trimmed) as unknown;
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('Profile overrides must be a JSON object.');
-      }
-      setProfileOverridesError(null);
-      void updateInspect({ imageProfileOverrides: parsed as Record<string, unknown> });
-    } catch (error) {
-      setProfileOverridesError(error instanceof Error ? error.message : 'Invalid JSON');
-    }
-  }, [profileOverridesText, updateInspect]);
+    void updateInspect({
+      profileEntryOverrides: [...remaining, { entryId, localAssetId }],
+    });
+  }, [inspect.profileEntryOverrides, updateInspect]);
 
   return (
     <div className="space-y-3">
@@ -456,42 +486,54 @@ function ImageModelSettings() {
       {selectedSource === 'local' ? (
         <div className="space-y-3">
           <SelectField
-            value={inspect.imageLocalModelId || undefined}
-            onValueChange={handleLocalModelChange}
-            options={localModels.map((model: LocalImageModelOption) => ({
-              value: model.localModelId,
-              label: formatModelDisplayName(model.modelId),
+            value={selectedProfileId || undefined}
+            onValueChange={handleProfileChange}
+            options={RELAY_LOCAL_IMAGE_PROFILES.map((profile) => ({
+              value: profile.id,
+              label: profile.title,
             }))}
-            placeholder={t('settings.selectLocalImageModel', 'Select local image model...')}
+            placeholder={t('settings.selectLocalImageProfile', 'Select local image profile...')}
             selectClassName="font-normal"
           />
 
+          {selectedProfile ? (
+            <div className="space-y-1 rounded-xl border border-[color:var(--nimi-border-subtle)] px-3 py-2">
+              <p className="text-[13px] text-[color:var(--nimi-text-primary)]">{selectedProfile.description}</p>
+              <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+                {t('settings.localImageProfileModel', 'Primary asset')}: {formatModelDisplayName(selectedLocalModel)}
+              </p>
+            </div>
+          ) : null}
+
           <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
-            {t('settings.imageProfileHint', 'Asset slots (VAE, CLIP, LoRA, etc.) are resolved automatically from the active profile.')}
+            {t('settings.imageProfileHint', 'Dependency assets are resolved from the selected profile. Entry overrides are available in advanced mode only.')}
           </p>
 
-          <div className="space-y-2">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
-              {t('settings.profileOverrides', 'Profile Overrides')}
-            </p>
-            <textarea
-              value={profileOverridesText}
-              onChange={(event) => setProfileOverridesText(event.target.value)}
-              onBlur={handleProfileOverridesBlur}
-              rows={4}
-              spellCheck={false}
-              className="w-full resize-y rounded-xl border border-[color:var(--nimi-border-subtle)] bg-transparent px-3 py-2 text-[12px] leading-relaxed text-[color:var(--nimi-text-primary)] outline-none transition-colors focus:border-[color:var(--nimi-action-primary-bg)]"
-            />
-            {profileOverridesError ? (
-              <InlineNotice tone="warning">
-                {profileOverridesError}
-              </InlineNotice>
-            ) : (
-              <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
-                {t('settings.profileOverridesHint', 'Optional JSON object merged into the local image workflow profile.')}
-              </p>
-            )}
-          </div>
+          {dependencyEntries.length > 0 ? (
+            <div className="space-y-3 rounded-xl border border-[color:var(--nimi-border-subtle)] px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-[13px] text-[color:var(--nimi-text-primary)]">
+                    {t('settings.advancedDependencyOverrides', 'Advanced dependency overrides')}
+                  </p>
+                  <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+                    {t('settings.advancedDependencyOverridesHint', 'Override dependency assets for individual profile entries.')}
+                  </p>
+                </div>
+                <Toggle checked={showAdvancedOverrides} onChange={setShowAdvancedOverrides} />
+              </div>
+
+              {showAdvancedOverrides ? dependencyEntries.map((entry) => (
+                <ProfileEntryOverrideField
+                  key={entry.entryId}
+                  entry={entry}
+                  assets={localAssets}
+                  selectedLocalAssetId={overrideMap.get(entry.entryId) || ''}
+                  onChange={handleEntryOverrideChange}
+                />
+              )) : null}
+            </div>
+          ) : null}
         </div>
       ) : (
         <MediaRouteSelector
@@ -502,6 +544,165 @@ function ImageModelSettings() {
           label={t('settings.imageModel', 'Image Model')}
         />
       )}
+    </div>
+  );
+}
+
+function normalizeAssetStatus(value: unknown): string {
+  if (typeof value === 'number') {
+    switch (value) {
+      case 1:
+        return 'installed';
+      case 2:
+        return 'active';
+      case 3:
+        return 'unhealthy';
+      case 4:
+        return 'removed';
+      default:
+        return '';
+    }
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    switch (normalized) {
+      case '1':
+      case 'installed':
+      case 'local_asset_status_installed':
+        return 'installed';
+      case '2':
+      case 'active':
+      case 'local_asset_status_active':
+        return 'active';
+      case '3':
+      case 'unhealthy':
+      case 'local_asset_status_unhealthy':
+        return 'unhealthy';
+      case '4':
+      case 'removed':
+      case 'local_asset_status_removed':
+        return 'removed';
+      default:
+        return normalized;
+    }
+  }
+  return '';
+}
+
+function normalizeAssetKind(value: unknown): string {
+  if (typeof value === 'number') {
+    switch (value) {
+      case 1:
+        return 'chat';
+      case 2:
+        return 'image';
+      case 3:
+        return 'video';
+      case 4:
+        return 'tts';
+      case 5:
+        return 'stt';
+      case 10:
+        return 'vae';
+      case 11:
+        return 'clip';
+      case 12:
+        return 'lora';
+      case 13:
+        return 'controlnet';
+      case 14:
+        return 'auxiliary';
+      default:
+        return '';
+    }
+  }
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const normalized = value.trim().toLowerCase();
+  switch (normalized) {
+    case '1':
+    case 'chat':
+    case 'local_asset_kind_chat':
+      return 'chat';
+    case '2':
+    case 'image':
+    case 'local_asset_kind_image':
+      return 'image';
+    case '3':
+    case 'video':
+    case 'local_asset_kind_video':
+      return 'video';
+    case '4':
+    case 'tts':
+    case 'local_asset_kind_tts':
+      return 'tts';
+    case '5':
+    case 'stt':
+    case 'local_asset_kind_stt':
+      return 'stt';
+    case '10':
+    case 'vae':
+    case 'local_asset_kind_vae':
+      return 'vae';
+    case '11':
+    case 'clip':
+    case 'local_asset_kind_clip':
+      return 'clip';
+    case '12':
+    case 'lora':
+    case 'local_asset_kind_lora':
+      return 'lora';
+    case '13':
+    case 'controlnet':
+    case 'local_asset_kind_controlnet':
+      return 'controlnet';
+    case '14':
+    case 'auxiliary':
+    case 'local_asset_kind_auxiliary':
+      return 'auxiliary';
+    default:
+      return '';
+  }
+}
+
+function assetMatchesEntry(asset: LocalAssetOption, entry: RelayLocalImageProfileEntry): boolean {
+  return asset.assetKind === entry.assetKind;
+}
+
+function ProfileEntryOverrideField(props: {
+  entry: RelayLocalImageProfileEntry;
+  assets: LocalAssetOption[];
+  selectedLocalAssetId: string;
+  onChange: (entryId: string, localAssetId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const options = useMemo(() => [
+    { value: '', label: t('settings.useProfileDefault', 'Use profile default') },
+    ...props.assets
+      .filter((asset) => assetMatchesEntry(asset, props.entry))
+      .map((asset) => ({
+        value: asset.localAssetId,
+        label: `${asset.title} (${asset.assetId})`,
+      })),
+  ], [props.assets, props.entry, t]);
+
+  return (
+    <div className="space-y-2 rounded-xl border border-[color:var(--nimi-border-subtle)] px-3 py-3">
+      <div className="space-y-1">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
+          {props.entry.title}
+        </p>
+        <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+          {t('settings.profileEntryDefault', 'Default')}: {props.entry.assetId}
+        </p>
+      </div>
+      <SelectField
+        value={props.selectedLocalAssetId}
+        onValueChange={(value) => props.onChange(props.entry.entryId, value)}
+        options={options}
+        selectClassName="font-normal"
+      />
     </div>
   );
 }

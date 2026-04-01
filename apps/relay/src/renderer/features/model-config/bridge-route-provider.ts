@@ -51,12 +51,18 @@ export function createBridgeRouteDataProvider(): RouteModelPickerDataProvider {
   return {
     async listLocalModels() {
       const bridge = getBridge();
-      const response = await bridge.local.listModels();
-      const items = (response as any).assets ?? (response as any).models ?? [];
+      const response = await bridge.local.listAssets({
+        statusFilter: 0,
+        kindFilter: 0,
+        engineFilter: '',
+        pageSize: 0,
+        pageToken: '',
+      });
+      const items = (response as any).assets ?? [];
       return (items as any[])
         .map((m: any) => ({
-          localModelId: (m.localAssetId ?? m.localModelId) as string,
-          modelId: formatModelId((m.logicalModelId || m.assetId || m.modelId) as string),
+          localModelId: (m.localAssetId as string),
+          modelId: formatModelId((m.logicalModelId || m.assetId) as string),
           engine: (m.engine || 'llama') as string,
           status: mapLocalStatus(m.status as number),
           capabilities: [...(m.capabilities || [])] as string[],

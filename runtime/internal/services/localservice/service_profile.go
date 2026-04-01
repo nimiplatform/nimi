@@ -343,9 +343,9 @@ func (s *Service) resolveVerifiedAssetForProfileEntry(entry *runtimev1.LocalProf
 		return nil
 	}
 	templateID := strings.TrimSpace(entry.GetTemplateId())
-	artifactID := strings.TrimSpace(entry.GetAssetId())
+	assetID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
-	artifactKind := entry.GetAssetKind()
+	assetKind := entry.GetAssetKind()
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -356,16 +356,16 @@ func (s *Service) resolveVerifiedAssetForProfileEntry(entry *runtimev1.LocalProf
 		if templateID != "" && item.GetTemplateId() == templateID {
 			return cloneVerifiedAsset(item)
 		}
-		if artifactID != "" && item.GetAssetId() != artifactID {
+		if assetID != "" && item.GetAssetId() != assetID {
 			continue
 		}
-		if artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != artifactKind {
+		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != assetKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(item.GetEngine(), engine) {
 			continue
 		}
-		if artifactID != "" || artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
+		if assetID != "" || assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
 			return cloneVerifiedAsset(item)
 		}
 	}
@@ -403,15 +403,15 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 	if entry == nil {
 		return nil
 	}
-	artifactID := strings.TrimSpace(entry.GetAssetId())
+	assetID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
-	artifactKind := entry.GetAssetKind()
+	assetKind := entry.GetAssetKind()
 	if descriptor := s.resolveVerifiedAssetForProfileEntry(entry); descriptor != nil {
-		if artifactID == "" {
-			artifactID = strings.TrimSpace(descriptor.GetAssetId())
+		if assetID == "" {
+			assetID = strings.TrimSpace(descriptor.GetAssetId())
 		}
-		if artifactKind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
-			artifactKind = descriptor.GetKind()
+		if assetKind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+			assetKind = descriptor.GetKind()
 		}
 		if engine == "" {
 			engine = strings.TrimSpace(descriptor.GetEngine())
@@ -424,16 +424,16 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 		if existing == nil || existing.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if artifactID != "" && existing.GetAssetId() != artifactID {
+		if assetID != "" && existing.GetAssetId() != assetID {
 			continue
 		}
-		if artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && existing.GetKind() != artifactKind {
+		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && existing.GetKind() != assetKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(existing.GetEngine(), engine) {
 			continue
 		}
-		if artifactID != "" || artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
+		if assetID != "" || assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
 			return cloneLocalAsset(existing)
 		}
 	}

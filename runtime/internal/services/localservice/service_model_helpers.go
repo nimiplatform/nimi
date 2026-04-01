@@ -234,13 +234,13 @@ func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) e
 	return nil
 }
 
-func validateLocalArtifactManifestPath(manifestPath string, modelsRoot string) error {
+func validateLocalAssetManifestPath(manifestPath string, modelsRoot string) error {
 	cleanManifestPath := filepath.Clean(strings.TrimSpace(manifestPath))
 	if cleanManifestPath == "." || cleanManifestPath == "" {
 		return fmt.Errorf("manifest path required")
 	}
 	if !strings.EqualFold(filepath.Base(cleanManifestPath), "asset.manifest.json") {
-		return fmt.Errorf("artifact manifest must be named asset.manifest.json")
+		return fmt.Errorf("asset manifest must be named asset.manifest.json")
 	}
 	cleanModelsRoot := filepath.Clean(strings.TrimSpace(modelsRoot))
 	if cleanModelsRoot == "." || cleanModelsRoot == "" {
@@ -262,11 +262,11 @@ func validateLocalArtifactManifestPath(manifestPath string, modelsRoot string) e
 		return fmt.Errorf("manifest path invalid: %w", err)
 	}
 	if rel == "." || rel == "" || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("artifact manifest must stay under runtime models root")
+		return fmt.Errorf("asset manifest must stay under runtime models root")
 	}
 	parent := filepath.Dir(rel)
 	if parent == "." {
-		return fmt.Errorf("artifact manifest must live under <asset-dir>/asset.manifest.json")
+		return fmt.Errorf("asset manifest must live under <asset-dir>/asset.manifest.json")
 	}
 	return nil
 }

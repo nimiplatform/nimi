@@ -97,7 +97,7 @@ func (s *Service) resolveProfileSlots(
 					ActionHint: "inspect_local_runtime_model_health",
 				})
 			}
-			resolved, err := s.resolveManagedModelEntryPath(installed)
+			resolved, err := s.resolveManagedAssetEntryPath(installed)
 			if err != nil {
 				return "", nil, err
 			}
@@ -173,7 +173,98 @@ func managedMediaProfileEntries(scenarioExtensions map[string]any) []*runtimev1.
 	if typed, ok := raw.([]*runtimev1.LocalProfileEntryDescriptor); ok {
 		return typed
 	}
-	return nil
+	items, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	entries := make([]*runtimev1.LocalProfileEntryDescriptor, 0, len(items))
+	for _, item := range items {
+		record, ok := item.(map[string]any)
+		if !ok {
+			return nil
+		}
+		entry, ok := managedMediaProfileEntryDescriptor(record)
+		if !ok {
+			return nil
+		}
+		entries = append(entries, entry)
+	}
+	if len(entries) == 0 {
+		return nil
+	}
+	return entries
+}
+
+func managedMediaProfileEntryDescriptor(record map[string]any) (*runtimev1.LocalProfileEntryDescriptor, bool) {
+	if len(record) == 0 {
+		return nil, false
+	}
+	entryID := strings.TrimSpace(valueAsString(record["entry_id"]))
+	if entryID == "" {
+		entryID = strings.TrimSpace(valueAsString(record["entryId"]))
+	}
+	kindToken := strings.TrimSpace(valueAsString(record["kind"]))
+	if entryID == "" || kindToken == "" {
+		return nil, false
+	}
+	var kind runtimev1.LocalProfileEntryKind
+	switch strings.ToLower(kindToken) {
+	case "asset":
+		kind = runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET
+	case "service":
+		kind = runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_SERVICE
+	case "node":
+		kind = runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_NODE
+	default:
+		return nil, false
+	}
+	assetKindToken := strings.TrimSpace(valueAsString(record["asset_kind"]))
+	if assetKindToken == "" {
+		assetKindToken = strings.TrimSpace(valueAsString(record["assetKind"]))
+	}
+	assetKind, _ := parseLocalAssetKindToken(assetKindToken)
+	required := managedMediaOptionalBool(record, "required")
+	preferred := managedMediaOptionalBool(record, "preferred")
+	return &runtimev1.LocalProfileEntryDescriptor{
+		EntryId:     entryID,
+		Kind:        kind,
+		Title:       strings.TrimSpace(valueAsString(record["title"])),
+		Description: strings.TrimSpace(valueAsString(record["description"])),
+		Capability:  strings.TrimSpace(valueAsString(record["capability"])),
+		Required:    required,
+		Preferred:   preferred,
+		AssetId:     strings.TrimSpace(firstManagedMediaProfileValue(record, "asset_id", "assetId")),
+		AssetKind:   assetKind,
+		EngineSlot:  strings.TrimSpace(firstManagedMediaProfileValue(record, "engine_slot", "engineSlot")),
+		Repo:        strings.TrimSpace(valueAsString(record["repo"])),
+		ServiceId:   strings.TrimSpace(firstManagedMediaProfileValue(record, "service_id", "serviceId")),
+		NodeId:      strings.TrimSpace(firstManagedMediaProfileValue(record, "node_id", "nodeId")),
+		Engine:      strings.TrimSpace(valueAsString(record["engine"])),
+		TemplateId:  strings.TrimSpace(firstManagedMediaProfileValue(record, "template_id", "templateId")),
+		Revision:    strings.TrimSpace(valueAsString(record["revision"])),
+		Tags:        valueAsStringSlice(record["tags"]),
+	}, true
+}
+
+func firstManagedMediaProfileValue(record map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(valueAsString(record[key])); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func managedMediaOptionalBool(record map[string]any, key string) *bool {
+	value, ok := record[key]
+	if !ok {
+		return nil
+	}
+	flag, ok := value.(bool)
+	if !ok {
+		return nil
+	}
+	return &flag
 }
 
 // ResolveManagedMediaImageProfile renders a dynamic managed media profile for
@@ -462,18 +553,6 @@ func (s *Service) ResolveManagedAssetPath(_ context.Context, localArtifactID str
 	return filepath.Join(s.resolvedLocalModelsPath(), filepath.FromSlash(relPath)), nil
 }
 
-func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalAssetRecord) (string, error) {
-	if model == nil {
-		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	}
-	return resolveManagedEntryRelativePath(
-		s.resolvedLocalModelsPath(),
-		model.GetAssetId(),
-		model.GetSource().GetRepo(),
-		model.GetEntry(),
-	)
-}
-
 func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRecord) (string, error) {
 	if artifact == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -491,12 +570,20 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	cleanEntry := filepath.Clean(strings.TrimSpace(artifact.GetEntry()))
-	if cleanEntry == "." || cleanEntry == "" || filepath.IsAbs(cleanEntry) || cleanEntry == ".." ||
-		strings.HasPrefix(cleanEntry, ".."+string(filepath.Separator)) {
+	cleanEntry, err := sanitizeManagedEntryPath(artifact.GetEntry())
+	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	absPath := filepath.Join(rootAbs, "resolved", slugifyLocalAssetID(artifact.GetAssetId()), cleanEntry)
+	var absPath string
+	if isRunnableKind(artifact.GetKind()) {
+		logicalModelID := strings.Trim(strings.TrimSpace(artifact.GetLogicalModelId()), "/")
+		if logicalModelID != "" {
+			absPath = filepath.Join(rootAbs, "resolved", filepath.FromSlash(logicalModelID), cleanEntry)
+		}
+	}
+	if absPath == "" {
+		absPath = filepath.Join(rootAbs, "resolved", slugifyLocalAssetID(artifact.GetAssetId()), cleanEntry)
+	}
 	absPath, err = filepath.Abs(absPath)
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)

@@ -27,7 +27,7 @@ export {
   preflightResolveMediaRoute,
   buildMediaSettingsRevision,
   resolveConfiguredImageGenerateTarget,
-  resolveConfiguredImageWorkflowExtensions,
+  resolveConfiguredImageProfileExtensions,
 } from './media-route.js';
 
 export { decideMediaExecution } from './media-decision-policy.js';
