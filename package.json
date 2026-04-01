@@ -162,6 +162,8 @@
     "dev:desktop": "pnpm --filter @nimiplatform/desktop dev:shell",
     "dev:web": "pnpm --filter @nimiplatform/web dev",
     "dev:relay": "pnpm --filter @nimiplatform/relay dev",
+    "dev:moment": "pnpm --filter @nimiplatform/moment dev:shell",
+    "dev:lookdev": "pnpm --filter @nimiplatform/lookdev dev:shell",
     "dev:forge": "pnpm --filter @nimiplatform/forge dev:shell",
     "dev:overtone": "pnpm --filter @nimiplatform/overtone dev:shell",
     "docs:dev": "pnpm --filter @nimiplatform/docs dev",
