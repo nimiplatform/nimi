@@ -129,5 +129,16 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: 'MCP Agent 交互架构', link: '/zh/architecture/mcp-agent-interaction' },
       ],
     },
+    {
+      text: '应用与 Kit',
+      items: [
+        { text: 'Kit（设计系统）', link: '/zh/architecture/kit' },
+        { text: 'Desktop', link: '/zh/architecture/desktop' },
+        { text: 'Relay', link: '/zh/architecture/relay' },
+        { text: 'Forge', link: '/zh/architecture/forge' },
+        { text: 'Overtone', link: '/zh/architecture/overtone' },
+        { text: 'Shiji', link: '/zh/architecture/shiji' },
+      ],
+    },
   ],
 }

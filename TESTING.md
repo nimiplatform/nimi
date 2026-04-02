@@ -103,6 +103,38 @@ pnpm run check:desktop-mods-smoke
 
 It validates the runtime mods directory, installed manifest/entry integrity, and zero-bundle desktop discovery behavior.
 
+## Kit (@nimiplatform/nimi-kit)
+
+```bash
+pnpm --filter @nimiplatform/nimi-kit test
+```
+
+Kit tests cover foundation modules (ui, core, telemetry), auth flows, and feature modules (chat, model-picker, generation, commerce).
+
+## Tauri Apps (forge, overtone, shiji, moment, lookdev, realm-drift, video-food-map)
+
+All Tauri apps share the same test interface:
+
+```bash
+pnpm -C apps/<name> run test
+```
+
+- Unit tests via Vitest + Testing Library
+- Type checking: `pnpm -C apps/<name> run typecheck`
+- Linting: `pnpm -C apps/<name> run lint`
+
+## Relay (Electron)
+
+```bash
+pnpm -C apps/relay run test
+```
+
+Relay has dedicated test suites:
+- `test:unit` — unit tests
+- `test:transport` — transport layer tests
+- `test:interop` — interop tests
+- `test:all` — full test suite
+
 ## Cross-Component Contract Tests
 
 SDK ↔ Runtime gRPC contract tests verify:

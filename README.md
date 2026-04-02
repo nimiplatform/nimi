@@ -31,6 +31,7 @@ Build AI apps against one runtime, one SDK, and one operational surface for loca
 | Linux | Desktop release on GitHub; CLI + SDK also available | [GitHub Releases](https://github.com/nimiplatform/nimi/releases) |
 
 The desktop app is the fastest way to get started. For CLI-only installs, prefer GitHub Releases or `npm install -g @nimiplatform/nimi` on supported macOS/Linux/Windows targets.
+
 > In early access, macOS desktop assets may be published in ad-hoc signing mode before Apple Developer ID notarization is configured.
 
 ## Install
@@ -142,14 +143,24 @@ This is not just a provider wrapper. The runtime is a real execution boundary.
 
 ## What Nimi Is
 
-Nimi has three practical layers:
+Nimi is a multi-layer platform for building AI-native apps:
 
-- Runtime: local Go daemon for routing, inference, streaming, health, model lifecycle, workflow, knowledge, and audit
-- SDK: TypeScript SDK for integrating runtime and realm into apps
-- Desktop: host shell and mod surface for desktop AI experiences
-
-Realm is Nimi's optional cloud state layer for identity, memory, and cross-app continuity.
-The runtime, SDK, and desktop contracts are the active core; future and ecosystem capabilities are still being graduated into those layers.
+- **Runtime** — local Go daemon for routing, inference, streaming, health, model lifecycle, workflow, knowledge, connector management, and audit.
+- **SDK** — TypeScript SDK (`@nimiplatform/sdk`) providing a unified interface for runtime and realm.
+- **Kit** — cross-app toolkit (`@nimiplatform/nimi-kit`) with design system, auth, telemetry, and shared feature modules (chat, model-picker, generation, commerce).
+- **Apps** — a family of Tauri + React desktop applications sharing the same runtime/sdk/kit foundation:
+  - **Desktop** — main host shell with cloud/local AI chat, mod ecosystem, and agent interaction.
+  - **Relay** — Electron AI chat client with beat-first turn pipeline, Live2D, and multi-session management.
+  - **Forge** — creator studio for world/agent/content management, publishing, and analytics.
+  - **Overtone** — music creation and collaboration with brief/lyrics/takes/compare/publish workflow.
+  - **Shiji** (时迹) — immersive K-12 historical education with dialogue engine.
+  - **Moment** — social moment capture and sharing.
+  - **Lookdev** — visual design and look development tool.
+  - **Realm Drift** — world exploration and agent chat with 3D marble visualization.
+  - **Video Food Map** — food-related video content geolocation mapping.
+  - **Web** — browser-based client (landing + web-shell, deployed on Cloudflare Pages).
+- **Nimi Mods** — mod ecosystem with runtime integration and audit tooling (separate workspace).
+- **Realm** — optional cloud state layer for identity, memory, and cross-app continuity.
 
 ## Current Specification Status
 
@@ -157,9 +168,10 @@ Nimi's public status should be read from the current spec, not from dated roadma
 
 | Layer | Current status in spec | What it means |
 |---|---|---|
-| Runtime | Kernel contracts cover the full proto surface; AI/auth is active and workflow/model/knowledge/app/audit contracts are already defined in kernel | Runtime behavior is contract-first, but implementation details may still harden quickly |
+| Runtime | Kernel contracts cover the full proto surface; AI/auth/connector is active and workflow/model/knowledge/app/audit contracts are already defined in kernel | Runtime behavior is contract-first, but implementation details may still harden quickly |
 | SDK | `runtime`, `realm`, and `ai-provider` are Phase 1 active; `scope` and `mod` are defined and still evolving | Prefer `createPlatformClient()` for app entry and treat lower-level subpaths as advanced surfaces |
-| Desktop | Kernel + domain contracts are active across shell, local AI, mod governance, and testing gates | Desktop UX and extension surfaces may keep shifting as runtime/sdk contracts tighten |
+| Kit | UI, auth, core, telemetry, and feature modules are active; app theme variants ship per-app | Reuse kit surfaces before building app-local shells |
+| Desktop + Apps | Kernel + domain contracts are active across shell, local AI, mod governance, and testing gates; multiple Tauri apps share runtime/sdk/kit | App UX and extension surfaces may keep shifting as runtime/sdk contracts tighten |
 | Future | `spec/future/**` is structured backlog, not a shipping promise | Planned capabilities should not be read as committed dates or guaranteed release order |
 
 ## Examples
@@ -187,10 +199,11 @@ The same runtime surface also covers multimodal flows such as image generation a
   <img src="docs/assets/structure.jpg" alt="Nimi Architecture" width="1200">
 </p>
 
-- Runtime: local execution and operational control
-- Realm: cloud state and continuity
-- SDK: application-facing integration layer
-- Desktop: host experience and extension surface
+- **Runtime**: local execution and operational control (Go daemon + CLI)
+- **Realm**: cloud state, identity, and continuity
+- **SDK**: application-facing integration layer (TypeScript)
+- **Kit**: shared design system, auth, telemetry, and feature modules
+- **Apps**: desktop host, creator tools, and vertical experiences (Tauri + React)
 
 ## Core Components
 
@@ -198,8 +211,20 @@ The same runtime surface also covers multimodal flows such as image generation a
 |---|---|---|
 | [runtime](runtime/README.md) | Local AI daemon and CLI | Go, gRPC |
 | [sdk](sdk/README.md) | Unified SDK for runtime and realm | TypeScript, ESM |
-| [desktop](apps/desktop/README.md) | Desktop host and mod ecosystem | Tauri, React |
-| [web](apps/web/README.md) | Web client | React |
+| [kit](kit/README.md) | Cross-app toolkit and design system | React, Radix UI, Tailwind |
+| [desktop](apps/desktop/README.md) | Main desktop host and mod ecosystem | Tauri, React |
+| [relay](apps/relay/) | AI chat client with beat-first pipeline | Electron, React |
+| [forge](apps/forge/) | Creator studio for worlds and agents | Tauri, React |
+| [overtone](apps/overtone/) | Music creation and collaboration | Tauri, React, Web Audio |
+| [shiji](apps/shiji/) | K-12 historical education | Tauri, React, SQLite |
+| [moment](apps/moment/) | Social moment capture | Tauri, React |
+| [lookdev](apps/lookdev/) | Visual design tool | Tauri, React |
+| [realm-drift](apps/realm-drift/) | World exploration with 3D marble | Tauri, React, Socket.IO |
+| [video-food-map](apps/video-food-map/) | Food video geolocation | Tauri, React |
+| [web](apps/web/README.md) | Web client | React, Cloudflare Pages |
+| [install-gateway](apps/install-gateway/) | Release distribution worker | Cloudflare Worker |
+| [nimi-mods](nimi-mods/) | Mod ecosystem | TypeScript |
+| [proto](proto/) | Protocol Buffer definitions | Protobuf, Buf |
 | [spec](spec/INDEX.md) | Normative contracts | Markdown, YAML |
 | [docs](docs/index.md) | Developer portal | VitePress |
 
@@ -211,6 +236,7 @@ Representative routing planes:
 |---|---|
 | `local/*` | Canonical local engines (`llama`, `media`, `speech`) |
 | `cloud/*` | OpenAI, Gemini, Anthropic, DeepSeek, GLM, MiniMax, DashScope, Volcengine |
+| `live/*` | ElevenLabs, Fish Audio, Stepfun (realtime/streaming services) |
 
 For a deeper matrix, see [provider docs](docs/reference/provider-matrix.md).
 

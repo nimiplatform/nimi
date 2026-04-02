@@ -34,6 +34,9 @@ pnpm build
 - For desktop + mods local debugging, use Desktop `Settings > Mod Developer` as the primary path; runtime mods directory env overrides are CI/internal compatibility only.
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
 - For runtime changes, run `cd runtime && go test ./...` and `go vet ./...`.
+- For kit changes, run `pnpm --filter @nimiplatform/nimi-kit build && pnpm --filter @nimiplatform/nimi-kit test`.
+- For Tauri app development (forge, overtone, shiji, moment, lookdev, realm-drift, video-food-map), use `pnpm -C apps/<name> run dev:shell`. All share the same script interface.
+- For Relay (Electron), use `pnpm -C apps/relay run dev`.
 - For full onboarding flow and environment template details, follow [ONBOARDING.md](./ONBOARDING.md).
 - For test strategy details, follow [TESTING.md](./TESTING.md).
 

@@ -11,7 +11,7 @@ Nimi is an AI-native runtime and developer platform for building open, mod-drive
 
 ## Open Source Direction
 
-1. Open platform core: runtime/sdk/proto/apps/desktop/nimi-mods/apps/web/docs are open by default.
+1. Open platform core: runtime, sdk, kit, proto, all apps (desktop/relay/forge/overtone/shiji/moment/lookdev/realm-drift/video-food-map/web/install-gateway), nimi-mods, and docs are open by default.
 2. Industrial-grade release gates: reproducible CI, supply-chain verification, and auditable release process.
 3. Developer trust: explicit boundaries, stable contracts, and fail-fast behavior over hidden fallback.
 

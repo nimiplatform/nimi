@@ -9,16 +9,42 @@
 
 ## 1. 仓库与组件
 
-`nimi` 是一个多组件 monorepo，核心组件如下：
+`nimi` 是一个多组件 monorepo，组件如下：
 
-| 组件 | 目录 | 语言 |
+### 核心基础
+
+| 组件 | 目录 | 语言 | 说明 |
+|---|---|---|---|
+| runtime | `runtime/` | Go | 本地 AI daemon 和 CLI |
+| sdk | `sdk/` | TypeScript | 统一 SDK (`@nimiplatform/sdk`) |
+| kit | `kit/` | TypeScript + React | 跨 app 工具包：设计系统、auth、telemetry、feature 模块 |
+| proto | `proto/` | Protocol Buffers | gRPC 协议定义 |
+| spec | `spec/` | Markdown + YAML | 规范契约（normative） |
+| docs | `docs/` | VitePress | 开发者文档站点 |
+
+### 应用（Apps）
+
+| 应用 | 目录 | 技术栈 | 说明 |
+|---|---|---|---|
+| desktop | `apps/desktop/` | Tauri + React | 主桌面 host、mod 生态、agent 交互 |
+| relay | `apps/relay/` | Electron + React | AI 聊天客户端，beat-first turn pipeline |
+| forge | `apps/forge/` | Tauri + React | 创作者工作台（世界/agent/内容管理） |
+| overtone | `apps/overtone/` | Tauri + React | 音乐创作与协作 |
+| shiji | `apps/shiji/` | Tauri + React | K-12 历史教育（时迹） |
+| moment | `apps/moment/` | Tauri + React | 社交动态捕捉 |
+| lookdev | `apps/lookdev/` | Tauri + React | 视觉设计工具 |
+| realm-drift | `apps/realm-drift/` | Tauri + React | 世界探索 + 3D marble 可视化 |
+| video-food-map | `apps/video-food-map/` | Tauri + React | 美食视频地理映射 |
+| web | `apps/web/` | React | 浏览器客户端（Cloudflare Pages） |
+| install-gateway | `apps/install-gateway/` | Cloudflare Worker | 发行分发网关 |
+
+### 扩展
+
+| 组件 | 目录 | 说明 |
 |---|---|---|
-| runtime | `runtime/` | Go |
-| sdk | `sdk/` | TypeScript |
-| desktop | `apps/desktop/` | Tauri + React |
-| web | `apps/web/` | React |
-| proto | `proto/` | Protocol Buffers |
-| docs | `docs/` | Markdown |
+| nimi-mods | `nimi-mods/` | Mod 生态（独立工作区） |
+| shared-tauri | `apps/shared-tauri/` | 跨 Tauri app 共享 Rust 工具 |
+| examples | `examples/` | SDK/runtime 示例 + app/mod 脚手架模板 |
 
 `desktop` 现在是零内置 mod host。独立 mod 仓是可选的外部工作区，不再是主仓默认构建输入。
 
@@ -167,6 +193,14 @@ const { runtime, realm } = await createPlatformClient({
 
 Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`local`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
 
+Kit 工具包（多数 app 均依赖）：
+
+```ts
+import { Button } from '@nimiplatform/nimi-kit/ui';
+import { useAuth } from '@nimiplatform/nimi-kit/auth';
+import { ChatFeature } from '@nimiplatform/nimi-kit/features/chat';
+```
+
 ## 6. Desktop 与 Web 开发
 
 ### 6.1 Desktop（含可选 mod 联调）
@@ -191,7 +225,29 @@ export NIMI_RUNTIME_MODS_DIR=/ABS/PATH/TO/runtime-mods
 pnpm run check:desktop-mods-smoke
 ```
 
-### 6.2 Web
+### 6.2 其他 Tauri 应用
+
+大多数 Tauri 应用（forge、overtone、shiji、moment、lookdev、realm-drift、video-food-map）遵循相同的开发模式：
+
+```bash
+pnpm -C apps/<app-name> run dev:shell
+```
+
+例如启动 forge：
+
+```bash
+pnpm -C apps/forge run dev:shell
+```
+
+所有 Tauri 应用共享统一脚本接口：`dev:renderer`（仅前端）、`dev:shell`（含 Tauri）、`build`、`typecheck`、`lint`、`test`。
+
+### 6.3 Relay（Electron）
+
+```bash
+pnpm -C apps/relay run dev
+```
+
+### 6.4 Web
 
 ```bash
 pnpm --filter @nimiplatform/web dev

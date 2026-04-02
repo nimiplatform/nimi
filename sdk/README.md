@@ -9,16 +9,17 @@ SDK 已完成单包收敛：
 
 ## Public Subpaths
 
-- `@nimiplatform/sdk`
-- `@nimiplatform/sdk/realm`
-- `@nimiplatform/sdk/runtime`
-- `@nimiplatform/sdk/types`
-- `@nimiplatform/sdk/scope`
-- `@nimiplatform/sdk/ai-provider`
-- `@nimiplatform/sdk/mod`
-- `@nimiplatform/sdk/mod/shell`
-- `@nimiplatform/sdk/mod/lifecycle`
-- `@nimiplatform/sdk/mod/storage`
+- `@nimiplatform/sdk` — app-level composition entry (`createPlatformClient`)
+- `@nimiplatform/sdk/realm` — Realm cloud state integration
+- `@nimiplatform/sdk/runtime` — Runtime core (Node/gRPC transport)
+- `@nimiplatform/sdk/runtime/browser` — Runtime browser transport (Tauri IPC / HTTP)
+- `@nimiplatform/sdk/types` — Shared type definitions
+- `@nimiplatform/sdk/scope` — Scope and capability management
+- `@nimiplatform/sdk/ai-provider` — Vercel AI SDK provider adapter
+- `@nimiplatform/sdk/mod` — Mod system entry
+- `@nimiplatform/sdk/mod/shell` — Mod shell utilities
+- `@nimiplatform/sdk/mod/lifecycle` — Mod lifecycle hooks
+- `@nimiplatform/sdk/mod/storage` — Mod storage system
 
 ## Guardrails
 
