@@ -45,6 +45,8 @@ function buildImport(overrides: Partial<ImportRecord> = {}): ImportRecord {
       geocodeQuery: '炭火小馆 广州天河',
       latitude: 23.1,
       longitude: 113.3,
+      userConfirmed: false,
+      isFavorite: false,
       createdAt: '2026-03-30T10:00:00.000Z',
       updatedAt: '2026-03-30T10:00:00.000Z',
     }],

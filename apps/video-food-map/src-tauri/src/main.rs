@@ -46,6 +46,11 @@ fn explain_import_error(error: &str) -> String {
     {
         return "音频已经送到云端了，但这次音频格式或参数没被接受。现在先保留这条记录，后面可以继续重试。".to_string();
     }
+    if normalized.contains("AI_PROVIDER_ENDPOINT_FORBIDDEN")
+        || normalized.contains("FAILED_PRECONDITION")
+    {
+        return "这条视频需要走云端语音转写，但你当前的 runtime 没放通这条云端入口。可以先换一条自带字幕的视频，或者回 runtime 里把这条云端转写能力配通。".to_string();
+    }
     if normalized.contains("fetch failed") {
         return "视频音频拉取失败了。这通常是网络波动或视频源暂时不可用，过一会儿可以重试。"
             .to_string();
@@ -95,12 +100,35 @@ fn video_food_map_import_video(url: String) -> Result<db::ImportRecord, String> 
     Ok(queued)
 }
 
+#[tauri::command]
+fn video_food_map_set_venue_confirmation(
+    venue_id: String,
+    confirmed: bool,
+) -> Result<db::ImportRecord, String> {
+    let trimmed = venue_id.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("venue id is required".to_string());
+    }
+    db::set_venue_confirmation(&trimmed, confirmed)
+}
+
+#[tauri::command]
+fn video_food_map_toggle_venue_favorite(venue_id: String) -> Result<db::ImportRecord, String> {
+    let trimmed = venue_id.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("venue id is required".to_string());
+    }
+    db::toggle_venue_favorite(&trimmed)
+}
+
 fn main() {
     load_dotenv_files();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             video_food_map_snapshot,
             video_food_map_import_video,
+            video_food_map_set_venue_confirmation,
+            video_food_map_toggle_venue_favorite,
         ])
         .run(tauri::generate_context!())
         .expect("error running video-food-map");
@@ -131,5 +159,14 @@ mod tests {
         let message = explain_import_error("stderr=provider rejected request parameters");
         assert!(message.contains("音频"));
         assert!(message.contains("云端"));
+    }
+
+    #[test]
+    fn explains_provider_endpoint_forbidden() {
+        let message = explain_import_error(
+            "FAILED_PRECONDITION: AI_PROVIDER_ENDPOINT_FORBIDDEN",
+        );
+        assert!(message.contains("云端语音转写"));
+        assert!(message.contains("runtime"));
     }
 }

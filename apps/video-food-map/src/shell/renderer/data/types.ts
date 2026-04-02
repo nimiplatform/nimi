@@ -22,6 +22,8 @@ export type VenueRecord = {
   geocodeQuery: string;
   latitude: number | null;
   longitude: number | null;
+  userConfirmed: boolean;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -73,6 +75,8 @@ export type MapPoint = {
   addressText: string;
   latitude: number;
   longitude: number;
+  isFavorite: boolean;
+  userConfirmed: boolean;
 };
 
 export type SnapshotStats = {
@@ -82,6 +86,8 @@ export type SnapshotStats = {
   venueCount: number;
   mappedVenueCount: number;
   reviewVenueCount: number;
+  confirmedVenueCount: number;
+  favoriteVenueCount: number;
 };
 
 export type VideoFoodMapSnapshot = {
@@ -149,6 +155,8 @@ function parseVenueRecord(value: unknown): VenueRecord {
     geocodeQuery: asString(record.geocodeQuery),
     latitude: record.latitude == null ? null : Number(record.latitude),
     longitude: record.longitude == null ? null : Number(record.longitude),
+    userConfirmed: Boolean(record.userConfirmed),
+    isFavorite: Boolean(record.isFavorite),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
   };
@@ -216,6 +224,8 @@ function parseMapPoint(value: unknown): MapPoint {
     addressText: asString(record.addressText),
     latitude: Number(record.latitude),
     longitude: Number(record.longitude),
+    isFavorite: Boolean(record.isFavorite),
+    userConfirmed: Boolean(record.userConfirmed),
   };
 }
 
@@ -232,6 +242,8 @@ export function parseSnapshot(value: unknown): VideoFoodMapSnapshot {
       venueCount: asNumber(stats.venueCount),
       mappedVenueCount: asNumber(stats.mappedVenueCount),
       reviewVenueCount: asNumber(stats.reviewVenueCount),
+      confirmedVenueCount: asNumber(stats.confirmedVenueCount),
+      favoriteVenueCount: asNumber(stats.favoriteVenueCount),
     },
   };
 }

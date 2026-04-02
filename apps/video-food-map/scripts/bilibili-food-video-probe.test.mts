@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildTranscriptionSegments,
+  buildFoodExtractionPrompt,
   containsLikelyTraditionalChinese,
   extractBvid,
   resolveSttModel,
@@ -186,6 +187,110 @@ test('mergeCommentCluesIntoExtraction fills a missing address when comments agre
   assert.equal(venue?.address_text, '体育西路123号');
   assert.ok(Array.isArray(venue?.evidence));
   assert.ok((venue?.evidence as unknown[]).some((entry) => String(entry).includes('评论补充')));
+});
+
+test('filterCommentCluesForExtraction splits multi-venue address lists into separate clues', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        { venue_name: '' },
+      ],
+    },
+    comments: [
+      {
+        rpid: 9,
+        like: 8,
+        ctime: 1_712_345_905,
+        member: { uname: '课代表' },
+        content: {
+          message: '✨本期🔍探访5家店✨ 🏠周末美食 ，📍位于：北海市·北海大道泰华小区六巷1号 🏠拾肆牛腩猪脚粉(人均15.0元) ，📍位于：北海市·中山路与光明里一巷交叉口西60米 🏠张氏卷筒粉(人均8.0元) ，📍位于：北海市·海洋小区路口张氏卷筒粉',
+        },
+      },
+    ],
+  });
+  assert.ok(clues.length >= 3);
+  assert.ok(clues.some((clue) => clue.matchedVenueNames.includes('周末美食') && clue.addressHint.includes('泰华小区六巷1号')));
+  assert.ok(clues.some((clue) => clue.matchedVenueNames.includes('拾肆牛腩猪脚粉') && clue.addressHint.includes('光明里一巷')));
+  assert.ok(clues.some((clue) => clue.matchedVenueNames.includes('张氏卷筒粉') && clue.addressHint.includes('海洋小区路口')));
+});
+
+test('mergeCommentCluesIntoExtraction creates review venues from repeated comment-only clues', () => {
+  const merged = mergeCommentCluesIntoExtraction({
+    extractionJson: {
+      video_summary: '北海粉店合集',
+      venues: [],
+      uncertain_points: [],
+    },
+    commentClues: [
+      {
+        commentId: 'c2',
+        authorName: '课代表A',
+        message: '费姐正宗蟹仔粉店在亚平村委会美食城桥乡路29号一楼。',
+        likeCount: 8,
+        publishedAt: '2026-03-31T12:00:00.000Z',
+        matchedVenueNames: ['费姐正宗蟹仔粉店'],
+        addressHint: '北海市亚平村委会美食城桥乡路29号一楼',
+      },
+      {
+        commentId: 'c3',
+        authorName: '课代表B',
+        message: '第五家费姐正宗蟹仔粉店。',
+        likeCount: 38,
+        publishedAt: '2026-03-31T12:10:00.000Z',
+        matchedVenueNames: ['费姐正宗蟹仔粉店'],
+        addressHint: '',
+      },
+    ],
+  });
+  const venues = Array.isArray(merged?.venues) ? merged.venues as Array<Record<string, unknown>> : [];
+  const venue = venues.find((entry) => String(entry.venue_name || '') === '费姐正宗蟹仔粉店');
+  assert.ok(venue);
+  assert.equal(venue?.address_text, '北海市亚平村委会美食城桥乡路29号一楼');
+  assert.equal(venue?.needs_review, true);
+});
+
+test('buildFoodExtractionPrompt sends full raw comments plus local hint summary in one pass', () => {
+  const prompt = buildFoodExtractionPrompt({
+    metadata: {
+      bvid: 'BV1test',
+      aid: '1',
+      cid: '1',
+      title: '北海六家必吃粉店',
+      ownerMid: '123',
+      ownerName: '米雪食记',
+      durationSec: 120,
+      description: '',
+      tags: ['北海', '粉店'],
+      canonicalUrl: 'https://www.bilibili.com/video/BV1test/',
+    },
+    transcript: '第一家海鲜粉，第二家猪脚粉，第三家卷筒粉。',
+    commentClues: [
+      {
+        commentId: 'raw-1#1',
+        authorName: '课代表',
+        message: '✨本期🔍探访5家店✨ 🏠周末美食 ，📍位于：北海市·北海大道泰华小区六巷1号 🏠拾肆牛腩猪脚粉(人均15.0元) ，📍位于：北海市·中山路与光明里一巷交叉口西60米',
+        likeCount: 8,
+        publishedAt: '2026-03-31T12:00:00.000Z',
+        matchedVenueNames: ['周末美食'],
+        addressHint: '北海市北海大道泰华小区六巷1号',
+      },
+      {
+        commentId: 'raw-1#2',
+        authorName: '课代表',
+        message: '✨本期🔍探访5家店✨ 🏠周末美食 ，📍位于：北海市·北海大道泰华小区六巷1号 🏠拾肆牛腩猪脚粉(人均15.0元) ，📍位于：北海市·中山路与光明里一巷交叉口西60米',
+        likeCount: 8,
+        publishedAt: '2026-03-31T12:00:00.000Z',
+        matchedVenueNames: ['拾肆牛腩猪脚粉'],
+        addressHint: '北海市中山路与光明里一巷交叉口西60米',
+      },
+    ],
+  });
+
+  assert.match(prompt, /视频转写是主证据，评论是补充证据/);
+  assert.match(prompt, /评论原文：/);
+  assert.match(prompt, /本地提取到的可能店名：周末美食、拾肆牛腩猪脚粉/);
+  assert.match(prompt, /本地提取到的可能地址：北海市北海大道泰华小区六巷1号；北海市中山路与光明里一巷交叉口西60米/);
+  assert.match(prompt, /评论原文比本地提取的辅助线索更重要/);
 });
 
 test('filterCommentCluesForExtraction keeps comment-only venue names for cross-check', () => {

@@ -8,3 +8,13 @@ export async function loadSnapshot(): Promise<VideoFoodMapSnapshot> {
 export async function importVideo(url: string): Promise<ImportRecord> {
   return parseImportRecordResult(await invoke('video_food_map_import_video', { url }));
 }
+
+export async function setVenueConfirmation(venueId: string, confirmed: boolean): Promise<ImportRecord> {
+  return parseImportRecordResult(
+    await invoke('video_food_map_set_venue_confirmation', { venueId, confirmed }),
+  );
+}
+
+export async function toggleVenueFavorite(venueId: string): Promise<ImportRecord> {
+  return parseImportRecordResult(await invoke('video_food_map_toggle_venue_favorite', { venueId }));
+}

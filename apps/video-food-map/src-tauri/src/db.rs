@@ -21,6 +21,8 @@ pub struct SnapshotStats {
     pub venue_count: usize,
     pub mapped_venue_count: usize,
     pub review_venue_count: usize,
+    pub confirmed_venue_count: usize,
+    pub favorite_venue_count: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,6 +44,8 @@ pub struct VenueRecord {
     pub geocode_query: String,
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
+    pub user_confirmed: bool,
+    pub is_favorite: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -99,6 +103,8 @@ pub struct MapPoint {
     pub address_text: String,
     pub latitude: f64,
     pub longitude: f64,
+    pub is_favorite: bool,
+    pub user_confirmed: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -148,6 +154,12 @@ struct VenueInput {
     confidence: String,
     recommendation_polarity: String,
     needs_review: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct VenueUserState {
+    user_confirmed: bool,
+    is_favorite: bool,
 }
 
 fn now_iso() -> String {
@@ -286,6 +298,8 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
           geocode_query TEXT NOT NULL DEFAULT '',
           latitude REAL,
           longitude REAL,
+          user_confirmed INTEGER NOT NULL DEFAULT 0,
+          is_favorite INTEGER NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           FOREIGN KEY(import_id) REFERENCES imports(id) ON DELETE CASCADE
@@ -306,6 +320,18 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         "imports",
         "comment_clues_json",
         "TEXT NOT NULL DEFAULT '[]'",
+    )?;
+    ensure_column(
+        conn,
+        "venues",
+        "user_confirmed",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_column(
+        conn,
+        "venues",
+        "is_favorite",
+        "INTEGER NOT NULL DEFAULT 0",
     )?;
     Ok(())
 }
@@ -372,6 +398,8 @@ fn load_venues_for_import(conn: &Connection, import_id: &str) -> Result<Vec<Venu
               geocode_query,
               latitude,
               longitude,
+              user_confirmed,
+              is_favorite,
               created_at,
               updated_at
             FROM venues
@@ -402,6 +430,8 @@ fn load_venues_for_import(conn: &Connection, import_id: &str) -> Result<Vec<Venu
                 geocode_query: row.get("geocode_query")?,
                 latitude: row.get("latitude")?,
                 longitude: row.get("longitude")?,
+                user_confirmed: row.get::<_, i64>("user_confirmed")? != 0,
+                is_favorite: row.get::<_, i64>("is_favorite")? != 0,
                 created_at: row.get("created_at")?,
                 updated_at: row.get("updated_at")?,
             })
@@ -613,6 +643,63 @@ fn to_comment_clue_records(items: &[ProbeCommentClue]) -> Vec<CommentClueRecord>
         .collect()
 }
 
+fn normalize_text_key(value: &str) -> String {
+    value
+        .trim()
+        .to_lowercase()
+        .chars()
+        .filter(|char| !char.is_whitespace())
+        .collect()
+}
+
+fn venue_user_key(venue_name: &str, address_text: &str) -> String {
+    let normalized_name = normalize_text_key(venue_name);
+    let normalized_address = normalize_text_key(address_text);
+    if normalized_name.is_empty() && normalized_address.is_empty() {
+        return String::new();
+    }
+    format!("{normalized_name}::{normalized_address}")
+}
+
+fn load_existing_venue_user_state(
+    conn: &Connection,
+    import_id: &str,
+) -> Result<std::collections::HashMap<String, VenueUserState>, String> {
+    let mut statement = conn
+        .prepare(
+            "
+            SELECT venue_name, address_text, user_confirmed, is_favorite
+            FROM venues
+            WHERE import_id = ?1
+            ",
+        )
+        .map_err(|error| format!("failed to prepare venue user state query: {error}"))?;
+
+    let rows = statement
+        .query_map(params![import_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                VenueUserState {
+                    user_confirmed: row.get::<_, i64>(2)? != 0,
+                    is_favorite: row.get::<_, i64>(3)? != 0,
+                },
+            ))
+        })
+        .map_err(|error| format!("failed to query venue user state: {error}"))?;
+
+    let mut states = std::collections::HashMap::new();
+    for row in rows {
+        let (venue_name, address_text, state) =
+            row.map_err(|error| format!("failed to read venue user state: {error}"))?;
+        let key = venue_user_key(&venue_name, &address_text);
+        if !key.is_empty() {
+            states.entry(key).or_insert(state);
+        }
+    }
+    Ok(states)
+}
+
 fn address_is_specific(address_text: &str) -> bool {
     let normalized = address_text.trim();
     if normalized.is_empty() {
@@ -673,7 +760,23 @@ fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome) -> String 
     "search_only".to_string()
 }
 
+fn should_show_on_map(venue: &VenueRecord) -> bool {
+    (venue.review_state == "map_ready" || venue.user_confirmed)
+        && venue.latitude.is_some()
+        && venue.longitude.is_some()
+}
+
+fn load_import_id_for_venue(conn: &Connection, venue_id: &str) -> Result<String, String> {
+    conn.query_row(
+        "SELECT import_id FROM venues WHERE id = ?1",
+        params![venue_id],
+        |row| row.get::<_, String>(0),
+    )
+    .map_err(|error| format!("failed to load import id for venue {venue_id}: {error}"))
+}
+
 fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> Result<(), String> {
+    let existing_user_states = load_existing_venue_user_state(conn, import_id)?;
     conn.execute(
         "DELETE FROM venues WHERE import_id = ?1",
         params![import_id],
@@ -681,6 +784,10 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
     .map_err(|error| format!("failed to clear existing venues: {error}"))?;
 
     for (index, venue) in venues.iter().enumerate() {
+        let user_state = existing_user_states
+            .get(&venue_user_key(&venue.venue_name, &venue.address_text))
+            .copied()
+            .unwrap_or_default();
         let geocode_query = build_geocode_query(&venue.venue_name, &venue.address_text);
         let geocode =
             if venue.address_text.trim().is_empty() || !address_is_specific(&venue.address_text) {
@@ -696,7 +803,7 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
                     longitude: None,
                 }
             } else {
-                geocode_address(&geocode_query)
+                geocode_address(&geocode_query, &venue.venue_name, &venue.address_text)
             };
         let review_state = resolve_review_state(venue, &geocode);
         let now = now_iso();
@@ -721,9 +828,11 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
               geocode_query,
               latitude,
               longitude,
+              user_confirmed,
+              is_favorite,
               created_at,
               updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
             ",
             params![
                 generate_id("venue"),
@@ -744,6 +853,8 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
                 geocode.query,
                 geocode.latitude,
                 geocode.longitude,
+                if user_state.user_confirmed { 1 } else { 0 },
+                if user_state.is_favorite { 1 } else { 0 },
                 now,
                 now,
             ],
@@ -845,6 +956,31 @@ pub fn mark_import_failed_by_id(
     hydrate_import(&conn, load_import_row(&conn, import_id)?)
 }
 
+pub fn set_venue_confirmation(
+    venue_id: &str,
+    confirmed: bool,
+) -> Result<ImportRecord, String> {
+    let conn = open_db()?;
+    let import_id = load_import_id_for_venue(&conn, venue_id)?;
+    conn.execute(
+        "UPDATE venues SET user_confirmed = ?1, updated_at = ?2 WHERE id = ?3",
+        params![if confirmed { 1 } else { 0 }, now_iso(), venue_id],
+    )
+    .map_err(|error| format!("failed to update venue confirmation: {error}"))?;
+    hydrate_import(&conn, load_import_row(&conn, &import_id)?)
+}
+
+pub fn toggle_venue_favorite(venue_id: &str) -> Result<ImportRecord, String> {
+    let conn = open_db()?;
+    let import_id = load_import_id_for_venue(&conn, venue_id)?;
+    conn.execute(
+        "UPDATE venues SET is_favorite = CASE is_favorite WHEN 0 THEN 1 ELSE 0 END, updated_at = ?1 WHERE id = ?2",
+        params![now_iso(), venue_id],
+    )
+    .map_err(|error| format!("failed to update venue favorite state: {error}"))?;
+    hydrate_import(&conn, load_import_row(&conn, &import_id)?)
+}
+
 pub fn load_snapshot() -> Result<Snapshot, String> {
     let conn = open_db()?;
     let mut statement = conn
@@ -861,17 +997,25 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
     let mut venue_count = 0usize;
     let mut mapped_venue_count = 0usize;
     let mut review_venue_count = 0usize;
+    let mut confirmed_venue_count = 0usize;
+    let mut favorite_venue_count = 0usize;
 
     for row in import_rows {
         let import_record = hydrate_import(&conn, row)?;
         for venue in &import_record.venues {
             venue_count += 1;
-            if venue.review_state == "map_ready" {
+            if venue.is_favorite {
+                favorite_venue_count += 1;
+            }
+            if venue.user_confirmed {
+                confirmed_venue_count += 1;
+            }
+            if should_show_on_map(venue) {
                 mapped_venue_count += 1;
-            } else if venue.review_state == "review" {
+            } else if venue.review_state == "review" && !venue.user_confirmed {
                 review_venue_count += 1;
             }
-            if venue.review_state == "map_ready" {
+            if should_show_on_map(venue) {
                 if let (Some(latitude), Some(longitude)) = (venue.latitude, venue.longitude) {
                     map_points.push(MapPoint {
                         venue_id: venue.id.clone(),
@@ -882,6 +1026,8 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
                         address_text: venue.address_text.clone(),
                         latitude,
                         longitude,
+                        is_favorite: venue.is_favorite,
+                        user_confirmed: venue.user_confirmed,
                     });
                 }
             }
@@ -902,6 +1048,8 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
         venue_count,
         mapped_venue_count,
         review_venue_count,
+        confirmed_venue_count,
+        favorite_venue_count,
     };
 
     Ok(Snapshot {
@@ -913,7 +1061,7 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{address_is_specific, resolve_review_state, VenueInput};
+    use super::{address_is_specific, now_iso, resolve_review_state, should_show_on_map, VenueInput, VenueRecord};
     use crate::probe::GeocodeOutcome;
 
     fn sample_input(address_text: &str) -> VenueInput {
@@ -967,5 +1115,32 @@ mod tests {
             longitude: Some(121.459),
         };
         assert_eq!(resolve_review_state(&input, &geocode), "map_ready");
+    }
+
+    #[test]
+    fn user_confirmed_venue_with_coordinates_can_show_on_map() {
+        let venue = VenueRecord {
+            id: "venue-1".to_string(),
+            import_id: "import-1".to_string(),
+            venue_name: "那木山选有料蛋饼".to_string(),
+            address_text: "上海市静安区茂名北路68号".to_string(),
+            recommended_dishes: vec![],
+            cuisine_tags: vec![],
+            flavor_tags: vec![],
+            evidence: vec![],
+            confidence: "medium".to_string(),
+            recommendation_polarity: "positive".to_string(),
+            needs_review: true,
+            review_state: "review".to_string(),
+            geocode_status: "resolved".to_string(),
+            geocode_query: "上海市静安区茂名北路68号".to_string(),
+            latitude: Some(31.225032),
+            longitude: Some(121.460684),
+            user_confirmed: true,
+            is_favorite: false,
+            created_at: now_iso(),
+            updated_at: now_iso(),
+        };
+        assert!(should_show_on_map(&venue));
     }
 }
