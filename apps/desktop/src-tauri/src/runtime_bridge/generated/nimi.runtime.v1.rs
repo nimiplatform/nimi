@@ -2313,6 +2313,8 @@ pub struct ScenarioJob {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "18")]
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
+    #[prost(message, optional, tag = "19")]
+    pub reason_metadata: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {

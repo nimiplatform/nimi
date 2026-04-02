@@ -5,6 +5,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -452,6 +453,11 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 	if err == nil {
 		return ""
 	}
+	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
+		if detail := scenarioJobReasonDetailFromMetadata(metadata, reasonCode); detail != "" {
+			return detail
+		}
+	}
 	switch reasonCode {
 	case runtimev1.ReasonCode_ACTION_EXECUTED:
 		return "request canceled"
@@ -487,6 +493,75 @@ func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode)
 	default:
 		return "provider request failed"
 	}
+}
+
+func scenarioJobReasonMetadata(err error, reasonCode runtimev1.ReasonCode) *structpb.Struct {
+	if err == nil {
+		return nil
+	}
+	metadata, ok := grpcerr.ExtractReasonMetadata(err)
+	if !ok {
+		return nil
+	}
+	values := scenarioJobReasonMetadataValues(metadata, reasonCode)
+	if len(values) == 0 {
+		return nil
+	}
+	out, buildErr := structpb.NewStruct(values)
+	if buildErr != nil {
+		return nil
+	}
+	return out
+}
+
+func scenarioJobReasonMetadataValues(metadata map[string]string, reasonCode runtimev1.ReasonCode) map[string]any {
+	if len(metadata) == 0 {
+		return nil
+	}
+	values := map[string]any{}
+	if providerMessage := scenarioJobReasonDetailFromMetadata(metadata, reasonCode); providerMessage != "" {
+		values["provider_message"] = providerMessage
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	return values
+}
+
+func scenarioJobReasonDetailFromMetadata(metadata map[string]string, reasonCode runtimev1.ReasonCode) string {
+	if len(metadata) == 0 {
+		return ""
+	}
+	providerMessage := sanitizeScenarioProviderDetail(metadata["provider_message"])
+	if providerMessage == "" {
+		return ""
+	}
+	switch reasonCode {
+	case runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE:
+		return providerMessage
+	default:
+		return ""
+	}
+}
+
+func sanitizeScenarioProviderDetail(input string) string {
+	normalized := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(input, "\n", " "), "\t", " "))
+	if normalized == "" {
+		return ""
+	}
+	lowered := strings.ToLower(normalized)
+	if strings.Contains(lowered, "x-nimi-provider-api-key") ||
+		strings.Contains(lowered, "provider_api_key") ||
+		strings.Contains(lowered, "\"providerapikey\"") {
+		return "[REDACTED_PROVIDER_API_KEY]"
+	}
+	if len(normalized) > 240 {
+		return strings.TrimSpace(normalized[:240]) + "..."
+	}
+	return normalized
 }
 
 func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {

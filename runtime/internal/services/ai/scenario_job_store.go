@@ -198,6 +198,7 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 			func(job *runtimev1.ScenarioJob) {
 				job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 				job.ReasonDetail = strings.TrimSpace(req.GetReason())
+				job.ReasonMetadata = nil
 			},
 		)
 		if !ok {
@@ -433,6 +434,7 @@ func (s *Service) submitScenarioAsyncJob(
 		ProviderJobId:     "",
 		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
 		ReasonDetail:      "",
+		ReasonMetadata:    nil,
 		RetryCount:        0,
 		CreatedAt:         now,
 		UpdatedAt:         now,
@@ -614,6 +616,7 @@ func (s *Service) executeScenarioAsyncJob(
 			}
 			job.ReasonCode = reasonCode
 			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
+			job.ReasonMetadata = scenarioJobReasonMetadata(err, reasonCode)
 		}); !ok {
 			s.logger.Warn("scenario job transition to terminal failed", "job_id", jobID, "status", statusValue.String())
 		}
@@ -626,6 +629,7 @@ func (s *Service) executeScenarioAsyncJob(
 		job.ProviderJobId = strings.TrimSpace(providerJobID)
 		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		job.ReasonDetail = ""
+		job.ReasonMetadata = nil
 		job.Artifacts = cloneScenarioArtifacts(artifacts)
 		job.Usage = usage
 	}); !ok {

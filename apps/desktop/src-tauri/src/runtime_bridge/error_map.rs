@@ -1,4 +1,7 @@
+use prost::Message;
 use serde::Serialize;
+use serde_json::{Map, Value};
+use std::collections::HashMap;
 use tonic::{Code, Status};
 
 #[derive(Debug, Serialize)]
@@ -9,6 +12,8 @@ pub struct RuntimeBridgeErrorPayload {
     pub trace_id: String,
     pub retryable: bool,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<Value>,
 }
 
 fn encode(payload: RuntimeBridgeErrorPayload) -> String {
@@ -50,6 +55,27 @@ struct StructuredStatusPayload {
     trace_id: String,
     retryable: Option<bool>,
     message: String,
+    details: Option<Value>,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+struct GoogleRpcStatus {
+    #[prost(int32, tag = "1")]
+    code: i32,
+    #[prost(string, tag = "2")]
+    message: String,
+    #[prost(message, repeated, tag = "3")]
+    details: Vec<prost_types::Any>,
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+struct GoogleRpcErrorInfo {
+    #[prost(string, tag = "1")]
+    reason: String,
+    #[prost(string, tag = "2")]
+    domain: String,
+    #[prost(map = "string, string", tag = "3")]
+    metadata: HashMap<String, String>,
 }
 
 fn parse_json_object(input: &str) -> Option<serde_json::Value> {
@@ -93,6 +119,32 @@ fn read_retryable_from_candidates(candidates: &[&serde_json::Value]) -> Option<b
     None
 }
 
+fn sanitize_json_value(value: &Value) -> Value {
+    match value {
+        Value::String(text) => Value::String(sanitize_error_message(text)),
+        Value::Array(items) => Value::Array(items.iter().map(sanitize_json_value).collect()),
+        Value::Object(object) => {
+            let sanitized = object
+                .iter()
+                .map(|(key, value)| (key.clone(), sanitize_json_value(value)))
+                .collect::<Map<String, Value>>();
+            Value::Object(sanitized)
+        }
+        _ => value.clone(),
+    }
+}
+
+fn read_details_from_candidates(candidates: &[&serde_json::Value]) -> Option<Value> {
+    for candidate in candidates {
+        if let Some(value) = candidate.get("details") {
+            if value.is_object() {
+                return Some(sanitize_json_value(value));
+            }
+        }
+    }
+    None
+}
+
 fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayload> {
     let trimmed = message.trim();
     if trimmed.is_empty() {
@@ -119,6 +171,7 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
     let action_hint = read_string_from_candidates(&candidates, &["actionHint", "action_hint"]);
     let trace_id = read_string_from_candidates(&candidates, &["traceId", "trace_id"]);
     let retryable = read_retryable_from_candidates(&candidates);
+    let details = read_details_from_candidates(&candidates);
     let normalized_message = read_string_from_candidates(&candidates, &["message"]);
     let normalized_message = if normalized_message.is_empty() {
         trimmed.to_string()
@@ -141,6 +194,7 @@ fn parse_structured_status_payload(message: &str) -> Option<StructuredStatusPayl
         trace_id,
         retryable,
         message: normalized_message,
+        details,
     })
 }
 
@@ -190,6 +244,62 @@ fn extract_trace_id_from_status(
         .unwrap_or_default()
 }
 
+fn extract_error_info_details(status: &Status) -> Option<Value> {
+    const ERROR_INFO_TYPE_URL: &str = "type.googleapis.com/google.rpc.ErrorInfo";
+    const ERROR_INFO_DOMAIN: &str = "nimi.runtime.v1";
+    let details_bytes = status.details();
+    if details_bytes.is_empty() {
+        return None;
+    }
+    let decoded = GoogleRpcStatus::decode(details_bytes).ok()?;
+    let mut object = Map::new();
+    for detail in decoded.details {
+        if detail.type_url.trim() != ERROR_INFO_TYPE_URL {
+            continue;
+        }
+        let Ok(info) = GoogleRpcErrorInfo::decode(detail.value.as_slice()) else {
+            continue;
+        };
+        if info.domain.trim() != ERROR_INFO_DOMAIN {
+            continue;
+        }
+        for (key, value) in info.metadata {
+            let normalized_key = key.trim();
+            if normalized_key.is_empty()
+                || normalized_key == "action_hint"
+                || normalized_key == "trace_id"
+                || normalized_key == "retryable"
+            {
+                continue;
+            }
+            let normalized_value = sanitize_error_message(value.as_str());
+            if normalized_value.is_empty() {
+                continue;
+            }
+            object.insert(normalized_key.to_string(), Value::String(normalized_value));
+        }
+    }
+    if object.is_empty() {
+        None
+    } else {
+        Some(Value::Object(object))
+    }
+}
+
+fn merge_details(primary: Option<Value>, secondary: Option<Value>) -> Option<Value> {
+    match (primary, secondary) {
+        (None, None) => None,
+        (Some(value), None) | (None, Some(value)) => Some(value),
+        (Some(Value::Object(mut left)), Some(Value::Object(right))) => {
+            for (key, value) in right {
+                left.entry(key).or_insert(value);
+            }
+            Some(Value::Object(left))
+        }
+        (Some(value), Some(_)) => Some(value),
+    }
+}
+
 fn grpc_code_reason_suffix(code: Code) -> &'static str {
     match code {
         Code::Ok => "OK",
@@ -237,6 +347,7 @@ pub fn bridge_error(code: &str, message: &str) -> String {
         trace_id: String::new(),
         retryable: false,
         message: sanitize_error_message(message),
+        details: None,
     })
 }
 
@@ -289,6 +400,10 @@ pub fn bridge_status_error(status: Status) -> String {
             .to_string()
         });
     let trace_id = extract_trace_id_from_status(&status, structured.as_ref());
+    let details = merge_details(
+        structured.as_ref().and_then(|value| value.details.clone()),
+        extract_error_info_details(&status),
+    );
     let message = structured
         .as_ref()
         .map(|value| value.message.trim().to_string())
@@ -301,12 +416,15 @@ pub fn bridge_status_error(status: Status) -> String {
         trace_id,
         retryable,
         message,
+        details,
     })
 }
 
 #[cfg(test)]
 mod tests {
+    use prost::Message;
     use serde_json::Value;
+    use std::collections::HashMap;
     use tonic::metadata::{MetadataMap, MetadataValue};
     use tonic::{Code, Status};
 
@@ -352,6 +470,55 @@ mod tests {
             payload.get("actionHint").and_then(Value::as_str),
             Some("retry_or_restart_runtime")
         );
+    }
+
+    #[test]
+    fn bridge_status_error_preserves_structured_details() {
+        let payload = parse_json(bridge_status_error(Status::new(
+            Code::Unavailable,
+            "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\",\"details\":{\"provider_message\":\"dial tcp 127.0.0.1:8321: connect: connection refused\"}}",
+        )));
+        assert_eq!(
+            payload.get("reasonCode").and_then(Value::as_str),
+            Some("AI_PROVIDER_UNAVAILABLE")
+        );
+        let details = payload.get("details").and_then(Value::as_object).expect("details object");
+        assert_eq!(
+            details.get("provider_message").and_then(Value::as_str),
+            Some("dial tcp 127.0.0.1:8321: connect: connection refused")
+        );
+    }
+
+    #[test]
+    fn bridge_status_error_extracts_error_info_metadata_details() {
+        let rich_status = super::GoogleRpcStatus {
+            code: Code::Unavailable as i32,
+            message: "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\"}".to_string(),
+            details: vec![prost_types::Any {
+                type_url: "type.googleapis.com/google.rpc.ErrorInfo".to_string(),
+                value: super::GoogleRpcErrorInfo {
+                    reason: "AI_PROVIDER_UNAVAILABLE".to_string(),
+                    domain: "nimi.runtime.v1".to_string(),
+                    metadata: HashMap::from([
+                        ("provider_message".to_string(), "dial tcp 127.0.0.1:8321: connect: connection refused".to_string()),
+                        ("action_hint".to_string(), "check_provider_endpoint_or_local_runtime_health".to_string()),
+                    ]),
+                }
+                .encode_to_vec(),
+            }],
+        }
+        .encode_to_vec();
+        let payload = parse_json(bridge_status_error(Status::with_details(
+            Code::Unavailable,
+            "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\"}",
+            rich_status.into(),
+        )));
+        let details = payload.get("details").and_then(Value::as_object).expect("details object");
+        assert_eq!(
+            details.get("provider_message").and_then(Value::as_str),
+            Some("dial tcp 127.0.0.1:8321: connect: connection refused")
+        );
+        assert!(details.get("action_hint").is_none());
     }
 
     #[test]

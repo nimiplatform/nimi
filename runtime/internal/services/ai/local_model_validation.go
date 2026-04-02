@@ -19,6 +19,7 @@ import (
 type localModelLister interface {
 	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
 	WarmLocalAsset(context.Context, *runtimev1.WarmLocalAssetRequest) (*runtimev1.WarmLocalAssetResponse, error)
+	StartLocalAsset(context.Context, *runtimev1.StartLocalAssetRequest) (*runtimev1.StartLocalAssetResponse, error)
 }
 
 type localImageProfileResolver interface {
@@ -65,10 +66,7 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 			return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
 		}
 		if reason == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE && strings.TrimSpace(unavailableDetail) != "" {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, reason, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    unavailableDetail,
-			})
+			return localModelUnavailableError(unavailableDetail)
 		}
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, reason)
 	}
@@ -76,19 +74,30 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	var warmEndpoint string
-	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldWarmInstalledLocalModel(selected, modal) {
 		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		if err != nil {
-			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				ActionHint: "inspect_local_runtime_model_health",
-				Message:    err.Error(),
-			})
+			return localModelUnavailableError(err.Error())
 		}
 		selected.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 		if warmed != nil && strings.TrimSpace(warmed.GetEndpoint()) != "" {
 			warmEndpoint = strings.TrimSpace(warmed.GetEndpoint())
+		}
+	}
+	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal) {
+		started, err := s.localModel.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{
+			LocalAssetId: selected.GetLocalAssetId(),
+		})
+		if err != nil {
+			return localModelUnavailableError(err.Error())
+		}
+		if started != nil && started.GetAsset() != nil {
+			selected = started.GetAsset()
+		}
+		if selected.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+			return localModelUnavailableError(nonActiveLocalModelStartDetail(selected))
 		}
 	}
 	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
@@ -96,6 +105,85 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
 	return nil
+}
+
+func shouldWarmInstalledLocalModel(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
+	if model == nil {
+		return false
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_UNSPECIFIED, runtimev1.Modal_MODAL_TEXT, runtimev1.Modal_MODAL_EMBEDDING:
+	default:
+		return false
+	}
+	for _, capability := range model.GetCapabilities() {
+		normalized := strings.ToLower(strings.TrimSpace(capability))
+		if normalized == "chat" || normalized == "text.generate" {
+			return true
+		}
+	}
+	return false
+}
+
+func installedLocalProviderEndpoint(model *runtimev1.LocalAssetRecord, endpointOverride string) string {
+	if trimmed := strings.TrimSpace(endpointOverride); trimmed != "" {
+		return trimmed
+	}
+	if model == nil {
+		return ""
+	}
+	return strings.TrimSpace(model.GetEndpoint())
+}
+
+func shouldStartInstalledLocalModel(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
+	if model == nil || model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		return false
+	}
+	if strings.TrimSpace(model.GetLocalAssetId()) == "" {
+		return false
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE,
+		runtimev1.Modal_MODAL_VIDEO,
+		runtimev1.Modal_MODAL_TTS,
+		runtimev1.Modal_MODAL_STT,
+		runtimev1.Modal_MODAL_MUSIC:
+		return true
+	default:
+		return false
+	}
+}
+
+func nonActiveLocalModelStartDetail(model *runtimev1.LocalAssetRecord) string {
+	if model == nil {
+		return "local model failed to become active"
+	}
+	if detail := strings.TrimSpace(model.GetHealthDetail()); detail != "" {
+		return detail
+	}
+	status := strings.ToLower(strings.TrimSpace(model.GetStatus().String()))
+	if status == "" {
+		return "local model failed to become active"
+	}
+	return "local model start did not reach active state: " + status
+}
+
+func localModelUnavailableError(detail string) error {
+	trimmed := strings.TrimSpace(detail)
+	options := grpcerr.ReasonOptions{
+		ActionHint: "inspect_local_runtime_model_health",
+		Message:    trimmed,
+	}
+	if trimmed != "" {
+		options.Metadata = map[string]string{
+			"provider_message": trimmed,
+		}
+	}
+	return grpcerr.WithReasonCodeOptions(
+		codes.FailedPrecondition,
+		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		options,
+	)
 }
 
 func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {

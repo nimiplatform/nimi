@@ -16,6 +16,8 @@ import {
   type ScenarioJobEvent,
   type SubmitScenarioJobRequest,
 } from './generated/runtime/v1/ai';
+import { Struct as ProtoStruct } from './generated/google/protobuf/struct.js';
+import { ReasonCode as RuntimeReasonCode } from './generated/runtime/v1/common';
 import type { RuntimeInternalContext } from './internal-context.js';
 import type {
   ImageGenerateInput,
@@ -200,6 +202,27 @@ export async function runtimeSubmitScenarioJobForMedia(
   });
 
   return job;
+}
+
+function normalizeScenarioJobReasonCode(value: unknown): string {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[numeric];
+    if (enumName && enumName !== 'REASON_CODE_UNSPECIFIED') {
+      return String(enumName).trim();
+    }
+  }
+  return normalizeText(value);
+}
+
+function scenarioJobReasonDetails(job: ScenarioJob): JsonObject | undefined {
+  if (!job.reasonMetadata) {
+    return undefined;
+  }
+  const json = ProtoStruct.toJson(job.reasonMetadata);
+  return json && typeof json === 'object' && !Array.isArray(json)
+    ? json as JsonObject
+    : undefined;
 }
 
 export async function runtimeGetScenarioJobForMedia(
@@ -687,11 +710,14 @@ export async function runtimeWaitForScenarioJobCompletion(
       || job.status === ScenarioJobStatus.CANCELED
       || job.status === ScenarioJobStatus.TIMEOUT
     ) {
+      const reasonCode = normalizeScenarioJobReasonCode(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
       throw createNimiError({
-        message: normalizeText(job.reasonDetail) || `scenario job failed: ${job.reasonCode}`,
-        reasonCode: normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE,
+        message: normalizeText(job.reasonDetail) || `scenario job failed: ${reasonCode}`,
+        reasonCode,
         actionHint: 'retry_scenario_job_request',
+        traceId: normalizeText(job.traceId) || undefined,
         source: 'runtime',
+        details: scenarioJobReasonDetails(job),
       });
     }
 

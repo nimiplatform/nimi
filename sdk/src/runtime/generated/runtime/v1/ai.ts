@@ -1013,6 +1013,10 @@ export interface ScenarioJob {
      * @generated from protobuf field: repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 18
      */
     ignoredExtensions: IgnoredScenarioExtension[];
+    /**
+     * @generated from protobuf field: google.protobuf.Struct reason_metadata = 19
+     */
+    reasonMetadata?: Struct;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -5081,7 +5085,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 15, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact },
             { no: 16, name: "usage", kind: "message", T: () => UsageStats },
             { no: 17, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 18, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension }
+            { no: 18, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension },
+            { no: 19, name: "reason_metadata", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -5162,6 +5167,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions */ 18:
                     message.ignoredExtensions.push(IgnoredScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* google.protobuf.Struct reason_metadata */ 19:
+                    message.reasonMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.reasonMetadata);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5228,6 +5236,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 18; */
         for (let i = 0; i < message.ignoredExtensions.length; i++)
             IgnoredScenarioExtension.internalBinaryWrite(message.ignoredExtensions[i], writer.tag(18, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct reason_metadata = 19; */
+        if (message.reasonMetadata)
+            Struct.internalBinaryWrite(message.reasonMetadata, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

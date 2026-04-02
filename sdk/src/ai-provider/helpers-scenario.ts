@@ -6,6 +6,7 @@ import {
 import type {
   Value as ProtoValue,
 } from '../runtime/generated/google/protobuf/struct.js';
+import { Struct as ProtoStruct } from '../runtime/generated/google/protobuf/struct.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
   type NimiArtifact,
@@ -19,11 +20,13 @@ import {
   fromRouteDecision,
   toCallOptions,
 } from './helpers-shared.js';
+import { ReasonCode as RuntimeReasonCode } from '../runtime/generated/runtime/v1/common.js';
 import {
   type CancelScenarioJobRequest,
   ExecutionMode,
   type GetScenarioArtifactsRequest,
   type GetScenarioJobRequest,
+  type ScenarioJob,
   ScenarioJobStatus,
   type ScenarioArtifact,
   type ScenarioOutput,
@@ -38,6 +41,13 @@ type ScenarioJobExecution = {
 };
 
 function ensureScenarioJobReasonCode(value: unknown): string {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[numeric];
+    if (enumName && enumName !== 'REASON_CODE_UNSPECIFIED') {
+      return String(enumName).trim();
+    }
+  }
   const reasonCode = normalizeText(value);
   if (reasonCode) {
     return reasonCode;
@@ -58,6 +68,17 @@ function sleep(ms: number): Promise<void> {
 
 function nextPollDelayMs(attempt: number): number {
   return Math.min(2_000, 250 * Math.max(1, attempt));
+}
+
+function scenarioJobReasonDetails(job: ScenarioJob | null | undefined): Record<string, unknown> | undefined {
+  const metadata = job?.reasonMetadata;
+  if (!metadata || typeof metadata !== 'object') {
+    return undefined;
+  }
+  const json = ProtoStruct.toJson(metadata as Parameters<typeof ProtoStruct.toJson>[0]);
+  return json && typeof json === 'object' && !Array.isArray(json)
+    ? json as Record<string, unknown>
+    : undefined;
 }
 
 export async function executeScenarioJob(
@@ -159,7 +180,9 @@ export async function executeScenarioJob(
         message: normalizeText(job?.reasonDetail) || `scenario job failed: ${reasonCode}`,
         reasonCode,
         actionHint: 'retry_scenario_job_request',
+        traceId: normalizeText(job?.traceId),
         source: 'runtime',
+        details: scenarioJobReasonDetails(job),
       });
     }
     if ((Date.now() - startedAt) > maxWaitMs) {

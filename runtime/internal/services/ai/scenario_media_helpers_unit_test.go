@@ -44,6 +44,34 @@ func TestScenarioModalFromType(t *testing.T) {
 	}
 }
 
+func TestSanitizeScenarioJobReasonDetail_PreservesSafeProviderMetadataForUnavailable(t *testing.T) {
+	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+		Message: "provider request failed",
+		Metadata: map[string]string{
+			"provider_message": "dial tcp 127.0.0.1:8321: connect: connection refused",
+		},
+	})
+	if got := sanitizeScenarioJobReasonDetail(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE); got != "dial tcp 127.0.0.1:8321: connect: connection refused" {
+		t.Fatalf("unexpected provider detail: %q", got)
+	}
+}
+
+func TestScenarioJobReasonMetadata_PreservesSafeProviderMetadataForUnavailable(t *testing.T) {
+	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+		Message: "provider request failed",
+		Metadata: map[string]string{
+			"provider_message": "dial tcp 127.0.0.1:8321: connect: connection refused",
+		},
+	})
+	out := scenarioJobReasonMetadata(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	if out == nil {
+		t.Fatal("expected structured scenario job reason metadata")
+	}
+	if got := out.AsMap()["provider_message"]; got != "dial tcp 127.0.0.1:8321: connect: connection refused" {
+		t.Fatalf("unexpected structured provider detail: %#v", got)
+	}
+}
+
 func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 	t.Run("image valid", func(t *testing.T) {
 		req := baseScenarioJobRequest()

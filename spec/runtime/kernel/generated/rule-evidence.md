@@ -181,6 +181,7 @@
 | `K-JOB-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-JOB-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-JOB-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-JOB-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

@@ -7,6 +7,7 @@ import {
   toEmbeddingVectorsFromScenarioOutput,
 } from '../../src/ai-provider/helpers-scenario.js';
 import type { RuntimeDefaults, RuntimeForAiProvider } from '../../src/ai-provider/types.js';
+import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 import {
   ScenarioJobStatus,
   type RuntimeAiSubmitScenarioJobRequestInput,
@@ -97,6 +98,39 @@ test('executeScenarioJob preserves runtime scenario reasonCode when present', as
     (error: Error & { reasonCode?: string }) => {
       assert.equal(error.reasonCode, ReasonCode.AI_PROVIDER_TIMEOUT);
       assert.equal(error.message, 'provider timed out');
+      return true;
+    },
+  );
+});
+
+test('executeScenarioJob preserves structured reason details from scenario jobs', async () => {
+  const runtime = createScenarioRuntime({
+    getScenarioJob: async () => ({
+      job: {
+        status: ScenarioJobStatus.FAILED,
+        reasonCode: 202,
+        reasonDetail: 'provider request failed',
+        traceId: 'trace-scenario-details',
+        reasonMetadata: Struct.fromJson({
+          provider_message: 'dial tcp 127.0.0.1:8321: connect: connection refused',
+        } as never),
+      },
+    }),
+  });
+
+  await assert.rejects(
+    () => executeScenarioJob(
+      runtime,
+      DEFAULTS,
+      {} as RuntimeAiSubmitScenarioJobRequestInput,
+      1000,
+    ),
+    (error: Error & { reasonCode?: string; traceId?: string; details?: Record<string, unknown> }) => {
+      assert.equal(error.reasonCode, ReasonCode.AI_PROVIDER_UNAVAILABLE);
+      assert.equal(error.traceId, 'trace-scenario-details');
+      assert.deepEqual(error.details, {
+        provider_message: 'dial tcp 127.0.0.1:8321: connect: connection refused',
+      });
       return true;
     },
   );

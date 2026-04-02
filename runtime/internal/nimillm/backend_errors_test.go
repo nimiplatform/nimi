@@ -82,6 +82,9 @@ func TestMapProviderHTTPError_BadRequestQuotaExceededMapsRateLimited(t *testing.
 	if metadata["action_hint"] != "replenish_provider_balance_or_skip_live_test" {
 		t.Fatalf("unexpected action_hint: %q", metadata["action_hint"])
 	}
+	if metadata["provider_message"] != "You exceeded your current quota, please check your plan and billing details" {
+		t.Fatalf("unexpected provider_message: %q", metadata["provider_message"])
+	}
 }
 
 func TestMapProviderHTTPError_ProviderInternal(t *testing.T) {
@@ -373,10 +376,14 @@ func TestMapProviderRequestError_NetworkTimeout(t *testing.T) {
 }
 
 func TestMapProviderRequestError_GenericNetwork(t *testing.T) {
-	err := MapProviderRequestError(&net.DNSError{})
+	err := MapProviderRequestError(&net.DNSError{Err: "connection refused"})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
 		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if !strings.Contains(metadata["provider_message"], "connection refused") {
+		t.Fatalf("expected provider_message to include connection detail, got %q", metadata["provider_message"])
 	}
 }
 

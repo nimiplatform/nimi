@@ -102,6 +102,25 @@ func TestExtractReasonCode_WrongDomain(t *testing.T) {
 	}
 }
 
+func TestExtractReasonMetadata_Roundtrip(t *testing.T) {
+	err := WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, ReasonOptions{
+		ActionHint: "retry_or_restart_runtime",
+		Metadata: map[string]string{
+			"provider_message": "dial tcp 127.0.0.1:8321: connect: connection refused",
+		},
+	})
+	metadata, ok := ExtractReasonMetadata(err)
+	if !ok {
+		t.Fatal("expected metadata extraction to succeed")
+	}
+	if metadata["provider_message"] != "dial tcp 127.0.0.1:8321: connect: connection refused" {
+		t.Fatalf("unexpected provider_message: %#v", metadata)
+	}
+	if metadata["action_hint"] != "retry_or_restart_runtime" {
+		t.Fatalf("unexpected action_hint metadata: %#v", metadata)
+	}
+}
+
 func TestWithReasonCode_MessageContainsReasonString(t *testing.T) {
 	reason := runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
 	err := WithReasonCode(codes.DeadlineExceeded, reason)

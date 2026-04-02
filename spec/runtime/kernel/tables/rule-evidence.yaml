@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_k_rules: 395
+  total_k_rules: 396
   audit_date: "2026-03-18"
 
 fragments:

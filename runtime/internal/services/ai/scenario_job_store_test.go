@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/metadata"
 )
@@ -159,6 +161,69 @@ func TestSubmitScenarioJobStoresScenarioNativeState(t *testing.T) {
 	}
 }
 
+func TestSubmitScenarioJobLocalImageStartFailureFailsBeforeAsyncJobCreation(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{EnforceEndpointSecurity: true})
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-installed",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             "http://127.0.0.1:8321/v1",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+				HealthDetail:         "probe request failed: dial tcp 127.0.0.1:8321: connect: connection refused",
+			},
+		},
+	}
+
+	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/flux.1-schnell",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: "orange cat",
+					N:      1,
+					Size:   "1024x1024",
+				},
+			},
+		},
+	})
+	if resp != nil {
+		t.Fatalf("expected submit to fail before job creation, got response=%v", resp)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
+	}
+	if err == nil || err.Error() == "" || !strings.Contains(err.Error(), "connection refused") {
+		t.Fatalf("expected startup failure detail to be preserved, got %v", err)
+	}
+	if jobs := len(svc.scenarioJobs.jobs); jobs != 0 {
+		t.Fatalf("expected no async job to be created on local image activation failure, got %d", jobs)
+	}
+}
+
 func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 	speechBytes := []byte("scenario-events-speech")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -221,6 +286,66 @@ func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 	}
 	if !hasTerminal {
 		t.Fatalf("expected at least one terminal event")
+	}
+}
+
+func TestSubmitScenarioJobFailurePersistsStructuredReasonMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hijacker, ok := w.(http.Hijacker)
+		if !ok {
+			t.Fatalf("response writer does not support hijack")
+		}
+		conn, _, err := hijacker.Hijack()
+		if err != nil {
+			t.Fatalf("hijack response: %v", err)
+		}
+		_ = conn.Close()
+	}))
+	serverURL := server.URL
+	server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: serverURL}},
+	})
+	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "openai/tts-1",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "trigger provider failure",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit scenario job: %v", err)
+	}
+
+	job := waitScenarioJobTerminal(t, svc, submitResp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		t.Fatalf("expected failed, got=%v reason=%v detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
+	}
+	if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", job.GetReasonCode())
+	}
+	if job.GetReasonMetadata() == nil {
+		t.Fatal("expected structured reason metadata on failed scenario job")
+	}
+	providerMessage, _ := job.GetReasonMetadata().AsMap()["provider_message"].(string)
+	if providerMessage == "" {
+		t.Fatalf("expected provider_message in reason metadata, got %v", job.GetReasonMetadata().AsMap())
+	}
+	if !strings.Contains(providerMessage, "EOF") && !strings.Contains(providerMessage, "connection") {
+		t.Fatalf("expected transport failure detail in provider_message, got %q", providerMessage)
 	}
 }
 

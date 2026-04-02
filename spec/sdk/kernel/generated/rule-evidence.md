@@ -46,6 +46,7 @@
 | `S-ERROR-013` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-ERROR-014` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-ERROR-015` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-ERROR-016` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-GATE-001` | `covered` | `sdk_kernel_consistency` |
 | `S-GATE-010` | `covered` | `sdk_kernel_consistency`, `sdk_test_gate` |
 | `S-GATE-020` | `covered` | `sdk_kernel_consistency`, `sdk_boundary_gate` |

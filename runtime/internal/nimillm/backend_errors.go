@@ -149,18 +149,39 @@ func MapProviderRequestError(err error) error {
 	if err == nil {
 		return nil
 	}
+	providerMessage := normalizeProviderErrorMessage(err.Error())
+	metadata := map[string]string{}
+	if providerMessage != "" {
+		metadata["provider_message"] = providerMessage
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_provider_endpoint",
+			Message:    "provider request timed out",
+			Metadata:   metadata,
+		})
 	}
 	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+			ActionHint: "retry_or_check_provider_endpoint",
+			Message:    "provider request timed out",
+			Metadata:   metadata,
+		})
 	}
-	return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+		ActionHint: "check_provider_endpoint_or_local_runtime_health",
+		Message:    "provider request failed",
+		Metadata:   metadata,
+	})
 }
 
 // MapProviderHTTPError maps an HTTP status code to gRPC status.
 func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 	providerMessage := normalizeProviderErrorMessage(ProviderErrorMessage(payload))
+	metadata := map[string]string{}
+	if providerMessage != "" {
+		metadata["provider_message"] = providerMessage
+	}
 	if IsContentFilterMessage(strings.ToLower(providerMessage)) {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
 	}
@@ -173,10 +194,12 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 			Message:    genericProviderFailure,
+			Metadata:   metadata,
 		})
 	case http.StatusUnauthorized, http.StatusForbidden:
 		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, grpcerr.ReasonOptions{
-			Message: genericAuthFailure,
+			Message:  genericAuthFailure,
+			Metadata: metadata,
 		})
 	case http.StatusPaymentRequired:
 		if providerMessage == "" {
@@ -186,11 +209,13 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 			Message:    genericProviderFailure,
+			Metadata:   metadata,
 		})
 	case http.StatusNotFound:
 		return grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND, grpcerr.ReasonOptions{
 			ActionHint: "switch_model_or_refresh_connector_models",
 			Message:    genericModelNotFound,
+			Metadata:   metadata,
 		})
 	case http.StatusRequestTimeout, http.StatusGatewayTimeout:
 		return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)

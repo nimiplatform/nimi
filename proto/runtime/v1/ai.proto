@@ -458,6 +458,7 @@ message ScenarioJob {
   UsageStats usage = 16;
   string trace_id = 17;
   repeated IgnoredScenarioExtension ignored_extensions = 18;
+  google.protobuf.Struct reason_metadata = 19;
 }
 
 message SubmitScenarioJobRequest {

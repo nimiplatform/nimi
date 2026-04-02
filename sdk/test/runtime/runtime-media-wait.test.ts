@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '../../src/types/index.js';
+import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 import { ScenarioJobStatus } from '../../src/runtime/generated/runtime/v1/ai.js';
 import { runtimeWaitForScenarioJobCompletion } from '../../src/runtime/runtime-media.js';
 import { createMockContext } from './runtime-media-test-helpers.js';
@@ -22,6 +23,10 @@ test('wait: throws when job is FAILED', async () => {
     status: ScenarioJobStatus.FAILED,
     reasonCode: ReasonCode.AI_PROVIDER_INTERNAL,
     reasonDetail: 'something went wrong',
+    traceId: 'trace-j-fail',
+    reasonMetadata: Struct.fromJson({
+      provider_message: 'upstream provider returned 500',
+    } as never),
   };
   const ctx = createMockContext({
     invokeWithClient: async () => ({ job: failedJob }),
@@ -30,8 +35,38 @@ test('wait: throws when job is FAILED', async () => {
   await assert.rejects(
     () => runtimeWaitForScenarioJobCompletion(ctx, 'j-fail', {}),
     (error: unknown) => {
-      const err = error as { message?: string };
-      return err.message === 'something went wrong';
+      const err = error as { message?: string; traceId?: string; details?: Record<string, unknown> };
+      assert.equal(err.message, 'something went wrong');
+      assert.equal(err.traceId, 'trace-j-fail');
+      assert.deepEqual(err.details, { provider_message: 'upstream provider returned 500' });
+      return true;
+    },
+  );
+});
+
+test('wait: normalizes numeric scenario job reasonCode and preserves details', async () => {
+  const failedJob = {
+    jobId: 'j-fail-numeric',
+    status: ScenarioJobStatus.FAILED,
+    reasonCode: 202,
+    reasonDetail: 'provider request failed',
+    reasonMetadata: Struct.fromJson({
+      provider_message: 'dial tcp 127.0.0.1:8321: connect: connection refused',
+    } as never),
+  };
+  const ctx = createMockContext({
+    invokeWithClient: async () => ({ job: failedJob }),
+  });
+
+  await assert.rejects(
+    () => runtimeWaitForScenarioJobCompletion(ctx, 'j-fail-numeric', {}),
+    (error: unknown) => {
+      const err = error as { reasonCode?: string; details?: Record<string, unknown> };
+      assert.equal(err.reasonCode, ReasonCode.AI_PROVIDER_UNAVAILABLE);
+      assert.deepEqual(err.details, {
+        provider_message: 'dial tcp 127.0.0.1:8321: connect: connection refused',
+      });
+      return true;
     },
   );
 });

@@ -111,3 +111,31 @@ func ExtractReasonCode(err error) (runtimev1.ReasonCode, bool) {
 	}
 	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, false
 }
+
+// ExtractReasonMetadata extracts ErrorInfo metadata from a gRPC error carrying
+// the nimi.runtime.v1 ErrorInfo detail.
+func ExtractReasonMetadata(err error) (map[string]string, bool) {
+	if err == nil {
+		return nil, false
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return nil, false
+	}
+	for _, detail := range st.Details() {
+		if info, ok := detail.(*errdetails.ErrorInfo); ok && info.GetDomain() == domain {
+			if len(info.GetMetadata()) == 0 {
+				return map[string]string{}, true
+			}
+			metadata := make(map[string]string, len(info.GetMetadata()))
+			for key, value := range info.GetMetadata() {
+				if key == "" || value == "" {
+					continue
+				}
+				metadata[key] = value
+			}
+			return metadata, true
+		}
+	}
+	return nil, false
+}

@@ -16,11 +16,14 @@ import (
 )
 
 type fakeLocalModelLister struct {
-	responses []*runtimev1.ListLocalAssetsResponse
-	err       error
-	calls     int
-	warmErr   error
-	warmCalls int
+	responses  []*runtimev1.ListLocalAssetsResponse
+	err        error
+	calls      int
+	warmErr    error
+	warmCalls  int
+	startErr   error
+	startCalls int
+	startResp  *runtimev1.StartLocalAssetResponse
 }
 
 func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, _ *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
@@ -41,6 +44,17 @@ func (f *fakeLocalModelLister) WarmLocalAsset(_ context.Context, _ *runtimev1.Wa
 		return nil, f.warmErr
 	}
 	return &runtimev1.WarmLocalAssetResponse{}, nil
+}
+
+func (f *fakeLocalModelLister) StartLocalAsset(_ context.Context, _ *runtimev1.StartLocalAssetRequest) (*runtimev1.StartLocalAssetResponse, error) {
+	f.startCalls++
+	if f.startErr != nil {
+		return nil, f.startErr
+	}
+	if f.startResp != nil {
+		return f.startResp, nil
+	}
+	return &runtimev1.StartLocalAssetResponse{}, nil
 }
 
 func TestParseLocalModelSelector(t *testing.T) {
@@ -304,6 +318,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 			Engine:               "llama",
 			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"chat"},
 		}},
 	}}}
 	svc.localModel = installedLister
@@ -321,6 +336,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 				AssetId:      "qwen-failed-warm",
 				Engine:       "llama",
 				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				Capabilities: []string{"chat"},
 			}},
 		}},
 		warmErr: errors.New("warm failed"),
@@ -399,6 +415,60 @@ func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
 	}
 }
 
+func TestValidateLocalModelRequestInstalledImageDoesNotWarmTextOnlyAssets(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer loopbackServer.Close()
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-installed",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             loopbackServer.URL + "/v1",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             loopbackServer.URL + "/v1",
+			},
+		},
+	}
+	svc.localModel = imageLister
+
+	if err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
+		t.Fatalf("expected installed image local model validation to start and succeed, got %v", err)
+	}
+	if imageLister.warmCalls != 0 {
+		t.Fatalf("installed image local model must not call warm, got %d", imageLister.warmCalls)
+	}
+	if imageLister.startCalls != 1 {
+		t.Fatalf("installed image local model must call start exactly once, got %d", imageLister.startCalls)
+	}
+	local, ok := svc.selector.local.(*localProvider)
+	if !ok || local == nil {
+		t.Fatalf("expected local provider after image validation")
+	}
+	backend, resolved, providerType := local.resolveMediaBackendForModal("media/flux.1-schnell", runtimev1.Modal_MODAL_IMAGE)
+	if backend == nil || providerType != "media" {
+		t.Fatalf("expected installed image local model to hydrate media backend, backend=%v provider=%q", backend, providerType)
+	}
+	if resolved != "flux.1-schnell" {
+		t.Fatalf("unexpected hydrated image backend resolution: %q", resolved)
+	}
+}
+
 func TestValidateLocalModelRequestHardCutDoesNotFallbackAcrossEngines(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger)
@@ -421,6 +491,84 @@ func TestValidateLocalModelRequestHardCutDoesNotFallbackAcrossEngines(t *testing
 	reason, ok = grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
 		t.Fatalf("expected music hard-cut to fail without sidecar, got=%v ok=%v", reason, ok)
+	}
+}
+
+func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartDoesNotActivate(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-installed",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             "http://127.0.0.1:8321/v1",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+				HealthDetail:         "probe request failed: dial tcp 127.0.0.1:8321: connect: connection refused",
+			},
+		},
+	}
+	svc.localModel = imageLister
+
+	err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
+	}
+	if !strings.Contains(err.Error(), "connection refused") {
+		t.Fatalf("expected start failure detail to be preserved, got %v", err)
+	}
+}
+
+func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstalled(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-installed",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             "http://127.0.0.1:8321/v1",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+				HealthDetail:         "managed local model ready (not started)",
+			},
+		},
+	}
+	svc.localModel = imageLister
+
+	err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v", err, reason)
+	}
+	if !strings.Contains(err.Error(), "not started") {
+		t.Fatalf("expected installed start detail to be preserved, got %v", err)
 	}
 }
 
