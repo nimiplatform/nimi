@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { loadMediaRouteConnectors, loadRouteOptions, normalizeCapability } from '../src/main/route/route-options.js';
 
 function createRuntimeStub(input: {
-  localModels?: Array<{ localModelId: string; modelId: string; engine: string; status: number; capabilities: string[] }>;
+  localModels?: Array<{
+    localModelId: string;
+    modelId: string;
+    assetId?: string;
+    engine: string;
+    status: number;
+    capabilities: string[];
+  }>;
   localError?: Error;
   connectors?: Array<{ connectorId: string; provider: string; label?: string; status?: string }>;
   connectorListError?: Error;
@@ -19,7 +26,7 @@ function createRuntimeStub(input: {
         const assets = (input.localModels ?? []).map((m) => ({
           localAssetId: m.localModelId,
           logicalModelId: m.modelId,
-          assetId: m.modelId,
+          assetId: m.assetId ?? m.modelId,
           engine: m.engine,
           status: m.status,
           capabilities: m.capabilities,
@@ -124,6 +131,7 @@ describe('route options hardcut', () => {
     assert.equal(result.local.models.length, 1);
     assert.equal(result.local.models[0]?.localModelId, 'local-image-1');
     assert.equal(result.local.models[0]?.modelId, 'flux-local-dev');
+    assert.equal(result.local.models[0]?.assetId, 'flux-local-dev');
     assert.deepEqual(result.connectors, []);
   });
 });
@@ -172,6 +180,7 @@ describe('capability normalization', () => {
 
     assert.equal(result.local.models.length, 1);
     assert.equal(result.local.models[0]?.localModelId, 'local-1');
+    assert.equal(result.local.models[0]?.assetId, 'qwen3');
     assert.ok(result.local.models[0]?.capabilities.includes('text.generate'));
     assert.ok(!result.local.models[0]?.capabilities.includes('chat'));
   });

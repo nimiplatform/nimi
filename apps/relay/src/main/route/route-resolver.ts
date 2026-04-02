@@ -38,7 +38,7 @@ function resolveLocal(
     if (match) {
       return {
         source: 'local',
-        model: `local/${match.modelId}`,
+        model: `local/${match.assetId}`,
         localModelId: match.localModelId,
       };
     }
@@ -48,12 +48,12 @@ function resolveLocal(
   if (binding.model) {
     const modelName = binding.model.replace(/^local\//, '');
     const match = localModels.find(
-      (m) => m.modelId === modelName || m.localModelId === modelName,
+      (m) => m.modelId === modelName || m.assetId === modelName || m.localModelId === modelName,
     );
     if (match) {
       return {
         source: 'local',
-        model: `local/${match.modelId}`,
+        model: `local/${match.assetId}`,
         localModelId: match.localModelId,
       };
     }
@@ -64,7 +64,7 @@ function resolveLocal(
     const first = localModels[0]!;
     return {
       source: 'local',
-      model: `local/${first.modelId}`,
+      model: `local/${first.assetId}`,
       localModelId: first.localModelId,
     };
   }
@@ -119,7 +119,7 @@ function resolveDefault(options: RelayRouteOptions): ResolvedRelayRoute | null {
     const first = options.local.models[0]!;
     return {
       source: 'local',
-      model: `local/${first.modelId}`,
+      model: `local/${first.assetId}`,
       localModelId: first.localModelId,
     };
   }

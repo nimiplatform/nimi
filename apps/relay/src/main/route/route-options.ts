@@ -107,6 +107,7 @@ async function loadLocalModels(
       return {
         localModelId: asset.localAssetId,
         modelId: asset.logicalModelId || asset.assetId,
+        assetId: asset.assetId,
         engine: asset.engine || 'llama',
         status: mapStatus(asset.status),
         capabilities,

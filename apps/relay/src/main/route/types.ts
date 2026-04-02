@@ -21,6 +21,7 @@ export type ResolvedRelayRoute = {
 export type RelayLocalModelOption = {
   localModelId: string;
   modelId: string;
+  assetId: string;
   engine: string;
   status: 'active' | 'installed' | 'unhealthy' | 'removed' | 'unspecified';
   capabilities: string[];
