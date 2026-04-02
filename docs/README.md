@@ -1,10 +1,12 @@
 # Nimi Docs
 
-> **Early Access** — Nimi is in active development. Core runtime, SDK, and desktop app are functional and open for use, but APIs may change between releases.
+> **Rapid Development Phase** — Nimi is still moving extremely quickly.
+> Runtime, SDK, and desktop flows are usable today, but contracts and APIs may tighten between releases. Use [`spec/`](https://github.com/nimiplatform/nimi/tree/main/spec) as the normative source of truth, and read `spec/future/` as backlog rather than a release promise.
 
 Documentation for using, building with, and extending Nimi — the open-source AI runtime.
 
 Nimi gives you one runtime and one SDK for local and cloud AI, instead of stitching together separate model SDKs, local runners, streaming glue, and operational scripts.
+For app entrypoints, prefer `createPlatformClient()` from `@nimiplatform/sdk`; drop to subpath packages only when you explicitly need lower-level control.
 
 ## Fastest Path
 

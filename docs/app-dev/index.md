@@ -2,6 +2,10 @@
 
 Nimi gives app developers a single runtime and a single SDK (`@nimiplatform/sdk`) to work with both local and cloud AI models. Write your integration once, then switch between on-device inference and remote providers without changing application code.
 
+::: warning Rapid Development Phase
+Nimi's app-facing contracts are usable, but they are still evolving quickly. Follow the current SDK and runtime spec, prefer `createPlatformClient()` as the high-level entrypoint, and avoid treating backlog items under `spec/future/` as committed delivery.
+:::
+
 ## Prerequisites
 
 - **Nimi installed and running** -- start the runtime with `nimi start`.

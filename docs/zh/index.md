@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Nimi
   text: 开源 AI 运行时
-  tagline: "Early Access — 一个运行时，统一本地与云端 AI。直接使用，基于它开发，或对它进行扩展。"
+  tagline: "极速开发阶段 — 一个运行时，统一本地与云端 AI。直接使用，基于它开发，或对它进行扩展。"
   actions:
     - theme: brand
       text: 开始使用 Nimi
@@ -29,7 +29,7 @@ features:
     link: /zh/user/providers
     linkText: 配置 Provider
   - title: 面向应用的 SDK
-    details: "一套 SDK 同时支持 runtime 和 realm：import { Runtime } from '@nimiplatform/sdk/runtime'。"
+    details: "推荐入口是 @nimiplatform/sdk 的 createPlatformClient()，从同一个根包获得 typed runtime 与 realm 能力。"
     link: /zh/app-dev/
     linkText: 开始开发
   - title: Nimi 编码方法论
@@ -37,3 +37,9 @@ features:
     link: /zh/nimi-coding
     linkText: 了解方法论
 ---
+
+::: warning 极速开发阶段
+Nimi 目前仍处于极速开发阶段。合约、CLI 流程与桌面端能力都可能在版本之间快速调整。
+
+请以 [Spec Map](/zh/architecture/spec-map) 和 [GitHub 上的 `spec/`](https://github.com/nimiplatform/nimi/tree/main/spec) 作为规范真源。`spec/future/` 代表结构化 backlog，不代表发布承诺。
+:::

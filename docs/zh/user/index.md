@@ -1,7 +1,7 @@
 # 用户快速入门
 
-::: tip Early Access
-Nimi 目前处于 Early Access 阶段。核心功能已可使用，但 API 在版本迭代中可能调整。桌面端发布在 GitHub Releases 上，CLI 可通过安装脚本和 npm 包获取。
+::: warning 极速开发阶段
+Nimi 目前仍处于极速开发阶段。核心流程已可使用，但合约、CLI 行为与桌面端能力都可能在版本之间快速调整。涉及行为边界时请以 `spec/` 为准，并将 `spec/future/` 视为 backlog，而不是发布承诺。
 :::
 
 从零开始，五分钟内完成你的第一次 AI 生成。无需编写代码。

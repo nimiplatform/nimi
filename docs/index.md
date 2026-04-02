@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Nimi
   text: Open-Source AI Runtime
-  tagline: "Early Access — One runtime for local and cloud AI. Use it, build with it, or extend it."
+  tagline: "Rapid Development Phase — One runtime for local and cloud AI. Use it, build with it, or extend it."
   actions:
     - theme: brand
       text: Start Using Nimi
@@ -29,7 +29,7 @@ features:
     link: /user/providers
     linkText: Set up providers
   - title: SDK For Apps
-    details: "One SDK for runtime and realm: import { Runtime } from '@nimiplatform/sdk/runtime'."
+    details: "Recommended app entry: createPlatformClient() from '@nimiplatform/sdk', with typed runtime and realm access from one root package."
     link: /app-dev/
     linkText: Start building
   - title: Nimi Coding
@@ -37,3 +37,9 @@ features:
     link: /nimi-coding
     linkText: Learn the methodology
 ---
+
+::: warning Rapid Development Phase
+Nimi is still in an extremely fast-moving stage. Contracts, CLI flows, and desktop surfaces can change quickly between releases.
+
+Treat the [Spec Map](/architecture/spec-map) and [`spec/` on GitHub](https://github.com/nimiplatform/nimi/tree/main/spec) as the normative source of truth. Items under `spec/future/` are backlog, not release promises.
+:::

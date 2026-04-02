@@ -11,9 +11,11 @@ For onboarding and quickstart, prefer the high-level targeting surface:
 
 This matrix documents advanced provider-qualified prefixes exposed by lower-level runtime and SDK surfaces.
 
+`GA`/`Beta`/`Planned` on this page describe provider capability rollout inside current runtime contracts. They do not mean the entire Nimi platform is stable overall; Nimi is still in a rapid development phase.
+
 ## Status Legend
 
-- `GA`: available now for production usage in current runtime contracts
+- `GA`: available now for production usage in the current provider/runtime contract slice
 - `Beta`: available now with limited or policy-gated modalities
 - `Planned`: tracked for future delivery, not available in current runtime contracts
 

@@ -1,7 +1,7 @@
 # User Quickstart
 
-::: tip Early Access
-Nimi is in early access. Core features are functional, but APIs may change between releases. Desktop releases are published on GitHub, and the CLI is available through the install script and npm packages.
+::: warning Rapid Development Phase
+Nimi is still in an extremely fast-moving stage. Core flows are usable, but contracts, CLI behavior, and desktop surfaces may change quickly between releases. Check `spec/` when behavior matters, and treat `spec/future/` as backlog rather than a shipping promise.
 :::
 
 Get from zero to your first AI generation in under five minutes. No coding required.

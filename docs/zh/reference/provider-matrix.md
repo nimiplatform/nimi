@@ -11,9 +11,11 @@ Nimi Runtime 通过统一 API 路由 AI 请求。
 
 本矩阵记录了底层 runtime 和 SDK 接口暴露的高级 Provider 限定前缀。
 
+本页中的 `GA` / `Beta` / `Planned` 只描述当前 runtime 合约里的 Provider 能力成熟度，不代表整个 Nimi 平台已经整体稳定；Nimi 目前仍处于极速开发阶段。
+
 ## 状态图例
 
-- `GA`：当前 runtime 契约中可用于生产环境
+- `GA`：当前 Provider/runtime 合约切片内可用于生产环境
 - `Beta`：当前可用，但模态受限或受策略门控
 - `Planned`：已列入未来交付计划，当前 runtime 契约中不可用
 

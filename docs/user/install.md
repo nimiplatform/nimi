@@ -1,7 +1,7 @@
 # Installation Guide
 
-::: tip Early Access
-Nimi is in early access. Core features are functional, but APIs may change between releases.
+::: warning Rapid Development Phase
+Nimi is still in an extremely fast-moving stage. Installation and onboarding flows are usable today, but contracts, defaults, and CLI behavior may continue to change quickly between releases.
 :::
 
 ## Download Desktop App

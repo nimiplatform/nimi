@@ -12,14 +12,14 @@
 
 [Website](https://nimi.xyz) | [Getting Started](docs/user/index.md) | [Nimi Coding](docs/nimi-coding.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
 
-Build AI apps that run local and cloud models through one runtime, one SDK, and one operational surface.
+Build AI apps against one runtime, one SDK, and one operational surface for local and cloud AI.
 
 <p align="center">
   <img src="docs/assets/banner.jpg" alt="Nimi Banner" width="1200">
 </p>
 
-> **Early Access** Expect breaking changes.
-> Core runtime, SDK, and desktop app are functional and open for use, but APIs and Realm may change between releases. We welcome feedback and contributions.
+> **Rapid Development Phase** Nimi is still in an extremely fast-moving stage.
+> Expect breaking changes, tightened contracts, and occasional docs drift between releases. For normative behavior, use [`spec/`](spec/INDEX.md) as the source of truth and treat [`spec/future/`](spec/future/index.md) as backlog rather than release commitments.
 
 ## Download
 
@@ -149,33 +149,18 @@ Nimi has three practical layers:
 - Desktop: host shell and mod surface for desktop AI experiences
 
 Realm is Nimi's optional cloud state layer for identity, memory, and cross-app continuity.
+The runtime, SDK, and desktop contracts are the active core; future and ecosystem capabilities are still being graduated into those layers.
 
-## Future Schedule
+## Current Specification Status
 
-| Time | Focus | What expect |
+Nimi's public status should be read from the current spec, not from dated roadmap promises.
+
+| Layer | Current status in spec | What it means |
 |---|---|---|
-| Now | Multimodal foundation | Nimi is actively building the runtime base for image, speech, and media workflows |
-| Now | Knowledge and RAG foundation | Nimi is actively building document ingestion, retrieval, and grounded answer flows |
-| `03-20` | Reading and model UX | Better Markdown rendering, Mermaid, LaTeX, stronger code blocks, AI artifact metadata, local device reporting, and a clearer model selector |
-| `03-27` | Core runtime unlocks | MCP support, OpenAI-compatible API access, workflow triggers, document processing, and the first usable RAG loop |
-| `04-10` | Smarter agent workflows | Web search, proactive scheduled agents, persona editing, prompt variables, context compression, RAG citations, model catalog upgrades, and stronger audit visibility |
-| `04-24` | Creator and workflow tools | Mod marketplace, creator/community features, visual workflow editor, human approval steps, moderation, and deeper RAG controls |
-| `05-15` | Next interaction layer | Agent UI surfaces, browser-side lightweight inference, OAuth login, image-generation mod, avatar experiences, social and IM integrations, mobile work, sandboxing, IDE extension, and cross-instance agent flows |
-
-Current progress at a glance:
-
-| Area | Status | What it means |
-|---|---|---|
-| Multimodal | Foundation defined, first delivery in progress | Nimi is moving beyond text into image, speech, and media workflows |
-| Knowledge / RAG | Foundation defined, first delivery in progress | Upload documents, search them, and ground answers with retrieval |
-| MCP | Next major runtime unlock | Nimi will connect more naturally to external agent and tool ecosystems |
-| Agent UI | Planned for May | Agents will be able to drive safe, structured UI instead of text-only responses |
-| Marketplace + Mods | Planned for April | Better discovery, installation, and sharing of Nimi extensions |
-
-| Notes | Meaning |
-|---|---|
-| Schedule dates | Dates refer to the first usable slice of a feature, not the final polished version |
-| Delivery order | Nimi ships runtime and SDK foundations first, then desktop, web, and ecosystem features on top |
+| Runtime | Kernel contracts cover the full proto surface; AI/auth is active and workflow/model/knowledge/app/audit contracts are already defined in kernel | Runtime behavior is contract-first, but implementation details may still harden quickly |
+| SDK | `runtime`, `realm`, and `ai-provider` are Phase 1 active; `scope` and `mod` are defined and still evolving | Prefer `createPlatformClient()` for app entry and treat lower-level subpaths as advanced surfaces |
+| Desktop | Kernel + domain contracts are active across shell, local AI, mod governance, and testing gates | Desktop UX and extension surfaces may keep shifting as runtime/sdk contracts tighten |
+| Future | `spec/future/**` is structured backlog, not a shipping promise | Planned capabilities should not be read as committed dates or guaranteed release order |
 
 ## Examples
 
