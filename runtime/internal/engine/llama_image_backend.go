@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +22,31 @@ var officialLlamaBackendAllowlist = map[string]struct{}{
 	"llama-cpp":            {},
 	"whisper-ggml":         {},
 	"stablediffusion-ggml": {},
+}
+
+const ociManifestMediaTypeV2 = "application/vnd.docker.distribution.manifest.v2+json"
+
+type llamaBackendPackageSpec struct {
+	InstallDirName string
+	ImageRef       string
+}
+
+type ociDistributionManifest struct {
+	SchemaVersion int                    `json:"schemaVersion"`
+	MediaType     string                 `json:"mediaType,omitempty"`
+	Layers        []ociDistributionLayer `json:"layers,omitempty"`
+}
+
+type ociDistributionLayer struct {
+	MediaType string `json:"mediaType,omitempty"`
+	Size      int64  `json:"size,omitempty"`
+	Digest    string `json:"digest,omitempty"`
+}
+
+type ociImageReference struct {
+	Registry   string
+	Repository string
+	Reference  string
 }
 
 type llamaBackendMetadata struct {
@@ -112,9 +139,6 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, llamaBinaryPath string
 		return nil, err
 	}
 	normalized.BackendName = validatedBackendName
-	if strings.TrimSpace(llamaBinaryPath) == "" {
-		return nil, fmt.Errorf("llama binary path is required")
-	}
 	if strings.TrimSpace(backendsPath) == "" {
 		return nil, fmt.Errorf("llama backends path is required")
 	}
@@ -143,6 +167,12 @@ func installLlamaBackend(ctx context.Context, llamaBinaryPath string, backendsPa
 	if err != nil {
 		return err
 	}
+	if packageSpec, ok := resolveOfficialLlamaBackendPackageSpec(validatedBackendName); ok {
+		return installLlamaBackendFromOCI(ctx, backendsPath, validatedBackendName, packageSpec)
+	}
+	if strings.TrimSpace(llamaBinaryPath) == "" {
+		return fmt.Errorf("llama binary path is required")
+	}
 	cmd := exec.CommandContext(ctx, llamaBinaryPath, "backends", "install", validatedBackendName, "--backends-path", backendsPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -160,6 +190,199 @@ func validateOfficialLlamaBackendName(backendName string) (string, error) {
 		return "", fmt.Errorf("unsupported official llama backend %q", trimmedBackendName)
 	}
 	return trimmedBackendName, nil
+}
+
+func resolveOfficialLlamaBackendPackageSpec(backendName string) (llamaBackendPackageSpec, bool) {
+	switch strings.TrimSpace(backendName) {
+	case "stablediffusion-ggml":
+		if currentGOOS() == "darwin" && currentGOARCH() == "arm64" {
+			return llamaBackendPackageSpec{
+				InstallDirName: "metal-stablediffusion-ggml",
+				ImageRef:       "quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml",
+			}, true
+		}
+	}
+	return llamaBackendPackageSpec{}, false
+}
+
+func installLlamaBackendFromOCI(ctx context.Context, backendsPath string, backendName string, spec llamaBackendPackageSpec) error {
+	parsedRef, err := parseOCIImageReference(spec.ImageRef)
+	if err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+	manifest, err := fetchOCIManifest(ctx, parsedRef)
+	if err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+	if len(manifest.Layers) != 1 {
+		return fmt.Errorf("install llama backend %s: unsupported OCI layer count %d for %s", backendName, len(manifest.Layers), spec.ImageRef)
+	}
+	layerDigest := strings.TrimSpace(manifest.Layers[0].Digest)
+	if layerDigest == "" {
+		return fmt.Errorf("install llama backend %s: OCI layer digest is required", backendName)
+	}
+
+	tmpDir, err := os.MkdirTemp(filepath.Dir(backendsPath), ".llama-backend-*")
+	if err != nil {
+		return fmt.Errorf("install llama backend %s: create temp dir: %w", backendName, err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	layerPath := filepath.Join(tmpDir, "layer.tar.gz")
+	if _, err := downloadOCIImageBlobToFile(ctx, parsedRef, layerDigest, layerPath); err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+
+	stagedDir := filepath.Join(tmpDir, "payload")
+	if err := os.MkdirAll(stagedDir, 0o755); err != nil {
+		return fmt.Errorf("install llama backend %s: create staged dir: %w", backendName, err)
+	}
+	if err := extractManagedPayload(layerPath, stagedDir); err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+	if err := writeLlamaBackendMetadata(filepath.Join(stagedDir, "metadata.json"), llamaBackendMetadata{
+		Name:  spec.InstallDirName,
+		Alias: backendName,
+	}); err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+	targetDir := filepath.Join(backendsPath, spec.InstallDirName)
+	if err := installManagedBinaryPayload(targetDir, stagedDir); err != nil {
+		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+	}
+	return nil
+}
+
+func parseOCIImageReference(imageRef string) (ociImageReference, error) {
+	trimmed := strings.TrimSpace(imageRef)
+	if trimmed == "" {
+		return ociImageReference{}, fmt.Errorf("OCI image reference is required")
+	}
+	firstSlash := strings.Index(trimmed, "/")
+	if firstSlash <= 0 || firstSlash == len(trimmed)-1 {
+		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
+	}
+	registry := strings.TrimSpace(trimmed[:firstSlash])
+	remainder := strings.TrimSpace(trimmed[firstSlash+1:])
+	if registry == "" || remainder == "" {
+		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
+	}
+	lastColon := strings.LastIndex(remainder, ":")
+	if lastColon <= 0 || lastColon == len(remainder)-1 {
+		return ociImageReference{}, fmt.Errorf("OCI image tag is required in %q", imageRef)
+	}
+	repository := strings.TrimSpace(remainder[:lastColon])
+	reference := strings.TrimSpace(remainder[lastColon+1:])
+	if repository == "" || reference == "" {
+		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
+	}
+	return ociImageReference{
+		Registry:   registry,
+		Repository: repository,
+		Reference:  reference,
+	}, nil
+}
+
+func fetchOCIManifest(ctx context.Context, ref ociImageReference) (ociDistributionManifest, error) {
+	url := fmt.Sprintf("https://%s/v2/%s/manifests/%s", ref.Registry, ref.Repository, ref.Reference)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return ociDistributionManifest{}, fmt.Errorf("build OCI manifest request: %w", err)
+	}
+	req.Header.Set("User-Agent", "nimi-runtime/0.1")
+	req.Header.Set("Accept", ociManifestMediaTypeV2)
+	resp, err := doOCIRegistryRequestWithRetry(ctx, url, req, 5*time.Minute)
+	if err != nil {
+		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: %w", ref.Reference, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: HTTP %d", ref.Reference, resp.StatusCode)
+	}
+	var manifest ociDistributionManifest
+	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
+		return ociDistributionManifest{}, fmt.Errorf("decode OCI manifest %s: %w", ref.Reference, err)
+	}
+	if manifest.SchemaVersion != 2 {
+		return ociDistributionManifest{}, fmt.Errorf("unsupported OCI schema version %d for %s", manifest.SchemaVersion, ref.Reference)
+	}
+	return manifest, nil
+}
+
+func downloadOCIImageBlobToFile(ctx context.Context, ref ociImageReference, digest string, destPath string) (string, error) {
+	trimmedDigest := strings.TrimSpace(digest)
+	if trimmedDigest == "" {
+		return "", fmt.Errorf("OCI blob digest is required")
+	}
+	url := fmt.Sprintf("https://%s/v2/%s/blobs/%s", ref.Registry, ref.Repository, trimmedDigest)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", fmt.Errorf("build OCI blob request: %w", err)
+	}
+	req.Header.Set("User-Agent", "nimi-runtime/0.1")
+	resp, err := doOCIRegistryRequestWithRetry(ctx, url, req, 30*time.Minute)
+	if err != nil {
+		return "", fmt.Errorf("request OCI blob %s: %w", trimmedDigest, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("request OCI blob %s: HTTP %d", trimmedDigest, resp.StatusCode)
+	}
+	out, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("create OCI blob temp file: %w", err)
+	}
+	shouldRemove := true
+	defer func() {
+		_ = out.Close()
+		if shouldRemove {
+			_ = os.Remove(destPath)
+		}
+	}()
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return "", fmt.Errorf("write OCI blob %s: %w", trimmedDigest, err)
+	}
+	if err := out.Close(); err != nil {
+		return "", fmt.Errorf("close OCI blob %s: %w", trimmedDigest, err)
+	}
+	shouldRemove = false
+	return destPath, nil
+}
+
+func writeLlamaBackendMetadata(path string, metadata llamaBackendMetadata) error {
+	payload, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("marshal llama backend metadata: %w", err)
+	}
+	if err := os.WriteFile(path, payload, 0o644); err != nil {
+		return fmt.Errorf("write llama backend metadata %s: %w", path, err)
+	}
+	return nil
+}
+
+func doOCIRegistryRequestWithRetry(ctx context.Context, sourceURL string, req *http.Request, timeout time.Duration) (*http.Response, error) {
+	client := newEngineDownloadHTTPClient(sourceURL, nil, timeout)
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		cloned := req.Clone(ctx)
+		resp, err := client.Do(cloned)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
+		if attempt == 2 {
+			break
+		}
+		delay := time.Duration(attempt+1) * 250 * time.Millisecond
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	return nil, lastErr
 }
 
 func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName string) (string, error) {

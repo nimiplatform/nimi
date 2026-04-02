@@ -99,7 +99,10 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}
 
 	healthPayload := struct {
-		Ready bool `json:"ready"`
+		Ready  bool `json:"ready"`
+		Checks struct {
+			ProxyMode bool `json:"proxy_mode"`
+		} `json:"checks"`
 	}{}
 	if err := json.Unmarshal(body, &healthPayload); err != nil {
 		return fmt.Errorf("%s health probe parse failed: %w", engineLabel, err)
@@ -126,6 +129,7 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}
 
 	payload := struct {
+		Ready  bool `json:"ready"`
 		Models []struct {
 			ID    string `json:"id"`
 			Ready bool   `json:"ready"`
@@ -133,6 +137,12 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return fmt.Errorf("%s catalog probe parse failed: %w", engineLabel, err)
+	}
+	if engineLabel == "media" && healthPayload.Checks.ProxyMode {
+		if payload.Ready {
+			return nil
+		}
+		return fmt.Errorf("%s catalog probe reported ready=false in proxy mode", engineLabel)
 	}
 	for _, model := range payload.Models {
 		if strings.TrimSpace(model.ID) != "" && model.Ready {

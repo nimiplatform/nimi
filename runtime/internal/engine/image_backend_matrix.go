@@ -37,6 +37,15 @@ const (
 	ImageBackendFamilyDiffusers           ImageBackendFamily = "diffusers"
 )
 
+// ImageControlPlane identifies the owner of the orchestration lifecycle for an
+// image topology. This is intentionally independent from EngineKind because the
+// runtime itself now owns image control-plane responsibilities.
+type ImageControlPlane string
+
+const (
+	ImageControlPlaneRuntime ImageControlPlane = "runtime"
+)
+
 // ImageTopologyState is the structural lifecycle state of a matrix entry.
 type ImageTopologyState string
 
@@ -69,7 +78,7 @@ type ImageSupervisedMatrixEntry struct {
 	ProfileKind           ImageProfileKind
 	BackendClass          ImageBackendClass
 	BackendFamily         ImageBackendFamily
-	ControlPlane          EngineKind
+	ControlPlane          ImageControlPlane
 	ExecutionPlane        EngineKind
 	SupportedCapabilities []string
 	TopologyState         ImageTopologyState
@@ -91,12 +100,11 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
-		ControlPlane:          EngineLlama,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
-		SupportedCapabilities: nil,
+		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
 		TopologyState:         ImageTopologyStateDefined,
-		ProductState:          ImageProductStateUnsupported,
-		Detail:                "reserved topology only; not a supported Apple product path in v1",
+		ProductState:          ImageProductStateSupported,
 	},
 	{
 		EntryID:               "macos-apple-silicon-workflow-safetensors",
@@ -108,7 +116,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindWorkflowPipeline,
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
-		ControlPlane:          EngineMedia,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
@@ -127,7 +135,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
-		ControlPlane:          EngineLlama,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
 		TopologyState:         ImageTopologyStateDefined,
@@ -144,7 +152,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
-		ControlPlane:          EngineLlama,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
 		TopologyState:         ImageTopologyStateDefined,
@@ -161,7 +169,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindWorkflowPipeline,
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
-		ControlPlane:          EngineMedia,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
@@ -179,7 +187,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProfileKind:           ImageProfileKindWorkflowPipeline,
 		BackendClass:          ImageBackendClassPythonPipeline,
 		BackendFamily:         ImageBackendFamilyDiffusers,
-		ControlPlane:          EngineMedia,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
@@ -204,7 +212,7 @@ type ImageSupervisedMatrixSelection struct {
 	ProductState          ImageProductState
 	BackendClass          ImageBackendClass
 	BackendFamily         ImageBackendFamily
-	ControlPlane          EngineKind
+	ControlPlane          ImageControlPlane
 	ExecutionPlane        EngineKind
 	SupportedCapabilities []string
 

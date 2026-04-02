@@ -94,6 +94,10 @@ type EngineConfig struct {
 	Port    int
 	Version string
 
+	// MediaMode carries the explicit media server topology mode selected by the
+	// caller. Media bootstrap must not infer this internally.
+	MediaMode MediaMode
+
 	// ImageSupervisedSelection carries the canonical image resolver output into
 	// media bootstrap when daemon-managed image loopback is active.
 	ImageSupervisedSelection *ImageSupervisedMatrixSelection

@@ -514,6 +514,9 @@ func validateEngineDownloadRedirect(sourceURL string, redirectURL string) error 
 			return nil
 		}
 	}
+	if sourceHost == "quay.io" && strings.HasSuffix(targetHost, ".quay.io") {
+		return nil
+	}
 	return fmt.Errorf("%w: redirect from %s to %s is not allowed", ErrEngineBinaryDownloadFailed, sourceHost, targetHost)
 }
 

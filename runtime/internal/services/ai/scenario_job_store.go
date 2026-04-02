@@ -65,7 +65,7 @@ func (s *Service) submitVoiceWorkflowJob(
 		return nil, err
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +359,7 @@ func (s *Service) submitScenarioAsyncJob(
 		return nil, err
 	}
 
-	remoteTarget, err := s.prepareScenarioRequest(ctx, req.GetHead(), req.GetScenarioType())
+	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
 	}

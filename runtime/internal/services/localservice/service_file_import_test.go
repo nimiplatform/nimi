@@ -212,7 +212,7 @@ func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *t
 	}
 }
 
-func TestImportLocalImageModelFileFailsClosedOnUnsupportedManagedImageHost(t *testing.T) {
+func TestImportLocalImageModelFileSupportsAppleSiliconManagedImageHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
@@ -223,15 +223,17 @@ func TestImportLocalImageModelFileFailsClosedOnUnsupportedManagedImageHost(t *te
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath: sourcePath,
 		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
 		Engine:   "media",
 	})
-	if err == nil {
-		t.Fatal("expected image file import to fail on unsupported managed image host")
+	if err != nil {
+		t.Fatalf("expected Apple Silicon image file import to succeed, got %v", err)
 	}
-	assertGRPCReasonCode(t, err, "ImportLocalAssetFile(image unsupported managed host)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
 }
 
 func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.T) {

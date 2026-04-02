@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v3"
 )
@@ -34,6 +35,11 @@ func (m *registrarTestEngineManager) EnsureEngine(_ context.Context, _ string, _
 }
 
 func (m *registrarTestEngineManager) StartEngine(_ context.Context, _ string, _ int, _ string) error {
+	m.startCalls++
+	return m.startErr
+}
+
+func (m *registrarTestEngineManager) StartEngineWithConfig(_ context.Context, _ engine.EngineConfig) error {
 	m.startCalls++
 	return m.startErr
 }
@@ -280,18 +286,12 @@ func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	svc.mu.Unlock()
 
 	registration := svc.managedLlamaRegistrationForModel(installed)
-	if registration.Problem != "" {
-		t.Fatalf("expected supported image registration, got problem %q", registration.Problem)
-	}
-	if registration.Backend != "stablediffusion-ggml" {
-		t.Fatalf("unexpected image backend: %q", registration.Backend)
-	}
-	if !registration.DynamicProfile {
-		t.Fatalf("expected dynamic profile registration")
+	if registration.Managed {
+		t.Fatalf("image assets must not register with llama control plane anymore: %+v", registration)
 	}
 }
 
-func TestBuildManagedLlamaRegistrationsIncludesManagedMediaImageAssets(t *testing.T) {
+func TestBuildManagedLlamaRegistrationsExcludesManagedMediaImageAssets(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
@@ -330,21 +330,11 @@ func TestBuildManagedLlamaRegistrationsIncludesManagedMediaImageAssets(t *testin
 	if err != nil {
 		t.Fatalf("build managed llama registrations: %v", err)
 	}
-	registration, ok := registrations[record.GetLocalAssetId()]
-	if !ok {
-		t.Fatalf("expected registration for managed media image asset")
-	}
-	if registration.Problem != "" {
-		t.Fatalf("expected no registration problem, got %q", registration.Problem)
-	}
-	if !registration.DynamicProfile {
-		t.Fatalf("expected dynamic profile registration")
-	}
-	if registration.Backend != "stablediffusion-ggml" {
-		t.Fatalf("unexpected backend: %q", registration.Backend)
+	if _, ok := registrations[record.GetLocalAssetId()]; ok {
+		t.Fatalf("image asset must not appear in managed llama registrations: %+v", registrations[record.GetLocalAssetId()])
 	}
 	if len(rendered) != 0 {
-		t.Fatalf("dynamic profile image asset should not be rendered into static llama config")
+		t.Fatalf("image assets should not be rendered into static llama config")
 	}
 }
 
@@ -363,7 +353,7 @@ func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t 
 	}
 }
 
-func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
+func TestManagedLlamaRegistrationForManagedImageStaysDetachedFromLlama(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
@@ -393,18 +383,15 @@ func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendReco
 		t.Fatalf("sync managed llama assets: %v", err)
 	}
 	stale := svc.managedLlamaRegistrations[installed.GetLocalAssetId()]
-	if stale.Problem != "managed image backend unavailable (entry_id=windows-x64-nvidia-gguf backend_family=stablediffusion-ggml internal_reason_key=managed_image_backend_unavailable)" {
-		t.Fatalf("expected cached unavailable registration, got %+v", stale)
+	if stale.Managed {
+		t.Fatalf("managed image should not be cached as llama registration, got %+v", stale)
 	}
 
 	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
 
 	registration := svc.managedLlamaRegistrationForModel(installed)
-	if registration.Problem != "" {
-		t.Fatalf("expected recomputed image registration after backend recovery, got problem %q", registration.Problem)
-	}
-	if !registration.DynamicProfile {
-		t.Fatalf("expected dynamic profile registration")
+	if registration.Managed {
+		t.Fatalf("managed image should remain detached from llama after backend recovery, got %+v", registration)
 	}
 }
 

@@ -13,9 +13,13 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-_raw_mode = os.environ.get("NIMI_MEDIA_MODE", "proxy_execution").strip().lower()
 _VALID_MODES = {"proxy_execution", "pipeline_supervised"}
-MODE = _raw_mode if _raw_mode in _VALID_MODES else "proxy_execution"
+_raw_mode = os.environ.get("NIMI_MEDIA_MODE")
+if _raw_mode is None:
+    raise SystemExit("NIMI_MEDIA_MODE is required")
+MODE = _raw_mode.strip().lower()
+if MODE not in _VALID_MODES:
+    raise SystemExit("invalid NIMI_MEDIA_MODE: %s" % MODE)
 LLAMA_BASE_URL = os.environ.get(
     "NIMI_MEDIA_LLAMA_BASE_URL",
     "http://127.0.0.1:1234/v1",

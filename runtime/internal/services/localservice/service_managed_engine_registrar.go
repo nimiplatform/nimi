@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"gopkg.in/yaml.v3"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -19,8 +18,8 @@ import (
 const generatedManagedLlamaModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
 
 const (
-	managedMediaDiffusersBackendServiceID    = "svc_llama_image_backend"
-	managedMediaDiffusersBackendServiceTitle = "Llama Image Backend"
+	managedMediaDiffusersBackendServiceID    = "svc_managed_image_backend"
+	managedMediaDiffusersBackendServiceTitle = "Managed Image Backend"
 )
 
 type managedLlamaRegistration struct {
@@ -122,6 +121,16 @@ func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 // endpoint, if any.
 func (s *Service) ManagedMediaEndpoint() string {
 	return s.managedMediaEndpoint()
+}
+
+// ResolveManagedMediaBackendTarget returns the local models root and the
+// daemon-managed image backend address used by the supervised gguf image path.
+func (s *Service) ResolveManagedMediaBackendTarget(_ context.Context) (string, string, error) {
+	s.mu.RLock()
+	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
+	address := strings.TrimSpace(s.managedMediaBackendAddress)
+	s.mu.RUnlock()
+	return modelsRoot, address, nil
 }
 
 // SetManagedSpeechEndpoint records the managed speech endpoint exposed
@@ -350,53 +359,10 @@ func inspectManagedLlamaModelRegistration(
 	}
 
 	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
-		selection := canonicalSupervisedImageSelectionForLocalAsset(model, deviceProfile)
-		registration.Backend = string(selection.BackendFamily)
-		registration.DynamicProfile = true
-		if !selection.Matched || selection.Conflict || selection.Entry == nil {
-			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
-			if registration.Problem == "" {
-				registration.Problem = "canonical image selection unavailable for managed registration"
-			}
-			return registration
-		}
-		if selection.ProductState != engine.ImageProductStateSupported {
-			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
-			if registration.Problem == "" {
-				registration.Problem = fmt.Sprintf("image topology %s is not supported for managed registration", selection.EntryID)
-			}
-			return registration
-		}
-		if selection.ControlPlane != engine.EngineLlama ||
-			selection.ExecutionPlane != engine.EngineMedia ||
-			selection.BackendClass != engine.ImageBackendClassNativeBinary {
-			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
-			if registration.Problem == "" {
-				registration.Problem = fmt.Sprintf(
-					"managed registration unsupported for image selection entry_id=%s backend_family=%s internal_reason_key=managed_image_registration_unsupported",
-					selection.EntryID,
-					selection.BackendFamily,
-				)
-			}
-			return registration
-		}
-		if registration.Managed && !imageBackendUp {
-			registration.Problem = fmt.Sprintf(
-				"managed image backend unavailable (entry_id=%s backend_family=%s internal_reason_key=managed_image_backend_unavailable)",
-				selection.EntryID,
-				selection.BackendFamily,
-			)
-			return registration
-		}
-		absoluteModelPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsPath, model)
-		if resolveErr == nil {
-			relativeModelPath, relErr := filepath.Rel(modelsPath, absoluteModelPath)
-			if relErr == nil {
-				registration.RelativeModelPath = filepath.ToSlash(relativeModelPath)
-			} else {
-				registration.Problem = relErr.Error()
-			}
-		}
+		registration.Managed = false
+		registration.Backend = ""
+		registration.DynamicProfile = false
+		registration.Problem = ""
 		return registration
 	}
 

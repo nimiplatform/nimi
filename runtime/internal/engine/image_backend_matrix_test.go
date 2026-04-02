@@ -24,12 +24,12 @@ func TestResolveImageSupervisedMatrixSupportedGGUF(t *testing.T) {
 	if selection.ProductState != ImageProductStateSupported {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
-	if selection.ControlPlane != EngineLlama || selection.ExecutionPlane != EngineMedia {
+	if selection.ControlPlane != ImageControlPlaneRuntime || selection.ExecutionPlane != EngineMedia {
 		t.Fatalf("unexpected planes: control=%s execution=%s", selection.ControlPlane, selection.ExecutionPlane)
 	}
 }
 
-func TestResolveImageSupervisedMatrixUnsupportedAppleGGUF(t *testing.T) {
+func TestResolveImageSupervisedMatrixSupportedAppleGGUF(t *testing.T) {
 	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
 		OS:              "darwin",
 		Arch:            "arm64",
@@ -38,14 +38,20 @@ func TestResolveImageSupervisedMatrixUnsupportedAppleGGUF(t *testing.T) {
 		ProfileKind:     ImageProfileKindSingleBinaryModel,
 		ArtifactFormats: []string{"gguf"},
 	})
-	if !selection.Matched || selection.Entry == nil {
-		t.Fatalf("expected unsupported Apple GGUF topology to be recognized, got %#v", selection)
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		t.Fatalf("expected supported Apple GGUF topology, got %#v", selection)
 	}
-	if selection.ProductState != ImageProductStateUnsupported {
+	if selection.EntryID != "macos-apple-silicon-gguf" {
+		t.Fatalf("unexpected entry id: %q", selection.EntryID)
+	}
+	if selection.ProductState != ImageProductStateSupported {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
-	if !strings.Contains(strings.ToLower(selection.CompatibilityDetail), "reserved topology") {
-		t.Fatalf("expected unsupported detail, got %q", selection.CompatibilityDetail)
+	if len(selection.SupportedCapabilities) == 0 {
+		t.Fatalf("expected supported capabilities, got %#v", selection.SupportedCapabilities)
+	}
+	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
+		t.Fatalf("expected empty compatibility detail, got %q", selection.CompatibilityDetail)
 	}
 }
 
@@ -132,7 +138,7 @@ func TestResolveImageSupervisedMatrixConflictFailsClose(t *testing.T) {
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
 		BackendClass:          ImageBackendClassNativeBinary,
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
-		ControlPlane:          EngineLlama,
+		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
 		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
 		TopologyState:         ImageTopologyStateDefined,

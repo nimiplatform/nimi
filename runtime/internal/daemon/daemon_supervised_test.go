@@ -378,7 +378,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 			ProductState:   engine.ImageProductStateSupported,
 			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
 			BackendClass:   engine.ImageBackendClassNativeBinary,
-			ControlPlane:   engine.EngineLlama,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
 			ExecutionPlane: engine.EngineMedia,
 			Entry: &engine.ImageSupervisedMatrixEntry{
 				EntryID:      "gguf_image_metal_metal_single_binary",
@@ -400,8 +400,8 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	}
 
 	daemon.startSupervisedEngines(context.Background())
-	if len(startCalls) != 2 || !slices.Contains(startCalls, engine.EngineLlama) || !slices.Contains(startCalls, engine.EngineMedia) {
-		t.Fatalf("expected image-supported managed state to bootstrap llama and media, got=%v", startCalls)
+	if len(startCalls) != 1 || !slices.Contains(startCalls, engine.EngineMedia) {
+		t.Fatalf("expected runtime-owned image path to bootstrap media only, got=%v", startCalls)
 	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
@@ -415,7 +415,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 			t.Fatalf("expected 1 managed image backend service, got %d", len(listed.GetServices()))
 		}
 		service := listed.GetServices()[0]
-		if service.GetServiceId() != "svc_llama_image_backend" {
+		if service.GetServiceId() != "svc_managed_image_backend" {
 			t.Fatalf("unexpected managed image backend service id: %q", service.GetServiceId())
 		}
 		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED {

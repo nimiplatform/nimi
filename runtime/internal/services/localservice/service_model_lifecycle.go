@@ -55,6 +55,12 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		}
 		return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
 	}
+	if isManagedSupervisedImageModel(current, s.modelRuntimeMode(localModelID)) {
+		if _, err := s.checkManagedSupervisedImageHealth(ctx, current); err != nil {
+			return nil, err
+		}
+		return &runtimev1.StartLocalAssetResponse{Asset: s.modelByID(localModelID)}, nil
+	}
 
 	profile := collectDeviceProfile()
 	warnings := startupCompatibilityWarningsForAsset(
@@ -209,6 +215,14 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, health)
 			continue
 		}
+		if isManagedSupervisedImageModel(model, s.modelRuntimeMode(localModelID)) {
+			health, err := s.checkManagedSupervisedImageHealth(ctx, model)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, health)
+			continue
+		}
 		if configDetail := attachedLoopbackConfigErrorDetail(model.GetEngine(), s.modelRuntimeMode(localModelID), s.effectiveLocalModelEndpoint(model), profile); configDetail != "" {
 			transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, appendWarnings(configDetail, startupCompatibilityWarningsForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), profile)))
 			if updateErr != nil {
@@ -298,14 +312,15 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 	return &runtimev1.CheckLocalAssetHealthResponse{Assets: result}, nil
 }
 
-func (s *Service) normalizeManagedSupervisedLlamaStatuses(ctx context.Context) {
+func (s *Service) normalizeManagedSupervisedManagedStatuses(ctx context.Context) {
 	s.mu.RLock()
 	models := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
 	for _, model := range s.assets {
 		if model == nil {
 			continue
 		}
-		if !isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+		if !isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) &&
+			!isManagedSupervisedImageModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
 			continue
 		}
 		models = append(models, cloneLocalAsset(model))
@@ -320,6 +335,12 @@ func (s *Service) normalizeManagedSupervisedLlamaStatuses(ctx context.Context) {
 		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
+			if isManagedSupervisedImageModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+				if _, err := s.checkManagedSupervisedImageHealth(ctx, model); err != nil {
+					s.logger.Debug("normalize managed image status failed", "local_model_id", model.GetLocalAssetId(), "error", err)
+				}
+				continue
+			}
 			if _, err := s.checkManagedSupervisedLlamaHealth(ctx, model); err != nil {
 				s.logger.Debug("normalize managed llama status failed", "local_model_id", model.GetLocalAssetId(), "error", err)
 			}

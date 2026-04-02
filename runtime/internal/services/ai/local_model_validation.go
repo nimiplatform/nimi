@@ -25,8 +25,10 @@ type localModelLister interface {
 
 type localImageProfileResolver interface {
 	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
+	ResolveManagedMediaBackendTarget(context.Context) (string, string, error)
 	ResolveManagedAssetPath(context.Context, string) (string, error)
 	ResolveCanonicalImageSelection(context.Context, string) (engine.ImageSupervisedMatrixSelection, error)
+	UpdateManagedMediaImageExecutionStatus(context.Context, string, bool, string) error
 }
 
 type localModelSelector struct {
@@ -39,6 +41,10 @@ type localModelSelector struct {
 var localModelValidationGOOS = runtime.GOOS
 
 func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal) error {
+	return s.validateLocalModelRequestWithExtensions(ctx, requestedModelID, remoteTarget, modal, nil)
+}
+
+func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, requestedModelID string, remoteTarget *nimillm.RemoteTarget, modal runtimev1.Modal, scenarioExtensions map[string]any) error {
 	if remoteTarget != nil {
 		return nil
 	}
@@ -89,6 +95,9 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		}
 	}
 	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal) {
+		if err := s.primeInstalledLocalModelRequest(ctx, selected, requestedModelID, modal, scenarioExtensions); err != nil {
+			return err
+		}
 		started, err := s.localModel.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{
 			LocalAssetId: selected.GetLocalAssetId(),
 		})
@@ -105,6 +114,31 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
 	if modelRequiresInvokeProfile(selected) {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
+	}
+	return nil
+}
+
+func (s *Service) primeInstalledLocalModelRequest(ctx context.Context, selected *runtimev1.LocalAssetRecord, requestedModelID string, modal runtimev1.Modal, scenarioExtensions map[string]any) error {
+	if s == nil || selected == nil {
+		return nil
+	}
+	if modal != runtimev1.Modal_MODAL_IMAGE || s.localImageProfile == nil {
+		return nil
+	}
+	selection, err := s.localImageProfile.ResolveCanonicalImageSelection(ctx, requestedModelID)
+	if err != nil {
+		return localModelUnavailableError(err.Error())
+	}
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		return localModelUnavailableError(strings.TrimSpace(selection.CompatibilityDetail))
+	}
+	if selection.ControlPlane != engine.ImageControlPlaneRuntime ||
+		selection.ExecutionPlane != engine.EngineMedia ||
+		selection.BackendClass != engine.ImageBackendClassNativeBinary {
+		return nil
+	}
+	if _, _, _, err := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, requestedModelID, scenarioExtensions); err != nil {
+		return localModelUnavailableError(err.Error())
 	}
 	return nil
 }

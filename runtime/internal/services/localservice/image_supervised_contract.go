@@ -350,7 +350,10 @@ func managedRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSele
 	if selection.Entry == nil {
 		return ""
 	}
-	return strings.ToLower(strings.TrimSpace(string(selection.ControlPlane)))
+	if selection.ControlPlane == engine.ImageControlPlaneRuntime {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(string(selection.ExecutionPlane)))
 }
 
 func executionRuntimeEngineForSelection(selection engine.ImageSupervisedMatrixSelection) string {

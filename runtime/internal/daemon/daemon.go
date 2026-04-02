@@ -230,10 +230,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		effectiveManagedLlama = true
 	}
 	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
-	if !effectiveManagedLlama && managedImageAssetsPresent {
-		effectiveManagedLlama = true
-	}
-	if !effectiveManagedLlama && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
+	if !effectiveManagedLlama && !managedImageAssetsPresent && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
 
@@ -262,14 +259,13 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	mediaHostSupport, _ := d.detectMediaHostSupport()
 	d.cacheImageMatrix()
 	managedImageSelection := d.resolvedImageMatrix
-	managedImageLoopback := effectiveManagedLlama &&
-		managedImageAssetsPresent &&
+	managedImageLoopback := managedImageAssetsPresent &&
 		managedImageSelection != nil &&
 		managedImageSelection.Matched &&
 		!managedImageSelection.Conflict &&
 		managedImageSelection.Entry != nil &&
 		managedImageSelection.ProductState == engine.ImageProductStateSupported &&
-		managedImageSelection.ControlPlane == engine.EngineLlama &&
+		managedImageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
 		managedImageSelection.ExecutionPlane == engine.EngineMedia &&
 		managedImageSelection.BackendClass == engine.ImageBackendClassNativeBinary
 	if managedImageAssetsPresent && !managedImageLoopback && managedImageSelection != nil {
@@ -281,14 +277,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			d.setDegradedStatus(detail)
 		}
 	}
+	mgr.SetLlamaImageBackend(nil)
 	if managedImageLoopback {
-		mgr.SetLlamaImageBackend(&engine.LlamaImageBackendConfig{
+		if err := mgr.EnsureManagedImageBackend(ctx, &engine.LlamaImageBackendConfig{
 			Mode:        engine.LlamaImageBackendOfficial,
-			BackendName: string(managedImageSelection.BackendFamily),
+			BackendName: "stablediffusion-ggml",
 			Address:     "127.0.0.1:50052",
-		})
-	} else {
-		mgr.SetLlamaImageBackend(nil)
+		}); err != nil {
+			detail := fmt.Sprintf("start managed image backend: %v", err)
+			d.setDegradedStatus(detail)
+			appendStartupFailureAudit(d.auditStore, detail)
+		}
 	}
 	managedMediaLoopback := managedImageLoopback || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
 	if svc != nil {
@@ -409,9 +408,15 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 	if port > 0 {
 		cfg.Port = port
 	}
-	if kind == engine.EngineMedia && d.resolvedImageMatrix != nil {
-		selection := *d.resolvedImageMatrix
-		cfg.ImageSupervisedSelection = &selection
+	if kind == engine.EngineMedia {
+		cfg.MediaMode = engine.MediaModePipelineSupervised
+		if d.resolvedImageMatrix != nil {
+			selection := *d.resolvedImageMatrix
+			if resolvedMode, err := engine.MediaModeFromSelection(selection); err == nil {
+				cfg.MediaMode = resolvedMode
+				cfg.ImageSupervisedSelection = &selection
+			}
+		}
 	}
 
 	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)

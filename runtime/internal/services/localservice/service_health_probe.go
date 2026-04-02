@@ -656,63 +656,6 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 	return nil
 }
 
-func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {
-	mgr := s.engineManagerOrNil()
-	if mgr == nil || model == nil {
-		return nil
-	}
-	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		return nil
-	}
-	engine := executionRuntimeEngineForModel(model)
-	endpoint := s.effectiveLocalModelEndpoint(model)
-	port, err := parseManagedEndpointPort(engine, endpoint)
-	if err != nil {
-		return err
-	}
-	profile := collectDeviceProfile()
-	if classification, detail := classifyManagedEngineSupportForAsset(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-		profile,
-	); classification != localEngineSupportSupportedSupervised {
-		if strings.TrimSpace(detail) != "" {
-			return fmt.Errorf("%s", detail)
-		}
-		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engine))
-	}
-	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
-		lower := strings.ToLower(strings.TrimSpace(err.Error()))
-		if strings.Contains(lower, "already running") {
-			return nil
-		}
-		return err
-	}
-	return nil
-}
-
-func (s *Service) bootstrapLocalModelIfManaged(ctx context.Context, model *runtimev1.LocalAssetRecord) error {
-	if model == nil {
-		return nil
-	}
-	mode := s.modelRuntimeMode(model.GetLocalAssetId())
-	supervisorEngine := managedRuntimeEngineForModel(model)
-	executionEngine := executionRuntimeEngineForModel(model)
-	if err := s.bootstrapEngineIfManaged(
-		ctx,
-		supervisorEngine,
-		mode,
-		s.managedEndpointForEngine(supervisorEngine),
-	); err != nil {
-		return err
-	}
-	if executionEngine == supervisorEngine {
-		return nil
-	}
-	return s.bootstrapAssetExecutionEngineIfManaged(ctx, model, mode)
-}
-
 func (s *Service) probeLocalModelEndpoint(ctx context.Context, model *runtimev1.LocalAssetRecord, endpoint string) endpointProbeResult {
 	if model == nil {
 		return endpointProbeResult{}

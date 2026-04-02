@@ -58,6 +58,11 @@ func TestValidateEngineDownloadRedirect(t *testing.T) {
 			redirectURL: "https://release-assets.githubusercontent.com/path/to/file",
 		},
 		{
+			name:        "quay cdn redirect allowed",
+			sourceURL:   "https://quay.io/v2/go-skynet/local-ai-backends/blobs/sha256:abc",
+			redirectURL: "https://cdn01.quay.io/quayio-production-s3/sha256/ab/blob",
+		},
+		{
 			name:        "foreign host rejected",
 			sourceURL:   "https://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
 			redirectURL: "https://evil.example/path/to/file",

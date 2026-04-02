@@ -65,6 +65,12 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			}
 			continue
 		}
+		if isManagedSupervisedImageModel(localModel, model.mode) {
+			if _, err := s.checkManagedSupervisedImageHealth(ctx, localModel); err != nil {
+				s.logger.Debug("managed image recovery health failed", "local_model_id", localModelID, "error", err)
+			}
+			continue
+		}
 		endpoint := s.effectiveLocalModelEndpoint(localModel)
 		bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, localModel)
 		probe := s.probeLocalModelEndpoint(ctx, localModel, endpoint)

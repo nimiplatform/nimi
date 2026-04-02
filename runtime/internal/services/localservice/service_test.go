@@ -17,6 +17,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -2321,6 +2322,10 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(entryPath, []byte("gguf"), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
@@ -2339,7 +2344,7 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 	}
 }
 
-func TestLocalImportImageModelRequiresEndpointOnUnsupportedManagedImageHost(t *testing.T) {
+func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
@@ -2363,6 +2368,10 @@ func TestLocalImportImageModelRequiresEndpointOnUnsupportedManagedImageHost(t *t
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(entryPath, []byte("gguf"), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
@@ -2370,13 +2379,110 @@ func TestLocalImportImageModelRequiresEndpointOnUnsupportedManagedImageHost(t *t
 	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 	})
-	if err == nil {
-		t.Fatal("expected image import on unsupported host to fail closed")
+	if err != nil {
+		t.Fatalf("expected image import on Apple Silicon host to succeed, got %v", err)
 	}
-	assertGRPCReasonCode(t, err, "ImportLocalAsset(image unsupported managed host)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-	st, _ := status.FromError(err)
-	if !strings.Contains(st.Message(), "unsupported") && !strings.Contains(st.Message(), "Apple") {
-		t.Fatalf("expected compatibility detail for unsupported Apple host, got %q", st.Message())
+}
+
+func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe mocked healthy",
+			probeURL:  endpoint,
+		}
+	})
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-start", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-start",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	imageEntryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	entryPayload := append([]byte("GGUF"), make([]byte, 4*1024-4)...)
+	entryPayload[4] = 1
+	if err := os.WriteFile(imageEntryPath, entryPayload, 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("import image asset: %v", err)
+	}
+	if got := svc.modelRuntimeMode(imported.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("expected supervised runtime mode, got %s", got)
+	}
+	current := svc.modelByID(imported.GetAsset().GetLocalAssetId())
+	if current == nil {
+		t.Fatal("expected imported asset to be stored")
+	}
+	selection := canonicalSupervisedImageSelectionForLocalAsset(current, collectDeviceProfile())
+	if selection.ExecutionPlane != engine.EngineMedia {
+		t.Fatalf("expected media execution plane, got control=%s execution=%s entry_id=%s detail=%q", selection.ControlPlane, selection.ExecutionPlane, selection.EntryID, selection.CompatibilityDetail)
+	}
+	if got := managedRuntimeEngineForModel(current); got != "" {
+		t.Fatalf("expected runtime-owned image control plane to expose no supervisor engine, got %q", got)
+	}
+	if got := executionRuntimeEngineForModel(current); got != "media" {
+		t.Fatalf("expected execution runtime engine media, got %q", got)
+	}
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: imported.GetAsset().GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start image asset: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf(
+			"expected image asset to remain installed pending profile validation, got %s detail=%q",
+			started.GetAsset().GetStatus(),
+			started.GetAsset().GetHealthDetail(),
+		)
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "backend validation pending") {
+		t.Fatalf("expected pending validation detail, got %q", started.GetAsset().GetHealthDetail())
+	}
+	if mgr.startConfigCalls != 1 {
+		t.Fatalf(
+			"expected selection-aware engine start to be used once, got config_calls=%d plain_calls=%d plain_engines=%v last_engine=%q",
+			mgr.startConfigCalls,
+			mgr.startCalls,
+			mgr.startEngines,
+			mgr.lastStartEngine,
+		)
+	}
+	if mgr.lastStartConfig.ImageSupervisedSelection == nil {
+		t.Fatal("expected media engine start config to include canonical image selection")
+	}
+	if got := mgr.lastStartConfig.ImageSupervisedSelection.EntryID; got != "macos-apple-silicon-gguf" {
+		t.Fatalf("unexpected image selection entry: %q", got)
+	}
+	if got := mgr.lastStartConfig.MediaMode; got != engine.MediaModeProxyExecution {
+		t.Fatalf("expected explicit proxy media mode, got %q", got)
 	}
 }
 
@@ -2880,7 +2986,7 @@ func TestResolveModelInstallPlanMediaVideoSupervisedUnsupportedHost(t *testing.T
 	}
 }
 
-func TestResolveModelInstallPlanImageSupervisedUnsupportedHost(t *testing.T) {
+func TestResolveModelInstallPlanImageSupervisedSupportedOnAppleSilicon(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
@@ -2889,22 +2995,21 @@ func TestResolveModelInstallPlanImageSupervisedUnsupportedHost(t *testing.T) {
 		ModelId:      "local/z-image-turbo",
 		Engine:       "media",
 		Capabilities: []string{"image"},
+		Entry:        "z_image_turbo-Q4_K.gguf",
+		Files:        []string{"z_image_turbo-Q4_K.gguf"},
 	})
 	if err != nil {
 		t.Fatalf("resolve model install plan: %v", err)
 	}
 	plan := resp.GetPlan()
-	if plan.GetInstallAvailable() {
-		t.Fatal("image supervised plan must be unavailable on unsupported Apple Silicon host")
-	}
 	if got := plan.GetEngineRuntimeMode(); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("expected supervised runtime mode, got %s", got)
 	}
-	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	if plan.GetReasonCode() == runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("image supervised Apple Silicon plan must not fail host-compatibility gate, got reason=%s warnings=%#v", plan.GetReasonCode(), plan.GetWarnings())
 	}
-	if warnings := strings.Join(plan.GetWarnings(), " "); !strings.Contains(warnings, "canonical image asset facts unavailable") {
-		t.Fatalf("expected missing canonical facts warning, got %#v", plan.GetWarnings())
+	if warnings := strings.Join(plan.GetWarnings(), " "); strings.Contains(strings.ToLower(warnings), "unsupported") {
+		t.Fatalf("unexpected unsupported warning: %#v", plan.GetWarnings())
 	}
 }
 
@@ -3380,11 +3485,16 @@ type mockEngineManager struct {
 	startErr  error
 	stopErr   error
 	statusErr error
+	status    *EngineInfo
 
 	startCalls       int
+	startConfigCalls int
 	lastStartEngine  string
 	lastStartPort    int
 	lastStartVersion string
+	lastStartConfig  engine.EngineConfig
+	startEngines     []string
+	startConfigs     []engine.EngineConfig
 }
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
@@ -3402,6 +3512,14 @@ func (m *mockEngineManager) StartEngine(_ context.Context, engine string, port i
 	m.lastStartEngine = engine
 	m.lastStartPort = port
 	m.lastStartVersion = version
+	m.startEngines = append(m.startEngines, engine)
+	return m.startErr
+}
+
+func (m *mockEngineManager) StartEngineWithConfig(_ context.Context, cfg engine.EngineConfig) error {
+	m.startConfigCalls++
+	m.lastStartConfig = cfg
+	m.startConfigs = append(m.startConfigs, cfg)
 	return m.startErr
 }
 
@@ -3412,6 +3530,13 @@ func (m *mockEngineManager) StopEngine(_ string) error {
 func (m *mockEngineManager) EngineStatus(engine string) (EngineInfo, error) {
 	if m.statusErr != nil {
 		return EngineInfo{}, m.statusErr
+	}
+	if m.status != nil {
+		info := *m.status
+		if strings.TrimSpace(info.Engine) == "" {
+			info.Engine = engine
+		}
+		return info, nil
 	}
 	return EngineInfo{
 		Engine:   engine,
@@ -3630,6 +3755,73 @@ func TestEngineRPCGetEngineStatusUnknownEngine(t *testing.T) {
 func TestMapEngineManagerErrorReturnsNilForNilInput(t *testing.T) {
 	if err := mapEngineManagerError("status", nil); err != nil {
 		t.Fatalf("expected nil passthrough for nil engine error, got %v", err)
+	}
+}
+
+func TestManagedEngineAlreadyBound(t *testing.T) {
+	mgr := &mockEngineManager{
+		status: &EngineInfo{
+			Engine:   "media",
+			Status:   "unhealthy",
+			Port:     8321,
+			PID:      999,
+			Endpoint: "http://127.0.0.1:8321/v1",
+		},
+	}
+	if !managedEngineAlreadyBound(mgr, "media", 8321) {
+		t.Fatal("expected unhealthy managed engine with matching pid/port to be treated as already bound")
+	}
+	if managedEngineAlreadyBound(mgr, "media", 1234) {
+		t.Fatal("expected mismatched port to return false")
+	}
+	if managedEngineAlreadyBound(&mockEngineManager{status: &EngineInfo{Engine: "media", Status: "stopped", Port: 8321, PID: 999}}, "media", 8321) {
+		t.Fatal("expected stopped engine to return false")
+	}
+}
+
+func TestBootstrapSelectionAwareManagedMediaEngineSkipsRestartWhenMediaAlreadyOwnsPort(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{
+		status: &EngineInfo{
+			Engine:   "media",
+			Status:   "unhealthy",
+			Port:     8321,
+			PID:      999,
+			Endpoint: "http://127.0.0.1:8321/v1",
+		},
+	}
+	svc.SetEngineManager(mgr)
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "image-local-id",
+		AssetId:      "local-import/z_image_turbo-Q4_K",
+		Engine:       "media",
+		Endpoint:     "http://127.0.0.1:8321/v1",
+		Capabilities: []string{"image"},
+	}
+	selection := engine.ImageSupervisedMatrixSelection{
+		Matched:        true,
+		EntryID:        "macos-apple-silicon-gguf",
+		ProductState:   engine.ImageProductStateSupported,
+		BackendClass:   engine.ImageBackendClassNativeBinary,
+		BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:   engine.ImageControlPlaneRuntime,
+		ExecutionPlane: engine.EngineMedia,
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:        "macos-apple-silicon-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+		},
+	}
+
+	if err := svc.bootstrapSelectionAwareManagedMediaEngine(context.Background(), model, selection); err != nil {
+		t.Fatalf("expected already-bound managed media engine to skip restart, got %v", err)
+	}
+	if mgr.startConfigCalls != 0 {
+		t.Fatalf("expected no media restart when manager already owns port, got %d start calls", mgr.startConfigCalls)
 	}
 }
 

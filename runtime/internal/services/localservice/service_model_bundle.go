@@ -266,6 +266,27 @@ func managedLocalModelReadyNotStartedDetail() string {
 	return "managed local model ready (not started)"
 }
 
+func managedLocalImageReadyDetail() string {
+	return "managed local image backend validated"
+}
+
+func managedLocalImagePendingValidationDetail(reason string) string {
+	base := "managed local image installed; backend validation pending"
+	trimmed := strings.TrimSpace(reason)
+	if trimmed == "" {
+		return base
+	}
+	return base + ": " + trimmed
+}
+
+func managedLocalImageExecutionFailureDetail(detail string) string {
+	trimmed := strings.TrimSpace(detail)
+	if trimmed == "" {
+		return "managed local image backend validation failed"
+	}
+	return "managed local image backend validation failed: " + trimmed
+}
+
 func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
 	if model == nil {
 		return false
@@ -309,13 +330,12 @@ func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetReco
 	if model == nil {
 		return false
 	}
-	if !strings.EqualFold(
-		managedRuntimeEngineForModel(model),
-		"llama",
-	) {
+	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return false
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
+	isManagedLlama := strings.EqualFold(managedRuntimeEngineForModel(model), "llama")
+	isManagedImage := isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
+	if !isManagedLlama && !isManagedImage {
 		return false
 	}
 	expectedEndpoint := storedEndpointForAssetRuntimeMode(

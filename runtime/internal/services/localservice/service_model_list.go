@@ -16,7 +16,7 @@ func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalA
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 	kindFilter := req.GetKindFilter()
 
-	s.normalizeManagedSupervisedLlamaStatuses(ctx)
+	s.normalizeManagedSupervisedManagedStatuses(ctx)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()

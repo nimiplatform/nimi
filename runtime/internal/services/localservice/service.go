@@ -26,6 +26,7 @@ type EngineManager interface {
 	ListEngines() []EngineInfo
 	EnsureEngine(ctx context.Context, engine string, version string) error
 	StartEngine(ctx context.Context, engine string, port int, version string) error
+	StartEngineWithConfig(ctx context.Context, cfg engine.EngineConfig) error
 	StopEngine(engine string) error
 	EngineStatus(engine string) (EngineInfo, error)
 }
@@ -63,6 +64,7 @@ type Service struct {
 	audits                    []*runtimev1.LocalAuditEvent
 	verified                  []*runtimev1.LocalVerifiedAssetDescriptor
 	catalog                   []*runtimev1.LocalCatalogModelDescriptor
+	managedImageProfiles      map[string]managedImageProfileState
 	engineMgr                 EngineManager
 	managedLlamaRegistrations map[string]managedLlamaRegistration
 	warmedModelKeys           map[string]struct{}
@@ -114,6 +116,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		audits:                       make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                     verified,
 		catalog:                      defaultCatalogFromVerified(verified),
+		managedImageProfiles:         make(map[string]managedImageProfileState),
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
 		warmedModelOrder:             make([]string, 0, 512),

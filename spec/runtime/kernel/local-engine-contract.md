@@ -81,17 +81,17 @@ Phase 1 本地执行引擎固定为：
   - `product_state=proposed`：命中后必须返回 recognized-but-not-admitted fail-close
   - `product_state=unsupported`：命中后必须返回 recognized-but-unsupported fail-close
 - `engine=media` 且 runnable capability 为 `image.generate` / `image.edit` 时，`SUPERVISED` host support 必须由 v2 matrix resolver 输出的 `backend_class` / `backend_family` / `control_plane` / `execution_plane` 驱动，而不是复用整个 `media` 引擎的粗粒度 host 分类。
-- 对 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` + `control_plane=llama` 的 entry：
-  - `managed engine ownership` 由 `llama` control plane 与 daemon-managed llama image backend 负责。
-  - `LocalAssetRecord.endpoint` 与本地 consume route 的真实执行 endpoint 仍必须指向 `media` canonical loopback（`local-media`），不得把 `llama` control-plane endpoint 当作 image 执行 endpoint 对外暴露。
-  - runtime 启动/探测时必须同时满足 control plane（`llama`）与 execution plane（`local-media`）的 supervised 生命周期；不得只启动其一。
-- 对 `backend_class=python_pipeline` + `backend_family=diffusers` + `control_plane=media` 的 entry：
-  - `control_plane` 与 `execution_plane` 由同一 `media` 进程承载。
+- 对 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` + `control_plane=runtime` 的 entry：
+  - image orchestration、profile/slot 解析、activation/health、错误投影全部由 runtime 自身负责。
+  - `LocalAssetRecord.endpoint` 与本地 consume route 的真实执行 endpoint 仍必须指向 `media` canonical loopback（`local-media`）；runtime 不得额外暴露独立 image control-plane endpoint。
+  - runtime 启动/探测时只要求满足 execution plane（`local-media`）与 daemon-managed image backend 的 supervised 生命周期；不得再要求 `llama` 作为 image control plane 参与启动。
+- 对 `backend_class=python_pipeline` + `backend_family=diffusers` + `control_plane=runtime` 的 entry：
+  - `control_plane` 仍由 runtime 承载，`execution_plane` 由 `media` 进程承载。
   - internal lifecycle 仍保持与双平面模型同一套状态字面量（见 K-LENG-013）。
   - Python runtime bootstrap、venv 管理、依赖安装必须统一走 `uv` 管道（见 K-LENG-016）。
 - 对 daemon-managed `stablediffusion-ggml` backend：
-  - `darwin/arm64` 仅当 host 能提供 Apple Metal tensor API（当前最小门槛：Apple `M5+` 或 `A19+`）时，才允许判定为 `SUPERVISED supported`。
-  - 不满足该门槛时，runtime 必须在 install plan / import / registration / health 路径上统一返回明确兼容性原因，并以 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close；不得再把 canonical image 路径改写成 `ATTACHED_ENDPOINT` 或 `AI_LOCAL_ENDPOINT_REQUIRED`。
+  - `darwin/arm64` 属于正式支持的 canonical `gguf_image` supervised host tuple。
+  - runtime 不得再附加独立于 v2 matrix 之外的 Apple 代际门槛；install plan / import / registration / health 统一以 canonical matrix selection 为准，不得额外要求 `M5+` / `A19+`。
 - `engine=media` 的 `video.generate` / `i2v` 等其它能力仍可继续沿用 `media` 自身的 host support 规则，直到对应 supervised backend 明确实现。
 - 同一规则必须统一驱动 install plan、runtime mode 解析、startup warnings、health warnings 与 attached-endpoint-required 判定；不得在不同入口各自重新推断。
 
@@ -173,25 +173,25 @@ v1 每个 runtime state root（默认 `~/.nimi`）同时只能有一个 canonica
 
 `media_server.py` 必须区分两类 mode，由 `NIMI_MEDIA_MODE` 环境变量驱动：
 
-1. `proxy_execution`：服务于 `llama/media` 双平面路径，health / catalog 暴露 proxy execution truth。
-2. `pipeline_supervised`：服务于 `media/media` 单平面路径，health / catalog 暴露真实 pipeline truth。
+1. `proxy_execution`：服务于 runtime-owned `native_binary` image 路径，health / catalog 暴露 proxy execution truth。
+2. `pipeline_supervised`：服务于 runtime-owned `python_pipeline` image 路径，health / catalog 暴露真实 pipeline truth。
 
 Mode 与 resolver 的映射固定：
 
 | resolver output | `NIMI_MEDIA_MODE` 目标值 |
 |---|---|
-| `control_plane=llama`, `execution_plane=media`, `backend_class=native_binary` | `proxy_execution` |
-| `control_plane=media`, `execution_plane=media`, `backend_class=python_pipeline` | `pipeline_supervised` |
+| `control_plane=runtime`, `execution_plane=media`, `backend_class=native_binary` | `proxy_execution` |
+| `control_plane=runtime`, `execution_plane=media`, `backend_class=python_pipeline` | `pipeline_supervised` |
 
 HTTP contract：
 
 - `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`。
 - request body 与 artifact response envelope 在两种 mode 下保持同形；mode 差异只允许体现在 runtime-private detail / checks / catalog metadata。
-- `/models/import` 仅允许作为 `proxy_execution` 的 runtime-private management route。
+- `/models/import` 不属于 canonical image supervised contract；runtime-owned image path 不得依赖 llama model import API。
 
 ## K-LENG-015 Internal Lifecycle 状态机
 
-无论是 `llama/media` 双平面还是 `media/media` 单平面，都必须复用同一 internal lifecycle：
+无论是 runtime-owned native-binary path 还是 runtime-owned python-pipeline path，都必须复用同一 internal lifecycle：
 
 1. `resolved` → 2. `materialized` → 3. `installed` → 4. `control_plane_ready` → 5. `execution_plane_ready` → 6. `active`
 
@@ -385,7 +385,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - catalog 不得暴露静态伪 model list。
 - `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
 - `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它 llama-backed image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
-- 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露兼容性原因（例如 Apple `M5+` / `A19+` 要求），不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
+- 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露 canonical matrix compatibility 原因，不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
 
 `speech` 健康探测：
 

@@ -11,9 +11,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func scenarioJobContext(appID string) context.Context {
@@ -221,6 +223,117 @@ func TestSubmitScenarioJobLocalImageStartFailureFailsBeforeAsyncJobCreation(t *t
 	}
 	if jobs := len(svc.scenarioJobs.jobs); jobs != 0 {
 		t.Fatalf("expected no async job to be created on local image activation failure, got %d", jobs)
+	}
+}
+
+func TestSubmitScenarioJobInstalledImagePrimesManagedProfileExtensionsBeforeStart(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{EnforceEndpointSecurity: true})
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+			}},
+		}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+			},
+		},
+	}
+	svc.localImageProfile = &fakeLocalImageProfileResolver{
+		alias: "managed-image-alias",
+		profile: map[string]any{
+			"backend": "stablediffusion-ggml",
+			"parameters": map[string]any{
+				"model": "resolved/example/model.gguf",
+			},
+		},
+		selection: engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			EntryID:        "macos-apple-silicon-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:        "macos-apple-silicon-gguf",
+				ProductState:   engine.ImageProductStateSupported,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		},
+	}
+
+	payload, err := structpb.NewStruct(map[string]any{
+		"profile_entries": []any{
+			map[string]any{
+				"entryId":    "main",
+				"kind":       "asset",
+				"capability": "image",
+				"assetId":    "flux.1-schnell",
+				"assetKind":  "image",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("build scenario extension payload: %v", err)
+	}
+
+	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/flux.1-schnell",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: "orange cat",
+					N:      1,
+					Size:   "1024x1024",
+				},
+			},
+		},
+		Extensions: []*runtimev1.ScenarioExtension{{
+			Namespace: "nimi.scenario.image.request",
+			Payload:   payload,
+		}},
+	})
+	resolver, _ := svc.localImageProfile.(*fakeLocalImageProfileResolver)
+	if resolver == nil || resolver.resolveProfileCalls < 1 {
+		t.Fatalf("expected managed image profile to be resolved during submit, got resolver=%#v", resolver)
+	}
+	if resolver.lastExtensions == nil || resolver.lastExtensions["profile_entries"] == nil {
+		t.Fatalf("expected submit path to forward scenario extensions, got %#v", resolver.lastExtensions)
+	}
+	if svc.localModel.(*fakeLocalModelLister).startCalls != 1 {
+		t.Fatalf("expected submit path to start installed image asset once, got %d", svc.localModel.(*fakeLocalModelLister).startCalls)
+	}
+	if err != nil && strings.Contains(err.Error(), "supply_profile_entries") {
+		t.Fatalf("submit path should not drop image profile extensions, got %v", err)
+	}
+	if err == nil && (resp == nil || resp.GetJob() == nil || strings.TrimSpace(resp.GetJob().GetJobId()) == "") {
+		t.Fatalf("expected submit response with job, got %#v", resp)
 	}
 }
 

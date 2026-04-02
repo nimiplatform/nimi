@@ -123,6 +123,31 @@ func (m *Manager) SetLlamaImageBackend(cfg *LlamaImageBackendConfig) {
 	m.llamaImageBackend = normalizeLlamaImageBackendConfig(cfg)
 }
 
+// EnsureManagedImageBackend starts the runtime-owned managed image gRPC backend
+// without registering it as a llama external backend.
+func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *LlamaImageBackendConfig) error {
+	normalized := normalizeLlamaImageBackendConfig(cfg)
+	if !normalized.Enabled() {
+		return nil
+	}
+	m.mu.RLock()
+	backendsPath := strings.TrimSpace(m.llamaBackendsPath)
+	m.mu.RUnlock()
+	llamaBinaryPath := ""
+	if latest := m.latestRegistryEntry(EngineLlama); latest != nil {
+		llamaBinaryPath = strings.TrimSpace(latest.BinaryPath)
+	}
+	resolved, err := ensureOfficialLlamaImageBackend(ctx, llamaBinaryPath, backendsPath, normalized)
+	if err != nil {
+		return err
+	}
+	auxCfg, err := llamaImageBackendEngineConfig(resolved)
+	if err != nil {
+		return err
+	}
+	return m.startLlamaImageBackend(ctx, auxCfg)
+}
+
 func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 	if cfg.Kind != EngineLlama {
 		return cfg

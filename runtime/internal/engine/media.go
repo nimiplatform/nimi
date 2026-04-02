@@ -34,21 +34,18 @@ var mediaPackages = []string{
 type MediaMode string
 
 const (
-	// MediaModeProxyExecution serves the llama/media dual-plane path.
+	// MediaModeProxyExecution serves the runtime-owned native-binary image path.
 	MediaModeProxyExecution MediaMode = "proxy_execution"
-	// MediaModePipelineSupervised serves the media/media single-plane path.
+	// MediaModePipelineSupervised serves the runtime-owned python pipeline path.
 	MediaModePipelineSupervised MediaMode = "pipeline_supervised"
 )
 
 func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
-	mediaMode := MediaModePipelineSupervised
-	if cfg.ImageSupervisedSelection != nil {
-		resolvedMode, err := mediaModeFromSelection(*cfg.ImageSupervisedSelection)
-		if err != nil {
-			return cfg, err
-		}
-		mediaMode = resolvedMode
+	mediaMode, err := resolveConfiguredMediaMode(cfg)
+	if err != nil {
+		return cfg, err
 	}
+	cfg.MediaMode = mediaMode
 
 	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
 	uvRoot := filepath.Join(baseDir, "uv")
@@ -121,7 +118,30 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	return cfg, nil
 }
 
-func mediaModeFromSelection(selection ImageSupervisedMatrixSelection) (MediaMode, error) {
+func resolveConfiguredMediaMode(cfg EngineConfig) (MediaMode, error) {
+	mediaMode := MediaMode(strings.TrimSpace(string(cfg.MediaMode)))
+	switch mediaMode {
+	case MediaModeProxyExecution, MediaModePipelineSupervised:
+	default:
+		if mediaMode == "" {
+			return "", fmt.Errorf("media bootstrap mode is required")
+		}
+		return "", fmt.Errorf("unsupported media bootstrap mode: %s", mediaMode)
+	}
+	if cfg.ImageSupervisedSelection == nil {
+		return mediaMode, nil
+	}
+	resolvedMode, err := MediaModeFromSelection(*cfg.ImageSupervisedSelection)
+	if err != nil {
+		return "", err
+	}
+	if mediaMode != resolvedMode {
+		return "", fmt.Errorf("media bootstrap mode %s does not match image supervised selection mode %s", mediaMode, resolvedMode)
+	}
+	return mediaMode, nil
+}
+
+func MediaModeFromSelection(selection ImageSupervisedMatrixSelection) (MediaMode, error) {
 	if !selection.Matched || selection.Conflict || selection.Entry == nil {
 		detail := strings.TrimSpace(selection.CompatibilityDetail)
 		if detail == "" {
@@ -137,11 +157,11 @@ func mediaModeFromSelection(selection ImageSupervisedMatrixSelection) (MediaMode
 		return "", fmt.Errorf("%s", detail)
 	}
 	switch {
-	case selection.ControlPlane == EngineLlama &&
+	case selection.ControlPlane == ImageControlPlaneRuntime &&
 		selection.ExecutionPlane == EngineMedia &&
 		selection.BackendClass == ImageBackendClassNativeBinary:
 		return MediaModeProxyExecution, nil
-	case selection.ControlPlane == EngineMedia &&
+	case selection.ControlPlane == ImageControlPlaneRuntime &&
 		selection.ExecutionPlane == EngineMedia &&
 		selection.BackendClass == ImageBackendClassPythonPipeline:
 		return MediaModePipelineSupervised, nil

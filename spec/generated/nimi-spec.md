@@ -681,7 +681,7 @@ Phase 1 本地执行引擎固定为：
 - catalog 不得暴露静态伪 model list。
 - `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
 - `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它 llama-backed image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
-- 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露兼容性原因（例如 Apple `M5+` / `A19+` 要求），不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
+- 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露 canonical matrix compatibility 原因，不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
 
 `speech` 健康探测：
 

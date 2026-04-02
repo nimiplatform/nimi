@@ -58,12 +58,16 @@ func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, por
 	if err != nil {
 		return err
 	}
+	return a.StartEngineWithConfig(ctx, cfg)
+}
+
+func (a *ServiceAdapter) StartEngineWithConfig(ctx context.Context, cfg EngineConfig) error {
 	cfg = a.mgr.applyLlamaPaths(cfg)
-	cfg, err = a.mgr.EnsureEngine(ctx, cfg)
+	ensured, err := a.mgr.EnsureEngine(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("ensure engine before start: %w", err)
 	}
-	return a.mgr.StartEngine(ctx, cfg)
+	return a.mgr.StartEngine(ctx, ensured)
 }
 
 func (a *ServiceAdapter) StopEngine(engineName string) error {
@@ -133,6 +137,9 @@ func resolveEngineConfig(engineName string, version string, port int) (EngineCon
 	}
 	if port > 0 {
 		cfg.Port = port
+	}
+	if cfg.Kind == EngineMedia {
+		cfg.MediaMode = MediaModePipelineSupervised
 	}
 	return cfg, nil
 }

@@ -52,16 +52,13 @@ entries:
     profile_kind: single_binary_model
     backend_class: native_binary
     backend_family: stablediffusion-ggml
-    control_plane: llama
+    control_plane: runtime
     execution_plane: media
-    supported_capabilities: []
+    supported_capabilities:
+      - image.generate.t2i
+      - image.generate.i2i
     topology_state: defined
-    product_state: unsupported
-    support_gate: Apple M5+ or A19-family
-    detail: >-
-      reserved topology only; not a supported Apple product path in v1.
-      daemon-managed stablediffusion-ggml currently requires Apple Metal tensor API
-      not available on pre-M5 / pre-A19 Apple Silicon.
+    product_state: supported
 
   - entry_id: macos-apple-silicon-workflow-safetensors
     host_match:
@@ -75,7 +72,7 @@ entries:
     profile_kind: workflow_pipeline
     backend_class: python_pipeline
     backend_family: diffusers
-    control_plane: media
+    control_plane: runtime
     execution_plane: media
     supported_capabilities: []
     topology_state: defined
@@ -97,7 +94,7 @@ entries:
     profile_kind: single_binary_model
     backend_class: native_binary
     backend_family: stablediffusion-ggml
-    control_plane: llama
+    control_plane: runtime
     execution_plane: media
     supported_capabilities:
       - image.generate.t2i
@@ -116,7 +113,7 @@ entries:
     profile_kind: single_binary_model
     backend_class: native_binary
     backend_family: stablediffusion-ggml
-    control_plane: llama
+    control_plane: runtime
     execution_plane: media
     supported_capabilities:
       - image.generate.t2i
@@ -137,7 +134,7 @@ entries:
     profile_kind: workflow_pipeline
     backend_class: python_pipeline
     backend_family: diffusers
-    control_plane: media
+    control_plane: runtime
     execution_plane: media
     supported_capabilities: []
     topology_state: defined
@@ -159,7 +156,7 @@ entries:
     profile_kind: workflow_pipeline
     backend_class: python_pipeline
     backend_family: diffusers
-    control_plane: media
+    control_plane: runtime
     execution_plane: media
     supported_capabilities: []
     topology_state: defined

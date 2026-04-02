@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net"
@@ -141,31 +142,6 @@ func makeFakeArchiveAssetWithRuntimeFiles(t *testing.T, assetName string, binary
 	default:
 		t.Fatalf("runtime file archive helper only supports tar.gz assets, got %s", assetName)
 		return nil
-	}
-}
-
-func TestDefaultMediaConfig(t *testing.T) {
-	cfg := DefaultMediaConfig()
-	if cfg.Kind != EngineMedia {
-		t.Errorf("expected kind %s, got %s", EngineMedia, cfg.Kind)
-	}
-	if cfg.HealthPath != "/healthz" {
-		t.Errorf("expected health path /healthz, got %s", cfg.HealthPath)
-	}
-	if cfg.HealthResponse != "\"ready\": true" {
-		t.Errorf("expected readiness response matcher, got %s", cfg.HealthResponse)
-	}
-}
-
-func TestEngineConfigEndpoint(t *testing.T) {
-	cfg := EngineConfig{Port: 5678}
-	if got := cfg.Endpoint(); got != "http://127.0.0.1:5678" {
-		t.Errorf("expected http://127.0.0.1:5678, got %s", got)
-	}
-
-	cfg.Address = "  localhost:1234  "
-	if got := cfg.Endpoint(); got != "http://localhost:1234" {
-		t.Fatalf("expected trimmed endpoint, got %q", got)
 	}
 }
 
@@ -418,10 +394,10 @@ func TestLlamaImageSupervisedPlatformSupportedFor(t *testing.T) {
 		gpuModel  string
 		want      bool
 	}{
-		{name: "darwin m4 unsupported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M4 Max", want: false},
+		{name: "darwin m4 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M4 Max", want: true},
 		{name: "darwin m5 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M5 Max", want: true},
 		{name: "darwin a19 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple A19", want: true},
-		{name: "darwin unknown apple unsupported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple Silicon", want: false},
+		{name: "darwin unknown apple supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple Silicon", want: true},
 		{name: "linux amd64 follows llama support", goos: "linux", goarch: "amd64", gpuVendor: "", gpuModel: "", want: true},
 	}
 
@@ -659,6 +635,26 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 
 	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
 		t.Fatal("expected media health probe to fail without ready catalog models")
+	}
+}
+
+func TestProbeMediaHealthProxyExecutionAllowsReadyEmptyCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true,"checks":{"proxy_mode":true}}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true,"models":[]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeMediaHealth(context.Background(), server.URL); err != nil {
+		t.Fatalf("expected proxy_execution media health to accept ready empty catalog, got %v", err)
 	}
 }
 
@@ -1250,6 +1246,73 @@ func TestDiscoverInstalledLlamaBackendRunPathRejectsMetaBackendTraversal(t *test
 	_, err := discoverInstalledLlamaBackendRunPath(backendsPath, "stablediffusion-ggml")
 	if err == nil {
 		t.Fatal("expected meta_backend_for traversal to be rejected")
+	}
+}
+
+func TestParseOCIImageReference(t *testing.T) {
+	got, err := parseOCIImageReference("quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml")
+	if err != nil {
+		t.Fatalf("parseOCIImageReference: %v", err)
+	}
+	if got.Registry != "quay.io" {
+		t.Fatalf("registry mismatch: %q", got.Registry)
+	}
+	if got.Repository != "go-skynet/local-ai-backends" {
+		t.Fatalf("repository mismatch: %q", got.Repository)
+	}
+	if got.Reference != "latest-metal-darwin-arm64-stablediffusion-ggml" {
+		t.Fatalf("reference mismatch: %q", got.Reference)
+	}
+}
+
+func TestInstallLlamaBackendFromOCI(t *testing.T) {
+	tarball := makeFakeArchiveAsset(t, "backend.tar.gz", "run.sh", []byte("#!/bin/sh\n"))
+	layerDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(tarball))
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/test/llama-backends/manifests/test-tag":
+			w.Header().Set("Content-Type", ociManifestMediaTypeV2)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"schemaVersion":2,"mediaType":"%s","layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"%s"}]}`, ociManifestMediaTypeV2, layerDigest)))
+		case "/v2/test/llama-backends/blobs/" + layerDigest:
+			w.Header().Set("Content-Type", "application/octet-stream")
+			_, _ = w.Write(tarball)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = server.Client().Transport
+	t.Cleanup(func() {
+		http.DefaultTransport = oldTransport
+	})
+
+	registryHost := strings.TrimPrefix(server.URL, "https://")
+	backendsPath := t.TempDir()
+	err := installLlamaBackendFromOCI(context.Background(), backendsPath, "stablediffusion-ggml", llamaBackendPackageSpec{
+		InstallDirName: "metal-stablediffusion-ggml",
+		ImageRef:       registryHost + "/test/llama-backends:test-tag",
+	})
+	if err != nil {
+		t.Fatalf("installLlamaBackendFromOCI: %v", err)
+	}
+
+	runPath := filepath.Join(backendsPath, "metal-stablediffusion-ggml", "run.sh")
+	if _, err := os.Stat(runPath); err != nil {
+		t.Fatalf("expected run.sh to be installed: %v", err)
+	}
+
+	metadata, err := readLlamaBackendMetadata(filepath.Join(backendsPath, "metal-stablediffusion-ggml", "metadata.json"))
+	if err != nil {
+		t.Fatalf("readLlamaBackendMetadata: %v", err)
+	}
+	if metadata == nil {
+		t.Fatal("expected metadata.json to be installed")
+	}
+	if metadata.Alias != "stablediffusion-ggml" {
+		t.Fatalf("backend alias mismatch: %q", metadata.Alias)
 	}
 }
 

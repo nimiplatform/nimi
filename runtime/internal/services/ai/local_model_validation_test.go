@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
@@ -466,6 +467,86 @@ func TestValidateLocalModelRequestInstalledImageDoesNotWarmTextOnlyAssets(t *tes
 	}
 	if resolved != "flux.1-schnell" {
 		t.Fatalf("unexpected hydrated image backend resolution: %q", resolved)
+	}
+}
+
+func TestValidateLocalModelRequestInstalledImagePrimesManagedProfileBeforeStart(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-installed",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             "http://127.0.0.1:8321/v1",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-installed",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             "http://127.0.0.1:8321/v1",
+			},
+		},
+	}
+	resolver := &fakeLocalImageProfileResolver{
+		alias: "nimi-img-probe",
+		profile: map[string]any{
+			"backend": "stablediffusion-ggml",
+			"parameters": map[string]any{
+				"model": "resolved/flux/model.gguf",
+			},
+		},
+		selection: engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			EntryID:        "macos-apple-silicon-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:        "macos-apple-silicon-gguf",
+				ProductState:   engine.ImageProductStateSupported,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		},
+	}
+	svc.localModel = imageLister
+	svc.localImageProfile = resolver
+
+	err := svc.validateLocalModelRequestWithExtensions(
+		context.Background(),
+		"local/flux.1-schnell",
+		nil,
+		runtimev1.Modal_MODAL_IMAGE,
+		map[string]any{
+			"profile_entries": []any{
+				map[string]any{"entryId": "main", "kind": "asset", "capability": "image", "assetId": "flux.1-schnell", "assetKind": "image"},
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected installed image local model validation success, got %v", err)
+	}
+	if resolver.resolveProfileCalls != 1 {
+		t.Fatalf("expected managed image profile to be primed once, got %d", resolver.resolveProfileCalls)
+	}
+	if resolver.lastRequestedModel != "local/flux.1-schnell" {
+		t.Fatalf("unexpected primed model id: %q", resolver.lastRequestedModel)
+	}
+	if imageLister.startCalls != 1 {
+		t.Fatalf("expected installed image local model to start once, got %d", imageLister.startCalls)
 	}
 }
 

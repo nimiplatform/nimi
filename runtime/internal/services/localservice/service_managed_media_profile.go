@@ -352,6 +352,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	sum := sha256.Sum256(canonical)
 	alias := "nimi-img-" + hex.EncodeToString(sum[:8])
 	profile["name"] = alias
+	s.cacheManagedMediaImageProfile(model.GetLocalAssetId(), alias, profile)
 
 	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
 }
@@ -371,6 +372,7 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 			continue
 		}
 		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED &&
 			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
 			continue
 		}

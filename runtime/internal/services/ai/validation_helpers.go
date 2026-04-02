@@ -106,6 +106,10 @@ func requireSubjectUserIDForScenario(
 }
 
 func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType) (*nimillm.RemoteTarget, error) {
+	return s.prepareScenarioRequestWithExtensions(ctx, head, scenarioType, nil)
+}
+
+func (s *Service) prepareScenarioRequestWithExtensions(ctx context.Context, head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, extensions []*runtimev1.ScenarioExtension) (*nimillm.RemoteTarget, error) {
 	if head == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -127,7 +131,13 @@ func (s *Service) prepareScenarioRequest(ctx context.Context, head *runtimev1.Sc
 	); err != nil {
 		return nil, err
 	}
-	if err := s.validateLocalModelRequest(ctx, head.GetModelId(), remoteTarget, scenarioModalFromType(scenarioType)); err != nil {
+	if err := s.validateLocalModelRequestWithExtensions(
+		ctx,
+		head.GetModelId(),
+		remoteTarget,
+		scenarioModalFromType(scenarioType),
+		nimillm.ScenarioExtensionPayloadForType(scenarioType, extensions),
+	); err != nil {
 		return nil, err
 	}
 	return remoteTarget, nil
