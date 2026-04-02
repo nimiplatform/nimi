@@ -63,14 +63,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
     }): Promise<ModRuntimeResolvedBinding> => {
         let effectiveBinding = payload.binding;
         const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
-        const localGoRuntimeStatus = String(effectiveBinding?.goRuntimeStatus || '').trim().toLowerCase();
-        const needsLocalHydration = effectiveBinding?.source === 'local'
-            && (!String(effectiveBinding.localModelId || '').trim()
-                || !String(effectiveBinding.engine || '').trim()
-                || !String(effectiveBinding.adapter || '').trim()
-                || localGoRuntimeStatus === 'removed'
-                || localGoRuntimeStatus === 'degraded'
-                || localGoRuntimeStatus === 'unavailable');
+        const needsLocalHydration = effectiveBinding?.source === 'local';
         const needsCloudHydration = effectiveBinding?.source === 'cloud'
             && (!String(effectiveBinding.connectorId || '').trim()
                 || !String(effectiveBinding.provider || '').trim());

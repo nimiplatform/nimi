@@ -23,11 +23,9 @@ import {
   LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-sections';
 import type {
-  AssetClassOption,
   AssetEngineOption,
   CapabilityOption,
   InstallEngineOption,
-  ModelTypeOption,
 } from './runtime-config-model-center-utils';
 import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
@@ -46,10 +44,11 @@ type LocalModelCenterRuntimeViewProps = {
   filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
   filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
   hasSearchQuery: boolean;
-  importFileAssetClass: AssetClassOption;
-  importFileModelType: ModelTypeOption;
-  importFileDependencyKind: LocalRuntimeAssetKind;
+  importFileAssetKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
+  importFileEndpoint: string;
+  importEndpointRequired: boolean;
+  importEndpointHint?: string;
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
   installing: boolean;
@@ -63,11 +62,13 @@ type LocalModelCenterRuntimeViewProps = {
   localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
+  unregisteredEndpointByPath: Record<string, string>;
+  unregisteredEndpointRequiredByPath: Record<string, boolean>;
+  unregisteredEndpointHintByPath: Record<string, string>;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
-  onAssetClassChange: (assetClass: AssetClassOption) => void;
-  onAssetModelTypeChange: (modelType: ModelTypeOption) => void;
-  onAssetDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
+  onImportEndpointChange: (endpoint: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
@@ -89,15 +90,15 @@ type LocalModelCenterRuntimeViewProps = {
   onRefreshQuickPicks: () => void;
   onRefreshUnregisteredAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
+  onRepairAsset: (localAssetId: string, endpoint: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
   onToggleImportMenu: () => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onImportUnregisteredAsset: (path: string) => void;
-  onUnregisteredAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
-  onUnregisteredModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onUnregisteredDependencyKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onUnregisteredAssetKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
+  onUnregisteredEndpointChange: (path: string, endpoint: string) => void;
   relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
   resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
   searchQuery: string;
@@ -132,20 +133,20 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           importMenuRef={props.importMenuRef}
           showImportMenu={props.showImportMenu}
           showImportFileDialog={props.showImportFileDialog}
-          importFileAssetClass={props.importFileAssetClass}
-          importFileModelType={props.importFileModelType}
-          importFileDependencyKind={props.importFileDependencyKind}
+          importFileAssetKind={props.importFileAssetKind}
           importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
+          importFileEndpoint={props.importFileEndpoint}
+          importEndpointRequired={props.importEndpointRequired}
+          importEndpointHint={props.importEndpointHint}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
           onOpenModelsFolder={props.onOpenModelsFolder}
           onToggleImportMenu={props.onToggleImportMenu}
           onOpenImportFile={props.onOpenImportFile}
           onImportManifest={props.onImportManifest}
-          onAssetClassChange={props.onAssetClassChange}
-          onModelTypeChange={props.onAssetModelTypeChange}
-          onDependencyKindChange={props.onAssetDependencyKindChange}
+          onAssetKindChange={props.onAssetKindChange}
           onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
+          onEndpointChange={props.onImportEndpointChange}
           onCloseImportFileDialog={props.onCloseImportFileDialog}
           onChooseImportFile={props.onChooseImportFile}
           canChooseImportFile={props.canChooseImportFile}
@@ -156,11 +157,13 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           assetImportSessionByPath={props.assetImportSessionByPath}
           importingAssetPath={props.importingAssetPath}
           resolveDraft={props.resolveUnregisteredAssetDraft}
+          endpointByPath={props.unregisteredEndpointByPath}
+          endpointRequiredByPath={props.unregisteredEndpointRequiredByPath}
+          endpointHintByPath={props.unregisteredEndpointHintByPath}
           onRefresh={props.onRefreshUnregisteredAssets}
-          onAssetClassChange={props.onUnregisteredAssetClassChange}
-          onModelTypeChange={props.onUnregisteredModelTypeChange}
-          onDependencyKindChange={props.onUnregisteredDependencyKindChange}
+          onAssetKindChange={props.onUnregisteredAssetKindChange}
           onAuxiliaryEngineChange={props.onUnregisteredAuxiliaryEngineChange}
+          onEndpointChange={props.onUnregisteredEndpointChange}
           onImport={props.onImportUnregisteredAsset}
         />
         <LocalModelCenterCatalogCard
@@ -191,6 +194,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onArtifactKindFilterChange={props.onArtifactKindFilterChange}
           onRefreshAssets={props.onRefreshAssets}
           onRemoveAsset={props.onRemoveAsset}
+          onRepairAsset={props.onRepairAsset}
           onInstallMissingAssets={props.onInstallMissingAssets}
           onInstallVerifiedModel={props.onInstallVerifiedModel}
           onInstallAsset={props.onInstallAsset}

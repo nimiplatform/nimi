@@ -17,6 +17,8 @@ export type LocalRuntimeAssetRecord = {
   assetId: string;
   kind: LocalRuntimeAssetKind;
   engine: string;
+  engineRuntimeMode?: LocalRuntimeEngineRuntimeMode;
+  endpoint?: string;
   entry: string;
   files: string[];
   license: string;
@@ -480,6 +482,10 @@ export type LocalRuntimeAuditPayload = {
 
 export type LocalRuntimeWriteOptions = {
   caller?: 'core' | 'builtin' | 'injected' | 'sideload' | string;
+};
+
+export type LocalRuntimeImportManifestOptions = LocalRuntimeWriteOptions & {
+  endpoint?: string;
 };
 
 export type LocalRuntimeAuditSource = 'local' | 'cloud' | string;

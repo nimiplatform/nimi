@@ -290,7 +290,7 @@ export function parseUnregisteredAssetDescriptor(value: unknown): LocalRuntimeUn
   return {
     filename: asString(record.filename),
     path: asString(record.path),
-    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
+    sizeBytes: Number(record.sizeBytes) || 0,
     declaration: parsedDeclaration,
     suggestionSource: (asString(record.suggestionSource) || 'unknown') as LocalRuntimeUnregisteredAssetDescriptor['suggestionSource'],
     confidence: (asString(record.confidence) || 'low') as LocalRuntimeUnregisteredAssetDescriptor['confidence'],

@@ -96,7 +96,7 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
         localModelId: String(binding.localModelId || localModel.localModelId || '').trim() || undefined,
         engine: String(binding.engine || localModel.engine || '').trim() || undefined,
         provider: String(binding.provider || localModel.provider || localModel.engine || '').trim() || undefined,
-        adapter: String(binding.adapter || localModel.adapter || '').trim() || undefined,
+        adapter: String(localModel.adapter || binding.adapter || '').trim() || undefined,
         providerHints: binding.providerHints || localModel.providerHints,
         endpoint: String(binding.endpoint || localModel.endpoint || '').trim() || undefined,
         goRuntimeLocalModelId: String((clearStaleBindingGoRuntime

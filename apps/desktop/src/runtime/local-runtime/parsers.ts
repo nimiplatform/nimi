@@ -89,6 +89,10 @@ export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
     assetId: toCanonicalLocalId(record.assetId),
     kind: normalizeAssetKind(record.kind),
     engine: asString(record.engine),
+    engineRuntimeMode: record.engineRuntimeMode == null
+      ? undefined
+      : normalizeEngineRuntimeMode(record.engineRuntimeMode),
+    endpoint: asString(record.endpoint) || undefined,
     entry: asString(record.entry),
     files,
     license: asString(record.license),

@@ -97,6 +97,7 @@ import type {
   LocalRuntimeAuditPayload,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
+  LocalRuntimeImportManifestOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeInferenceAuditPayload,
@@ -175,6 +176,7 @@ export type {
   LocalRuntimePollingOptions,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
+  LocalRuntimeImportManifestOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeScaffoldAssetPayload,
@@ -285,7 +287,7 @@ export type LocalRuntimeFacade = {
   ) => Promise<LocalRuntimeAssetFileImportResult>;
   importAssetManifest: (
     manifestPath: string,
-    options?: LocalRuntimeWriteOptions,
+    options?: LocalRuntimeImportManifestOptions,
   ) => Promise<LocalRuntimeAssetManifestImportResult>;
 };
 

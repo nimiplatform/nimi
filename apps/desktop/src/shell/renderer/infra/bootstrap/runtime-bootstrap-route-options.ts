@@ -132,6 +132,36 @@ function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapab
     }
     return 'llama_native_adapter';
 }
+function localAssetRequiresManagedLlamaImageAdapter(item: LocalRuntimeAssetRecord, capability: RuntimeCanonicalCapability): boolean {
+    if (capability !== 'image.generate') {
+        return false;
+    }
+    if (normalizeLocalEngine(item.engine) !== 'media') {
+        return false;
+    }
+    if (String(item.kind || '').trim().toLowerCase() === 'image') {
+        return true;
+    }
+    if ((item.capabilities || []).some((value) => String(value || '').trim().toLowerCase() === 'image.generate' || String(value || '').trim().toLowerCase() === 'image.edit')) {
+        return true;
+    }
+    const backend = String(item.engineConfig?.backend || '').trim().toLowerCase();
+    if (backend === 'stablediffusion-ggml') {
+        return true;
+    }
+    return String(item.preferredEngine || '').trim().toLowerCase() === 'llama';
+}
+function localRouteAdapterForAsset(
+    item: LocalRuntimeAssetRecord,
+    capability: RuntimeCanonicalCapability,
+    providerAdapter?: string,
+): string {
+    if (localAssetRequiresManagedLlamaImageAdapter(item, capability)) {
+        return 'llama_native_adapter';
+    }
+    return String(providerAdapter || '').trim()
+        || defaultLocalAdapter(item.engine, capability);
+}
 function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
     if (!input)
         return '';
@@ -581,10 +611,9 @@ export async function loadRuntimeRouteOptions(input: {
             model: item.assetId,
             modelId: item.assetId,
             provider: normalizeLocalEngine(item.engine),
-            adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
-                || defaultLocalAdapter(item.engine, input.capability),
+            adapter: localRouteAdapterForAsset(item, input.capability, nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter),
             providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
-            endpoint: undefined,
+            endpoint: String(item.endpoint || snapshotModel?.endpoint || '').trim() || undefined,
             status: item.status,
             goRuntimeLocalModelId: String(item.localAssetId || '').trim() || undefined,
             goRuntimeStatus: String(item.status || '').trim() || undefined,

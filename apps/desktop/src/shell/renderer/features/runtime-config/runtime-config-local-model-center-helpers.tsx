@@ -35,6 +35,19 @@ export const ASSET_KIND_OPTIONS = [
   'auxiliary',
 ] as const satisfies readonly LocalRuntimeAssetKind[];
 
+export const ALL_ASSET_KIND_OPTIONS = [
+  'chat',
+  'image',
+  'video',
+  'tts',
+  'stt',
+  'vae',
+  'clip',
+  'controlnet',
+  'lora',
+  'auxiliary',
+] as const satisfies readonly LocalRuntimeAssetKind[];
+
 export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
   switch (value) {
     case 'chat':

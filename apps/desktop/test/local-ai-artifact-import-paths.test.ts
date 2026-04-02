@@ -52,7 +52,7 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
 });
 
 test('asset manifest import uses the unified importLocalRuntimeAsset command', () => {
-  assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{ manifestPath: normalizedPath \}/);
+  assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{\s*manifestPath: normalizedPath,\s*endpoint: String\(options\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined,\s*\}, options\)/s);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
   assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_adopt/);
   assert.match(tauriAssetsCommandsSource, /runtime_import_manifest_via_runtime\(path\.as_path\(\), endpoint, engine_config\)/);

@@ -35,6 +35,7 @@ import type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeSnapshot,
   LocalRuntimeWriteOptions,
+  LocalRuntimeImportManifestOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeUnregisteredAssetDescriptor,
@@ -748,13 +749,16 @@ export async function importLocalRuntimeAssetFileUnified(
 
 export async function importLocalRuntimeAssetManifest(
   manifestPath: string,
-  options?: LocalRuntimeWriteOptions,
+  options?: LocalRuntimeImportManifestOptions,
 ): Promise<import('./types').LocalRuntimeAssetManifestImportResult> {
   const normalizedPath = String(manifestPath || '').trim();
   if (!normalizedPath) {
     throw new Error('manifestPath is required');
   }
-  const asset = await importLocalRuntimeAsset({ manifestPath: normalizedPath }, options);
+  const asset = await importLocalRuntimeAsset({
+    manifestPath: normalizedPath,
+    endpoint: String(options?.endpoint || '').trim() || undefined,
+  }, options);
   return { asset };
 }
 

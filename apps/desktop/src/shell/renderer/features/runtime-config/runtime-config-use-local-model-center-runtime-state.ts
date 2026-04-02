@@ -15,7 +15,6 @@ import {
   normalizeModelTypeOption,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
-  type AssetClassOption,
   type AssetEngineOption,
   type CapabilityOption,
   type InstallEngineOption,
@@ -68,6 +67,15 @@ function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAss
 
 const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt']);
 
+function defaultEngineForAnyAssetKind(kind: string): AssetEngineOption | '' {
+  if (kind === 'chat' || kind === 'embedding') return 'llama';
+  if (kind === 'image' || kind === 'video') return 'media';
+  if (kind === 'tts' || kind === 'stt') return 'speech';
+  if (kind === 'music') return 'sidecar';
+  if (kind === 'auxiliary') return '';
+  return 'media';
+}
+
 function normalizeAssetDeclaration(
   declaration?: LocalRuntimeAssetDeclaration,
 ): LocalRuntimeAssetDeclaration {
@@ -100,6 +108,33 @@ function canImportDeclaration(declaration: LocalRuntimeAssetDeclaration): boolea
   return true;
 }
 
+function capabilitiesForAssetKind(kind: LocalRuntimeAssetKind): string[] {
+  switch (kind) {
+    case 'image':
+      return ['image'];
+    case 'video':
+      return ['video'];
+    case 'tts':
+      return ['tts'];
+    case 'stt':
+      return ['stt'];
+    default:
+      return ['chat'];
+  }
+}
+
+function manifestPathFromSourceRepo(repo: string | undefined): string | undefined {
+  const normalized = String(repo || '').trim();
+  if (!normalized.toLowerCase().startsWith('file://')) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(new URL(normalized).pathname);
+  } catch {
+    return normalized.slice('file://'.length);
+  }
+}
+
 export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalModelCenterRuntimeStateInput) {
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,15 +155,19 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
-  const [importFileAssetClass, setImportFileAssetClass] = useState<AssetClassOption>('runnable');
-  const [importFileModelType, setImportFileModelType] = useState<ModelTypeOption>('chat');
-  const [importFileDependencyKind, setImportFileDependencyKind] = useState<LocalRuntimeAssetKind>('vae');
+  const [importFileAssetKind, setImportFileAssetKind] = useState<LocalRuntimeAssetKind>('chat');
   const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
+  const [importFileEndpoint, setImportFileEndpoint] = useState('');
+  const [importEndpointRequired, setImportEndpointRequired] = useState(false);
+  const [importEndpointHint, setImportEndpointHint] = useState('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
   const [catalogEngineOverrides, setCatalogEngineOverrides] = useState<Record<string, InstallEngineOption>>({});
   const [unregisteredAssets, setUnregisteredAssets] = useState<LocalRuntimeUnregisteredAssetDescriptor[]>([]);
   const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, LocalRuntimeAssetDeclaration>>({});
+  const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
+  const [unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath] = useState<Record<string, boolean>>({});
+  const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
   const autoImportAttemptedPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -156,9 +195,14 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     [installedAssets],
   );
 
-  const sortedInstalledRunnableAssets = useMemo(
-    () => sortedInstalledAssets.filter((asset) => RUNNABLE_ASSET_KINDS.has(asset.kind)),
+  const visibleInstalledAssets = useMemo(
+    () => sortedInstalledAssets.filter((asset) => asset.status !== 'removed'),
     [sortedInstalledAssets],
+  );
+
+  const sortedInstalledRunnableAssets = useMemo(
+    () => visibleInstalledAssets.filter((asset) => RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    [visibleInstalledAssets],
   );
 
   const filteredInstalledRunnableAssets = useMemo(() => {
@@ -178,8 +222,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [deferredSearchQuery, sortedInstalledRunnableAssets]);
 
   const sortedInstalledDependencyAssets = useMemo(
-    () => sortedInstalledAssets.filter((asset) => !RUNNABLE_ASSET_KINDS.has(asset.kind)),
-    [sortedInstalledAssets],
+    () => visibleInstalledAssets.filter((asset) => !RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    [visibleInstalledAssets],
   );
 
   const filteredInstalledDependencyAssets = useMemo(
@@ -193,8 +237,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   );
 
   const installedAssetsById = useMemo(
-    () => new Map(sortedInstalledAssets.map((asset) => [toCanonicalLocalLookupKey(asset.assetId), asset] as const)),
-    [sortedInstalledAssets],
+    () => new Map(visibleInstalledAssets.map((asset) => [toCanonicalLocalLookupKey(asset.assetId), asset] as const)),
+    [visibleInstalledAssets],
   );
 
   const isRunnableAssetInstalled = useCallback((assetId: string) => (
@@ -559,19 +603,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }));
   }, []);
 
-  const setUnregisteredAssetClass = useCallback((assetPath: string, assetClass: AssetClassOption) => {
-    setUnregisteredAssetDraft(assetPath, defaultAssetDeclaration(assetClass));
-  }, [setUnregisteredAssetDraft]);
-
-  const setUnregisteredModelType = useCallback((assetPath: string, modelType: ModelTypeOption) => {
-    setUnregisteredAssetDraft(assetPath, {
-      assetKind: modelType === 'music' ? 'chat' : modelType as LocalRuntimeAssetKind,
-      engine: defaultEngineForModelType(modelType),
-    });
-  }, [setUnregisteredAssetDraft]);
-
-  const setUnregisteredDependencyKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
-    const engine = defaultEngineForDependencyAssetKind(assetKind);
+  const setUnregisteredAssetKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
+    const engine = defaultEngineForAnyAssetKind(assetKind);
     setUnregisteredAssetDraft(assetPath, {
       assetKind,
       ...(engine ? { engine } : {}),
@@ -594,6 +627,67 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     });
   }, []);
 
+  const setUnregisteredEndpoint = useCallback((assetPath: string, endpoint: string) => {
+    setUnregisteredEndpointByPath((prev) => ({
+      ...prev,
+      [assetPath]: endpoint,
+    }));
+  }, []);
+
+  useEffect(() => {
+    const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
+    setUnregisteredEndpointByPath((prev) => Object.fromEntries(
+      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
+    ));
+    setUnregisteredEndpointRequiredByPath((prev) => Object.fromEntries(
+      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
+    ));
+    setUnregisteredEndpointHintByPath((prev) => Object.fromEntries(
+      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
+    ));
+  }, [unregisteredAssets]);
+
+  useEffect(() => {
+    let cancelled = false;
+    for (const asset of unregisteredAssets) {
+      const declaration = resolveUnregisteredAssetDraft(asset);
+      if (declaration.assetKind === 'auxiliary') {
+        continue;
+      }
+      const engine = String(declaration.engine || '').trim();
+      if (engine !== 'media' && engine !== 'speech') {
+        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
+        setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+        continue;
+      }
+      void localRuntime.resolveInstallPlan({
+        modelId: `local-import/unregistered-preview-${declaration.assetKind}`,
+        capabilities: capabilitiesForAssetKind(declaration.assetKind),
+        engine,
+      }).then((plan) => {
+        if (cancelled) {
+          return;
+        }
+        const required = plan.engineRuntimeMode === 'attached-endpoint'
+          && plan.reasonCode === 'AI_LOCAL_ENDPOINT_REQUIRED';
+        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: required }));
+        setUnregisteredEndpointHintByPath((prev) => ({
+          ...prev,
+          [asset.path]: required ? String(plan.warnings[0] || '').trim() : '',
+        }));
+      }).catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
+        setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [resolveUnregisteredAssetDraft, unregisteredAssets]);
+
   const importUnregisteredAsset = useCallback(async (assetPath: string) => {
     const asset = unregisteredAssets.find((item) => item.path === assetPath);
     if (!asset) {
@@ -603,8 +697,12 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     if (!canImportDeclaration(declaration)) {
       return;
     }
-    await importActions.importAssetFromPath(assetPath, declaration);
-  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
+    await importActions.importAssetFromPath(
+      assetPath,
+      declaration,
+      String(unregisteredEndpointByPath[assetPath] || '').trim() || undefined,
+    );
+  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath]);
 
   const scheduleAutoImportAttempt = useCallback((assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
     void importActions.importAssetFromPath(assetPath, declaration).catch((error) => {
@@ -657,20 +755,82 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [importActions]);
 
   const importFileDeclaration = useMemo<LocalRuntimeAssetDeclaration>(() => {
-    if (importFileAssetClass === 'dependency') {
-      const engine = importFileDependencyKind === 'auxiliary'
-        ? String(importFileAuxiliaryEngine || '').trim()
-        : defaultEngineForDependencyAssetKind(importFileDependencyKind);
-      return {
-        assetKind: importFileDependencyKind,
-        ...(engine ? { engine } : {}),
-      };
-    }
+    const engine = importFileAssetKind === 'auxiliary'
+      ? String(importFileAuxiliaryEngine || '').trim()
+      : defaultEngineForAnyAssetKind(importFileAssetKind);
     return {
-      assetKind: importFileModelType === 'music' ? 'chat' as const : importFileModelType as LocalRuntimeAssetKind,
-      engine: defaultEngineForModelType(importFileModelType),
+      assetKind: importFileAssetKind,
+      ...(engine ? { engine } : {}),
     };
-  }, [importFileDependencyKind, importFileAssetClass, importFileAuxiliaryEngine, importFileModelType]);
+  }, [importFileAssetKind, importFileAuxiliaryEngine]);
+
+  useEffect(() => {
+    if (!showImportFileDialog) {
+      return undefined;
+    }
+    if (importFileDeclaration.assetKind === 'auxiliary') {
+      setImportEndpointRequired(false);
+      setImportEndpointHint('');
+      return undefined;
+    }
+    const engine = String(importFileDeclaration.engine || '').trim();
+    if (engine !== 'media' && engine !== 'speech') {
+      setImportEndpointRequired(false);
+      setImportEndpointHint('');
+      return undefined;
+    }
+    let cancelled = false;
+    void localRuntime.resolveInstallPlan({
+      modelId: `local-import/import-preview-${importFileDeclaration.assetKind}`,
+      capabilities: capabilitiesForAssetKind(importFileDeclaration.assetKind),
+      engine,
+    }).then((plan) => {
+      if (cancelled) {
+        return;
+      }
+      const required = plan.engineRuntimeMode === 'attached-endpoint'
+        && plan.reasonCode === 'AI_LOCAL_ENDPOINT_REQUIRED';
+      setImportEndpointRequired(required);
+      setImportEndpointHint(required ? String(plan.warnings[0] || '').trim() : '');
+    }).catch(() => {
+      if (cancelled) {
+        return;
+      }
+      setImportEndpointRequired(false);
+      setImportEndpointHint('');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [importFileDeclaration, showImportFileDialog]);
+
+  const canChooseImportFile = useMemo(
+    () => canImportDeclaration(importFileDeclaration) && (!importEndpointRequired || Boolean(String(importFileEndpoint || '').trim())),
+    [importEndpointRequired, importFileDeclaration, importFileEndpoint],
+  );
+
+  const repairInstalledAsset = useCallback(async (localAssetId: string, endpoint: string) => {
+    const asset = installedAssets.find((item) => item.localAssetId === localAssetId) || null;
+    const manifestPath = manifestPathFromSourceRepo(asset?.source.repo);
+    const normalizedEndpoint = String(endpoint || '').trim();
+    if (!asset || !manifestPath) {
+      throw new Error('Runtime manifest unavailable for asset repair');
+    }
+    if (!normalizedEndpoint) {
+      throw new Error('Endpoint is required for asset repair');
+    }
+    setAssetBusy(true);
+    try {
+      await localRuntime.importAssetManifest(manifestPath, {
+        caller: 'core',
+        endpoint: normalizedEndpoint,
+      });
+      await refreshAssetSections();
+      await refreshUnregisteredAssets();
+    } finally {
+      setAssetBusy(false);
+    }
+  }, [installedAssets, refreshAssetSections, refreshUnregisteredAssets]);
 
   return {
     activeDownloads: importActions.activeDownloads,
@@ -687,11 +847,12 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     deferredSearchQuery,
     filteredInstalledDependencyAssets,
     filteredInstalledRunnableAssets,
-    importFileDependencyKind,
-    importFileAssetClass,
+    importFileAssetKind,
     importFileAuxiliaryEngine,
+    importFileEndpoint,
     importFileDeclaration,
-    importFileModelType,
+    importEndpointHint,
+    importEndpointRequired,
     importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
     installCatalogVariant,
@@ -713,6 +874,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     refreshAssetSections,
     refreshUnregisteredAssets,
     refreshVerifiedModels,
+    repairInstalledAsset,
     relatedAssetsByModelTemplate,
     removeInstalledAsset,
     resolveUnregisteredAssetDraft,
@@ -724,23 +886,24 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     setCatalogCapabilityOverrides,
     setCatalogDisplayCount,
     setCatalogEngineOverrides,
-    setImportFileDependencyKind,
-    setImportFileAssetClass,
+    setImportFileAssetKind,
     setImportFileAuxiliaryEngine,
-    setImportFileModelType,
+    setImportFileEndpoint,
     setSearchQuery,
     setShowImportFileDialog,
     setShowImportMenu,
-    setUnregisteredDependencyKind,
-    setUnregisteredAssetClass,
+    setUnregisteredAssetKind,
     setUnregisteredAuxiliaryEngine,
-    setUnregisteredModelType,
+    setUnregisteredEndpoint,
     showImportFileDialog,
     showImportMenu,
-    canChooseImportFile: canImportDeclaration(importFileDeclaration),
+    canChooseImportFile,
     toggleVariantPicker: importActions.toggleVariantPicker,
     unregisteredAssetDrafts,
     unregisteredAssets,
+    unregisteredEndpointByPath,
+    unregisteredEndpointRequiredByPath,
+    unregisteredEndpointHintByPath,
     importPickedAssetFile: importActions.importPickedAssetFile,
     importPickedAssetManifest: importActions.importPickedAssetManifest,
     importUnregisteredAsset,

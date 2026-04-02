@@ -16,17 +16,13 @@ import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-type
 import { RuntimeSelect } from './runtime-config-primitives';
 import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
 import {
-  ASSET_CLASS_OPTIONS,
   ASSET_ENGINE_OPTIONS,
-  MODEL_TYPE_OPTIONS,
   formatBytes,
   resolveSelectedRuntimeProfileTarget,
-  type AssetClassOption,
   type AssetEngineOption,
-  type ModelTypeOption,
 } from './runtime-config-model-center-utils';
 import {
-  ASSET_KIND_OPTIONS,
+  ALL_ASSET_KIND_OPTIONS,
   DownloadIcon,
   FolderOpenIcon,
   formatAssetKindLabel,
@@ -252,14 +248,14 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
 
 type ImportDialogProps = {
   visible: boolean;
-  assetClass: AssetClassOption;
-  modelType: ModelTypeOption;
-  dependencyKind: LocalRuntimeAssetKind;
+  assetKind: LocalRuntimeAssetKind;
   auxiliaryEngine: AssetEngineOption | '';
-  onAssetClassChange: (assetClass: AssetClassOption) => void;
-  onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
+  endpoint: string;
+  endpointRequired: boolean;
+  endpointHint?: string;
+  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
+  onEndpointChange: (endpoint: string) => void;
   onClose: () => void;
   onChooseFile: () => void;
   canChooseFile?: boolean;
@@ -269,6 +265,9 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
   if (!props.visible) {
     return null;
   }
+  const showEndpointField = props.endpointRequired
+    || Boolean(String(props.endpoint || '').trim())
+    || Boolean(String(props.endpointHint || '').trim());
 
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
@@ -288,44 +287,16 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs text-[var(--nimi-text-muted)]">
-            {i18n.t('runtimeConfig.localModelCenter.assetClassLabel', { defaultValue: 'Asset:' })}
+            {i18n.t('runtimeConfig.localModelCenter.assetKindLabel', { defaultValue: 'Type:' })}
           </span>
           <RuntimeSelect
-            value={props.assetClass}
-            onChange={(value) => props.onAssetClassChange((value || 'runnable') as AssetClassOption)}
+            value={props.assetKind}
+            onChange={(value) => props.onAssetKindChange((value || 'chat') as LocalRuntimeAssetKind)}
             className="w-36"
-            options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
-              value: assetClass,
-              label: assetClass === 'runnable' ? 'Runnable asset' : 'Dependency asset',
-            }))}
+            options={ALL_ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
           />
         </div>
-        {props.assetClass === 'runnable' ? (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.modelTypeLabel', { defaultValue: 'Type:' })}
-            </span>
-            <RuntimeSelect
-              value={props.modelType}
-              onChange={(value) => props.onModelTypeChange((value || 'chat') as ModelTypeOption)}
-              className="w-36"
-              options={MODEL_TYPE_OPTIONS.map((modelType) => ({ value: modelType, label: modelType }))}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.assetKindLabel', { defaultValue: 'Kind:' })}
-            </span>
-            <RuntimeSelect
-              value={props.dependencyKind}
-              onChange={(value) => props.onDependencyKindChange((value || 'vae') as LocalRuntimeAssetKind)}
-              className="w-36"
-              options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
-            />
-          </div>
-        )}
-        {props.assetClass === 'dependency' && props.dependencyKind === 'auxiliary' ? (
+        {props.assetKind === 'auxiliary' ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.engineLabel', { defaultValue: 'Engine:' })}
@@ -339,6 +310,22 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
             />
           </div>
         ) : null}
+        {showEndpointField ? (
+          <div className="flex min-w-[20rem] flex-1 items-center gap-2">
+            <span className="text-xs text-[var(--nimi-text-muted)]">
+              {i18n.t('runtimeConfig.localModelCenter.endpointLabel', { defaultValue: 'Endpoint:' })}
+            </span>
+            <input
+              type="text"
+              value={props.endpoint}
+              onChange={(event) => props.onEndpointChange(event.target.value)}
+              placeholder={props.endpointRequired
+                ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredPlaceholder', { defaultValue: 'Required attached endpoint' })
+                : i18n.t('runtimeConfig.localModelCenter.endpointOptionalPlaceholder', { defaultValue: 'Optional attached endpoint' })}
+              className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
+            />
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={props.onChooseFile}
@@ -349,6 +336,17 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           {i18n.t('runtimeConfig.localModelCenter.chooseFile', { defaultValue: 'Choose File' })}
         </button>
       </div>
+      {(props.endpointRequired || String(props.endpointHint || '').trim()) ? (
+        <p className="mt-3 text-[11px] text-[var(--nimi-text-muted)]">
+          {props.endpointRequired
+            ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredHint', {
+                defaultValue: 'This asset must bind to an external attached endpoint on the current host.',
+              })
+            : null}
+          {props.endpointRequired && String(props.endpointHint || '').trim() ? ' ' : ''}
+          {String(props.endpointHint || '').trim()}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -359,11 +357,13 @@ type UnregisteredAssetsSectionProps = {
   assetImportSessionByPath: Record<string, string>;
   importingAssetPath: string | null;
   resolveDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
+  endpointByPath: Record<string, string>;
+  endpointRequiredByPath: Record<string, boolean>;
+  endpointHintByPath: Record<string, string>;
   onRefresh: () => void;
-  onAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
-  onModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onDependencyKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
+  onEndpointChange: (path: string, endpoint: string) => void;
   onImport: (path: string) => void;
 };
 
@@ -415,9 +415,14 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
         {props.assets.map((asset) => {
           const draft = props.resolveDraft(asset);
           const importing = props.importingAssetPath === asset.path || Boolean(props.assetImportSessionByPath[asset.path]);
-          const draftIsRunnable = isRunnableAssetKind(draft.assetKind);
-          const requiresEngine = !draftIsRunnable && draft.assetKind === 'auxiliary';
-          const canImport = Boolean(draft.assetKind) && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
+          const requiresEngine = draft.assetKind === 'auxiliary';
+          const endpointRequired = Boolean(props.endpointRequiredByPath[asset.path]);
+          const endpointValue = String(props.endpointByPath[asset.path] || '').trim();
+          const endpointHint = String(props.endpointHintByPath[asset.path] || '').trim();
+          const showEndpointField = endpointRequired || Boolean(endpointValue) || Boolean(endpointHint);
+          const canImport = Boolean(draft.assetKind)
+            && (!requiresEngine || Boolean(String(draft.engine || '').trim()))
+            && (!endpointRequired || Boolean(endpointValue));
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
             : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
@@ -459,31 +464,11 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_50%,transparent)] pt-3">
                 <RuntimeSelect
-                  value={draftIsRunnable ? 'runnable' : 'dependency'}
-                  onChange={(value) => props.onAssetClassChange(asset.path, (value || 'runnable') as AssetClassOption)}
+                  value={draft.assetKind || 'chat'}
+                  onChange={(value) => props.onAssetKindChange(asset.path, (value || 'chat') as LocalRuntimeAssetKind)}
                   className="w-36"
-                  options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
-                    value: assetClass,
-                    label: assetClass === 'runnable'
-                      ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Runnable asset' })
-                      : i18n.t('runtimeConfig.localModelCenter.dependencyAsset', { defaultValue: 'Dependency asset' }),
-                  }))}
+                  options={ALL_ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
                 />
-                {draftIsRunnable ? (
-                  <RuntimeSelect
-                    value={draft.assetKind || 'chat'}
-                    onChange={(value) => props.onModelTypeChange(asset.path, (value || 'chat') as ModelTypeOption)}
-                    className="w-36"
-                    options={MODEL_TYPE_OPTIONS.map((modelType) => ({ value: modelType, label: modelType }))}
-                  />
-                ) : (
-                  <RuntimeSelect
-                    value={draft.assetKind || 'vae'}
-                    onChange={(value) => props.onDependencyKindChange(asset.path, (value || 'vae') as LocalRuntimeAssetKind)}
-                    className="w-36"
-                    options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
-                  />
-                )}
                 {requiresEngine ? (
                   <RuntimeSelect
                     value={String(draft.engine || '')}
@@ -491,6 +476,17 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                     className="w-36"
                     placeholder={i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' })}
                     options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
+                  />
+                ) : null}
+                {showEndpointField ? (
+                  <input
+                    type="text"
+                    value={props.endpointByPath[asset.path] || ''}
+                    onChange={(event) => props.onEndpointChange(asset.path, event.target.value)}
+                    placeholder={endpointRequired
+                      ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredPlaceholder', { defaultValue: 'Required attached endpoint' })
+                      : i18n.t('runtimeConfig.localModelCenter.endpointOptionalPlaceholder', { defaultValue: 'Optional attached endpoint' })}
+                    className="h-9 min-w-[16rem] flex-1 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
                   />
                 ) : null}
                 <button
@@ -505,6 +501,17 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                     : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
                 </button>
               </div>
+              {(endpointRequired || endpointHint) ? (
+                <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
+                  {endpointRequired
+                    ? i18n.t('runtimeConfig.localModelCenter.endpointRequiredHint', {
+                        defaultValue: 'This asset must bind to an external attached endpoint on the current host.',
+                      })
+                    : null}
+                  {endpointRequired && endpointHint ? ' ' : ''}
+                  {endpointHint}
+                </p>
+              ) : null}
               <p className="mt-2 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">{asset.path}</p>
             </div>
           );
@@ -512,12 +519,6 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
       </div>
     </div>
   );
-}
-
-const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt']);
-
-function isRunnableAssetKind(kind: string | undefined): boolean {
-  return RUNNABLE_ASSET_KINDS.has(String(kind || '').trim());
 }
 
 export { SearchIcon };

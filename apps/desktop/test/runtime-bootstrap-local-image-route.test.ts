@@ -6,6 +6,7 @@ import {
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.js';
 import {
   buildSelectedBinding,
+  loadRuntimeRouteOptions,
   pickPreferredRuntimeLocalModel,
   setLocalRoutePlatformForTests,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
@@ -210,4 +211,55 @@ test('buildSelectedBinding falls back to llama for text when runtime metadata is
   } finally {
     setLocalRoutePlatformForTests(null);
   }
+});
+
+test('loadRuntimeRouteOptions prefers llama adapter for managed media workflow image models', async () => {
+  const options = await loadRuntimeRouteOptions({
+    capability: 'image.generate',
+    modId: 'world.nimi.test-ai',
+  }, {
+    sdkListConnectors: async () => ([]),
+    sdkListConnectorModelDescriptors: async () => ([]),
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      },
+      nodeCatalog: [{
+        provider: 'media',
+        adapter: 'media_native_adapter',
+        providerHints: {
+          extra: {
+            local_default_rank: 0,
+          },
+        },
+      }] as never[],
+      runtimeLocalModels: [{
+        localAssetId: '01JIMAGE',
+        assetId: 'local-import/z_image_turbo-Q4_K',
+        kind: 'image',
+        engine: 'media',
+        entry: 'z_image_turbo-Q4_K.gguf',
+        files: ['z_image_turbo-Q4_K.gguf'],
+        license: 'apache-2.0',
+        source: { repo: 'jayn7/Z-Image-Turbo-GGUF', revision: 'main' },
+        integrityMode: 'verified',
+        hashes: {},
+        status: 'installed',
+        installedAt: '2026-03-08T00:00:00Z',
+        updatedAt: '2026-03-08T00:00:00Z',
+        endpoint: 'http://127.0.0.1:8321/v1',
+        capabilities: ['image.generate'],
+        engineConfig: {
+          backend: 'stablediffusion-ggml',
+        },
+      }] as never[],
+    }),
+  });
+
+  assert.equal(options.local.models[0]?.adapter, 'llama_native_adapter');
+  assert.equal(options.local.models[0]?.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(options.selected.adapter, 'llama_native_adapter');
+  assert.equal(options.selected.endpoint, 'http://127.0.0.1:8321/v1');
 });

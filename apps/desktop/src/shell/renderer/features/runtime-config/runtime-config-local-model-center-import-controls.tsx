@@ -1,9 +1,7 @@
 import type { RefObject } from 'react';
 import type { LocalRuntimeAssetKind } from '@runtime/local-runtime';
 import type {
-  AssetClassOption,
   AssetEngineOption,
-  ModelTypeOption,
 } from './runtime-config-model-center-utils';
 import {
   LocalModelCenterImportDialog,
@@ -18,20 +16,20 @@ type LocalModelCenterImportControlsProps = {
   importMenuRef: RefObject<HTMLDivElement | null>;
   showImportMenu: boolean;
   showImportFileDialog: boolean;
-  importFileAssetClass: AssetClassOption;
-  importFileModelType: ModelTypeOption;
-  importFileDependencyKind: LocalRuntimeAssetKind;
+  importFileAssetKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
+  importFileEndpoint: string;
+  importEndpointRequired: boolean;
+  importEndpointHint?: string;
   onHealthCheck: () => void;
   onRefresh: () => void;
   onOpenModelsFolder: () => void;
   onToggleImportMenu: () => void;
   onOpenImportFile: () => void;
   onImportManifest: () => void;
-  onAssetClassChange: (assetClass: AssetClassOption) => void;
-  onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
+  onEndpointChange: (endpoint: string) => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;
   canChooseImportFile: boolean;
@@ -56,14 +54,14 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
       />
       <LocalModelCenterImportDialog
         visible={props.showImportFileDialog}
-        assetClass={props.importFileAssetClass}
-        modelType={props.importFileModelType}
-        dependencyKind={props.importFileDependencyKind}
+        assetKind={props.importFileAssetKind}
         auxiliaryEngine={props.importFileAuxiliaryEngine}
-        onAssetClassChange={props.onAssetClassChange}
-        onModelTypeChange={props.onModelTypeChange}
-        onDependencyKindChange={props.onDependencyKindChange}
+        endpoint={props.importFileEndpoint}
+        endpointRequired={props.importEndpointRequired}
+        endpointHint={props.importEndpointHint}
+        onAssetKindChange={props.onAssetKindChange}
         onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}
+        onEndpointChange={props.onEndpointChange}
         onClose={props.onCloseImportFileDialog}
         onChooseFile={props.onChooseImportFile}
         canChooseFile={props.canChooseImportFile}

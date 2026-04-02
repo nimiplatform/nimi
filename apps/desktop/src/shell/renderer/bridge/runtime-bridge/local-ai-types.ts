@@ -10,6 +10,7 @@ export type LocalRuntimeAssetRecord = {
   assetId: string;
   kind: LocalRuntimeAssetKind;
   engine: string;
+  endpoint?: string;
   entry: string;
   files: string[];
   license: string;

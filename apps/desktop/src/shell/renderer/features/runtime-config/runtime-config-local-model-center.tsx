@@ -140,10 +140,11 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       filteredInstalledDependencyAssets={runtimeState.filteredInstalledDependencyAssets}
       filteredInstalledRunnableAssets={runtimeState.filteredInstalledRunnableAssets}
       hasSearchQuery={hasSearchQuery}
-      importFileAssetClass={runtimeState.importFileAssetClass}
-      importFileModelType={runtimeState.importFileModelType}
-      importFileDependencyKind={runtimeState.importFileDependencyKind}
+      importFileAssetKind={runtimeState.importFileAssetKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
+      importFileEndpoint={runtimeState.importFileEndpoint}
+      importEndpointRequired={runtimeState.importEndpointRequired}
+      importEndpointHint={runtimeState.importEndpointHint}
       importMenuRef={runtimeState.importMenuRef}
       importingAssetPath={runtimeState.importingAssetPath}
       installing={runtimeState.installing}
@@ -158,17 +159,19 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       localHealthy={localHealthy}
       assetImportError={runtimeState.assetImportError}
       assetImportSessionByPath={runtimeState.assetImportSessionByPath}
+      unregisteredEndpointByPath={runtimeState.unregisteredEndpointByPath}
+      unregisteredEndpointRequiredByPath={runtimeState.unregisteredEndpointRequiredByPath}
+      unregisteredEndpointHintByPath={runtimeState.unregisteredEndpointHintByPath}
       onArtifactKindFilterChange={runtimeState.setAssetKindFilter}
       onCancelDownload={runtimeState.onCancelDownload}
-      onAssetClassChange={runtimeState.setImportFileAssetClass}
-      onAssetModelTypeChange={runtimeState.setImportFileModelType}
-      onAssetDependencyKindChange={(kind) => {
-        runtimeState.setImportFileDependencyKind(kind);
+      onAssetKindChange={(kind) => {
+        runtimeState.setImportFileAssetKind(kind);
         if (kind !== 'auxiliary') {
           runtimeState.setImportFileAuxiliaryEngine('');
         }
       }}
       onAssetAuxiliaryEngineChange={runtimeState.setImportFileAuxiliaryEngine}
+      onImportEndpointChange={runtimeState.setImportFileEndpoint}
       onCatalogCapabilityChange={runtimeState.setCatalogCapability}
       onCatalogCapabilityOverrideChange={(itemId, capability) => runtimeState.setCatalogCapabilityOverrides((prev) => ({
         ...prev,
@@ -180,7 +183,10 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       }))}
       onChooseImportFile={() => {
         runtimeState.setShowImportFileDialog(false);
-        void runtimeState.importPickedAssetFile(runtimeState.importFileDeclaration);
+        void runtimeState.importPickedAssetFile(
+          runtimeState.importFileDeclaration,
+          runtimeState.importFileEndpoint,
+        );
       }}
       onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
       onCloseVariantPicker={runtimeState.closeVariantPicker}
@@ -209,15 +215,15 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onRefreshQuickPicks={() => { void runtimeState.refreshVerifiedModels(); }}
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
       onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
+      onRepairAsset={(localAssetId, endpoint) => { void runtimeState.repairInstalledAsset(localAssetId, endpoint); }}
       onResumeDownload={runtimeState.onResumeDownload}
       onSearchQueryChange={runtimeState.setSearchQuery}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((prev) => !prev)}
       onToggleVariantPicker={runtimeState.toggleVariantPicker}
       onImportUnregisteredAsset={(path) => { void runtimeState.importUnregisteredAsset(path); }}
-      onUnregisteredAssetClassChange={runtimeState.setUnregisteredAssetClass}
-      onUnregisteredModelTypeChange={runtimeState.setUnregisteredModelType}
-      onUnregisteredDependencyKindChange={runtimeState.setUnregisteredDependencyKind}
+      onUnregisteredAssetKindChange={runtimeState.setUnregisteredAssetKind}
       onUnregisteredAuxiliaryEngineChange={runtimeState.setUnregisteredAuxiliaryEngine}
+      onUnregisteredEndpointChange={runtimeState.setUnregisteredEndpoint}
       relatedAssetsByModelTemplate={runtimeState.relatedAssetsByModelTemplate}
       resolveUnregisteredAssetDraft={runtimeState.resolveUnregisteredAssetDraft}
       searchQuery={runtimeState.searchQuery}

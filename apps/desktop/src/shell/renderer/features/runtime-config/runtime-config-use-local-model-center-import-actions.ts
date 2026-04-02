@@ -90,6 +90,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   ) => {
     if ('scaffolded' in imported && imported.scaffolded) {
       await input.props.onDiscover();
+      await input.onRefreshAssetSections();
       await input.onRefreshUnregisteredAssets();
       return;
     }
@@ -101,31 +102,30 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const importManagedModelAssetFromPath = useCallback(async (
     assetPath: string,
     declaration: LocalRuntimeAssetDeclaration,
+    endpoint?: string,
   ) => {
     const assetKind = declaration.assetKind;
     if (!assetKind) {
-      throw new Error('assetKind is required for runnable asset import');
+      throw new Error('assetKind is required for asset import');
     }
     const accepted = await localRuntime.scaffoldOrphanAsset({
       path: assetPath,
       kind: assetKind,
       engine: declaration.engine,
-      endpoint: defaultImportEndpointForAssetDeclaration(declaration),
+      endpoint: String(endpoint || '').trim() || undefined,
     });
     return { scaffolded: true as const, model: accepted };
   }, []);
 
-  const importAssetFromPath = useCallback(async (assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
+  const importAssetFromPath = useCallback(async (
+    assetPath: string,
+    declaration: LocalRuntimeAssetDeclaration,
+    endpoint?: string,
+  ) => {
     setImportingAssetPath(assetPath);
     setAssetImportError('');
-    const runnableKinds = new Set(['chat', 'image', 'video', 'tts', 'stt']);
     try {
-      const imported = runnableKinds.has(declaration.assetKind)
-        ? await importManagedModelAssetFromPath(assetPath, declaration)
-        : await localRuntime.importAssetFile({
-          filePath: assetPath,
-          declaration,
-        }, { caller: 'core' });
+      const imported = await importManagedModelAssetFromPath(assetPath, declaration, endpoint);
       await handleImportedAsset(assetPath, imported);
     } catch (error: unknown) {
       setAssetImportError(toAssetImportUserMessage(error));
@@ -135,7 +135,10 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
   }, [handleImportedAsset, importManagedModelAssetFromPath]);
 
-  const importPickedAssetFile = useCallback(async (declaration: LocalRuntimeAssetDeclaration) => {
+  const importPickedAssetFile = useCallback(async (
+    declaration: LocalRuntimeAssetDeclaration,
+    endpoint?: string,
+  ) => {
     setAssetImportError('');
     const filePath = await localRuntime.pickAssetFile();
     if (!filePath) {
@@ -146,7 +149,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       const imported = await localRuntime.importAssetFile({
         filePath,
         declaration,
-        endpoint: defaultImportEndpointForAssetDeclaration(declaration),
+        endpoint: String(endpoint || '').trim() || undefined,
       }, { caller: 'core' });
       await handleImportedAsset(filePath, imported);
     } catch (error: unknown) {
@@ -157,13 +160,16 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
   }, [handleImportedAsset]);
 
-  const importPickedAssetManifest = useCallback(async () => {
+  const importPickedAssetManifest = useCallback(async (endpoint?: string) => {
     setAssetImportError('');
     const manifestPath = await localRuntime.pickAssetManifestPath();
     if (!manifestPath) {
       return;
     }
-    const imported = await localRuntime.importAssetManifest(manifestPath, { caller: 'core' });
+    const imported = await localRuntime.importAssetManifest(manifestPath, {
+      caller: 'core',
+      endpoint: String(endpoint || '').trim() || undefined,
+    });
     await input.props.onDiscover();
     const passiveKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
     if (passiveKinds.has(imported.asset.kind)) {
@@ -238,33 +244,4 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     variantList,
     variantPickerItem,
   };
-}
-
-function defaultImportEndpointForAssetDeclaration(declaration: LocalRuntimeAssetDeclaration): string {
-  const engine = resolveAssetDeclarationEngine(declaration);
-  switch (engine) {
-    case 'media':
-      return 'http://127.0.0.1:8321/v1';
-    case 'speech':
-      return 'http://127.0.0.1:8330/v1';
-    default:
-      return '';
-  }
-}
-
-function resolveAssetDeclarationEngine(declaration: LocalRuntimeAssetDeclaration): string {
-  const explicitEngine = String(declaration.engine || '').trim().toLowerCase();
-  if (explicitEngine) {
-    return explicitEngine;
-  }
-  switch (declaration.assetKind) {
-    case 'image':
-    case 'video':
-      return 'media';
-    case 'tts':
-    case 'stt':
-      return 'speech';
-    default:
-      return 'llama';
-  }
 }

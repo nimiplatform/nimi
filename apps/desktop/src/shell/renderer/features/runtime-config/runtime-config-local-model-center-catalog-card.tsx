@@ -67,6 +67,7 @@ type CatalogCardProps = {
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
+  onRepairAsset: (localAssetId: string, endpoint: string) => void;
   onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallAsset: (templateId: string) => void;
@@ -78,6 +79,33 @@ type CatalogCardProps = {
   onLoadMoreCatalog: () => void;
   installing: boolean;
 };
+
+function defaultManagedEndpointForEngine(engine: string): string {
+  const normalized = String(engine || '').trim().toLowerCase();
+  if (normalized === 'media') {
+    return 'http://127.0.0.1:8321/v1';
+  }
+  if (normalized === 'speech') {
+    return 'http://127.0.0.1:8330/v1';
+  }
+  return '';
+}
+
+function assetNeedsAttachedEndpointRepair(asset: LocalRuntimeAssetRecord): boolean {
+  const engine = String(asset.engine || '').trim().toLowerCase();
+  if (engine !== 'media' && engine !== 'speech') {
+    return false;
+  }
+  if (asset.engineRuntimeMode !== 'attached-endpoint') {
+    return false;
+  }
+  const defaultEndpoint = defaultManagedEndpointForEngine(engine);
+  const currentEndpoint = String(asset.endpoint || '').trim().replace(/\/+$/, '');
+  if (!defaultEndpoint || currentEndpoint !== defaultEndpoint.replace(/\/+$/, '')) {
+    return false;
+  }
+  return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
+}
 
 function VerifiedModelSearchRow(props: {
   item: LocalRuntimeVerifiedAssetDescriptor;
@@ -264,6 +292,8 @@ function CatalogVariantPicker(props: {
 
 export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
+  const [repairAssetId, setRepairAssetId] = useState('');
+  const [repairEndpoint, setRepairEndpoint] = useState('');
 
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
@@ -321,7 +351,10 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
         </div>
         {props.filteredInstalledRunnableAssets.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
-            {props.filteredInstalledRunnableAssets.map((asset) => (
+            {props.filteredInstalledRunnableAssets.map((asset) => {
+              const needsRepair = assetNeedsAttachedEndpointRepair(asset);
+              const isRepairing = repairAssetId === asset.localAssetId;
+              return (
               <div key={asset.localAssetId} className="px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex items-center gap-3">
                   <ModelIcon engine={asset.engine} />
@@ -344,6 +377,11 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                         {recommendationSummary(asset.recommendation)}
                       </p>
                     ) : null}
+                    {asset.status === 'unhealthy' && String(asset.healthDetail || '').trim() ? (
+                      <p className="mt-1 line-clamp-3 text-[11px] text-[var(--nimi-status-danger)]">
+                        {String(asset.healthDetail || '').trim()}
+                      </p>
+                    ) : null}
                     <div className="mt-1 flex flex-wrap gap-1">
                       {(asset.capabilities || []).slice(0, 3).map((capability) => (
                         <span key={capability} className="rounded border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">{capability}</span>
@@ -358,6 +396,20 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                         ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
                         : asset.status}
                     </span>
+                    {needsRepair ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmRemoveAssetId('');
+                          setRepairAssetId(asset.localAssetId);
+                          setRepairEndpoint('');
+                        }}
+                        disabled={props.assetBusy}
+                        className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
+                      >
+                        {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setConfirmRemoveAssetId(asset.localAssetId)}
@@ -369,6 +421,47 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     </button>
                   </div>
                 </div>
+                {isRepairing ? (
+                  <div className="mt-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-4 py-3">
+                    <p className="text-xs text-[var(--nimi-status-warning)]">
+                      {String(asset.healthDetail || '').trim() || i18n.t('runtimeConfig.localModelCenter.repairAttachedEndpointHint', {
+                        defaultValue: 'This asset must be rebound to an external attached endpoint on the current host.',
+                      })}
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={repairEndpoint}
+                        onChange={(event) => setRepairEndpoint(event.target.value)}
+                        placeholder={i18n.t('runtimeConfig.localModelCenter.repairEndpointPlaceholder', { defaultValue: 'http://host:port/v1' })}
+                        className="h-9 min-w-0 flex-1 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void Promise.resolve(props.onRepairAsset(asset.localAssetId, repairEndpoint)).then(() => {
+                            setRepairAssetId('');
+                            setRepairEndpoint('');
+                          });
+                        }}
+                        disabled={props.assetBusy || !String(repairEndpoint || '').trim()}
+                        className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                      >
+                        {i18n.t('runtimeConfig.localModelCenter.confirmRepair', { defaultValue: 'Apply' })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRepairAssetId('');
+                          setRepairEndpoint('');
+                        }}
+                        className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+                      >
+                        {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 {confirmRemoveAssetId === asset.localAssetId ? (
                   <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
                     <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
@@ -381,6 +474,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                       type="button"
                       onClick={() => {
                         setConfirmRemoveAssetId('');
+                        setRepairAssetId('');
                         props.onRemoveAsset(asset.localAssetId);
                       }}
                       disabled={props.assetBusy}
@@ -398,7 +492,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </div>
                 ) : null}
               </div>
-            ))}
+            );})}
           </div>
         ) : (
           <div className="px-4 py-8 text-center">
@@ -470,6 +564,11 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </div>
                   <p className="truncate text-xs text-[var(--nimi-text-muted)]">{asset.localAssetId}</p>
                   <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{asset.entry}</p>
+                  {asset.status === 'unhealthy' && String(asset.healthDetail || '').trim() ? (
+                    <p className="mt-1 line-clamp-3 text-[11px] text-[var(--nimi-status-danger)]">
+                      {String(asset.healthDetail || '').trim()}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-[10px] ${

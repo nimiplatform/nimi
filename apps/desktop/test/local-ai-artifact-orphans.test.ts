@@ -78,9 +78,9 @@ test('runtime state refreshes unified unregistered assets and auto-imports high-
   assert.doesNotMatch(localModelCenterSource, /\.catch\(\(\) => undefined\)/);
 });
 
-test('unregistered model imports use orphan scaffold fast-path while picked files stay on direct import', () => {
+test('unregistered model imports use orphan scaffold for all kinds while picked files stay on direct import', () => {
   assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphanAsset\(\{/);
-  assert.match(localModelCenterImportActionsSource, /runnableKinds\.has\(declaration\.assetKind\)/);
+  assert.match(localModelCenterImportActionsSource, /importManagedModelAssetFromPath\(assetPath, declaration, endpoint\)/);
   assert.match(localModelCenterImportActionsSource, /await localRuntime\.importAssetFile\(\{/);
   assert.match(localModelCenterImportActionsSource, /const filePath = await localRuntime\.pickAssetFile\(\)/);
 });
