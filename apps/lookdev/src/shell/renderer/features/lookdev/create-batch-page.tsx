@@ -4,13 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { getAgentPortraitBinding, getLookdevAgentAuthoringContext, listLookdevAgents, listLookdevWorldAgents, listLookdevWorlds } from '@renderer/data/lookdev-data-client.js';
+import { getLookdevAgentAuthoringContext, listLookdevAgents, listLookdevWorldAgents, listLookdevWorlds } from '@renderer/data/lookdev-data-client.js';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import { useAppStore, type RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
 import { useLookdevRouteSettings } from '@renderer/hooks/use-lookdev-route-settings.js';
 import { useLookdevStore } from './lookdev-store.js';
 import {
-  confirmWorldStylePack,
   type LookdevCaptureState,
   normalizeLookdevLanguage,
   type LookdevSelectionSource,
@@ -20,17 +19,21 @@ import {
 import {
   createCaptureStateKey,
   materializePortraitBriefFromCaptureState,
-  runInteractiveCaptureTurn,
-  synthesizeSilentCaptureState,
 } from './capture-harness.js';
 import {
-  appendWorldStyleSessionAnswer,
   canSynthesizeWorldStyleSession,
   createWorldStyleSession,
   describeWorldStyleTarget,
-  markWorldStyleSessionSynthesized,
-  synthesizeWorldStylePackFromSession,
 } from './world-style-session.js';
+import {
+  handleStyleSessionReply as doStyleSessionReply,
+  handleRestartStyleSession as doRestartStyleSession,
+  handleSynthesizeStylePack as doSynthesizeStylePack,
+  handleConfirmWorldStylePack as doConfirmWorldStylePack,
+  handleInteractiveCaptureRefine as doInteractiveCaptureRefine,
+  handleResetInteractiveCapture as doResetInteractiveCapture,
+  handleCreate as doCreate,
+} from './create-batch-page-handlers.js';
 import { WorldStyleSessionPanel } from './world-style-session-panel.js';
 import { CaptureSelectionPanel } from './capture-selection-panel.js';
 import { EmbeddedCapturePanel } from './embedded-capture-panel.js';
@@ -40,8 +43,6 @@ import {
   formatWorldOptionLabel,
   isCurrentWorldStylePack,
   stripTargetKey,
-  toErrorMessage,
-  withLookdevBatchAgentFields,
 } from './create-batch-page-helpers.js';
 import { useLookdevCaptureStateSynthesis } from './use-lookdev-capture-state-synthesis.js';
 
@@ -385,6 +386,34 @@ export default function CreateBatchPage() {
     setInteractiveCaptureError(null);
   }, [activeCaptureDraftKey]);
 
+  const styleSessionCtx = useMemo(() => ({
+    runtime,
+    styleDialogueTarget,
+    styleAgents,
+    t,
+    saveWorldStyleSession,
+    saveWorldStylePack,
+    setStyleSession: setStyleSession as (updater: LookdevWorldStyleSession | null | ((current: LookdevWorldStyleSession | null) => LookdevWorldStyleSession | null)) => void,
+    setWorldStylePack: setWorldStylePack as (updater: LookdevWorldStylePack | null | ((current: LookdevWorldStylePack | null) => LookdevWorldStylePack | null)) => void,
+    setShowAdvancedStyleEditor,
+    setStyleSessionInput,
+    setStyleSessionError,
+    setStyleSessionBusy,
+  }), [runtime, styleDialogueTarget, styleAgents, t, saveWorldStyleSession, saveWorldStylePack]);
+
+  const interactiveCaptureCtx = useMemo(() => ({
+    runtime,
+    styleDialogueTarget,
+    currentLanguage,
+    selectedAgents,
+    saveCaptureState,
+    savePortraitBrief,
+    setInteractiveCaptureBusy,
+    setInteractiveCaptureResetBusy,
+    setInteractiveCaptureError,
+    setInteractiveCaptureDrafts,
+  }), [runtime, styleDialogueTarget, currentLanguage, selectedAgents, saveCaptureState, savePortraitBrief]);
+
   function updateWorldStylePack(patch: Partial<LookdevWorldStylePack>) {
     if (!worldStylePack) {
       return;
@@ -397,100 +426,6 @@ export default function CreateBatchPage() {
     };
     setWorldStylePack(next);
     saveWorldStylePack(next);
-  }
-
-  async function handleStyleSessionReply() {
-    if (!styleSession) {
-      return;
-    }
-    setStyleSessionBusy(true);
-    setStyleSessionError(null);
-    try {
-      const nextSession = await appendWorldStyleSessionAnswer({
-        runtime,
-        target: styleDialogueTarget,
-        session: styleSession,
-        answer: styleSessionInput,
-        agents: styleAgents,
-      });
-      setStyleSession(nextSession);
-      saveWorldStyleSession(nextSession);
-      setStyleSessionInput('');
-      if (worldStylePack) {
-        const invalidatedPack = {
-          ...worldStylePack,
-          status: 'draft' as const,
-          confirmedAt: null,
-          sourceSessionId: nextSession.sessionId,
-          summary: nextSession.summary || worldStylePack.summary,
-          updatedAt: new Date().toISOString(),
-        };
-        setWorldStylePack(invalidatedPack);
-        saveWorldStylePack(invalidatedPack);
-        setShowAdvancedStyleEditor(true);
-      } else {
-        setWorldStylePack(null);
-        setShowAdvancedStyleEditor(false);
-      }
-    } catch (nextError) {
-      setStyleSessionError(toErrorMessage(nextError, t));
-    } finally {
-      setStyleSessionBusy(false);
-    }
-  }
-
-  function handleRestartStyleSession() {
-    if (!resolvedWorldId) {
-      return;
-    }
-    const nextSession = createWorldStyleSession(
-      resolvedWorldId,
-      resolvedWorldName,
-      currentLanguage,
-      styleAgents,
-    );
-    setStyleSession(nextSession);
-    saveWorldStyleSession(nextSession);
-    setWorldStylePack(null);
-    setShowAdvancedStyleEditor(false);
-    setStyleSessionInput('');
-    setStyleSessionError(null);
-  }
-
-  async function handleSynthesizeStylePack() {
-    if (!styleSession) {
-      return;
-    }
-    setStyleSessionBusy(true);
-    setStyleSessionError(null);
-    try {
-      const nextPack = await synthesizeWorldStylePackFromSession({
-        runtime,
-        target: styleDialogueTarget,
-        session: styleSession,
-        agents: styleAgents,
-        existingPack: worldStylePack,
-      });
-      const nextSession = markWorldStyleSessionSynthesized(styleSession, nextPack.summary);
-      setStyleSession(nextSession);
-      saveWorldStyleSession(nextSession);
-      setWorldStylePack(nextPack);
-      saveWorldStylePack(nextPack);
-      setShowAdvancedStyleEditor(true);
-    } catch (nextError) {
-      setStyleSessionError(toErrorMessage(nextError, t));
-    } finally {
-      setStyleSessionBusy(false);
-    }
-  }
-
-  function handleConfirmWorldStylePack() {
-    if (!worldStylePack) {
-      return;
-    }
-    const confirmedPack = confirmWorldStylePack(worldStylePack);
-    setWorldStylePack(confirmedPack);
-    saveWorldStylePack(confirmedPack);
   }
 
   function updateCaptureVisualIntent(patch: Partial<LookdevCaptureState['visualIntent']>) {
@@ -509,121 +444,6 @@ export default function CreateBatchPage() {
     savePortraitBrief(materializePortraitBriefFromCaptureState(nextState));
   }
 
-  async function handleInteractiveCaptureRefine() {
-    if (!activeCaptureState || !worldStylePack) {
-      return;
-    }
-    const draftKey = activeCaptureDraftKey;
-    const userMessage = interactiveCaptureInput.trim();
-    if (!userMessage) {
-      return;
-    }
-    const agent = selectedAgents.find((entry) => entry.id === activeCaptureState.agentId);
-    if (!agent) {
-      return;
-    }
-    setInteractiveCaptureBusy(true);
-    setInteractiveCaptureError(null);
-    try {
-      if (!agent.worldId) {
-        throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
-      }
-      const [authoringContext, portraitBinding] = await Promise.all([
-        getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
-        getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
-      ]);
-      const nextState = await runInteractiveCaptureTurn({
-        runtime,
-        target: styleDialogueTarget,
-        language: currentLanguage,
-        agent: {
-          id: agent.id,
-          displayName: agent.displayName,
-          concept: agent.concept,
-          description: authoringContext?.detail?.description || null,
-          truthBundle: authoringContext?.truthBundle || null,
-          worldId: agent.worldId,
-          importance: agent.importance,
-          existingPortraitUrl: portraitBinding?.url || null,
-        },
-        worldStylePack,
-        state: activeCaptureState,
-        userMessage,
-      });
-      saveCaptureState(nextState);
-      savePortraitBrief(materializePortraitBriefFromCaptureState(nextState));
-      if (draftKey) {
-        setInteractiveCaptureDrafts((current) => {
-          if (!Object.prototype.hasOwnProperty.call(current, draftKey)) {
-            return current;
-          }
-          const next = { ...current };
-          delete next[draftKey];
-          return next;
-        });
-      }
-    } catch (captureError) {
-      setInteractiveCaptureError(captureError instanceof Error ? captureError.message : String(captureError));
-    } finally {
-      setInteractiveCaptureBusy(false);
-    }
-  }
-
-  async function handleResetInteractiveCapture() {
-    if (!activeCaptureState || !worldStylePack) {
-      return;
-    }
-    const draftKey = activeCaptureDraftKey;
-    const agent = selectedAgents.find((entry) => entry.id === activeCaptureState.agentId);
-    if (!agent) {
-      return;
-    }
-    setInteractiveCaptureResetBusy(true);
-    setInteractiveCaptureError(null);
-    try {
-      if (!agent.worldId) {
-        throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
-      }
-      const [authoringContext, portraitBinding] = await Promise.all([
-        getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
-        getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
-      ]);
-      const nextState = await synthesizeSilentCaptureState({
-        runtime,
-        target: styleDialogueTarget,
-        language: currentLanguage,
-        agent: {
-          id: agent.id,
-          displayName: agent.displayName,
-          concept: agent.concept,
-          description: authoringContext?.detail?.description || null,
-          truthBundle: authoringContext?.truthBundle || null,
-          worldId: agent.worldId,
-          importance: agent.importance,
-          existingPortraitUrl: portraitBinding?.url || null,
-        },
-        worldStylePack,
-        captureMode: 'capture',
-      });
-      saveCaptureState(nextState);
-      savePortraitBrief(materializePortraitBriefFromCaptureState(nextState));
-      if (draftKey) {
-        setInteractiveCaptureDrafts((current) => {
-          if (!Object.prototype.hasOwnProperty.call(current, draftKey)) {
-            return current;
-          }
-          const next = { ...current };
-          delete next[draftKey];
-          return next;
-        });
-      }
-    } catch (captureError) {
-      setInteractiveCaptureError(captureError instanceof Error ? captureError.message : String(captureError));
-    } finally {
-      setInteractiveCaptureResetBusy(false);
-    }
-  }
-
   function toggleExplicitSelection(agentId: string) {
     setSelectedAgentIds((current) => current.includes(agentId)
       ? current.filter((id) => id !== agentId)
@@ -634,72 +454,6 @@ export default function CreateBatchPage() {
     setCaptureSelectionAgentIds((current) => current.includes(agentId)
       ? current.filter((id) => id !== agentId)
       : [...current, agentId]);
-  }
-
-  async function handleCreate() {
-    setSaving(true);
-    setError(null);
-    try {
-      if (intakeLoading) {
-        throw new Error(t('createBatch.errorIntakeLoading'));
-      }
-      if (intakeError) {
-        throw new Error(t('createBatch.errorIntakeUnavailable'));
-      }
-      if (worldSelectionUnavailable) {
-        throw new Error(t('createBatch.errorWorldCastUnavailable', { worldName: resolvedWorldName }));
-      }
-      if (rawSelectedAgents.length === 0) {
-        throw new Error(t('createBatch.errorAgentsRequired'));
-      }
-      if (rawSelectedWorldIds.length > 1) {
-        throw new Error(t('createBatch.errorSingleWorldRequired'));
-      }
-      if (!resolvedWorldId || !worldStylePack) {
-        throw new Error(t('createBatch.errorWorldRequired'));
-      }
-      if (!stylePackConfirmed) {
-        throw new Error(t('createBatch.errorStylePackConfirmationRequired'));
-      }
-      if (captureSynthesisBusy) {
-        throw new Error(t('createBatch.errorCaptureStatePending', { defaultValue: 'Capture-state synthesis is still running.' }));
-      }
-      if (interactiveCaptureResetBusy) {
-        throw new Error(t('createBatch.errorCaptureStatePending', { defaultValue: 'Capture-state synthesis is still running.' }));
-      }
-      if (!captureStatesReady) {
-        throw new Error(t('createBatch.errorCaptureStateRequired', { defaultValue: 'Every selected agent needs a capture state before batch creation.' }));
-      }
-      if (!generationTarget) {
-        throw new Error(t('createBatch.errorGenerationTargetRequired'));
-      }
-      if (!evaluationTarget) {
-        throw new Error(t('createBatch.errorEvaluationTargetRequired'));
-      }
-      saveWorldStylePack(worldStylePack);
-      if (styleSession) {
-        saveWorldStyleSession(styleSession);
-      }
-      captureStates.forEach((state) => saveCaptureState(state));
-      portraitBriefs.forEach((brief) => savePortraitBrief(brief));
-      const batchId = await createBatch({
-        name,
-        selectionSource,
-        agents: selectedAgents.map(withLookdevBatchAgentFields),
-        worldId: resolvedWorldId,
-        worldStylePack: worldStylePack,
-        captureSelectionAgentIds,
-        generationTarget,
-        evaluationTarget,
-        maxConcurrency: Number(maxConcurrency),
-        scoreThreshold: Number(scoreThreshold),
-      });
-      navigate(`/batches/${batchId}`);
-    } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : String(nextError));
-    } finally {
-      setSaving(false);
-    }
   }
 
   return (
@@ -890,10 +644,10 @@ export default function CreateBatchPage() {
           showAdvancedStyleEditor={showAdvancedStyleEditor}
           onStyleSessionInputChange={setStyleSessionInput}
           onOpenRouteSettings={() => setRouteSettingsOpen(true)}
-          onStyleSessionReply={() => void handleStyleSessionReply()}
-          onRestartStyleSession={handleRestartStyleSession}
-          onSynthesizeStylePack={() => void handleSynthesizeStylePack()}
-          onConfirmWorldStylePack={handleConfirmWorldStylePack}
+          onStyleSessionReply={() => void (styleSession && doStyleSessionReply(styleSession, styleSessionInput, worldStylePack, styleSessionCtx))}
+          onRestartStyleSession={() => doRestartStyleSession(resolvedWorldId, resolvedWorldName, currentLanguage, styleSessionCtx)}
+          onSynthesizeStylePack={() => void (styleSession && doSynthesizeStylePack(styleSession, worldStylePack, styleSessionCtx))}
+          onConfirmWorldStylePack={() => doConfirmWorldStylePack(worldStylePack, setWorldStylePack, saveWorldStylePack)}
           onToggleAdvancedStyleEditor={() => setShowAdvancedStyleEditor((current) => !current)}
           onUpdateWorldStylePack={updateWorldStylePack}
         />
@@ -928,8 +682,8 @@ export default function CreateBatchPage() {
                 [activeCaptureDraftKey]: value,
               }));
             }}
-            onRunInteractiveCaptureRefine={() => void handleInteractiveCaptureRefine()}
-            onResetInteractiveCapture={() => void handleResetInteractiveCapture()}
+            onRunInteractiveCaptureRefine={() => void doInteractiveCaptureRefine(activeCaptureState, worldStylePack, activeCaptureDraftKey, interactiveCaptureInput, interactiveCaptureCtx)}
+            onResetInteractiveCapture={() => void doResetInteractiveCapture(activeCaptureState, worldStylePack, activeCaptureDraftKey, interactiveCaptureCtx)}
             onUpdateCaptureVisualIntent={updateCaptureVisualIntent}
           />
         </div>
@@ -1012,7 +766,14 @@ export default function CreateBatchPage() {
           onOpenRouteSettings={() => setRouteSettingsOpen(true)}
           onScoreThresholdChange={setScoreThreshold}
           onMaxConcurrencyChange={setMaxConcurrency}
-          onCreate={() => void handleCreate()}
+          onCreate={() => void doCreate({
+            intakeLoading, intakeError, worldSelectionUnavailable, rawSelectedAgents, rawSelectedWorldIds,
+            resolvedWorldId, resolvedWorldName, worldStylePack, stylePackConfirmed, captureSynthesisBusy,
+            interactiveCaptureResetBusy, captureStatesReady, generationTarget, evaluationTarget,
+            styleSession, captureStates, portraitBriefs, name, selectionSource, selectedAgents,
+            captureSelectionAgentIds, maxConcurrency, scoreThreshold,
+            ctx: { t, navigate, createBatch, saveWorldStylePack, saveWorldStyleSession, saveCaptureState, savePortraitBrief, setSaving, setError },
+          })}
         />
       </div>
     </div>

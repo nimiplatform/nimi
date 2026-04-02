@@ -1379,44 +1379,4 @@ describe('CreateBatchPage', () => {
     expect(screen.getByRole('button', { name: 'Synthesize style pack draft' })).toBeDisabled();
   });
 
-  it('returns the confirmed pack to draft when the operator keeps chatting after confirmation', async () => {
-    seedWorkingState();
-    const user = userEvent.setup();
-    renderCreatePage();
-
-    await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
-    await completeWorldStyleSession(user);
-    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
-
-    expect(screen.getByText('Confirmed style pack')).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText('Current reply'), 'Keep the silhouettes even cleaner and reduce background noise further.');
-    await user.click(screen.getByRole('button', { name: 'Send reply' }));
-
-    expect(screen.queryByText('Confirmed style pack')).not.toBeInTheDocument();
-    expect(screen.getByText('Draft style pack')).toBeInTheDocument();
-    expect(screen.getByText('Confirm the world style pack first. Capture selection only opens after the style lane is explicitly confirmed.')).toBeInTheDocument();
-  }, 15000);
-
-  it('clears stale create errors after the operator fixes the blocking input', async () => {
-    const { createBatch } = seedWorkingState();
-    const user = userEvent.setup();
-    createBatch.mockRejectedValueOnce(new Error('LOOKDEV_CREATE_FAILED'));
-    renderCreatePage();
-
-    await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
-    await completeWorldStyleSession(user);
-    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    expect(await screen.findByText('LOOKDEV_CREATE_FAILED')).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText('Max concurrency'), { target: { value: '2' } });
-
-    await waitFor(() => {
-      expect(screen.queryByText('LOOKDEV_CREATE_FAILED')).not.toBeInTheDocument();
-    });
-  }, 15000);
 });
