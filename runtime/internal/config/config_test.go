@@ -351,13 +351,14 @@ func TestLoadDisablesExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
 	clearRuntimeConfigEnv(t)
 	setMediaSupervisedPlatformForTest(t, false)
+	setLlamaSupervisedPlatformForTest(t, false, "unsupported")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
 	if cfg.EngineMediaEnabled {
-		t.Fatalf("explicit supervised media should be disabled on unsupported platforms")
+		t.Fatalf("explicit supervised media should be disabled when neither media nor llama supervised platforms are supported")
 	}
 }
 

@@ -35,10 +35,11 @@ type Daemon struct {
 	auditStore *auditlog.Store
 	engineMgr  *engine.Manager
 
-	newEngineManager         func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn            func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
-	probeAIProviderFn        func(ctx context.Context, client *http.Client, target aiProviderTarget) error
-	detectMediaHostSupportFn func() (engine.MediaHostSupport, string)
+	newEngineManager               func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn                  func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	probeAIProviderFn              func(ctx context.Context, client *http.Client, target aiProviderTarget) error
+	detectMediaHostSupportFn       func() (engine.MediaHostSupport, string)
+	detectManagedImageSupervisedFn func() bool
 
 	providerFailureHintMu sync.RWMutex
 	providerFailureHints  map[string]string
@@ -63,17 +64,18 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		return nil, err
 	}
 	return &Daemon{
-		cfg:                      cfg,
-		logger:                   logger,
-		state:                    state,
-		grpc:                     grpcServer,
-		http:                     httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
-		aiHealth:                 nil,
-		auditStore:               nil,
-		newEngineManager:         engine.NewManager,
-		probeAIProviderFn:        probeAIProvider,
-		detectMediaHostSupportFn: engine.DetectMediaHostSupport,
-		providerFailureHints:     map[string]string{},
+		cfg:                            cfg,
+		logger:                         logger,
+		state:                          state,
+		grpc:                           grpcServer,
+		http:                           httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
+		aiHealth:                       nil,
+		auditStore:                     nil,
+		newEngineManager:               engine.NewManager,
+		probeAIProviderFn:              probeAIProvider,
+		detectMediaHostSupportFn:       engine.DetectMediaHostSupport,
+		detectManagedImageSupervisedFn: engine.LlamaImageSupervisedPlatformSupported,
+		providerFailureHints:           map[string]string{},
 	}, nil
 }
 
@@ -544,6 +546,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if !effectiveManagedLlama && svc != nil && svc.HasManagedSupervisedLlamaModels() {
 		effectiveManagedLlama = true
 	}
+	managedImageAssetsPresent := svc != nil && svc.HasManagedSupervisedImageModels()
+	if !effectiveManagedLlama && managedImageAssetsPresent {
+		effectiveManagedLlama = true
+	}
 	if !effectiveManagedLlama && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
@@ -571,7 +577,17 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
-	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
+	managedImageLoopback := effectiveManagedLlama && managedImageAssetsPresent && d.detectManagedImageSupervised()
+	if managedImageLoopback {
+		mgr.SetLlamaImageBackend(&engine.LlamaImageBackendConfig{
+			Mode:        engine.LlamaImageBackendOfficial,
+			BackendName: "stablediffusion-ggml",
+			Address:     "127.0.0.1:50052",
+		})
+	} else {
+		mgr.SetLlamaImageBackend(nil)
+	}
+	managedMediaLoopback := managedImageLoopback || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
 	if svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
 		if effectiveManagedLlama {
@@ -589,7 +605,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetManagedSpeechEndpoint("")
 		}
-		svc.SetManagedMediaDiffusersBackendConfig(false, "")
+		if managedImageLoopback {
+			svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+		} else {
+			svc.SetManagedMediaDiffusersBackendConfig(false, "")
+		}
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
 			d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
@@ -620,12 +640,12 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		}()
 	}
 
-	if d.cfg.EngineLlamaEnabled && !skipLlamaBootstrap {
+	if effectiveManagedLlama && !skipLlamaBootstrap {
 		bootstrap(engine.EngineLlama, d.cfg.EngineLlamaVersion, d.cfg.EngineLlamaPort,
 			"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")
 	}
 
-	if d.cfg.EngineMediaEnabled {
+	if managedMediaLoopback {
 		bootstrap(engine.EngineMedia, d.cfg.EngineMediaVersion, d.cfg.EngineMediaPort,
 			"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
 	}

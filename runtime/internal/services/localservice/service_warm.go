@@ -82,7 +82,7 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
-	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), s.modelRuntimeMode(model.GetLocalAssetId()), endpoint); err != nil {
+	if err := s.bootstrapLocalModelIfManaged(requestCtx, model); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    strings.TrimSpace(err.Error()),
 			ActionHint: "check_local_runtime_engine",

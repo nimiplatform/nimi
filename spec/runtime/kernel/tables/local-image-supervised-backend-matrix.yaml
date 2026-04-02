@@ -1,0 +1,47 @@
+version: 1
+canonical_public_contract:
+  kind: image
+  engine: media
+  engine_runtime_mode: supervised
+  execution_endpoint: local-media
+  consume_path: /v1/media/image/generate
+platforms:
+  - platform_id: macos-apple-silicon
+    host_match:
+      os: darwin
+      arch: arm64
+      gpu_vendor: apple
+    backend_family: stablediffusion-ggml
+    control_plane: llama
+    execution_plane: media
+    asset_formats:
+      - gguf
+    availability: unsupported
+    support_gate: Apple M5+ or A19-family
+    detail: daemon-managed stablediffusion-ggml currently requires Apple Metal tensor API not available on pre-M5 / pre-A19 Apple Silicon
+  - platform_id: windows-x64-nvidia-cuda
+    host_match:
+      os: windows
+      arch: amd64
+      gpu_vendor: nvidia
+      cuda_ready: true
+    backend_family: stablediffusion-ggml
+    control_plane: llama
+    execution_plane: media
+    asset_formats:
+      - gguf
+    availability: supported
+    detail: canonical supervised local image path
+  - platform_id: linux-x64-nvidia-cuda
+    host_match:
+      os: linux
+      arch: amd64
+      gpu_vendor: nvidia
+      cuda_ready: true
+    backend_family: stablediffusion-ggml
+    control_plane: llama
+    execution_plane: media
+    asset_formats:
+      - gguf
+    availability: supported
+    detail: canonical supervised local image path

@@ -169,7 +169,7 @@ func Load() (Config, error) {
 		cfg.EngineLlamaEnabled = false
 		cfg.EngineLlamaAutoManaged = false
 	}
-	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() {
+	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() && !llamaSupervisedPlatformSupported() {
 		cfg.EngineMediaEnabled = false
 	}
 

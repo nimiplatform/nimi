@@ -215,6 +215,9 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
+	daemon.detectManagedImageSupervisedFn = func() bool {
+		return false
+	}
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -230,13 +233,20 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	if daemon.engineMgr == nil {
 		t.Fatal("expected engine manager to initialize when only media is enabled")
 	}
-	if !slices.Equal(startCalls, []engine.EngineKind{engine.EngineMedia}) {
-		t.Fatalf("expected attached-only host to still bootstrap media engine, got=%v", startCalls)
+	if len(startCalls) != 0 {
+		t.Fatalf("expected attached-only host without managed image support to skip media bootstrap, got=%v", startCalls)
 	}
 
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "" {
 			t.Fatalf("managed media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
+		}
+		listed, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
+		if err != nil {
+			t.Fatalf("list local services: %v", err)
+		}
+		if len(listed.GetServices()) != 0 {
+			t.Fatalf("attached-only host must not expose managed image backend service, got %d services", len(listed.GetServices()))
 		}
 	}
 }
@@ -265,6 +275,9 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportSupportedSupervised, "supported"
 	}
+	daemon.detectManagedImageSupervisedFn = func() bool {
+		return false
+	}
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -283,6 +296,117 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
 			t.Fatalf("expected managed media endpoint to be exposed on supported host, got %q", managedEndpoint)
+		}
+	}
+}
+
+func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttachedHost(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	homeDir := t.TempDir()
+	setDaemonTestHome(t, homeDir)
+	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
+		t.Fatalf("create test runtime dir: %v", err)
+	}
+
+	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
+	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 2,
+		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+		"assets": []map[string]any{{
+			"localAssetId":      "01KNAIMAGEASSET0000000001",
+			"assetId":           "local/local-import/z_image_turbo-Q4_K",
+			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE),
+			"capabilities":      []string{"image"},
+			"engine":            "media",
+			"preferredEngine":   "llama",
+			"entry":             "z_image_turbo-Q4_K.gguf",
+			"sourceRepo":        "local-import/z_image_turbo-Q4_K",
+			"sourceRevision":    "local",
+			"endpoint":          "http://127.0.0.1:8321/v1",
+			"status":            1,
+			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
+			"healthDetail":      "managed local model ready (not started)",
+			"engineRuntimeMode": 1,
+			"logicalModelId":    "nimi/local-import-z-image-turbo-q4-k",
+			"engineConfig": map[string]any{
+				"backend": "stablediffusion-ggml",
+			},
+		}},
+		"services":  []map[string]any{},
+		"transfers": []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       localStatePath,
+		LocalModelsPath:      localModelsPath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   false,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "b8575",
+		EngineMediaEnabled:   false,
+		EngineMediaPort:      8321,
+		EngineMediaVersion:   "0.1.0",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
+		return engine.MediaHostSupportAttachedOnly, "attached only"
+	}
+	daemon.detectManagedImageSupervisedFn = func() bool {
+		return true
+	}
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	}
+
+	startCalls := make([]engine.EngineKind, 0, 2)
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCalls = append(startCalls, kind)
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+	if len(startCalls) != 2 || !slices.Contains(startCalls, engine.EngineLlama) || !slices.Contains(startCalls, engine.EngineMedia) {
+		t.Fatalf("expected image-supported managed state to bootstrap llama and media, got=%v", startCalls)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
+			t.Fatalf("expected managed media endpoint to be exposed for image-supported host, got %q", managedEndpoint)
+		}
+		listed, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
+		if err != nil {
+			t.Fatalf("list local services: %v", err)
+		}
+		if len(listed.GetServices()) != 1 {
+			t.Fatalf("expected 1 managed image backend service, got %d", len(listed.GetServices()))
+		}
+		service := listed.GetServices()[0]
+		if service.GetServiceId() != "svc_llama_image_backend" {
+			t.Fatalf("unexpected managed image backend service id: %q", service.GetServiceId())
+		}
+		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED {
+			t.Fatalf("expected managed image backend service to be installed, got %s", service.GetStatus())
+		}
+		if service.GetEndpoint() != "grpc://127.0.0.1:50052" {
+			t.Fatalf("unexpected managed image backend service endpoint: %q", service.GetEndpoint())
 		}
 	}
 }
@@ -396,7 +520,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 	}
 }
 
-func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBootstrap(t *testing.T) {
+func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	homeDir := t.TempDir()
 	setDaemonTestHome(t, homeDir)
@@ -497,12 +621,15 @@ func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBoot
 
 	daemon.startSupervisedEngines(context.Background())
 
-	if len(calls) != 0 {
-		t.Fatalf("expected no startup bootstrap call, got=%v", calls)
+	if !slices.Equal(calls, []engine.EngineKind{engine.EngineLlama}) {
+		t.Fatalf("expected managed local state to bootstrap llama, got=%v", calls)
 	}
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	if _, err := os.Stat(configPath); err != nil {
 		t.Fatalf("expected managed llama config to be generated: %v", err)
+	}
+	if managedEndpoint := svc.ManagedLlamaEndpoint(); managedEndpoint != "http://127.0.0.1:1234/v1" {
+		t.Fatalf("expected managed llama endpoint to be exposed, got %q", managedEndpoint)
 	}
 }
 
@@ -586,8 +713,8 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 				"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
 			},
 		},
-		"services":  []map[string]any{},
-		"audits":    []map[string]any{},
+		"services": []map[string]any{},
+		"audits":   []map[string]any{},
 	})
 	if err != nil {
 		t.Fatalf("marshal local state: %v", err)

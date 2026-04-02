@@ -163,7 +163,15 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 
 			capabilities := normalizeStringSlice([]string{dep.GetCapability()})
 			engine := defaultLocalEngine(dep.GetEngine(), capabilities)
-			binding := resolveInstallRuntimeBinding(engine, "", cloneDeviceProfile(plan.GetDeviceProfile()))
+			binding := resolveInstallRuntimeBinding(
+				engine,
+				capabilities,
+				inferAssetKindFromCapabilities(capabilities),
+				nil,
+				"",
+				"",
+				cloneDeviceProfile(plan.GetDeviceProfile()),
+			)
 			if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
 				result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 					Stage:      applyStageInstall,
@@ -192,6 +200,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				nil,
 				"runtime_model_ready_after_install",
 				"model installed",
+				false,
 			)
 			if err != nil || modelRecord == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "model install returned empty response")

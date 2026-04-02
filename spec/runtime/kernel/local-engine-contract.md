@@ -52,9 +52,29 @@ Phase 1 本地执行引擎固定为：
 受管引擎职责：
 
 - `llama`：管理 `llama.cpp` / `llama-server`、GPU layers、context/batch policy、warmup。
-- `media`：优先管理 `stable-diffusion.cpp`。
+- `media`：优先管理 `stable-diffusion.cpp`。但 `engine=media` 不能按引擎名整体决定 host support；必须结合资产 capability、`engine_config.backend` 与 `preferred_engine` 判断真实受管 backend。
 - `speech`：管理 `whispercpp`、`kokoro` 与 `qwen3tts` 等 Phase 1 语音 driver，并负责语音基础能力与 voice workflow 探测。
 - `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。
+
+资产级 supervised 规则：
+
+- `tables/local-image-supervised-backend-matrix.yaml` 是 canonical local image supervised backend matrix 的唯一事实源。
+- canonical local image product path 固定为：
+  - `kind=image`
+  - `engine=media`
+  - `engine_runtime_mode=SUPERVISED`
+  - app-facing consume endpoint 为 `local-media`
+  - `ATTACHED_ENDPOINT` 不作为 canonical local image product path 的合法 fallback
+- `engine=media` 且 runnable capability 为 `image.generate` / `image.edit`，并且 backend/profile 解析到 `stablediffusion-ggml` 或 llama-backed image backend 时，`SUPERVISED` host support 必须跟随**真实 llama-backed image backend**的支持面，而不是复用整个 `media` 引擎的粗粒度 host 分类，也不得粗暴等同于通用 `llama` text supervised 支持面。
+- 对上述 llama-backed image 资产：
+  - `managed engine ownership` 由 `llama` control plane 与 daemon-managed llama image backend 负责。
+  - `LocalAssetRecord.endpoint` 与本地 consume route 的真实执行 endpoint 仍必须指向 `media` canonical loopback（`local-media`），不得把 `llama` control-plane endpoint 当作 image 执行 endpoint 对外暴露。
+  - runtime 启动/探测时必须同时满足 control plane（`llama`）与 execution plane（`local-media`）的 supervised 生命周期；不得只启动其一。
+- 对 daemon-managed `stablediffusion-ggml` backend：
+  - `darwin/arm64` 仅当 host 能提供 Apple Metal tensor API（当前最小门槛：Apple `M5+` 或 `A19+`）时，才允许判定为 `SUPERVISED supported`。
+  - 不满足该门槛时，runtime 必须在 install plan / import / registration / health 路径上统一返回明确兼容性原因，并以 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close；不得再把 canonical image 路径改写成 `ATTACHED_ENDPOINT` 或 `AI_LOCAL_ENDPOINT_REQUIRED`。
+- `engine=media` 的 `video.generate` / `i2v` 等其它能力仍可继续沿用 `media` 自身的 host support 规则，直到对应 supervised backend 明确实现。
+- 同一规则必须统一驱动 install plan、runtime mode 解析、startup warnings、health warnings 与 attached-endpoint-required 判定；不得在不同入口各自重新推断。
 
 禁止事项：
 
@@ -66,7 +86,7 @@ Phase 1 本地执行引擎固定为：
 引擎默认端点以 `tables/local-engine-catalog.yaml` 为事实源：
 
 - `llama`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
-- `media`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
+- `media`：只有当资产级 host support 判定允许 `SUPERVISED` 时，才允许使用默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `speech`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `sidecar`：无默认端点。
 - `SUPERVISED` 的默认 loopback 端口是固定绑定；端口冲突必须显式失败，不得静默漂移到邻近端口，也不得在当前 contract 下偷偷切到动态端口模式。
@@ -74,6 +94,7 @@ Phase 1 本地执行引擎固定为：
 当安装或启动时 `endpoint` 为空：
 
 - `ATTACHED_ENDPOINT`：一律 fail-close，reason code 使用 `AI_LOCAL_ENDPOINT_REQUIRED`。
+- 对 canonical local image product path，若当前 host 不满足 `tables/local-image-supervised-backend-matrix.yaml`，必须使用 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close；不得要求用户补 `endpoint`。
 - `SUPERVISED`：runtime 可在 engine manager 产出真实 endpoint 前临时保持空值，但不得把空 endpoint 当作 ready。
 
 ## K-LENG-006 Local 协议基线
@@ -90,6 +111,11 @@ Phase 1 本地执行引擎固定为：
 - `GET /v1/catalog`
 - `POST /v1/media/image/generate`
 - `POST /v1/media/video/generate`
+
+补充：
+
+- 对 llama-backed supervised image 路径，`local-media` 是唯一 app-facing execution endpoint；runtime / sdk / desktop 不得直接把该路径投射成 `llama` provider HTTP consume surface。
+- runtime 允许在 `local-media` 内部执行 dynamic managed-image profile materialization；若需要额外内部导入步骤，必须保持为 runtime 私有实现，不得改变 app-facing canonical media consume path。
 
 `speech` 使用 runtime 私有 canonical speech HTTP API：
 
@@ -125,6 +151,8 @@ Phase 1 本地执行引擎固定为：
 - `/healthz` 返回 ready 且 `/v1/catalog` 存在至少一个与目标 `logical_model_id` 可比对的 ready entry，才算健康。
 - catalog 不得暴露静态伪 model list。
 - `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
+- `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它 llama-backed image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
+- 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露兼容性原因（例如 Apple `M5+` / `A19+` 要求），不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
 
 `speech` 健康探测：
 
@@ -135,7 +163,7 @@ Phase 1 本地执行引擎固定为：
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
 
-`llama` official image backend 名称当前固定只允许：
+`llama` daemon-managed image backend 名称当前固定只允许：
 
 - `llama-cpp`
 - `whisper-ggml`

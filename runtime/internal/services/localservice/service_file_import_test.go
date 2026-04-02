@@ -126,11 +126,10 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	}
 }
 
-func TestImportLocalModelFileRollsBackStagedBundleWhenRegistrationFails(t *testing.T) {
+func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M5 Max")
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
@@ -143,36 +142,104 @@ func TestImportLocalModelFileRollsBackStagedBundleWhenRegistrationFails(t *testi
 		Capabilities: []string{"image"},
 		Engine:       "media",
 	})
-	if err == nil {
-		t.Fatal("expected import to fail without explicit media endpoint")
+	if err != nil {
+		t.Fatalf("expected image import without explicit endpoint to succeed, got %v", err)
 	}
 
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
-	stagedDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
-	if _, statErr := os.Stat(stagedDir); !os.IsNotExist(statErr) {
-		t.Fatalf("expected staged dir rollback, stat err=%v", statErr)
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
+	if _, err := os.Stat(manifestPath); err != nil {
+		t.Fatalf("managed manifest missing: %v", err)
+	}
+	resp, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("re-import managed manifest: %v", err)
+	}
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+	rawManifest, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read managed manifest: %v", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(rawManifest, &manifest); err != nil {
+		t.Fatalf("parse managed manifest: %v", err)
+	}
+	engineConfig, _ := manifest["engine_config"].(map[string]any)
+	if got, _ := engineConfig["backend"].(string); got != "stablediffusion-ggml" {
+		t.Fatalf("expected managed image backend marker, got %#v", manifest["engine_config"])
 	}
 	if _, statErr := os.Stat(sourcePath); statErr != nil {
-		t.Fatalf("source file should remain after failed file import: %v", statErr)
-	}
-
-	transfers, listErr := svc.ListLocalTransfers(context.Background(), &runtimev1.ListLocalTransfersRequest{})
-	if listErr != nil {
-		t.Fatalf("ListLocalTransfers: %v", listErr)
-	}
-	if len(transfers.GetTransfers()) != 1 {
-		t.Fatalf("expected one failed transfer, got %d", len(transfers.GetTransfers()))
-	}
-	if transfers.GetTransfers()[0].GetState() != "failed" {
-		t.Fatalf("expected failed transfer, got %q", transfers.GetTransfers()[0].GetState())
+		t.Fatalf("source file should remain after file import: %v", statErr)
 	}
 }
 
-func TestScaffoldOrphanModelRestoresSourceWhenRegistrationFails(t *testing.T) {
+func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M5 Max")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected image file import with kind-only declaration to succeed, got %v", err)
+	}
+	model := resp.GetAsset()
+	if model == nil {
+		t.Fatal("expected imported model")
+	}
+	if got := model.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		t.Fatalf("kind mismatch: got=%s", got)
+	}
+	if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "image" {
+		t.Fatalf("capabilities mismatch: %#v", model.GetCapabilities())
+	}
+	if got := svc.modelRuntimeMode(model.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+}
+
+func TestImportLocalImageModelFileFailsClosedOnUnsupportedManagedImageHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:   "media",
+	})
+	if err == nil {
+		t.Fatal("expected image file import to fail on unsupported managed image host")
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAssetFile(image unsupported managed host)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+}
+
+func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
 	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	modelsRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
@@ -182,12 +249,13 @@ func TestScaffoldOrphanModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 
 	_, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
-		Capabilities: []string{"image"},
+		Capabilities: []string{"video.generate"},
 		Engine:       "media",
 	})
 	if err == nil {
-		t.Fatal("expected scaffold orphan import to fail without explicit media endpoint")
+		t.Fatal("expected scaffold orphan video import to fail without explicit media endpoint")
 	}
+	assertGRPCReasonCode(t, err, "ScaffoldOrphanAsset(video missing endpoint)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
 	stagedDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
@@ -210,11 +278,50 @@ func TestScaffoldOrphanModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 	}
 }
 
-func TestScaffoldOrphanModelRestoresSourceAndQuarantinesFailedBundleAfterActivation(t *testing.T) {
+func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M5 Max")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
+		Path:   sourcePath,
+		Kind:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine: "media",
+	})
+	if err != nil {
+		t.Fatalf("expected scaffold orphan image import with kind-only declaration to succeed, got %v", err)
+	}
+	model := resp.GetAsset()
+	if model == nil {
+		t.Fatal("expected scaffolded model")
+	}
+	if got := model.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		t.Fatalf("kind mismatch: got=%s", got)
+	}
+	if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "image" {
+		t.Fatalf("capabilities mismatch: %#v", model.GetCapabilities())
+	}
+	if got := svc.modelRuntimeMode(model.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+	if _, err := os.Stat(sourcePath); !os.IsNotExist(err) {
+		t.Fatalf("expected orphan source to be moved, stat err=%v", err)
+	}
+}
+
+func TestScaffoldOrphanModelRebindsExistingAssetWithoutQuarantine(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc := newTestService(t)
-	_ = mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelsRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", true)
+	existing := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "local-import/orphan",
 		capabilities: []string{"chat"},
 		engine:       "llama",
@@ -227,36 +334,33 @@ func TestScaffoldOrphanModelRestoresSourceAndQuarantinesFailedBundleAfterActivat
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
+	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
 		Capabilities: []string{"chat"},
 		Engine:       "llama",
 	})
-	if err == nil {
-		t.Fatal("expected scaffold orphan to fail on duplicate model registration")
+	if err != nil {
+		t.Fatalf("expected scaffold orphan duplicate to rebind existing asset, got %v", err)
 	}
-	if _, statErr := os.Stat(sourcePath); statErr != nil {
-		t.Fatalf("source file should be restored after failed scaffold: %v", statErr)
+	if resp.GetAsset() == nil {
+		t.Fatal("expected rebound asset")
+	}
+	if resp.GetAsset().GetLocalAssetId() != existing.GetLocalAssetId() {
+		t.Fatalf("rebind must preserve local asset id: got=%q want=%q", resp.GetAsset().GetLocalAssetId(), existing.GetLocalAssetId())
+	}
+	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
+		t.Fatalf("source file should be moved into runtime-managed storage after successful rebind, stat err=%v", statErr)
 	}
 
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/orphan")))
 	runtimeDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
-	if _, statErr := os.Stat(runtimeDir); !os.IsNotExist(statErr) {
-		t.Fatalf("runtime dir should not remain after failed scaffold, stat err=%v", statErr)
+	if _, statErr := os.Stat(runtimeDir); statErr != nil {
+		t.Fatalf("runtime dir should contain rebound bundle, stat err=%v", statErr)
 	}
 
 	quarantineDirs := managedModelQuarantineDirsForTest(t, svc)
-	if len(quarantineDirs) != 1 {
-		t.Fatalf("expected one quarantine dir, got %d", len(quarantineDirs))
-	}
-	if _, statErr := os.Stat(filepath.Join(quarantineDirs[0], "orphan.gguf")); statErr != nil {
-		t.Fatalf("quarantined bundle should retain model file: %v", statErr)
-	}
-	if _, statErr := os.Stat(filepath.Join(quarantineDirs[0], "asset.manifest.json")); statErr != nil {
-		t.Fatalf("quarantined bundle should retain manifest: %v", statErr)
-	}
-	if len(svc.audits) == 0 || svc.audits[0].GetEventType() != "runtime_model_bundle_quarantined" {
-		t.Fatalf("expected quarantine audit event, got %#v", svc.audits)
+	if len(quarantineDirs) != 0 {
+		t.Fatalf("expected no quarantine dirs on successful rebind, got %d", len(quarantineDirs))
 	}
 }
 
@@ -302,6 +406,7 @@ func TestScanUnregisteredAssetsFindsModelsInDefaultRoot(t *testing.T) {
 	}
 
 	svc := newTestService(t)
+	svc.localModelsPath = legacyModelsDir
 	resp, err := svc.ScanUnregisteredAssets(context.Background(), &runtimev1.ScanUnregisteredAssetsRequest{})
 	if err != nil {
 		t.Fatalf("ScanUnregisteredAssets: %v", err)

@@ -21,15 +21,16 @@ func TestBackendGenerateImageManagedMediaForwardsScenarioExtensions(t *testing.T
 	var captured map[string]any
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/images/generations" {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/image/generate" {
 			http.NotFound(w, r)
 			return
 		}
 		captured = decodeJSONBodyForBackendMediaTest(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"data": []map[string]any{
-				{"b64_json": base64.StdEncoding.EncodeToString([]byte("image-managed-media"))},
+			"artifact": map[string]any{
+				"mime_type":   "image/png",
+				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-managed-media")),
 			},
 		})
 	}))
@@ -55,15 +56,19 @@ func TestBackendGenerateImageManagedMediaForwardsScenarioExtensions(t *testing.T
 	if compat == nil {
 		t.Fatal("expected managed media compatibility diagnostics")
 	}
-	if got := ValueAsInt32(captured["step"]); got != 12 {
+	specPayload, ok := captured["spec"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
+	}
+	capturedExtensions, ok := specPayload["extensions"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected extensions map in canonical spec, got=%T", specPayload["extensions"])
+	}
+	if got := ValueAsInt32(capturedExtensions["step"]); got != 12 {
 		t.Fatalf("expected step override from scenario extension, got=%d", got)
 	}
-	if got := strings.TrimSpace(ValueAsString(captured["mode"])); got != "edit" {
+	if got := strings.TrimSpace(ValueAsString(capturedExtensions["mode"])); got != "edit" {
 		t.Fatalf("expected mode override from scenario extension, got=%q", got)
-	}
-	capturedExtensions, ok := captured["extensions"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected extensions map in request, got=%T", captured["extensions"])
 	}
 	if got := ValueAsInt32(capturedExtensions["steps"]); got != 12 {
 		t.Fatalf("expected steps extension to be forwarded, got=%d", got)

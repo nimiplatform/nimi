@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localRuntimeBinding struct {
@@ -41,7 +42,21 @@ func managedDefaultEndpointForEngine(engine string) string {
 	}
 }
 
-func autoRecommendedRuntimeBinding(engine string, profile *runtimev1.LocalDeviceProfile) localRuntimeBinding {
+func autoRecommendedRuntimeBinding(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	profile *runtimev1.LocalDeviceProfile,
+) localRuntimeBinding {
+	if isCanonicalSupervisedImageAsset(engine, capabilities, kind, engineConfig, preferredEngine) {
+		return localRuntimeBinding{
+			mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+			endpoint:        "",
+			autoRecommended: true,
+		}
+	}
 	if !supportsSupervisedEngine(engine) {
 		return localRuntimeBinding{
 			mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
@@ -49,7 +64,7 @@ func autoRecommendedRuntimeBinding(engine string, profile *runtimev1.LocalDevice
 			autoRecommended: true,
 		}
 	}
-	classification, _ := classifyManagedEngineSupport(engine, profile)
+	classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile)
 	if classification == localEngineSupportSupportedSupervised {
 		return localRuntimeBinding{
 			mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
@@ -64,12 +79,20 @@ func autoRecommendedRuntimeBinding(engine string, profile *runtimev1.LocalDevice
 	}
 }
 
-func catalogBindingInstallAvailable(engine string, binding localRuntimeBinding, profile *runtimev1.LocalDeviceProfile) bool {
+func catalogBindingInstallAvailable(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	binding localRuntimeBinding,
+	profile *runtimev1.LocalDeviceProfile,
+) bool {
 	switch normalizeRuntimeMode(binding.mode) {
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT:
 		return strings.TrimSpace(binding.endpoint) != ""
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
-		classification, _ := classifyManagedEngineSupport(engine, profile)
+		classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile)
 		return classification == localEngineSupportSupportedSupervised
 	default:
 		return false
@@ -78,6 +101,10 @@ func catalogBindingInstallAvailable(engine string, binding localRuntimeBinding, 
 
 func resolveCatalogRuntimeBinding(
 	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
 	requestEndpoint string,
 	explicitMode runtimev1.LocalEngineRuntimeMode,
 	catalogEndpoint string,
@@ -101,18 +128,26 @@ func resolveCatalogRuntimeBinding(
 			endpoint: strings.TrimSpace(catalogEndpoint),
 		}
 	default:
-		return autoRecommendedRuntimeBinding(engine, profile)
+		return autoRecommendedRuntimeBinding(engine, capabilities, kind, engineConfig, preferredEngine, profile)
 	}
 }
 
-func resolveInstallRuntimeBinding(engine string, requestEndpoint string, profile *runtimev1.LocalDeviceProfile) localRuntimeBinding {
+func resolveInstallRuntimeBinding(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	requestEndpoint string,
+	profile *runtimev1.LocalDeviceProfile,
+) localRuntimeBinding {
 	if endpoint := strings.TrimSpace(requestEndpoint); endpoint != "" {
 		return localRuntimeBinding{
 			mode:     runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
 			endpoint: endpoint,
 		}
 	}
-	return autoRecommendedRuntimeBinding(engine, profile)
+	return autoRecommendedRuntimeBinding(engine, capabilities, kind, engineConfig, preferredEngine, profile)
 }
 
 func (s *Service) managedEndpointForEngine(engine string) string {
@@ -128,6 +163,18 @@ func (s *Service) managedEndpointForEngine(engine string) string {
 	}
 }
 
+func (s *Service) managedEndpointForAsset(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+) string {
+	return s.managedEndpointForEngine(
+		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+	)
+}
+
 func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	switch strings.ToLower(strings.TrimSpace(engine)) {
 	case "llama":
@@ -139,6 +186,18 @@ func (s *Service) managedEndpointForEngineLocked(engine string) string {
 	default:
 		return ""
 	}
+}
+
+func (s *Service) managedEndpointForAssetLocked(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+) string {
+	return s.managedEndpointForEngineLocked(
+		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+	)
 }
 
 func effectiveEndpointForRuntimeMode(engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string, managedEndpoint string) string {
@@ -159,6 +218,45 @@ func storedEndpointForRuntimeMode(mode runtimev1.LocalEngineRuntimeMode, endpoin
 		return managed
 	}
 	return ""
+}
+
+func effectiveEndpointForAssetRuntimeMode(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	mode runtimev1.LocalEngineRuntimeMode,
+	endpoint string,
+	managedEndpoint string,
+) string {
+	return effectiveEndpointForRuntimeMode(
+		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+		mode,
+		endpoint,
+		managedEndpoint,
+	)
+}
+
+func storedEndpointForAssetRuntimeMode(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	mode runtimev1.LocalEngineRuntimeMode,
+	endpoint string,
+	managedEndpoint string,
+) string {
+	targetEngine := executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine)
+	if strings.TrimSpace(managedEndpoint) == "" {
+		managedEndpoint = managedDefaultEndpointForEngine(targetEngine)
+	}
+	return storedEndpointForRuntimeMode(
+		mode,
+		endpoint,
+		managedEndpoint,
+	)
 }
 
 func (s *Service) effectiveEndpointForRuntimeMode(engine string, mode runtimev1.LocalEngineRuntimeMode, endpoint string) string {

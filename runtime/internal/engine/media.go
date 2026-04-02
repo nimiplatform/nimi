@@ -13,6 +13,7 @@ import (
 const (
 	defaultMediaTorchIndexURL = "https://download.pytorch.org/whl/cu126"
 	mediaPythonVersion        = "3.12"
+	defaultLlamaEndpoint      = "http://127.0.0.1:1234/v1"
 )
 
 var mediaPackages = []string{
@@ -31,7 +32,9 @@ var mediaPackages = []string{
 
 func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
 	gpuVendor, cudaReady := detectMediaHostGPU()
-	if support := ClassifyMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady); support != MediaHostSupportSupportedSupervised {
+	support := ClassifyMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
+	proxyMode := support != MediaHostSupportSupportedSupervised && LlamaSupervisedPlatformSupported()
+	if !proxyMode && support != MediaHostSupportSupportedSupervised {
 		return cfg, fmt.Errorf("%s", MediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady))
 	}
 
@@ -52,18 +55,24 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	}
 
 	stampPath := filepath.Join(root, ".deps-installed")
-	if _, err := os.Stat(stampPath); err != nil {
-		extraArgs := []string{}
-		if indexURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_TORCH_INDEX_URL")); indexURL != "" {
-			extraArgs = append(extraArgs, "--extra-index-url", indexURL)
-		} else {
-			extraArgs = append(extraArgs, "--extra-index-url", defaultMediaTorchIndexURL)
+	if !proxyMode {
+		if _, err := os.Stat(stampPath); err != nil {
+			extraArgs := []string{}
+			if indexURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_TORCH_INDEX_URL")); indexURL != "" {
+				extraArgs = append(extraArgs, "--extra-index-url", indexURL)
+			} else {
+				extraArgs = append(extraArgs, "--extra-index-url", defaultMediaTorchIndexURL)
+			}
+			if installErr := uvPipInstall(ctx, uvPath, pythonPath, mediaPackages, extraArgs...); installErr != nil {
+				return cfg, fmt.Errorf("install media dependencies: %w", installErr)
+			}
+			if writeErr := os.WriteFile(stampPath, []byte(strings.Join(mediaPackages, "\n")), 0o644); writeErr != nil {
+				return cfg, fmt.Errorf("write media dependency stamp: %w", writeErr)
+			}
 		}
-		if installErr := uvPipInstall(ctx, uvPath, pythonPath, mediaPackages, extraArgs...); installErr != nil {
-			return cfg, fmt.Errorf("install media dependencies: %w", installErr)
-		}
-		if writeErr := os.WriteFile(stampPath, []byte(strings.Join(mediaPackages, "\n")), 0o644); writeErr != nil {
-			return cfg, fmt.Errorf("write media dependency stamp: %w", writeErr)
+	} else if _, err := os.Stat(stampPath); err != nil {
+		if writeErr := os.WriteFile(stampPath, []byte("proxy-mode\n"), 0o644); writeErr != nil {
+			return cfg, fmt.Errorf("write media proxy dependency stamp: %w", writeErr)
 		}
 	}
 
@@ -86,10 +95,28 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	cfg.CommandEnv["HF_HOME"] = filepath.Join(cacheRoot, "hf")
 	cfg.CommandEnv["TRANSFORMERS_CACHE"] = filepath.Join(cacheRoot, "transformers")
 	cfg.CommandEnv["DIFFUSERS_CACHE"] = filepath.Join(cacheRoot, "diffusers")
-	cfg.CommandEnv["NIMI_MEDIA_DEVICE"] = "cuda"
-	cfg.CommandEnv["NIMI_MEDIA_IMAGE_DRIVER"] = "flux"
-	cfg.CommandEnv["NIMI_MEDIA_VIDEO_DRIVER"] = "wan"
+	if proxyMode {
+		cfg.CommandEnv["NIMI_MEDIA_MODE"] = "proxy"
+		cfg.CommandEnv["NIMI_MEDIA_LLAMA_BASE_URL"] = firstNonEmpty(
+			strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")),
+			defaultLlamaEndpoint,
+		)
+	} else {
+		cfg.CommandEnv["NIMI_MEDIA_MODE"] = "diffusers"
+		cfg.CommandEnv["NIMI_MEDIA_DEVICE"] = "cuda"
+		cfg.CommandEnv["NIMI_MEDIA_IMAGE_DRIVER"] = "flux"
+		cfg.CommandEnv["NIMI_MEDIA_VIDEO_DRIVER"] = "wan"
+	}
 	return cfg, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func detectMediaHostGPU() (string, bool) {

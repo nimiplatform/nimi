@@ -8,3 +8,10 @@ func (d *Daemon) detectMediaHostSupport() (engine.MediaHostSupport, string) {
 	}
 	return engine.DetectMediaHostSupport()
 }
+
+func (d *Daemon) detectManagedImageSupervised() bool {
+	if d != nil && d.detectManagedImageSupervisedFn != nil {
+		return d.detectManagedImageSupervisedFn()
+	}
+	return engine.LlamaImageSupervisedPlatformSupported()
+}

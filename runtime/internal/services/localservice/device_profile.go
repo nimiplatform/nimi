@@ -125,6 +125,23 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 		}
 	}
 
+	if strings.EqualFold(localRuntimeGOOS, "darwin") && strings.EqualFold(localRuntimeGOARCH, "arm64") {
+		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+		defer cancel()
+		output, runErr := localRuntimeCommand(ctx, "sysctl", "-n", "machdep.cpu.brand_string").Output()
+		model := strings.TrimSpace(string(output))
+		if runErr == nil || model != "" {
+			return gpuProbeCapabilities{
+				profile: &runtimev1.LocalGpuProfile{
+					Available: true,
+					Vendor:    "apple",
+					Model:     model,
+				},
+				cudaReady: false,
+			}
+		}
+	}
+
 	return gpuProbeCapabilities{
 		profile:   &runtimev1.LocalGpuProfile{Available: false},
 		cudaReady: false,

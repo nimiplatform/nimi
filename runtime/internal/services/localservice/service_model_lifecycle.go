@@ -57,7 +57,21 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 	}
 
 	profile := collectDeviceProfile()
-	warnings := startupCompatibilityWarnings(current.GetEngine(), profile)
+	warnings := startupCompatibilityWarningsForAsset(
+		current.GetEngine(),
+		current.GetCapabilities(),
+		current.GetKind(),
+		current.GetEngineConfig(),
+		current.GetPreferredEngine(),
+		profile,
+	)
+	if configDetail := attachedLoopbackConfigErrorDetail(current.GetEngine(), s.modelRuntimeMode(localModelID), s.effectiveLocalModelEndpoint(current), profile); configDetail != "" {
+		unhealthy, err := s.transitionModelToUnhealthy(localModelID, appendWarnings(configDetail, warnings))
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
+	}
 
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, current); err != nil {
 		failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
@@ -82,8 +96,8 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
 	}
 	endpoint := s.effectiveLocalModelEndpoint(current)
-	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
-	probe := s.probeEndpoint(ctx, current.GetEngine(), endpoint)
+	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, current)
+	probe := s.probeLocalModelEndpoint(ctx, current, endpoint)
 	if modelProbeSucceeded(current, probe, registration) {
 		if s.shouldWarmLocalModelOnStart(current, endpoint, probe) {
 			warmTimeout := warmLocalModelTimeout(0)
@@ -174,6 +188,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 	}
 
 	result := make([]*runtimev1.LocalAssetHealth, 0, len(models))
+	profile := collectDeviceProfile()
 	for _, model := range models {
 		if model == nil {
 			continue
@@ -196,6 +211,14 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, health)
 			continue
 		}
+		if configDetail := attachedLoopbackConfigErrorDetail(model.GetEngine(), s.modelRuntimeMode(localModelID), s.effectiveLocalModelEndpoint(model), profile); configDetail != "" {
+			transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, appendWarnings(configDetail, startupCompatibilityWarningsForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), model.GetEngineConfig(), model.GetPreferredEngine(), profile)))
+			if updateErr != nil {
+				return nil, updateErr
+			}
+			result = append(result, modelHealth(transitioned))
+			continue
+		}
 		if modelsRoot := s.resolvedLocalModelsPath(); strings.TrimSpace(modelsRoot) != "" {
 			if entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsRoot, model); resolveErr == nil {
 				if validateErr := validateManagedModelEntryFile(entryPath); validateErr != nil {
@@ -212,8 +235,8 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 		switch model.GetStatus() {
 		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 			endpoint := s.effectiveLocalModelEndpoint(model)
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
-			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
+			bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
+			probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 			registration := s.managedLlamaRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				s.resetModelRecovery(localModelID)
@@ -234,8 +257,8 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, modelHealth(transitioned))
 		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 			endpoint := s.effectiveLocalModelEndpoint(model)
-			bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
-			probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
+			bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
+			probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 			registration := s.managedLlamaRegistrationForModel(model)
 			if modelProbeSucceeded(model, probe, registration) {
 				successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
@@ -331,7 +354,7 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
-	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
+	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
 	readyDetail := managedLocalModelReadyDetail()
 	notStartedDetail := managedLocalModelReadyNotStartedDetail()
 	if modelProbeSucceeded(model, probe, registration) {

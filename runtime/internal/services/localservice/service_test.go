@@ -42,6 +42,9 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 	if err != nil {
 		t.Fatalf("create local service: %v", err)
 	}
+	testRuntimeRoot := t.TempDir()
+	svc.localModelsPath = filepath.Join(testRuntimeRoot, "models")
+	svc.managedLlamaModelsConfigPath = filepath.Join(testRuntimeRoot, "runtime", "llama-models.yaml")
 	if probe != nil {
 		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {
 			return probe(ctx, endpoint)
@@ -66,6 +69,12 @@ func setLocalRuntimePlatformForTest(t *testing.T, goos string, goarch string) {
 		localRuntimeGOOS = originalGOOS
 		localRuntimeGOARCH = originalGOARCH
 	})
+}
+
+func setManagedImageHostForTest(t *testing.T, chip string) {
+	t.Helper()
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "apple")
+	t.Setenv("NIMI_RUNTIME_GPU_MODEL", chip)
 }
 
 func containsWarning(values []string, target string) bool {
@@ -2286,8 +2295,10 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	}
 }
 
-func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
+func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M5 Max")
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
@@ -2313,14 +2324,292 @@ func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 		t.Fatalf("write manifest: %v", err)
 	}
 
+	resp, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("expected image import without explicit endpoint to succeed, got %v", err)
+	}
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+	if got := resp.GetAsset().GetEndpoint(); got != "http://127.0.0.1:8321/v1" {
+		t.Fatalf("expected supervised image endpoint to use managed media execution endpoint, got %q", got)
+	}
+}
+
+func TestLocalImportImageModelRequiresEndpointOnUnsupportedManagedImageHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-m4", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-m4",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+		"engineConfig": map[string]any{
+			"backend": "stablediffusion-ggml",
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
 	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 	})
 	if err == nil {
-		t.Fatal("expected import without explicit endpoint to fail-close")
+		t.Fatal("expected image import on unsupported host to fail closed")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
-		t.Fatalf("unexpected reason for import without endpoint: reason=%v ok=%v err=%v", reason, ok, err)
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(image unsupported managed host)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	st, _ := status.FromError(err)
+	if !strings.Contains(st.Message(), "Apple M5 or newer") {
+		t.Fatalf("expected explicit Apple M5 compatibility detail, got %q", st.Message())
+	}
+}
+
+func TestLocalImportVideoModelRejectsManagedLoopbackEndpointOnAttachedOnlyHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-loopback", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_video_turbo_loopback",
+		"kind":             "video",
+		"logical_model_id": "nimi/video-model-loopback",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "z_video_turbo.bin",
+		"endpoint":         defaultMediaEndpoint,
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err == nil {
+		t.Fatal("expected managed media loopback endpoint to fail-close on attached-only host")
+	}
+	assertGRPCCode(t, err, "ImportLocalAsset(media managed loopback attached host)", codes.InvalidArgument)
+	assertGRPCReasonCode(t, err, "ImportLocalAsset(media managed loopback attached host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	st, _ := status.FromError(err)
+	if !strings.Contains(st.Message(), "attached endpoint") {
+		t.Fatalf("expected explicit attached endpoint detail, got %q", st.Message())
+	}
+}
+
+func TestLocalImportManifestRebindsExistingAssetEndpoint(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "video-model-rebind", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_video_turbo_rebind",
+		"kind":             "video",
+		"logical_model_id": "nimi/video-model-rebind",
+		"engine":           "media",
+		"capabilities":     []string{"video.generate"},
+		"entry":            "z_video_turbo.bin",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	existing, err := svc.installLocalAssetRecord(
+		"local-import/z_video_turbo_rebind",
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		[]string{"video.generate"},
+		"media",
+		"z_video_turbo.bin",
+		"unknown",
+		"file://"+filepath.ToSlash(manifestPath),
+		"local",
+		map[string]string{},
+		defaultMediaEndpoint,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		"",
+		nil,
+		nil,
+		"runtime_model_imported",
+		manifestPath,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("seed existing asset: %v", err)
+	}
+	svc.setModelHealthDetail(existing.GetLocalAssetId(), "stale bad endpoint")
+	if _, err := svc.updateModelStatus(existing.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "stale bad endpoint"); err != nil {
+		t.Fatalf("seed unhealthy status: %v", err)
+	}
+
+	rebound, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+		Endpoint:     "http://127.0.0.1:9321/v1",
+	})
+	if err != nil {
+		t.Fatalf("rebind import: %v", err)
+	}
+	if rebound.GetAsset().GetLocalAssetId() != existing.GetLocalAssetId() {
+		t.Fatalf("rebind must preserve local_asset_id: got=%q want=%q", rebound.GetAsset().GetLocalAssetId(), existing.GetLocalAssetId())
+	}
+	if rebound.GetAsset().GetEndpoint() != "http://127.0.0.1:9321/v1" {
+		t.Fatalf("rebind endpoint mismatch: %q", rebound.GetAsset().GetEndpoint())
+	}
+	if rebound.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("rebind should reset asset to installed, got %s", rebound.GetAsset().GetStatus())
+	}
+	if strings.TrimSpace(rebound.GetAsset().GetHealthDetail()) != "" {
+		t.Fatalf("rebind should clear stale health detail, got %q", rebound.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestStartLocalModelAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls += 1
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe should not run",
+			probeURL: endpoint,
+		}
+	})
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	model, err := svc.installLocalAssetRecord(
+		"local-import/z_video_turbo_fastfail",
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		[]string{"video.generate"},
+		"media",
+		"z_video_turbo.bin",
+		"unknown",
+		"local-import/z_video_turbo_fastfail",
+		"local",
+		map[string]string{},
+		defaultMediaEndpoint,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		"",
+		nil,
+		nil,
+		"runtime_model_imported",
+		"seed bad media loopback asset",
+		false,
+	)
+	if err != nil {
+		t.Fatalf("seed loopback asset: %v", err)
+	}
+	entryPath := filepath.Join(resolveLocalModelsPath(modelsRoot), slugifyLocalModelID(model.GetAssetId()), model.GetEntry())
+	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+		t.Fatalf("create managed entry dir: %v", err)
+	}
+	if err := os.WriteFile(entryPath, []byte("stub"), 0o600); err != nil {
+		t.Fatalf("write managed entry file: %v", err)
+	}
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: model.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start local asset: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy fast-fail status, got %s", started.GetAsset().GetStatus())
+	}
+	if probeCalls != 0 {
+		t.Fatalf("expected no probe for attached-loopback config error, got %d probe calls", probeCalls)
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "attached endpoint") {
+		t.Fatalf("expected attached endpoint config detail, got %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestCheckLocalAssetHealthAttachedLoopbackConfigFailsBeforeProbe(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls += 1
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe should not run",
+			probeURL: endpoint,
+		}
+	})
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	model, err := svc.installLocalAssetRecord(
+		"local-import/z_video_turbo_health",
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		[]string{"video.generate"},
+		"media",
+		"z_video_turbo.bin",
+		"unknown",
+		"local-import/z_video_turbo_health",
+		"local",
+		map[string]string{},
+		defaultMediaEndpoint,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		"",
+		nil,
+		nil,
+		"runtime_model_imported",
+		"seed bad media loopback asset",
+		false,
+	)
+	if err != nil {
+		t.Fatalf("seed loopback asset: %v", err)
+	}
+	entryPath := filepath.Join(resolveLocalModelsPath(modelsRoot), slugifyLocalModelID(model.GetAssetId()), model.GetEntry())
+	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
+		t.Fatalf("create managed entry dir: %v", err)
+	}
+	if err := os.WriteFile(entryPath, []byte("stub"), 0o600); err != nil {
+		t.Fatalf("write managed entry file: %v", err)
+	}
+
+	health, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: model.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("check health: %v", err)
+	}
+	if len(health.GetAssets()) != 1 {
+		t.Fatalf("expected one health record, got %d", len(health.GetAssets()))
+	}
+	if health.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy fast-fail status, got %s", health.GetAssets()[0].GetStatus())
+	}
+	if probeCalls != 0 {
+		t.Fatalf("expected no probe for attached-loopback config error, got %d probe calls", probeCalls)
+	}
+	if !strings.Contains(health.GetAssets()[0].GetDetail(), "attached endpoint") {
+		t.Fatalf("expected attached endpoint config detail, got %q", health.GetAssets()[0].GetDetail())
 	}
 }
 
@@ -2552,7 +2841,7 @@ func TestResolveModelInstallPlanCatalogSupervisedWithManagerAvailable(t *testing
 	}
 }
 
-func TestResolveModelInstallPlanMediaSupervisedUnsupportedHost(t *testing.T) {
+func TestResolveModelInstallPlanMediaVideoSupervisedUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -2568,7 +2857,7 @@ func TestResolveModelInstallPlanMediaSupervisedUnsupportedHost(t *testing.T) {
 		Engine:            "media",
 		EngineRuntimeMode: runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		InstallKind:       "download",
-		Capabilities:      []string{"image"},
+		Capabilities:      []string{"video"},
 	})
 	svc.mu.Unlock()
 
@@ -2580,13 +2869,41 @@ func TestResolveModelInstallPlanMediaSupervisedUnsupportedHost(t *testing.T) {
 	}
 	plan := resp.GetPlan()
 	if plan.GetInstallAvailable() {
-		t.Fatalf("unsupported supervised media plan must be unavailable")
+		t.Fatalf("unsupported supervised media video plan must be unavailable")
 	}
 	if plan.GetReasonCode() != "LOCAL_ENGINE_ATTACHED_ENDPOINT_ONLY" {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
 	if !containsWarning(plan.GetWarnings(), warnMediaAttachedOnly) {
 		t.Fatalf("expected attached-only warning, got %#v", plan.GetWarnings())
+	}
+}
+
+func TestResolveModelInstallPlanImageSupervisedUnsupportedHost(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+
+	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		ModelId:      "local/z-image-turbo",
+		Engine:       "media",
+		Capabilities: []string{"image"},
+	})
+	if err != nil {
+		t.Fatalf("resolve model install plan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetInstallAvailable() {
+		t.Fatal("image supervised plan must be unavailable on unsupported Apple Silicon host")
+	}
+	if got := plan.GetEngineRuntimeMode(); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("expected supervised runtime mode, got %s", got)
+	}
+	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if warnings := strings.Join(plan.GetWarnings(), " "); !strings.Contains(warnings, "Apple M5 or newer") {
+		t.Fatalf("expected explicit compatibility warning, got %#v", plan.GetWarnings())
 	}
 }
 
@@ -2614,7 +2931,7 @@ func TestResolveModelInstallPlanMediaAttachedEndpointAllowedOnUnsupportedHost(t 
 	}
 }
 
-func TestInstallLocalModelMediaRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
+func TestInstallLocalModelMediaVideoRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
@@ -2623,13 +2940,13 @@ func TestInstallLocalModelMediaRequiresExplicitEndpointOnUnsupportedHost(t *test
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/flux-test",
 		engine:       "media",
-		capabilities: []string{"image"},
+		capabilities: []string{"video"},
 	})
 	if err == nil {
-		t.Fatal("expected explicit endpoint requirement for unsupported media host")
+		t.Fatal("expected explicit endpoint requirement for unsupported media video host")
 	}
-	assertGRPCCode(t, err, "InstallLocalModel(media unsupported host)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "InstallLocalModel(media unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	assertGRPCCode(t, err, "InstallLocalModel(media video unsupported host)", codes.InvalidArgument)
+	assertGRPCReasonCode(t, err, "InstallLocalModel(media video unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
 func TestStartLocalModelSpeechTTSProbePassesThroughCurrentAttachedEndpointBehavior(t *testing.T) {

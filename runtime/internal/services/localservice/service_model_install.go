@@ -25,8 +25,13 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	s.mu.RUnlock()
 	if catalogItem != nil {
 		engine := defaultLocalEngine(catalogItem.GetEngine(), catalogItem.GetCapabilities())
+		kind := inferAssetKindFromCapabilities(catalogItem.GetCapabilities())
 		binding := resolveCatalogRuntimeBinding(
 			engine,
+			catalogItem.GetCapabilities(),
+			kind,
+			catalogItem.GetEngineConfig(),
+			"",
 			req.GetEndpoint(),
 			catalogItem.GetEngineRuntimeMode(),
 			catalogItem.GetEndpoint(),
@@ -51,7 +56,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			Files:             append([]string(nil), catalogItem.GetFiles()...),
 			License:           defaultString(catalogItem.GetLicense(), "unknown"),
 			Hashes:            cloneStringMap(catalogItem.GetHashes()),
-			Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
+			Warnings:          startupCompatibilityWarningsForAsset(engine, catalogItem.GetCapabilities(), kind, catalogItem.GetEngineConfig(), "", deviceProfile),
 			ReasonCode:        "ACTION_EXECUTED",
 			EngineConfig:      cloneStruct(catalogItem.GetEngineConfig()),
 		}
@@ -75,7 +80,15 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 
 	capabilities := normalizeStringSlice(req.GetCapabilities())
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
-	binding := resolveInstallRuntimeBinding(engine, strings.TrimSpace(req.GetEndpoint()), deviceProfile)
+	binding := resolveInstallRuntimeBinding(
+		engine,
+		capabilities,
+		inferAssetKindFromCapabilities(capabilities),
+		req.GetEngineConfig(),
+		"",
+		strings.TrimSpace(req.GetEndpoint()),
+		deviceProfile,
+	)
 	plan := &runtimev1.LocalInstallPlanDescriptor{
 		PlanId:            "plan_" + ulid.Make().String(),
 		ItemId:            req.GetItemId(),
@@ -94,7 +107,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		Files:             normalizeStringSlice(req.GetFiles()),
 		License:           defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
 		Hashes:            cloneStringMap(req.GetHashes()),
-		Warnings:          startupCompatibilityWarnings(engine, deviceProfile),
+		Warnings:          startupCompatibilityWarningsForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), req.GetEngineConfig(), "", deviceProfile),
 		ReasonCode:        "ACTION_EXECUTED",
 		EngineConfig:      cloneStruct(req.GetEngineConfig()),
 	}
@@ -126,19 +139,32 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 		return
 	}
 	engine := strings.ToLower(strings.TrimSpace(plan.GetEngine()))
+	kind := inferAssetKindFromCapabilities(plan.GetCapabilities())
 	mode := normalizeRuntimeMode(plan.GetEngineRuntimeMode())
 	plan.EngineRuntimeMode = mode
 	deviceProfile := collectDeviceProfile()
-	if supportWarnings := managedEngineSupportWarnings(engine, deviceProfile); len(supportWarnings) > 0 {
+	if supportWarnings := managedEngineSupportWarningsForAsset(engine, plan.GetCapabilities(), kind, plan.GetEngineConfig(), "", deviceProfile); len(supportWarnings) > 0 {
 		plan.Warnings = append(plan.GetWarnings(), supportWarnings...)
 	}
 
 	switch mode {
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT:
+		if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, plan.GetCapabilities(), kind, plan.GetEngineConfig(), ""); detail != "" {
+			plan.InstallAvailable = false
+			plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
+			plan.Warnings = append(plan.GetWarnings(), detail)
+			return
+		}
 		endpoint := strings.TrimSpace(plan.GetEndpoint())
 		if endpoint == "" {
 			plan.InstallAvailable = false
 			plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+			return
+		}
+		if detail := attachedLoopbackConfigErrorDetail(engine, mode, endpoint, deviceProfile); detail != "" {
+			plan.InstallAvailable = false
+			plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED.String()
+			plan.Warnings = append(plan.GetWarnings(), detail)
 			return
 		}
 		if _, err := buildEndpointProbeURL(engine, endpoint); err != nil {
@@ -149,8 +175,16 @@ func (s *Service) evaluateInstallPlanAvailability(plan *runtimev1.LocalInstallPl
 		plan.InstallAvailable = true
 		plan.ReasonCode = "ACTION_EXECUTED"
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
-		classification, detail := classifyManagedEngineSupport(engine, deviceProfile)
+		classification, detail := classifyManagedEngineSupportForAsset(engine, plan.GetCapabilities(), kind, plan.GetEngineConfig(), "", deviceProfile)
 		if classification != localEngineSupportSupportedSupervised {
+			if isCanonicalSupervisedImageAsset(engine, plan.GetCapabilities(), kind, plan.GetEngineConfig(), "") {
+				plan.InstallAvailable = false
+				plan.ReasonCode = runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()
+				if strings.TrimSpace(detail) != "" {
+					plan.Warnings = append(plan.GetWarnings(), detail)
+				}
+				return
+			}
 			if autoRecommended {
 				plan.EngineRuntimeMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 				plan.Endpoint = ""
@@ -204,9 +238,13 @@ func (s *Service) installLocalAssetRecord(
 	projectionOverride *modelregistry.NativeProjection,
 	auditEventType string,
 	auditDetail string,
+	allowExistingRebind bool,
 ) (*runtimev1.LocalAssetRecord, error) {
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		kind = inferAssetKindFromCapabilities(capabilities)
+	}
+	if isRunnableKind(kind) && len(capabilities) == 0 {
+		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	assetKey := localAssetIdentityKey(modelID, kind, engine)
 
@@ -267,7 +305,19 @@ func (s *Service) installLocalAssetRecord(
 		BundleState:          projection.BundleState,
 		WarmState:            projection.WarmState,
 		HostRequirements:     cloneHostRequirements(projection.HostRequirements),
-		Endpoint:             s.storedEndpointForRuntimeMode(engine, mode, endpoint),
+		Endpoint: storedEndpointForAssetRuntimeMode(
+			engine,
+			capabilities,
+			kind,
+			engineConfig,
+			projection.PreferredEngine,
+			mode,
+			endpoint,
+			s.managedEndpointForAssetLocked(engine, capabilities, kind, engineConfig, projection.PreferredEngine),
+		),
+	}
+	if isRunnableKind(kind) && len(record.GetCapabilities()) == 0 {
+		record.Capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	if isRunnableKind(kind) && len(record.GetCapabilities()) == 0 {
 		record.Capabilities = []string{"chat"}
@@ -279,8 +329,63 @@ func (s *Service) installLocalAssetRecord(
 			continue
 		}
 		if localAssetIdentityKey(existing.GetAssetId(), existing.GetKind(), existing.GetEngine()) == assetKey {
+			if !allowExistingRebind {
+				s.mu.Unlock()
+				return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED)
+			}
+			cloned := cloneLocalAsset(existing)
+			cloned.AssetId = modelID
+			cloned.Kind = kind
+			cloned.Capabilities = append([]string(nil), capabilities...)
+			cloned.Engine = engine
+			cloned.Entry = entry
+			cloned.License = license
+			cloned.Source = &runtimev1.LocalAssetSource{
+				Repo:     repo,
+				Revision: revision,
+			}
+			cloned.Hashes = cloneStringMap(hashes)
+			cloned.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED
+			cloned.UpdatedAt = now
+			cloned.HealthDetail = ""
+			cloned.LocalInvokeProfileId = strings.TrimSpace(localInvokeProfileID)
+			cloned.EngineConfig = cloneStruct(engineConfig)
+			cloned.LogicalModelId = projection.LogicalModelID
+			cloned.Family = projection.Family
+			cloned.ArtifactRoles = append([]string(nil), projection.ArtifactRoles...)
+			cloned.PreferredEngine = projection.PreferredEngine
+			cloned.FallbackEngines = append([]string(nil), projection.FallbackEngines...)
+			cloned.BundleState = projection.BundleState
+			cloned.WarmState = projection.WarmState
+			cloned.HostRequirements = cloneHostRequirements(projection.HostRequirements)
+			cloned.Endpoint = storedEndpointForAssetRuntimeMode(
+				engine,
+				capabilities,
+				kind,
+				engineConfig,
+				projection.PreferredEngine,
+				mode,
+				endpoint,
+				s.managedEndpointForAssetLocked(engine, capabilities, kind, engineConfig, projection.PreferredEngine),
+			)
+			s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
+			s.setModelRuntimeModeLocked(cloned.GetLocalAssetId(), mode)
+			delete(s.assetProbeState, cloned.GetLocalAssetId())
+			s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
+				Id:           "audit_" + ulid.Make().String(),
+				EventType:    auditEventType,
+				OccurredAt:   now,
+				Source:       "local",
+				Modality:     firstCapability(cloned.GetCapabilities()),
+				ModelId:      cloned.GetAssetId(),
+				LocalModelId: cloned.GetLocalAssetId(),
+				Detail:       auditDetail,
+			})
 			s.mu.Unlock()
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED)
+			if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
+				s.logger.Warn("sync llama assets after model mutation failed", "model_id", cloned.GetAssetId(), "error", syncErr)
+			}
+			return cloned, nil
 		}
 	}
 	s.assets[record.GetLocalAssetId()] = cloneLocalAsset(record)
@@ -327,7 +432,29 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 	capabilities := normalizeStringSlice(params.capabilities)
 	engine := defaultLocalEngine(strings.TrimSpace(params.engine), capabilities)
 	endpoint := strings.TrimSpace(params.endpoint)
-	binding := resolveInstallRuntimeBinding(engine, endpoint, collectDeviceProfile())
+	binding := resolveInstallRuntimeBinding(
+		engine,
+		capabilities,
+		inferAssetKindFromCapabilities(capabilities),
+		params.engineConfig,
+		"",
+		endpoint,
+		collectDeviceProfile(),
+	)
+	deviceProfile := collectDeviceProfile()
+	if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, capabilities, inferAssetKindFromCapabilities(capabilities), params.engineConfig, ""); detail != "" &&
+		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
+	if !canonicalSupervisedImageHostSupportedForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), params.engineConfig, "", deviceProfile) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    canonicalSupervisedImageSupportDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), params.engineConfig, "", deviceProfile),
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		files := normalizeStringSlice(params.files)
 		entry := defaultString(strings.TrimSpace(params.entry), "")
@@ -355,7 +482,19 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 		return record, nil
 	}
 	if strings.TrimSpace(binding.endpoint) == "" {
+		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), params.engineConfig, "", collectDeviceProfile()); detail != "" {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+				Message:    detail,
+				ActionHint: "set_local_provider_endpoint",
+			})
+		}
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if detail := attachedLoopbackConfigErrorDetail(engine, binding.mode, binding.endpoint, collectDeviceProfile()); detail != "" {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "set_local_provider_endpoint",
+		})
 	}
 	record, err := s.installLocalAssetRecord(
 		modelID,
@@ -374,6 +513,7 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 		nil,
 		"runtime_model_ready_after_install",
 		"model installed",
+		false,
 	)
 	if err != nil {
 		return nil, err
@@ -403,11 +543,41 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 
 	binding := resolveInstallRuntimeBinding(
 		matched.GetEngine(),
+		matched.GetCapabilities(),
+		matched.GetKind(),
+		matched.GetEngineConfig(),
+		matched.GetPreferredEngine(),
 		defaultString(strings.TrimSpace(req.GetEndpoint()), matched.GetEndpoint()),
 		collectDeviceProfile(),
 	)
+	deviceProfile := collectDeviceProfile()
+	if detail := canonicalSupervisedImageAttachedEndpointDetail(matched.GetEngine(), matched.GetCapabilities(), matched.GetKind(), matched.GetEngineConfig(), matched.GetPreferredEngine()); detail != "" &&
+		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
+	if !canonicalSupervisedImageHostSupportedForAsset(matched.GetEngine(), matched.GetCapabilities(), matched.GetKind(), matched.GetEngineConfig(), matched.GetPreferredEngine(), deviceProfile) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    canonicalSupervisedImageSupportDetailForAsset(matched.GetEngine(), matched.GetCapabilities(), matched.GetKind(), matched.GetEngineConfig(), matched.GetPreferredEngine(), deviceProfile),
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
 	if isRunnableKind(matched.GetKind()) && normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
+		if detail := attachedEndpointRequiredDetailForAsset(matched.GetEngine(), matched.GetCapabilities(), matched.GetKind(), matched.GetEngineConfig(), matched.GetPreferredEngine(), collectDeviceProfile()); detail != "" {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+				Message:    detail,
+				ActionHint: "set_local_provider_endpoint",
+			})
+		}
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if detail := attachedLoopbackConfigErrorDetail(matched.GetEngine(), binding.mode, binding.endpoint, collectDeviceProfile()); detail != "" {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "set_local_provider_endpoint",
+		})
 	}
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		files := normalizeStringSlice(matched.GetFiles())
@@ -464,6 +634,7 @@ func (s *Service) InstallVerifiedAsset(ctx context.Context, req *runtimev1.Insta
 		},
 		"runtime_model_ready_after_install",
 		"model installed",
+		false,
 	)
 	if err != nil {
 		return nil, err
@@ -499,27 +670,71 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if !ok || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), nil)
-	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
-	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
-	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if endpoint == "" {
-		endpoint = manifestStringDefault(manifest, "endpoint")
+	engineConfig, engineConfigErr := manifestStruct(manifest, "engine_config", "engineConfig")
+	if engineConfigErr != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	binding := resolveInstallRuntimeBinding(engine, endpoint, collectDeviceProfile())
-	if isRunnableKind(kind) && normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	if req.GetEngineConfig() != nil {
+		engineConfig = cloneStruct(req.GetEngineConfig())
 	}
-
 	capabilities, capsErr := manifestStringSlice(manifest, "capabilities")
 	if capsErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	if isRunnableKind(kind) && len(capabilities) == 0 {
+		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	if isRunnableKind(kind) && len(capabilities) == 0 {
 		capabilities = []string{"chat"}
 	}
 	if !isRunnableKind(kind) && len(capabilities) > 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
+	}
+	preferredEngine := manifestStringDefault(manifest, "preferred_engine", "preferredEngine")
+	engine := defaultLocalEngine(manifestStringDefault(manifest, "engine"), capabilities)
+	entry := defaultString(manifestStringDefault(manifest, "entry"), "./dist/index.js")
+	license := defaultString(manifestStringDefault(manifest, "license"), "unknown")
+	endpoint := strings.TrimSpace(req.GetEndpoint())
+	if endpoint == "" {
+		endpoint = manifestStringDefault(manifest, "endpoint")
+	}
+	binding := resolveInstallRuntimeBinding(
+		engine,
+		capabilities,
+		kind,
+		engineConfig,
+		preferredEngine,
+		endpoint,
+		collectDeviceProfile(),
+	)
+	deviceProfile := collectDeviceProfile()
+	if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, capabilities, kind, engineConfig, preferredEngine); detail != "" &&
+		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
+	if !canonicalSupervisedImageHostSupportedForAsset(engine, capabilities, kind, engineConfig, preferredEngine, deviceProfile) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    canonicalSupervisedImageSupportDetailForAsset(engine, capabilities, kind, engineConfig, preferredEngine, deviceProfile),
+			ActionHint: "use_supported_supervised_image_host",
+		})
+	}
+	if isRunnableKind(kind) && normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
+		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, kind, engineConfig, preferredEngine, collectDeviceProfile()); detail != "" {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+				Message:    detail,
+				ActionHint: "set_local_provider_endpoint",
+			})
+		}
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if detail := attachedLoopbackConfigErrorDetail(engine, binding.mode, binding.endpoint, collectDeviceProfile()); detail != "" {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "set_local_provider_endpoint",
+		})
 	}
 	artifactRoles, artifactRolesErr := manifestStringSliceKeys(manifest, "artifact_roles", "artifactRoles")
 	if artifactRolesErr != nil {
@@ -532,13 +747,6 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	hashes, hashesErr := manifestStringMap(manifest, "hashes")
 	if hashesErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
-	}
-	engineConfig, engineConfigErr := manifestStruct(manifest, "engine_config", "engineConfig")
-	if engineConfigErr != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
-	}
-	if req.GetEngineConfig() != nil {
-		engineConfig = cloneStruct(req.GetEngineConfig())
 	}
 	repo := manifestStringDefault(manifest, "repo")
 	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
@@ -579,11 +787,12 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			LogicalModelID:  manifestStringDefault(manifest, "logical_model_id", "logicalModelId"),
 			Family:          manifestStringDefault(manifest, "family"),
 			ArtifactRoles:   artifactRoles,
-			PreferredEngine: manifestStringDefault(manifest, "preferred_engine", "preferredEngine"),
+			PreferredEngine: preferredEngine,
 			FallbackEngines: normalizePublicFallbackEngines(fallbackEngines),
 		},
 		"runtime_model_imported",
 		manifestPath,
+		true,
 	)
 	if err != nil {
 		return nil, err

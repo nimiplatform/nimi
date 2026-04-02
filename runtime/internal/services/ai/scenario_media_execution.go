@@ -82,20 +82,23 @@ func executeBackendSyncMedia(
 			err     error
 			diag    *nimillm.ManagedMediaImageDiagnostics
 		)
-		if adapterName == adapterLlamaNative {
-			if s != nil && s.localImageProfile != nil {
-				alias, profile, forwardedExtensions, resolveErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
-				if resolveErr != nil {
-					return nil, nil, "", resolveErr
-				}
-				if alias != "" && len(profile) > 0 {
-					if err := backend.ImportManagedMediaModelConfig(ctx, profile); err != nil {
-						return nil, nil, "", err
-					}
-					backendModelID = alias
-					scenarioExtensions = forwardedExtensions
-				}
+		managedMediaResolved := false
+		if s != nil && s.localImageProfile != nil {
+			alias, profile, forwardedExtensions, resolveErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
+			if resolveErr != nil {
+				return nil, nil, "", resolveErr
 			}
+			if alias != "" && len(profile) > 0 {
+				if err := backend.ImportManagedMediaModelConfig(ctx, profile); err != nil {
+					return nil, nil, "", err
+				}
+				backendModelID = alias
+				scenarioExtensions = forwardedExtensions
+				managedMediaResolved = true
+				adapterName = adapterLlamaNative
+			}
+		}
+		if managedMediaResolved {
 			payload, usage, diag, err = backend.GenerateImageManagedMedia(ctx, backendModelID, spec, scenarioExtensions)
 		} else {
 			payload, usage, err = backend.GenerateImage(ctx, backendModelID, spec, scenarioExtensions)

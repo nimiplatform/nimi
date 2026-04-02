@@ -47,8 +47,11 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 
 `media` 补充：
 
+- `tables/local-image-supervised-backend-matrix.yaml` 是 canonical local image supervised backend 选型与平台支持面的事实源。
 - runtime 到 `media` engine 的私有协议必须直接承接 runtime canonical image/video spec，不得回落到 OpenAI-compatible `/v1/images/generations`、`/v1/video/generations` 或 legacy catalog-only 健康路径。
 - `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
+- 对 `tables/local-image-supervised-backend-matrix.yaml` 选中的 daemon-managed `stablediffusion-ggml` image 路径，dynamic profile import 如需额外 materialization 步骤，只允许作为 runtime 私有内部实现存在；app-facing consume 仍必须固定落到 `POST /v1/media/image/generate`。
+- 对 canonical local image product path，runtime 不得将 host 不支持误投影成 `ATTACHED_ENDPOINT + AI_LOCAL_ENDPOINT_REQUIRED`；必须保持 `SUPERVISED` 契约并以 `AI_LOCAL_MODEL_UNAVAILABLE + compatibility detail` fail-close。
 - `media` 只允许暴露真实 ready 的 image/video 模型目录；依赖未安装、设备不可用、模型未解析、管线未初始化时必须 fail-close，不得伪造成功 artifact 或静态 model list。
 - `media.diffusers` 只允许作为 `media` 的内部 fallback driver 出现在 runtime metadata / execution strategy；不得作为 public config、public adapter 选择面或手工 engine target。
 

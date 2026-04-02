@@ -12,6 +12,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func writeManagedGGUFBundleForTest(t *testing.T, modelsRoot string, logicalModelID string, modelID string, entry string) string {
@@ -45,7 +46,6 @@ func writeManagedGGUFBundleForTest(t *testing.T, modelsRoot string, logicalModel
 func fakeGGUFHeaderOnlyForTest() []byte {
 	buf := make([]byte, minManagedGGUFSizeBytes)
 	copy(buf, []byte("GGUF\x03\x00\x00\x00"))
-	buf[len(buf)-1] = 0x01
 	return buf
 }
 
@@ -509,6 +509,71 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 	}
 	if mode := svc.modelRuntimeMode(localModelID); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode = %s", mode.String())
+	}
+}
+
+func TestManagedMediaImageHealingNormalizesSupervisedEndpoint(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
+	modelID := "local-import/z_image_turbo-Q4_K"
+	logicalModelID := "nimi/local-import-z-image-turbo-q4-k"
+	entry := "z_image_turbo-Q4_K.gguf"
+	manifestPath := filepath.Join(modelsRoot, "resolved", filepath.FromSlash(logicalModelID), "asset.manifest.json")
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("mkdir manifest dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(manifestPath), entry), validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write image bundle entry: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, []byte(`{"asset_id":"`+modelID+`","kind":"image","engine":"media","entry":"`+entry+`","capabilities":["image"],"engine_config":{"backend":"stablediffusion-ggml"}}`), 0o644); err != nil {
+		t.Fatalf("write image manifest: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+
+	localModelID := "01TESTIMAGEHEALING"
+	svc.mu.Lock()
+	svc.assets[localModelID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:    localModelID,
+		AssetId:         modelID,
+		Kind:            runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Capabilities:    []string{"image"},
+		Engine:          "media",
+		Entry:           entry,
+		License:         "unknown",
+		Source:          &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(manifestPath), Revision: "local"},
+		Status:          runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		InstalledAt:     nowISO(),
+		UpdatedAt:       nowISO(),
+		HealthDetail:    "managed local model registration missing: managed diffusers backend unavailable",
+		Endpoint:        defaultLocalEndpoint,
+		LogicalModelId:  logicalModelID,
+		PreferredEngine: "llama",
+		EngineConfig:    engineConfig,
+	}
+	svc.setModelRuntimeModeLocked(localModelID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+
+	healed, changed, err := svc.healManagedSupervisedLlamaRuntimeMode(localModelID)
+	if err != nil {
+		t.Fatalf("heal managed image endpoint: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected managed image endpoint heal to change the record")
+	}
+	if got := healed.GetEndpoint(); got != defaultMediaEndpoint {
+		t.Fatalf("endpoint = %q, want %q", got, defaultMediaEndpoint)
+	}
+	if got := svc.modelByID(localModelID).GetEndpoint(); got != defaultMediaEndpoint {
+		t.Fatalf("stored endpoint = %q, want %q", got, defaultMediaEndpoint)
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"gopkg.in/yaml.v3"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -96,6 +97,12 @@ func (s *Service) SetManagedLlamaEndpoint(endpoint string) {
 		return
 	}
 
+}
+
+// ManagedLlamaEndpoint returns the currently exposed managed llama loopback
+// endpoint, if any.
+func (s *Service) ManagedLlamaEndpoint() string {
+	return s.managedLlamaEndpoint()
 }
 
 // SetManagedMediaEndpoint records the managed media endpoint exposed
@@ -240,6 +247,7 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 	managed := s.managedLlamaEnabled
 	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
 	s.mu.RUnlock()
+	deviceProfile := collectDeviceProfile()
 
 	sort.Slice(models, func(i, j int) bool {
 		return models[i].GetLocalAssetId() < models[j].GetLocalAssetId()
@@ -254,17 +262,26 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
+		if !strings.EqualFold(
+			managedRuntimeEngineForAsset(
+				model.GetEngine(),
+				model.GetCapabilities(),
+				model.GetKind(),
+				model.GetEngineConfig(),
+				model.GetPreferredEngine(),
+			),
+			"llama",
+		) {
 			continue
 		}
 		if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(model.GetLocalAssetId())); err != nil {
-			registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp)
+			registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp, deviceProfile)
 			registration.Problem = managedLocalAssetRecordFailureDetail(err)
 			registrations[model.GetLocalAssetId()] = registration
 			continue
 		}
 
-		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp)
+		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp, deviceProfile)
 		registrations[model.GetLocalAssetId()] = registration
 		if registration.Managed && strings.TrimSpace(registration.Problem) == "" {
 			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalAssetId())
@@ -326,6 +343,7 @@ func inspectManagedLlamaModelRegistration(
 	modelsPath string,
 	managed bool,
 	imageBackendUp bool,
+	deviceProfile *runtimev1.LocalDeviceProfile,
 ) managedLlamaRegistration {
 	registration := managedLlamaRegistration{
 		LocalModelID:     strings.TrimSpace(model.GetLocalAssetId()),
@@ -346,6 +364,20 @@ func inspectManagedLlamaModelRegistration(
 
 	if strings.EqualFold(backend, "stablediffusion-ggml") {
 		registration.DynamicProfile = true
+		if deviceProfile != nil && !engine.LlamaImageSupervisedPlatformSupportedFor(
+			deviceProfile.GetOs(),
+			deviceProfile.GetArch(),
+			deviceProfile.GetGpu().GetVendor(),
+			deviceProfile.GetGpu().GetModel(),
+		) {
+			registration.Problem = engine.LlamaImageSupervisedPlatformSupportDetailFor(
+				deviceProfile.GetOs(),
+				deviceProfile.GetArch(),
+				deviceProfile.GetGpu().GetVendor(),
+				deviceProfile.GetGpu().GetModel(),
+			)
+			return registration
+		}
 		if registration.Managed && !imageBackendUp {
 			registration.Problem = "managed diffusers backend unavailable"
 			return registration
@@ -515,13 +547,17 @@ func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalAssetRe
 	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
 	mode := s.assetRuntimeModes[localModelID]
 	s.mu.RUnlock()
+	deviceProfile := collectDeviceProfile()
 	if ok && !registration.DynamicProfile {
 		return registration
 	}
-	return inspectManagedLlamaModelRegistration(model, mode, modelsPath, managed, imageBackendUp)
+	return inspectManagedLlamaModelRegistration(model, mode, modelsPath, managed, imageBackendUp, deviceProfile)
 }
 
 func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) bool {
+	if isManagedSupervisedLlamaModel(model, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED) {
+		return managedLlamaModelProbeSucceeded(probe, registration)
+	}
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeSucceeded(probe, registration)
@@ -532,6 +568,9 @@ func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeR
 }
 
 func modelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) string {
+	if isManagedSupervisedLlamaModel(model, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED) {
+		return managedLlamaModelProbeFailureDetail(probe, registration)
+	}
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeFailureDetail(probe, registration)

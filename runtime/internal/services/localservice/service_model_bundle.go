@@ -108,8 +108,32 @@ func validateManagedModelEntryFile(path string) error {
 		if string(header) != ggufMagicHeader {
 			return fmt.Errorf("gguf header invalid")
 		}
+		if placeholder, err := ggufLooksHeaderOnlyPlaceholder(file); err != nil {
+			return fmt.Errorf("inspect gguf payload: %w", err)
+		} else if placeholder {
+			return fmt.Errorf("gguf payload placeholder or truncated")
+		}
 	}
 	return nil
+}
+
+func ggufLooksHeaderOnlyPlaceholder(file *os.File) (bool, error) {
+	const sampleSize = 256
+	sample := make([]byte, sampleSize)
+	n, err := file.ReadAt(sample, 0)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+	if n <= len(ggufMagicHeader) {
+		return true, nil
+	}
+	sample = sample[:n]
+	for _, value := range sample[len(ggufMagicHeader):] {
+		if value != 0 {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func normalizeExpectedSHA256Hash(value string) string {
@@ -246,7 +270,38 @@ func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runti
 	if model == nil {
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
+	if !strings.EqualFold(
+		managedRuntimeEngineForAsset(
+			model.GetEngine(),
+			model.GetCapabilities(),
+			model.GetKind(),
+			model.GetEngineConfig(),
+			model.GetPreferredEngine(),
+		),
+		"llama",
+	) {
+		return false
+	}
+	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
+		return false
+	}
+	if shouldHealManagedSupervisedLlamaRuntimeMode(model, mode) {
+		return true
+	}
+	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+}
+
+func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
+	if model == nil {
+		return false
+	}
+	if !isManagedLlamaBackedImageAsset(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+	) {
 		return false
 	}
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
@@ -262,14 +317,33 @@ func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetReco
 	if model == nil {
 		return false
 	}
-	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		return false
-	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
+	if !strings.EqualFold(
+		managedRuntimeEngineForAsset(
+			model.GetEngine(),
+			model.GetCapabilities(),
+			model.GetKind(),
+			model.GetEngineConfig(),
+			model.GetPreferredEngine(),
+		),
+		"llama",
+	) {
 		return false
 	}
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return false
+	}
+	expectedEndpoint := storedEndpointForAssetRuntimeMode(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		"",
+		"",
+	)
+	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		return strings.TrimSpace(expectedEndpoint) != "" && strings.TrimSpace(model.GetEndpoint()) != strings.TrimSpace(expectedEndpoint)
 	}
 	repo := strings.ToLower(strings.TrimSpace(model.GetSource().GetRepo()))
 	if strings.HasPrefix(repo, "file://") && strings.HasSuffix(repo, "/asset.manifest.json") {
@@ -304,16 +378,26 @@ func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*r
 		return cloneLocalAsset(record), false, nil
 	}
 	s.setModelRuntimeModeLocked(id, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	record.Endpoint = storedEndpointForAssetRuntimeMode(
+		record.GetEngine(),
+		record.GetCapabilities(),
+		record.GetKind(),
+		record.GetEngineConfig(),
+		record.GetPreferredEngine(),
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		"",
+		s.managedEndpointForAssetLocked(record.GetEngine(), record.GetCapabilities(), record.GetKind(), record.GetEngineConfig(), record.GetPreferredEngine()),
+	)
 	cloned := cloneLocalAsset(record)
 	s.assets[id] = cloned
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:           "audit_" + ulid.Make().String(),
-		EventType:    "runtime_model_runtime_mode_healed",
+		EventType:    "runtime_model_runtime_binding_healed",
 		OccurredAt:   nowISO(),
 		Source:       "local",
 		ModelId:      cloned.GetAssetId(),
 		LocalModelId: cloned.GetLocalAssetId(),
-		Detail:       "managed llama runtime mode healed to supervised",
+		Detail:       "managed llama-backed runtime binding healed to supervised managed endpoint",
 	})
 	s.persistStateLocked()
 	return cloneLocalAsset(cloned), true, nil
@@ -355,6 +439,20 @@ func (s *Service) HasManagedSupervisedLlamaModels() bool {
 	return false
 }
 
+func (s *Service) HasManagedSupervisedImageModels() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for localModelID, model := range s.assets {
+		if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+			continue
+		}
+		if isManagedSupervisedImageModel(model, s.assetRuntimeModes[localModelID]) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model *runtimev1.LocalAssetRecord) (string, bool, error) {
 	if model == nil {
 		return "", false, fmt.Errorf("managed local model is unavailable")
@@ -370,9 +468,6 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return "", false, err
-	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
-		return "", false, nil
 	}
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return "", false, nil

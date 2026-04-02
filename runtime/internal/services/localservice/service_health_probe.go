@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -404,10 +405,30 @@ func (s *Service) probeEndpoint(ctx context.Context, engine string, endpoint str
 }
 
 func startupCompatibilityWarnings(engine string, profile *runtimev1.LocalDeviceProfile) []string {
+	return startupCompatibilityWarningsForAsset(
+		engine,
+		nil,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
+		nil,
+		"",
+		profile,
+	)
+}
+
+func startupCompatibilityWarningsForAsset(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	engineConfig *structpb.Struct,
+	preferredEngine string,
+	profile *runtimev1.LocalDeviceProfile,
+) []string {
 	if profile == nil {
 		return []string{}
 	}
-	normalizedEngine := strings.ToLower(strings.TrimSpace(engine))
+	normalizedEngine := strings.ToLower(strings.TrimSpace(
+		managedRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+	))
 	warnings := make([]string, 0, 3)
 	if requiresGPU(normalizedEngine) && !profile.GetGpu().GetAvailable() {
 		warnings = append(warnings, "WARN_GPU_REQUIRED")
@@ -418,7 +439,7 @@ func startupCompatibilityWarnings(engine string, profile *runtimev1.LocalDeviceP
 	if requiresNPU(normalizedEngine) && (!profile.GetNpu().GetAvailable() || !profile.GetNpu().GetReady()) {
 		warnings = append(warnings, "WARN_NPU_REQUIRED")
 	}
-	for _, warning := range managedEngineSupportWarnings(normalizedEngine, profile) {
+	for _, warning := range managedEngineSupportWarningsForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile) {
 		warnings = append(warnings, warning)
 	}
 	return warnings
@@ -453,11 +474,46 @@ func (s *Service) managedSpeechEndpoint() string {
 	return strings.TrimSpace(s.managedSpeechEndpointValue)
 }
 
+func managedRuntimeEngineForModel(model *runtimev1.LocalAssetRecord) string {
+	if model == nil {
+		return ""
+	}
+	return managedRuntimeEngineForAsset(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+	)
+}
+
+func executionRuntimeEngineForModel(model *runtimev1.LocalAssetRecord) string {
+	if model == nil {
+		return ""
+	}
+	return executionRuntimeEngineForAsset(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+	)
+}
+
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
 		return ""
 	}
-	return s.effectiveEndpointForRuntimeMode(model.GetEngine(), s.modelRuntimeMode(model.GetLocalAssetId()), model.GetEndpoint())
+	return effectiveEndpointForAssetRuntimeMode(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+		s.modelRuntimeMode(model.GetLocalAssetId()),
+		model.GetEndpoint(),
+		s.managedEndpointForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), model.GetEngineConfig(), model.GetPreferredEngine()),
+	)
 }
 
 func (s *Service) serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor) string {
@@ -607,6 +663,72 @@ func (s *Service) bootstrapEngineIfManaged(ctx context.Context, engine string, m
 		return err
 	}
 	return nil
+}
+
+func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) error {
+	mgr := s.engineManagerOrNil()
+	if mgr == nil || model == nil {
+		return nil
+	}
+	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		return nil
+	}
+	engine := executionRuntimeEngineForModel(model)
+	endpoint := s.effectiveLocalModelEndpoint(model)
+	port, err := parseManagedEndpointPort(engine, endpoint)
+	if err != nil {
+		return err
+	}
+	profile := collectDeviceProfile()
+	if classification, detail := classifyManagedEngineSupportForAsset(
+		model.GetEngine(),
+		model.GetCapabilities(),
+		model.GetKind(),
+		model.GetEngineConfig(),
+		model.GetPreferredEngine(),
+		profile,
+	); classification != localEngineSupportSupportedSupervised {
+		if strings.TrimSpace(detail) != "" {
+			return fmt.Errorf("%s", detail)
+		}
+		return fmt.Errorf("%s managed mode is unavailable on this host", strings.TrimSpace(engine))
+	}
+	if err := mgr.StartEngine(ctx, strings.ToLower(strings.TrimSpace(engine)), port, ""); err != nil {
+		lower := strings.ToLower(strings.TrimSpace(err.Error()))
+		if strings.Contains(lower, "already running") {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (s *Service) bootstrapLocalModelIfManaged(ctx context.Context, model *runtimev1.LocalAssetRecord) error {
+	if model == nil {
+		return nil
+	}
+	mode := s.modelRuntimeMode(model.GetLocalAssetId())
+	supervisorEngine := managedRuntimeEngineForModel(model)
+	executionEngine := executionRuntimeEngineForModel(model)
+	if err := s.bootstrapEngineIfManaged(
+		ctx,
+		supervisorEngine,
+		mode,
+		s.managedEndpointForEngine(supervisorEngine),
+	); err != nil {
+		return err
+	}
+	if executionEngine == supervisorEngine {
+		return nil
+	}
+	return s.bootstrapAssetExecutionEngineIfManaged(ctx, model, mode)
+}
+
+func (s *Service) probeLocalModelEndpoint(ctx context.Context, model *runtimev1.LocalAssetRecord, endpoint string) endpointProbeResult {
+	if model == nil {
+		return endpointProbeResult{}
+	}
+	return s.probeEndpoint(ctx, executionRuntimeEngineForModel(model), endpoint)
 }
 
 func (s *Service) engineManagerOrNil() EngineManager {

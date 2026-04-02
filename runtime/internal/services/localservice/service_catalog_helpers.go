@@ -136,7 +136,14 @@ func buildNodeProviderHints(
 		"%d",
 		localProviderPreferenceRank(localRuntimeGOOSFromProfile(deviceProfile.GetOs()), normalizedCapability, normalizedProvider),
 	)
-	if supportClass, supportDetail := classifyManagedEngineSupport(service.GetEngine(), deviceProfile); supportClass != "" {
+	if supportClass, supportDetail := classifyManagedEngineSupportForAsset(
+		service.GetEngine(),
+		[]string{capability},
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
+		nil,
+		"",
+		deviceProfile,
+	); supportClass != "" {
 		hints.Extra["runtime_support_class"] = supportClass
 		if strings.TrimSpace(supportDetail) != "" {
 			hints.Extra["runtime_support_detail"] = strings.TrimSpace(supportDetail)
@@ -421,7 +428,14 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified))
 	deviceProfile := collectDeviceProfile()
 	for _, item := range verified {
-		binding := autoRecommendedRuntimeBinding(item.GetEngine(), deviceProfile)
+		binding := autoRecommendedRuntimeBinding(
+			item.GetEngine(),
+			item.GetCapabilities(),
+			item.GetKind(),
+			item.GetEngineConfig(),
+			item.GetPreferredEngine(),
+			deviceProfile,
+		)
 		items = append(items, &runtimev1.LocalCatalogModelDescriptor{
 			ItemId:            "catalog_" + slug(item.GetTemplateId()),
 			Source:            "verified",
@@ -435,7 +449,7 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 			Engine:            item.GetEngine(),
 			EngineRuntimeMode: binding.mode,
 			InstallKind:       item.GetInstallKind(),
-			InstallAvailable:  catalogBindingInstallAvailable(item.GetEngine(), binding, deviceProfile),
+			InstallAvailable:  catalogBindingInstallAvailable(item.GetEngine(), item.GetCapabilities(), item.GetKind(), item.GetEngineConfig(), item.GetPreferredEngine(), binding, deviceProfile),
 			Endpoint:          binding.endpoint,
 			Entry:             item.GetEntry(),
 			Files:             append([]string(nil), item.GetFiles()...),

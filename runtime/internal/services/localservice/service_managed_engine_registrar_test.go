@@ -254,6 +254,7 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 
 func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
+	setManagedImageHostForTest(t, "Apple M5 Max")
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
@@ -282,6 +283,61 @@ func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	}
 }
 
+func TestBuildManagedLlamaRegistrationsIncludesManagedMediaImageAssets(t *testing.T) {
+	svc := newTestService(t)
+	setManagedImageHostForTest(t, "Apple M5 Max")
+	modelsPath := filepath.Join(t.TempDir(), "models")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
+
+	modelID := "local/image-media-model"
+	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	record := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      modelID,
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "./weights/image-model.gguf",
+		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),
+		revision:     "local",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	stored := cloneLocalAsset(svc.assets[record.GetLocalAssetId()])
+	stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
+	stored.PreferredEngine = "llama"
+	svc.assets[record.GetLocalAssetId()] = stored
+	svc.mu.Unlock()
+
+	registrations, rendered, err := svc.buildManagedLlamaRegistrations()
+	if err != nil {
+		t.Fatalf("build managed llama registrations: %v", err)
+	}
+	registration, ok := registrations[record.GetLocalAssetId()]
+	if !ok {
+		t.Fatalf("expected registration for managed media image asset")
+	}
+	if registration.Problem != "" {
+		t.Fatalf("expected no registration problem, got %q", registration.Problem)
+	}
+	if !registration.DynamicProfile {
+		t.Fatalf("expected dynamic profile registration")
+	}
+	if registration.Backend != "stablediffusion-ggml" {
+		t.Fatalf("unexpected backend: %q", registration.Backend)
+	}
+	if len(rendered) != 0 {
+		t.Fatalf("dynamic profile image asset should not be rendered into static llama config")
+	}
+}
+
 func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t *testing.T) {
 	registration := managedLlamaRegistration{
 		Backend:        "stablediffusion-ggml",
@@ -299,6 +355,7 @@ func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t 
 
 func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
 	svc := newTestService(t)
+	setManagedImageHostForTest(t, "Apple M5 Max")
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)

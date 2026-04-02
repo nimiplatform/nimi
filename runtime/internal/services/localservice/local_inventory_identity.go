@@ -53,6 +53,23 @@ func isRunnableKind(k runtimev1.LocalAssetKind) bool {
 	return k >= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT && k <= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
 }
 
+func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		return []string{"image"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
+		return []string{"video.generate"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return []string{"audio.synthesize"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return []string{"audio.transcribe"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
+		return []string{"chat"}
+	default:
+		return nil
+	}
+}
+
 // inferAssetKindFromCapabilities derives the asset kind from the first
 // matching capability token. Returns CHAT as the default for runnable assets
 // when no capability maps to a known kind.

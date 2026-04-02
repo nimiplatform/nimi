@@ -41,6 +41,7 @@ func writeManagedAssetEntryFixture(t *testing.T, modelsRoot string, asset *runti
 
 func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 	engineConfig, err := structpb.NewStruct(map[string]any{
@@ -57,7 +58,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -169,6 +170,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 
 func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 	engineConfig, err := structpb.NewStruct(map[string]any{
@@ -177,7 +179,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -255,6 +257,7 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 
 func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -264,7 +267,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -291,6 +294,7 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 
 func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -303,7 +307,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testi
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -328,6 +332,7 @@ func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testi
 
 func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -337,7 +342,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -381,6 +386,7 @@ func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testi
 
 func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -388,7 +394,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -431,6 +437,7 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 
 func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -438,7 +445,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",
@@ -471,6 +478,7 @@ func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *test
 
 func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *testing.T) {
 	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -478,7 +486,7 @@ func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *te
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
 		assetID:      "z_image_turbo",
 		capabilities: []string{"image"},
 		engine:       "media",

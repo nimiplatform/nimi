@@ -39,6 +39,7 @@ GPU 检测按以下优先级执行（首个成功即返回）：
    - `model/total_vram_bytes/available_vram_bytes` 按返回值填充
 2. Apple Silicon / unified memory 主机：
    - `vendor=apple`
+   - `model` 必须尽量填充 Apple 芯片型号（如 `Apple M4 Max`），当前允许通过 `sysctl machdep.cpu.brand_string` 或等价 OS probe 获取
    - `memory_model=unified`
    - `total_vram_bytes/available_vram_bytes` 允许复用 host RAM 指标
 3. 以上均未命中：

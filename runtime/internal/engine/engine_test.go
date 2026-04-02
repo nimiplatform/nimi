@@ -414,6 +414,31 @@ func TestLlamaSupervisedPlatformSupportedFor(t *testing.T) {
 	}
 }
 
+func TestLlamaImageSupervisedPlatformSupportedFor(t *testing.T) {
+	tests := []struct {
+		name      string
+		goos      string
+		goarch    string
+		gpuVendor string
+		gpuModel  string
+		want      bool
+	}{
+		{name: "darwin m4 unsupported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M4 Max", want: false},
+		{name: "darwin m5 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M5 Max", want: true},
+		{name: "darwin a19 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple A19", want: true},
+		{name: "darwin unknown apple unsupported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple Silicon", want: false},
+		{name: "linux amd64 follows llama support", goos: "linux", goarch: "amd64", gpuVendor: "", gpuModel: "", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LlamaImageSupervisedPlatformSupportedFor(tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel); got != tt.want {
+				t.Fatalf("LlamaImageSupervisedPlatformSupportedFor(%q, %q, %q, %q) = %v, want %v", tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestMediaSupervisedPlatformSupportedFor(t *testing.T) {
 	tests := []struct {
 		goos   string

@@ -170,6 +170,7 @@ func (s *Service) ScaffoldOrphanAsset(ctx context.Context, req *runtimev1.Scaffo
 	}
 	resp, err := s.importLocalModelFile(ctx, &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     req.GetPath(),
+		Kind:         req.GetKind(),
 		Capabilities: append([]string(nil), req.GetCapabilities()...),
 		Engine:       req.GetEngine(),
 		Endpoint:     req.GetEndpoint(),
@@ -192,6 +193,9 @@ func (s *Service) importLocalModelFile(
 		})
 	}
 	capabilities := normalizeStringSlice(req.GetCapabilities())
+	if len(capabilities) == 0 {
+		capabilities = defaultCapabilitiesForAssetKind(req.GetKind())
+	}
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}
 	}
@@ -216,9 +220,41 @@ func (s *Service) importLocalModelFile(
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	binding := resolveInstallRuntimeBinding(engine, strings.TrimSpace(req.GetEndpoint()), collectDeviceProfile())
+	binding := resolveInstallRuntimeBinding(
+		engine,
+		capabilities,
+		inferAssetKindFromCapabilities(capabilities),
+		nil,
+		"",
+		strings.TrimSpace(req.GetEndpoint()),
+		collectDeviceProfile(),
+	)
+	deviceProfile := collectDeviceProfile()
+	if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, capabilities, inferAssetKindFromCapabilities(capabilities), nil, ""); detail != "" &&
+		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		err := grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "use_supported_supervised_image_host",
+		})
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, err
+	}
+	if !canonicalSupervisedImageHostSupportedForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), nil, "", deviceProfile) {
+		err := grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    canonicalSupervisedImageSupportDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), nil, "", deviceProfile),
+			ActionHint: "use_supported_supervised_image_host",
+		})
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, err
+	}
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
 		err := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), nil, "", collectDeviceProfile()); detail != "" {
+			err = grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, grpcerr.ReasonOptions{
+				Message:    detail,
+				ActionHint: "set_local_provider_endpoint",
+			})
+		}
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
@@ -263,6 +299,11 @@ func (s *Service) importLocalModelFile(
 		},
 		"integrity_mode": "local_unverified",
 		"hashes":         map[string]string{},
+	}
+	if isManagedLlamaBackedImageAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), nil, "") {
+		manifest["engine_config"] = map[string]any{
+			"backend": "stablediffusion-ggml",
+		}
 	}
 	if strings.TrimSpace(binding.endpoint) != "" {
 		manifest["endpoint"] = binding.endpoint
@@ -478,34 +519,34 @@ func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnr
 			}
 			return nil
 		}
-			if !isKnownModelFile(cleanPath) {
-				return nil
-			}
-			if _, ok := seen[cleanPath]; ok {
-				return nil
-			}
-			seen[cleanPath] = struct{}{}
-			info, err := d.Info()
-			if err != nil {
-				return nil
-			}
-			parentName := filepath.Base(filepath.Dir(cleanPath))
-			assetKind := normalizeAssetKindForPath(cleanPath)
-			items = append(items, &runtimev1.LocalUnregisteredAssetDescriptor{
-				Filename:  filepath.Base(cleanPath),
-				Path:      cleanPath,
-				SizeBytes: info.Size(),
-				Declaration: &runtimev1.LocalUnregisteredAssetDeclaration{
-					AssetKind: assetKind,
-					Engine:    defaultEngineForAssetKind(assetKind),
-				},
-				SuggestionSource:     "filename",
-				Confidence:           "low",
-				AutoImportable:       false,
-				RequiresManualReview: true,
-				FolderName:           parentName,
-			})
+		if !isKnownModelFile(cleanPath) {
 			return nil
+		}
+		if _, ok := seen[cleanPath]; ok {
+			return nil
+		}
+		seen[cleanPath] = struct{}{}
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		parentName := filepath.Base(filepath.Dir(cleanPath))
+		assetKind := normalizeAssetKindForPath(cleanPath)
+		items = append(items, &runtimev1.LocalUnregisteredAssetDescriptor{
+			Filename:  filepath.Base(cleanPath),
+			Path:      cleanPath,
+			SizeBytes: info.Size(),
+			Declaration: &runtimev1.LocalUnregisteredAssetDeclaration{
+				AssetKind: assetKind,
+				Engine:    defaultEngineForAssetKind(assetKind),
+			},
+			SuggestionSource:     "filename",
+			Confidence:           "low",
+			AutoImportable:       false,
+			RequiresManualReview: true,
+			FolderName:           parentName,
 		})
+		return nil
+	})
 	return &runtimev1.ScanUnregisteredAssetsResponse{Items: items}, nil
 }
