@@ -44,6 +44,26 @@ function requireRecord(value: unknown, errorCode: string): JsonObject {
   return record;
 }
 
+function requireStringField(record: JsonObject, field: string, errorCode: string): string {
+  const value = record[field];
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new Error(errorCode);
+  }
+  return value.trim();
+}
+
+function assertMatchingWorldField(
+  record: JsonObject,
+  field: string,
+  expectedWorldId: string,
+  errorCode: string,
+): void {
+  const actualWorldId = requireStringField(record, field, errorCode);
+  if (actualWorldId !== expectedWorldId) {
+    throw new Error(errorCode);
+  }
+}
+
 function toRecordArray(value: unknown): JsonObject[] {
   if (Array.isArray(value)) {
     return value
@@ -171,6 +191,7 @@ export async function loadWorldDetailById(
     );
     const record = toRecord(payload);
     if (record) {
+      assertMatchingWorldField(record, 'id', normalizedWorldId, 'WORLD_DETAIL_WORLD_ID_MISMATCH');
       await (await getOfflineCacheManager()).syncWorldMetadata(
         `world:${normalizedWorldId}`,
         record as WorldDetailDto,
@@ -200,10 +221,13 @@ export async function loadWorldHistory(
     throw new Error('WORLD_ID_REQUIRED');
   }
   try {
-    return await callApi(
+    const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorldHistory(normalizedWorldId),
       'Failed to load world history',
     );
+    const record = requireRecord(payload, 'WORLD_HISTORY_CONTRACT_INVALID');
+    assertMatchingWorldField(record, 'worldId', normalizedWorldId, 'WORLD_HISTORY_WORLD_ID_MISMATCH');
+    return record as WorldHistoryPayload;
   } catch (error) {
     emitDataSyncError('load-world-history', error, { worldId: normalizedWorldId });
     throw error;
@@ -222,10 +246,21 @@ async function loadWorldAssetList<T extends { worldId: string; items: unknown[] 
     throw new Error('WORLD_ID_REQUIRED');
   }
   try {
-    return await callApi(
+    const payload = await callApi(
       (realm) => task(realm, normalizedWorldId),
       `Failed to ${action}`,
     );
+    const record = requireRecord(payload, `${action.toUpperCase().replace(/-/g, '_')}_CONTRACT_INVALID`);
+    assertMatchingWorldField(
+      record,
+      'worldId',
+      normalizedWorldId,
+      `${action.toUpperCase().replace(/-/g, '_')}_WORLD_ID_MISMATCH`,
+    );
+    if (!Array.isArray(record.items)) {
+      throw new Error(`${action.toUpperCase().replace(/-/g, '_')}_CONTRACT_INVALID`);
+    }
+    return record as T;
   } catch (error) {
     emitDataSyncError(action, error, { worldId: normalizedWorldId });
     throw error;
@@ -323,6 +358,7 @@ export async function loadWorldDetailWithAgents(
       return null;
     }
     const detail = requireRecord(payload, 'WORLD_DETAIL_WITH_AGENTS_CONTRACT_INVALID') as WorldDetailWithAgentsDto;
+    assertMatchingWorldField(detail, 'id', normalizedWorldId, 'WORLD_DETAIL_WITH_AGENTS_WORLD_ID_MISMATCH');
     if (detail) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         cacheKey,

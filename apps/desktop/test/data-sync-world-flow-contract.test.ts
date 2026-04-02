@@ -3,9 +3,12 @@ import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
+  loadWorldDetailById,
   loadMainWorld,
   loadWorldAgents,
   loadWorldDetailWithAgents,
+  loadWorldHistory,
+  loadWorldLorebooks,
   loadWorldSemanticBundle,
 } from '../src/runtime/data-sync/flows/world-flow.js';
 import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
@@ -91,6 +94,70 @@ test('loadWorldDetailWithAgents fails close on invalid object payloads', async (
 
   assert.equal(errors.length, 1);
   assert.equal(errors[0]!.action, 'load-world-detail-with-agents');
+});
+
+test('loadWorldDetailWithAgents fails close when the response world id does not match the request', async () => {
+  const errors: DataSyncError[] = [];
+
+  await assert.rejects(
+    () => loadWorldDetailWithAgents(
+      async () => ({ id: 'world-2', agents: [] }) as never,
+      createEmitter(errors),
+      'world-1',
+    ),
+    /WORLD_DETAIL_WITH_AGENTS_WORLD_ID_MISMATCH/,
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-detail-with-agents');
+});
+
+test('loadWorldDetailById fails close when the response world id does not match the request', async () => {
+  const errors: DataSyncError[] = [];
+
+  await assert.rejects(
+    () => loadWorldDetailById(
+      async () => ({ id: 'world-2' }) as never,
+      createEmitter(errors),
+      'world-1',
+    ),
+    /WORLD_DETAIL_WORLD_ID_MISMATCH/,
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-detail');
+});
+
+test('loadWorldHistory fails close when the response world id does not match the request', async () => {
+  const errors: DataSyncError[] = [];
+
+  await assert.rejects(
+    () => loadWorldHistory(
+      async () => ({ worldId: 'world-2', items: [] }) as never,
+      createEmitter(errors),
+      'world-1',
+    ),
+    /WORLD_HISTORY_WORLD_ID_MISMATCH/,
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-history');
+});
+
+test('loadWorldLorebooks fails close when the response world id does not match the request', async () => {
+  const errors: DataSyncError[] = [];
+
+  await assert.rejects(
+    () => loadWorldLorebooks(
+      async () => ({ worldId: 'world-2', items: [] }) as never,
+      createEmitter(errors),
+      'world-1',
+    ),
+    /LOAD_WORLD_LOREBOOKS_WORLD_ID_MISMATCH/,
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-lorebooks');
 });
 
 test('loadWorldSemanticBundle only requests worldview and skips redundant world detail fetch', async () => {
