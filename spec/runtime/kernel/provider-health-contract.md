@@ -28,7 +28,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | 探测名称 | Base URL 环境变量 | API Key 环境变量 |
 |---|---|---|
 | `local` | `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` | `NIMI_RUNTIME_LOCAL_LLAMA_API_KEY` |
-| `local-image` | engine-managed media diffusers backend | n/a |
+| `local-image` | daemon-managed image backend (internal attribution only) | n/a |
 | `local-media` | `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_MEDIA_API_KEY` |
 | `local-speech` | `NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL` | `NIMI_RUNTIME_LOCAL_SPEECH_API_KEY` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` |
@@ -47,7 +47,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 
 本地 provider 补充：
 
-- `local-image` 仅用于 engine-managed `media-diffusers-backend` 健康归因与审计，不从环境变量装配独立 probe target。
+- `local-image` 仅用于 daemon-managed image backend 的健康归因与审计，不从环境变量装配独立 probe target。
 - `local-media` 在 `supported_supervised` host 之外不得由 runtime 自动注入默认 loopback probe target。
 - 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` 才参与 provider health 探测。
 - `tables/local-image-supervised-backend-matrix.yaml` 是 canonical local image supervised health 归因的唯一平台事实源。
@@ -113,7 +113,7 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | 探测目标 | Provider Type | 说明 |
 |---|---|---|
 | `local` | `local` | llama 引擎 |
-| `local-image` | `local` | engine-managed media diffusers backend |
+| `local-image` | `local` | daemon-managed image backend attribution target |
 | `local-media` | `local` | media 引擎 |
 | `local-speech` | `local` | speech 引擎 |
 | `local-sidecar` | `local` | Attached music sidecar |

@@ -129,5 +129,16 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'MCP Agent Interaction', link: '/architecture/mcp-agent-interaction' },
       ],
     },
+    {
+      text: 'Apps & Kit',
+      items: [
+        { text: 'Kit (Design System)', link: '/architecture/kit' },
+        { text: 'Desktop', link: '/architecture/desktop' },
+        { text: 'Relay', link: '/architecture/relay' },
+        { text: 'Forge', link: '/architecture/forge' },
+        { text: 'Overtone', link: '/architecture/overtone' },
+        { text: 'Shiji', link: '/architecture/shiji' },
+      ],
+    },
   ],
 }

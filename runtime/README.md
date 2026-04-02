@@ -103,14 +103,16 @@ Config precedence stays:
 ## Runtime Surface
 
 Implemented runtime services include:
-- `RuntimeAiService`
-- `RuntimeModelService`
-- `RuntimeAuditService`
-- `RuntimeGrantService`
-- `RuntimeAppService`
-- `RuntimeKnowledgeService`
-- `RuntimeWorkflowService`
-- `RuntimeLocalService`
+- `RuntimeAiService` — local and cloud AI execution, streaming, multimodal
+- `RuntimeModelService` — model lifecycle, listing, routing
+- `RuntimeAuditService` — audit logging and replay
+- `RuntimeGrantService` — permission and grant management
+- `RuntimeAppService` — app messaging and registration
+- `RuntimeKnowledgeService` — knowledge index build and search
+- `RuntimeWorkflowService` — workflow DAG orchestration
+- `RuntimeLocalService` — local execution, supervision, provider health
+- `RuntimeAuthService` — authentication and token management
+- `RuntimeConnectorService` — provider connector lifecycle, credential hosting
 
 The runtime exposes:
 - gRPC on `127.0.0.1:46371` by default
