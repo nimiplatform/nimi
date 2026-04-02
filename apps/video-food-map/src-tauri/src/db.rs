@@ -71,6 +71,7 @@ pub struct ImportRecord {
     pub uncertain_points: Vec<String>,
     pub audio_source_url: String,
     pub selected_stt_model: String,
+    pub selected_text_model: String,
     pub extraction_coverage: Option<Value>,
     pub output_dir: String,
     pub public_comment_count: i64,
@@ -135,6 +136,7 @@ pub(crate) struct ImportRow {
     uncertain_points_json: String,
     audio_source_url: String,
     selected_stt_model: String,
+    selected_text_model: String,
     extraction_coverage_json: String,
     output_dir: String,
     public_comment_count: i64,
@@ -250,6 +252,7 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
           uncertain_points_json TEXT NOT NULL DEFAULT '[]',
           audio_source_url TEXT NOT NULL DEFAULT '',
           selected_stt_model TEXT NOT NULL DEFAULT '',
+          selected_text_model TEXT NOT NULL DEFAULT '',
           extraction_coverage_json TEXT NOT NULL DEFAULT '',
           output_dir TEXT NOT NULL DEFAULT '',
           public_comment_count INTEGER NOT NULL DEFAULT 0,
@@ -291,6 +294,12 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         ",
     )
     .map_err(|error| format!("failed to initialize sqlite schema: {error}"))?;
+    ensure_column(
+        conn,
+        "imports",
+        "selected_text_model",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
     ensure_column(
         conn,
         "imports",
@@ -349,6 +358,7 @@ fn row_to_import(row: &rusqlite::Row<'_>) -> Result<ImportRow, rusqlite::Error> 
         uncertain_points_json: row.get("uncertain_points_json")?,
         audio_source_url: row.get("audio_source_url")?,
         selected_stt_model: row.get("selected_stt_model")?,
+        selected_text_model: row.get("selected_text_model")?,
         extraction_coverage_json: row.get("extraction_coverage_json")?,
         output_dir: row.get("output_dir")?,
         public_comment_count: row.get("public_comment_count")?,
@@ -443,6 +453,7 @@ fn hydrate_import(conn: &Connection, row: ImportRow) -> Result<ImportRecord, Str
         uncertain_points: parse_string_array(&row.uncertain_points_json),
         audio_source_url: row.audio_source_url,
         selected_stt_model: row.selected_stt_model,
+        selected_text_model: row.selected_text_model,
         extraction_coverage: parse_json_value(&row.extraction_coverage_json),
         output_dir: row.output_dir,
         public_comment_count: row.public_comment_count,
@@ -697,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn resolved_geocode_stays_in_review_when_address_is_vague() {
+    fn resolved_geocode_can_map_when_name_search_finds_a_place() {
         let geocode = GeocodeOutcome {
             provider: "amap".to_string(),
             status: "resolved".to_string(),
@@ -707,7 +718,7 @@ mod tests {
         };
         assert_eq!(
             resolve_review_state(&sample_input("天河城商圈"), &geocode),
-            "search_only"
+            "map_ready"
         );
     }
 

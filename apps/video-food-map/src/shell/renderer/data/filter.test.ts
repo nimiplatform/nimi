@@ -21,6 +21,7 @@ function buildImport(overrides: Partial<ImportRecord> = {}): ImportRecord {
     uncertainPoints: [],
     audioSourceUrl: '',
     selectedSttModel: '',
+    selectedTextModel: '',
     extractionCoverage: null,
     outputDir: '',
     publicCommentCount: 0,

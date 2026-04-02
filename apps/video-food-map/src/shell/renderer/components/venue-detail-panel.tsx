@@ -80,6 +80,20 @@ function resolveImportStatusLabel(record: ImportRecord) {
   }
 }
 
+function formatSelectedModelLabel(value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return '按当前默认值';
+  }
+  if (normalized.startsWith('local/')) {
+    return normalized.slice('local/'.length);
+  }
+  if (normalized.startsWith('cloud/')) {
+    return normalized.slice('cloud/'.length);
+  }
+  return normalized;
+}
+
 export type VenueDetailPanelProps = {
   selectedImport: ImportRecord;
   selectedVenue: VenueRecord | null;
@@ -149,15 +163,25 @@ export function VenueDetailPanel(props: VenueDetailPanelProps) {
               </p>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Surface tone="card" elevation="base" className="p-4">
               <div className="text-xs text-[var(--nimi-text-muted)]">原始链接</div>
               <div className="mt-2 break-all text-sm text-[var(--nimi-text-primary)]">{selectedImport.sourceUrl}</div>
             </Surface>
             <Surface tone="card" elevation="base" className="p-4">
-              <div className="text-xs text-[var(--nimi-text-muted)]">解析模型</div>
+              <div className="text-xs text-[var(--nimi-text-muted)]">语音模型</div>
               <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">
-                {selectedImport.selectedSttModel || (isImportActive(selectedImport.status) ? '正在准备中' : '按脚本默认值')}
+                {selectedImport.selectedSttModel
+                  ? formatSelectedModelLabel(selectedImport.selectedSttModel)
+                  : (isImportActive(selectedImport.status) ? '正在准备中' : '按当前默认值')}
+              </div>
+            </Surface>
+            <Surface tone="card" elevation="base" className="p-4">
+              <div className="text-xs text-[var(--nimi-text-muted)]">文字模型</div>
+              <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">
+                {selectedImport.selectedTextModel
+                  ? formatSelectedModelLabel(selectedImport.selectedTextModel)
+                  : (isImportActive(selectedImport.status) ? '正在准备中' : '按当前默认值')}
               </div>
             </Surface>
           </div>

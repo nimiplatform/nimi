@@ -46,6 +46,7 @@ export type ImportRecord = {
   uncertainPoints: string[];
   audioSourceUrl: string;
   selectedSttModel: string;
+  selectedTextModel: string;
   extractionCoverage: ExtractionCoverage | null;
   outputDir: string;
   publicCommentCount: number;
@@ -96,6 +97,50 @@ export type VideoFoodMapSnapshot = {
   stats: SnapshotStats;
 };
 
+export type VideoFoodMapRouteSource = 'local' | 'cloud';
+
+export type VideoFoodMapRouteSetting = {
+  routeSource: VideoFoodMapRouteSource;
+  connectorId: string;
+  model: string;
+};
+
+export type VideoFoodMapSettings = {
+  stt: VideoFoodMapRouteSetting;
+  text: VideoFoodMapRouteSetting;
+};
+
+export type VideoFoodMapRuntimeOption = {
+  key: string;
+  capability: 'audio.transcribe' | 'text.generate';
+  source: VideoFoodMapRouteSource;
+  connectorId: string;
+  connectorLabel: string;
+  provider: string;
+  modelId: string;
+  modelLabel: string;
+  localModelId?: string;
+};
+
+export type VideoFoodMapRuntimeOptionsIssue = {
+  scope: 'local-models' | 'connectors' | 'connector-models';
+  kind: 'timeout' | 'runtime-error';
+  message: string;
+  connectorId?: string;
+  capability?: 'audio.transcribe' | 'text.generate';
+};
+
+export type VideoFoodMapRuntimeOptionsCatalog = {
+  options: VideoFoodMapRuntimeOption[];
+  loadStatus: 'ready' | 'degraded' | 'failed';
+  issues: VideoFoodMapRuntimeOptionsIssue[];
+};
+
+export type VideoFoodMapRuntimeOptions = {
+  stt: VideoFoodMapRuntimeOptionsCatalog;
+  text: VideoFoodMapRuntimeOptionsCatalog;
+};
+
 function asRecord(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} must be an object`);
@@ -114,6 +159,12 @@ function asNumber(value: unknown): number {
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map((entry) => String(entry || '').trim()).filter(Boolean)
+    : [];
+}
+
+function asObjectArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry))
     : [];
 }
 
@@ -189,6 +240,7 @@ function parseImportRecord(value: unknown): ImportRecord {
     uncertainPoints: asStringArray(record.uncertainPoints),
     audioSourceUrl: asString(record.audioSourceUrl),
     selectedSttModel: asString(record.selectedSttModel),
+    selectedTextModel: asString(record.selectedTextModel),
     extractionCoverage: asCoverage(record.extractionCoverage),
     outputDir: asString(record.outputDir),
     publicCommentCount: asNumber(record.publicCommentCount),
@@ -250,4 +302,73 @@ export function parseSnapshot(value: unknown): VideoFoodMapSnapshot {
 
 export function parseImportRecordResult(value: unknown): ImportRecord {
   return parseImportRecord(value);
+}
+
+function parseRouteSource(value: unknown): VideoFoodMapRouteSource {
+  return asString(value) === 'local' ? 'local' : 'cloud';
+}
+
+function parseRouteSetting(value: unknown): VideoFoodMapRouteSetting {
+  const record = asRecord(value, 'routeSetting');
+  return {
+    routeSource: parseRouteSource(record.routeSource),
+    connectorId: asString(record.connectorId),
+    model: asString(record.model),
+  };
+}
+
+export function parseVideoFoodMapSettings(value: unknown): VideoFoodMapSettings {
+  const record = asRecord(value, 'videoFoodMapSettings');
+  return {
+    stt: parseRouteSetting(record.stt),
+    text: parseRouteSetting(record.text),
+  };
+}
+
+function parseRuntimeOption(value: unknown): VideoFoodMapRuntimeOption {
+  const record = asRecord(value, 'runtimeOption');
+  const capability = asString(record.capability);
+  return {
+    key: asString(record.key),
+    capability: capability === 'audio.transcribe' ? 'audio.transcribe' : 'text.generate',
+    source: parseRouteSource(record.source),
+    connectorId: asString(record.connectorId),
+    connectorLabel: asString(record.connectorLabel),
+    provider: asString(record.provider),
+    modelId: asString(record.modelId),
+    modelLabel: asString(record.modelLabel),
+    localModelId: asString(record.localModelId) || undefined,
+  };
+}
+
+function parseRuntimeIssue(value: unknown): VideoFoodMapRuntimeOptionsIssue {
+  const record = asRecord(value, 'runtimeIssue');
+  const scope = asString(record.scope);
+  const kind = asString(record.kind);
+  const capability = asString(record.capability);
+  return {
+    scope: scope === 'local-models' || scope === 'connectors' ? scope : 'connector-models',
+    kind: kind === 'timeout' ? 'timeout' : 'runtime-error',
+    message: asString(record.message),
+    connectorId: asString(record.connectorId) || undefined,
+    capability: capability === 'audio.transcribe' || capability === 'text.generate' ? capability : undefined,
+  };
+}
+
+function parseRuntimeCatalog(value: unknown): VideoFoodMapRuntimeOptionsCatalog {
+  const record = asRecord(value, 'runtimeCatalog');
+  const loadStatus = asString(record.loadStatus);
+  return {
+    options: asObjectArray(record.options).map(parseRuntimeOption),
+    loadStatus: loadStatus === 'ready' || loadStatus === 'degraded' ? loadStatus : 'failed',
+    issues: asObjectArray(record.issues).map(parseRuntimeIssue),
+  };
+}
+
+export function parseVideoFoodMapRuntimeOptions(value: unknown): VideoFoodMapRuntimeOptions {
+  const record = asRecord(value, 'videoFoodMapRuntimeOptions');
+  return {
+    stt: parseRuntimeCatalog(record.stt),
+    text: parseRuntimeCatalog(record.text),
+  };
 }

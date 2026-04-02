@@ -15,17 +15,31 @@ import {
 import {
   importVideo,
   loadSnapshot,
+  loadVideoFoodMapRuntimeOptions,
+  loadVideoFoodMapSettings,
+  saveVideoFoodMapSettings,
   setVenueConfirmation,
   toggleVenueFavorite,
 } from '@renderer/data/api.js';
 import { filterImports, filterMapPoints, type ReviewFilter } from '@renderer/data/filter.js';
-import type { ImportRecord, MapPoint, VenueRecord, VideoFoodMapSnapshot } from '@renderer/data/types.js';
+import type {
+  ImportRecord,
+  MapPoint,
+  VenueRecord,
+  VideoFoodMapRouteSetting,
+  VideoFoodMapRouteSource,
+  VideoFoodMapRuntimeOption,
+  VideoFoodMapRuntimeOptionsCatalog,
+  VideoFoodMapSettings,
+  VideoFoodMapSnapshot,
+} from '@renderer/data/types.js';
 import { MapSurface } from '@renderer/components/map-surface.js';
 import { VenueDetailPanel } from '@renderer/components/venue-detail-panel.js';
 
 const queryClient = new QueryClient();
 
 type SurfaceId = 'discover' | 'nearby-map' | 'video-map' | 'review' | 'menu';
+type RuntimeSettingsCapability = 'stt' | 'text';
 
 function formatImportTime(value: string): string {
   const date = new Date(value);
@@ -147,6 +161,105 @@ function buildMapPointFromVenue(record: ImportRecord, venue: VenueRecord): MapPo
   };
 }
 
+function createDefaultRouteSetting(): VideoFoodMapRouteSetting {
+  return {
+    routeSource: 'cloud',
+    connectorId: '',
+    model: '',
+  };
+}
+
+function createDefaultVideoFoodMapSettings(): VideoFoodMapSettings {
+  return {
+    stt: createDefaultRouteSetting(),
+    text: createDefaultRouteSetting(),
+  };
+}
+
+function listOptionsBySource(
+  catalog: VideoFoodMapRuntimeOptionsCatalog | undefined,
+  source: VideoFoodMapRouteSource,
+): VideoFoodMapRuntimeOption[] {
+  return (catalog?.options || []).filter((option) => option.source === source);
+}
+
+function listConnectorOptions(
+  catalog: VideoFoodMapRuntimeOptionsCatalog | undefined,
+): Array<{ value: string; label: string }> {
+  const seen = new Set<string>();
+  return listOptionsBySource(catalog, 'cloud')
+    .filter((option) => {
+      if (!option.connectorId || seen.has(option.connectorId)) {
+        return false;
+      }
+      seen.add(option.connectorId);
+      return true;
+    })
+    .map((option) => ({
+      value: option.connectorId,
+      label: option.connectorLabel || option.provider || option.connectorId,
+    }));
+}
+
+function listModelOptions(
+  catalog: VideoFoodMapRuntimeOptionsCatalog | undefined,
+  setting: VideoFoodMapRouteSetting,
+): Array<{ value: string; label: string }> {
+  if (!catalog) {
+    return [];
+  }
+  if (setting.routeSource === 'local') {
+    return listOptionsBySource(catalog, 'local').map((option) => ({
+      value: option.modelId,
+      label: option.modelLabel || option.modelId,
+    }));
+  }
+  return listOptionsBySource(catalog, 'cloud')
+    .filter((option) => option.connectorId === setting.connectorId)
+    .map((option) => ({
+      value: option.modelId,
+      label: option.modelLabel || option.modelId,
+    }));
+}
+
+function buildNextRouteSetting(input: {
+  catalog: VideoFoodMapRuntimeOptionsCatalog | undefined;
+  current: VideoFoodMapRouteSetting;
+  nextSource?: VideoFoodMapRouteSource;
+  nextConnectorId?: string;
+  nextModel?: string;
+}): VideoFoodMapRouteSetting {
+  const catalog = input.catalog;
+  const source = input.nextSource || input.current.routeSource;
+  if (source === 'local') {
+    const localOptions = listOptionsBySource(catalog, 'local');
+    const nextModel = input.nextModel
+      || localOptions.find((option) => option.modelId === input.current.model)?.modelId
+      || localOptions[0]?.modelId
+      || '';
+    return {
+      routeSource: 'local',
+      connectorId: '',
+      model: nextModel,
+    };
+  }
+  const connectorOptions = listConnectorOptions(catalog);
+  const connectorId = input.nextConnectorId
+    || connectorOptions.find((option) => option.value === input.current.connectorId)?.value
+    || connectorOptions[0]?.value
+    || '';
+  const modelOptions = listOptionsBySource(catalog, 'cloud').filter((option) => option.connectorId === connectorId);
+  const model = input.nextModel
+    || modelOptions.find((option) => option.modelId === input.current.model)?.modelId
+    || modelOptions[0]?.modelId
+    || '';
+  return {
+    routeSource: 'cloud',
+    connectorId,
+    model,
+  };
+}
+
 function SurfaceSwitcher(props: {
   current: SurfaceId;
   onChange: (next: SurfaceId) => void;
@@ -184,6 +297,14 @@ function AppBody() {
       return data?.imports.some((record) => isImportActive(record.status)) ? 1500 : false;
     },
   });
+  const settingsQuery = useQuery({
+    queryKey: ['video-food-map', 'settings'],
+    queryFn: loadVideoFoodMapSettings,
+  });
+  const runtimeOptionsQuery = useQuery({
+    queryKey: ['video-food-map', 'runtime-options'],
+    queryFn: loadVideoFoodMapRuntimeOptions,
+  });
   const [videoUrl, setVideoUrl] = useState('');
   const [surface, setSurface] = useState<SurfaceId>('discover');
   const [searchText, setSearchText] = useState('');
@@ -195,6 +316,23 @@ function AppBody() {
 
   const refreshSnapshot = async () => {
     await queryClient.invalidateQueries({ queryKey: ['video-food-map', 'snapshot'] });
+  };
+
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (settings: VideoFoodMapSettings) => saveVideoFoodMapSettings(settings),
+    onSuccess: async (settings) => {
+      queryClient.setQueryData(['video-food-map', 'settings'], settings);
+    },
+  });
+
+  const currentSettings = settingsQuery.data || createDefaultVideoFoodMapSettings();
+  const runtimeOptions = runtimeOptionsQuery.data;
+
+  const updateCapabilitySetting = (capability: RuntimeSettingsCapability, nextSetting: VideoFoodMapRouteSetting) => {
+    const nextSettings: VideoFoodMapSettings = capability === 'stt'
+      ? { ...currentSettings, stt: nextSetting }
+      : { ...currentSettings, text: nextSetting };
+    saveSettingsMutation.mutate(nextSettings);
   };
 
   const importMutation = useMutation({
@@ -320,6 +458,28 @@ function AppBody() {
       .map((venue) => ({ venue, record })),
   );
 
+  const sttCatalog = runtimeOptions?.stt;
+  const textCatalog = runtimeOptions?.text;
+  const sttSetting = currentSettings.stt;
+  const textSetting = currentSettings.text;
+  const sttSourceOptions = [
+    { value: 'cloud', label: `云端${listConnectorOptions(sttCatalog).length > 0 ? '' : '（暂无可用项）'}`, disabled: listOptionsBySource(sttCatalog, 'cloud').length === 0 },
+    { value: 'local', label: `本地${listOptionsBySource(sttCatalog, 'local').length > 0 ? '' : '（暂无可用项）'}`, disabled: listOptionsBySource(sttCatalog, 'local').length === 0 },
+  ];
+  const textSourceOptions = [
+    { value: 'cloud', label: `云端${listConnectorOptions(textCatalog).length > 0 ? '' : '（暂无可用项）'}`, disabled: listOptionsBySource(textCatalog, 'cloud').length === 0 },
+    { value: 'local', label: `本地${listOptionsBySource(textCatalog, 'local').length > 0 ? '' : '（暂无可用项）'}`, disabled: listOptionsBySource(textCatalog, 'local').length === 0 },
+  ];
+  const sttConnectorOptions = listConnectorOptions(sttCatalog);
+  const textConnectorOptions = listConnectorOptions(textCatalog);
+  const sttModelOptions = listModelOptions(sttCatalog, sttSetting);
+  const textModelOptions = listModelOptions(textCatalog, textSetting);
+  const sttConnectorValue = sttConnectorOptions.some((option) => option.value === sttSetting.connectorId) ? sttSetting.connectorId : '';
+  const textConnectorValue = textConnectorOptions.some((option) => option.value === textSetting.connectorId) ? textSetting.connectorId : '';
+  const sttModelValue = sttModelOptions.some((option) => option.value === sttSetting.model) ? sttSetting.model : '';
+  const textModelValue = textModelOptions.some((option) => option.value === textSetting.model) ? textSetting.model : '';
+  const runtimeSettingsBusy = settingsQuery.isPending || runtimeOptionsQuery.isPending || saveSettingsMutation.isPending;
+
   return (
     <div className="flex h-full flex-col gap-4 p-4">
       <Surface tone="hero" elevation="raised" className="vfm-hero flex flex-col gap-4 p-5">
@@ -368,6 +528,121 @@ function AppBody() {
           </div>
           <SurfaceSwitcher current={surface} onChange={setSurface} />
         </div>
+        <Surface tone="card" elevation="base" className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="space-y-3">
+            <div>
+              <div className="text-sm font-medium text-[var(--nimi-text-primary)]">语音转写</div>
+              <div className="text-xs text-[var(--nimi-text-muted)]">决定视频音频先用哪一路做转写。</div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <SelectField
+                value={sttSetting.routeSource}
+                disabled={runtimeSettingsBusy}
+                options={sttSourceOptions}
+                onValueChange={(value) => updateCapabilitySetting('stt', buildNextRouteSetting({
+                  catalog: sttCatalog,
+                  current: sttSetting,
+                  nextSource: value as VideoFoodMapRouteSource,
+                }))}
+              />
+              <SelectField
+                value={sttConnectorValue || undefined}
+                disabled={runtimeSettingsBusy || sttSetting.routeSource !== 'cloud'}
+                options={sttConnectorOptions}
+                placeholder="先选云端连接"
+                onValueChange={(value) => updateCapabilitySetting('stt', buildNextRouteSetting({
+                  catalog: sttCatalog,
+                  current: sttSetting,
+                  nextSource: 'cloud',
+                  nextConnectorId: value,
+                }))}
+              />
+              <SelectField
+                value={sttModelValue || undefined}
+                disabled={runtimeSettingsBusy || sttModelOptions.length === 0}
+                options={sttModelOptions}
+                placeholder={sttSetting.routeSource === 'local' ? '先选本地模型' : '先选转写模型'}
+                onValueChange={(value) => updateCapabilitySetting('stt', buildNextRouteSetting({
+                  catalog: sttCatalog,
+                  current: sttSetting,
+                  nextModel: value,
+                }))}
+              />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <div className="text-sm font-medium text-[var(--nimi-text-primary)]">文字提取</div>
+              <div className="text-xs text-[var(--nimi-text-muted)]">决定店名、地址和菜品整理时用哪一路。</div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <SelectField
+                value={textSetting.routeSource}
+                disabled={runtimeSettingsBusy}
+                options={textSourceOptions}
+                onValueChange={(value) => updateCapabilitySetting('text', buildNextRouteSetting({
+                  catalog: textCatalog,
+                  current: textSetting,
+                  nextSource: value as VideoFoodMapRouteSource,
+                }))}
+              />
+              <SelectField
+                value={textConnectorValue || undefined}
+                disabled={runtimeSettingsBusy || textSetting.routeSource !== 'cloud'}
+                options={textConnectorOptions}
+                placeholder="先选云端连接"
+                onValueChange={(value) => updateCapabilitySetting('text', buildNextRouteSetting({
+                  catalog: textCatalog,
+                  current: textSetting,
+                  nextSource: 'cloud',
+                  nextConnectorId: value,
+                }))}
+              />
+              <SelectField
+                value={textModelValue || undefined}
+                disabled={runtimeSettingsBusy || textModelOptions.length === 0}
+                options={textModelOptions}
+                placeholder={textSetting.routeSource === 'local' ? '先选本地模型' : '先选文字模型'}
+                onValueChange={(value) => updateCapabilitySetting('text', buildNextRouteSetting({
+                  catalog: textCatalog,
+                  current: textSetting,
+                  nextModel: value,
+                }))}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-3">
+            <div className="text-xs text-[var(--nimi-text-muted)]">
+              {saveSettingsMutation.isPending
+                ? '正在保存设置...'
+                : runtimeOptionsQuery.isPending
+                  ? '正在读取 runtime 里的可用模型...'
+                  : '这里列出的内容都来自当前 runtime。'}
+            </div>
+            <Button
+              tone="secondary"
+              onClick={() => void runtimeOptionsQuery.refetch()}
+              disabled={runtimeOptionsQuery.isPending}
+            >
+              {runtimeOptionsQuery.isPending ? '刷新中...' : '刷新模型清单'}
+            </Button>
+          </div>
+        </Surface>
+        {settingsQuery.isError ? (
+          <div className="text-sm text-[var(--nimi-status-danger)]">
+            {settingsQuery.error instanceof Error ? settingsQuery.error.message : '设置加载失败'}
+          </div>
+        ) : null}
+        {runtimeOptionsQuery.isError ? (
+          <div className="text-sm text-[var(--nimi-status-danger)]">
+            {runtimeOptionsQuery.error instanceof Error ? runtimeOptionsQuery.error.message : '模型列表加载失败'}
+          </div>
+        ) : null}
+        {saveSettingsMutation.isError ? (
+          <div className="text-sm text-[var(--nimi-status-danger)]">
+            {saveSettingsMutation.error instanceof Error ? saveSettingsMutation.error.message : '设置保存失败'}
+          </div>
+        ) : null}
         {activeImport ? (
           <div className="rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,white)] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
             <span className="font-medium text-[var(--nimi-text-primary)]">{resolveImportStatusLabel(activeImport)}</span>

@@ -22,6 +22,8 @@ import {
   normalizeExtractionJsonToSimplified,
   buildCommentCrossCheckPrompt,
   buildFoodExtractionPrompt,
+  resolveConfiguredSttTarget,
+  resolveConfiguredTextTarget,
   resolveSttModel,
   resolveTextModel,
   computeExtractionCoverage,
@@ -31,7 +33,14 @@ import {
 export type { CommentClue, CommentScreeningRecord, ReplyApiItem };
 export { screenCommentsForExtraction, filterCommentCluesForExtraction, mergeCommentCluesIntoExtraction };
 export { containsLikelyTraditionalChinese, buildCommentCrossCheckPrompt, buildFoodExtractionPrompt };
-export { resolveSttModel, resolveTextModel, computeExtractionCoverage, buildTranscriptionSegments };
+export {
+  resolveConfiguredSttTarget,
+  resolveConfiguredTextTarget,
+  resolveSttModel,
+  resolveTextModel,
+  computeExtractionCoverage,
+  buildTranscriptionSegments,
+};
 
 export type ProbeArgs = {
   url: string;
@@ -57,6 +66,7 @@ export type FoodProbeResult = {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   selectedSttModel: string;
+  selectedTextModel: string;
   rawCommentCount: number;
   commentClues: CommentClue[];
   extractionCoverage: {
@@ -501,11 +511,12 @@ async function transcribeAndExtract(input: {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   mergedEnv: Record<string, string>;
-}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'rawCommentCount' | 'commentClues' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
+}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'selectedTextModel' | 'rawCommentCount' | 'commentClues' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
   const runtimeGrpcAddr = resolveRuntimeGrpcAddr(input.mergedEnv);
-  const textModel = resolveTextModel({
+  const textTarget = resolveConfiguredTextTarget({
     mergedEnv: input.mergedEnv,
   });
+  const selectedTextModel = textTarget.model;
 
   const runtime = new Runtime({
     appId: DEFAULT_APP_ID,
@@ -533,10 +544,11 @@ async function transcribeAndExtract(input: {
   let transcript = subtitleTranscript.trim();
 
   if (!transcript) {
-    const sttModel = resolveSttModel({
+    const sttTarget = resolveConfiguredSttTarget({
       durationSec: input.metadata.durationSec,
       mergedEnv: input.mergedEnv,
     });
+    const sttModel = sttTarget.model;
     selectedSttModel = sttModel;
     try {
       const transcribed = await runtime.media.stt.transcribe({
@@ -547,7 +559,8 @@ async function transcribeAndExtract(input: {
         },
         mimeType: inferAudioMimeType(input.audioSourceUrl) || undefined,
         language: 'auto',
-        route: 'cloud',
+        route: sttTarget.route,
+        ...(sttTarget.connectorId ? { connectorId: sttTarget.connectorId } : {}),
         timeoutMs: 240_000,
       });
       transcript = String(transcribed.text || '').trim();
@@ -587,7 +600,8 @@ async function transcribeAndExtract(input: {
           },
           mimeType: segment.mimeType,
           language: 'auto',
-          route: 'cloud',
+          route: sttTarget.route,
+          ...(sttTarget.connectorId ? { connectorId: sttTarget.connectorId } : {}),
           timeoutMs: 240_000,
         });
         const segmentText = String(transcribed.text || '').trim();
@@ -612,20 +626,23 @@ async function transcribeAndExtract(input: {
     comments: rawComments,
   });
   const extracted = await runtime.ai.text.generate({
-    model: textModel,
+    model: textTarget.model,
     input: buildFoodExtractionPrompt({
       metadata: input.metadata,
       transcript,
       commentClues: crossCheckComments,
     }),
-    route: 'cloud',
+    route: textTarget.route,
+    ...(textTarget.connectorId ? { connectorId: textTarget.connectorId } : {}),
     timeoutMs: 240_000,
   });
   const extractionRaw = String(extracted.text || '').trim();
   const commentEnhancedJson = extractJsonObject(extractionRaw);
   const normalizedCommentEnhancedJson = await normalizeExtractionJsonToSimplified({
     runtime,
-    textModel,
+    textModel: textTarget.model,
+    textRoute: textTarget.route,
+    textConnectorId: textTarget.connectorId,
     extractionJson: commentEnhancedJson,
   });
   const commentClues = filterCommentCluesForExtraction({
@@ -639,6 +656,7 @@ async function transcribeAndExtract(input: {
 
   return {
     selectedSttModel,
+    selectedTextModel,
     rawCommentCount: rawComments.length,
     commentClues,
     extractionCoverage,
@@ -658,13 +676,17 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
   const extractionCoverage = computeExtractionCoverage(metadata.durationSec);
 
   if (args.resolveOnly) {
-    const selectedSttModel = resolveSttModel({
+    const mergedEnv = buildMergedEnv({
+      baseEnv: process.env,
+      filePaths: [args.profilePath, args.envFilePath],
+    }) as Record<string, string>;
+    const selectedSttModel = resolveConfiguredSttTarget({
       durationSec: metadata.durationSec,
-      mergedEnv: buildMergedEnv({
-        baseEnv: process.env,
-        filePaths: [args.profilePath, args.envFilePath],
-      }) as Record<string, string>,
-    });
+      mergedEnv,
+    }).model;
+    const selectedTextModel = resolveConfiguredTextTarget({
+      mergedEnv,
+    }).model;
     const saved = saveProbeArtifacts({
       metadata,
       audioSourceUrl,
@@ -677,6 +699,7 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
       metadata,
       audioSourceUrl,
       selectedSttModel,
+      selectedTextModel,
       rawCommentCount: 0,
       commentClues: [],
       extractionCoverage,
@@ -713,14 +736,15 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
   });
 
   return {
-      metadata,
-      audioSourceUrl,
-      selectedSttModel: result.selectedSttModel,
-      rawCommentCount: result.rawCommentCount,
-      commentClues: result.commentClues,
-      extractionCoverage: result.extractionCoverage,
-      transcript: result.transcript,
-      extractionRaw: result.extractionRaw,
+    metadata,
+    audioSourceUrl,
+    selectedSttModel: result.selectedSttModel,
+    selectedTextModel: result.selectedTextModel,
+    rawCommentCount: result.rawCommentCount,
+    commentClues: result.commentClues,
+    extractionCoverage: result.extractionCoverage,
+    transcript: result.transcript,
+    extractionRaw: result.extractionRaw,
     extractionJson: result.extractionJson,
     outputDir: saved.outputDir,
     savedFiles: {

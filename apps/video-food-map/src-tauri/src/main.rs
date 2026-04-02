@@ -5,6 +5,8 @@ mod db_queries;
 mod desktop_paths;
 mod probe;
 mod runtime_daemon;
+mod script_runner;
+mod settings;
 
 use std::env;
 use std::path::PathBuf;
@@ -74,6 +76,23 @@ fn video_food_map_snapshot() -> Result<db::Snapshot, String> {
 }
 
 #[tauri::command]
+fn video_food_map_settings_get() -> Result<settings::VideoFoodMapSettings, String> {
+    settings::load_settings()
+}
+
+#[tauri::command]
+fn video_food_map_settings_set(
+    settings: settings::VideoFoodMapSettings,
+) -> Result<settings::VideoFoodMapSettings, String> {
+    settings::save_settings(&settings)
+}
+
+#[tauri::command]
+fn video_food_map_runtime_options_get() -> Result<serde_json::Value, String> {
+    settings::load_runtime_options()
+}
+
+#[tauri::command]
 fn video_food_map_import_video(url: String) -> Result<db::ImportRecord, String> {
     let trimmed = url.trim().to_string();
     if trimmed.is_empty() {
@@ -127,6 +146,9 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             video_food_map_snapshot,
+            video_food_map_settings_get,
+            video_food_map_settings_set,
+            video_food_map_runtime_options_get,
             video_food_map_import_video,
             video_food_map_set_venue_confirmation,
             video_food_map_toggle_venue_favorite,
@@ -164,9 +186,7 @@ mod tests {
 
     #[test]
     fn explains_provider_endpoint_forbidden() {
-        let message = explain_import_error(
-            "FAILED_PRECONDITION: AI_PROVIDER_ENDPOINT_FORBIDDEN",
-        );
+        let message = explain_import_error("FAILED_PRECONDITION: AI_PROVIDER_ENDPOINT_FORBIDDEN");
         assert!(message.contains("云端语音转写"));
         assert!(message.contains("runtime"));
     }

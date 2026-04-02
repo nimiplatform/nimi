@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 use reqwest::blocking::Client;
@@ -61,6 +61,7 @@ pub struct ProbeResult {
     pub metadata: ProbeMetadata,
     pub audio_source_url: String,
     pub selected_stt_model: String,
+    pub selected_text_model: String,
     pub raw_comment_count: i64,
     pub comment_clues: Vec<ProbeCommentClue>,
     pub extraction_coverage: ProbeExtractionCoverage,
@@ -102,75 +103,24 @@ struct AmapPlaceSearchResponse {
     pois: Option<Vec<AmapPlacePoi>>,
 }
 
-fn repo_root() -> Result<PathBuf, String> {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir
-        .join("../../..")
-        .canonicalize()
-        .map_err(|error| format!("failed to resolve repo root: {error}"))
-}
-
-fn app_root() -> Result<PathBuf, String> {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    manifest_dir
-        .join("..")
-        .canonicalize()
-        .map_err(|error| format!("failed to resolve app root: {error}"))
-}
-
-fn normalize_path_env() -> String {
-    let base = env::var("PATH").unwrap_or_default();
-    let mut prefixes = vec![
-        "/usr/local/bin".to_string(),
-        "/opt/homebrew/bin".to_string(),
-    ];
-    if !base.trim().is_empty() {
-        prefixes.push(base);
-    }
-    prefixes.join(":")
-}
-
-fn tsx_binary_candidates() -> Result<Vec<PathBuf>, String> {
-    let repo_root = repo_root()?;
-    let app_root = app_root()?;
-    Ok(vec![
-        app_root.join("node_modules/.bin/tsx"),
-        repo_root.join("apps/realm-drift/node_modules/.bin/tsx"),
-        repo_root.join("node_modules/.bin/tsx"),
-    ])
-}
-
-fn find_existing_path(candidates: &[PathBuf]) -> Option<PathBuf> {
-    candidates.iter().find(|path| path.exists()).cloned()
-}
-
-fn best_command_path() -> Result<PathBuf, String> {
-    let candidates = tsx_binary_candidates()?;
-    find_existing_path(&candidates).ok_or_else(|| {
-        format!(
-            "tsx binary not found; looked in: {}",
-            candidates
-                .iter()
-                .map(|path| path.display().to_string())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    })
-}
-
 fn spawn_probe_command(url: &str) -> Result<String, String> {
-    let repo_root = repo_root()?;
-    let command_path = best_command_path()?;
+    let repo_root = crate::script_runner::repo_root()?;
+    let command_path = crate::script_runner::best_command_path()?;
     let script_path =
         repo_root.join("apps/video-food-map/scripts/run-bilibili-food-video-probe.mts");
     let grpc_addr = crate::runtime_daemon::ensure_running()?;
+    let settings_json = serde_json::to_string(
+        &crate::settings::load_settings().unwrap_or_default(),
+    )
+    .map_err(|error| format!("failed to encode video-food-map settings for probe: {error}"))?;
     let output = Command::new(&command_path)
         .arg(script_path.as_os_str())
         .arg("--url")
         .arg(url)
         .current_dir(&repo_root)
-        .env("PATH", normalize_path_env())
+        .env("PATH", crate::script_runner::normalize_path_env())
         .env("NIMI_RUNTIME_GRPC_ADDR", grpc_addr)
+        .env("NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON", settings_json)
         .output()
         .map_err(|error| format!("failed to start probe command: {error}"))?;
 
@@ -254,8 +204,12 @@ fn build_http_client() -> Result<Client, String> {
 
 fn split_amap_location(raw: &str) -> (Option<f64>, Option<f64>) {
     let mut parts = raw.split(',');
-    let longitude = parts.next().and_then(|value| value.trim().parse::<f64>().ok());
-    let latitude = parts.next().and_then(|value| value.trim().parse::<f64>().ok());
+    let longitude = parts
+        .next()
+        .and_then(|value| value.trim().parse::<f64>().ok());
+    let latitude = parts
+        .next()
+        .and_then(|value| value.trim().parse::<f64>().ok());
     (latitude, longitude)
 }
 
@@ -269,7 +223,12 @@ fn failed_outcome(query: &str) -> GeocodeOutcome {
     }
 }
 
-fn resolved_outcome(query: &str, city: &str, latitude: Option<f64>, longitude: Option<f64>) -> GeocodeOutcome {
+fn resolved_outcome(
+    query: &str,
+    city: &str,
+    latitude: Option<f64>,
+    longitude: Option<f64>,
+) -> GeocodeOutcome {
     GeocodeOutcome {
         provider: GEOCODER_PROVIDER.to_string(),
         status: "resolved".to_string(),
@@ -298,7 +257,12 @@ fn place_search_keywords(venue_name: &str, address_text: &str, query: &str) -> S
     query.trim().to_string()
 }
 
-pub fn geocode_address(query: &str, venue_name: &str, address_text: &str) -> GeocodeOutcome {
+pub fn geocode_address(
+    query: &str,
+    venue_name: &str,
+    address_text: &str,
+    city_hint: &str,
+) -> GeocodeOutcome {
     let normalized = query.trim();
     if normalized.is_empty() {
         return GeocodeOutcome {
@@ -320,7 +284,14 @@ pub fn geocode_address(query: &str, venue_name: &str, address_text: &str) -> Geo
         Err(_) => return failed_outcome(normalized),
     };
 
-    let city = amap_default_city();
+    let city = {
+        let explicit = city_hint.trim();
+        if explicit.is_empty() {
+            amap_default_city()
+        } else {
+            explicit.to_string()
+        }
+    };
 
     let response = client
         .get(AMAP_GEOCODE_ENDPOINT)

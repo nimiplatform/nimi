@@ -6,6 +6,8 @@ import {
   buildFoodExtractionPrompt,
   containsLikelyTraditionalChinese,
   extractBvid,
+  resolveConfiguredSttTarget,
+  resolveConfiguredTextTarget,
   resolveSttModel,
   computeExtractionCoverage,
   filterCommentCluesForExtraction,
@@ -77,6 +79,58 @@ test('resolveSttModel keeps standard stt model for short audio', () => {
     }),
     'cloud/qwen3-asr-flash-2026-02-10',
   );
+});
+
+test('resolveConfiguredSttTarget prefers saved local route setting', () => {
+  process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON = JSON.stringify({
+    stt: {
+      routeSource: 'local',
+      connectorId: '',
+      model: 'local/whisper-large-v3',
+    },
+    text: {
+      routeSource: 'cloud',
+      connectorId: '',
+      model: '',
+    },
+  });
+  assert.deepEqual(
+    resolveConfiguredSttTarget({
+      durationSec: 120,
+      mergedEnv: {},
+    }),
+    {
+      route: 'local',
+      model: 'local/whisper-large-v3',
+    },
+  );
+  delete process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON;
+});
+
+test('resolveConfiguredTextTarget prefers saved cloud connector route setting', () => {
+  process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON = JSON.stringify({
+    stt: {
+      routeSource: 'cloud',
+      connectorId: '',
+      model: '',
+    },
+    text: {
+      routeSource: 'cloud',
+      connectorId: 'conn-openai',
+      model: 'gpt-4.1-mini',
+    },
+  });
+  assert.deepEqual(
+    resolveConfiguredTextTarget({
+      mergedEnv: {},
+    }),
+    {
+      route: 'cloud',
+      connectorId: 'conn-openai',
+      model: 'gpt-4.1-mini',
+    },
+  );
+  delete process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON;
 });
 
 test('computeExtractionCoverage returns full for short videos', () => {

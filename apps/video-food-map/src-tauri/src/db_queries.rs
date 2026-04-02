@@ -137,6 +137,72 @@ fn normalize_text_key(value: &str) -> String {
         .collect()
 }
 
+fn extract_city_candidates(text: &str) -> Vec<String> {
+    let normalized = text.trim();
+    if normalized.is_empty() {
+        return Vec::new();
+    }
+
+    let mut candidates = Vec::new();
+    let suffixed = regex::Regex::new(r"([\u4e00-\u9fa5]{2,12}(?:市|区|县|镇|乡|村|州|旗))").ok();
+    if let Some(pattern) = suffixed {
+        for capture in pattern.captures_iter(normalized) {
+            if let Some(value) = capture.get(1) {
+                candidates.push(value.as_str().trim().to_string());
+            }
+        }
+    }
+
+    let title_prefix =
+        regex::Regex::new(r"^([\u4e00-\u9fa5]{2,8})(?:[\d一二两三四五六七八九十百千]+家|探店|美食|必吃|吃|合集|攻略|vlog|VLOG|小吃|粉店|早餐|宵夜)")
+            .ok();
+    if let Some(pattern) = title_prefix {
+        if let Some(capture) = pattern.captures(normalized) {
+            if let Some(value) = capture.get(1) {
+                candidates.push(value.as_str().trim().to_string());
+            }
+        }
+    }
+
+    candidates
+}
+
+fn infer_import_city_hint(probe: &ProbeResult, venues: &[VenueInput]) -> String {
+    let mut counts = std::collections::HashMap::<String, usize>::new();
+    let mut texts = vec![
+        probe.metadata.title.as_str(),
+        probe.metadata.description.as_str(),
+        probe.transcript.as_str(),
+    ];
+    for tag in &probe.metadata.tags {
+        texts.push(tag.as_str());
+    }
+    for clue in &probe.comment_clues {
+        texts.push(clue.address_hint.as_str());
+        texts.push(clue.message.as_str());
+    }
+    for venue in venues {
+        texts.push(venue.address_text.as_str());
+        texts.push(venue.venue_name.as_str());
+    }
+
+    for text in texts {
+        for candidate in extract_city_candidates(text) {
+            *counts.entry(candidate).or_insert(0) += 1;
+        }
+    }
+
+    counts
+        .into_iter()
+        .max_by(|(left_name, left_count), (right_name, right_count)| {
+            left_count
+                .cmp(right_count)
+                .then_with(|| left_name.len().cmp(&right_name.len()))
+        })
+        .map(|(name, _)| name)
+        .unwrap_or_default()
+}
+
 fn venue_user_key(venue_name: &str, address_text: &str) -> String {
     let normalized_name = normalize_text_key(venue_name);
     let normalized_address = normalize_text_key(address_text);
@@ -229,7 +295,6 @@ pub(crate) fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome)
     if geocode.status == "resolved"
         && input.confidence.trim() != "low"
         && !input.venue_name.trim().is_empty()
-        && address_is_specific(&input.address_text)
     {
         return "map_ready".to_string();
     }
@@ -245,8 +310,14 @@ pub(crate) fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome)
     "search_only".to_string()
 }
 
-pub(crate) fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> Result<(), String> {
+pub(crate) fn replace_venues(
+    conn: &Connection,
+    import_id: &str,
+    probe: &ProbeResult,
+    venues: &[VenueInput],
+) -> Result<(), String> {
     let existing_user_states = load_existing_venue_user_state(conn, import_id)?;
+    let city_hint = infer_import_city_hint(probe, venues);
     conn.execute(
         "DELETE FROM venues WHERE import_id = ?1",
         params![import_id],
@@ -259,8 +330,11 @@ pub(crate) fn replace_venues(conn: &Connection, import_id: &str, venues: &[Venue
             .copied()
             .unwrap_or_default();
         let geocode_query = build_geocode_query(&venue.venue_name, &venue.address_text);
-        let geocode =
-            if venue.address_text.trim().is_empty() || !address_is_specific(&venue.address_text) {
+        let can_try_name_search =
+            !venue.venue_name.trim().is_empty() && !city_hint.trim().is_empty();
+        let geocode = if venue.address_text.trim().is_empty()
+            || (!address_is_specific(&venue.address_text) && !can_try_name_search)
+        {
                 GeocodeOutcome {
                     provider: "amap".to_string(),
                     status: "skipped".to_string(),
@@ -273,7 +347,12 @@ pub(crate) fn replace_venues(conn: &Connection, import_id: &str, venues: &[Venue
                     longitude: None,
                 }
             } else {
-                geocode_address(&geocode_query, &venue.venue_name, &venue.address_text)
+                geocode_address(
+                    &geocode_query,
+                    &venue.venue_name,
+                    &venue.address_text,
+                    &city_hint,
+                )
             };
         let review_state = resolve_review_state(venue, &geocode);
         let now = now_iso();
@@ -362,13 +441,14 @@ pub(crate) fn complete_import_by_id(
           uncertain_points_json = ?13,
           audio_source_url = ?14,
           selected_stt_model = ?15,
-          extraction_coverage_json = ?16,
-          output_dir = ?17,
-          public_comment_count = ?18,
-          comment_clues_json = ?19,
+          selected_text_model = ?16,
+          extraction_coverage_json = ?17,
+          output_dir = ?18,
+          public_comment_count = ?19,
+          comment_clues_json = ?20,
           error_message = '',
-          updated_at = ?20
-        WHERE id = ?21
+          updated_at = ?21
+        WHERE id = ?22
         ",
         params![
             url,
@@ -386,6 +466,7 @@ pub(crate) fn complete_import_by_id(
             to_json(&read_uncertain_points(probe.extraction_json.as_ref())),
             probe.audio_source_url,
             probe.selected_stt_model,
+            probe.selected_text_model,
             serde_json::to_string(&probe.extraction_coverage).unwrap_or_default(),
             probe.output_dir,
             probe.raw_comment_count,
@@ -399,6 +480,7 @@ pub(crate) fn complete_import_by_id(
     replace_venues(
         conn,
         import_id,
+        probe,
         &parse_venue_inputs(probe.extraction_json.as_ref()),
     )?;
     Ok(())

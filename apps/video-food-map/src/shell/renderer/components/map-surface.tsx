@@ -6,6 +6,9 @@ type MapSurfaceProps = {
   points: MapPoint[];
   selectedVenueId: string | null;
   onSelectVenue: (venueId: string) => void;
+  focusCenter?: [number, number] | null;
+  focusZoom?: number | null;
+  focusKey?: string | null;
 };
 
 type AMapInstance = {
@@ -25,6 +28,8 @@ type AMapMap = {
   setZoomAndCenter: (zoom: number, center: [number, number]) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  getZoom: () => number;
+  on: (eventName: string, handler: () => void) => void;
   destroy: () => void;
 };
 
@@ -33,6 +38,22 @@ type AMapMarker = {
   setLabel?: (value: Record<string, unknown>) => void;
   setMap?: (map: AMapMap | null) => void;
 };
+
+type DisplayItem =
+  | {
+    kind: 'venue';
+    key: string;
+    point: MapPoint;
+    active: boolean;
+  }
+  | {
+    kind: 'cluster';
+    key: string;
+    latitude: number;
+    longitude: number;
+    count: number;
+    active: boolean;
+  };
 
 type AMapWindow = Window & typeof globalThis & {
   AMap?: AMapInstance;
@@ -60,6 +81,83 @@ function buildMarkerHtml(active: boolean): string {
     '<span style="position:absolute;left:50%;top:100%;width:2px;height:14px;background:rgba(249,115,22,0.32);transform:translateX(-50%);"></span>',
     '</div>',
   ].join('');
+}
+
+function buildClusterMarkerHtml(count: number, active: boolean): string {
+  const background = active ? '#ea580c' : '#fb923c';
+  const shadow = active
+    ? '0 14px 30px rgba(234, 88, 12, 0.34)'
+    : '0 10px 24px rgba(249, 115, 22, 0.24)';
+  return [
+    '<div style="display:flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;border-radius:999px;',
+    `background:${background};color:white;font-size:13px;font-weight:700;border:3px solid white;box-shadow:${shadow};">`,
+    `${count}家`,
+    '</div>',
+  ].join('');
+}
+
+function clusterGridSizeForZoom(zoomLevel: number): number {
+  if (zoomLevel <= 7) {
+    return 0.32;
+  }
+  if (zoomLevel <= 9) {
+    return 0.18;
+  }
+  if (zoomLevel <= 11) {
+    return 0.08;
+  }
+  if (zoomLevel <= 12) {
+    return 0.04;
+  }
+  return 0;
+}
+
+function buildDisplayItems(points: MapPoint[], zoomLevel: number, selectedVenueId: string | null): DisplayItem[] {
+  const gridSize = clusterGridSizeForZoom(zoomLevel);
+  if (!gridSize || points.length <= 8) {
+    return points.map((point) => ({
+      kind: 'venue',
+      key: point.venueId,
+      point,
+      active: point.venueId === selectedVenueId,
+    }));
+  }
+
+  const buckets = new Map<string, MapPoint[]>();
+  for (const point of points) {
+    const latKey = Math.round(point.latitude / gridSize);
+    const lngKey = Math.round(point.longitude / gridSize);
+    const key = `${latKey}:${lngKey}`;
+    const bucket = buckets.get(key) || [];
+    bucket.push(point);
+    buckets.set(key, bucket);
+  }
+
+  const displayItems: DisplayItem[] = [];
+  for (const [key, bucket] of buckets.entries()) {
+    if (bucket.length === 1) {
+      const point = bucket[0]!;
+      displayItems.push({
+        kind: 'venue' as const,
+        key: point.venueId,
+        point,
+        active: point.venueId === selectedVenueId,
+      });
+      continue;
+    }
+
+    const latitude = bucket.reduce((sum, point) => sum + point.latitude, 0) / bucket.length;
+    const longitude = bucket.reduce((sum, point) => sum + point.longitude, 0) / bucket.length;
+    displayItems.push({
+      kind: 'cluster' as const,
+      key: `cluster:${key}`,
+      latitude,
+      longitude,
+      count: bucket.length,
+      active: bucket.some((point) => point.venueId === selectedVenueId),
+    });
+  }
+  return displayItems;
 }
 
 function loadAmap(): Promise<AMapInstance> {
@@ -115,7 +213,7 @@ function loadAmap(): Promise<AMapInstance> {
   return amapLoaderPromise;
 }
 
-function buildMarker(AMap: AMapInstance, point: MapPoint, active: boolean, onSelectVenue: (venueId: string) => void): AMapMarker {
+function buildVenueMarker(AMap: AMapInstance, point: MapPoint, active: boolean, onSelectVenue: (venueId: string) => void): AMapMarker {
   const marker = new AMap.Marker({
     position: [point.longitude, point.latitude],
     anchor: 'bottom-center',
@@ -133,11 +231,38 @@ function buildMarker(AMap: AMapInstance, point: MapPoint, active: boolean, onSel
   return marker;
 }
 
-export function MapSurface({ points, selectedVenueId, onSelectVenue }: MapSurfaceProps) {
+function buildClusterMarker(
+  AMap: AMapInstance,
+  item: Extract<DisplayItem, { kind: 'cluster' }>,
+  map: AMapMap,
+): AMapMarker {
+  const marker = new AMap.Marker({
+    position: [item.longitude, item.latitude],
+    anchor: 'center',
+    content: buildClusterMarkerHtml(item.count, item.active),
+    title: `这一片有 ${item.count} 家店`,
+  });
+  marker.on('click', () => {
+    const nextZoom = Math.min((map.getZoom?.() || 10) + 2, 16);
+    map.setZoomAndCenter(nextZoom, [item.longitude, item.latitude]);
+  });
+  return marker;
+}
+
+export function MapSurface({
+  points,
+  selectedVenueId,
+  onSelectVenue,
+  focusCenter = null,
+  focusZoom = null,
+  focusKey = null,
+}: MapSurfaceProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<AMapMap | null>(null);
   const markerRefs = useRef<AMapMarker[]>([]);
+  const viewportKeyRef = useRef('');
   const [loadState, setLoadState] = useState<'idle' | 'ready' | 'failed'>('idle');
+  const [zoomLevel, setZoomLevel] = useState(4);
 
   useEffect(() => {
     let disposed = false;
@@ -161,7 +286,11 @@ export function MapSurface({ points, selectedVenueId, onSelectVenue }: MapSurfac
         if (AMap.ToolBar) {
           map.addControl(new AMap.ToolBar());
         }
+        map.on('zoomchange', () => {
+          setZoomLevel(map.getZoom?.() || 4);
+        });
         mapRef.current = map;
+        setZoomLevel(map.getZoom?.() || 4);
         setLoadState('ready');
       })
       .catch(() => {
@@ -201,8 +330,11 @@ export function MapSurface({ points, selectedVenueId, onSelectVenue }: MapSurfac
       return;
     }
 
-    const markers = points.map((point) =>
-      buildMarker(AMap, point, point.venueId === selectedVenueId, onSelectVenue),
+    const displayItems = buildDisplayItems(points, zoomLevel, selectedVenueId);
+    const markers = displayItems.map((item) =>
+      item.kind === 'venue'
+        ? buildVenueMarker(AMap, item.point, item.active, onSelectVenue)
+        : buildClusterMarker(AMap, item, mapRef.current!),
     );
     markerRefs.current = markers;
     mapRef.current.add(markers as unknown[]);
@@ -210,12 +342,19 @@ export function MapSurface({ points, selectedVenueId, onSelectVenue }: MapSurfac
     const selected = selectedVenueId
       ? points.find((point) => point.venueId === selectedVenueId) || null
       : null;
-    if (selected) {
+    const selectedKey = selected ? `selected:${selected.venueId}:${points.length}` : '';
+    const fitKey = `fit:${points.length}`;
+    if (focusCenter && focusZoom && focusKey && viewportKeyRef.current !== focusKey) {
+      mapRef.current.setZoomAndCenter(focusZoom, focusCenter);
+      viewportKeyRef.current = focusKey;
+    } else if (selected && viewportKeyRef.current !== selectedKey) {
       mapRef.current.setZoomAndCenter(16, [selected.longitude, selected.latitude]);
-    } else {
+      viewportKeyRef.current = selectedKey;
+    } else if (!selected && !focusCenter && viewportKeyRef.current !== fitKey) {
       mapRef.current.setFitView(markers as unknown[], false, [72, 72, 72, 72]);
+      viewportKeyRef.current = fitKey;
     }
-  }, [loadState, onSelectVenue, points, selectedVenueId]);
+  }, [focusCenter, focusZoom, loadState, onSelectVenue, points, selectedVenueId, zoomLevel]);
 
   return (
     <Surface tone="canvas" elevation="base" className="relative flex min-h-[520px] overflow-hidden border border-[var(--nimi-border-subtle)]">

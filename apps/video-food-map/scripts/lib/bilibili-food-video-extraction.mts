@@ -4,6 +4,10 @@
 
 import type { Runtime } from '../../../../sdk/src/runtime/index.ts';
 import {
+  normalizeVideoFoodMapRuntimeSettings,
+  type VideoFoodMapRouteSetting,
+} from './runtime-route-options.mts';
+import {
   type AudioSegment,
   splitWaveIntoSegments,
   transcodeAudioToWavePcm16,
@@ -55,6 +59,8 @@ export function extractJsonObject(text: string): Record<string, unknown> | null 
 export async function normalizeExtractionJsonToSimplified(input: {
   runtime: Runtime;
   textModel: string;
+  textRoute?: 'local' | 'cloud';
+  textConnectorId?: string;
   extractionJson: Record<string, unknown> | null;
 }): Promise<Record<string, unknown> | null> {
   if (!input.extractionJson) {
@@ -76,7 +82,8 @@ export async function normalizeExtractionJsonToSimplified(input: {
       '',
       JSON.stringify(input.extractionJson, null, 2),
     ].join('\n'),
-    route: 'cloud',
+    route: input.textRoute || 'cloud',
+    ...(input.textConnectorId ? { connectorId: input.textConnectorId } : {}),
     timeoutMs: 240_000,
   });
   return extractJsonObject(String(normalized.text || '').trim()) || input.extractionJson;
@@ -267,6 +274,79 @@ export function resolveTextModel(input: {
     return coerceCloudModelId(configured);
   }
   return coerceCloudModelId(DEFAULT_TEXT_MODEL);
+}
+
+function readRuntimeSettingsFromEnv(): {
+  stt: VideoFoodMapRouteSetting;
+  text: VideoFoodMapRouteSetting;
+} {
+  const raw = String(process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON || '').trim();
+  if (!raw) {
+    return normalizeVideoFoodMapRuntimeSettings(null);
+  }
+  try {
+    return normalizeVideoFoodMapRuntimeSettings(JSON.parse(raw));
+  } catch {
+    return normalizeVideoFoodMapRuntimeSettings(null);
+  }
+}
+
+function resolveSavedRouteSetting(setting: VideoFoodMapRouteSetting): {
+  route: 'local' | 'cloud';
+  model: string;
+  connectorId?: string;
+} | null {
+  const model = String(setting.model || '').trim();
+  if (!model) {
+    return null;
+  }
+  if (setting.routeSource === 'local') {
+    return {
+      route: 'local',
+      model: model.startsWith('local/') ? model : `local/${model}`,
+    };
+  }
+  const connectorId = String(setting.connectorId || '').trim();
+  return {
+    route: 'cloud',
+    model: connectorId ? model : coerceCloudModelId(model),
+    ...(connectorId ? { connectorId } : {}),
+  };
+}
+
+export function resolveConfiguredSttTarget(input: {
+  durationSec: number;
+  mergedEnv: Record<string, string>;
+}): {
+  route: 'local' | 'cloud';
+  model: string;
+  connectorId?: string;
+} {
+  const saved = resolveSavedRouteSetting(readRuntimeSettingsFromEnv().stt);
+  if (saved) {
+    return saved;
+  }
+  return {
+    route: 'cloud',
+    model: resolveSttModel(input),
+  };
+}
+
+export function resolveConfiguredTextTarget(input: {
+  mergedEnv: Record<string, string>;
+}): {
+  route: 'local' | 'cloud';
+  model: string;
+  connectorId?: string;
+} {
+  const saved = resolveSavedRouteSetting(readRuntimeSettingsFromEnv().text);
+  if (saved) {
+    return saved;
+  }
+  return {
+    route: 'cloud',
+    model: resolveTextModel(input),
+  };
 }
 
 export function computeExtractionCoverage(durationSec: number): FoodProbeResult['extractionCoverage'] {
