@@ -5,6 +5,7 @@ import {
   type LocalRuntimeAssetKind,
   type LocalRuntimeAssetRecord,
   type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeInstallPlanDescriptor,
   type LocalRuntimeUnregisteredAssetDescriptor,
   type LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
@@ -12,18 +13,15 @@ import {
   defaultAssetDeclaration,
   normalizeCapabilityOption,
   normalizeInstallEngine,
-  normalizeModelTypeOption,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
   type AssetEngineOption,
   type CapabilityOption,
   type InstallEngineOption,
   type LocalModelCenterProps,
-  type ModelTypeOption,
   parseTimestamp,
 } from './runtime-config-model-center-utils';
 import {
-  ASSET_KIND_OPTIONS,
   filterInstalledAssets,
   isAssetTaskTerminal,
   relatedPassiveAssetsForRunnable,
@@ -31,6 +29,14 @@ import {
   type AssetTaskEntry,
   type AssetTaskState,
 } from './runtime-config-local-model-center-helpers';
+import {
+  canImportDeclaration,
+  capabilitiesForAssetKind,
+  defaultEngineForAnyAssetKind,
+  manifestPathFromSourceRepo,
+  normalizeAssetDeclaration,
+  RUNNABLE_ASSET_KINDS,
+} from './runtime-config-use-local-model-center-helpers.js';
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
@@ -40,99 +46,16 @@ type UseLocalModelCenterRuntimeStateInput = {
   props: LocalModelCenterProps;
 };
 
-function defaultEngineForModelType(modelType: ModelTypeOption): AssetEngineOption {
-  if (modelType === 'image' || modelType === 'video') {
-    return 'media';
-  }
-  if (modelType === 'tts' || modelType === 'stt') {
-    return 'speech';
-  }
-  if (modelType === 'music') {
-    return 'sidecar';
-  }
-  return 'llama';
+function planRequiresAttachedEndpointInput(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+  return Boolean(plan && plan.engineRuntimeMode === 'attached-endpoint');
 }
 
-function defaultEngineForDependencyAssetKind(kind: LocalRuntimeAssetKind): AssetEngineOption | '' {
-  if (kind === 'auxiliary') {
+function planAttachedEndpointHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
+  if (!planRequiresAttachedEndpointInput(plan)) {
     return '';
   }
-  return 'media';
-}
-
-function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAssetKind {
-  const normalized = String(kind || '').trim().toLowerCase();
-  return (ASSET_KIND_OPTIONS.find((value) => value === normalized) || 'vae') as LocalRuntimeAssetKind;
-}
-
-const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt']);
-
-function defaultEngineForAnyAssetKind(kind: string): AssetEngineOption | '' {
-  if (kind === 'chat' || kind === 'embedding') return 'llama';
-  if (kind === 'image' || kind === 'video') return 'media';
-  if (kind === 'tts' || kind === 'stt') return 'speech';
-  if (kind === 'music') return 'sidecar';
-  if (kind === 'auxiliary') return '';
-  return 'media';
-}
-
-function normalizeAssetDeclaration(
-  declaration?: LocalRuntimeAssetDeclaration,
-): LocalRuntimeAssetDeclaration {
-  const assetKind = declaration?.assetKind;
-  const isRunnable = RUNNABLE_ASSET_KINDS.has(String(assetKind || ''));
-  if (!isRunnable && assetKind) {
-    const normalizedKind = normalizeDependencyAssetKind(assetKind);
-    const engine = String(declaration?.engine || '').trim();
-    return {
-      assetKind: normalizedKind,
-      ...(engine ? { engine } : (normalizedKind === 'auxiliary' ? {} : { engine: defaultEngineForDependencyAssetKind(normalizedKind) })),
-    };
-  }
-
-  const modelType = normalizeModelTypeOption(assetKind);
-  return {
-    assetKind: modelType === 'music' ? 'chat' : modelType as LocalRuntimeAssetKind,
-    engine: String(declaration?.engine || '').trim() || defaultEngineForModelType(modelType),
-  };
-}
-
-function canImportDeclaration(declaration: LocalRuntimeAssetDeclaration): boolean {
-  const assetKind = declaration.assetKind;
-  if (!assetKind) {
-    return false;
-  }
-  if (assetKind === 'auxiliary') {
-    return Boolean(String(declaration.engine || '').trim());
-  }
-  return true;
-}
-
-function capabilitiesForAssetKind(kind: LocalRuntimeAssetKind): string[] {
-  switch (kind) {
-    case 'image':
-      return ['image'];
-    case 'video':
-      return ['video'];
-    case 'tts':
-      return ['tts'];
-    case 'stt':
-      return ['stt'];
-    default:
-      return ['chat'];
-  }
-}
-
-function manifestPathFromSourceRepo(repo: string | undefined): string | undefined {
-  const normalized = String(repo || '').trim();
-  if (!normalized.toLowerCase().startsWith('file://')) {
-    return undefined;
-  }
-  try {
-    return decodeURIComponent(new URL(normalized).pathname);
-  } catch {
-    return normalized.slice('file://'.length);
-  }
+  return String(plan?.warnings[0] || '').trim()
+    || `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;
 }
 
 export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalModelCenterRuntimeStateInput) {
@@ -668,12 +591,11 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         if (cancelled) {
           return;
         }
-        const required = plan.engineRuntimeMode === 'attached-endpoint'
-          && plan.reasonCode === 'AI_LOCAL_ENDPOINT_REQUIRED';
+        const required = planRequiresAttachedEndpointInput(plan);
         setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: required }));
         setUnregisteredEndpointHintByPath((prev) => ({
           ...prev,
-          [asset.path]: required ? String(plan.warnings[0] || '').trim() : '',
+          [asset.path]: required ? planAttachedEndpointHint(plan) : '',
         }));
       }).catch(() => {
         if (cancelled) {
@@ -788,10 +710,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       if (cancelled) {
         return;
       }
-      const required = plan.engineRuntimeMode === 'attached-endpoint'
-        && plan.reasonCode === 'AI_LOCAL_ENDPOINT_REQUIRED';
+      const required = planRequiresAttachedEndpointInput(plan);
       setImportEndpointRequired(required);
-      setImportEndpointHint(required ? String(plan.warnings[0] || '').trim() : '');
+      setImportEndpointHint(required ? planAttachedEndpointHint(plan) : '');
     }).catch(() => {
       if (cancelled) {
         return;
@@ -833,85 +754,38 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [installedAssets, refreshAssetSections, refreshUnregisteredAssets]);
 
   return {
-    activeDownloads: importActions.activeDownloads,
-    activeImports: importActions.activeImports,
-    assetBusy,
-    assetKindFilter,
-    assetPendingTemplateIds,
-    assetImportError: importActions.assetImportError,
-    assetImportSessionByPath: importActions.assetImportSessionByPath,
-    catalogCapability,
-    catalogDisplayCount,
-    catalogItems,
+    activeDownloads: importActions.activeDownloads, activeImports: importActions.activeImports,
+    assetBusy, assetKindFilter, assetPendingTemplateIds,
+    assetImportError: importActions.assetImportError, assetImportSessionByPath: importActions.assetImportSessionByPath,
+    catalogCapability, catalogDisplayCount, catalogItems,
     closeVariantPicker: importActions.closeVariantPicker,
-    deferredSearchQuery,
-    filteredInstalledDependencyAssets,
-    filteredInstalledRunnableAssets,
-    importFileAssetKind,
-    importFileAuxiliaryEngine,
-    importFileEndpoint,
-    importFileDeclaration,
-    importEndpointHint,
-    importEndpointRequired,
-    importMenuRef,
+    deferredSearchQuery, filteredInstalledDependencyAssets, filteredInstalledRunnableAssets,
+    importFileAssetKind, importFileAuxiliaryEngine, importFileEndpoint, importFileDeclaration,
+    importEndpointHint, importEndpointRequired, importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
-    installCatalogVariant,
-    installMissingAssetsForModel,
-    installVerifiedAsset,
-    installVerifiedModel,
-    installing,
-    installedAssetsById,
-    isAssetPending,
-    loadingCatalog,
-    loadingInstalledAssets,
-    loadingVariants: importActions.loadingVariants,
-    loadingVerifiedAssets,
-    loadingVerifiedModels,
-    onCancelDownload: importActions.onCancelDownload,
-    onDismissSession: importActions.onDismissSession,
-    onPauseDownload: importActions.onPauseDownload,
-    onResumeDownload: importActions.onResumeDownload,
-    refreshAssetSections,
-    refreshUnregisteredAssets,
-    refreshVerifiedModels,
-    repairInstalledAsset,
-    relatedAssetsByModelTemplate,
-    removeInstalledAsset,
-    resolveUnregisteredAssetDraft,
-    searchQuery,
-    selectedCatalogCapability,
-    selectedCatalogEngine,
-    setAssetKindFilter,
-    setCatalogCapability,
-    setCatalogCapabilityOverrides,
-    setCatalogDisplayCount,
-    setCatalogEngineOverrides,
-    setImportFileAssetKind,
-    setImportFileAuxiliaryEngine,
-    setImportFileEndpoint,
-    setSearchQuery,
-    setShowImportFileDialog,
-    setShowImportMenu,
-    setUnregisteredAssetKind,
-    setUnregisteredAuxiliaryEngine,
-    setUnregisteredEndpoint,
-    showImportFileDialog,
-    showImportMenu,
-    canChooseImportFile,
+    installCatalogVariant, installMissingAssetsForModel, installVerifiedAsset, installVerifiedModel,
+    installing, installedAssetsById, isAssetPending,
+    loadingCatalog, loadingInstalledAssets, loadingVariants: importActions.loadingVariants,
+    loadingVerifiedAssets, loadingVerifiedModels,
+    onCancelDownload: importActions.onCancelDownload, onDismissSession: importActions.onDismissSession,
+    onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
+    refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
+    repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
+    resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability, selectedCatalogEngine,
+    setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
+    setCatalogDisplayCount, setCatalogEngineOverrides,
+    setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
+    setSearchQuery, setShowImportFileDialog, setShowImportMenu,
+    setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine, setUnregisteredEndpoint,
+    showImportFileDialog, showImportMenu, canChooseImportFile,
     toggleVariantPicker: importActions.toggleVariantPicker,
-    unregisteredAssetDrafts,
-    unregisteredAssets,
-    unregisteredEndpointByPath,
-    unregisteredEndpointRequiredByPath,
-    unregisteredEndpointHintByPath,
+    unregisteredAssetDrafts, unregisteredAssets,
+    unregisteredEndpointByPath, unregisteredEndpointRequiredByPath, unregisteredEndpointHintByPath,
     importPickedAssetFile: importActions.importPickedAssetFile,
     importPickedAssetManifest: importActions.importPickedAssetManifest,
     importUnregisteredAsset,
-    variantError: importActions.variantError,
-    variantList: importActions.variantList,
+    variantError: importActions.variantError, variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,
-    verifiedModels,
-    visibleAssetTasks,
-    visibleVerifiedAssets,
+    verifiedModels, visibleAssetTasks, visibleVerifiedAssets,
   };
 }

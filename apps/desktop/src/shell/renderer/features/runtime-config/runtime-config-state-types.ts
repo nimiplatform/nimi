@@ -62,7 +62,7 @@ export type LocalNodeMatrixEntryV11 = {
   capability: NodeCapabilityV11;
   serviceId: string;
   provider: 'llama' | 'media' | 'speech' | 'sidecar' | string;
-  adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
+  adapter?: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
   backend?: string;
   backendSource?: string;
   available: boolean;
@@ -347,16 +347,8 @@ export function normalizeLocalNodeMatrixEntryV11(
     normalizedAdapter = 'sidecar_music_adapter';
   } else if (adapterRaw === 'openai_compat_adapter') {
     normalizedAdapter = 'openai_compat_adapter';
-  } else if (normalizedProvider === 'media') {
-    normalizedAdapter = 'media_native_adapter';
-  } else if (normalizedProvider === 'speech') {
-    normalizedAdapter = 'speech_native_adapter';
-  } else if (normalizedProvider === 'sidecar') {
-    normalizedAdapter = 'sidecar_music_adapter';
   } else {
-    normalizedAdapter = normalizedCapability === 'chat' || normalizedCapability === 'embedding'
-      ? 'openai_compat_adapter'
-      : 'llama_native_adapter';
+    normalizedAdapter = undefined;
   }
   const hints = (
     raw.providerHints

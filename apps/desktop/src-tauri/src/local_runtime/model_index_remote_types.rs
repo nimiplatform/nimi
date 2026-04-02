@@ -20,7 +20,7 @@ struct RemoteInstallEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RemoteModelEntry {
+pub(super) struct RemoteModelEntry {
     repo: String,
     revision: String,
     title: String,
@@ -40,21 +40,21 @@ struct RemoteModelEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RemoteLeaderboardResponse {
-    schema_version: String,
-    generated_at: String,
-    capability: String,
-    page: usize,
-    page_size: usize,
-    total: usize,
+pub(super) struct RemoteLeaderboardResponse {
+    pub(super) schema_version: String,
+    pub(super) generated_at: String,
+    pub(super) capability: String,
+    pub(super) page: usize,
+    pub(super) page_size: usize,
+    pub(super) total: usize,
     #[serde(default)]
-    items: Vec<RemoteModelEntry>,
+    pub(super) items: Vec<RemoteModelEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct ModelIndexCacheRecord {
-    fetched_at: String,
+pub(super) struct ModelIndexCacheRecord {
+    pub(super) fetched_at: String,
     #[serde(default)]
-    feeds: HashMap<String, RemoteLeaderboardResponse>,
+    pub(super) feeds: HashMap<String, RemoteLeaderboardResponse>,
 }

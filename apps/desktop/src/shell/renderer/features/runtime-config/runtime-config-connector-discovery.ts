@@ -17,6 +17,7 @@ type HealthResult = {
 };
 
 type RuntimeNodeCapability = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+type RuntimeNodeAdapter = 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter';
 
 function normalizeRuntimeNodeCapability(value: unknown): RuntimeNodeCapability {
   switch (String(value || '').trim()) {
@@ -30,6 +31,20 @@ function normalizeRuntimeNodeCapability(value: unknown): RuntimeNodeCapability {
     default:
       return 'chat';
   }
+}
+
+function normalizeRuntimeNodeAdapter(value: unknown): RuntimeNodeAdapter | undefined {
+  const adapter = String(value || '').trim().toLowerCase();
+  if (
+    adapter === 'openai_compat_adapter'
+    || adapter === 'llama_native_adapter'
+    || adapter === 'media_native_adapter'
+    || adapter === 'speech_native_adapter'
+    || adapter === 'sidecar_music_adapter'
+  ) {
+    return adapter;
+  }
+  return undefined;
 }
 
 function statusFromRuntimeHealth(status: number): ProviderStatusV11 {
@@ -87,12 +102,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     capability: normalizeRuntimeNodeCapability((n.capabilities || [])[0]),
     serviceId: n.serviceId || '',
     provider: n.provider || 'llama',
-    adapter: (n.adapter || 'openai_compat_adapter') as
-      | 'openai_compat_adapter'
-      | 'llama_native_adapter'
-      | 'media_native_adapter'
-      | 'speech_native_adapter'
-      | 'sidecar_music_adapter',
+    adapter: normalizeRuntimeNodeAdapter(n.adapter),
     available: n.available !== false,
     providerHints: n.providerHints,
     reasonCode: n.reasonCode,

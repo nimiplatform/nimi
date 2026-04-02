@@ -119,49 +119,6 @@ function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapabil
     }
     return fallbackLocalEngine(capability);
 }
-function defaultLocalAdapter(provider: string, capability: RuntimeCanonicalCapability): string {
-    const normalizedProvider = normalizeLocalEngine(provider);
-    if (normalizedProvider === 'media') {
-        return 'media_native_adapter';
-    }
-    if (normalizedProvider === 'speech') {
-        return 'speech_native_adapter';
-    }
-    if (normalizedProvider === 'sidecar' || capability === 'audio.synthesize') {
-        return 'sidecar_music_adapter';
-    }
-    return 'llama_native_adapter';
-}
-function localAssetRequiresManagedLlamaImageAdapter(item: LocalRuntimeAssetRecord, capability: RuntimeCanonicalCapability): boolean {
-    if (capability !== 'image.generate') {
-        return false;
-    }
-    if (normalizeLocalEngine(item.engine) !== 'media') {
-        return false;
-    }
-    if (String(item.kind || '').trim().toLowerCase() === 'image') {
-        return true;
-    }
-    if ((item.capabilities || []).some((value) => String(value || '').trim().toLowerCase() === 'image.generate' || String(value || '').trim().toLowerCase() === 'image.edit')) {
-        return true;
-    }
-    const backend = String(item.engineConfig?.backend || '').trim().toLowerCase();
-    if (backend === 'stablediffusion-ggml') {
-        return true;
-    }
-    return String(item.preferredEngine || '').trim().toLowerCase() === 'llama';
-}
-function localRouteAdapterForAsset(
-    item: LocalRuntimeAssetRecord,
-    capability: RuntimeCanonicalCapability,
-    providerAdapter?: string,
-): string {
-    if (localAssetRequiresManagedLlamaImageAdapter(item, capability)) {
-        return 'llama_native_adapter';
-    }
-    return String(providerAdapter || '').trim()
-        || defaultLocalAdapter(item.engine, capability);
-}
 function bindingKey(input: RuntimeRouteBinding | null | undefined): string {
     if (!input)
         return '';
@@ -275,12 +232,6 @@ function pickMatchingLocalOption(localModels: RuntimeRouteLocalOption[], binding
         }
     }
     const targetModelId = normalizeLocalModelRoot(String(binding.modelId || binding.model || '').trim());
-    const targetEngine = normalizeLocalEngine(binding.engine || binding.provider || '');
-    const byModelAndEngine = localModels.find((item) => (normalizeLocalModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId
-        && normalizeLocalEngine(item.engine || item.provider || '') === targetEngine)) || null;
-    if (byModelAndEngine) {
-        return byModelAndEngine;
-    }
     return localModels.find((item) => (normalizeLocalModelRoot(String(item.modelId || item.model || '').trim()) === targetModelId)) || null;
 }
 async function pollLocalSnapshotWithTimeout(): Promise<LocalRuntimeSnapshot> {
@@ -487,7 +438,6 @@ export function buildSelectedBinding(input: {
         }
         return {
             ...preferredBinding,
-            adapter: defaultLocalAdapter(runtimeFields.provider, input.capability),
             endpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
             goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
         };
@@ -560,7 +510,6 @@ export async function loadRuntimeRouteOptions(input: {
     });
     const nodeByProvider = new Map<string, {
         provider: string;
-        adapter: string;
         providerHints?: RuntimeRouteLocalOption['providerHints'];
         defaultRank: number;
     }>();
@@ -570,11 +519,9 @@ export async function loadRuntimeRouteOptions(input: {
         const candidateRank = providerDefaultRank(node.providerHints);
         if (!current
             || candidateRank < current.defaultRank
-            || (!current.providerHints && node.providerHints)
-            || (!current.adapter && node.adapter)) {
+            || (!current.providerHints && node.providerHints)) {
             nodeByProvider.set(provider, {
                 provider,
-                adapter: String(node.adapter || '').trim(),
                 providerHints: node.providerHints,
                 defaultRank: candidateRank,
             });
@@ -611,7 +558,6 @@ export async function loadRuntimeRouteOptions(input: {
             model: item.assetId,
             modelId: item.assetId,
             provider: normalizeLocalEngine(item.engine),
-            adapter: localRouteAdapterForAsset(item, input.capability, nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter),
             providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
             endpoint: String(item.endpoint || snapshotModel?.endpoint || '').trim() || undefined,
             status: item.status,

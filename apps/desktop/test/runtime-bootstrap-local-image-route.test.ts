@@ -228,7 +228,6 @@ test('loadRuntimeRouteOptions prefers llama adapter for managed media workflow i
       },
       nodeCatalog: [{
         provider: 'media',
-        adapter: 'media_native_adapter',
         providerHints: {
           extra: {
             local_default_rank: 0,
@@ -258,8 +257,8 @@ test('loadRuntimeRouteOptions prefers llama adapter for managed media workflow i
     }),
   });
 
-  assert.equal(options.local.models[0]?.adapter, 'llama_native_adapter');
+  assert.equal(options.local.models[0]?.adapter, undefined);
   assert.equal(options.local.models[0]?.endpoint, 'http://127.0.0.1:8321/v1');
-  assert.equal(options.selected.adapter, 'llama_native_adapter');
+  assert.equal(options.selected.adapter, undefined);
   assert.equal(options.selected.endpoint, 'http://127.0.0.1:8321/v1');
 });

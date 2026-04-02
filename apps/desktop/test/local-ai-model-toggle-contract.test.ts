@@ -97,15 +97,13 @@ test('dismissed transfer sessions persist across renderer reloads', () => {
   assert.match(localModelCenterProgressCacheSource, /persistDismissedSessionIds\(dismissedSessionIdsCache\)/);
 });
 
-test('managed media workflow image models route through llama native adapter', () => {
-  assert.match(runtimeBootstrapRouteOptionsSource, /function localAssetRequiresManagedLlamaImageAdapter\(/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /capability !== 'image\.generate'/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /normalizeLocalEngine\(item\.engine\) !== 'media'/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /item\.engineConfig\?\.backend/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /backend === 'stablediffusion-ggml'/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /String\(item\.preferredEngine \|\| ''\)\.trim\(\)\.toLowerCase\(\) === 'llama'/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /return 'llama_native_adapter';/);
-  assert.match(runtimeBootstrapRouteOptionsSource, /adapter: localRouteAdapterForAsset\(item, input\.capability, nodeByProvider\.get\(normalizeLocalEngine\(item\.engine\)\)\?\.adapter\)/);
+test('local route options consume runtime node adapter truth without image-specific adapter overrides', () => {
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /function localAssetRequiresManagedLlamaImageAdapter\(/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /function localRouteAdapterForAsset\(/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /item\.engineConfig\?\.backend/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /String\(item\.preferredEngine \|\| ''\)\.trim\(\)\.toLowerCase\(\) === 'llama'/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /adapter: String\(nodeByProvider\.get\(normalizeLocalEngine\(item\.engine\)\)\?\.adapter \|\| ''\)\.trim\(\) \|\| undefined/);
+  assert.doesNotMatch(runtimeBootstrapRouteOptionsSource, /function defaultLocalAdapter\(/);
 });
 
 test('local route options preserve per-asset endpoint instead of falling back to global runtime endpoint', () => {
@@ -173,6 +171,8 @@ test('import dialog exposes attached endpoint input when runtime requires it', (
   assert.match(localModelCenterSectionsSource, /endpointRequiredPlaceholder/);
   assert.match(localModelCenterStateSource, /const \[importEndpointRequired, setImportEndpointRequired\] = useState\(false\)/);
   assert.match(localModelCenterStateSource, /localRuntime\.resolveInstallPlan\(/);
+  assert.match(localModelCenterStateSource, /function planRequiresAttachedEndpointInput\(/);
+  assert.match(localModelCenterStateSource, /plan\.engineRuntimeMode === 'attached-endpoint'/);
   assert.match(localModelCenterStateSource, /canChooseImportFile = useMemo\(/);
 });
 

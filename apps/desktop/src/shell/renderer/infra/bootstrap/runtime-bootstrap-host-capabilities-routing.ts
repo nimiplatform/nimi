@@ -3,7 +3,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeLlmHealthResult, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
-import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
+import { normalizeLocalModelRoot } from './runtime-bootstrap-utils';
 export function getRuntimeFieldsFromStore() {
     const runtime = useAppStore.getState().runtimeFields;
     return {
@@ -65,10 +65,8 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
     const selected = options.selected.source === 'local' ? options.selected : null;
     const targetLocalModelId = String(binding.localModelId || '').trim();
     const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(llama|media|speech|sidecar|local)\//i, '');
-    const targetEngine = String(binding.engine || binding.provider || '').trim().toLowerCase();
     const localModel = options.local.models.find((item) => ((targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
-        || (String(item.modelId || item.model || '').trim() === targetModelId
-            && (!targetEngine || String(item.engine || item.provider || '').trim().toLowerCase() === targetEngine)))) || null;
+        || (String(item.modelId || item.model || '').trim() === targetModelId))) || null;
     if (!localModel && selected) {
         return {
             ...selected,
@@ -128,12 +126,10 @@ function localModelStatusPriority(status: string): number {
 function pickDesktopLocalModel(models: LocalRuntimeAssetRecord[], resolved: ModRuntimeResolvedBinding): LocalRuntimeAssetRecord | null {
     const targetLocalModelId = String(resolved.localModelId || '').trim();
     const targetModelId = normalizeLocalModelRoot(resolved.modelId || resolved.model);
-    const targetEngine = normalizeLocalEngine(resolved.engine || resolved.provider || '');
     const candidates = models
         .filter((model) => model.status !== 'removed')
         .filter((model) => ((targetLocalModelId && String(model.localAssetId || '').trim() === targetLocalModelId)
-        || (normalizeLocalModelRoot(model.assetId) === targetModelId
-            && normalizeLocalEngine(model.engine) === targetEngine)))
+        || (normalizeLocalModelRoot(model.assetId) === targetModelId)))
         .sort((left, right) => {
         const priorityDelta = localModelStatusPriority(left.status) - localModelStatusPriority(right.status);
         if (priorityDelta !== 0) {
