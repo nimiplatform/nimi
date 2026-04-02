@@ -252,6 +252,7 @@ type ImportDialogProps = {
   auxiliaryEngine: AssetEngineOption | '';
   endpoint: string;
   endpointRequired: boolean;
+  compatibilityHint?: string;
   endpointHint?: string;
   onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
@@ -347,6 +348,11 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           {String(props.endpointHint || '').trim()}
         </p>
       ) : null}
+      {String(props.compatibilityHint || '').trim() ? (
+        <p className="mt-2 text-[11px] text-[var(--nimi-status-danger)]">
+          {String(props.compatibilityHint || '').trim()}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -355,6 +361,8 @@ type UnregisteredAssetsSectionProps = {
   assets: LocalRuntimeUnregisteredAssetDescriptor[];
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
+  compatibilityHintByPath: Record<string, string>;
+  importAllowedByPath: Record<string, boolean>;
   importingAssetPath: string | null;
   resolveDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
   endpointByPath: Record<string, string>;
@@ -419,10 +427,13 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
           const endpointRequired = Boolean(props.endpointRequiredByPath[asset.path]);
           const endpointValue = String(props.endpointByPath[asset.path] || '').trim();
           const endpointHint = String(props.endpointHintByPath[asset.path] || '').trim();
+          const compatibilityHint = String(props.compatibilityHintByPath[asset.path] || '').trim();
           const showEndpointField = endpointRequired || Boolean(endpointValue) || Boolean(endpointHint);
           const canImport = Boolean(draft.assetKind)
             && (!requiresEngine || Boolean(String(draft.engine || '').trim()))
-            && (!endpointRequired || Boolean(endpointValue));
+            && (!endpointRequired || Boolean(endpointValue))
+            && !compatibilityHint
+            && props.importAllowedByPath[asset.path] !== false;
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
             : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
@@ -510,6 +521,11 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                     : null}
                   {endpointRequired && endpointHint ? ' ' : ''}
                   {endpointHint}
+                </p>
+              ) : null}
+              {compatibilityHint ? (
+                <p className="mt-2 text-[11px] text-[var(--nimi-status-danger)]">
+                  {compatibilityHint}
                 </p>
               ) : null}
               <p className="mt-2 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">{asset.path}</p>

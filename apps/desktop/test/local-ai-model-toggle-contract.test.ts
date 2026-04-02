@@ -27,6 +27,10 @@ const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
+const localModelCenterUtilsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-model-center-utils.ts',
+);
 const localModelCenterProgressCachePath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-progress-cache.ts',
@@ -58,6 +62,7 @@ const localPageSource = readFileSync(localPagePath, 'utf-8');
 const localModelCenterStateSource = readFileSync(localModelCenterStatePath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
+const localModelCenterUtilsSource = readFileSync(localModelCenterUtilsPath, 'utf-8');
 const localModelCenterProgressCacheSource = readFileSync(localModelCenterProgressCachePath, 'utf-8');
 const runtimeBootstrapRouteOptionsSource = readFileSync(runtimeBootstrapRouteOptionsPath, 'utf-8');
 const runtimeBootstrapHostCapabilitiesSource = readFileSync(runtimeBootstrapHostCapabilitiesPath, 'utf-8');
@@ -170,19 +175,35 @@ test('import dialog exposes attached endpoint input when runtime requires it', (
   assert.match(localModelCenterSectionsSource, /const showEndpointField = props\.endpointRequired/);
   assert.match(localModelCenterSectionsSource, /endpointRequiredPlaceholder/);
   assert.match(localModelCenterStateSource, /const \[importEndpointRequired, setImportEndpointRequired\] = useState\(false\)/);
+  assert.match(localModelCenterStateSource, /const \[importCompatibilityHint, setImportCompatibilityHint\] = useState\(''\)/);
+  assert.match(localModelCenterStateSource, /const \[importPlanAvailable, setImportPlanAvailable\] = useState\(true\)/);
   assert.match(localModelCenterStateSource, /localRuntime\.resolveInstallPlan\(/);
-  assert.match(localModelCenterStateSource, /function planRequiresAttachedEndpointInput\(/);
-  assert.match(localModelCenterStateSource, /plan\.engineRuntimeMode === 'attached-endpoint'/);
+  assert.match(localModelCenterUtilsSource, /export function planRequiresAttachedEndpointInput\(/);
+  assert.match(localModelCenterUtilsSource, /plan\.engineRuntimeMode === 'attached-endpoint'/);
+  assert.match(localModelCenterUtilsSource, /export function planBlockingHint\(/);
+  assert.match(localModelCenterUtilsSource, /export function basenameFromRuntimePath\(/);
+  assert.match(localModelCenterUtilsSource, /export function planBlocksCanonicalImageImport\(/);
   assert.match(localModelCenterStateSource, /canChooseImportFile = useMemo\(/);
+  assert.match(localModelCenterSectionsSource, /compatibilityHint\?: string/);
+  assert.match(localModelCenterStateSource, /if \(importFileDeclaration\.assetKind === 'image'\) \{\s*setImportEndpointRequired\(false\);/s);
 });
 
 test('unregistered assets import flow also captures attached endpoints for media and speech', () => {
   assert.match(localModelCenterSectionsSource, /endpointByPath: Record<string, string>/);
+  assert.match(localModelCenterSectionsSource, /compatibilityHintByPath: Record<string, string>/);
+  assert.match(localModelCenterSectionsSource, /importAllowedByPath: Record<string, boolean>/);
   assert.match(localModelCenterSectionsSource, /onEndpointChange: \(path: string, endpoint: string\) => void/);
   assert.match(localModelCenterSectionsSource, /const showEndpointField = endpointRequired \|\| Boolean\(endpointValue\) \|\| Boolean\(endpointHint\)/);
   assert.match(localModelCenterStateSource, /const \[unregisteredEndpointByPath, setUnregisteredEndpointByPath\] = useState<Record<string, string>>\(\{\}\)/);
   assert.match(localModelCenterStateSource, /const \[unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
+  assert.match(localModelCenterStateSource, /const \[unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath\] = useState<Record<string, string>>\(\{\}\)/);
+  assert.match(localModelCenterStateSource, /const \[unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath\] = useState<Record<string, boolean>>\(\{\}\)/);
+  assert.match(localModelCenterStateSource, /const previewFileName = basenameFromRuntimePath\(asset\.path\)/);
+  assert.match(localModelCenterStateSource, /entry: previewFileName/);
+  assert.match(localModelCenterStateSource, /files: \[previewFileName\]/);
+  assert.match(localModelCenterStateSource, /const blocked = planBlocksCanonicalImageImport\(plan\)/);
   assert.match(localModelCenterStateSource, /importActions\.importAssetFromPath\(\s*assetPath,\s*declaration,\s*String\(unregisteredEndpointByPath\[assetPath\] \|\| ''\)\.trim\(\) \|\| undefined,\s*\)/s);
+  assert.match(localModelCenterSectionsSource, /&& props\.importAllowedByPath\[asset\.path\] !== false/);
 });
 
 test('scaffolded unregistered asset imports refresh installed asset sections immediately', () => {

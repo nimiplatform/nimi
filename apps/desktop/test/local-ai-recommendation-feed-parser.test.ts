@@ -65,7 +65,7 @@ function recommendationFeedFixture() {
           canOpenLocalModel: false,
         },
         installPayload: {
-          assetId: 'local/z-image-turbo',
+          modelId: 'Tongyi-MAI/Z-Image-Turbo',
           repo: 'Tongyi-MAI/Z-Image-Turbo',
           revision: 'main',
           capabilities: ['image'],
@@ -85,6 +85,7 @@ test('parseRecommendationFeedDescriptor keeps feed shape and fails closed for in
 
   assert.equal(parsed.cacheState, 'stale');
   assert.equal(parsed.activeCapability, 'image');
+  assert.equal(parsed.items[0]?.installPayload.modelId, 'Tongyi-MAI/Z-Image-Turbo');
   assert.equal(parsed.items[0]?.entries[0]?.format, 'gguf');
   assert.equal(parsed.items[0]?.recommendation, undefined);
 });
@@ -117,7 +118,7 @@ test('parseRecommendationFeedDescriptor drops items with invalid entry format', 
   assert.equal(parsed.items[0]?.entries.length, 0);
 });
 
-test('parseRecommendationFeedDescriptor drops items with invalid source or missing install payload identity', () => {
+test('parseRecommendationFeedDescriptor drops items with invalid source or missing install payload modelId', () => {
   const payload = recommendationFeedFixture();
   const baseItem = payload.items[0]!;
   payload.items = [
@@ -128,14 +129,26 @@ test('parseRecommendationFeedDescriptor drops items with invalid source or missi
     },
     {
       ...baseItem,
-      itemId: 'missing-install-asset-id',
+      itemId: 'missing-install-model-id',
       installPayload: {
         ...baseItem.installPayload,
-        assetId: '',
+        modelId: '',
       },
     },
   ] as typeof payload.items;
 
   const parsed = parseRecommendationFeedDescriptor(payload, parseDeviceProfile);
   assert.equal(parsed.items.length, 0);
+});
+
+test('parseRecommendationFeedDescriptor maps localModelId onto installedState.localAssetId', () => {
+  const payload = recommendationFeedFixture();
+  (payload.items[0]! as { installedState: Record<string, unknown> }).installedState = {
+    installed: true,
+    localModelId: 'hf:tongyi-z-image-turbo',
+    status: 'installed',
+  };
+
+  const parsed = parseRecommendationFeedDescriptor(payload, parseDeviceProfile);
+  assert.equal(parsed.items[0]?.installedState.localAssetId, 'hf:tongyi-z-image-turbo');
 });

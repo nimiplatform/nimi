@@ -10,11 +10,15 @@ import {
   type LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
 import {
+  basenameFromRuntimePath,
+  planBlocksCanonicalImageImport,
   defaultAssetDeclaration,
   normalizeCapabilityOption,
   normalizeInstallEngine,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
+  planBlockingHint,
+  planRequiresAttachedEndpointInput,
   type AssetEngineOption,
   type CapabilityOption,
   type InstallEngineOption,
@@ -45,10 +49,6 @@ type UseLocalModelCenterRuntimeStateInput = {
   isModMode: boolean;
   props: LocalModelCenterProps;
 };
-
-function planRequiresAttachedEndpointInput(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
-  return Boolean(plan && plan.engineRuntimeMode === 'attached-endpoint');
-}
 
 function planAttachedEndpointHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
   if (!planRequiresAttachedEndpointInput(plan)) {
@@ -83,6 +83,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [importFileEndpoint, setImportFileEndpoint] = useState('');
   const [importEndpointRequired, setImportEndpointRequired] = useState(false);
   const [importEndpointHint, setImportEndpointHint] = useState('');
+  const [importCompatibilityHint, setImportCompatibilityHint] = useState('');
+  const [importPlanAvailable, setImportPlanAvailable] = useState(true);
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
   const [catalogEngineOverrides, setCatalogEngineOverrides] = useState<Record<string, InstallEngineOption>>({});
@@ -91,6 +93,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [unregisteredEndpointByPath, setUnregisteredEndpointByPath] = useState<Record<string, string>>({});
   const [unregisteredEndpointRequiredByPath, setUnregisteredEndpointRequiredByPath] = useState<Record<string, boolean>>({});
   const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
+  const [unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath] = useState<Record<string, string>>({});
+  const [unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath] = useState<Record<string, boolean>>({});
   const autoImportAttemptedPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -568,6 +572,12 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     setUnregisteredEndpointHintByPath((prev) => Object.fromEntries(
       Object.entries(prev).filter(([path]) => currentPaths.has(path)),
     ));
+    setUnregisteredCompatibilityHintByPath((prev) => Object.fromEntries(
+      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
+    ));
+    setUnregisteredImportAllowedByPath((prev) => Object.fromEntries(
+      Object.entries(prev).filter(([path]) => currentPaths.has(path)),
+    ));
   }, [unregisteredAssets]);
 
   useEffect(() => {
@@ -581,28 +591,42 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       if (engine !== 'media' && engine !== 'speech') {
         setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
         setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+        setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
         continue;
       }
+      const previewFileName = basenameFromRuntimePath(asset.path);
+      setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: false }));
       void localRuntime.resolveInstallPlan({
         modelId: `local-import/unregistered-preview-${declaration.assetKind}`,
         capabilities: capabilitiesForAssetKind(declaration.assetKind),
         engine,
+        entry: previewFileName,
+        files: [previewFileName],
       }).then((plan) => {
         if (cancelled) {
           return;
         }
         const required = planRequiresAttachedEndpointInput(plan);
+        const blocked = planBlocksCanonicalImageImport(plan);
         setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: required }));
         setUnregisteredEndpointHintByPath((prev) => ({
           ...prev,
           [asset.path]: required ? planAttachedEndpointHint(plan) : '',
         }));
+        setUnregisteredCompatibilityHintByPath((prev) => ({
+          ...prev,
+          [asset.path]: blocked ? planBlockingHint(plan) : '',
+        }));
+        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: !blocked }));
       }).catch(() => {
         if (cancelled) {
           return;
         }
         setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: false }));
         setUnregisteredEndpointHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+        setUnregisteredCompatibilityHintByPath((prev) => ({ ...prev, [asset.path]: '' }));
+        setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: true }));
       });
     }
     return () => {
@@ -616,7 +640,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       return;
     }
     const declaration = resolveUnregisteredAssetDraft(asset);
-    if (!canImportDeclaration(declaration)) {
+    if (!canImportDeclaration(declaration) || unregisteredImportAllowedByPath[assetPath] === false) {
       return;
     }
     await importActions.importAssetFromPath(
@@ -624,7 +648,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       declaration,
       String(unregisteredEndpointByPath[assetPath] || '').trim() || undefined,
     );
-  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath]);
+  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath, unregisteredImportAllowedByPath]);
 
   const scheduleAutoImportAttempt = useCallback((assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
     void importActions.importAssetFromPath(assetPath, declaration).catch((error) => {
@@ -652,7 +676,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   useEffect(() => {
     for (const asset of unregisteredAssets) {
       const draft = resolveUnregisteredAssetDraft(asset);
-      if (!asset.autoImportable || !canImportDeclaration(draft)) {
+      if (!asset.autoImportable || !canImportDeclaration(draft) || unregisteredImportAllowedByPath[asset.path] === false) {
         continue;
       }
       if (autoImportAttemptedPathsRef.current.has(asset.path)) {
@@ -661,7 +685,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       autoImportAttemptedPathsRef.current.add(asset.path);
       scheduleAutoImportAttempt(asset.path, draft);
     }
-  }, [resolveUnregisteredAssetDraft, scheduleAutoImportAttempt, unregisteredAssets]);
+  }, [resolveUnregisteredAssetDraft, scheduleAutoImportAttempt, unregisteredAssets, unregisteredImportAllowedByPath]);
 
   const installCatalogVariant = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,
@@ -693,15 +717,27 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     if (importFileDeclaration.assetKind === 'auxiliary') {
       setImportEndpointRequired(false);
       setImportEndpointHint('');
+      setImportCompatibilityHint('');
+      setImportPlanAvailable(true);
       return undefined;
     }
     const engine = String(importFileDeclaration.engine || '').trim();
     if (engine !== 'media' && engine !== 'speech') {
       setImportEndpointRequired(false);
       setImportEndpointHint('');
+      setImportCompatibilityHint('');
+      setImportPlanAvailable(true);
+      return undefined;
+    }
+    if (importFileDeclaration.assetKind === 'image') {
+      setImportEndpointRequired(false);
+      setImportEndpointHint('');
+      setImportCompatibilityHint('');
+      setImportPlanAvailable(true);
       return undefined;
     }
     let cancelled = false;
+    setImportPlanAvailable(false);
     void localRuntime.resolveInstallPlan({
       modelId: `local-import/import-preview-${importFileDeclaration.assetKind}`,
       capabilities: capabilitiesForAssetKind(importFileDeclaration.assetKind),
@@ -711,14 +747,19 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         return;
       }
       const required = planRequiresAttachedEndpointInput(plan);
+      const blocked = planBlocksCanonicalImageImport(plan);
       setImportEndpointRequired(required);
       setImportEndpointHint(required ? planAttachedEndpointHint(plan) : '');
+      setImportCompatibilityHint(blocked ? planBlockingHint(plan) : '');
+      setImportPlanAvailable(!blocked);
     }).catch(() => {
       if (cancelled) {
         return;
       }
       setImportEndpointRequired(false);
       setImportEndpointHint('');
+      setImportCompatibilityHint('');
+      setImportPlanAvailable(true);
     });
     return () => {
       cancelled = true;
@@ -726,8 +767,10 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [importFileDeclaration, showImportFileDialog]);
 
   const canChooseImportFile = useMemo(
-    () => canImportDeclaration(importFileDeclaration) && (!importEndpointRequired || Boolean(String(importFileEndpoint || '').trim())),
-    [importEndpointRequired, importFileDeclaration, importFileEndpoint],
+    () => importPlanAvailable
+      && canImportDeclaration(importFileDeclaration)
+      && (!importEndpointRequired || Boolean(String(importFileEndpoint || '').trim())),
+    [importEndpointRequired, importFileDeclaration, importFileEndpoint, importPlanAvailable],
   );
 
   const repairInstalledAsset = useCallback(async (localAssetId: string, endpoint: string) => {
@@ -761,7 +804,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     closeVariantPicker: importActions.closeVariantPicker,
     deferredSearchQuery, filteredInstalledDependencyAssets, filteredInstalledRunnableAssets,
     importFileAssetKind, importFileAuxiliaryEngine, importFileEndpoint, importFileDeclaration,
-    importEndpointHint, importEndpointRequired, importMenuRef,
+    importCompatibilityHint, importEndpointHint, importEndpointRequired, importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
     installCatalogVariant, installMissingAssetsForModel, installVerifiedAsset, installVerifiedModel,
     installing, installedAssetsById, isAssetPending,
@@ -780,7 +823,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     showImportFileDialog, showImportMenu, canChooseImportFile,
     toggleVariantPicker: importActions.toggleVariantPicker,
     unregisteredAssetDrafts, unregisteredAssets,
-    unregisteredEndpointByPath, unregisteredEndpointRequiredByPath, unregisteredEndpointHintByPath,
+    unregisteredCompatibilityHintByPath, unregisteredEndpointByPath,
+    unregisteredEndpointRequiredByPath, unregisteredEndpointHintByPath, unregisteredImportAllowedByPath,
     importPickedAssetFile: importActions.importPickedAssetFile,
     importPickedAssetManifest: importActions.importPickedAssetManifest,
     importUnregisteredAsset,

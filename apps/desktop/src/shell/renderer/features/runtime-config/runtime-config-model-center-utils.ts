@@ -213,6 +213,42 @@ export function normalizeModelTypeOption(value: string | undefined): ModelTypeOp
   return (MODEL_TYPE_OPTIONS.find((item) => item === normalized) || 'chat') as ModelTypeOption;
 }
 
+export function basenameFromRuntimePath(value: string | undefined): string {
+  const normalized = String(value || '').trim().replace(/\\/g, '/');
+  if (!normalized) {
+    return '';
+  }
+  const parts = normalized.split('/').filter(Boolean);
+  return String(parts[parts.length - 1] || '').trim();
+}
+
+export function planRequiresAttachedEndpointInput(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+  return Boolean(plan && plan.engineRuntimeMode === 'attached-endpoint');
+}
+
+export function planInstallAvailable(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+  return plan == null ? true : Boolean(plan.installAvailable);
+}
+
+export function planBlocksCanonicalImageImport(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
+  const reasonCode = String(plan?.reasonCode || '').trim();
+  return reasonCode === 'AI_LOCAL_MODEL_UNAVAILABLE';
+}
+
+export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
+  if (planInstallAvailable(plan)) {
+    return '';
+  }
+  const warning = String(plan?.warnings?.[0] || '').trim();
+  if (warning) {
+    return warning;
+  }
+  if (planRequiresAttachedEndpointInput(plan)) {
+    return `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;
+  }
+  return 'This asset is not available on the current host.';
+}
+
 export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable'): LocalRuntimeAssetDeclaration {
   if (assetClass === 'dependency') {
     return {

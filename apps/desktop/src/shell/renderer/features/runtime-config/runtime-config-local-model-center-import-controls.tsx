@@ -20,6 +20,7 @@ type LocalModelCenterImportControlsProps = {
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importFileEndpoint: string;
   importEndpointRequired: boolean;
+  importCompatibilityHint?: string;
   importEndpointHint?: string;
   onHealthCheck: () => void;
   onRefresh: () => void;
@@ -58,6 +59,7 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         auxiliaryEngine={props.importFileAuxiliaryEngine}
         endpoint={props.importFileEndpoint}
         endpointRequired={props.importEndpointRequired}
+        compatibilityHint={props.importCompatibilityHint}
         endpointHint={props.importEndpointHint}
         onAssetKindChange={props.onAssetKindChange}
         onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}

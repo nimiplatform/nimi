@@ -48,6 +48,7 @@ type LocalModelCenterRuntimeViewProps = {
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importFileEndpoint: string;
   importEndpointRequired: boolean;
+  importCompatibilityHint?: string;
   importEndpointHint?: string;
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
@@ -62,6 +63,8 @@ type LocalModelCenterRuntimeViewProps = {
   localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
+  unregisteredCompatibilityHintByPath: Record<string, string>;
+  unregisteredImportAllowedByPath: Record<string, boolean>;
   unregisteredEndpointByPath: Record<string, string>;
   unregisteredEndpointRequiredByPath: Record<string, boolean>;
   unregisteredEndpointHintByPath: Record<string, string>;
@@ -137,6 +140,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
           importFileEndpoint={props.importFileEndpoint}
           importEndpointRequired={props.importEndpointRequired}
+          importCompatibilityHint={props.importCompatibilityHint}
           importEndpointHint={props.importEndpointHint}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
@@ -155,6 +159,8 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           assets={props.unregisteredAssets}
           assetImportError={props.assetImportError}
           assetImportSessionByPath={props.assetImportSessionByPath}
+          compatibilityHintByPath={props.unregisteredCompatibilityHintByPath}
+          importAllowedByPath={props.unregisteredImportAllowedByPath}
           importingAssetPath={props.importingAssetPath}
           resolveDraft={props.resolveUnregisteredAssetDraft}
           endpointByPath={props.unregisteredEndpointByPath}

@@ -143,6 +143,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       importFileAssetKind={runtimeState.importFileAssetKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
       importFileEndpoint={runtimeState.importFileEndpoint}
+      importCompatibilityHint={runtimeState.importCompatibilityHint}
       importEndpointRequired={runtimeState.importEndpointRequired}
       importEndpointHint={runtimeState.importEndpointHint}
       importMenuRef={runtimeState.importMenuRef}
@@ -159,6 +160,8 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       localHealthy={localHealthy}
       assetImportError={runtimeState.assetImportError}
       assetImportSessionByPath={runtimeState.assetImportSessionByPath}
+      unregisteredCompatibilityHintByPath={runtimeState.unregisteredCompatibilityHintByPath}
+      unregisteredImportAllowedByPath={runtimeState.unregisteredImportAllowedByPath}
       unregisteredEndpointByPath={runtimeState.unregisteredEndpointByPath}
       unregisteredEndpointRequiredByPath={runtimeState.unregisteredEndpointRequiredByPath}
       unregisteredEndpointHintByPath={runtimeState.unregisteredEndpointHintByPath}

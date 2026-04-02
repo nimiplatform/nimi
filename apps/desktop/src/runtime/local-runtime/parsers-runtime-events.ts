@@ -163,7 +163,7 @@ export function parseRecommendationInstalledState(value: unknown): LocalRuntimeR
   const record = asRecord(value);
   return {
     installed: Boolean(record.installed),
-    localAssetId: asString(record.localAssetId) || undefined,
+    localAssetId: asString(record.localAssetId || record.localModelId) || undefined,
     status: record.status ? normalizeAssetStatus(record.status) : undefined,
   };
 }
@@ -185,9 +185,9 @@ export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRunt
   const repo = asString(record.repo);
   const title = asString(record.title);
   const preferredEngine = asString(record.preferredEngine);
-  const installAssetId = asString(installPayload.assetId || installPayload.assetId);
+  const installModelId = asString(installPayload.modelId || installPayload.assetId);
   const installRepo = asString(installPayload.repo);
-  if (!source || !itemId || !repo || !title || !preferredEngine || !installAssetId || !installRepo) {
+  if (!source || !itemId || !repo || !title || !preferredEngine || !installModelId || !installRepo) {
     return undefined;
   }
   const downloads = Number(record.downloads);
@@ -226,7 +226,7 @@ export function parseRecommendationFeedItemDescriptor(value: unknown): LocalRunt
     installedState: parseRecommendationInstalledState(record.installedState),
     actionState: parseRecommendationActionState(record.actionState),
     installPayload: {
-      modelId: installAssetId,
+      modelId: installModelId,
       kind: normalizeAssetKind(installPayload.kind),
       repo: installRepo,
       revision: asString(installPayload.revision) || undefined,

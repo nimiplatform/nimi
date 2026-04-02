@@ -7,7 +7,14 @@ import {
   type LocalRuntimeDownloadProgressEvent,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
-import type { InstallEngineOption, LocalModelCenterProps } from './runtime-config-model-center-utils';
+import {
+  basenameFromRuntimePath,
+  planBlocksCanonicalImageImport,
+  planBlockingHint,
+  type InstallEngineOption,
+  type LocalModelCenterProps,
+} from './runtime-config-model-center-utils';
+import { capabilitiesForAssetKind } from './runtime-config-use-local-model-center-helpers.js';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
@@ -117,6 +124,36 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     return { scaffolded: true as const, model: accepted };
   }, []);
 
+  const preflightImportPlan = useCallback(async (
+    declaration: LocalRuntimeAssetDeclaration,
+    endpoint?: string,
+    previewId = 'local-import/import-preview',
+    sourcePath?: string,
+  ) => {
+    const assetKind = declaration.assetKind;
+    if (!assetKind) {
+      throw new Error('assetKind is required for asset import');
+    }
+    if (assetKind !== 'image') {
+      return;
+    }
+    const sourceFileName = basenameFromRuntimePath(sourcePath);
+    if (!sourceFileName) {
+      return;
+    }
+    const plan = await localRuntime.resolveInstallPlan({
+      modelId: `${previewId}-${assetKind}`,
+      capabilities: capabilitiesForAssetKind(assetKind),
+      engine: declaration.engine,
+      entry: sourceFileName || undefined,
+      files: sourceFileName ? [sourceFileName] : undefined,
+      endpoint: String(endpoint || '').trim() || undefined,
+    });
+    if (planBlocksCanonicalImageImport(plan)) {
+      throw new Error(planBlockingHint(plan));
+    }
+  }, []);
+
   const importAssetFromPath = useCallback(async (
     assetPath: string,
     declaration: LocalRuntimeAssetDeclaration,
@@ -125,6 +162,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     setImportingAssetPath(assetPath);
     setAssetImportError('');
     try {
+      await preflightImportPlan(declaration, endpoint, 'local-import/unregistered-preview', assetPath);
       const imported = await importManagedModelAssetFromPath(assetPath, declaration, endpoint);
       await handleImportedAsset(assetPath, imported);
     } catch (error: unknown) {
@@ -133,7 +171,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     } finally {
       setImportingAssetPath(null);
     }
-  }, [handleImportedAsset, importManagedModelAssetFromPath]);
+  }, [handleImportedAsset, importManagedModelAssetFromPath, preflightImportPlan]);
 
   const importPickedAssetFile = useCallback(async (
     declaration: LocalRuntimeAssetDeclaration,
@@ -146,6 +184,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     }
     setImportingAssetPath(filePath);
     try {
+      await preflightImportPlan(declaration, endpoint, 'local-import/import-preview', filePath);
       const imported = await localRuntime.importAssetFile({
         filePath,
         declaration,
@@ -158,7 +197,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     } finally {
       setImportingAssetPath(null);
     }
-  }, [handleImportedAsset]);
+  }, [handleImportedAsset, preflightImportPlan]);
 
   const importPickedAssetManifest = useCallback(async (endpoint?: string) => {
     setAssetImportError('');
