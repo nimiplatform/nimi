@@ -16,12 +16,11 @@ import { buildFirstBeatRequestInput, buildFullTurnRequestInput } from './request
 import {
   commitAssistantMessage,
   persistUserTurns,
-  scheduleAssistantTurnDeliveries,
   type TurnDeliveryScheduleHandle,
 } from './session-persist.js';
-import { logTurnScheduleCancelled, logTurnSendDone, logTurnSendFailed, logTurnSendStart, createLocalChatFlowId } from './logging.js';
+import { logTurnSendDone, logTurnSendFailed, logTurnSendStart, createLocalChatFlowId } from './logging.js';
 import { decideMediaExecution } from '../media/media-decision-policy.js';
-import { executeMediaDecision } from '../media/media-execution-pipeline.js';
+import { scheduleAndDeliverTailBeats } from './send-flow-delivery.js';
 import { isMediaRouteReady } from '../media/media-route.js';
 import { deriveInteractionProfile } from './interaction-profile.js';
 import { resolveTurnMode } from './turn-mode-resolver.js';
@@ -54,7 +53,6 @@ import {
   createTurnTxnId,
   createTurnId,
   waitForNextPaint,
-  createCancelledAudit,
   normalizeBeatText,
   toMarkerOverrideIntent,
   assertExplicitMediaRequest,
@@ -621,7 +619,6 @@ export async function runLocalChatTurnSend(input: {
       },
       ...orchestratedTailBeats.map((beat) => ({ ...beat, beatCount: totalBeatCount })),
     ];
-    const deliveredBeatIds = new Set<string>([firstBeatMessageId]);
 
     if (deliveries.length === 0) {
       await persistLocalChatInteractionArtifacts({
@@ -646,140 +643,33 @@ export async function runLocalChatTurnSend(input: {
       return;
     }
 
-    input.setSendPhase('delivering-tail', turnTxnId);
-    const schedule = await scheduleAssistantTurnDeliveries({
+    await scheduleAndDeliverTailBeats({
       sessionId,
       targetId: selectedTarget.id,
       viewerId: context.viewerId,
       turnTxnId,
-      assistantTurnId: turnId,
-      assistantBeatCount: totalBeatCount,
-      deliveries: deliveries.map((delivery) => ({
-        id: delivery.id,
-        delayMs: delivery.delayMs,
-        run: async ({ assistantTurnId }) => {
-          if (delivery.kind === 'text' || delivery.kind === 'voice') {
-            const message: ChatMessage = {
-              id: delivery.id,
-              role: 'assistant',
-              kind: delivery.kind,
-              content: delivery.content,
-              timestamp: new Date(),
-              meta: { ...(delivery.meta || {}), scheduledDelayMs: delivery.delayMs },
-            };
-            await commitAssistantMessage({
-              sessionId, targetId: selectedTarget.id, viewerId: context.viewerId,
-              assistantTurnId, messageId: message.id, message,
-              setMessages: chatContext.setMessages, setSessions: chatContext.setSessions,
-            });
-            deliveredBeatIds.add(delivery.beat.beatId);
-            return;
-          }
-          const decision = mediaDeliveryId === delivery.id ? mediaDecision : null;
-          if (!decision || decision.kind === 'none') {
-            const textOnlyMessage: ChatMessage = {
-              id: delivery.id,
-              role: 'assistant',
-              kind: 'text',
-              content: delivery.content,
-              timestamp: new Date(),
-              meta: { ...(delivery.meta || {}), scheduledDelayMs: delivery.delayMs },
-            };
-            await commitAssistantMessage({
-              sessionId, targetId: selectedTarget.id, viewerId: context.viewerId,
-              assistantTurnId, messageId: textOnlyMessage.id, message: textOnlyMessage,
-              setMessages: chatContext.setMessages, setSessions: chatContext.setSessions,
-            });
-            deliveredBeatIds.add(delivery.beat.beatId);
-            return;
-          }
-          const executionTracePatch = await executeMediaDecision({
-            decision,
-            aiClient: context.aiClient,
-            defaultSettings: context.defaultSettings,
-            nsfwPolicy,
-            sessionId,
-            target: selectedTarget,
-            targetId: selectedTarget.id,
-            viewerId: context.viewerId,
-            assistantTurnId,
-            setMessages: chatContext.setMessages,
-            setSessions: chatContext.setSessions,
-            promptTrace: null,
-            turnAudit: null,
-            messageMeta: delivery.meta,
-            sendContextKey,
-            getCurrentContextKey: input.getCurrentContextKey,
-          });
-          if (executionTracePatch) {
-            latestPromptTrace = { ...latestPromptTrace, ...executionTracePatch };
-            chatContext.setLatestPromptTrace(latestPromptTrace);
-          }
-          deliveredBeatIds.add(delivery.beat.beatId);
-        },
-      })),
-      setSessions: chatContext.setSessions,
-      skipCreateAssistantTurnRecord: true,
-      onScheduleCancelled: (scheduleCancelled) => {
-        const cancelledAudit = createCancelledAudit({
-          reason: scheduleCancelled.reason,
-          targetId: selectedTarget.id,
-          worldId: selectedTarget.worldId || null,
-          latencyMs,
-        });
-        chatContext.setLatestTurnAudit(cancelledAudit);
-        logTurnScheduleCancelled({
-          flowId, target: selectedTarget, turnTxnId: scheduleCancelled.turnTxnId,
-          planId: plan.planId, segmentCount: totalBeatCount,
-          textSegments: 1 + deliveries.filter((d) => d.kind === 'text').length,
-          voiceSegments: deliveries.filter((d) => d.kind === 'voice').length,
-          schedulerTotalDelayMs: deliveries.reduce((sum, d) => sum + d.delayMs, 0),
-          cancelReason: scheduleCancelled.reason, deliveredCount: scheduleCancelled.deliveredCount,
-          pendingCount: scheduleCancelled.pendingCount,
-        });
-      },
-    });
-    input.registerSchedule({
-      handle: schedule,
-      context: buildLocalChatTurnContextSnapshot({ targetId: selectedTarget.id, sessionId }),
+      turnId,
+      totalBeatCount,
+      deliveries,
+      mediaDecision,
+      mediaDeliveryId,
+      nsfwPolicy,
+      sendContextKey,
+      deliveredBeats,
+      orchestratedTailBeats,
+      firstBeatResult,
+      flowId,
+      turnMode,
+      planId: plan.planId,
+      activeDirective,
+      latestPromptTrace,
+      turnAudit,
+      chatContext,
+      selectedTarget,
+      context,
+      input,
     });
     handedOffToSchedule = true;
-
-    void schedule.done
-      .then(async () => {
-        await persistLocalChatInteractionArtifacts({
-          sessionId,
-          targetId: selectedTarget.id,
-          viewerId: context.viewerId,
-          assistantTurnId: schedule.assistantTurnId,
-          deliveredBeats: deliveredBeats.filter((beat) => deliveredBeatIds.has(beat.beatId)),
-          aiClient: context.aiClient,
-          conversationDirective: activeDirective,
-          userText: text,
-        });
-      })
-      .catch((scheduleError) => {
-        chatContext.setStatusBanner({
-          kind: 'warning',
-          message: scheduleError instanceof Error ? scheduleError.message : String(scheduleError || ''),
-        });
-      })
-      .finally(() => {
-        input.clearScheduleByTxn(turnTxnId);
-        input.setSendPhase('idle', turnTxnId);
-      });
-
-    logTurnSendDone({
-      flowId, target: selectedTarget, latencyMs, turnTxnId,
-      planId: plan.planId, followupSent: deliveries.length > 0,
-      segmentCount: totalBeatCount,
-      textSegments: 1 + deliveries.filter((d) => d.kind === 'text').length,
-      voiceSegments: deliveries.filter((d) => d.kind === 'voice').length,
-      schedulerTotalDelayMs: deliveries.reduce((sum, d) => sum + d.delayMs, 0),
-      streamDeltaCount: firstBeatResult.streamDeltaCount,
-      streamDurationMs: firstBeatResult.streamDurationMs,
-      segmentParseMode: 'single-message',
-    });
   } catch (error) {
     if (isAbortedError(error)) {
       if (!firstBeatCommitted) {
