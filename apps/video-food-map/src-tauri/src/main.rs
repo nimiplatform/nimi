@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod db;
+mod db_queries;
 mod desktop_paths;
 mod probe;
 mod runtime_daemon;
