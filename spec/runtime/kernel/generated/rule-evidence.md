@@ -211,6 +211,12 @@
 | `K-LENG-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -270,43 +276,6 @@
 | `K-MCAT-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
-| `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-031` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-032` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-033` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-034` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-035` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-036` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
-| `K-MMPROV-037` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -417,3 +386,40 @@
 | `K-LOCAL-021e` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
 | `K-LOCAL-031` | `covered` | `runtime_kernel_consistency` |
 | `K-LOCAL-032` | `covered` | `runtime_kernel_consistency` |
+| `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-005` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-020` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-021` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-024` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-030` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-031` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-032` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-033` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-034` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-035` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-036` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-037` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |

@@ -277,14 +277,6 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	defaults := structToMap(model.GetEngineConfig())
-	if len(defaults) == 0 {
-		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    "local image model missing engine_config defaults",
-			ActionHint: "inspect_local_runtime_model_health",
-		})
-	}
-
 	profileOverrides, err := managedMediaProfileOverrides(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
@@ -299,10 +291,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		return "", nil, nil, err
 	}
 
-	profile := mergeMaps(defaults, profileOverrides)
-	if strings.TrimSpace(valueAsString(profile["backend"])) == "" {
-		profile["backend"] = "stablediffusion-ggml"
-	}
+	profile := mergeMaps(nil, profileOverrides)
 
 	var modelPath string
 	slotPaths := map[string]string{}
@@ -368,7 +357,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 }
 
 func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalAssetRecord {
-	normalizedID, explicitEngine, preferMedia := parseManagedMediaRequestedModelID(requestedModelID)
+	normalizedID, _, _ := parseManagedMediaRequestedModelID(requestedModelID)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -393,29 +382,8 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 	if len(candidates) == 0 {
 		return nil
 	}
-	sort.Slice(candidates, func(i, j int) bool {
-		pi := managedMediaEnginePriority(candidates[i].GetEngine())
-		pj := managedMediaEnginePriority(candidates[j].GetEngine())
-		if pi != pj {
-			return pi < pj
-		}
-		return candidates[i].GetLocalAssetId() < candidates[j].GetLocalAssetId()
-	})
-
-	if explicitEngine != "" {
-		for _, candidate := range candidates {
-			if strings.EqualFold(candidate.GetEngine(), explicitEngine) {
-				return candidate
-			}
-		}
+	if len(candidates) > 1 {
 		return nil
-	}
-	if preferMedia {
-		for _, candidate := range candidates {
-			if strings.EqualFold(candidate.GetEngine(), "media") {
-				return candidate
-			}
-		}
 	}
 	return candidates[0]
 }

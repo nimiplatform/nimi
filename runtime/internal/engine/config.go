@@ -94,6 +94,10 @@ type EngineConfig struct {
 	Port    int
 	Version string
 
+	// ImageSupervisedSelection carries the canonical image resolver output into
+	// media bootstrap when daemon-managed image loopback is active.
+	ImageSupervisedSelection *ImageSupervisedMatrixSelection
+
 	// Address overrides the default 127.0.0.1:<port> endpoint. It is primarily
 	// used for daemon-managed auxiliary services that expose a raw TCP socket.
 	Address string

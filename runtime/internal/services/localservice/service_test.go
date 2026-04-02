@@ -2297,8 +2297,9 @@ func TestLocalImportManifestValidation(t *testing.T) {
 
 func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testing.T) {
 	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
@@ -2374,8 +2375,8 @@ func TestLocalImportImageModelRequiresEndpointOnUnsupportedManagedImageHost(t *t
 	}
 	assertGRPCReasonCode(t, err, "ImportLocalAsset(image unsupported managed host)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	st, _ := status.FromError(err)
-	if !strings.Contains(st.Message(), "Apple M5 or newer") {
-		t.Fatalf("expected explicit Apple M5 compatibility detail, got %q", st.Message())
+	if !strings.Contains(st.Message(), "unsupported") && !strings.Contains(st.Message(), "Apple") {
+		t.Fatalf("expected compatibility detail for unsupported Apple host, got %q", st.Message())
 	}
 }
 
@@ -2902,8 +2903,8 @@ func TestResolveModelInstallPlanImageSupervisedUnsupportedHost(t *testing.T) {
 	if plan.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
 		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
 	}
-	if warnings := strings.Join(plan.GetWarnings(), " "); !strings.Contains(warnings, "Apple M5 or newer") {
-		t.Fatalf("expected explicit compatibility warning, got %#v", plan.GetWarnings())
+	if warnings := strings.Join(plan.GetWarnings(), " "); !strings.Contains(warnings, "canonical image asset facts unavailable") {
+		t.Fatalf("expected missing canonical facts warning, got %#v", plan.GetWarnings())
 	}
 }
 

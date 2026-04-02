@@ -30,12 +30,24 @@ var mediaPackages = []string{
 	"imageio-ffmpeg==0.6.0",
 }
 
+// MediaMode identifies the NIMI_MEDIA_MODE value for the media server process.
+type MediaMode string
+
+const (
+	// MediaModeProxyExecution serves the llama/media dual-plane path.
+	MediaModeProxyExecution MediaMode = "proxy_execution"
+	// MediaModePipelineSupervised serves the media/media single-plane path.
+	MediaModePipelineSupervised MediaMode = "pipeline_supervised"
+)
+
 func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
-	gpuVendor, cudaReady := detectMediaHostGPU()
-	support := ClassifyMediaHost(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady)
-	proxyMode := support != MediaHostSupportSupportedSupervised && LlamaSupervisedPlatformSupported()
-	if !proxyMode && support != MediaHostSupportSupportedSupervised {
-		return cfg, fmt.Errorf("%s", MediaHostSupportDetail(currentGOOS(), currentGOARCH(), gpuVendor, cudaReady))
+	mediaMode := MediaModePipelineSupervised
+	if cfg.ImageSupervisedSelection != nil {
+		resolvedMode, err := mediaModeFromSelection(*cfg.ImageSupervisedSelection)
+		if err != nil {
+			return cfg, err
+		}
+		mediaMode = resolvedMode
 	}
 
 	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
@@ -55,7 +67,7 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	}
 
 	stampPath := filepath.Join(root, ".deps-installed")
-	if !proxyMode {
+	if mediaMode == MediaModePipelineSupervised {
 		if _, err := os.Stat(stampPath); err != nil {
 			extraArgs := []string{}
 			if indexURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_TORCH_INDEX_URL")); indexURL != "" {
@@ -71,7 +83,7 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 			}
 		}
 	} else if _, err := os.Stat(stampPath); err != nil {
-		if writeErr := os.WriteFile(stampPath, []byte("proxy-mode\n"), 0o644); writeErr != nil {
+		if writeErr := os.WriteFile(stampPath, []byte("proxy_execution\n"), 0o644); writeErr != nil {
 			return cfg, fmt.Errorf("write media proxy dependency stamp: %w", writeErr)
 		}
 	}
@@ -95,19 +107,56 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	cfg.CommandEnv["HF_HOME"] = filepath.Join(cacheRoot, "hf")
 	cfg.CommandEnv["TRANSFORMERS_CACHE"] = filepath.Join(cacheRoot, "transformers")
 	cfg.CommandEnv["DIFFUSERS_CACHE"] = filepath.Join(cacheRoot, "diffusers")
-	if proxyMode {
-		cfg.CommandEnv["NIMI_MEDIA_MODE"] = "proxy"
+	cfg.CommandEnv["NIMI_MEDIA_MODE"] = string(mediaMode)
+	if mediaMode == MediaModeProxyExecution {
 		cfg.CommandEnv["NIMI_MEDIA_LLAMA_BASE_URL"] = firstNonEmpty(
 			strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")),
 			defaultLlamaEndpoint,
 		)
 	} else {
-		cfg.CommandEnv["NIMI_MEDIA_MODE"] = "diffusers"
 		cfg.CommandEnv["NIMI_MEDIA_DEVICE"] = "cuda"
 		cfg.CommandEnv["NIMI_MEDIA_IMAGE_DRIVER"] = "flux"
 		cfg.CommandEnv["NIMI_MEDIA_VIDEO_DRIVER"] = "wan"
 	}
 	return cfg, nil
+}
+
+func mediaModeFromSelection(selection ImageSupervisedMatrixSelection) (MediaMode, error) {
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		detail := strings.TrimSpace(selection.CompatibilityDetail)
+		if detail == "" {
+			detail = "image supervised topology selection unavailable for managed media bootstrap"
+		}
+		return "", fmt.Errorf("%s", detail)
+	}
+	if selection.ProductState != ImageProductStateSupported {
+		detail := strings.TrimSpace(selection.CompatibilityDetail)
+		if detail == "" {
+			detail = fmt.Sprintf("image supervised topology %s is not supported for managed media bootstrap", selection.EntryID)
+		}
+		return "", fmt.Errorf("%s", detail)
+	}
+	switch {
+	case selection.ControlPlane == EngineLlama &&
+		selection.ExecutionPlane == EngineMedia &&
+		selection.BackendClass == ImageBackendClassNativeBinary:
+		return MediaModeProxyExecution, nil
+	case selection.ControlPlane == EngineMedia &&
+		selection.ExecutionPlane == EngineMedia &&
+		selection.BackendClass == ImageBackendClassPythonPipeline:
+		return MediaModePipelineSupervised, nil
+	default:
+		detail := strings.TrimSpace(selection.CompatibilityDetail)
+		if detail == "" {
+			detail = fmt.Sprintf(
+				"unsupported managed media bootstrap selection: control_plane=%s execution_plane=%s backend_class=%s",
+				selection.ControlPlane,
+				selection.ExecutionPlane,
+				selection.BackendClass,
+			)
+		}
+		return "", fmt.Errorf("%s", detail)
+	}
 }
 
 func firstNonEmpty(values ...string) string {
@@ -117,6 +166,11 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// DetectMediaHostGPU returns the GPU vendor and CUDA readiness for the current host.
+func DetectMediaHostGPU() (string, bool) {
+	return detectMediaHostGPU()
 }
 
 func detectMediaHostGPU() (string, bool) {

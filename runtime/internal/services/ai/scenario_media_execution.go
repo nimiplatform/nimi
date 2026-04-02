@@ -10,6 +10,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
@@ -83,12 +84,38 @@ func executeBackendSyncMedia(
 			diag    *nimillm.ManagedMediaImageDiagnostics
 		)
 		managedMediaResolved := false
+		var imageSelection engine.ImageSupervisedMatrixSelection
 		if s != nil && s.localImageProfile != nil {
-			alias, profile, forwardedExtensions, resolveErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
+			resolvedSelection, resolveErr := s.localImageProfile.ResolveCanonicalImageSelection(ctx, backendModelID)
 			if resolveErr != nil {
 				return nil, nil, "", resolveErr
 			}
-			if alias != "" && len(profile) > 0 {
+			imageSelection = resolvedSelection
+			if !imageSelection.Matched || imageSelection.Conflict || imageSelection.Entry == nil {
+				return nil, nil, "", grpcerr.WithReasonCodeOptions(
+					codes.FailedPrecondition,
+					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+					grpcerr.ReasonOptions{Message: strings.TrimSpace(imageSelection.CompatibilityDetail)},
+				)
+			}
+			if imageSelection.ProductState != engine.ImageProductStateSupported {
+				return nil, nil, "", grpcerr.WithReasonCodeOptions(
+					codes.FailedPrecondition,
+					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+					grpcerr.ReasonOptions{Message: strings.TrimSpace(imageSelection.CompatibilityDetail)},
+				)
+			}
+			switch {
+			case imageSelection.ControlPlane == engine.EngineLlama &&
+				imageSelection.ExecutionPlane == engine.EngineMedia &&
+				imageSelection.BackendClass == engine.ImageBackendClassNativeBinary:
+				alias, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
+				if managedErr != nil {
+					return nil, nil, "", managedErr
+				}
+				if alias == "" || len(profile) == 0 {
+					return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+				}
 				if err := backend.ImportManagedMediaModelConfig(ctx, profile); err != nil {
 					return nil, nil, "", err
 				}
@@ -96,6 +123,20 @@ func executeBackendSyncMedia(
 				scenarioExtensions = forwardedExtensions
 				managedMediaResolved = true
 				adapterName = adapterLlamaNative
+			case imageSelection.ControlPlane == engine.EngineMedia &&
+				imageSelection.ExecutionPlane == engine.EngineMedia &&
+				imageSelection.BackendClass == engine.ImageBackendClassPythonPipeline:
+				managedMediaResolved = false
+			default:
+				detail := strings.TrimSpace(imageSelection.CompatibilityDetail)
+				if detail == "" {
+					detail = "canonical image resolver returned an unsupported execution path"
+				}
+				return nil, nil, "", grpcerr.WithReasonCodeOptions(
+					codes.FailedPrecondition,
+					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+					grpcerr.ReasonOptions{Message: detail},
+				)
 			}
 		}
 		if managedMediaResolved {

@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type localRuntimeBinding struct {
@@ -46,11 +45,9 @@ func autoRecommendedRuntimeBinding(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	profile *runtimev1.LocalDeviceProfile,
 ) localRuntimeBinding {
-	if isCanonicalSupervisedImageAsset(engine, capabilities, kind, engineConfig, preferredEngine) {
+	if isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
 		return localRuntimeBinding{
 			mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 			endpoint:        "",
@@ -64,7 +61,7 @@ func autoRecommendedRuntimeBinding(
 			autoRecommended: true,
 		}
 	}
-	classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile)
+	classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, profile)
 	if classification == localEngineSupportSupportedSupervised {
 		return localRuntimeBinding{
 			mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
@@ -83,8 +80,6 @@ func catalogBindingInstallAvailable(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	binding localRuntimeBinding,
 	profile *runtimev1.LocalDeviceProfile,
 ) bool {
@@ -92,19 +87,32 @@ func catalogBindingInstallAvailable(
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT:
 		return strings.TrimSpace(binding.endpoint) != ""
 	case runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED:
-		classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile)
+		classification, _ := classifyManagedEngineSupportForAsset(engine, capabilities, kind, profile)
 		return classification == localEngineSupportSupportedSupervised
 	default:
 		return false
 	}
 }
 
+func catalogBindingInstallAvailableForVerifiedAsset(
+	item *runtimev1.LocalVerifiedAssetDescriptor,
+	binding localRuntimeBinding,
+	profile *runtimev1.LocalDeviceProfile,
+) bool {
+	if item == nil {
+		return false
+	}
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
+		isCanonicalSupervisedImageAsset(item.GetEngine(), item.GetCapabilities(), item.GetKind()) {
+		return canonicalSupervisedImageHostSupportedForVerifiedAsset(item, profile)
+	}
+	return catalogBindingInstallAvailable(item.GetEngine(), item.GetCapabilities(), item.GetKind(), binding, profile)
+}
+
 func resolveCatalogRuntimeBinding(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	requestEndpoint string,
 	explicitMode runtimev1.LocalEngineRuntimeMode,
 	catalogEndpoint string,
@@ -128,7 +136,7 @@ func resolveCatalogRuntimeBinding(
 			endpoint: strings.TrimSpace(catalogEndpoint),
 		}
 	default:
-		return autoRecommendedRuntimeBinding(engine, capabilities, kind, engineConfig, preferredEngine, profile)
+		return autoRecommendedRuntimeBinding(engine, capabilities, kind, profile)
 	}
 }
 
@@ -136,8 +144,6 @@ func resolveInstallRuntimeBinding(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	requestEndpoint string,
 	profile *runtimev1.LocalDeviceProfile,
 ) localRuntimeBinding {
@@ -147,7 +153,7 @@ func resolveInstallRuntimeBinding(
 			endpoint: endpoint,
 		}
 	}
-	return autoRecommendedRuntimeBinding(engine, capabilities, kind, engineConfig, preferredEngine, profile)
+	return autoRecommendedRuntimeBinding(engine, capabilities, kind, profile)
 }
 
 func (s *Service) managedEndpointForEngine(engine string) string {
@@ -167,11 +173,9 @@ func (s *Service) managedEndpointForAsset(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 ) string {
 	return s.managedEndpointForEngine(
-		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+		executionRuntimeEngineForAsset(engine, capabilities, kind),
 	)
 }
 
@@ -192,11 +196,9 @@ func (s *Service) managedEndpointForAssetLocked(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 ) string {
 	return s.managedEndpointForEngineLocked(
-		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+		executionRuntimeEngineForAsset(engine, capabilities, kind),
 	)
 }
 
@@ -224,14 +226,12 @@ func effectiveEndpointForAssetRuntimeMode(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	mode runtimev1.LocalEngineRuntimeMode,
 	endpoint string,
 	managedEndpoint string,
 ) string {
 	return effectiveEndpointForRuntimeMode(
-		executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+		executionRuntimeEngineForAsset(engine, capabilities, kind),
 		mode,
 		endpoint,
 		managedEndpoint,
@@ -242,13 +242,11 @@ func storedEndpointForAssetRuntimeMode(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	mode runtimev1.LocalEngineRuntimeMode,
 	endpoint string,
 	managedEndpoint string,
 ) string {
-	targetEngine := executionRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine)
+	targetEngine := executionRuntimeEngineForAsset(engine, capabilities, kind)
 	if strings.TrimSpace(managedEndpoint) == "" {
 		managedEndpoint = managedDefaultEndpointForEngine(targetEngine)
 	}

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -409,8 +408,6 @@ func startupCompatibilityWarnings(engine string, profile *runtimev1.LocalDeviceP
 		engine,
 		nil,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		nil,
-		"",
 		profile,
 	)
 }
@@ -419,15 +416,13 @@ func startupCompatibilityWarningsForAsset(
 	engine string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	profile *runtimev1.LocalDeviceProfile,
 ) []string {
 	if profile == nil {
 		return []string{}
 	}
 	normalizedEngine := strings.ToLower(strings.TrimSpace(
-		managedRuntimeEngineForAsset(engine, capabilities, kind, engineConfig, preferredEngine),
+		managedRuntimeEngineForAsset(engine, capabilities, kind),
 	))
 	warnings := make([]string, 0, 3)
 	if requiresGPU(normalizedEngine) && !profile.GetGpu().GetAvailable() {
@@ -439,7 +434,7 @@ func startupCompatibilityWarningsForAsset(
 	if requiresNPU(normalizedEngine) && (!profile.GetNpu().GetAvailable() || !profile.GetNpu().GetReady()) {
 		warnings = append(warnings, "WARN_NPU_REQUIRED")
 	}
-	for _, warning := range managedEngineSupportWarningsForAsset(engine, capabilities, kind, engineConfig, preferredEngine, profile) {
+	for _, warning := range managedEngineSupportWarningsForAsset(engine, capabilities, kind, profile) {
 		warnings = append(warnings, warning)
 	}
 	return warnings
@@ -478,26 +473,24 @@ func managedRuntimeEngineForModel(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
 		return ""
 	}
-	return managedRuntimeEngineForAsset(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
-	)
+	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
+		return managedRuntimeEngineForSelection(
+			canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()),
+		)
+	}
+	return managedRuntimeEngineForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
 }
 
 func executionRuntimeEngineForModel(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
 		return ""
 	}
-	return executionRuntimeEngineForAsset(
-		model.GetEngine(),
-		model.GetCapabilities(),
-		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
-	)
+	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
+		return executionRuntimeEngineForSelection(
+			canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile()),
+		)
+	}
+	return executionRuntimeEngineForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
 }
 
 func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalAssetRecord) string {
@@ -508,11 +501,9 @@ func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalAssetRecord)
 		model.GetEngine(),
 		model.GetCapabilities(),
 		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
 		s.modelRuntimeMode(model.GetLocalAssetId()),
 		model.GetEndpoint(),
-		s.managedEndpointForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), model.GetEngineConfig(), model.GetPreferredEngine()),
+		s.managedEndpointForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()),
 	)
 }
 
@@ -684,8 +675,6 @@ func (s *Service) bootstrapAssetExecutionEngineIfManaged(ctx context.Context, mo
 		model.GetEngine(),
 		model.GetCapabilities(),
 		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
 		profile,
 	); classification != localEngineSupportSupportedSupervised {
 		if strings.TrimSpace(detail) != "" {

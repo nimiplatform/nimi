@@ -254,22 +254,30 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 
 func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
 	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
 
-	writeManagedLlamaManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
-	engineConfig, err := structpb.NewStruct(map[string]any{
-		"backend": "stablediffusion-ggml",
-		"options": []any{"diffusion_model"},
+	modelID := "local/image-model"
+	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      modelID,
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "./weights/image-model.gguf",
+		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),
+		revision:     "local",
 	})
-	if err != nil {
-		t.Fatalf("build engine config: %v", err)
-	}
-	installed := installManagedLlamaModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
+	svc.mu.Lock()
+	stored := cloneLocalAsset(svc.assets[installed.GetLocalAssetId()])
+	stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
+	svc.assets[installed.GetLocalAssetId()] = stored
+	svc.mu.Unlock()
 
 	registration := svc.managedLlamaRegistrationForModel(installed)
 	if registration.Problem != "" {
@@ -285,7 +293,9 @@ func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 
 func TestBuildManagedLlamaRegistrationsIncludesManagedMediaImageAssets(t *testing.T) {
 	svc := newTestService(t)
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
@@ -355,27 +365,35 @@ func TestManagedLlamaModelProbeSucceededForDynamicProfileWhenEndpointResponds(t 
 
 func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendRecovers(t *testing.T) {
 	svc := newTestService(t)
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
 
-	writeManagedLlamaManifest(t, modelsPath, "local/image-model", "./weights/image-model.gguf", []string{"image"})
-	engineConfig, err := structpb.NewStruct(map[string]any{
-		"backend": "stablediffusion-ggml",
-		"options": []any{"diffusion_model"},
+	modelID := "local/image-model"
+	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      modelID,
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "./weights/image-model.gguf",
+		repo:         "file://" + filepath.ToSlash(filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")),
+		revision:     "local",
 	})
-	if err != nil {
-		t.Fatalf("build engine config: %v", err)
-	}
-	installed := installManagedLlamaModelForRegistrarTest(t, svc, "local/image-model", "./weights/image-model.gguf", []string{"image"}, "", engineConfig)
+	svc.mu.Lock()
+	stored := cloneLocalAsset(svc.assets[installed.GetLocalAssetId()])
+	stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
+	svc.assets[installed.GetLocalAssetId()] = stored
+	svc.mu.Unlock()
 
 	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
 		t.Fatalf("sync managed llama assets: %v", err)
 	}
 	stale := svc.managedLlamaRegistrations[installed.GetLocalAssetId()]
-	if stale.Problem != "managed diffusers backend unavailable" {
+	if stale.Problem != "managed image backend unavailable (entry_id=windows-x64-nvidia-gguf backend_family=stablediffusion-ggml internal_reason_key=managed_image_backend_unavailable)" {
 		t.Fatalf("expected cached unavailable registration, got %+v", stale)
 	}
 

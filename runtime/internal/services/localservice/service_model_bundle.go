@@ -271,13 +271,7 @@ func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runti
 		return false
 	}
 	if !strings.EqualFold(
-		managedRuntimeEngineForAsset(
-			model.GetEngine(),
-			model.GetCapabilities(),
-			model.GetKind(),
-			model.GetEngineConfig(),
-			model.GetPreferredEngine(),
-		),
+		managedRuntimeEngineForModel(model),
 		"llama",
 	) {
 		return false
@@ -295,12 +289,10 @@ func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runti
 	if model == nil {
 		return false
 	}
-	if !isManagedLlamaBackedImageAsset(
+	if !isCanonicalSupervisedImageAsset(
 		model.GetEngine(),
 		model.GetCapabilities(),
 		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
 	) {
 		return false
 	}
@@ -318,13 +310,7 @@ func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetReco
 		return false
 	}
 	if !strings.EqualFold(
-		managedRuntimeEngineForAsset(
-			model.GetEngine(),
-			model.GetCapabilities(),
-			model.GetKind(),
-			model.GetEngineConfig(),
-			model.GetPreferredEngine(),
-		),
+		managedRuntimeEngineForModel(model),
 		"llama",
 	) {
 		return false
@@ -336,8 +322,6 @@ func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetReco
 		model.GetEngine(),
 		model.GetCapabilities(),
 		model.GetKind(),
-		model.GetEngineConfig(),
-		model.GetPreferredEngine(),
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		"",
 		"",
@@ -382,11 +366,9 @@ func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*r
 		record.GetEngine(),
 		record.GetCapabilities(),
 		record.GetKind(),
-		record.GetEngineConfig(),
-		record.GetPreferredEngine(),
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		"",
-		s.managedEndpointForAssetLocked(record.GetEngine(), record.GetCapabilities(), record.GetKind(), record.GetEngineConfig(), record.GetPreferredEngine()),
+		s.managedEndpointForAssetLocked(record.GetEngine(), record.GetCapabilities(), record.GetKind()),
 	)
 	cloned := cloneLocalAsset(record)
 	s.assets[id] = cloned

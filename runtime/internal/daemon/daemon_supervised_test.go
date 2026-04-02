@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -215,17 +216,17 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
-	daemon.detectManagedImageSupervisedFn = func() bool {
-		return false
-	}
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 1)
+	var startCallsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
 		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
 		return nil
 	}
 
@@ -275,17 +276,17 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportSupportedSupervised, "supported"
 	}
-	daemon.detectManagedImageSupervisedFn = func() bool {
-		return false
-	}
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 1)
+	var startCallsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
 		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
 		return nil
 	}
 
@@ -370,16 +371,31 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
-	daemon.detectManagedImageSupervisedFn = func() bool {
-		return true
+	daemon.imageBootstrapSelectionFn = func() (engine.ImageSupervisedMatrixSelection, bool) {
+		return engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			EntryID:        "gguf_image_metal_metal_single_binary",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			ControlPlane:   engine.EngineLlama,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:      "gguf_image_metal_metal_single_binary",
+				ProductState: engine.ImageProductStateSupported,
+			},
+		}, true
 	}
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 2)
+	var startCallsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
 		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
 		return nil
 	}
 
@@ -411,9 +427,96 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	}
 }
 
+func TestStartSupervisedEnginesFailsClosedOnManagedImageBootstrapConflict(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 2,
+		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+		"assets": []map[string]any{{
+			"localAssetId":      "01KNCONFLICTIMAGE000000001",
+			"assetId":           "local/conflict-image",
+			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE),
+			"capabilities":      []string{"image"},
+			"engine":            "media",
+			"entry":             "conflict.gguf",
+			"status":            1,
+			"engineRuntimeMode": 1,
+			"logicalModelId":    "nimi/conflict-image",
+			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
+		}},
+		"services":  []map[string]any{},
+		"transfers": []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       localStatePath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   true,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "b8575",
+		EngineMediaEnabled:   true,
+		EngineMediaPort:      8321,
+		EngineMediaVersion:   "0.1.0",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
+		return engine.MediaHostSupportAttachedOnly, "attached only"
+	}
+	daemon.imageBootstrapSelectionFn = func() (engine.ImageSupervisedMatrixSelection, bool) {
+		return engine.ImageSupervisedMatrixSelection{
+			Matched:             true,
+			Conflict:            true,
+			ConflictEntryIDs:    []string{"entry-a", "entry-b"},
+			CompatibilityDetail: "multiple managed image topology entries are active: entry-a, entry-b; runtime cannot arbitrate",
+		}, true
+	}
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	}
+
+	startCalls := make([]engine.EngineKind, 0, 2)
+	var startCallsMu sync.Mutex
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
+		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+	if slices.Contains(startCalls, engine.EngineMedia) {
+		t.Fatalf("bootstrap conflict must fail-close without starting media engine, got=%v", startCalls)
+	}
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded {
+		t.Fatalf("expected degraded runtime state after managed image bootstrap conflict, got %v", snapshot.Status)
+	}
+	if !strings.Contains(snapshot.Reason, "multiple managed image topology entries are active") {
+		t.Fatalf("expected degraded reason to surface managed image bootstrap conflict, got %q", snapshot.Reason)
+	}
+}
+
 func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	store := auditlog.New(32, 32)
-	appendEngineCrashAudit(store, "llama", "crash=exit status 7 attempt=2/5 restarting")
+	appendEngineCrashAudit(store, "llama", "crash=exit status 7 attempt=2/5 restarting", nil, "execution_failure")
 
 	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.engine",
@@ -474,8 +577,11 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
+	var callsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		callsMu.Lock()
 		calls = append(calls, kind)
+		callsMu.Unlock()
 		return errors.New("mock bootstrap failure")
 	}
 
@@ -614,8 +720,11 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *te
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
+	var callsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		callsMu.Lock()
 		calls = append(calls, kind)
+		callsMu.Unlock()
 		return nil
 	}
 
@@ -782,8 +891,11 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		return &engine.Manager{}, nil
 	}
 	calls := make([]engine.EngineKind, 0, 1)
+	var callsMu sync.Mutex
 	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		callsMu.Lock()
 		calls = append(calls, kind)
+		callsMu.Unlock()
 		return nil
 	}
 

@@ -121,6 +121,89 @@ func (d *Daemon) decorateProviderProbeError(providerName string, probeErr error)
 	return fmt.Errorf("%s; probe error: %w", hint, probeErr)
 }
 
+// isImageRelatedEngine returns true for engine kinds that participate in the
+// image supervised matrix (K-PROV-002).
+func isImageRelatedEngine(kind engine.EngineKind) bool {
+	return kind == engine.EngineMedia || kind == engineMediaDiffusersBackend
+}
+
+// imageAttributionDetail formats v2 resolver fields into a structured string
+// for provider failure hints and audit detail (K-PROV-002 line 68).
+func imageAttributionDetail(sel *engine.ImageSupervisedMatrixSelection) string {
+	if sel == nil || sel.Entry == nil {
+		return ""
+	}
+	e := sel.Entry
+	return fmt.Sprintf(
+		"entry_id=%s backend_family=%s backend_class=%s product_state=%s control_plane=%s execution_plane=%s",
+		e.EntryID,
+		e.BackendFamily,
+		e.BackendClass,
+		e.ProductState,
+		e.ControlPlane,
+		e.ExecutionPlane,
+	)
+}
+
+// resolveInternalReasonKey maps an engine state detail to an internal_reason_key
+// per K-LENG-017.
+func resolveInternalReasonKey(detail string) string {
+	d := strings.ToLower(strings.TrimSpace(detail))
+	switch {
+	case strings.Contains(d, "python version"):
+		return "python_version_incompatible"
+	case strings.Contains(d, "venv") || strings.Contains(d, "interpreter"):
+		return "python_runtime_broken"
+	case strings.Contains(d, "dependency") || strings.Contains(d, "pip install") || strings.Contains(d, "wheel"):
+		return "python_dependency_install_failed"
+	case strings.Contains(d, "pipeline load timeout") || strings.Contains(d, "pipeline_load_timeout"):
+		return "pipeline_load_timeout"
+	case strings.Contains(d, "bootstrap") || strings.Contains(d, "startup"):
+		return "bootstrap_failure"
+	case strings.Contains(d, "plane") && strings.Contains(d, "not ready"):
+		return "plane_not_ready"
+	case strings.Contains(d, "manifest") || strings.Contains(d, "completeness"):
+		return "manifest_completeness_failure"
+	case strings.Contains(d, "catalog") && strings.Contains(d, "identity"):
+		return "catalog_identity_mismatch"
+	default:
+		return "execution_failure"
+	}
+}
+
+// appendRepairResolvedAudit emits an audit event when an image-related engine
+// recovers from unhealthy, per K-LENG-017 line 305.
+func appendRepairResolvedAudit(store *auditlog.Store, engineName string, detail string, sel *engine.ImageSupervisedMatrixSelection) {
+	if store == nil {
+		return
+	}
+	now := time.Now().UTC()
+	payloadMap := map[string]any{
+		"engine":         engineName,
+		"detail":         detail,
+		"resolve_reason": "engine_recovered_from_unhealthy",
+		"trigger":        "onEngineStateChange",
+		"resolved_at":    now.Format(time.RFC3339Nano),
+	}
+	if sel != nil && sel.Entry != nil {
+		payloadMap["old_entry_id"] = sel.Entry.EntryID
+		payloadMap["entry_id"] = sel.Entry.EntryID
+		payloadMap["backend_family"] = string(sel.Entry.BackendFamily)
+	}
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:    ulid.Make().String(),
+		Domain:     "runtime.engine",
+		Operation:  "engine.repair_resolved",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:    ulid.Make().String(),
+		Timestamp:  timestamppb.New(now),
+		Payload:    auditPayloadStruct(payloadMap),
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+		CallerId:   "runtime-daemon",
+		SurfaceId:  "daemon",
+	})
+}
+
 func appendProviderHealthAudit(store *auditlog.Store, providerName string, before providerhealth.Snapshot, after providerhealth.Snapshot) {
 	if store == nil || before.State == after.State {
 		return

@@ -601,10 +601,17 @@ Phase 1 本地执行引擎固定为：
 - `speech`：本地语音引擎族，负责 `audio.transcribe`、`audio.synthesize`、`voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
-`media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。
+`media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
 `LocalAI / Nexa / nimi_media` 不再属于规范引擎枚举，也不得作为新的本地执行事实源。
 
 引擎类型值域以 `tables/local-engine-catalog.yaml` 为唯一事实源。
+
+`engine=media` 可承载多个 `backend_class`：
+
+- `native_binary`：原生二进制受管 backend（当前：`stablediffusion-ggml`）
+- `python_pipeline`：受管 Python pipeline backend（候选：`diffusers`）
+
+`backend_class` 与 public `engine` 正交；`backend_class` 不是 public engine target，也不是 provider alias。
 
 **K-LENG-002 — 运行模式**
 

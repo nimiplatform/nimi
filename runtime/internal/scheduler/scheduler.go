@@ -103,6 +103,9 @@ func (s *Scheduler) releaseAppReference(appID string, sem *appSemaphore) {
 }
 
 func (s *Scheduler) Acquire(ctx context.Context, appID string) (func(), AcquireResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", err)
+	}
 	started := time.Now()
 	appKey, perApp := s.perAppSemaphore(appID)
 

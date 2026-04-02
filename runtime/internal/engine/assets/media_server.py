@@ -13,7 +13,9 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODE = os.environ.get("NIMI_MEDIA_MODE", "diffusers").strip().lower() or "diffusers"
+_raw_mode = os.environ.get("NIMI_MEDIA_MODE", "proxy_execution").strip().lower()
+_VALID_MODES = {"proxy_execution", "pipeline_supervised"}
+MODE = _raw_mode if _raw_mode in _VALID_MODES else "proxy_execution"
 LLAMA_BASE_URL = os.environ.get(
     "NIMI_MEDIA_LLAMA_BASE_URL",
     "http://127.0.0.1:1234/v1",
@@ -695,12 +697,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/healthz":
-            payload = _proxy_health_payload() if MODE == "proxy" else _health_payload()
+            payload = _proxy_health_payload() if MODE == "proxy_execution" else _health_payload()
             status = 200 if payload["ready"] else 503
             _json_response(self, status, payload)
             return
         if self.path == "/v1/catalog":
-            payload = _proxy_catalog_payload() if MODE == "proxy" else _catalog_payload()
+            payload = _proxy_catalog_payload() if MODE == "proxy_execution" else _catalog_payload()
             status = 200 if payload["ready"] else 503
             _json_response(self, status, payload)
             return
@@ -710,7 +712,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = _read_json(self)
             if self.path == "/models/import":
-                if MODE == "proxy":
+                if MODE == "proxy_execution":
                     _json_response(self, 200, _proxy_import_model(payload))
                     return
                 _error_response(self, 404, "not_found", "route not found")
@@ -719,7 +721,7 @@ class Handler(BaseHTTPRequestHandler):
                 spec = payload.get("spec")
                 if not isinstance(spec, dict):
                     raise ValueError("spec is required")
-                if MODE == "proxy":
+                if MODE == "proxy_execution":
                     _json_response(self, 200, _proxy_generate_image(payload.get("model"), spec))
                     return
                 _json_response(self, 200, _generate_image(payload.get("model"), spec))
@@ -728,7 +730,7 @@ class Handler(BaseHTTPRequestHandler):
                 spec = payload.get("spec")
                 if not isinstance(spec, dict):
                     raise ValueError("spec is required")
-                if MODE == "proxy":
+                if MODE == "proxy_execution":
                     raise RuntimeError("video generation is not available in media proxy mode")
                 _json_response(self, 200, _generate_video(payload.get("model"), spec))
                 return
@@ -751,7 +753,7 @@ def main():
     parser.add_argument("--port", type=int, default=8321)
     args = parser.parse_args()
 
-    if MODE != "proxy":
+    if MODE != "proxy_execution":
         warm_thread = threading.Thread(target=_warm_default_models, daemon=True)
         warm_thread.start()
     else:

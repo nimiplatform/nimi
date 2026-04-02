@@ -47,13 +47,17 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 
 `media` 补充：
 
-- `tables/local-image-supervised-backend-matrix.yaml` 是 canonical local image supervised backend 选型与平台支持面的事实源。
+- `tables/local-image-supervised-backend-matrix.yaml`（v2）是 canonical local image supervised backend matrix 的唯一事实源。runtime 必须通过统一 resolver 消费 v2 matrix entries，不得在 localservice、ai execution、daemon 各自推断 image supervised 路径。
+- v2 matrix 按 `entry_id` 索引，以 `platform + asset_family + backend_family + profile_kind` 标识 topology 槽位。`topology_state` 与 `product_state` 分离；只有 `product_state=supported` 的 entry 才允许进入 install recommendation、activation、ready health success。
 - runtime 到 `media` engine 的私有协议必须直接承接 runtime canonical image/video spec，不得回落到 OpenAI-compatible `/v1/images/generations`、`/v1/video/generations` 或 legacy catalog-only 健康路径。
 - `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
-- 对 `tables/local-image-supervised-backend-matrix.yaml` 选中的 daemon-managed `stablediffusion-ggml` image 路径，dynamic profile import 如需额外 materialization 步骤，只允许作为 runtime 私有内部实现存在；app-facing consume 仍必须固定落到 `POST /v1/media/image/generate`。
+- `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface；request body 与 artifact response envelope 在两种 mode 下保持同形。
+- 对 v2 matrix resolver 选中的 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` image 路径，dynamic profile import 如需额外 materialization 步骤，只允许作为 runtime 私有内部实现存在；app-facing consume 仍必须固定落到 `POST /v1/media/image/generate`。
+- 对 v2 matrix resolver 选中的 `backend_class=python_pipeline` + `backend_family=diffusers` image 路径，必须确认该 entry 的 `product_state` 已达到 `supported` 且 `admission_gate` 已通过，方可进入 install / activation / execution。
 - 对 canonical local image product path，runtime 不得将 host 不支持误投影成 `ATTACHED_ENDPOINT + AI_LOCAL_ENDPOINT_REQUIRED`；必须保持 `SUPERVISED` 契约并以 `AI_LOCAL_MODEL_UNAVAILABLE + compatibility detail` fail-close。
 - `media` 只允许暴露真实 ready 的 image/video 模型目录；依赖未安装、设备不可用、模型未解析、管线未初始化时必须 fail-close，不得伪造成功 artifact 或静态 model list。
-- `media.diffusers` 只允许作为 `media` 的内部 fallback driver 出现在 runtime metadata / execution strategy；不得作为 public config、public adapter 选择面或手工 engine target。
+- `media.diffusers` 只允许作为 `media` 的内部 fallback driver 出现在 runtime metadata / execution strategy；不得作为 public config、public adapter 选择面或手工 engine target。当前 kernel 基线仍规定 `media.diffusers` 不得在未完成规范修订前直接升格为 matrix-supported canonical path。
+- `backend_family`、`backend_class`、`product_state` 等 v2 matrix 字段只允许落在 runtime-private resolved detail、provider hints `extra`、audit detail；本轮不新增 typed proto 字段（K-LENG-015）。
 
 `speech` 补充：
 

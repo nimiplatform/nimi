@@ -50,15 +50,22 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `local-image` 仅用于 daemon-managed image backend 的健康归因与审计，不从环境变量装配独立 probe target。
 - `local-media` 在 `supported_supervised` host 之外不得由 runtime 自动注入默认 loopback probe target。
 - 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` 才参与 provider health 探测。
-- `tables/local-image-supervised-backend-matrix.yaml` 是 canonical local image supervised health 归因的唯一平台事实源。
-- `local-media` 的 host support 判断不得只按 public engine=`media` 一刀切；对 `image.generate` / `image.edit` 且 backend/profile 解析到 `stablediffusion-ggml` 或 llama-backed image backend 的资产，是否允许 runtime 自动注入 supervised probe target 必须跟随实际受管 backend 的 supervised 支持面。
+- `tables/local-image-supervised-backend-matrix.yaml`（v2）是 canonical local image supervised health 归因的唯一平台事实源。health attribution 必须消费 v2 matrix resolver 输出的 `entry_id`、`backend_family`、`backend_class`、`product_state`；不得各自推断。
+- `local-media` 的 host support 判断不得只按 public engine=`media` 一刀切；必须由 v2 matrix resolver 输出的 `backend_class` / `backend_family` / `control_plane` / `execution_plane` 驱动。
+- `product_state=unsupported` 的 entry 命中时，health 必须返回 recognized-but-unsupported 归因并以 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close。`product_state=proposed` 且 admission 未通过时同理。
 - `darwin/arm64` 上的 daemon-managed `stablediffusion-ggml` supervised probe target 只允许在 Apple `M5+` / `A19+` 级别硬件上自动注入；若 host 低于该门槛，provider health 必须直接暴露兼容性原因，并以 `AI_LOCAL_MODEL_UNAVAILABLE` 归因；不得继续注入 `1234/8321` 监督探测目标后再汇总成泛化 provider unavailable。
-- 当 `image/media` 资产被判定为 llama-backed supervised image backend 时，provider health 归因必须落到该真实受管 backend，不得继续把它视为 attached-only `local-media` 资产并要求外部 endpoint。
-- 对 llama-backed supervised image 资产：
+- 当 image 资产被 v2 matrix resolver 判定为 `backend_class=native_binary` + `control_plane=llama` 时，provider health 归因必须落到该真实受管 backend，不得继续把它视为 attached-only `local-media` 资产并要求外部 endpoint。
+- 对 llama-backed supervised image 资产（`control_plane=llama`, `execution_plane=media`）：
   - `local-media` probe target 仍是 app-facing execution health 的唯一事实源。
   - `local-image` 仅用于 daemon-managed llama image backend 的内部健康归因，不得替代 `local-media` execution probe，也不得把 `LocalAssetRecord.endpoint` 改写成 llama control-plane endpoint。
+  - health attribution detail 必须带上 `backend_family`、`entry_id`、`internal_reason_key`（K-LENG-017）。
+- 对 python_pipeline supervised image 资产（`control_plane=media`, `execution_plane=media`）：
+  - `local-media` 同时承担 control + execution health。
+  - health attribution detail 必须包含 `backend_family=diffusers`、`entry_id`、`internal_reason_key`。
+  - Python runtime / venv 损坏、依赖安装失败等必须以对应 `internal_reason_key` 归因，不得泛化为 generic provider unavailable。
 - `local-speech` 作为完整 supervised engine，与 `local` / `local-media` 一样按显式 Base URL 配置参与 provider health 探测。
 - `local-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
+- v2 观测字段（`backend_family`、`backend_class`、`product_state`、`control_plane`、`execution_plane`）本轮只允许落在 runtime-private resolved detail、provider hints `extra`、audit detail；不新增 `AIProviderHealthSnapshot` typed 字段。
 
 ## K-PROV-003 探测间隔与策略
 

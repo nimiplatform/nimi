@@ -46,6 +46,16 @@ func profileEntryHasEngineSlot(entry *runtimev1.LocalProfileEntryDescriptor) boo
 	return entry != nil && strings.TrimSpace(entry.GetEngineSlot()) != ""
 }
 
+func profileEntryUsesCanonicalImageResolution(entry *runtimev1.LocalProfileEntryDescriptor) bool {
+	if !profileEntryIsAsset(entry) {
+		return false
+	}
+	if entry.GetAssetKind() == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(entry.GetCapability()), "image")
+}
+
 func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string) bool {
 	cap := strings.ToLower(strings.TrimSpace(capability))
 	if cap == "" {
@@ -345,6 +355,9 @@ func (s *Service) resolveVerifiedAssetForProfileEntry(entry *runtimev1.LocalProf
 	templateID := strings.TrimSpace(entry.GetTemplateId())
 	assetID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
+	if profileEntryUsesCanonicalImageResolution(entry) {
+		engine = ""
+	}
 	assetKind := entry.GetAssetKind()
 
 	s.mu.RLock()
@@ -405,6 +418,9 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 	}
 	assetID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
+	if profileEntryUsesCanonicalImageResolution(entry) {
+		engine = ""
+	}
 	assetKind := entry.GetAssetKind()
 	if descriptor := s.resolveVerifiedAssetForProfileEntry(entry); descriptor != nil {
 		if assetID == "" {
@@ -413,7 +429,7 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 		if assetKind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 			assetKind = descriptor.GetKind()
 		}
-		if engine == "" {
+		if engine == "" && !profileEntryUsesCanonicalImageResolution(entry) {
 			engine = strings.TrimSpace(descriptor.GetEngine())
 		}
 	}

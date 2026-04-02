@@ -128,8 +128,9 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 
 func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
@@ -168,9 +169,8 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 	if err := json.Unmarshal(rawManifest, &manifest); err != nil {
 		t.Fatalf("parse managed manifest: %v", err)
 	}
-	engineConfig, _ := manifest["engine_config"].(map[string]any)
-	if got, _ := engineConfig["backend"].(string); got != "stablediffusion-ggml" {
-		t.Fatalf("expected managed image backend marker, got %#v", manifest["engine_config"])
+	if _, exists := manifest["engine_config"]; exists {
+		t.Fatalf("canonical supervised image manifest must not write engine_config backend markers: %#v", manifest["engine_config"])
 	}
 	if _, statErr := os.Stat(sourcePath); statErr != nil {
 		t.Fatalf("source file should remain after file import: %v", statErr)
@@ -179,8 +179,9 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 
 func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
@@ -280,8 +281,9 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 
 func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M5 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")

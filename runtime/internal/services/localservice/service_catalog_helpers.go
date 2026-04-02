@@ -140,8 +140,6 @@ func buildNodeProviderHints(
 		service.GetEngine(),
 		[]string{capability},
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		nil,
-		"",
 		deviceProfile,
 	); supportClass != "" {
 		hints.Extra["runtime_support_class"] = supportClass
@@ -432,8 +430,6 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 			item.GetEngine(),
 			item.GetCapabilities(),
 			item.GetKind(),
-			item.GetEngineConfig(),
-			item.GetPreferredEngine(),
 			deviceProfile,
 		)
 		items = append(items, &runtimev1.LocalCatalogModelDescriptor{
@@ -449,7 +445,7 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescript
 			Engine:            item.GetEngine(),
 			EngineRuntimeMode: binding.mode,
 			InstallKind:       item.GetInstallKind(),
-			InstallAvailable:  catalogBindingInstallAvailable(item.GetEngine(), item.GetCapabilities(), item.GetKind(), item.GetEngineConfig(), item.GetPreferredEngine(), binding, deviceProfile),
+			InstallAvailable:  catalogBindingInstallAvailableForVerifiedAsset(item, binding, deviceProfile),
 			Endpoint:          binding.endpoint,
 			Entry:             item.GetEntry(),
 			Files:             append([]string(nil), item.GetFiles()...),

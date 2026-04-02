@@ -6,7 +6,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const (
@@ -22,8 +21,6 @@ func classifyManagedEngineSupport(engineName string, profile *runtimev1.LocalDev
 		engineName,
 		nil,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		nil,
-		"",
 		profile,
 	)
 }
@@ -32,29 +29,34 @@ func classifyManagedEngineSupportForAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	profile *runtimev1.LocalDeviceProfile,
 ) (string, string) {
-	managedEngine := managedRuntimeEngineForAsset(engineName, capabilities, kind, engineConfig, preferredEngine)
+	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
+		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, profile)
+		if !selection.Matched || selection.Conflict || selection.Entry == nil {
+			detail := strings.TrimSpace(selection.CompatibilityDetail)
+			if detail == "" {
+				detail = "managed image supervised mode is unavailable on this host"
+			}
+			return localEngineSupportUnsupported, detail
+		}
+		if selection.Entry.ProductState == engine.ImageProductStateSupported {
+			return localEngineSupportSupportedSupervised, ""
+		}
+		detail := strings.TrimSpace(selection.CompatibilityDetail)
+		if detail == "" {
+			detail = fmt.Sprintf("image topology %s is recognized but not supported on current product surface", selection.Entry.EntryID)
+		}
+		return localEngineSupportUnsupported, detail
+	}
+
+	managedEngine := managedRuntimeEngineForAsset(engineName, capabilities, kind)
 	switch managedEngine {
 	case "media":
 		return classifyMediaHostSupport(profile)
 	case "llama":
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
-		}
-		if isManagedLlamaBackedImageAsset(engineName, capabilities, kind, engineConfig, preferredEngine) {
-			selection := engine.ResolveImageSupervisedBackendMatrixSelection(
-				profile.GetOs(),
-				profile.GetArch(),
-				profile.GetGpu().GetVendor(),
-				profile.GetGpu().GetModel(),
-			)
-			if selection.Supported {
-				return localEngineSupportSupportedSupervised, ""
-			}
-			return localEngineSupportUnsupported, strings.TrimSpace(selection.Detail)
 		}
 		if engine.LlamaSupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
 			return localEngineSupportSupportedSupervised, ""
@@ -92,27 +94,14 @@ func localAssetHasCapability(capabilities []string, targets ...string) bool {
 	return false
 }
 
-func localAssetStructString(input *structpb.Struct, key string) string {
-	if input == nil {
-		return ""
-	}
-	fields := input.GetFields()
-	if len(fields) == 0 {
-		return ""
-	}
-	field, ok := fields[key]
-	if !ok || field == nil {
-		return ""
-	}
-	return strings.TrimSpace(field.GetStringValue())
-}
-
-func isManagedLlamaBackedImageAsset(
+// isCanonicalSupervisedImageAsset determines whether an asset is a canonical
+// supervised image asset using only canonical facts (engine, kind, capabilities).
+// Per K-LENG-012 the v2 resolver determines the actual backend/mode; this
+// function only answers "is this an image asset on the media engine?".
+func isCanonicalSupervisedImageAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 ) bool {
 	if !strings.EqualFold(strings.TrimSpace(engineName), "media") {
 		return false
@@ -120,24 +109,19 @@ func isManagedLlamaBackedImageAsset(
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
 		return true
 	}
-	if localAssetHasCapability(capabilities, "image", "image.generate", "image.edit") {
-		return true
-	}
-	if strings.EqualFold(localAssetStructString(engineConfig, "backend"), "stablediffusion-ggml") {
-		return true
-	}
-	return strings.EqualFold(strings.TrimSpace(preferredEngine), "llama")
+	return localAssetHasCapability(capabilities, "image", "image.generate", "image.edit")
 }
 
 func managedRuntimeEngineForAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 ) string {
-	if isManagedLlamaBackedImageAsset(engineName, capabilities, kind, engineConfig, preferredEngine) {
-		return "llama"
+	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
+		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, collectDeviceProfile())
+		if resolved := managedRuntimeEngineForSelection(selection); strings.TrimSpace(resolved) != "" {
+			return resolved
+		}
 	}
 	switch strings.ToLower(strings.TrimSpace(engineName)) {
 	case "media":
@@ -155,11 +139,12 @@ func executionRuntimeEngineForAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 ) string {
-	if isManagedLlamaBackedImageAsset(engineName, capabilities, kind, engineConfig, preferredEngine) {
-		return "media"
+	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
+		selection := canonicalSupervisedImageSelectionForAsset(engineName, capabilities, kind, collectDeviceProfile())
+		if resolved := executionRuntimeEngineForSelection(selection); strings.TrimSpace(resolved) != "" {
+			return resolved
+		}
 	}
 	switch strings.ToLower(strings.TrimSpace(engineName)) {
 	case "media":
@@ -198,8 +183,6 @@ func managedEngineSupportWarnings(engineName string, profile *runtimev1.LocalDev
 		engineName,
 		nil,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
-		nil,
-		"",
 		profile,
 	)
 }
@@ -208,15 +191,13 @@ func managedEngineSupportWarningsForAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	profile *runtimev1.LocalDeviceProfile,
 ) []string {
-	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, engineConfig, preferredEngine, profile)
-	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind, engineConfig, preferredEngine) {
+	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, profile)
+	if isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
 		return nil
 	}
-	if !strings.EqualFold(executionRuntimeEngineForAsset(engineName, capabilities, kind, engineConfig, preferredEngine), "media") {
+	if !strings.EqualFold(executionRuntimeEngineForAsset(engineName, capabilities, kind), "media") {
 		return nil
 	}
 	if classification == localEngineSupportSupportedSupervised {
@@ -285,14 +266,12 @@ func attachedEndpointRequiredDetailForAsset(
 	engineName string,
 	capabilities []string,
 	kind runtimev1.LocalAssetKind,
-	engineConfig *structpb.Struct,
-	preferredEngine string,
 	profile *runtimev1.LocalDeviceProfile,
 ) string {
 	if !supportsSupervisedEngine(engineName) {
 		return ""
 	}
-	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, engineConfig, preferredEngine, profile)
+	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, profile)
 	if classification == localEngineSupportAttachedOnly || classification == localEngineSupportUnsupported {
 		return strings.TrimSpace(detail)
 	}

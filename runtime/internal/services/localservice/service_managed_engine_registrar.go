@@ -152,11 +152,11 @@ func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address st
 		}
 		s.managedMediaBackendUpdatedAt = now
 		s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED
-		s.managedMediaBackendDetail = "daemon-managed diffusers backend configured"
+		s.managedMediaBackendDetail = "daemon-managed image backend configured"
 		return
 	}
 	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED
-	s.managedMediaBackendDetail = "daemon-managed diffusers backend disabled"
+	s.managedMediaBackendDetail = "daemon-managed image backend disabled"
 	s.managedMediaBackendInstalledAt = ""
 	s.managedMediaBackendUpdatedAt = now
 }
@@ -174,11 +174,11 @@ func (s *Service) SetManagedMediaDiffusersBackendHealth(healthy bool, detail str
 	trimmed := strings.TrimSpace(detail)
 	if healthy {
 		s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE
-		s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend active")
+		s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed image backend active")
 		return
 	}
 	s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY
-	s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed diffusers backend unhealthy")
+	s.managedMediaBackendDetail = defaultString(trimmed, "daemon-managed image backend unhealthy")
 }
 
 // SyncManagedLlamaAssets rebuilds the runtime-managed llama config from the
@@ -263,13 +263,7 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 			continue
 		}
 		if !strings.EqualFold(
-			managedRuntimeEngineForAsset(
-				model.GetEngine(),
-				model.GetCapabilities(),
-				model.GetKind(),
-				model.GetEngineConfig(),
-				model.GetPreferredEngine(),
-			),
+			managedRuntimeEngineForModel(model),
 			"llama",
 		) {
 			continue
@@ -355,35 +349,43 @@ func inspectManagedLlamaModelRegistration(
 		return registration
 	}
 
-	backend, err := managedLlamaBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), nil))
-	if err != nil {
-		registration.Problem = err.Error()
-		return registration
-	}
-	registration.Backend = backend
-
-	if strings.EqualFold(backend, "stablediffusion-ggml") {
+	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
+		selection := canonicalSupervisedImageSelectionForLocalAsset(model, deviceProfile)
+		registration.Backend = string(selection.BackendFamily)
 		registration.DynamicProfile = true
-		if deviceProfile != nil && !engine.LlamaImageSupervisedPlatformSupportedFor(
-			deviceProfile.GetOs(),
-			deviceProfile.GetArch(),
-			deviceProfile.GetGpu().GetVendor(),
-			deviceProfile.GetGpu().GetModel(),
-		) {
-			registration.Problem = engine.LlamaImageSupervisedPlatformSupportDetailFor(
-				deviceProfile.GetOs(),
-				deviceProfile.GetArch(),
-				deviceProfile.GetGpu().GetVendor(),
-				deviceProfile.GetGpu().GetModel(),
-			)
+		if !selection.Matched || selection.Conflict || selection.Entry == nil {
+			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
+			if registration.Problem == "" {
+				registration.Problem = "canonical image selection unavailable for managed registration"
+			}
+			return registration
+		}
+		if selection.ProductState != engine.ImageProductStateSupported {
+			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
+			if registration.Problem == "" {
+				registration.Problem = fmt.Sprintf("image topology %s is not supported for managed registration", selection.EntryID)
+			}
+			return registration
+		}
+		if selection.ControlPlane != engine.EngineLlama ||
+			selection.ExecutionPlane != engine.EngineMedia ||
+			selection.BackendClass != engine.ImageBackendClassNativeBinary {
+			registration.Problem = strings.TrimSpace(selection.CompatibilityDetail)
+			if registration.Problem == "" {
+				registration.Problem = fmt.Sprintf(
+					"managed registration unsupported for image selection entry_id=%s backend_family=%s internal_reason_key=managed_image_registration_unsupported",
+					selection.EntryID,
+					selection.BackendFamily,
+				)
+			}
 			return registration
 		}
 		if registration.Managed && !imageBackendUp {
-			registration.Problem = "managed diffusers backend unavailable"
-			return registration
-		}
-		if len(structToMap(model.GetEngineConfig())) == 0 {
-			registration.Problem = "local media model missing engine_config"
+			registration.Problem = fmt.Sprintf(
+				"managed image backend unavailable (entry_id=%s backend_family=%s internal_reason_key=managed_image_backend_unavailable)",
+				selection.EntryID,
+				selection.BackendFamily,
+			)
 			return registration
 		}
 		absoluteModelPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsPath, model)
@@ -397,6 +399,13 @@ func inspectManagedLlamaModelRegistration(
 		}
 		return registration
 	}
+
+	backend, err := managedLlamaBackendForCapabilities(defaultCapabilitiesForRegistration(model.GetCapabilities(), nil))
+	if err != nil {
+		registration.Problem = err.Error()
+		return registration
+	}
+	registration.Backend = backend
 
 	absoluteModelPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsPath, model)
 	if resolveErr != nil {
@@ -427,8 +436,6 @@ func managedLlamaBackendForCapabilities(capabilities []string) (string, error) {
 			continue
 		}
 		switch normalized {
-		case "image":
-			backends["stablediffusion-ggml"] = true
 		case "stt", "transcription":
 			backends["whisper-ggml"] = true
 		case "chat", "embedding", "embed":

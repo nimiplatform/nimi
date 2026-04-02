@@ -61,8 +61,6 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		current.GetEngine(),
 		current.GetCapabilities(),
 		current.GetKind(),
-		current.GetEngineConfig(),
-		current.GetPreferredEngine(),
 		profile,
 	)
 	if configDetail := attachedLoopbackConfigErrorDetail(current.GetEngine(), s.modelRuntimeMode(localModelID), s.effectiveLocalModelEndpoint(current), profile); configDetail != "" {
@@ -212,7 +210,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			continue
 		}
 		if configDetail := attachedLoopbackConfigErrorDetail(model.GetEngine(), s.modelRuntimeMode(localModelID), s.effectiveLocalModelEndpoint(model), profile); configDetail != "" {
-			transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, appendWarnings(configDetail, startupCompatibilityWarningsForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), model.GetEngineConfig(), model.GetPreferredEngine(), profile)))
+			transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, appendWarnings(configDetail, startupCompatibilityWarningsForAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind(), profile)))
 			if updateErr != nil {
 				return nil, updateErr
 			}

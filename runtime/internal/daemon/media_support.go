@@ -9,9 +9,22 @@ func (d *Daemon) detectMediaHostSupport() (engine.MediaHostSupport, string) {
 	return engine.DetectMediaHostSupport()
 }
 
-func (d *Daemon) detectManagedImageSupervised() bool {
-	if d != nil && d.detectManagedImageSupervisedFn != nil {
-		return d.detectManagedImageSupervisedFn()
+func (d *Daemon) managedImageBootstrapSelection() (engine.ImageSupervisedMatrixSelection, bool) {
+	if d != nil && d.imageBootstrapSelectionFn != nil {
+		return d.imageBootstrapSelectionFn()
 	}
-	return engine.LlamaImageSupervisedPlatformSupported()
+	if d != nil && d.grpc != nil {
+		if svc := d.grpc.LocalService(); svc != nil {
+			return svc.ManagedSupervisedImageBootstrapSelection()
+		}
+	}
+	return engine.ImageSupervisedMatrixSelection{}, false
+}
+
+func (d *Daemon) cacheImageMatrix() {
+	if selection, ok := d.managedImageBootstrapSelection(); ok {
+		d.resolvedImageMatrix = &selection
+		return
+	}
+	d.resolvedImageMatrix = nil
 }

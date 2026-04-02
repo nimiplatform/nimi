@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -19,9 +17,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/httpserver"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
-	"github.com/oklog/ulid/v2"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Daemon wires runtime servers and health state lifecycle.
@@ -35,16 +30,20 @@ type Daemon struct {
 	auditStore *auditlog.Store
 	engineMgr  *engine.Manager
 
-	newEngineManager               func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn                  func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
-	probeAIProviderFn              func(ctx context.Context, client *http.Client, target aiProviderTarget) error
-	detectMediaHostSupportFn       func() (engine.MediaHostSupport, string)
-	detectManagedImageSupervisedFn func() bool
+	newEngineManager          func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn             func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	probeAIProviderFn         func(ctx context.Context, client *http.Client, target aiProviderTarget) error
+	detectMediaHostSupportFn  func() (engine.MediaHostSupport, string)
+	imageBootstrapSelectionFn func() (engine.ImageSupervisedMatrixSelection, bool)
 
 	providerFailureHintMu sync.RWMutex
 	providerFailureHints  map[string]string
 	startupStatusMu       sync.Mutex
 	startupDegradedReason string
+
+	// resolvedImageMatrix caches the v2 image supervised matrix selection
+	// from startup. Used for health attribution detail enrichment per K-PROV-002.
+	resolvedImageMatrix *engine.ImageSupervisedMatrixSelection
 }
 
 const (
@@ -64,18 +63,17 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		return nil, err
 	}
 	return &Daemon{
-		cfg:                            cfg,
-		logger:                         logger,
-		state:                          state,
-		grpc:                           grpcServer,
-		http:                           httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
-		aiHealth:                       nil,
-		auditStore:                     nil,
-		newEngineManager:               engine.NewManager,
-		probeAIProviderFn:              probeAIProvider,
-		detectMediaHostSupportFn:       engine.DetectMediaHostSupport,
-		detectManagedImageSupervisedFn: engine.LlamaImageSupervisedPlatformSupported,
-		providerFailureHints:           map[string]string{},
+		cfg:                      cfg,
+		logger:                   logger,
+		state:                    state,
+		grpc:                     grpcServer,
+		http:                     httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
+		aiHealth:                 nil,
+		auditStore:               nil,
+		newEngineManager:         engine.NewManager,
+		probeAIProviderFn:        probeAIProvider,
+		detectMediaHostSupportFn: engine.DetectMediaHostSupport,
+		providerFailureHints:     map[string]string{},
 	}, nil
 }
 
@@ -225,321 +223,6 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 	return reason
 }
 
-func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
-	targets := configuredAIProviderTargets(d.cfg)
-	if len(targets) == 0 {
-		return
-	}
-
-	timeout := time.Duration(d.cfg.AIHTTPTimeoutSeconds) * time.Second
-	if timeout <= 0 {
-		timeout = 30 * time.Second
-	}
-	interval := time.Duration(d.cfg.AIHealthIntervalSeconds) * time.Second
-	if interval <= 0 {
-		interval = 8 * time.Second
-	}
-	client := &http.Client{Timeout: timeout}
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	probe := func() {
-		if ctx.Err() != nil {
-			return
-		}
-		snapshot := d.state.Snapshot()
-		if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
-			return
-		}
-
-		var firstErr string
-		healthyCount := 0
-		for _, target := range targets {
-			if ctx.Err() != nil {
-				return
-			}
-			previous := providerhealth.Snapshot{}
-			if d.aiHealth != nil {
-				previous = d.aiHealth.SnapshotOf(target.Name)
-			}
-			if err := d.probeAIProviderFn(ctx, client, target); err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				err = d.decorateProviderProbeError(target.Name, err)
-				if d.aiHealth != nil {
-					if markErr := d.aiHealth.Mark(target.Name, false, err.Error()); markErr == nil {
-						appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.SnapshotOf(target.Name))
-					}
-				}
-				if firstErr == "" {
-					firstErr = fmt.Sprintf("ai-provider:%s unavailable (%v)", target.Name, err)
-				}
-				continue
-			}
-			healthyCount++
-			if d.aiHealth != nil {
-				if markErr := d.aiHealth.Mark(target.Name, true, ""); markErr == nil {
-					appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.SnapshotOf(target.Name))
-				}
-			}
-		}
-
-		if healthyCount > 0 {
-			current := d.state.Snapshot()
-			if current.Status == health.StatusDegraded && strings.HasPrefix(current.Reason, "ai-provider:") {
-				d.state.SetStatus(health.StatusReady, "ready")
-				d.grpc.SyncServingState()
-			}
-			return
-		}
-
-		if firstErr == "" {
-			firstErr = "ai-provider:all unavailable"
-		}
-		d.setDegradedStatus(firstErr)
-	}
-
-	probe()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			probe()
-		}
-	}
-}
-
-type aiProviderTarget struct {
-	Name   string
-	Base   string
-	APIKey string
-}
-
-func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
-	cloudTargets := config.ResolveCloudProviderTargets(cfg.Providers)
-	targets := make([]aiProviderTarget, 0, 3+len(cloudTargets))
-	seen := map[string]bool{}
-
-	add := func(name string, base string, apiKey string) {
-		normalized := strings.TrimSuffix(strings.TrimSpace(base), "/")
-		if normalized == "" {
-			return
-		}
-		key := name + "::" + normalized
-		if seen[key] {
-			return
-		}
-		seen[key] = true
-		targets = append(targets, aiProviderTarget{
-			Name:   name,
-			Base:   normalized,
-			APIKey: strings.TrimSpace(apiKey),
-		})
-	}
-
-	add("local", runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
-	add("local-media", runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
-	add("local-sidecar", runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
-	for _, target := range cloudTargets {
-		add(cloudProviderTargetName(target.CanonicalID), target.BaseURL, target.APIKey)
-	}
-	return targets
-}
-
-func cloudProviderTargetName(canonicalID string) string {
-	trimmed := strings.TrimSpace(canonicalID)
-	if trimmed == "" {
-		return "cloud"
-	}
-	return "cloud-" + strings.ReplaceAll(trimmed, "_", "-")
-}
-
-// probeAIProvider checks provider health per K-PROV-003:
-//   - 2xx/401/403/429 = healthy
-//   - 404 = try next path
-//   - other 4xx/5xx = unhealthy
-func probeAIProvider(ctx context.Context, client *http.Client, target aiProviderTarget) error {
-	paths := providerProbePaths(target.Name)
-	var lastErr error
-	for _, path := range paths {
-		endpoint := resolveProbeEndpoint(target.Base, path)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-		if target.APIKey != "" {
-			req.Header.Set("Authorization", "Bearer "+target.APIKey)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			lastErr = err
-			continue
-		}
-		resp.Body.Close()
-
-		switch {
-		case resp.StatusCode >= 200 && resp.StatusCode < 300:
-			return nil // 2xx = healthy
-		case resp.StatusCode == 401, resp.StatusCode == 403, resp.StatusCode == 429:
-			return nil // auth/rate-limit = healthy (provider is reachable)
-		case resp.StatusCode == 404:
-			continue // try next path
-		default:
-			lastErr = fmt.Errorf("status=%d", resp.StatusCode)
-		}
-	}
-	if lastErr != nil {
-		return lastErr
-	}
-	return fmt.Errorf("unreachable")
-}
-
-func providerProbePaths(name string) []string {
-	if strings.EqualFold(strings.TrimSpace(name), "local-media") {
-		return []string{"/healthz", "/v1/catalog"}
-	}
-	if strings.EqualFold(strings.TrimSpace(name), "local") {
-		return []string{"/health", "/v1/models"}
-	}
-	return []string{"/healthz", "/v1/models"}
-}
-
-func resolveProbeEndpoint(base string, path string) string {
-	trimmedBase := strings.TrimSuffix(strings.TrimSpace(base), "/")
-	normalizedPath := strings.TrimSpace(path)
-	if trimmedBase == "" || normalizedPath == "" {
-		return trimmedBase + normalizedPath
-	}
-	if !strings.HasPrefix(normalizedPath, "/") {
-		normalizedPath = "/" + normalizedPath
-	}
-
-	parsed, err := url.Parse(trimmedBase)
-	if err != nil {
-		return trimmedBase + normalizedPath
-	}
-
-	basePath := strings.TrimSuffix(parsed.Path, "/")
-	if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(normalizedPath, "/v1/") {
-		normalizedPath = strings.TrimPrefix(normalizedPath, "/v1")
-		if !strings.HasPrefix(normalizedPath, "/") {
-			normalizedPath = "/" + normalizedPath
-		}
-	}
-	parsed.Path = basePath + normalizedPath
-	parsed.RawQuery = ""
-	parsed.Fragment = ""
-	return parsed.String()
-}
-
-func auditPayloadStruct(fields map[string]any) *structpb.Struct {
-	payload, err := structpb.NewStruct(fields)
-	if err == nil {
-		return payload
-	}
-	fallback, _ := structpb.NewStruct(map[string]any{
-		"payload_encode_error": err.Error(),
-	})
-	return fallback
-}
-
-func appendStartupFailureAudit(store *auditlog.Store, reason string) {
-	if store == nil {
-		return
-	}
-	now := time.Now().UTC()
-	payload := auditPayloadStruct(map[string]any{
-		"phase":  "starting",
-		"reason": reason,
-	})
-	store.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:    ulid.Make().String(),
-		Domain:     "runtime.lifecycle",
-		Operation:  "startup.failed",
-		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-		TraceId:    ulid.Make().String(),
-		Timestamp:  timestamppb.New(now),
-		Payload:    payload,
-		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-		CallerId:   "runtime-daemon",
-		SurfaceId:  "daemon",
-	})
-}
-
-func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail string) {
-	if store == nil {
-		return
-	}
-	attempt, maxAttempt, exitCode := parseEngineCrashDetail(detail)
-	now := time.Now().UTC()
-	payload := auditPayloadStruct(map[string]any{
-		"engine":      engineName,
-		"detail":      detail,
-		"attempt":     attempt,
-		"max_attempt": maxAttempt,
-		"exit_code":   exitCode,
-	})
-	store.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:    ulid.Make().String(),
-		Domain:     "runtime.engine",
-		Operation:  "engine.unhealthy",
-		ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
-		TraceId:    ulid.Make().String(),
-		Timestamp:  timestamppb.New(now),
-		Payload:    payload,
-		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-		CallerId:   "runtime-daemon",
-		SurfaceId:  "daemon",
-	})
-}
-
-func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string, providerName string, detail string) {
-	if store == nil {
-		return
-	}
-	now := time.Now().UTC()
-	payload := auditPayloadStruct(map[string]any{
-		"engine":   strings.TrimSpace(engineName),
-		"provider": strings.TrimSpace(providerName),
-		"detail":   detail,
-	})
-	store.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:    ulid.Make().String(),
-		Domain:     "runtime.engine",
-		Operation:  "engine.bootstrap_failed",
-		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
-		TraceId:    ulid.Make().String(),
-		Timestamp:  timestamppb.New(now),
-		Payload:    payload,
-		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-		CallerId:   "runtime-daemon",
-		SurfaceId:  "daemon",
-	})
-}
-
-func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
-	trimmedDetail := strings.TrimSpace(detail)
-	if trimmedDetail == "" {
-		trimmedDetail = "managed llama bootstrap failed"
-	}
-	reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", engine.EngineLlama, trimmedDetail)
-
-	d.logger.Error("managed llama bootstrap failed", "detail", trimmedDetail)
-	d.setProviderFailureHint("local", reason)
-	if d.aiHealth != nil {
-		previous := d.aiHealth.SnapshotOf("local")
-		if err := d.aiHealth.Mark("local", false, reason); err == nil {
-			appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.SnapshotOf("local"))
-		}
-	}
-	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail)
-	d.setDegradedStatus(reason)
-}
-
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	svc := d.grpc.LocalService()
 	effectiveManagedLlama := d.cfg.EngineLlamaEnabled
@@ -577,11 +260,31 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
-	managedImageLoopback := effectiveManagedLlama && managedImageAssetsPresent && d.detectManagedImageSupervised()
+	d.cacheImageMatrix()
+	managedImageSelection := d.resolvedImageMatrix
+	managedImageLoopback := effectiveManagedLlama &&
+		managedImageAssetsPresent &&
+		managedImageSelection != nil &&
+		managedImageSelection.Matched &&
+		!managedImageSelection.Conflict &&
+		managedImageSelection.Entry != nil &&
+		managedImageSelection.ProductState == engine.ImageProductStateSupported &&
+		managedImageSelection.ControlPlane == engine.EngineLlama &&
+		managedImageSelection.ExecutionPlane == engine.EngineMedia &&
+		managedImageSelection.BackendClass == engine.ImageBackendClassNativeBinary
+	if managedImageAssetsPresent && !managedImageLoopback && managedImageSelection != nil {
+		detail := strings.TrimSpace(managedImageSelection.CompatibilityDetail)
+		if detail == "" && managedImageSelection.Conflict {
+			detail = "managed image bootstrap selection conflict"
+		}
+		if detail != "" {
+			d.setDegradedStatus(detail)
+		}
+	}
 	if managedImageLoopback {
 		mgr.SetLlamaImageBackend(&engine.LlamaImageBackendConfig{
 			Mode:        engine.LlamaImageBackendOfficial,
-			BackendName: "stablediffusion-ggml",
+			BackendName: string(managedImageSelection.BackendFamily),
 			Address:     "127.0.0.1:50052",
 		})
 	} else {
@@ -706,6 +409,10 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 	if port > 0 {
 		cfg.Port = port
 	}
+	if kind == engine.EngineMedia && d.resolvedImageMatrix != nil {
+		selection := *d.resolvedImageMatrix
+		cfg.ImageSupervisedSelection = &selection
+	}
 
 	cfg, err := d.engineMgr.EnsureEngine(ctx, cfg)
 	if err != nil {
@@ -786,10 +493,15 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	switch status {
 	case "unhealthy":
 		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
-		appendEngineCrashAudit(d.auditStore, engineName, detail)
+		reasonKey := resolveInternalReasonKey(detail)
+		appendEngineCrashAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix, reasonKey)
 		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {
-				d.setProviderFailureHint(providerName, fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail))
+				hint := fmt.Sprintf("engine unhealthy (%s: %s)", engineName, detail)
+				if attr := imageAttributionDetail(d.resolvedImageMatrix); attr != "" && isImageRelatedEngine(kind) {
+					hint = fmt.Sprintf("%s [%s internal_reason_key=%s]", hint, attr, reasonKey)
+				}
+				d.setProviderFailureHint(providerName, hint)
 			}
 		}
 	case "healthy":
@@ -797,6 +509,11 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 			engineUnhealthyReasonMatches(snapshot.Reason, engineName)
 		if !recoveringSameEngine {
 			return
+		}
+		if kind, ok := engineKindForName(engineName); ok {
+			if isImageRelatedEngine(kind) {
+				appendRepairResolvedAudit(d.auditStore, engineName, detail, d.resolvedImageMatrix)
+			}
 		}
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")

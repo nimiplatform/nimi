@@ -168,6 +168,62 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	}
 }
 
+func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	alias, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "llama",
+			},
+		},
+		"profile_overrides": map[string]any{
+			"step": 25,
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile without engine_config defaults: %v", err)
+	}
+	if alias == "" {
+		t.Fatalf("expected alias for profile without engine_config defaults")
+	}
+	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "resolved/z_image_turbo/z_image_turbo-Q4_K_M.gguf" {
+		t.Fatalf("unexpected model parameter: %q", got)
+	}
+	switch got := profile["step"].(type) {
+	case int:
+		if got != 25 {
+			t.Fatalf("expected profile overrides to carry through without engine_config defaults, got=%#v", profile["step"])
+		}
+	case float64:
+		if got != 25 {
+			t.Fatalf("expected profile overrides to carry through without engine_config defaults, got=%#v", profile["step"])
+		}
+	default:
+		t.Fatalf("expected profile overrides to carry through without engine_config defaults, got=%#v", profile["step"])
+	}
+}
+
 func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
