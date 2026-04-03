@@ -119,6 +119,45 @@ func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModel
 	return imported.GetAsset()
 }
 
+func addManagedLlamaAssetForTest(
+	t *testing.T,
+	svc *Service,
+	localAssetID string,
+	assetID string,
+	logicalModelID string,
+	entry string,
+	status runtimev1.LocalAssetStatus,
+	warmState runtimev1.LocalWarmState,
+) *runtimev1.LocalAssetRecord {
+	t.Helper()
+	manifestPath := writeManagedGGUFBundleForTest(t, svc.localModelsPath, logicalModelID, assetID, entry)
+	record := &runtimev1.LocalAssetRecord{
+		LocalAssetId:    localAssetID,
+		AssetId:         assetID,
+		Kind:            runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Capabilities:    []string{"chat"},
+		Engine:          "llama",
+		Entry:           entry,
+		License:         "unknown",
+		Source:          &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(manifestPath), Revision: "local"},
+		Status:          status,
+		InstalledAt:     nowISO(),
+		UpdatedAt:       nowISO(),
+		HealthDetail:    "",
+		Endpoint:        defaultLocalEndpoint,
+		LogicalModelId:  logicalModelID,
+		PreferredEngine: "llama",
+		BundleState:     runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY,
+		WarmState:       warmState,
+	}
+	svc.mu.Lock()
+	svc.assets[localAssetID] = cloneLocalAsset(record)
+	svc.setModelRuntimeModeLocked(localAssetID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+	return record
+}
+
 func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Service, assetID string) *runtimev1.LocalAssetRecord {
 	t.Helper()
 	record, err := svc.installLocalAssetRecord(
@@ -3015,6 +3054,152 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	updated := svc.modelByID(asset.GetLocalAssetId())
 	if updated == nil || updated.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("expected managed image to return to installed after idle sweep, got %#v", updated)
+	}
+}
+
+func TestCheckManagedSupervisedLlamaHealthProjectsUnloadedModelCold(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe mocked healthy",
+			probeURL:  endpoint,
+			models:    []string{"beta-model"},
+		}
+	})
+	alpha := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+	)
+	_ = addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID("asset_beta")
+
+	health, err := svc.checkManagedSupervisedLlamaHealth(context.Background(), alpha)
+	if err != nil {
+		t.Fatalf("checkManagedSupervisedLlamaHealth: %v", err)
+	}
+	if got := health.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("health status = %v, want ACTIVE", got)
+	}
+	stored := svc.modelByID(alpha.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored asset")
+	}
+	if got := stored.GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("warm_state = %v, want COLD", got)
+	}
+	if got := stored.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("stored status = %v, want ACTIVE", got)
+	}
+}
+
+func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe mocked healthy",
+			probeURL:  endpoint,
+			models:    []string{"beta-model"},
+		}
+	})
+	mgr := &mockEngineManager{
+		statusErr: fmt.Errorf("engine llama not started"),
+	}
+	svc.SetEngineManager(mgr)
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, true)
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+	)
+
+	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease: %v", err)
+	}
+	if mgr.startConfigCalls != 1 {
+		t.Fatalf("startConfigCalls = %d, want 1", mgr.startConfigCalls)
+	}
+	if mgr.lastStartConfig.ManagedLlamaTarget == nil {
+		t.Fatal("expected explicit managed llama target")
+	}
+	if got := mgr.lastStartConfig.ManagedLlamaTarget.ModelAlias; got != "beta-model" {
+		t.Fatalf("model alias = %q, want beta-model", got)
+	}
+	if !strings.HasSuffix(mgr.lastStartConfig.ManagedLlamaTarget.ModelPath, "beta.gguf") {
+		t.Fatalf("model path = %q, want suffix beta.gguf", mgr.lastStartConfig.ManagedLlamaTarget.ModelPath)
+	}
+	if got := svc.currentManagedLlamaLoadedLocalAssetID(); got != beta.GetLocalAssetId() {
+		t.Fatalf("loaded local asset id = %q, want %q", got, beta.GetLocalAssetId())
+	}
+}
+
+func TestAcquireLocalAssetLeaseFailsCloseOnManagedLlamaSwitchConflict(t *testing.T) {
+	svc := newTestService(t)
+	mgr := &mockEngineManager{
+		status: &EngineInfo{
+			Engine:   "llama",
+			Version:  engine.DefaultLlamaConfig().Version,
+			Status:   "healthy",
+			Port:     1234,
+			Endpoint: defaultLocalEndpoint,
+		},
+	}
+	svc.SetEngineManager(mgr)
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, true)
+	alpha := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID(alpha.GetLocalAssetId())
+	svc.mu.Lock()
+	svc.assetResidency[alpha.GetLocalAssetId()] = localAssetResidencyState{HoldCount: 1}
+	svc.mu.Unlock()
+
+	err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request")
+	if err == nil {
+		t.Fatal("expected AcquireLocalAssetLease to fail")
+	}
+	assertGRPCCode(t, err, "AcquireLocalAssetLease", codes.FailedPrecondition)
+	assertGRPCReasonCode(t, err, "AcquireLocalAssetLease", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if mgr.startConfigCalls != 0 {
+		t.Fatalf("startConfigCalls = %d, want 0", mgr.startConfigCalls)
 	}
 }
 

@@ -193,7 +193,16 @@ func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth 
 	switch model.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		if detail == "" {
-			detail = "model healthy"
+			switch model.GetWarmState() {
+			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY:
+				detail = "model healthy"
+			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_WARMING:
+				detail = "model warming"
+			case runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED:
+				detail = "model warm failed"
+			default:
+				detail = "model cold"
+			}
 		}
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		if detail == "" {

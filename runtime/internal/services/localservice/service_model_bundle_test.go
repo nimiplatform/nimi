@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -414,11 +413,18 @@ func TestCheckLocalModelHealthRejectsLegacyUnhealthyRecord(t *testing.T) {
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
-	_, err = svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
 		LocalAssetId: localModelID,
 	})
-	assertGRPCCode(t, err, "CheckLocalModelHealth(legacy_record)", codes.FailedPrecondition)
-	assertGRPCReasonCode(t, err, "CheckLocalModelHealth(legacy_record)", runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
+	if err != nil {
+		t.Fatalf("CheckLocalModelHealth(legacy_record): %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("health assets = %d", len(resp.GetAssets()))
+	}
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("health status = %s", got)
+	}
 	if _, statErr := os.Stat(configPath); !os.IsNotExist(statErr) {
 		t.Fatalf("expected no managed llama config after hard-cut rejection, stat err=%v", statErr)
 	}
@@ -460,10 +466,13 @@ func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T
 	if len(resp.GetAssets()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetAssets()))
 	}
-	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("status = %s detail=%q", got, resp.GetAssets()[0].GetHealthDetail())
 	}
-	if detail := resp.GetAssets()[0].GetHealthDetail(); !strings.Contains(detail, "managed local model ready (not started)") {
+	if got := resp.GetAssets()[0].GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("warm_state = %s", got)
+	}
+	if detail := resp.GetAssets()[0].GetHealthDetail(); !strings.Contains(detail, "managed local model available (cold)") {
 		t.Fatalf("detail = %q", detail)
 	}
 }
@@ -504,8 +513,11 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 	if len(resp.GetAssets()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetAssets()))
 	}
-	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("status = %s detail=%q", got, resp.GetAssets()[0].GetHealthDetail())
+	}
+	if got := resp.GetAssets()[0].GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("warm_state = %s", got)
 	}
 	if mode := svc.modelRuntimeMode(localModelID); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode = %s", mode.String())

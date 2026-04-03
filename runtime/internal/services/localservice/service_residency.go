@@ -2,10 +2,13 @@ package localservice
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -89,10 +92,18 @@ func residencyEnginesForModel(model *runtimev1.LocalAssetRecord, mode runtimev1.
 	return dedupeStrings(engines)
 }
 
-func (s *Service) AcquireLocalAssetLease(_ context.Context, localAssetID string, reason string) error {
+func (s *Service) AcquireLocalAssetLease(ctx context.Context, localAssetID string, reason string) error {
 	model := s.modelByID(localAssetID)
 	if model == nil {
 		return nil
+	}
+	if readyModel, err := s.ensureManagedSupervisedLlamaLeaseReady(ctx, model, reason); err != nil {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    fmt.Sprintf("managed llama lease rejected: %s", strings.TrimSpace(err.Error())),
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	} else if readyModel != nil {
+		model = readyModel
 	}
 	s.recordLocalAssetUsage(model, strings.TrimSpace(reason), true)
 	return nil

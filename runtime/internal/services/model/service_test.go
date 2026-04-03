@@ -210,6 +210,7 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 				LogicalModelId: "local/qwen3-4b-q4_k_m",
 				Engine:         "llama",
 				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 			}},
 		}},
 	})
@@ -223,6 +224,35 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 	}
 	if !resp.GetHealthy() {
 		t.Fatalf("active local model from local service must be healthy: %+v", resp)
+	}
+}
+
+func TestCheckModelHealthLocalModelUsesLocalServiceActiveColdState(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "local-1",
+				LogicalModelId: "local/qwen3-4b-q4_k_m",
+				Engine:         "llama",
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
+			}},
+		}},
+	})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "local/qwen3-4b-q4_k_m",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("cold active local model must not be healthy: %+v", resp)
+	}
+	if got := resp.GetReasonCode(); got != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("reason_code = %v, want AI_MODEL_NOT_READY", got)
 	}
 }
 

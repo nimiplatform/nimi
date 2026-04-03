@@ -66,6 +66,20 @@ func isValidServiceTransition(from, to runtimev1.LocalServiceStatus) bool {
 }
 
 func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalAssetStatus, detail string) (*runtimev1.LocalAssetRecord, error) {
+	return s.updateModelAvailabilityAndWarmState(localModelID, status, runtimev1.LocalWarmState_LOCAL_WARM_STATE_UNSPECIFIED, detail, false)
+}
+
+func (s *Service) updateModelWarmState(localModelID string, warmState runtimev1.LocalWarmState, detail string) (*runtimev1.LocalAssetRecord, error) {
+	return s.updateModelAvailabilityAndWarmState(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED, warmState, detail, true)
+}
+
+func (s *Service) updateModelAvailabilityAndWarmState(
+	localModelID string,
+	status runtimev1.LocalAssetStatus,
+	warmState runtimev1.LocalWarmState,
+	detail string,
+	updateWarmState bool,
+) (*runtimev1.LocalAssetRecord, error) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -77,17 +91,27 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalA
 	if current == nil {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	if !isValidModelTransition(current.GetStatus(), status) {
+	nextStatus := current.GetStatus()
+	if status != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+		nextStatus = status
+	}
+	if nextStatus != current.GetStatus() && !isValidModelTransition(current.GetStatus(), nextStatus) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
-	current.Status = status
+	current.Status = nextStatus
+	if updateWarmState {
+		current.WarmState = warmState
+	}
 	current.UpdatedAt = now
 	current.HealthDetail = detail
 	s.assets[id] = cloneLocalAsset(current)
-	if status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+	if nextStatus == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		delete(s.assetRuntimeModes, id)
+		if s.managedLlamaLoadedLocalAssetID == id {
+			s.managedLlamaLoadedLocalAssetID = ""
+		}
 	}
-	if status != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+	if nextStatus != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		delete(s.assetProbeState, id)
 	}
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
@@ -98,6 +122,10 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalA
 		ModelId:      current.GetAssetId(),
 		LocalModelId: current.GetLocalAssetId(),
 		Detail:       detail,
+		Payload: toStruct(map[string]any{
+			"status":     current.GetStatus().String(),
+			"warm_state": current.GetWarmState().String(),
+		}),
 	})
 	return current, nil
 }

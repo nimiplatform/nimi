@@ -58,24 +58,26 @@ type Service struct {
 	managedMediaBackendUpdatedAt   string
 	managedMediaBackendEpoch       uint64
 
-	mu                        sync.RWMutex
-	assets                    map[string]*runtimev1.LocalAssetRecord
-	assetRuntimeModes         map[string]runtimev1.LocalEngineRuntimeMode
-	services                  map[string]*runtimev1.LocalServiceDescriptor
-	serviceRuntimeModes       map[string]runtimev1.LocalEngineRuntimeMode
-	audits                    []*runtimev1.LocalAuditEvent
-	verified                  []*runtimev1.LocalVerifiedAssetDescriptor
-	catalog                   []*runtimev1.LocalCatalogModelDescriptor
-	managedImageProfiles      map[string]managedImageProfileState
-	managedImageLoadCache     map[string]managedImageLoadedState
-	managedImageLoadInflight  map[string]*managedImageLoadInflight
-	engineMgr                 EngineManager
+	mu                             sync.RWMutex
+	assets                         map[string]*runtimev1.LocalAssetRecord
+	assetRuntimeModes              map[string]runtimev1.LocalEngineRuntimeMode
+	services                       map[string]*runtimev1.LocalServiceDescriptor
+	serviceRuntimeModes            map[string]runtimev1.LocalEngineRuntimeMode
+	audits                         []*runtimev1.LocalAuditEvent
+	verified                       []*runtimev1.LocalVerifiedAssetDescriptor
+	catalog                        []*runtimev1.LocalCatalogModelDescriptor
+	managedImageProfiles           map[string]managedImageProfileState
+	managedImageLoadCache          map[string]managedImageLoadedState
+	managedImageLoadInflight       map[string]*managedImageLoadInflight
+	engineMgr                      EngineManager
 	managedLlamaRegistrations      map[string]managedLlamaRegistration
 	primaryManagedLlamaModelName   string
-	warmedModelKeys           map[string]struct{}
-	warmedModelOrder          []string
-	assetResidency            map[string]localAssetResidencyState
-	engineResidency           map[string]localEngineResidencyState
+	managedLlamaLoadedLocalAssetID string
+	warmedModelKeys                map[string]struct{}
+	warmedModelOrder               []string
+	assetResidency                 map[string]localAssetResidencyState
+	engineResidency                map[string]localEngineResidencyState
+	managedLlamaLoadMu             sync.Mutex
 
 	endpointProbe                endpointProbeFunc
 	hfCatalogSearch              hfCatalogSearchFunc

@@ -305,7 +305,22 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 
 	switch selected.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-		return true, nil, true
+		switch selected.GetWarmState() {
+		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY:
+			return true, nil, true
+		case runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED:
+			return false, &runtimev1.CheckModelHealthResponse{
+				Healthy:    false,
+				ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+				ActionHint: "inspect_local_runtime_model_health",
+			}, true
+		default:
+			return false, &runtimev1.CheckModelHealthResponse{
+				Healthy:    false,
+				ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+				ActionHint: "warm local model",
+			}, true
+		}
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return false, &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
