@@ -79,15 +79,11 @@ test('auth menu storage sync forwards persisted refresh token when available', (
   assert.match(authFlowSource, /void adapter\.applyToken\(''\)/);
 });
 
-test('web auth session storage persists only non-sensitive session metadata', () => {
+test('web auth session storage persists session metadata with access token', () => {
   assert.match(authSessionStorageSource, /accessToken: z\.string\(\)\.optional\(\)/);
   assert.match(
     authSessionStorageSource,
-    /export function loadPersistedAccessToken\(\): string \{\s*return '';\s*\}/s,
-  );
-  assert.match(
-    authSessionStorageSource,
-    /const payload: PersistedWebAuthSession = \{\s*\.\.\.\(normalizedUserValue \? \{ user: normalizedUserValue \} : \{\}\),/s,
+    /export function loadPersistedAccessToken\(\): string \{\s*const session = loadPersistedAuthSession\(\);\s*return String\(session\?\.accessToken \|\| ''\)\.trim\(\);\s*\}/s,
   );
 
   const repoRoot = path.join(import.meta.dirname, '../../..');
@@ -125,10 +121,10 @@ test('web auth session storage persists only non-sensitive session metadata', ()
     raw?: string;
   };
 
-  assert.equal(parsed.token, '');
-  assert.equal(parsed.session?.accessToken, undefined);
+  assert.equal(parsed.token, 'access-123');
+  assert.equal(parsed.session?.accessToken, 'access-123');
   assert.equal(parsed.session?.user?.id, 'u1');
-  assert.doesNotMatch(String(parsed.raw || ''), /accessToken/);
+  assert.match(String(parsed.raw || ''), /"accessToken"/);
   assert.match(String(parsed.raw || ''), /"user":\{"id":"u1"\}/);
 });
 

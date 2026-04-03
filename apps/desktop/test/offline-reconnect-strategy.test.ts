@@ -170,7 +170,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       hasPendingRealmRecoveryWork: async () => true,
       flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
       flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
-      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
@@ -199,7 +199,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       hasPendingRealmRecoveryWork: async () => true,
       flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
       flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
-      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 
@@ -225,7 +225,7 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
       hasPendingRealmRecoveryWork: async () => true,
       flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
       flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
-      invalidateQueries: async () => { effects.push('invalidateQueries'); },
+      invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
       rebootstrapRuntime: async () => { effects.push('rebootstrapRuntime'); },
     });
 

@@ -44,17 +44,16 @@ test('desktop auth adapter guards auth API calls behind bootstrap readiness', ()
   }
 });
 
-test('desktop auth adapter skips eager social warmup in web shell mode', () => {
+test('desktop auth adapter delegates post-login sync to query invalidation (no direct dataSync calls)', () => {
   const syncAfterLoginStart = authAdapterSource.indexOf('syncAfterLogin: async () => {');
   assert.notEqual(syncAfterLoginStart, -1, 'syncAfterLogin handler must exist');
 
   const webShellGuardIndex = authAdapterSource.indexOf('if (isWebShellMode()) {', syncAfterLoginStart);
   assert.notEqual(webShellGuardIndex, -1, 'syncAfterLogin must guard web shell warmup');
 
-  const loadChatsIndex = authAdapterSource.indexOf('dataSync.loadChats()', syncAfterLoginStart);
-  assert.notEqual(loadChatsIndex, -1, 'syncAfterLogin must still preload chats outside web shell');
-  assert.ok(
-    webShellGuardIndex < loadChatsIndex,
-    'web shell guard must run before eager chat warmup',
-  );
+  // syncAfterLogin must not call dataSync directly — query invalidation handles refetches
+  const directLoadChats = authAdapterSource.indexOf('dataSync.loadChats()', syncAfterLoginStart);
+  assert.equal(directLoadChats, -1, 'syncAfterLogin must not call dataSync.loadChats() directly');
+  const directLoadContacts = authAdapterSource.indexOf('dataSync.loadContacts()', syncAfterLoginStart);
+  assert.equal(directLoadContacts, -1, 'syncAfterLogin must not call dataSync.loadContacts() directly');
 });

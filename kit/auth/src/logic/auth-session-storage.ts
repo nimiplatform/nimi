@@ -6,6 +6,7 @@ const WEB_AUTH_SESSION_FALLBACK_TTL_MS = 60 * 60 * 1000;
 
 export type PersistedWebAuthSession = {
   accessToken?: string;
+  refreshToken?: string;
   user?: Record<string, unknown> | null;
   updatedAt: string;
   expiresAt?: string;
@@ -13,6 +14,7 @@ export type PersistedWebAuthSession = {
 
 const persistedWebAuthSessionSchema = z.object({
   accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
   user: z.record(z.string(), z.unknown()).nullable().optional(),
   updatedAt: z.string().optional(),
   expiresAt: z.string().optional(),
@@ -117,19 +119,11 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
       return null;
     }
 
-    if (accessToken) {
-      try {
-        writeSessionKeys({
-          ...(user ? { user } : {}),
-          updatedAt,
-          ...(expiresAt ? { expiresAt } : {}),
-        });
-      } catch {
-        // ignore storage failures
-      }
-    }
+    const refreshToken = String(parsed.data.refreshToken || '').trim();
 
     return {
+      ...(accessToken ? { accessToken } : {}),
+      ...(refreshToken ? { refreshToken } : {}),
       ...(user ? { user } : {}),
       updatedAt,
       ...(expiresAt ? { expiresAt } : {}),
@@ -142,7 +136,11 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
 
 function writeSessionKeys(session: PersistedWebAuthSession): void {
   const normalizedUserValue = normalizeUser(session.user);
+  const accessToken = String(session.accessToken || '').trim();
+  const refreshToken = String(session.refreshToken || '').trim();
   const payload: PersistedWebAuthSession = {
+    ...(accessToken ? { accessToken } : {}),
+    ...(refreshToken ? { refreshToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: session.updatedAt || new Date().toISOString(),
     ...(session.expiresAt ? { expiresAt: session.expiresAt } : {}),
@@ -152,7 +150,8 @@ function writeSessionKeys(session: PersistedWebAuthSession): void {
 }
 
 export function loadPersistedAccessToken(): string {
-  return '';
+  const session = loadPersistedAuthSession();
+  return String(session?.accessToken || '').trim();
 }
 
 export function persistAuthSession(input: {
@@ -175,7 +174,10 @@ export function persistAuthSession(input: {
     ? (previous?.user ?? null)
     : input.user;
 
+  const normalizedRefreshToken = String(input.refreshToken || '').trim();
   const payload: PersistedWebAuthSession = {
+    accessToken: normalizedToken,
+    ...(normalizedRefreshToken ? { refreshToken: normalizedRefreshToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: new Date().toISOString(),
     expiresAt: resolveSessionExpiry(normalizedToken, new Date().toISOString()),

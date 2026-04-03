@@ -292,8 +292,10 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
-    const refreshToken = '';
-    const accessToken = String(defaults.realm.accessToken || '').trim();
+    const persistedSession = deps.loadPersistedAuthSession();
+    const refreshToken = String(persistedSession?.refreshToken || '').trim();
+    const envAccessToken = String(defaults.realm.accessToken || '').trim();
+    const accessToken = envAccessToken || String(persistedSession?.accessToken || '').trim();
     const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);
 

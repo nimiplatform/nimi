@@ -38,19 +38,8 @@ export function startAuthStateWatcher() {
       if (auth.token !== prev.token) {
         dataSync.scheduleProactiveRefresh(auth.token);
       }
-      // 首次登录时只预热好友图谱，避免把 creator agents 大列表塞进启动竞争路径。
-      if (prev.status !== 'authenticated') {
-        void dataSync.loadContacts().catch((error) => {
-          logRendererEvent({
-            level: 'error',
-            area: 'auth-state-watcher',
-            message: 'phase:auth-contacts-prewarm:failed',
-            details: {
-              error: error instanceof Error ? error.message : String(error || 'unknown error'),
-            },
-          });
-        });
-      }
+      // Contacts prewarm is handled by runtime-bootstrap-auth + React Query.
+      // Duplicate prewarm call removed to avoid startup request storm.
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
       dataSync.setToken('');
       dataSync.setRefreshToken('');

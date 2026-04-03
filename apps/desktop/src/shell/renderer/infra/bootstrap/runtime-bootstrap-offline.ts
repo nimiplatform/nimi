@@ -9,7 +9,7 @@ export type OfflineCoordinatorBindingsInput = {
   hasPendingRealmRecoveryWork: () => Promise<boolean>;
   flushChatOutbox: () => Promise<void>;
   flushSocialOutbox: () => Promise<void>;
-  invalidateQueries: () => Promise<unknown>;
+  invalidateRealmQueries: () => Promise<unknown>;
   rebootstrapRuntime: () => Promise<void>;
 };
 
@@ -31,7 +31,7 @@ export function attachOfflineCoordinatorBindings(input: OfflineCoordinatorBindin
       input.flushChatOutbox(),
       input.flushSocialOutbox(),
     ]);
-    await input.invalidateQueries();
+    await input.invalidateRealmQueries();
   });
   const unsubscribeRuntimeReconnect = input.coordinator.subscribeRuntimeReconnect(async () => {
     await input.rebootstrapRuntime();

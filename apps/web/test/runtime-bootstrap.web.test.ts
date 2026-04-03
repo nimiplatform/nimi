@@ -63,8 +63,8 @@ test('runtime-bootstrap.web defers chat and contact hydration until UI demand', 
   assert.doesNotMatch(bootstrapAuthSessionSection, /deps\.dataSync\.loadContacts\(\)/);
 });
 
-test('runtime-bootstrap.web no longer restores bearer tokens from browser storage', () => {
-  assert.doesNotMatch(runtimeBootstrapWebSource, /loadPersistedAccessToken/);
+test('runtime-bootstrap.web restores auth session from persisted browser storage', () => {
+  assert.match(runtimeBootstrapWebSource, /loadPersistedAuthSession/);
   assert.doesNotMatch(runtimeBootstrapWebSource, /fallbackToken/);
 });
 

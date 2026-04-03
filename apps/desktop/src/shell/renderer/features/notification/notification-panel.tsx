@@ -112,7 +112,7 @@ export function NotificationPanel() {
     },
   });
   const unreadCountQuery = useQuery({
-    queryKey: notificationQueryKeys.unreadCount(authStatus),
+    queryKey: notificationQueryKeys.topbarUnreadCount,
     queryFn: async () => dataSync.loadNotificationUnreadCount(),
     enabled: authStatus === 'authenticated',
     staleTime: 15_000,

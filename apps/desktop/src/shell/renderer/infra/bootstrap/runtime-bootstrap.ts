@@ -93,7 +93,16 @@ function bindOfflineCoordinator(): void {
     hasPendingRealmRecoveryWork: async () => dataSync.hasPendingOfflineRecoveryWork(),
     flushChatOutbox: async () => dataSync.flushChatOutbox(),
     flushSocialOutbox: async () => dataSync.flushSocialOutbox(),
-    invalidateQueries: async () => queryClient.invalidateQueries(),
+    invalidateRealmQueries: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['chats'] }),
+        queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        queryClient.invalidateQueries({ queryKey: ['topbar-currency-balances'] }),
+        queryClient.invalidateQueries({ queryKey: ['topbar-notification-unread-count'] }),
+        queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] }),
+        queryClient.invalidateQueries({ queryKey: ['notification-page'] }),
+      ]);
+    },
     rebootstrapRuntime: async () => {
       await rebootstrapRuntime();
     },

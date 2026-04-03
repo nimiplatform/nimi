@@ -286,7 +286,7 @@ export function WalletPage() {
   const [rechargeMessage, setRechargeMessage] = useState<string | null>(null);
 
   const balancesQuery = useQuery({
-    queryKey: ['wallet-balances'],
+    queryKey: ['topbar-currency-balances'],
     queryFn: async () => dataSync.loadCurrencyBalances(),
   });
 
