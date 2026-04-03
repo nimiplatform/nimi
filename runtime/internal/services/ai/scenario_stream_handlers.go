@@ -119,6 +119,11 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return err
 	}
 	defer resolved.release()
+	releaseLease, err := s.acquireSelectedLocalModelLease(requestCtx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "stream_text_generate_request")
+	if err != nil {
+		return err
+	}
+	defer releaseLease()
 	if err := s.validateTextGenerateInputParts(stream.Context(), modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return err
 	}

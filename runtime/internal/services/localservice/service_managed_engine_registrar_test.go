@@ -55,7 +55,7 @@ func (m *registrarTestEngineManager) EngineStatus(_ string) (EngineInfo, error) 
 	}
 	return EngineInfo{
 		Engine:   "llama",
-		Version:  "b8575",
+		Version:  engine.DefaultLlamaConfig().Version,
 		Status:   "healthy",
 		Port:     1234,
 		Endpoint: "http://127.0.0.1:1234",
@@ -471,5 +471,263 @@ func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, 
 	}
 	if err := os.WriteFile(manifestPath, raw, 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
+	}
+}
+
+func TestFindMmprojCandidates(t *testing.T) {
+	tests := []struct {
+		name  string
+		files []string
+		want  int
+	}{
+		{"no mmproj", []string{"model.gguf", "tokenizer.json"}, 0},
+		{"single mmproj", []string{"model.gguf", "mmproj-vision.gguf"}, 1},
+		{"multiple mmproj", []string{"mmproj-a.gguf", "mmproj-b.gguf"}, 2},
+		{"non-gguf mmproj ignored", []string{"mmproj.bin"}, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findMmprojCandidates(tt.files)
+			if len(got) != tt.want {
+				t.Fatalf("findMmprojCandidates(%v) = %v (len %d), want len %d", tt.files, got, len(got), tt.want)
+			}
+		})
+	}
+}
+
+// setupRegistrarTestModel creates the directory layout expected by
+// resolveManagedModelEntryAbsolutePath for a given assetId and entry.
+func setupRegistrarTestModel(t *testing.T, modelsPath string, assetID string, entry string) {
+	t.Helper()
+	slug := slugifyLocalModelID(assetID)
+	modelDir := filepath.Join(modelsPath, slug)
+	if err := os.MkdirAll(modelDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	modelFile := filepath.Join(modelDir, entry)
+	// Write enough bytes to pass minManagedGGUFSizeBytes if checked later.
+	if err := os.WriteFile(modelFile, make([]byte, 1024), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestInspectManagedLlamaRegistrationMmprojAutoDetect(t *testing.T) {
+	modelsPath := t.TempDir()
+	setupRegistrarTestModel(t, modelsPath, "test/test-model", "model.gguf")
+	if err := os.WriteFile(filepath.Join(modelsPath, slugifyLocalModelID("test/test-model"), "mmproj-vision.gguf"), validTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write mmproj companion: %v", err)
+	}
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "test-id",
+		AssetId:      "test/test-model",
+		Capabilities: []string{"chat"},
+		Engine:       "llama",
+		Entry:        "model.gguf",
+		Files:        []string{"model.gguf", "mmproj-vision.gguf"},
+	}
+
+	reg := inspectManagedLlamaModelRegistration(
+		model,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		modelsPath, true, false, nil,
+	)
+	if reg.Problem != "" {
+		t.Fatalf("unexpected problem: %s", reg.Problem)
+	}
+	if reg.LlamaEngineConfig == nil || reg.LlamaEngineConfig.Mmproj != "test-test-model/mmproj-vision.gguf" {
+		t.Fatalf("expected mmproj auto-detected, got %+v", reg.LlamaEngineConfig)
+	}
+}
+
+func TestInspectManagedLlamaRegistrationMmprojMultipleFailClose(t *testing.T) {
+	modelsPath := t.TempDir()
+	setupRegistrarTestModel(t, modelsPath, "test/test-model", "model.gguf")
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "test-id",
+		AssetId:      "test/test-model",
+		Capabilities: []string{"chat"},
+		Engine:       "llama",
+		Entry:        "model.gguf",
+		Files:        []string{"model.gguf", "mmproj-a.gguf", "mmproj-b.gguf"},
+	}
+
+	reg := inspectManagedLlamaModelRegistration(
+		model,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		modelsPath, true, false, nil,
+	)
+	if reg.Problem == "" {
+		t.Fatal("expected fail-close for multiple mmproj candidates")
+	}
+	if !strings.Contains(reg.Problem, "multiple mmproj") {
+		t.Fatalf("unexpected problem: %s", reg.Problem)
+	}
+}
+
+func TestInspectManagedLlamaRegistrationVisionMissingMmprojFailClose(t *testing.T) {
+	modelsPath := t.TempDir()
+	setupRegistrarTestModel(t, modelsPath, "test/test-model", "model.gguf")
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "test-id",
+		AssetId:      "test/test-model",
+		Capabilities: []string{"chat", "text.generate.vision"},
+		Engine:       "llama",
+		Entry:        "model.gguf",
+		Files:        []string{"model.gguf"},
+	}
+
+	reg := inspectManagedLlamaModelRegistration(
+		model,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		modelsPath, true, false, nil,
+	)
+	if reg.Problem == "" {
+		t.Fatal("expected fail-close for vision model without mmproj")
+	}
+	if !strings.Contains(reg.Problem, "text.generate.vision") {
+		t.Fatalf("unexpected problem: %s", reg.Problem)
+	}
+}
+
+func TestBuildManagedLlamaRegistrationsPrimaryModelFirst(t *testing.T) {
+	svc := newTestService(t)
+	modelsPath := filepath.Join(t.TempDir(), "models")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
+	mgr := &registrarTestEngineManager{statusErr: errors.New("engine llama not started")}
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+	svc.SetEngineManager(mgr)
+
+	// Install two models whose names sort alphabetically as alpha < beta.
+	writeManagedLlamaManifest(t, modelsPath, "local/alpha-model", "./weights/alpha.gguf", []string{"chat"})
+	installManagedLlamaModelForRegistrarTest(t, svc, "local/alpha-model", "./weights/alpha.gguf", []string{"chat"}, "", nil)
+	writeManagedLlamaManifest(t, modelsPath, "local/beta-model", "./weights/beta.gguf", []string{"chat"})
+	installManagedLlamaModelForRegistrarTest(t, svc, "local/beta-model", "./weights/beta.gguf", []string{"chat"}, "", nil)
+
+	// Without primary set, alpha-model comes first (alphabetical).
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var entries []managedLlamaConfigEntry
+	if err := yaml.Unmarshal(raw, &entries); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+	if entries[0].Name != "alpha-model" {
+		t.Fatalf("expected alpha-model first without primary, got %q", entries[0].Name)
+	}
+
+	// Set beta-model as primary and rebuild.
+	svc.mu.Lock()
+	svc.primaryManagedLlamaModelName = "beta-model"
+	svc.mu.Unlock()
+	mgr.statusErr = nil
+	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
+		t.Fatalf("sync after setting primary: %v", err)
+	}
+
+	raw, err = os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config after primary: %v", err)
+	}
+	entries = nil
+	if err := yaml.Unmarshal(raw, &entries); err != nil {
+		t.Fatalf("unmarshal config after primary: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries after primary, got %d", len(entries))
+	}
+	if entries[0].Name != "beta-model" {
+		t.Fatalf("expected beta-model first when set as primary, got %q", entries[0].Name)
+	}
+	if entries[1].Name != "alpha-model" {
+		t.Fatalf("expected alpha-model second, got %q", entries[1].Name)
+	}
+}
+
+func TestInspectManagedLlamaRegistrationEngineConfigThreaded(t *testing.T) {
+	modelsPath := t.TempDir()
+	setupRegistrarTestModel(t, modelsPath, "test/test-model", "model.gguf")
+
+	llamaFields := map[string]*structpb.Value{
+		"ctx_size":     structpb.NewNumberValue(4096),
+		"cache_type_k": structpb.NewStringValue("q4_0"),
+		"flash_attn":   structpb.NewStringValue("auto"),
+	}
+	engineConfig := &structpb.Struct{
+		Fields: map[string]*structpb.Value{
+			"llama": structpb.NewStructValue(&structpb.Struct{Fields: llamaFields}),
+		},
+	}
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "test-id",
+		AssetId:      "test/test-model",
+		Capabilities: []string{"chat"},
+		Engine:       "llama",
+		Entry:        "model.gguf",
+		Files:        []string{"model.gguf"},
+		EngineConfig: engineConfig,
+	}
+
+	reg := inspectManagedLlamaModelRegistration(
+		model,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		modelsPath, true, false, nil,
+	)
+	if reg.Problem != "" {
+		t.Fatalf("unexpected problem: %s", reg.Problem)
+	}
+	if reg.LlamaEngineConfig == nil {
+		t.Fatal("expected LlamaEngineConfig to be set")
+	}
+	if reg.LlamaEngineConfig.CtxSize != 4096 {
+		t.Fatalf("ctx_size=%d, want 4096", reg.LlamaEngineConfig.CtxSize)
+	}
+	if reg.LlamaEngineConfig.CacheTypeK != "q4_0" {
+		t.Fatalf("cache_type_k=%q, want q4_0", reg.LlamaEngineConfig.CacheTypeK)
+	}
+	if reg.LlamaEngineConfig.FlashAttn != "auto" {
+		t.Fatalf("flash_attn=%q, want auto", reg.LlamaEngineConfig.FlashAttn)
+	}
+}
+
+func TestInspectManagedLlamaRegistrationExplicitMmprojMissingFailClose(t *testing.T) {
+	modelsPath := t.TempDir()
+	setupRegistrarTestModel(t, modelsPath, "test/test-model", "model.gguf")
+
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"llama": map[string]any{
+			"mmproj": "test-test-model/missing-mmproj.gguf",
+		},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "test-id",
+		AssetId:      "test/test-model",
+		Capabilities: []string{"text.generate", "text.generate.vision"},
+		Engine:       "llama",
+		Entry:        "model.gguf",
+		EngineConfig: engineConfig,
+	}
+
+	reg := inspectManagedLlamaModelRegistration(
+		model,
+		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		modelsPath, true, false, nil,
+	)
+	if reg.Problem == "" {
+		t.Fatal("expected fail-close for missing explicit mmproj")
+	}
+	if !strings.Contains(reg.Problem, "missing under models root") {
+		t.Fatalf("unexpected problem: %s", reg.Problem)
 	}
 }

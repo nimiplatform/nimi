@@ -40,7 +40,7 @@ func llamaAssetNameFor(version string, goos string, goarch string) (string, erro
 
 // llamaCommand builds the exec.Cmd for starting llama-server.
 func llamaCommand(cfg EngineConfig) (*exec.Cmd, error) {
-	modelPath, modelAlias, err := resolveManagedLlamaModelEntry(cfg)
+	modelPath, modelAlias, params, err := resolveManagedLlamaModelEntry(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -52,23 +52,28 @@ func llamaCommand(cfg EngineConfig) (*exec.Cmd, error) {
 	if modelAlias != "" {
 		args = append(args, "--alias", modelAlias)
 	}
+	engineArgs, err := projectLlamaEngineParams(cfg.ModelsPath, params)
+	if err != nil {
+		return nil, fmt.Errorf("project llama engine params: %w", err)
+	}
+	args = append(args, engineArgs...)
 	return exec.Command(cfg.BinaryPath, args...), nil
 }
 
-func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, error) {
+func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, llamaModelsConfigParameter, error) {
 	configPath := strings.TrimSpace(cfg.ModelsConfigPath)
 	if configPath == "" {
-		return "", "", fmt.Errorf("llama models config path is required")
+		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("llama models config path is required")
 	}
 
 	raw, err := os.ReadFile(configPath)
 	if err != nil {
-		return "", "", fmt.Errorf("read llama models config %s: %w", configPath, err)
+		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("read llama models config %s: %w", configPath, err)
 	}
 
 	var entries []llamaModelsConfigEntry
 	if err := yaml.Unmarshal(raw, &entries); err != nil {
-		return "", "", fmt.Errorf("parse llama models config %s: %w", configPath, err)
+		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("parse llama models config %s: %w", configPath, err)
 	}
 
 	modelsRoot := strings.TrimSpace(cfg.ModelsPath)
@@ -84,10 +89,10 @@ func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, error) {
 		if !filepath.IsAbs(modelPath) && modelsRoot != "" {
 			modelPath = filepath.Join(modelsRoot, filepath.FromSlash(modelPath))
 		}
-		return modelPath, strings.TrimSpace(entry.Name), nil
+		return modelPath, strings.TrimSpace(entry.Name), entry.Parameters, nil
 	}
 
-	return "", "", fmt.Errorf("llama models config %s does not contain a managed llama-cpp model entry", configPath)
+	return "", "", llamaModelsConfigParameter{}, fmt.Errorf("llama models config %s does not contain a managed llama-cpp model entry", configPath)
 }
 
 // llamaBinaryName returns the expected binary name within the engines directory.

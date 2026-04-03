@@ -223,6 +223,13 @@ func InferCapabilities(modelID string) []string {
 	if strings.Contains(lower, "omni") {
 		add("text.generate.vision", "text.generate.audio", "text.generate.video")
 	}
+	// Gemma 4 heuristic: gemma-4/gemma4 are natively multimodal (vision).
+	// text.generate.audio for e2b/e4b remains gated off on the current
+	// runtime target version: b8645 includes Gemma 4 architecture support,
+	// but upstream libmtmd init_audio() still does not accept GEMMA4A.
+	if strings.Contains(lower, "gemma-4") || strings.Contains(lower, "gemma4") {
+		add("text.generate.vision")
+	}
 	caps := make([]string, 0, len(seen))
 	for capability := range seen {
 		caps = append(caps, capability)

@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const defaultLlamaVersion = "b8645"
+
 // EngineKind identifies a supported local AI engine.
 type EngineKind string
 
@@ -169,11 +171,18 @@ type EngineConfig struct {
 }
 
 // DefaultLlamaConfig returns the default configuration for the llama engine.
+//
+// Version gate (b8645):
+//   - Supports: --ctx-size, --cache-type-k/v, --flash-attn (on/off/auto),
+//     --mmproj, --n-gpu-layers.
+//   - Includes LLM_ARCH_GEMMA4 and Gemma 4 vision projector support.
+//   - Gemma 4 audio input is still gated off: upstream libmtmd init_audio()
+//     does not accept the GEMMA4A projector on this version.
 func DefaultLlamaConfig() EngineConfig {
 	return EngineConfig{
 		Kind:             EngineLlama,
 		Port:             1234,
-		Version:          "b8575",
+		Version:          defaultLlamaVersion,
 		HealthMode:       HealthModeHTTP,
 		HealthPath:       "/v1/models",
 		StartupTimeout:   120 * time.Second,

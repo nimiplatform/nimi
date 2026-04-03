@@ -253,6 +253,16 @@ func StableDiffusionMetadataIssue(summary Summary) string {
 	return "gguf metadata lacks runtime-supported diffusion version keys and tensor signatures"
 }
 
+// LLMDetectedArchitecture returns the value of "general.architecture"
+// from the GGUF metadata, or empty string if not found.
+func LLMDetectedArchitecture(summary Summary) string {
+	value, ok := summary.StringValue("general.architecture")
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(value)
+}
+
 var stableDiffusionIdentityKeys = []string{
 	"general.architecture",
 	"general.name",
@@ -276,6 +286,8 @@ var stableDiffusionTensorSignatures = []stableDiffusionTensorSignature{
 	{Family: "qwen-image", Suffix: "transformer_blocks.0.img_mod.1.weight"},
 	{Family: "ovis-image", Suffix: "double_blocks.0.img_mlp.gate_proj.weight"},
 	{Family: "anima", Suffix: "llm_adapter.blocks.0.cross_attn.q_proj.weight"},
+	{Family: "chroma", Suffix: "distilled_guidance_layer.in_proj.weight"},
+	{Family: "flux", Suffix: "double_blocks.0.img_mod.lin.weight"},
 }
 
 func readValueType(reader io.Reader) (ValueType, error) {

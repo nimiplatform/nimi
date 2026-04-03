@@ -50,6 +50,7 @@ func (s *Service) startRecoveryLoop() {
 }
 
 func (s *Service) runRecoverySweep(ctx context.Context) {
+	s.runResidencySweep(ctx)
 	models, services := s.collectUnhealthyRecoveryTargets()
 	now := time.Now().UTC()
 

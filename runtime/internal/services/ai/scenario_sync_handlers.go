@@ -57,6 +57,11 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 		return nil, err
 	}
 	defer resolved.release()
+	releaseLease, err := s.acquireSelectedLocalModelLease(requestCtx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "text_generate_request")
+	if err != nil {
+		return nil, err
+	}
+	defer releaseLease()
 	if err := s.validateTextGenerateInputParts(ctx, modelResolved, remoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return nil, err
 	}
@@ -162,6 +167,11 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 		modelResolved,
 		routeInfo,
 	)
+	releaseLease, err := s.acquireSelectedLocalModelLease(requestCtx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_EMBEDDING, "text_embed_request")
+	if err != nil {
+		return nil, err
+	}
+	defer releaseLease()
 
 	var (
 		vectors []*structpb.ListValue

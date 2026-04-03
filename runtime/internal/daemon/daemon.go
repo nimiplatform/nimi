@@ -303,6 +303,8 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			detail := fmt.Sprintf("start managed image backend: %v", err)
 			d.setDegradedStatus(detail)
 			appendStartupFailureAudit(d.auditStore, detail)
+		} else if svc != nil {
+			svc.MarkManagedEngineUsed(string(engineMediaDiffusersBackend), "engine_bootstrap")
 		}
 	}
 	managedMediaLoopback := managedImageLoopback || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
@@ -354,6 +356,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 					kind:   kind,
 					detail: err.Error(),
 				}
+				return
+			}
+			if svc := d.grpc.LocalService(); svc != nil {
+				svc.MarkManagedEngineUsed(string(kind), "engine_bootstrap")
 			}
 		}()
 	}
@@ -396,7 +402,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 					appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.SnapshotOf(providerName))
 				}
 			}
-			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail)
+			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail, d.resolvedImageMatrix)
 		}
 	}
 	if firstFailure != "" {
@@ -538,6 +544,9 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 		}
 		if kind, envKey, ok := engineEnvKey(engineName); ok {
 			d.injectEngineEndpointEnv(kind, envKey, "recovered")
+		}
+		if svc := d.grpc.LocalService(); svc != nil {
+			svc.MarkManagedEngineUsed(engineName, "engine_recovered")
 		}
 		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {

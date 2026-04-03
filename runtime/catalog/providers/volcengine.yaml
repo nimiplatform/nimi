@@ -141,7 +141,7 @@ models:
   - model_id: doubao-seedance-2-0-260128
     provider: volcengine
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-03
     capabilities:
       - video.generate
     pricing:
@@ -149,11 +149,11 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-03-05
+      as_of: 2026-04-03
       notes: Volcengine public pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
-      retrieved_at: 2026-03-05
+      retrieved_at: 2026-04-03
       note: Volcengine Seedance video generation overview (t2v and i2v).
     video_generation: &a2
       modes:
@@ -164,17 +164,34 @@ models:
       input_roles:
         t2v:
           - prompt
+          - reference_video
+          - reference_audio
         i2v_first_frame:
           - prompt
           - first_frame
+          - reference_video
+          - reference_audio
         i2v_first_last:
           - prompt
           - first_frame
           - last_frame
+          - reference_video
+          - reference_audio
         i2v_reference:
           - prompt
           - reference_image
+          - reference_video
+          - reference_audio
       limits:
+        reference_videos:
+          min: 0
+          max: 1
+        reference_audios:
+          min: 0
+          max: 1
+        duration_sec:
+          min: 1
+          max: 11
         ratio:
           - 16:9
           - 4:3

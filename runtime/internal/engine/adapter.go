@@ -150,6 +150,8 @@ func parseEngineKind(name string) (EngineKind, error) {
 		return EngineLlama, nil
 	case "media":
 		return EngineMedia, nil
+	case "media-diffusers-backend":
+		return engineMediaDiffusersBackend, nil
 	case "speech":
 		return EngineSpeech, nil
 	case "sidecar":
@@ -165,6 +167,8 @@ func publicEngineName(kind EngineKind) string {
 		return "llama"
 	case EngineMedia:
 		return "media"
+	case engineMediaDiffusersBackend:
+		return "media-diffusers-backend"
 	case EngineSpeech:
 		return "speech"
 	case EngineKind("sidecar"):

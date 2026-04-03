@@ -42,6 +42,7 @@ func BinaryArtifact(mimeType string, payload []byte, artifactMeta map[string]any
 		SizeBytes:  int64(len(payload)),
 	}
 	if len(artifactMeta) > 0 {
+		artifact.Metadata = ToStruct(artifactMeta)
 		if uri := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(artifactMeta["uri"]),
 			ValueAsString(artifactMeta["url"]),
@@ -87,11 +88,72 @@ func ToStruct(input map[string]any) *structpb.Struct {
 	if len(input) == 0 {
 		return nil
 	}
-	value, err := structpb.NewStruct(input)
+	value, err := structpb.NewStruct(normalizeStructValue(input).(map[string]any))
 	if err != nil {
 		return nil
 	}
 	return value
+}
+
+func normalizeStructValue(input any) any {
+	switch typed := input.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, value := range typed {
+			out[key] = normalizeStructValue(value)
+		}
+		return out
+	case []any:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, normalizeStructValue(value))
+		}
+		return out
+	case []string:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	case []int:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	case []int32:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	case []int64:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	case []float32:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, float64(value))
+		}
+		return out
+	case []float64:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	case []bool:
+		out := make([]any, 0, len(typed))
+		for _, value := range typed {
+			out = append(out, value)
+		}
+		return out
+	default:
+		return input
+	}
 }
 
 // ParseDimensionPair parses a "WxH" or "W*H" string into width and height.

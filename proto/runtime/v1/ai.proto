@@ -102,6 +102,8 @@ enum VideoContentType {
   VIDEO_CONTENT_TYPE_UNSPECIFIED = 0;
   VIDEO_CONTENT_TYPE_TEXT = 1;
   VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
+  VIDEO_CONTENT_TYPE_VIDEO_URL = 3;
+  VIDEO_CONTENT_TYPE_AUDIO_URL = 4;
 }
 
 enum VideoContentRole {
@@ -110,6 +112,8 @@ enum VideoContentRole {
   VIDEO_CONTENT_ROLE_FIRST_FRAME = 2;
   VIDEO_CONTENT_ROLE_LAST_FRAME = 3;
   VIDEO_CONTENT_ROLE_REFERENCE_IMAGE = 4;
+  VIDEO_CONTENT_ROLE_REFERENCE_VIDEO = 5;
+  VIDEO_CONTENT_ROLE_REFERENCE_AUDIO = 6;
 }
 
 enum SpeechTimingMode {
@@ -437,6 +441,7 @@ message ScenarioArtifact {
   int32 sample_rate_hz = 11;
   int32 channels = 12;
   SpeechAlignment speech_alignment = 13;
+  google.protobuf.Struct metadata = 14;
 }
 
 message ScenarioJob {
@@ -535,11 +540,21 @@ message VideoContentImageURL {
   string url = 1;
 }
 
+message VideoContentVideoURL {
+  string url = 1;
+}
+
+message VideoContentAudioURL {
+  string url = 1;
+}
+
 message VideoContentItem {
   VideoContentType type = 1;
   VideoContentRole role = 2;
   string text = 3;
   VideoContentImageURL image_url = 4;
+  VideoContentVideoURL video_url = 5;
+  VideoContentAudioURL audio_url = 6;
 }
 
 message VideoGenerationOptions {

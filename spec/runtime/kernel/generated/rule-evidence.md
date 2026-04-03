@@ -217,6 +217,7 @@
 | `K-LENG-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -386,6 +387,7 @@
 | `K-LOCAL-021e` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
 | `K-LOCAL-031` | `covered` | `runtime_kernel_consistency` |
 | `K-LOCAL-032` | `covered` | `runtime_kernel_consistency` |
+| `K-LOCAL-033` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |

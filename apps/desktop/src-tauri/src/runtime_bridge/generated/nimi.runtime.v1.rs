@@ -2274,6 +2274,8 @@ pub struct ScenarioArtifact {
     pub channels: i32,
     #[prost(message, optional, tag = "13")]
     pub speech_alignment: ::core::option::Option<SpeechAlignment>,
+    #[prost(message, optional, tag = "14")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioJob {
@@ -2426,6 +2428,16 @@ pub struct VideoContentImageUrl {
     pub url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoContentVideoUrl {
+    #[prost(string, tag = "1")]
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoContentAudioUrl {
+    #[prost(string, tag = "1")]
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoContentItem {
     #[prost(enumeration = "VideoContentType", tag = "1")]
     pub r#type: i32,
@@ -2435,6 +2447,10 @@ pub struct VideoContentItem {
     pub text: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub image_url: ::core::option::Option<VideoContentImageUrl>,
+    #[prost(message, optional, tag = "5")]
+    pub video_url: ::core::option::Option<VideoContentVideoUrl>,
+    #[prost(message, optional, tag = "6")]
+    pub audio_url: ::core::option::Option<VideoContentAudioUrl>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoGenerationOptions {
@@ -3121,6 +3137,8 @@ pub enum VideoContentType {
     Unspecified = 0,
     Text = 1,
     ImageUrl = 2,
+    VideoUrl = 3,
+    AudioUrl = 4,
 }
 impl VideoContentType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3132,6 +3150,8 @@ impl VideoContentType {
             Self::Unspecified => "VIDEO_CONTENT_TYPE_UNSPECIFIED",
             Self::Text => "VIDEO_CONTENT_TYPE_TEXT",
             Self::ImageUrl => "VIDEO_CONTENT_TYPE_IMAGE_URL",
+            Self::VideoUrl => "VIDEO_CONTENT_TYPE_VIDEO_URL",
+            Self::AudioUrl => "VIDEO_CONTENT_TYPE_AUDIO_URL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3140,6 +3160,8 @@ impl VideoContentType {
             "VIDEO_CONTENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "VIDEO_CONTENT_TYPE_TEXT" => Some(Self::Text),
             "VIDEO_CONTENT_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
+            "VIDEO_CONTENT_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
+            "VIDEO_CONTENT_TYPE_AUDIO_URL" => Some(Self::AudioUrl),
             _ => None,
         }
     }
@@ -3152,6 +3174,8 @@ pub enum VideoContentRole {
     FirstFrame = 2,
     LastFrame = 3,
     ReferenceImage = 4,
+    ReferenceVideo = 5,
+    ReferenceAudio = 6,
 }
 impl VideoContentRole {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3165,6 +3189,8 @@ impl VideoContentRole {
             Self::FirstFrame => "VIDEO_CONTENT_ROLE_FIRST_FRAME",
             Self::LastFrame => "VIDEO_CONTENT_ROLE_LAST_FRAME",
             Self::ReferenceImage => "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE",
+            Self::ReferenceVideo => "VIDEO_CONTENT_ROLE_REFERENCE_VIDEO",
+            Self::ReferenceAudio => "VIDEO_CONTENT_ROLE_REFERENCE_AUDIO",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3175,6 +3201,8 @@ impl VideoContentRole {
             "VIDEO_CONTENT_ROLE_FIRST_FRAME" => Some(Self::FirstFrame),
             "VIDEO_CONTENT_ROLE_LAST_FRAME" => Some(Self::LastFrame),
             "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE" => Some(Self::ReferenceImage),
+            "VIDEO_CONTENT_ROLE_REFERENCE_VIDEO" => Some(Self::ReferenceVideo),
+            "VIDEO_CONTENT_ROLE_REFERENCE_AUDIO" => Some(Self::ReferenceAudio),
             _ => None,
         }
     }

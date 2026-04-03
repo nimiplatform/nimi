@@ -59,6 +59,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		if _, err := s.checkManagedSupervisedImageHealthWithReason(ctx, current, "start_local_asset"); err != nil {
 			return nil, err
 		}
+		s.markLocalAssetUsed(localModelID, "start_local_asset")
 		return &runtimev1.StartLocalAssetResponse{Asset: s.modelByID(localModelID)}, nil
 	}
 
@@ -76,6 +77,10 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 		}
 		return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
 	}
+
+	s.mu.Lock()
+	s.primaryManagedLlamaModelName = normalizeManagedModelRegistrationModelID(current.GetAssetId())
+	s.mu.Unlock()
 
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, current); err != nil {
 		failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
@@ -130,6 +135,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 			}
 			current = activated
 		}
+		s.markLocalAssetUsed(localModelID, "start_local_asset")
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
 		if latest == nil {
@@ -169,6 +175,7 @@ func (s *Service) StopLocalAsset(_ context.Context, req *runtimev1.StopLocalAsse
 	}
 	detail := "model stopped"
 	if isManagedSupervisedImageModel(current, s.modelRuntimeMode(localModelID)) {
+		_ = s.freeManagedMediaImageOnIdle(context.Background(), localModelID, "stop_local_asset")
 		s.clearManagedMediaImageLoadCache(localModelID)
 		detail = managedLocalImagePendingValidationDetail("model stopped")
 	}

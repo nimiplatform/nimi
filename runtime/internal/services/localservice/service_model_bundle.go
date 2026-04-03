@@ -342,7 +342,9 @@ func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runti
 	) {
 		return false
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
+	entry := strings.TrimSpace(model.GetEntry())
+	ext := strings.ToLower(filepath.Ext(entry))
+	if ext != ".gguf" && ext != ".safetensors" && !strings.EqualFold(filepath.Base(entry), "model_index.json") {
 		return false
 	}
 	if shouldHealManagedSupervisedLlamaRuntimeMode(model, mode) {

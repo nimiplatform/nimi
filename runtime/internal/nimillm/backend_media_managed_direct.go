@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -118,7 +119,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		ModelsRoot:     modelsRoot,
 		ModelPath:      modelPath,
 		Options:        managedMediaStringSlice(profile["options"]),
-		CFGScale:       managedMediaResolveCFGScale(profile),
+		CFGScale:       managedMediaResolveCFGScale(profile, scenarioExtensions),
 		Width:          width,
 		Height:         height,
 		Step:           step,
@@ -230,8 +231,10 @@ func managedMediaResolveStep(profile map[string]any, scenarioExtensions map[stri
 	return 4
 }
 
-func managedMediaResolveCFGScale(profile map[string]any) float32 {
+func managedMediaResolveCFGScale(profile map[string]any, scenarioExtensions map[string]any) float32 {
 	for _, value := range []any{
+		scenarioExtensions["cfg_scale"],
+		scenarioExtensions["cfgScale"],
 		profile["cfg_scale"],
 		profile["cfgScale"],
 		MapField(profile["parameters"], "cfg_scale"),
@@ -259,12 +262,21 @@ func managedMediaResolveCFGScale(profile map[string]any) float32 {
 				return float32(typed)
 			}
 		case string:
-			if parsed := ValueAsInt64(typed); parsed > 0 {
+			trimmed := strings.TrimSpace(typed)
+			if trimmed == "" {
+				continue
+			}
+			if parsed, err := strconv.ParseFloat(trimmed, 32); err == nil && parsed > 0 {
 				return float32(parsed)
 			}
 		}
 	}
 	return 0
+}
+
+type managedMediaLoadOverrides struct {
+	CFGScale float32
+	Sampler  string
 }
 
 func managedMediaClampInt32(value int64) int32 {
@@ -277,8 +289,57 @@ func managedMediaClampInt32(value int64) int32 {
 	return int32(value)
 }
 
+func managedMediaResolveSampler(profile map[string]any, scenarioExtensions map[string]any) string {
+	for _, value := range []any{
+		scenarioExtensions["mode"],
+		scenarioExtensions["method"],
+		profile["mode"],
+		profile["sampling_method"],
+	} {
+		if sampler := managedMediaCanonicalSampler(ValueAsString(value)); sampler != "" {
+			return sampler
+		}
+	}
+	return ""
+}
+
+func managedMediaResolveLoadOverrides(profile map[string]any, scenarioExtensions map[string]any) managedMediaLoadOverrides {
+	return managedMediaLoadOverrides{
+		CFGScale: managedMediaResolveCFGScale(profile, scenarioExtensions),
+		Sampler:  managedMediaResolveSampler(profile, scenarioExtensions),
+	}
+}
+
+func managedMediaCanonicalSampler(method string) string {
+	switch strings.ToLower(strings.TrimSpace(method)) {
+	case "euler_a":
+		return "euler_a"
+	case "euler":
+		return "euler"
+	case "heun":
+		return "heun"
+	case "dpm2":
+		return "dpm2"
+	case "dpmpp2s_a", "dpm++2s_a":
+		return "dpmpp2s_a"
+	case "dpmpp2m", "dpm++2m":
+		return "dpmpp2m"
+	case "dpmpp2mv2", "dpm++2mv2":
+		return "dpmpp2mv2"
+	case "ipndm":
+		return "ipndm"
+	case "ipndm_v":
+		return "ipndm_v"
+	case "lcm":
+		return "lcm"
+	default:
+		return ""
+	}
+}
+
 func managedMediaAppliedOptions(profile map[string]any, scenarioExtensions map[string]any) []string {
-	applied := make([]string, 0, 2)
+	loadOverrides := managedMediaResolveLoadOverrides(profile, scenarioExtensions)
+	applied := make([]string, 0, 6)
 	if step := ValueAsInt32(scenarioExtensions["step"]); step > 0 {
 		applied = append(applied, "step")
 	} else if steps := ValueAsInt32(scenarioExtensions["steps"]); steps > 0 {
@@ -288,17 +349,30 @@ func managedMediaAppliedOptions(profile map[string]any, scenarioExtensions map[s
 	} else if steps := ValueAsInt32(profile["steps"]); steps > 0 {
 		applied = append(applied, "profile.steps->step")
 	}
-	if mode := strings.TrimSpace(ValueAsString(scenarioExtensions["mode"])); mode != "" {
-		applied = append(applied, "mode")
-	} else if method := strings.TrimSpace(ValueAsString(scenarioExtensions["method"])); method != "" {
-		applied = append(applied, "method->mode")
+	if loadOverrides.Sampler != "" {
+		if mode := strings.TrimSpace(ValueAsString(scenarioExtensions["mode"])); mode != "" {
+			applied = append(applied, "mode")
+		} else if method := strings.TrimSpace(ValueAsString(scenarioExtensions["method"])); method != "" {
+			applied = append(applied, "method->mode")
+		} else if mode := strings.TrimSpace(ValueAsString(profile["mode"])); mode != "" {
+			applied = append(applied, "profile.mode")
+		} else if method := strings.TrimSpace(ValueAsString(profile["sampling_method"])); method != "" {
+			applied = append(applied, "profile.sampling_method->mode")
+		}
+	}
+	if cfgScale := loadOverrides.CFGScale; cfgScale > 0 {
+		if _, ok := scenarioExtensions["cfg_scale"]; ok {
+			applied = append(applied, "cfg_scale")
+		} else if _, ok := scenarioExtensions["cfgScale"]; ok {
+			applied = append(applied, "cfgScale->cfg_scale")
+		}
 	}
 	return applied
 }
 
 func managedMediaIgnoredOptions(scenarioExtensions map[string]any) []string {
-	ignored := make([]string, 0, 3)
-	for _, key := range []string{"guidance_scale", "eta", "strength"} {
+	ignored := make([]string, 0, 5)
+	for _, key := range []string{"guidance_scale", "eta", "strength", "clip_skip"} {
 		if _, exists := scenarioExtensions[key]; exists {
 			ignored = append(ignored, key)
 		}

@@ -70,9 +70,12 @@ type Service struct {
 	managedImageLoadCache     map[string]managedImageLoadedState
 	managedImageLoadInflight  map[string]*managedImageLoadInflight
 	engineMgr                 EngineManager
-	managedLlamaRegistrations map[string]managedLlamaRegistration
+	managedLlamaRegistrations      map[string]managedLlamaRegistration
+	primaryManagedLlamaModelName   string
 	warmedModelKeys           map[string]struct{}
 	warmedModelOrder          []string
+	assetResidency            map[string]localAssetResidencyState
+	engineResidency           map[string]localEngineResidencyState
 
 	endpointProbe                endpointProbeFunc
 	hfCatalogSearch              hfCatalogSearchFunc
@@ -92,6 +95,7 @@ type Service struct {
 	entryHashCache               map[string]entryHashCacheState
 	recoveryCancel               context.CancelFunc
 	recoveryDone                 chan struct{}
+	localModelKeepAlive          time.Duration
 }
 
 type entryHashCacheState struct {
@@ -128,6 +132,8 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
 		warmedModelOrder:             make([]string, 0, 512),
+		assetResidency:               make(map[string]localAssetResidencyState),
+		engineResidency:              make(map[string]localEngineResidencyState),
 		endpointProbe:                defaultEndpointProbe,
 		hfCatalogSearch:              defaultHFCatalogSearch,
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
@@ -143,10 +149,12 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		transferControls:             make(map[string]*localTransferControl),
 		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
 		entryHashCache:               make(map[string]entryHashCacheState),
+		localModelKeepAlive:          defaultLocalModelKeepAlive,
 	}
 	if err := svc.restoreState(); err != nil {
 		return nil, err
 	}
+	svc.seedInitialResidencyState()
 	svc.startRecoveryLoop()
 	return svc, nil
 }
@@ -157,6 +165,16 @@ func (s *Service) effectiveLocalAuditCapacity() int {
 		return defaultLocalAuditCapacity
 	}
 	return capacity
+}
+
+func (s *Service) SetLocalModelKeepAlive(duration time.Duration) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.localModelKeepAlive = duration
+	s.mu.Unlock()
+	s.seedInitialResidencyState()
 }
 
 func (s *Service) Close() {

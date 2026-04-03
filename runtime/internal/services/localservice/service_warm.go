@@ -197,6 +197,7 @@ func (s *Service) performWarmLocalModelExecution(
 	}
 
 	s.recordWarmKey(warmKey)
+	s.markLocalAssetUsed(model.GetLocalAssetId(), "warm_local_asset")
 	s.appendWarmLocalModelAudit(model, result.modelResolved, endpoint, result.traceID, result.startedAt)
 	return result, nil
 }

@@ -61,6 +61,35 @@ func TestResolveConfiguredMediaModeAllowsExplicitPipelineModeWithoutSelection(t 
 	}
 }
 
+func TestMediaModeFromSelectionMapsNativeSafetensorsToProxyExecution(t *testing.T) {
+	selection := ImageSupervisedMatrixSelection{
+		Matched:        true,
+		EntryID:        "linux-x64-nvidia-safetensors-native",
+		ProductState:   ImageProductStateSupported,
+		BackendClass:   ImageBackendClassNativeBinary,
+		BackendFamily:  ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:   ImageControlPlaneRuntime,
+		ExecutionPlane: EngineMedia,
+		Entry: &ImageSupervisedMatrixEntry{
+			EntryID:        "linux-x64-nvidia-safetensors-native",
+			AssetFamily:    ImageAssetFamilySafetensorsNativeImage,
+			ProductState:   ImageProductStateSupported,
+			BackendClass:   ImageBackendClassNativeBinary,
+			BackendFamily:  ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   ImageControlPlaneRuntime,
+			ExecutionPlane: EngineMedia,
+		},
+	}
+
+	mode, err := MediaModeFromSelection(selection)
+	if err != nil {
+		t.Fatalf("MediaModeFromSelection: %v", err)
+	}
+	if mode != MediaModeProxyExecution {
+		t.Fatalf("expected proxy_execution, got %q", mode)
+	}
+}
+
 func TestMediaServerRequiresExplicitMode(t *testing.T) {
 	pythonPath, err := exec.LookPath("python3")
 	if err != nil {

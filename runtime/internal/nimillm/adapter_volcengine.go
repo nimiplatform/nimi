@@ -2,6 +2,8 @@ package nimillm
 
 import (
 	"context"
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -106,17 +108,9 @@ func ExecuteBytedanceARKTask(
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		submitPayload := map[string]any{
-			"model":   modelResolved,
-			"content": contentPayload,
-		}
-		if prompt := VideoPrompt(spec); prompt != "" {
-			submitPayload["prompt"] = prompt
-		}
-		if negativePrompt := VideoNegativePrompt(spec); negativePrompt != "" {
-			submitPayload["negative_prompt"] = negativePrompt
-		}
-		if resolution := VideoResolution(spec); resolution != "" {
-			submitPayload["resolution"] = resolution
+			"model":     modelResolved,
+			"content":   contentPayload,
+			"watermark": VideoWatermark(spec),
 		}
 		if ratio := VideoRatio(spec); ratio != "" {
 			submitPayload["ratio"] = ratio
@@ -124,29 +118,28 @@ func ExecuteBytedanceARKTask(
 		if durationSec := VideoDurationSec(spec); durationSec > 0 {
 			submitPayload["duration"] = durationSec
 		}
-		if frames := VideoFrames(spec); frames > 0 {
-			submitPayload["frames"] = frames
-		}
-		if fps := VideoFPS(spec); fps > 0 {
-			submitPayload["framespersecond"] = fps
+		if VideoGenerateAudio(spec) {
+			submitPayload["generate_audio"] = true
 		}
 		if seed := VideoSeed(spec); seed != 0 {
 			submitPayload["seed"] = seed
 		}
-		submitPayload["camera_fixed"] = VideoCameraFixed(spec)
-		submitPayload["watermark"] = VideoWatermark(spec)
-		submitPayload["generate_audio"] = VideoGenerateAudio(spec)
-		submitPayload["draft"] = VideoDraft(spec)
 		if serviceTier := VideoServiceTier(spec); serviceTier != "" {
 			submitPayload["service_tier"] = serviceTier
 		}
 		if expiresAfter := VideoExecutionExpiresAfterSec(spec); expiresAfter > 0 {
 			submitPayload["execution_expires_after"] = expiresAfter
 		}
-		submitPayload["return_last_frame"] = VideoReturnLastFrame(spec)
 
+		if debugPayload, _ := json.Marshal(submitPayload); len(debugPayload) > 0 {
+			slog.Info("[volcengine-video-debug] submit request",
+				"url", JoinURL(baseURL, submitPath),
+				"payload", string(debugPayload),
+			)
+		}
 		submitResp := map[string]any{}
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
+			slog.Warn("[volcengine-video-debug] submit failed", "error", err.Error())
 			return nil, nil, "", err
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterBytedanceARKTask, submitResp)
@@ -194,7 +187,7 @@ func resolveBytedanceARKImagePath(scenarioExtensions map[string]any) string {
 		scenarioExtensions,
 		[]string{"image_path", "image_submit_path"},
 		[]string{"image_paths", "image_submit_paths"},
-		[]string{"/api/v3/images/generations"},
+		[]string{"/images/generations"},
 	)
 }
 
@@ -203,7 +196,7 @@ func resolveBytedanceARKVideoSubmitPath() string {
 		nil,
 		[]string{"video_path", "video_submit_path", "task_submit_path"},
 		[]string{"video_paths", "video_submit_paths", "task_submit_paths"},
-		[]string{"/api/v3/contents/generations/tasks"},
+		[]string{"/contents/generations/tasks"},
 	)
 }
 
@@ -212,6 +205,6 @@ func resolveBytedanceARKVideoQueryPathTemplate() string {
 		nil,
 		[]string{"video_query_path", "video_query_path_template", "task_query_path"},
 		[]string{"video_query_paths", "video_query_path_templates", "task_query_paths"},
-		[]string{"/api/v3/contents/generations/tasks/{task_id}"},
+		[]string{"/contents/generations/tasks/{task_id}"},
 	)
 }

@@ -29,8 +29,8 @@ func TestDefaultLlamaConfig(t *testing.T) {
 	if cfg.Port != 1234 {
 		t.Errorf("expected port 1234, got %d", cfg.Port)
 	}
-	if cfg.Version != "b8575" {
-		t.Errorf("expected version b8575, got %s", cfg.Version)
+	if cfg.Version != defaultLlamaVersion {
+		t.Errorf("expected version %s, got %s", defaultLlamaVersion, cfg.Version)
 	}
 	if cfg.HealthPath != "/v1/models" {
 		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
@@ -1324,8 +1324,8 @@ func TestResolveEngineConfigOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveEngineConfig: %v", err)
 	}
-	if cfg.Version != "b8575" {
-		t.Errorf("expected default version b8575, got %s", cfg.Version)
+	if cfg.Version != defaultLlamaVersion {
+		t.Errorf("expected default version %s, got %s", defaultLlamaVersion, cfg.Version)
 	}
 	if cfg.Port != 1234 {
 		t.Errorf("expected default port 1234, got %d", cfg.Port)

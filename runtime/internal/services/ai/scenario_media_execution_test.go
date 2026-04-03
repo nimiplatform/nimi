@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type fakeLocalImageProfileResolver struct {
@@ -37,6 +38,8 @@ type fakeLocalImageProfileResolver struct {
 	releaseCalls        int
 	lastLoadReason      string
 	lastReleaseReason   string
+	lastEnsureExt       map[string]any
+	lastReleaseExt      map[string]any
 	resolveProfileCalls int
 	resolveProfileErr   error
 	lastRequestedModel  string
@@ -65,18 +68,20 @@ func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context
 	return f.selection, nil
 }
 
-func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, profile map[string]any, loadReason string) error {
+func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
 	f.ensureLoadCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastLoadReason = loadReason
+	f.lastEnsureExt = scenarioExtensions
 	f.profile = profile
 	return nil
 }
 
-func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, profile map[string]any, releaseReason string) error {
+func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
 	f.releaseCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastReleaseReason = releaseReason
+	f.lastReleaseExt = scenarioExtensions
 	f.profile = profile
 	return nil
 }
@@ -127,7 +132,11 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 			},
 		},
 		forwardedExtensions: map[string]any{
-			"step": 25,
+			"step":           25,
+			"mode":           "euler",
+			"guidance_scale": 6,
+			"strength":       0.4,
+			"clip_skip":      2,
 		},
 		modelsRoot:     tempDir,
 		backendAddress: listener.Addr().String(),
@@ -200,6 +209,24 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	}
 	if resolver.lastReleaseReason != "generate_request_cleanup" {
 		t.Fatalf("expected generate release reason, got %q", resolver.lastReleaseReason)
+	}
+	if resolver.lastEnsureExt["mode"] != "euler" || resolver.lastEnsureExt["step"] != 25 {
+		t.Fatalf("unexpected ensure extensions: %#v", resolver.lastEnsureExt)
+	}
+	if resolver.lastReleaseExt["guidance_scale"] != 6 || resolver.lastReleaseExt["strength"] != 0.4 || resolver.lastReleaseExt["clip_skip"] != 2 {
+		t.Fatalf("unexpected release extensions: %#v", resolver.lastReleaseExt)
+	}
+	metadata := artifacts[0].GetMetadata()
+	if metadata == nil {
+		t.Fatal("expected artifact metadata")
+	}
+	applied := metadataStringList(metadata, "local.applied_options")
+	if len(applied) != 2 || applied[0] != "step" || applied[1] != "mode" {
+		t.Fatalf("local.applied_options = %v, want [step mode]", applied)
+	}
+	ignored := metadataStringList(metadata, "local.ignored_options")
+	if len(ignored) != 3 || ignored[0] != "guidance_scale" || ignored[1] != "strength" || ignored[2] != "clip_skip" {
+		t.Fatalf("local.ignored_options = %v, want [guidance_scale strength clip_skip]", ignored)
 	}
 	if !resolver.executionHealthy {
 		t.Fatalf("expected successful execution status callback, detail=%q", resolver.executionDetail)
@@ -380,6 +407,22 @@ func setManagedImageStringField(message *dynamicpb.Message, fieldName string, va
 	message.Set(field, protoreflect.ValueOfString(value))
 }
 
+func metadataStringList(metadata *structpb.Struct, key string) []string {
+	if metadata == nil {
+		return nil
+	}
+	field := metadata.GetFields()[key]
+	if field == nil || field.GetListValue() == nil {
+		return nil
+	}
+	values := field.GetListValue().GetValues()
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, value.GetStringValue())
+	}
+	return out
+}
+
 func stringPtr(value string) *string { return &value }
 
 func int32Ptr(value int32) *int32 { return &value }
@@ -492,5 +535,75 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSelection(t *testi
 	}
 	if !strings.Contains(st.Message(), "reserved topology only") {
 		t.Fatalf("expected compatibility detail to surface, got %q", st.Message())
+	}
+}
+
+func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSafetensorsNativeSelection(t *testing.T) {
+	t.Helper()
+
+	selectedProvider := &localProvider{
+		media: nimillm.NewBackend("local-media", "http://127.0.0.1:65535", "", 0),
+	}
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			ModelId: "local-import/safetensors-native",
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: "orange cat",
+					N:      1,
+					Size:   "1024x1024",
+				},
+			},
+		},
+	}
+
+	_, _, _, err := executeBackendSyncMedia(
+		context.Background(),
+		&Service{
+			localImageProfile: &fakeLocalImageProfileResolver{
+				selection: engine.ImageSupervisedMatrixSelection{
+					Matched:             true,
+					EntryID:             "linux-x64-nvidia-safetensors-native",
+					ProductState:        engine.ImageProductStateUnsupported,
+					BackendClass:        engine.ImageBackendClassNativeBinary,
+					BackendFamily:       engine.ImageBackendFamilyStableDiffusionGGML,
+					ControlPlane:        engine.ImageControlPlaneRuntime,
+					ExecutionPlane:      engine.EngineMedia,
+					CompatibilityDetail: "defined topology for single-file safetensors image assets consumed by native binary backend; not yet validated on this host tuple",
+					Entry: &engine.ImageSupervisedMatrixEntry{
+						EntryID:        "linux-x64-nvidia-safetensors-native",
+						ProductState:   engine.ImageProductStateUnsupported,
+						BackendClass:   engine.ImageBackendClassNativeBinary,
+						BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+						ControlPlane:   engine.ImageControlPlaneRuntime,
+						ExecutionPlane: engine.EngineMedia,
+					},
+				},
+			},
+		},
+		nil,
+		req,
+		selectedProvider,
+		"media/local-import/safetensors-native",
+		adapterMediaNative,
+		nil,
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected unsupported safetensors native selection to fail-close")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got err=%v reason=%v ok=%v", err, reason, ok)
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected gRPC status error, got %T", err)
+	}
+	if !strings.Contains(st.Message(), "single-file safetensors image assets") {
+		t.Fatalf("expected native safetensors compatibility detail to surface, got %q", st.Message())
 	}
 }

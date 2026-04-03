@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -184,6 +185,9 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)
+		if raw, _ := json.Marshal(payload); len(raw) > 0 {
+			slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "body", string(raw))
+		}
 		return MapProviderHTTPError(response.StatusCode, payload)
 	}
 	if target == nil {

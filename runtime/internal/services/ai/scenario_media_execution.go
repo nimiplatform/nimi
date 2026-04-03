@@ -63,6 +63,11 @@ func executeBackendSyncMedia(
 	if backendModelID == "" {
 		backendModelID = modelResolved
 	}
+	releaseLease, err := s.acquireSelectedLocalModelLease(ctx, req.GetHead().GetModelId(), remoteTarget, modal, "scenario_media_request")
+	if err != nil {
+		return nil, nil, "", err
+	}
+	defer releaseLease()
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
 		normalizedExtensions, _, resolveErr := resolveMusicGenerateExtensionPayload(req)
@@ -132,12 +137,12 @@ func executeBackendSyncMedia(
 				)
 			}
 			scenarioExtensions = forwardedExtensions
-			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, profile, "generate_request"); err != nil {
+			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, profile, scenarioExtensions, "generate_request"); err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err
 			}
 			defer func() {
-				if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, profile, "generate_request_cleanup"); releaseErr != nil && logger != nil {
+				if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
 					logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
 				}
 			}()
@@ -184,6 +189,8 @@ func executeBackendSyncMedia(
 			artifactMeta["local_prompt"] = diag.LocalPrompt
 			artifactMeta["source_image"] = diag.SourceImage
 			artifactMeta["ref_images_count"] = diag.RefImagesCount
+			artifactMeta["local.applied_options"] = append([]string(nil), diag.AppliedOptions...)
+			artifactMeta["local.ignored_options"] = append([]string(nil), diag.IgnoredOptions...)
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveImageArtifactMIME(spec, payload), payload, artifactMeta)
 		nimillm.ApplyImageSpecMetadata(artifact, spec)

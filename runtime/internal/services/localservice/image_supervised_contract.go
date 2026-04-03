@@ -164,15 +164,20 @@ func deriveCanonicalImageFacts(facts canonicalImageResolverFacts) (engine.ImageA
 	hasGGUF := pathListHasExtension(files, ".gguf") || pathMapHasExtension(facts.hashes, ".gguf")
 	hasModelIndex := pathListHasBase(files, "model_index.json") || pathMapHasBase(facts.hashes, "model_index.json")
 	hasSafetensors := pathListHasExtension(files, ".safetensors") || pathMapHasExtension(facts.hashes, ".safetensors")
-	hasWorkflowRoles := len(normalizeStringSlice(facts.artifactRoles)) > 0
+
+	// Workflow bundle: model_index.json is the definitive workflow marker.
+	// artifact_roles alone (without model_index.json) do not constitute workflow completeness.
+	workflowBundleComplete := hasModelIndex
 
 	switch {
 	case hasGGUF:
 		return engine.ImageAssetFamilyGGUFImage, engine.ImageProfileKindSingleBinaryModel, []string{"gguf"}
-	case hasModelIndex || hasSafetensors || hasWorkflowRoles:
-		artifactFormats = appendArtifactFormat(artifactFormats, "json_config", hasModelIndex || hasWorkflowRoles)
+	case workflowBundleComplete:
+		artifactFormats = appendArtifactFormat(artifactFormats, "json_config", true)
 		artifactFormats = appendArtifactFormat(artifactFormats, "safetensors", hasSafetensors)
 		return engine.ImageAssetFamilyWorkflowSafetensorsImage, engine.ImageProfileKindWorkflowPipeline, artifactFormats
+	case hasSafetensors:
+		return engine.ImageAssetFamilySafetensorsNativeImage, engine.ImageProfileKindSingleBinaryModel, []string{"safetensors"}
 	default:
 		return "", "", nil
 	}

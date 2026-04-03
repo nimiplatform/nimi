@@ -108,7 +108,7 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 		t.Skipf("unsupported platform: %s", PlatformString())
 	}
 
-	const version = "b8575"
+	const version = defaultLlamaVersion
 	asset, err := llamaAssetName(version)
 	if err != nil {
 		t.Fatalf("llamaAssetName: %v", err)

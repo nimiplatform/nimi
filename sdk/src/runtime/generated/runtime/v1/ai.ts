@@ -936,6 +936,10 @@ export interface ScenarioArtifact {
      * @generated from protobuf field: nimi.runtime.v1.SpeechAlignment speech_alignment = 13
      */
     speechAlignment?: SpeechAlignment;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 14
+     */
+    metadata?: Struct;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScenarioJob
@@ -1219,6 +1223,24 @@ export interface VideoContentImageURL {
     url: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.VideoContentVideoURL
+ */
+export interface VideoContentVideoURL {
+    /**
+     * @generated from protobuf field: string url = 1
+     */
+    url: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VideoContentAudioURL
+ */
+export interface VideoContentAudioURL {
+    /**
+     * @generated from protobuf field: string url = 1
+     */
+    url: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.VideoContentItem
  */
 export interface VideoContentItem {
@@ -1238,6 +1260,14 @@ export interface VideoContentItem {
      * @generated from protobuf field: nimi.runtime.v1.VideoContentImageURL image_url = 4
      */
     imageUrl?: VideoContentImageURL;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentVideoURL video_url = 5
+     */
+    videoUrl?: VideoContentVideoURL;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VideoContentAudioURL audio_url = 6
+     */
+    audioUrl?: VideoContentAudioURL;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerationOptions
@@ -2098,7 +2128,15 @@ export enum VideoContentType {
     /**
      * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
      */
-    IMAGE_URL = 2
+    IMAGE_URL = 2,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_VIDEO_URL = 3;
+     */
+    VIDEO_URL = 3,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_TYPE_AUDIO_URL = 4;
+     */
+    AUDIO_URL = 4
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VideoContentRole
@@ -2123,7 +2161,15 @@ export enum VideoContentRole {
     /**
      * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_REFERENCE_IMAGE = 4;
      */
-    REFERENCE_IMAGE = 4
+    REFERENCE_IMAGE = 4,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_REFERENCE_VIDEO = 5;
+     */
+    REFERENCE_VIDEO = 5,
+    /**
+     * @generated from protobuf enum value: VIDEO_CONTENT_ROLE_REFERENCE_AUDIO = 6;
+     */
+    REFERENCE_AUDIO = 6
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.SpeechTimingMode
@@ -4938,7 +4984,8 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
             { no: 10, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 11, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 12, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 13, name: "speech_alignment", kind: "message", T: () => SpeechAlignment }
+            { no: 13, name: "speech_alignment", kind: "message", T: () => SpeechAlignment },
+            { no: 14, name: "metadata", kind: "message", T: () => Struct }
         ]);
     }
     create(value?: PartialMessage<ScenarioArtifact>): ScenarioArtifact {
@@ -5003,6 +5050,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
                 case /* nimi.runtime.v1.SpeechAlignment speech_alignment */ 13:
                     message.speechAlignment = SpeechAlignment.internalBinaryRead(reader, reader.uint32(), options, message.speechAlignment);
                     break;
+                case /* google.protobuf.Struct metadata */ 14:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5054,6 +5104,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
         /* nimi.runtime.v1.SpeechAlignment speech_alignment = 13; */
         if (message.speechAlignment)
             SpeechAlignment.internalBinaryWrite(message.speechAlignment, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Struct metadata = 14; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6067,13 +6120,109 @@ class VideoContentImageURL$Type extends MessageType<VideoContentImageURL> {
  */
 export const VideoContentImageURL = new VideoContentImageURL$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class VideoContentVideoURL$Type extends MessageType<VideoContentVideoURL> {
+    constructor() {
+        super("nimi.runtime.v1.VideoContentVideoURL", [
+            { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoContentVideoURL>): VideoContentVideoURL {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.url = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoContentVideoURL>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoContentVideoURL): VideoContentVideoURL {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string url */ 1:
+                    message.url = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoContentVideoURL, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string url = 1; */
+        if (message.url !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.url);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoContentVideoURL
+ */
+export const VideoContentVideoURL = new VideoContentVideoURL$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VideoContentAudioURL$Type extends MessageType<VideoContentAudioURL> {
+    constructor() {
+        super("nimi.runtime.v1.VideoContentAudioURL", [
+            { no: 1, name: "url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VideoContentAudioURL>): VideoContentAudioURL {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.url = "";
+        if (value !== undefined)
+            reflectionMergePartial<VideoContentAudioURL>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VideoContentAudioURL): VideoContentAudioURL {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string url */ 1:
+                    message.url = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VideoContentAudioURL, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string url = 1; */
+        if (message.url !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.url);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VideoContentAudioURL
+ */
+export const VideoContentAudioURL = new VideoContentAudioURL$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class VideoContentItem$Type extends MessageType<VideoContentItem> {
     constructor() {
         super("nimi.runtime.v1.VideoContentItem", [
             { no: 1, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.VideoContentType", VideoContentType, "VIDEO_CONTENT_TYPE_"] },
             { no: 2, name: "role", kind: "enum", T: () => ["nimi.runtime.v1.VideoContentRole", VideoContentRole, "VIDEO_CONTENT_ROLE_"] },
             { no: 3, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "image_url", kind: "message", T: () => VideoContentImageURL }
+            { no: 4, name: "image_url", kind: "message", T: () => VideoContentImageURL },
+            { no: 5, name: "video_url", kind: "message", T: () => VideoContentVideoURL },
+            { no: 6, name: "audio_url", kind: "message", T: () => VideoContentAudioURL }
         ]);
     }
     create(value?: PartialMessage<VideoContentItem>): VideoContentItem {
@@ -6102,6 +6251,12 @@ class VideoContentItem$Type extends MessageType<VideoContentItem> {
                 case /* nimi.runtime.v1.VideoContentImageURL image_url */ 4:
                     message.imageUrl = VideoContentImageURL.internalBinaryRead(reader, reader.uint32(), options, message.imageUrl);
                     break;
+                case /* nimi.runtime.v1.VideoContentVideoURL video_url */ 5:
+                    message.videoUrl = VideoContentVideoURL.internalBinaryRead(reader, reader.uint32(), options, message.videoUrl);
+                    break;
+                case /* nimi.runtime.v1.VideoContentAudioURL audio_url */ 6:
+                    message.audioUrl = VideoContentAudioURL.internalBinaryRead(reader, reader.uint32(), options, message.audioUrl);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6126,6 +6281,12 @@ class VideoContentItem$Type extends MessageType<VideoContentItem> {
         /* nimi.runtime.v1.VideoContentImageURL image_url = 4; */
         if (message.imageUrl)
             VideoContentImageURL.internalBinaryWrite(message.imageUrl, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoContentVideoURL video_url = 5; */
+        if (message.videoUrl)
+            VideoContentVideoURL.internalBinaryWrite(message.videoUrl, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VideoContentAudioURL audio_url = 6; */
+        if (message.audioUrl)
+            VideoContentAudioURL.internalBinaryWrite(message.audioUrl, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

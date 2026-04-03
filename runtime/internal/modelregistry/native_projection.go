@@ -416,6 +416,8 @@ func inferModelFamily(modelID string) string {
 		return "qwen-vl"
 	case strings.Contains(lower, "qwen"):
 		return "qwen"
+	case strings.Contains(lower, "gemma"):
+		return "gemma"
 	case strings.Contains(lower, "llama"):
 		return "llama"
 	case strings.Contains(lower, "whisper"):

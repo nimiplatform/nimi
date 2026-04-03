@@ -21,6 +21,8 @@ type localModelLister interface {
 	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
 	WarmLocalAsset(context.Context, *runtimev1.WarmLocalAssetRequest) (*runtimev1.WarmLocalAssetResponse, error)
 	StartLocalAsset(context.Context, *runtimev1.StartLocalAssetRequest) (*runtimev1.StartLocalAssetResponse, error)
+	AcquireLocalAssetLease(context.Context, string, string) error
+	ReleaseLocalAssetLease(context.Context, string, string) error
 }
 
 type localImageProfileResolver interface {
@@ -28,8 +30,8 @@ type localImageProfileResolver interface {
 	ResolveManagedMediaBackendTarget(context.Context) (string, string, error)
 	ResolveManagedAssetPath(context.Context, string) (string, error)
 	ResolveCanonicalImageSelection(context.Context, string) (engine.ImageSupervisedMatrixSelection, error)
-	EnsureManagedMediaImageLoaded(context.Context, string, map[string]any, string) error
-	ReleaseManagedMediaImage(context.Context, string, map[string]any, string) error
+	EnsureManagedMediaImageLoaded(context.Context, string, map[string]any, map[string]any, string) error
+	ReleaseManagedMediaImage(context.Context, string, map[string]any, map[string]any, string) error
 	UpdateManagedMediaImageExecutionStatus(context.Context, string, bool, string) error
 }
 

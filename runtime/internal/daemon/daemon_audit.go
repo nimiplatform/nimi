@@ -82,16 +82,23 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 	})
 }
 
-func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string, providerName string, detail string) {
+func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string, providerName string, detail string, sel *engine.ImageSupervisedMatrixSelection) {
 	if store == nil {
 		return
 	}
 	now := time.Now().UTC()
-	payload := auditPayloadStruct(map[string]any{
+	payloadMap := map[string]any{
 		"engine":   strings.TrimSpace(engineName),
 		"provider": strings.TrimSpace(providerName),
 		"detail":   detail,
-	})
+	}
+	if kind, ok := engineKindForName(engineName); ok && isImageRelatedEngine(kind) && sel != nil && sel.Entry != nil {
+		payloadMap["entry_id"] = sel.Entry.EntryID
+		payloadMap["backend_family"] = string(sel.Entry.BackendFamily)
+		payloadMap["backend_class"] = string(sel.Entry.BackendClass)
+		payloadMap["product_state"] = string(sel.Entry.ProductState)
+	}
+	payload := auditPayloadStruct(payloadMap)
 	store.AppendEvent(&runtimev1.AuditEventRecord{
 		AuditId:    ulid.Make().String(),
 		Domain:     "runtime.engine",
@@ -121,6 +128,6 @@ func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
 			appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.SnapshotOf("local"))
 		}
 	}
-	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail)
+	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail, nil)
 	d.setDegradedStatus(reason)
 }

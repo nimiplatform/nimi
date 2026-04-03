@@ -26,7 +26,7 @@
 | `auth.jwt.revocationUrl` | `string` | `—` | `restart` | JWT 会话撤销内省地址；非 loopback host 必须使用 https，且与 issuer / audience / jwksUrl 同时配置 | `K-AUTHN-006` |
 | `providers` | `map` | `{}` | `restart` | AI Provider 路由表（key=provider name） | `K-DAEMON-009` |
 | `engines.llama.enabled` | `bool` | `false` | `restart` | 启用 llama 引擎 SUPERVISED 模式 | `K-LENG-004` |
-| `engines.llama.version` | `string` | `b8575` | `restart` | llama 受管引擎版本 | `K-LENG-004` |
+| `engines.llama.version` | `string` | `b8645` | `restart` | llama 受管引擎版本 | `K-LENG-004` |
 | `engines.llama.port` | `int` | `1234` | `restart` | llama 监听端口 | `K-LENG-004` |
 | `engines.media.enabled` | `bool` | `false` | `restart` | 启用 media 引擎 SUPERVISED 模式 | `K-LENG-004` |
 | `engines.media.version` | `string` | `0.1.0` | `restart` | media 受管引擎版本 | `K-LENG-004` |

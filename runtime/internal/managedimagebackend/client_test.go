@@ -33,6 +33,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		loadOptions   []string
 		generateDst   string
 		generateSrc   string
+		enableParams  string
 	)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -60,6 +61,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 			}
 			generateDst = readStringField(in, "dst")
 			generateSrc = readStringField(in, "src")
+			enableParams = readStringField(in, "EnableParameters")
 			if err := os.WriteFile(generateDst, []byte("png"), 0o600); err != nil {
 				return err
 			}
@@ -84,6 +86,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		Step:           25,
 		PositivePrompt: "orange cat",
 		NegativePrompt: "blurry",
+		EnableParams:   "mask:/tmp/mask.png",
 		Dst:            outputPath,
 		Src:            "/tmp/source.png",
 	})
@@ -104,6 +107,9 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 	if generateSrc != "/tmp/source.png" {
 		t.Fatalf("generate src mismatch: %q", generateSrc)
+	}
+	if enableParams != "mask:/tmp/mask.png" {
+		t.Fatalf("enable params mismatch: %q", enableParams)
 	}
 	payload, err := os.ReadFile(outputPath)
 	if err != nil {

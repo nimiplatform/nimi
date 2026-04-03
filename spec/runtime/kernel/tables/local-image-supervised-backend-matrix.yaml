@@ -35,11 +35,12 @@ canonical_public_contract:
 # The media engine may still serve non-image capabilities (e.g. video) on linux/arm64.
 linux_arm64_disposition: >-
   linux/arm64 is a non-target host tuple for the v1 image supervised matrix.
-  No gguf_image or workflow_safetensors_image topology entry is defined for linux/arm64
-  because no image backend binary (stablediffusion-ggml) or pipeline runtime (diffusers)
-  has been validated on linux/arm64. The media engine catalog entry for linux/arm64 covers
-  non-image capabilities only. If future linux/arm64 image support is needed, a new
-  topology entry with explicit product_state and admission_gate must be added.
+  No gguf_image, safetensors_native_image, or workflow_safetensors_image topology entry
+  is defined for linux/arm64 because no image backend binary (stablediffusion-ggml) or
+  pipeline runtime (diffusers) has been validated on linux/arm64. The media engine catalog
+  entry for linux/arm64 covers non-image capabilities only. If future linux/arm64 image
+  support is needed, a new topology entry with explicit product_state and admission_gate
+  must be added.
 
 entries:
   - entry_id: macos-apple-silicon-gguf
@@ -59,6 +60,25 @@ entries:
       - image.generate.i2i
     topology_state: defined
     product_state: supported
+
+  - entry_id: macos-apple-silicon-safetensors-native
+    host_match:
+      os: darwin
+      arch: arm64
+      gpu_vendor: apple
+    asset_family: safetensors_native_image
+    artifact_formats: [safetensors]
+    profile_kind: single_binary_model
+    backend_class: native_binary
+    backend_family: stablediffusion-ggml
+    control_plane: runtime
+    execution_plane: media
+    supported_capabilities: []
+    topology_state: defined
+    product_state: unsupported
+    detail: >-
+      defined topology for single-file safetensors image assets consumed by
+      native binary backend; not yet validated on this host tuple.
 
   - entry_id: macos-apple-silicon-workflow-safetensors
     host_match:
@@ -121,6 +141,26 @@ entries:
     topology_state: defined
     product_state: supported
 
+  - entry_id: windows-x64-nvidia-safetensors-native
+    host_match:
+      os: windows
+      arch: amd64
+      gpu_vendor: nvidia
+      cuda_ready: true
+    asset_family: safetensors_native_image
+    artifact_formats: [safetensors]
+    profile_kind: single_binary_model
+    backend_class: native_binary
+    backend_family: stablediffusion-ggml
+    control_plane: runtime
+    execution_plane: media
+    supported_capabilities: []
+    topology_state: defined
+    product_state: unsupported
+    detail: >-
+      defined topology for single-file safetensors image assets consumed by
+      native binary backend; not yet validated on this host tuple.
+
   - entry_id: windows-x64-nvidia-workflow-safetensors
     host_match:
       os: windows
@@ -142,6 +182,26 @@ entries:
     detail: >-
       defined topology only; mixed-mode single-host local-media process model
       is not specified in v1.
+
+  - entry_id: linux-x64-nvidia-safetensors-native
+    host_match:
+      os: linux
+      arch: amd64
+      gpu_vendor: nvidia
+      cuda_ready: true
+    asset_family: safetensors_native_image
+    artifact_formats: [safetensors]
+    profile_kind: single_binary_model
+    backend_class: native_binary
+    backend_family: stablediffusion-ggml
+    control_plane: runtime
+    execution_plane: media
+    supported_capabilities: []
+    topology_state: defined
+    product_state: unsupported
+    detail: >-
+      defined topology for single-file safetensors image assets consumed by
+      native binary backend; not yet validated on this host tuple.
 
   - entry_id: linux-x64-nvidia-workflow-safetensors
     host_match:

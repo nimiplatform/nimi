@@ -173,8 +173,62 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 				Message: validateErr.Error(),
 			})
 		}
+		bundleFiles := valueAsStringSlice(manifest["files"])
+		if len(bundleFiles) == 0 {
+			discoveredFiles, err := listManagedBundleRelativeFiles(filepath.Dir(manifestPath))
+			if err != nil {
+				return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+					Message: err.Error(),
+				})
+			}
+			bundleFiles = discoveredFiles
+		}
+		engineConfig, projectionOverride, augmentErr := augmentManagedLlamaBundleFacts(
+			resolveLocalModelsPath(s.localModelsPath),
+			filepath.Dir(manifestPath),
+			filepath.Dir(manifestPath),
+			entryPath,
+			engine,
+			capabilities,
+			bundleFiles,
+			engineConfig,
+			&modelregistry.NativeProjection{
+				LogicalModelID:  logicalModelID,
+				Family:          manifestStringDefault(manifest, "family"),
+				ArtifactRoles:   artifactRoles,
+				PreferredEngine: preferredEngine,
+				FallbackEngines: normalizePublicFallbackEngines(fallbackEngines),
+			},
+		)
+		if augmentErr != nil {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+				Message: augmentErr.Error(),
+			})
+		}
+		record, err := s.installLocalAssetRecord(
+			assetID,
+			kind,
+			normalizeStringSlice(capabilities),
+			engine,
+			entry,
+			license,
+			repo,
+			revision,
+			hashes,
+			binding.endpoint,
+			binding.mode,
+			manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
+			engineConfig,
+			projectionOverride,
+			"runtime_model_imported",
+			manifestPath,
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
 	}
-
 	record, err := s.installLocalAssetRecord(
 		assetID,
 		kind,

@@ -138,6 +138,110 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	}
 }
 
+func TestOnEngineStateChangeImageFailureHintIncludesMatrixAttribution(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	daemon := newTestDaemon(t, logger)
+	store := auditlog.New(32, 32)
+	daemon.auditStore = store
+	daemon.state.SetStatus(health.StatusReady, "ready")
+	daemon.resolvedImageMatrix = &engine.ImageSupervisedMatrixSelection{
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:       "linux-x64-nvidia-safetensors-native",
+			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:  engine.ImageBackendClassNativeBinary,
+			ProductState:  engine.ImageProductStateUnsupported,
+		},
+	}
+
+	daemon.onEngineStateChange("media", "unhealthy", "bootstrap failed")
+
+	hint := daemon.providerFailureHint("local-media")
+	if !strings.Contains(hint, "entry_id=linux-x64-nvidia-safetensors-native") {
+		t.Fatalf("expected entry_id in provider failure hint, got %q", hint)
+	}
+	if !strings.Contains(hint, "backend_family=stablediffusion-ggml") {
+		t.Fatalf("expected backend_family in provider failure hint, got %q", hint)
+	}
+	if !strings.Contains(hint, "backend_class=native_binary") {
+		t.Fatalf("expected backend_class in provider failure hint, got %q", hint)
+	}
+	if !strings.Contains(hint, "product_state=unsupported") {
+		t.Fatalf("expected product_state in provider failure hint, got %q", hint)
+	}
+	if !strings.Contains(hint, "internal_reason_key=bootstrap_failure") {
+		t.Fatalf("expected internal_reason_key in provider failure hint, got %q", hint)
+	}
+
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
+	}
+	payload := events[0].GetPayload().GetFields()
+	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
+	}
+	if payload["backend_family"].GetStringValue() != string(engine.ImageBackendFamilyStableDiffusionGGML) {
+		t.Fatalf("unexpected backend_family: %q", payload["backend_family"].GetStringValue())
+	}
+	if payload["backend_class"].GetStringValue() != string(engine.ImageBackendClassNativeBinary) {
+		t.Fatalf("unexpected backend_class: %q", payload["backend_class"].GetStringValue())
+	}
+	if payload["product_state"].GetStringValue() != string(engine.ImageProductStateUnsupported) {
+		t.Fatalf("unexpected product_state: %q", payload["product_state"].GetStringValue())
+	}
+	if payload["internal_reason_key"].GetStringValue() != "bootstrap_failure" {
+		t.Fatalf("unexpected internal_reason_key: %q", payload["internal_reason_key"].GetStringValue())
+	}
+}
+
+func TestOnEngineStateChangeImageRecoveryAuditIncludesMatrixAttribution(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	daemon := newTestDaemon(t, logger)
+	store := auditlog.New(32, 32)
+	daemon.auditStore = store
+	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineMedia, 8321)
+	daemon.state.SetStatus(health.StatusDegraded, "engine:media unhealthy (bootstrap failed)")
+	daemon.setProviderFailureHint("local-media", "seed hint")
+	daemon.resolvedImageMatrix = &engine.ImageSupervisedMatrixSelection{
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:       "linux-x64-nvidia-safetensors-native",
+			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:  engine.ImageBackendClassNativeBinary,
+			ProductState:  engine.ImageProductStateUnsupported,
+		},
+	}
+
+	daemon.onEngineStateChange("media", "healthy", "recovered")
+
+	if hint := daemon.providerFailureHint("local-media"); hint != "" {
+		t.Fatalf("expected local-media provider failure hint to clear, got %q", hint)
+	}
+	if got := daemon.state.Snapshot().Status; got != health.StatusReady {
+		t.Fatalf("expected daemon to recover to ready, got %s", got)
+	}
+
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
+	}
+	if events[0].GetOperation() != "engine.repair_resolved" {
+		t.Fatalf("unexpected operation: %s", events[0].GetOperation())
+	}
+	payload := events[0].GetPayload().GetFields()
+	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
+	}
+	if payload["backend_family"].GetStringValue() != string(engine.ImageBackendFamilyStableDiffusionGGML) {
+		t.Fatalf("unexpected backend_family: %q", payload["backend_family"].GetStringValue())
+	}
+	if payload["backend_class"].GetStringValue() != string(engine.ImageBackendClassNativeBinary) {
+		t.Fatalf("unexpected backend_class: %q", payload["backend_class"].GetStringValue())
+	}
+	if payload["product_state"].GetStringValue() != string(engine.ImageProductStateUnsupported) {
+		t.Fatalf("unexpected product_state: %q", payload["product_state"].GetStringValue())
+	}
+}
+
 func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	cfg := config.Config{
@@ -511,6 +615,115 @@ func TestStartSupervisedEnginesFailsClosedOnManagedImageBootstrapConflict(t *tes
 	}
 	if !strings.Contains(snapshot.Reason, "multiple managed image topology entries are active") {
 		t.Fatalf("expected degraded reason to surface managed image bootstrap conflict, got %q", snapshot.Reason)
+	}
+}
+
+func TestStartSupervisedEnginesCachesUnsupportedImageSelectionWithoutBootstrappingMedia(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 2,
+		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+		"assets": []map[string]any{{
+			"localAssetId":      "01KNSAFETENSORS0000000001",
+			"assetId":           "local/safetensors-native",
+			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE),
+			"capabilities":      []string{"image"},
+			"engine":            "media",
+			"entry":             "model.safetensors",
+			"status":            1,
+			"engineRuntimeMode": 1,
+			"logicalModelId":    "nimi/safetensors-native",
+			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
+		}},
+		"services":  []map[string]any{},
+		"transfers": []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       localStatePath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   false,
+		EngineMediaEnabled:   false,
+		EngineMediaPort:      8321,
+		EngineMediaVersion:   "0.1.0",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
+		return engine.MediaHostSupportAttachedOnly, "attached only"
+	}
+	daemon.imageBootstrapSelectionFn = func() (engine.ImageSupervisedMatrixSelection, bool) {
+		return engine.ImageSupervisedMatrixSelection{
+			Matched:             true,
+			EntryID:             "linux-x64-nvidia-safetensors-native",
+			ProductState:        engine.ImageProductStateUnsupported,
+			BackendFamily:       engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:        engine.ImageBackendClassNativeBinary,
+			ControlPlane:        engine.ImageControlPlaneRuntime,
+			ExecutionPlane:      engine.EngineMedia,
+			CompatibilityDetail: "defined topology for single-file safetensors image assets consumed by native binary backend; not yet validated on this host tuple",
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:        "linux-x64-nvidia-safetensors-native",
+				ProductState:   engine.ImageProductStateUnsupported,
+				BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		}, true
+	}
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+	}
+
+	startCalls := make([]engine.EngineKind, 0, 1)
+	var startCallsMu sync.Mutex
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		startCallsMu.Lock()
+		startCalls = append(startCalls, kind)
+		startCallsMu.Unlock()
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if len(startCalls) != 0 {
+		t.Fatalf("unsupported safetensors native selection must not bootstrap media engine, got=%v", startCalls)
+	}
+	if daemon.resolvedImageMatrix == nil {
+		t.Fatal("expected unsupported image selection to be cached for attribution")
+	}
+	if daemon.resolvedImageMatrix.EntryID != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected cached image selection: %q", daemon.resolvedImageMatrix.EntryID)
+	}
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded {
+		t.Fatalf("expected degraded runtime state after unsupported image selection, got %v", snapshot.Status)
+	}
+	if !strings.Contains(snapshot.Reason, "single-file safetensors image assets") {
+		t.Fatalf("expected degraded reason to surface compatibility detail, got %q", snapshot.Reason)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "" {
+			t.Fatalf("unsupported safetensors native selection must not expose managed media endpoint, got %q", managedEndpoint)
+		}
 	}
 }
 

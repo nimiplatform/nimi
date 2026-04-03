@@ -13,6 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 const generatedManagedLlamaModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
@@ -32,6 +33,7 @@ type managedLlamaRegistration struct {
 	Managed           bool
 	DynamicProfile    bool
 	Problem           string
+	LlamaEngineConfig *engine.ManagedLlamaEngineConfig
 }
 
 type managedLlamaConfigEntry struct {
@@ -41,7 +43,13 @@ type managedLlamaConfigEntry struct {
 }
 
 type managedLlamaConfigParameters struct {
-	Model string `yaml:"model"`
+	Model      string `yaml:"model"`
+	Mmproj     string `yaml:"mmproj,omitempty"`
+	CtxSize    int    `yaml:"ctx_size,omitempty"`
+	CacheTypeK string `yaml:"cache_type_k,omitempty"`
+	CacheTypeV string `yaml:"cache_type_v,omitempty"`
+	FlashAttn  string `yaml:"flash_attn,omitempty"`
+	NGPULayers *int   `yaml:"n_gpu_layers,omitempty"`
 }
 
 func resolveLocalModelsPath(configuredPath string) string {
@@ -259,6 +267,7 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.managedLlamaEnabled
 	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
+	primaryName := s.primaryManagedLlamaModelName
 	s.mu.RUnlock()
 	deviceProfile := collectDeviceProfile()
 
@@ -315,15 +324,31 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 		if registration.DynamicProfile {
 			continue
 		}
+		params := managedLlamaConfigParameters{
+			Model: registration.RelativeModelPath,
+		}
+		if cfg := registration.LlamaEngineConfig; cfg != nil {
+			params.Mmproj = cfg.Mmproj
+			params.CtxSize = cfg.CtxSize
+			params.CacheTypeK = cfg.CacheTypeK
+			params.CacheTypeV = cfg.CacheTypeV
+			params.FlashAttn = cfg.FlashAttn
+			params.NGPULayers = cfg.NGPULayers
+		}
 		entries = append(entries, managedLlamaConfigEntry{
-			Name:    registration.ExposedModelName,
-			Backend: registration.Backend,
-			Parameters: managedLlamaConfigParameters{
-				Model: registration.RelativeModelPath,
-			},
+			Name:       registration.ExposedModelName,
+			Backend:    registration.Backend,
+			Parameters: params,
 		})
 	}
 	sort.Slice(entries, func(i, j int) bool {
+		if primaryName != "" {
+			iPrimary := strings.EqualFold(entries[i].Name, primaryName)
+			jPrimary := strings.EqualFold(entries[j].Name, primaryName)
+			if iPrimary != jPrimary {
+				return iPrimary
+			}
+		}
 		if entries[i].Name != entries[j].Name {
 			return entries[i].Name < entries[j].Name
 		}
@@ -388,7 +413,75 @@ func inspectManagedLlamaModelRegistration(
 		return registration
 	}
 	registration.RelativeModelPath = filepath.ToSlash(relativeModelPath)
+
+	// Extract and validate engine_config.llama.* parameters (K-LENG-018).
+	llamaCfg, extractErr := engine.ExtractManagedLlamaEngineConfig(model.GetEngineConfig())
+	if extractErr != nil {
+		registration.Problem = extractErr.Error()
+		return registration
+	}
+	bundleRoot, bundleRootErr := resolveManagedBundleRootAbsolutePath(modelsPath, model)
+	if bundleRootErr != nil {
+		registration.Problem = bundleRootErr.Error()
+		return registration
+	}
+
+	// mmproj auto-detect: if engine_config.llama.mmproj is not set,
+	// scan the model's file list for mmproj*.gguf candidates.
+	if llamaCfg.Mmproj == "" {
+		candidates := findMmprojCandidates(model.GetFiles())
+		switch len(candidates) {
+		case 0:
+			// No mmproj found — fine for text-only models.
+		case 1:
+			resolved, err := resolveManagedBundleFileToModelsRelativePath(modelsPath, bundleRoot, candidates[0])
+			if err != nil {
+				registration.Problem = err.Error()
+				return registration
+			}
+			llamaCfg.Mmproj = resolved
+		default:
+			registration.Problem = fmt.Sprintf(
+				"multiple mmproj candidates (%s); set engine_config.llama.mmproj explicitly",
+				strings.Join(candidates, ", "),
+			)
+			return registration
+		}
+	}
+	if llamaCfg.Mmproj != "" {
+		if err := validateManagedLlamaMMProjPath(modelsPath, bundleRoot, bundleRoot, llamaCfg.Mmproj); err != nil {
+			registration.Problem = err.Error()
+			return registration
+		}
+	}
+
+	// Companion enforcement (K-LOCAL-033): if model declares vision
+	// capability but no mmproj is available, fail-close at registration.
+	for _, cap := range model.GetCapabilities() {
+		if strings.EqualFold(strings.TrimSpace(cap), "text.generate.vision") {
+			if llamaCfg.Mmproj == "" {
+				registration.Problem = "model declares text.generate.vision but no mmproj artifact available"
+				return registration
+			}
+			break
+		}
+	}
+
+	registration.LlamaEngineConfig = &llamaCfg
 	return registration
+}
+
+// findMmprojCandidates returns filenames from the file list that look like
+// mmproj companion artifacts (contain "mmproj" and end with ".gguf").
+func findMmprojCandidates(files []string) []string {
+	var out []string
+	for _, f := range files {
+		l := strings.ToLower(strings.TrimSpace(f))
+		if strings.Contains(l, "mmproj") && strings.HasSuffix(l, ".gguf") {
+			out = append(out, strings.TrimSpace(f))
+		}
+	}
+	return out
 }
 
 func defaultCapabilitiesForRegistration(runtimeCaps []string, manifestCaps []string) []string {

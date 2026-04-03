@@ -468,3 +468,59 @@ func TestInferCapabilitiesVision(t *testing.T) {
 		})
 	}
 }
+
+func TestInferModelFamilyGemma(t *testing.T) {
+	tests := []struct {
+		modelID string
+		want    string
+	}{
+		{"google/gemma-4-12b-it-gguf", "gemma"},
+		{"google/gemma-2-9b-it", "gemma"},
+		{"google/gemma4-26b-a4b-it-gguf", "gemma"},
+		{"meta/llama-3.3-70b", "llama"},
+		{"generic-model-v1", "generic"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.modelID, func(t *testing.T) {
+			got := inferModelFamily(tt.modelID)
+			if got != tt.want {
+				t.Fatalf("inferModelFamily(%q) = %q, want %q", tt.modelID, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInferCapabilitiesGemma4(t *testing.T) {
+	hasCap := func(caps []string, target string) bool {
+		for _, c := range caps {
+			if c == target {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Gemma 4 should get text.generate.vision
+	caps := InferCapabilities("google/gemma-4-12b-it-gguf")
+	if !hasCap(caps, "text.generate.vision") {
+		t.Fatalf("gemma-4 should have text.generate.vision, got %v", caps)
+	}
+
+	// gemma4 variant also works
+	caps = InferCapabilities("gemma4-26b-a4b-it")
+	if !hasCap(caps, "text.generate.vision") {
+		t.Fatalf("gemma4 should have text.generate.vision, got %v", caps)
+	}
+
+	// Gemma 4 e2b should NOT get audio (gated by version gate)
+	caps = InferCapabilities("google/gemma-4-e2b-it-gguf")
+	if hasCap(caps, "text.generate.audio") {
+		t.Fatalf("gemma-4-e2b should NOT have text.generate.audio (gated), got %v", caps)
+	}
+
+	// Gemma 2 should NOT get vision
+	caps = InferCapabilities("google/gemma-2-9b-it")
+	if hasCap(caps, "text.generate.vision") {
+		t.Fatalf("gemma-2 should NOT have text.generate.vision, got %v", caps)
+	}
+}

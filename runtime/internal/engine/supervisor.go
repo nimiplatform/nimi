@@ -115,24 +115,30 @@ func (s *Supervisor) Stop() error {
 		return nil
 	}
 
-	// SIGTERM first.
+	// SIGTERM first — try the process group, then fall back to direct PID.
+	// The process may have changed its PGID (e.g. setsid), so a group
+	// signal can return ESRCH even though the process is still alive.
 	if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGTERM); err != nil {
-		// Process already dead.
-		select {
-		case <-process.done:
-		case <-time.After(100 * time.Millisecond):
+		if directErr := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); directErr != nil {
+			// Neither group nor direct signal succeeded — truly gone.
+			select {
+			case <-process.done:
+			case <-time.After(100 * time.Millisecond):
+			}
+			s.setStatus(StatusStopped, "process already exited")
+			s.removePIDFile()
+			return nil
 		}
-		s.setStatus(StatusStopped, "process already exited")
-		s.removePIDFile()
-		return nil
 	}
 
 	select {
 	case <-process.done:
 		s.setStatus(StatusStopped, "graceful shutdown")
 	case <-time.After(s.cfg.ShutdownTimeout):
-		// Force kill.
-		_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
+		// Force kill — group first, then direct PID as fallback.
+		if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL); err != nil {
+			_ = syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
+		}
 		select {
 		case <-process.done:
 		case <-time.After(1 * time.Second):
@@ -664,7 +670,11 @@ func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, leve
 		if phase := s.trackProcessLogPhase(stream, line); phase != "" {
 			attrs = append(attrs, "phase", phase)
 		}
-		s.logger.Log(context.Background(), level, "engine process output", attrs...)
+		lineLevel := level
+		if s.cfg.Kind == EngineLlama && stream == "stderr" {
+			lineLevel = classifyLlamaStderrLevel(line)
+		}
+		s.logger.Log(context.Background(), lineLevel, "engine process output", attrs...)
 	}
 	if err := scanner.Err(); err != nil {
 		s.logger.Warn("engine log stream closed with error",
@@ -755,6 +765,35 @@ func classifyMediaProgressLine(line string) (string, bool) {
 		return "sampling", true
 	}
 	return "", false
+}
+
+// classifyLlamaStderrLevel returns the appropriate log level for a llama engine
+// stderr line. llama.cpp writes all output to stderr, including informational
+// model metadata, loading progress, and inference statistics. Without
+// classification these flood the log as WARN and obscure genuinely important
+// messages.
+func classifyLlamaStderrLevel(line string) slog.Level {
+	// Actual errors/warnings — keep at WARN.
+	lower := strings.ToLower(line)
+	for _, kw := range []string{"error", "failed", "warning", "fatal", "panic", "abort"} {
+		if strings.Contains(lower, kw) {
+			return slog.LevelWarn
+		}
+	}
+
+	// Key lifecycle events — promote to INFO.
+	for _, prefix := range []string{
+		"main: model loaded",
+		"main: server is listening",
+		"main: starting the main loop",
+	} {
+		if strings.HasPrefix(line, prefix) {
+			return slog.LevelInfo
+		}
+	}
+
+	// Everything else from llama.cpp is informational chatter → DEBUG.
+	return slog.LevelDebug
 }
 
 func (s *Supervisor) isRunEpochActive(epoch uint64) bool {

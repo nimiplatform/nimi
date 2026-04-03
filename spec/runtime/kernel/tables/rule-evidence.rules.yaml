@@ -608,6 +608,9 @@
 - rule_id: K-LENG-017
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-LENG-018
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-LOCAL-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1115,3 +1118,6 @@
 - rule_id: K-LOCAL-032
   status: covered
   evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LOCAL-033
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]

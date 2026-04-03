@@ -12,6 +12,13 @@ func validTestGGUF() []byte {
 	return payload
 }
 
+func validGemma4TestGGUF() []byte {
+	return buildImageTestGGUF([]ggufTestMetadataEntry{
+		{Key: "general.architecture", Type: 8, StringValue: "gemma4"},
+		{Key: "general.name", Type: 8, StringValue: "gemma-4-test"},
+	}, []string{"tok_embeddings.weight"})
+}
+
 func validImageTestGGUF() []byte {
 	return buildImageTestGGUF([]ggufTestMetadataEntry{
 		{Key: "general.architecture", Type: 8, StringValue: "stable-diffusion"},

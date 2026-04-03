@@ -103,6 +103,71 @@ func TestStableDiffusionMetadataIssueAcceptsZImageTensorSignatureWithoutVersionK
 	}
 }
 
+func TestStableDiffusionDetectedFamilyFlux(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "flux.gguf")
+	payload := buildTestGGUF(t,
+		[]string{"double_blocks.0.img_mod.lin.weight"},
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "flux"},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if got := StableDiffusionDetectedFamily(summary); got != "flux" {
+		t.Fatalf("detected family = %q, want %q", got, "flux")
+	}
+	if got, want := StableDiffusionTensorSignaturesPresent(summary), []string{"flux:double_blocks.0.img_mod.lin.weight"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("tensor signatures = %#v want %#v", got, want)
+	}
+	if got := StableDiffusionMetadataIssue(summary); got != "" {
+		t.Fatalf("unexpected metadata issue: %q", got)
+	}
+}
+
+func TestStableDiffusionDetectedFamilyChroma(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "chroma.gguf")
+	payload := buildTestGGUF(t,
+		[]string{"distilled_guidance_layer.in_proj.weight"},
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "chroma"},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if got := StableDiffusionDetectedFamily(summary); got != "chroma" {
+		t.Fatalf("detected family = %q, want %q", got, "chroma")
+	}
+	if got, want := StableDiffusionTensorSignaturesPresent(summary), []string{"chroma:distilled_guidance_layer.in_proj.weight"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("tensor signatures = %#v want %#v", got, want)
+	}
+}
+
+func TestStableDiffusionDetectedFamilyFluxNotMatchedAsOvis(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "flux-only.gguf")
+	payload := buildTestGGUF(t,
+		[]string{"double_blocks.0.img_mod.lin.weight"},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if got := StableDiffusionDetectedFamily(summary); got != "flux" {
+		t.Fatalf("detected family = %q, want %q (should not match ovis-image)", got, "flux")
+	}
+}
+
 type metadataKV struct {
 	Key          string
 	Type         ValueType
@@ -159,5 +224,41 @@ func mustBinaryWrite(t *testing.T, buf *bytes.Buffer, value any) {
 	t.Helper()
 	if err := binary.Write(buf, binary.LittleEndian, value); err != nil {
 		t.Fatalf("binary.Write(%T): %v", value, err)
+	}
+}
+
+func TestLLMDetectedArchitecturePresent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "gemma4.gguf")
+	payload := buildTestGGUF(t,
+		[]string{"token_embd.weight"},
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if got := LLMDetectedArchitecture(summary); got != "gemma4" {
+		t.Fatalf("LLMDetectedArchitecture = %q, want %q", got, "gemma4")
+	}
+}
+
+func TestLLMDetectedArchitectureMissing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "noarch.gguf")
+	payload := buildTestGGUF(t,
+		[]string{"token_embd.weight"},
+		metadataKV{Key: "general.name", Type: ValueTypeString, String: "test"},
+	)
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatalf("write gguf fixture: %v", err)
+	}
+	summary, err := InspectPath(path)
+	if err != nil {
+		t.Fatalf("InspectPath: %v", err)
+	}
+	if got := LLMDetectedArchitecture(summary); got != "" {
+		t.Fatalf("LLMDetectedArchitecture = %q, want empty", got)
 	}
 }

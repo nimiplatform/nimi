@@ -122,6 +122,158 @@ func TestResolveImageSupervisedMatrixDoesNotDefaultToGGUF(t *testing.T) {
 	}
 }
 
+func TestResolveImageSupervisedMatrixSafetensorsNativeMatchesUnsupported(t *testing.T) {
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilySafetensorsNativeImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		t.Fatalf("expected safetensors native topology to match, got %#v", selection)
+	}
+	if selection.EntryID != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected entry id: %q", selection.EntryID)
+	}
+	if selection.ProductState != ImageProductStateUnsupported {
+		t.Fatalf("safetensors native must be unsupported, got %s", selection.ProductState)
+	}
+	if selection.BackendClass != ImageBackendClassNativeBinary {
+		t.Fatalf("expected native_binary backend class, got %s", selection.BackendClass)
+	}
+	if selection.BackendFamily != ImageBackendFamilyStableDiffusionGGML {
+		t.Fatalf("expected stablediffusion-ggml backend family, got %s", selection.BackendFamily)
+	}
+}
+
+func TestResolveImageSupervisedMatrixSafetensorsNativeApple(t *testing.T) {
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "darwin",
+		Arch:            "arm64",
+		GPUVendor:       "apple",
+		AssetFamily:     ImageAssetFamilySafetensorsNativeImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	if !selection.Matched || selection.Entry == nil {
+		t.Fatalf("expected Apple safetensors native to match, got %#v", selection)
+	}
+	if selection.EntryID != "macos-apple-silicon-safetensors-native" {
+		t.Fatalf("unexpected entry id: %q", selection.EntryID)
+	}
+	if selection.ProductState != ImageProductStateUnsupported {
+		t.Fatalf("expected unsupported, got %s", selection.ProductState)
+	}
+}
+
+func TestResolveImageSupervisedMatrixSafetensorsNativeFailsCloseOnExecution(t *testing.T) {
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilySafetensorsNativeImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	// MediaModeFromSelection must fail-close for unsupported product_state
+	_, err := MediaModeFromSelection(selection)
+	if err == nil {
+		t.Fatal("expected MediaModeFromSelection to fail-close for unsupported safetensors native topology")
+	}
+}
+
+func TestResolveImageSupervisedMatrixSafetensorsNativeDoesNotMatchWorkflowEntries(t *testing.T) {
+	// safetensors_native_image family with [safetensors] must not match workflow entries
+	// because asset_family differs (safetensors_native_image vs workflow_safetensors_image).
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilySafetensorsNativeImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	if !selection.Matched || selection.Entry == nil {
+		t.Fatalf("expected safetensors native to match its own entry, got %#v", selection)
+	}
+	if selection.Entry.AssetFamily != ImageAssetFamilySafetensorsNativeImage {
+		t.Fatalf("must match safetensors_native_image entry, got %s", selection.Entry.AssetFamily)
+	}
+	if strings.Contains(selection.EntryID, "workflow") {
+		t.Fatalf("safetensors native must not match workflow entry, got %q", selection.EntryID)
+	}
+}
+
+func TestResolveImageSupervisedMatrixWorkflowRequiresJsonConfig(t *testing.T) {
+	// workflow_safetensors_image with full [safetensors, json_config] matches
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilyWorkflowSafetensorsImage,
+		ProfileKind:     ImageProfileKindWorkflowPipeline,
+		ArtifactFormats: []string{"safetensors", "json_config"},
+	})
+	if !selection.Matched || selection.Entry == nil {
+		t.Fatalf("expected workflow topology to match with full artifact_formats, got %#v", selection)
+	}
+	if selection.EntryID != "linux-x64-nvidia-workflow-safetensors" {
+		t.Fatalf("unexpected entry id: %q", selection.EntryID)
+	}
+}
+
+func TestResolveImageSupervisedMatrixWorkflowWithoutJSONConfigFailsClose(t *testing.T) {
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilyWorkflowSafetensorsImage,
+		ProfileKind:     ImageProfileKindWorkflowPipeline,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	if selection.Matched || selection.Entry != nil {
+		t.Fatalf("workflow topology without json_config must fail-close, got %#v", selection)
+	}
+	if !strings.Contains(selection.CompatibilityDetail, "artifact_formats=safetensors") {
+		t.Fatalf("expected artifact_formats detail, got %q", selection.CompatibilityDetail)
+	}
+}
+
+func TestResolveImageSupervisedMatrixSafetensorsNativeDoesNotConflictWithGGUF(t *testing.T) {
+	// Ensure safetensors_native and gguf_image don't conflict on the same host
+	ggufSel := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilyGGUFImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"gguf"},
+	})
+	stSel := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "linux",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilySafetensorsNativeImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"safetensors"},
+	})
+	if ggufSel.Conflict || stSel.Conflict {
+		t.Fatal("safetensors_native and gguf_image must not conflict")
+	}
+	if ggufSel.EntryID == stSel.EntryID {
+		t.Fatalf("must resolve to different entries, both got %q", ggufSel.EntryID)
+	}
+}
+
 func TestResolveImageSupervisedMatrixConflictFailsClose(t *testing.T) {
 	original := append([]ImageSupervisedMatrixEntry(nil), imageSupervisedMatrixV2...)
 	t.Cleanup(func() {

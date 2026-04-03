@@ -133,6 +133,23 @@ func (s *Service) installManagedDownloadedModel(
 			Message: err.Error(),
 		})
 	}
+	engineConfig, projectionOverride, err := augmentManagedLlamaBundleFacts(
+		modelsRoot,
+		modelDir,
+		stagingDir,
+		entryPath,
+		spec.engine,
+		spec.capabilities,
+		files,
+		spec.engineConfig,
+		spec.projectionOverride,
+	)
+	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
 
 	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")
 	if err := writeModelManifest(manifestPathForStaging(stagingDir), managedModelManifestDescriptor{
@@ -148,8 +165,8 @@ func (s *Service) installManagedDownloadedModel(
 		revision:           spec.revision,
 		hashes:             actualHashes,
 		endpoint:           spec.endpoint,
-		engineConfig:       spec.engineConfig,
-		projectionOverride: spec.projectionOverride,
+		engineConfig:       engineConfig,
+		projectionOverride: projectionOverride,
 		integrityMode:      "verified",
 	}); err != nil {
 		s.failTransfer(transferID, err.Error(), false)
@@ -194,8 +211,8 @@ func (s *Service) installManagedDownloadedModel(
 		spec.endpoint,
 		spec.mode,
 		"",
-		spec.engineConfig,
-		spec.projectionOverride,
+		engineConfig,
+		projectionOverride,
 		"runtime_model_ready_after_install",
 		"model installed",
 		false,

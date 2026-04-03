@@ -97,6 +97,74 @@ func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 	}
 }
 
+func TestInstallLocalVisionModelDownloadsManagedBundleAutoDetectsMMProjAndGemmaFamily(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelBytes := validGemma4TestGGUF()
+	modelHash := sha256.Sum256(modelBytes)
+	mmprojBytes := validTestGGUF()
+	mmprojHash := sha256.Sum256(mmprojBytes)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/owner/plain-vision/resolve/main/weights/model.gguf":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(modelBytes)
+		case "/owner/plain-vision/resolve/main/mmproj-vision.gguf":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(mmprojBytes)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(t)
+	svc.hfDownloadBaseURL = server.URL
+
+	resp, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/plain-vision",
+		repo:         "owner/plain-vision",
+		revision:     "main",
+		capabilities: []string{"text.generate", "text.generate.vision"},
+		engine:       "llama",
+		entry:        "weights/model.gguf",
+		files:        []string{"weights/model.gguf", "mmproj-vision.gguf"},
+		license:      "apache-2.0",
+		hashes: map[string]string{
+			"weights/model.gguf": "sha256:" + hex.EncodeToString(modelHash[:]),
+			"mmproj-vision.gguf": "sha256:" + hex.EncodeToString(mmprojHash[:]),
+		},
+	})
+	if err != nil {
+		t.Fatalf("install local vision model: %v", err)
+	}
+	if got := resp.GetFamily(); got != "gemma" {
+		t.Fatalf("family = %q, want gemma", got)
+	}
+	engineConfig := resp.GetEngineConfig().AsMap()
+	llama, _ := engineConfig["llama"].(map[string]any)
+	if got, _ := llama["mmproj"].(string); got != "resolved/nimi/local-plain-vision/mmproj-vision.gguf" {
+		t.Fatalf("engine_config.llama.mmproj = %q", got)
+	}
+
+	manifestPath := filepath.Join(runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), "nimi/local-plain-vision"), "asset.manifest.json")
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatalf("decode manifest: %v", err)
+	}
+	if got, _ := manifest["family"].(string); got != "gemma" {
+		t.Fatalf("manifest family = %q", got)
+	}
+	manifestConfig, _ := manifest["engine_config"].(map[string]any)
+	manifestLlama, _ := manifestConfig["llama"].(map[string]any)
+	if got, _ := manifestLlama["mmproj"].(string); got != "resolved/nimi/local-plain-vision/mmproj-vision.gguf" {
+		t.Fatalf("manifest engine_config.llama.mmproj = %q", got)
+	}
+}
+
 func TestInstallLocalModelDownloadsManagedBundleWhenSupervised(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	modelBytes := validTestGGUF()

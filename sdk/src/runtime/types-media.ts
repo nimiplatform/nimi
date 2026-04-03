@@ -141,6 +141,16 @@ export type VideoGenerateInput = {
       role: 'first_frame' | 'last_frame' | 'reference_image';
       imageUrl: string;
     }
+    | {
+      type: 'video_url';
+      role: 'reference_video';
+      videoUrl: string;
+    }
+    | {
+      type: 'audio_url';
+      role: 'reference_audio';
+      audioUrl: string;
+    }
   >;
   options?: {
     resolution?: string;

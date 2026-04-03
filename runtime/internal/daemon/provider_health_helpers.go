@@ -189,6 +189,8 @@ func appendRepairResolvedAudit(store *auditlog.Store, engineName string, detail 
 		payloadMap["old_entry_id"] = sel.Entry.EntryID
 		payloadMap["entry_id"] = sel.Entry.EntryID
 		payloadMap["backend_family"] = string(sel.Entry.BackendFamily)
+		payloadMap["backend_class"] = string(sel.Entry.BackendClass)
+		payloadMap["product_state"] = string(sel.Entry.ProductState)
 	}
 	store.AppendEvent(&runtimev1.AuditEventRecord{
 		AuditId:    ulid.Make().String(),

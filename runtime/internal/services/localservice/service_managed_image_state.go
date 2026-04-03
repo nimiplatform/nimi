@@ -22,6 +22,7 @@ type managedImageLoadedState struct {
 	Alias          string
 	ProfileHash    string
 	RequestHash    string
+	LoadRequest    managedimagebackend.LoadModelRequest
 	BackendAddress string
 	BackendEpoch   uint64
 	VerifiedAt     time.Time
@@ -92,7 +93,7 @@ func (s *Service) clearManagedMediaImageLoadCache(localAssetID string) {
 	s.mu.Unlock()
 }
 
-func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, profile map[string]any, releaseReason string) error {
+func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
 	if s == nil {
 		return nil
 	}
@@ -100,10 +101,10 @@ func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID
 	if model == nil {
 		return nil
 	}
-	return s.releaseManagedSupervisedImage(ctx, model, "", profile, releaseReason)
+	return s.releaseManagedSupervisedImage(ctx, model, "", profile, scenarioExtensions, releaseReason)
 }
 
-func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, profile map[string]any, loadReason string) error {
+func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
 	if s == nil {
 		return fmt.Errorf("managed local image is unavailable")
 	}
@@ -111,7 +112,7 @@ func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedMo
 	if model == nil {
 		return fmt.Errorf("managed local image is unavailable")
 	}
-	return s.ensureManagedSupervisedImageLoaded(ctx, model, "", profile, loadReason)
+	return s.ensureManagedSupervisedImageLoaded(ctx, model, "", profile, scenarioExtensions, loadReason)
 }
 
 func (s *Service) ensureManagedSupervisedImageLoaded(
@@ -119,6 +120,7 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 	model *runtimev1.LocalAssetRecord,
 	alias string,
 	profile map[string]any,
+	scenarioExtensions map[string]any,
 	loadReason string,
 ) error {
 	if model == nil {
@@ -142,7 +144,7 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 	}
 
 	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
-	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile)
+	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile, scenarioExtensions)
 	if err != nil {
 		return err
 	}
@@ -284,6 +286,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 				Alias:          alias,
 				ProfileHash:    profileHash,
 				RequestHash:    requestHash,
+				LoadRequest:    cloneManagedImageLoadRequest(loadReq),
 				BackendAddress: strings.TrimSpace(loadReq.BackendAddress),
 				BackendEpoch:   backendEpoch,
 				VerifiedAt:     time.Now().UTC(),
@@ -298,11 +301,30 @@ func (s *Service) runManagedImageLoadSingleflight(
 	}
 }
 
+func (s *Service) freeManagedMediaImageOnIdle(ctx context.Context, localAssetID string, releaseReason string) error {
+	id := strings.TrimSpace(localAssetID)
+	if s == nil || id == "" {
+		return nil
+	}
+	cached, ok := s.cachedManagedMediaImageProfile(id)
+	if !ok || len(cached.Profile) == 0 {
+		s.clearManagedMediaImageLoadCache(id)
+		return nil
+	}
+	model := s.modelByID(id)
+	if model == nil {
+		s.clearManagedMediaImageLoadCache(id)
+		return nil
+	}
+	return s.forceReleaseManagedSupervisedImage(ctx, model, cached.Alias, cached.Profile, releaseReason)
+}
+
 func (s *Service) releaseManagedSupervisedImage(
 	ctx context.Context,
 	model *runtimev1.LocalAssetRecord,
 	alias string,
 	profile map[string]any,
+	scenarioExtensions map[string]any,
 	releaseReason string,
 ) error {
 	if model == nil {
@@ -324,7 +346,7 @@ func (s *Service) releaseManagedSupervisedImage(
 	}
 
 	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
-	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile)
+	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile, scenarioExtensions)
 	if err != nil {
 		return nil
 	}
@@ -340,7 +362,6 @@ func (s *Service) releaseManagedSupervisedImage(
 		"threads":         loadReq.Threads,
 	})
 
-	shouldFree := false
 	s.mu.Lock()
 	if entry, ok := s.managedImageLoadCache[localAssetID]; ok &&
 		entry.RequestHash == requestHash &&
@@ -348,14 +369,45 @@ func (s *Service) releaseManagedSupervisedImage(
 		entry.BackendEpoch == backendEpoch {
 		if entry.HoldCount > 1 {
 			entry.HoldCount--
-			s.managedImageLoadCache[localAssetID] = entry
 		} else {
-			delete(s.managedImageLoadCache, localAssetID)
-			shouldFree = true
+			entry.HoldCount = 0
 		}
+		entry.VerifiedAt = time.Now().UTC()
+		s.managedImageLoadCache[localAssetID] = entry
 	}
 	s.mu.Unlock()
+	return nil
+}
 
+func (s *Service) forceReleaseManagedSupervisedImage(
+	ctx context.Context,
+	model *runtimev1.LocalAssetRecord,
+	alias string,
+	profile map[string]any,
+	releaseReason string,
+) error {
+	if model == nil {
+		return nil
+	}
+	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	if localAssetID == "" {
+		return nil
+	}
+	var (
+		shouldFree   bool
+		cachedAlias  string
+		cachedEpoch  uint64
+		cachedLoad   managedimagebackend.LoadModelRequest
+	)
+	s.mu.Lock()
+	if entry, ok := s.managedImageLoadCache[localAssetID]; ok {
+		delete(s.managedImageLoadCache, localAssetID)
+		shouldFree = true
+		cachedAlias = entry.Alias
+		cachedEpoch = entry.BackendEpoch
+		cachedLoad = cloneManagedImageLoadRequest(entry.LoadRequest)
+	}
+	s.mu.Unlock()
 	if !shouldFree {
 		return nil
 	}
@@ -366,24 +418,28 @@ func (s *Service) releaseManagedSupervisedImage(
 	}
 	cleanupCtx, cancel := managedImageCleanupContext(ctx, 15*time.Second)
 	defer cancel()
-
 	s.logger.Info("managed image release",
 		"local_asset_id", localAssetID,
-		"profile_alias", resolvedAlias,
+		"profile_alias", defaultString(strings.TrimSpace(cachedAlias), strings.TrimSpace(alias)),
 		"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
-		"backend_epoch", backendEpoch,
+		"backend_epoch", cachedEpoch,
 	)
-	if err := releaseFn(cleanupCtx, loadReq); err != nil {
+	if err := releaseFn(cleanupCtx, cachedLoad); err != nil {
 		s.logger.Warn("managed image release failed",
 			"local_asset_id", localAssetID,
-			"profile_alias", resolvedAlias,
+			"profile_alias", defaultString(strings.TrimSpace(cachedAlias), strings.TrimSpace(alias)),
 			"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
-			"backend_epoch", backendEpoch,
+			"backend_epoch", cachedEpoch,
 			"error", err,
 		)
 		return err
 	}
 	return nil
+}
+
+func cloneManagedImageLoadRequest(input managedimagebackend.LoadModelRequest) managedimagebackend.LoadModelRequest {
+	input.Options = append([]string(nil), input.Options...)
+	return input
 }
 
 func managedImageCleanupContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {

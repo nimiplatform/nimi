@@ -74,8 +74,13 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	if err != nil {
 		return nil, err
 	}
+	releaseLease, err := s.acquireSelectedLocalModelLease(ctx, req.GetHead().GetModelId(), remoteTarget, runtimev1.Modal_MODAL_TEXT, "realtime_session")
+	if err != nil {
+		return nil, err
+	}
 	conn, err := realtimeDialer(ctx, backend, realtimeModel)
 	if err != nil {
+		releaseLease()
 		return nil, err
 	}
 
@@ -90,9 +95,11 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		routeDecision: routeDecision,
 		conn:          conn,
 		events:        make([]*runtimev1.RealtimeEvent, 0, 16),
+		cleanup:       releaseLease,
 	})
 	if record == nil {
 		_ = conn.Close()
+		releaseLease()
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	s.realtimeSessions.appendEvent(sessionID, &runtimev1.RealtimeEvent{

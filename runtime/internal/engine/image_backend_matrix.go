@@ -10,6 +10,7 @@ type ImageAssetFamily string
 
 const (
 	ImageAssetFamilyGGUFImage                ImageAssetFamily = "gguf_image"
+	ImageAssetFamilySafetensorsNativeImage   ImageAssetFamily = "safetensors_native_image"
 	ImageAssetFamilyWorkflowSafetensorsImage ImageAssetFamily = "workflow_safetensors_image"
 )
 
@@ -107,6 +108,23 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProductState:          ImageProductStateSupported,
 	},
 	{
+		EntryID:               "macos-apple-silicon-safetensors-native",
+		OS:                    "darwin",
+		Arch:                  "arm64",
+		GPUVendor:             "apple",
+		AssetFamily:           ImageAssetFamilySafetensorsNativeImage,
+		ArtifactFormats:       []string{"safetensors"},
+		ProfileKind:           ImageProfileKindSingleBinaryModel,
+		BackendClass:          ImageBackendClassNativeBinary,
+		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:          ImageControlPlaneRuntime,
+		ExecutionPlane:        EngineMedia,
+		SupportedCapabilities: nil,
+		TopologyState:         ImageTopologyStateDefined,
+		ProductState:          ImageProductStateUnsupported,
+		Detail:                "defined topology for single-file safetensors image assets consumed by native binary backend; not yet validated on this host tuple",
+	},
+	{
 		EntryID:               "macos-apple-silicon-workflow-safetensors",
 		OS:                    "darwin",
 		Arch:                  "arm64",
@@ -159,6 +177,24 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		ProductState:          ImageProductStateSupported,
 	},
 	{
+		EntryID:               "windows-x64-nvidia-safetensors-native",
+		OS:                    "windows",
+		Arch:                  "amd64",
+		GPUVendor:             "nvidia",
+		CUDARequired:          true,
+		AssetFamily:           ImageAssetFamilySafetensorsNativeImage,
+		ArtifactFormats:       []string{"safetensors"},
+		ProfileKind:           ImageProfileKindSingleBinaryModel,
+		BackendClass:          ImageBackendClassNativeBinary,
+		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:          ImageControlPlaneRuntime,
+		ExecutionPlane:        EngineMedia,
+		SupportedCapabilities: nil,
+		TopologyState:         ImageTopologyStateDefined,
+		ProductState:          ImageProductStateUnsupported,
+		Detail:                "defined topology for single-file safetensors image assets consumed by native binary backend; not yet validated on this host tuple",
+	},
+	{
 		EntryID:               "windows-x64-nvidia-workflow-safetensors",
 		OS:                    "windows",
 		Arch:                  "amd64",
@@ -175,6 +211,24 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateUnsupported,
 		Detail:                "defined topology only; mixed-mode single-host local-media process model is not specified in v1",
+	},
+	{
+		EntryID:               "linux-x64-nvidia-safetensors-native",
+		OS:                    "linux",
+		Arch:                  "amd64",
+		GPUVendor:             "nvidia",
+		CUDARequired:          true,
+		AssetFamily:           ImageAssetFamilySafetensorsNativeImage,
+		ArtifactFormats:       []string{"safetensors"},
+		ProfileKind:           ImageProfileKindSingleBinaryModel,
+		BackendClass:          ImageBackendClassNativeBinary,
+		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
+		ControlPlane:          ImageControlPlaneRuntime,
+		ExecutionPlane:        EngineMedia,
+		SupportedCapabilities: nil,
+		TopologyState:         ImageTopologyStateDefined,
+		ProductState:          ImageProductStateUnsupported,
+		Detail:                "defined topology for single-file safetensors image assets consumed by native binary backend; not yet validated on this host tuple",
 	},
 	{
 		EntryID:               "linux-x64-nvidia-workflow-safetensors",
@@ -371,16 +425,16 @@ func normalizeImageTokens(values []string) []string {
 	return out
 }
 
-func artifactFormatsContained(entryFormats []string, required []string) bool {
-	if len(required) == 0 {
+func artifactFormatsContained(entryFormats []string, assetFormats []string) bool {
+	if len(entryFormats) == 0 {
 		return true
 	}
-	entrySet := make(map[string]struct{}, len(entryFormats))
-	for _, f := range normalizeImageTokens(entryFormats) {
-		entrySet[f] = struct{}{}
+	assetSet := make(map[string]struct{}, len(assetFormats))
+	for _, format := range normalizeImageTokens(assetFormats) {
+		assetSet[format] = struct{}{}
 	}
-	for _, r := range normalizeImageTokens(required) {
-		if _, ok := entrySet[r]; !ok {
+	for _, format := range normalizeImageTokens(entryFormats) {
+		if _, ok := assetSet[format]; !ok {
 			return false
 		}
 	}

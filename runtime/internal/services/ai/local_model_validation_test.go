@@ -25,6 +25,7 @@ type fakeLocalModelLister struct {
 	startErr   error
 	startCalls int
 	startResp  *runtimev1.StartLocalAssetResponse
+	leaseCalls []string
 }
 
 func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, _ *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
@@ -58,6 +59,16 @@ func (f *fakeLocalModelLister) StartLocalAsset(_ context.Context, _ *runtimev1.S
 	return &runtimev1.StartLocalAssetResponse{}, nil
 }
 
+func (f *fakeLocalModelLister) AcquireLocalAssetLease(_ context.Context, localAssetID string, reason string) error {
+	f.leaseCalls = append(f.leaseCalls, "acquire:"+strings.TrimSpace(localAssetID)+":"+strings.TrimSpace(reason))
+	return nil
+}
+
+func (f *fakeLocalModelLister) ReleaseLocalAssetLease(_ context.Context, localAssetID string, reason string) error {
+	f.leaseCalls = append(f.leaseCalls, "release:"+strings.TrimSpace(localAssetID)+":"+strings.TrimSpace(reason))
+	return nil
+}
+
 func TestParseLocalModelSelector(t *testing.T) {
 	tests := []struct {
 		modelID        string
@@ -80,6 +91,50 @@ func TestParseLocalModelSelector(t *testing.T) {
 		if sel.explicitEngine != tt.explicitEngine || sel.preferLocal != tt.preferLocal || sel.modelID != tt.normalizedID || sel.modal != tt.modal {
 			t.Fatalf("selector mismatch for %q: %+v", tt.modelID, sel)
 		}
+	}
+}
+
+func TestAcquireSelectedLocalModelLease(t *testing.T) {
+	localLister := &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local_qwen",
+				AssetId:      "qwen",
+				Engine:       "llama",
+				Capabilities: []string{"chat"},
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			}},
+		}},
+	}
+	svc, err := newFromProviderConfig(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		nil,
+		nil,
+		nil,
+		nil,
+		Config{},
+		8,
+		2,
+	)
+	if err != nil {
+		t.Fatalf("new service: %v", err)
+	}
+	svc.SetLocalModelLister(localLister)
+
+	release, err := svc.acquireSelectedLocalModelLease(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_TEXT, "text_generate_request")
+	if err != nil {
+		t.Fatalf("acquireSelectedLocalModelLease: %v", err)
+	}
+	release()
+
+	if len(localLister.leaseCalls) != 2 {
+		t.Fatalf("expected acquire/release lease calls, got %#v", localLister.leaseCalls)
+	}
+	if localLister.leaseCalls[0] != "acquire:local_qwen:text_generate_request" {
+		t.Fatalf("unexpected acquire call: %#v", localLister.leaseCalls)
+	}
+	if localLister.leaseCalls[1] != "release:local_qwen:text_generate_request_cleanup" {
+		t.Fatalf("unexpected release call: %#v", localLister.leaseCalls)
 	}
 }
 

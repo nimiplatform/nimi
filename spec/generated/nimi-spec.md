@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-02
+> 生成时间: 2026-04-03
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -919,6 +919,14 @@ AI 执行路径根据 model_id 前缀确定引擎：
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
+
+对 canonical local image product path，`local/*` 到 `media` 的 image 路由必须继续服从 `K-LENG-004` / `K-LENG-012` 的统一 matrix resolver 语义：
+
+- 单文件 `*.gguf` 主模型 -> `gguf_image`
+- 单文件 `*.safetensors` 主模型且不满足 workflow bundle 判据 -> `safetensors_native_image`
+- `model_index.json` 或等价 workflow bundle completeness 命中 -> `workflow_safetensors_image`
+- `artifact_roles` 只描述 bundle 内部角色，不得因为“任意非空”就把单文件 safetensors 升级成 workflow topology
+- 命中 `safetensors_native_image` 或 `workflow_safetensors_image` 但 `product_state != supported` 时，runtime 必须保持 `SUPERVISED` 契约并以 `AI_LOCAL_MODEL_UNAVAILABLE + compatibility detail` fail-close，不得改投 `ATTACHED_ENDPOINT`
 
 fallback 补充：
 

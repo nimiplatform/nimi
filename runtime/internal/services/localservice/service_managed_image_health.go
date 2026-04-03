@@ -5,11 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
+	"google.golang.org/grpc/codes"
 )
 
 var errManagedImageValidationPending = errors.New("managed local image backend validation pending")
@@ -23,6 +27,20 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 		return nil, nil
 	}
 	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	selection := canonicalSupervisedImageSelectionForLocalAsset(model, collectDeviceProfile())
+	if !selection.Matched || selection.Conflict || selection.Entry == nil || selection.ProductState != engine.ImageProductStateSupported {
+		detail := strings.TrimSpace(selection.CompatibilityDetail)
+		if detail == "" {
+			detail = "canonical image selection unavailable for managed media bootstrap"
+		}
+		if _, err := s.setManagedSupervisedImageUnhealthy(model, detail); err != nil {
+			return nil, err
+		}
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localAssetID)); err != nil {
 		return s.setManagedSupervisedImageUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}
@@ -85,7 +103,7 @@ func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *ru
 			detail:  managedLocalImagePendingValidationDetail("runtime profile bindings not cached yet"),
 		}, nil
 	}
-	err := s.ensureManagedSupervisedImageLoaded(ctx, model, cached.Alias, cached.Profile, loadReason)
+	err := s.ensureManagedSupervisedImageLoaded(ctx, model, cached.Alias, cached.Profile, nil, loadReason)
 	if errors.Is(err, errManagedImageValidationPending) {
 		return managedImagePreflightResult{
 			pending: true,
@@ -95,19 +113,20 @@ func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *ru
 	if err != nil {
 		return managedImagePreflightResult{}, err
 	}
-	if releaseErr := s.releaseManagedSupervisedImage(ctx, model, cached.Alias, cached.Profile, loadReason+"_cleanup"); releaseErr != nil {
+	if releaseErr := s.releaseManagedSupervisedImage(ctx, model, cached.Alias, cached.Profile, nil, loadReason+"_cleanup"); releaseErr != nil {
 		s.logger.Warn("managed image explicit validation cleanup failed",
 			"local_asset_id", strings.TrimSpace(model.GetLocalAssetId()),
 			"load_reason", defaultString(strings.TrimSpace(loadReason), "unspecified"),
 			"error", releaseErr,
 		)
 	}
+	s.markLocalAssetUsed(localAssetID, loadReason)
 	return managedImagePreflightResult{
 		detail: managedLocalImageReadyDetail(),
 	}, nil
 }
 
-func managedImageLoadRequest(modelsRoot string, backendAddress string, profile map[string]any) (managedimagebackend.LoadModelRequest, error) {
+func managedImageLoadRequest(modelsRoot string, backendAddress string, profile map[string]any, scenarioExtensions map[string]any) (managedimagebackend.LoadModelRequest, error) {
 	if strings.TrimSpace(modelsRoot) == "" || strings.TrimSpace(backendAddress) == "" {
 		return managedimagebackend.LoadModelRequest{}, fmt.Errorf("managed image backend target is unavailable")
 	}
@@ -122,13 +141,15 @@ func managedImageLoadRequest(modelsRoot string, backendAddress string, profile m
 		BackendAddress: strings.TrimSpace(backendAddress),
 		ModelsRoot:     strings.TrimSpace(modelsRoot),
 		ModelPath:      modelPath,
-		Options:        valueAsStringSlice(profile["options"]),
-		CFGScale:       managedImageCFGScale(profile),
+		Options:        managedImageEffectiveOptions(profile, scenarioExtensions),
+		CFGScale:       managedImageCFGScale(profile, scenarioExtensions),
 	}, nil
 }
 
-func managedImageCFGScale(profile map[string]any) float32 {
+func managedImageCFGScale(profile map[string]any, scenarioExtensions map[string]any) float32 {
 	for _, value := range []any{
+		scenarioExtensions["cfg_scale"],
+		scenarioExtensions["cfgScale"],
 		profile["cfg_scale"],
 		profile["cfgScale"],
 		valueAsObject(profile["parameters"])["cfg_scale"],
@@ -155,9 +176,86 @@ func managedImageCFGScale(profile map[string]any) float32 {
 			if typed > 0 {
 				return float32(typed)
 			}
+		case string:
+			trimmed := strings.TrimSpace(typed)
+			if trimmed == "" {
+				continue
+			}
+			if parsed, err := strconv.ParseFloat(trimmed, 32); err == nil && parsed > 0 {
+				return float32(parsed)
+			}
 		}
 	}
 	return 0
+}
+
+func managedImageEffectiveOptions(profile map[string]any, scenarioExtensions map[string]any) []string {
+	options := valueAsStringSlice(profile["options"])
+	sampler := managedImageSamplerOption(profile, scenarioExtensions)
+	if sampler == "" {
+		return options
+	}
+	out := make([]string, 0, len(options)+1)
+	for _, option := range options {
+		trimmed := strings.TrimSpace(option)
+		if trimmed == "" {
+			continue
+		}
+		if managedImageOptionKey(trimmed) == "sampler" {
+			continue
+		}
+		out = append(out, trimmed)
+	}
+	return append(out, "sampler:"+sampler)
+}
+
+func managedImageSamplerOption(profile map[string]any, scenarioExtensions map[string]any) string {
+	for _, value := range []any{
+		scenarioExtensions["mode"],
+		scenarioExtensions["method"],
+		profile["mode"],
+		profile["sampling_method"],
+	} {
+		if sampler := managedImageCanonicalSampler(valueAsString(value)); sampler != "" {
+			return sampler
+		}
+	}
+	return ""
+}
+
+func managedImageCanonicalSampler(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "euler_a":
+		return "euler_a"
+	case "euler":
+		return "euler"
+	case "heun":
+		return "heun"
+	case "dpm2":
+		return "dpm2"
+	case "dpmpp2s_a", "dpm++2s_a":
+		return "dpmpp2s_a"
+	case "dpmpp2m", "dpm++2m":
+		return "dpmpp2m"
+	case "dpmpp2mv2", "dpm++2mv2":
+		return "dpmpp2mv2"
+	case "ipndm":
+		return "ipndm"
+	case "ipndm_v":
+		return "ipndm_v"
+	case "lcm":
+		return "lcm"
+	default:
+		return ""
+	}
+}
+
+func managedImageOptionKey(option string) string {
+	key := strings.TrimSpace(option)
+	if index := strings.Index(key, ":"); index >= 0 {
+		key = key[:index]
+	}
+	return strings.ToLower(strings.TrimSpace(key))
 }
 
 func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {
@@ -165,6 +263,7 @@ func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAsset
 		return nil, nil
 	}
 	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	_ = s.freeManagedMediaImageOnIdle(context.Background(), localAssetID, "unhealthy_cleanup")
 	s.clearManagedMediaImageLoadCache(localAssetID)
 	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		s.setModelHealthDetail(localAssetID, detail)

@@ -25,6 +25,7 @@ type realtimeSessionRecord struct {
 	reader        chan *runtimev1.RealtimeEvent
 	nextSeq       uint64
 	events        []*runtimev1.RealtimeEvent
+	cleanup       func()
 }
 
 const maxRealtimeEventBacklog = 256
@@ -164,9 +165,11 @@ func (s *realtimeSessionStore) close(sessionID string) {
 	record.closed = true
 	reader := record.reader
 	conn := record.conn
+	cleanup := record.cleanup
 	record.conn = nil
 	record.reader = nil
 	record.readerActive = false
+	record.cleanup = nil
 	record.mu.Unlock()
 	record.sendMu.Unlock()
 	if reader != nil {
@@ -174,6 +177,9 @@ func (s *realtimeSessionStore) close(sessionID string) {
 	}
 	if conn != nil {
 		_ = conn.Close()
+	}
+	if cleanup != nil {
+		cleanup()
 	}
 }
 

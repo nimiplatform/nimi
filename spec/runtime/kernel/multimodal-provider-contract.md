@@ -53,6 +53,7 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 - `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
 - `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface；request body 与 artifact response envelope 在两种 mode 下保持同形。
 - 对 v2 matrix resolver 选中的 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` image 路径，dynamic profile import 如需额外 materialization 步骤，只允许作为 runtime 私有内部实现存在；app-facing consume 仍必须固定落到 `POST /v1/media/image/generate`。
+- 对 v2 matrix resolver 选中的 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` + `asset_family=safetensors_native_image` image 路径，适用与 `gguf_image` 相同的 native binary execution 规则；但 `product_state` 独立于 `gguf_image`，未经 host tuple 验证前保持 `unsupported`。
 - 对 v2 matrix resolver 选中的 `backend_class=python_pipeline` + `backend_family=diffusers` image 路径，必须确认该 entry 的 `product_state` 已达到 `supported` 且 `admission_gate` 已通过，方可进入 install / activation / execution。
 - 对 canonical local image product path，runtime 不得将 host 不支持误投影成 `ATTACHED_ENDPOINT + AI_LOCAL_ENDPOINT_REQUIRED`；必须保持 `SUPERVISED` 契约并以 `AI_LOCAL_MODEL_UNAVAILABLE + compatibility detail` fail-close。
 - `media` 只允许暴露真实 ready 的 image/video 模型目录；依赖未安装、设备不可用、模型未解析、管线未初始化时必须 fail-close，不得伪造成功 artifact 或静态 model list。
@@ -120,8 +121,8 @@ Runtime 在不引入 DAG 编排的前提下，必须支持 canonical local image
 
 - `extensions.step` 优先；`extensions.steps` 在 `step` 缺失时映射到 `step`。
 - `extensions.mode` 优先；`extensions.method` 在 `mode` 缺失时映射到 `mode`。
-- 对当前路径无稳定同名请求字段的键（`guidance_scale` / `eta` / `strength`）不得 fail-close，必须以 ignored 形式可观测回传。
-- image artifact `artifact_metadata` 必须至少包含：
+- 对当前路径无稳定同名请求字段的键（`guidance_scale` / `eta` / `strength` / `clip_skip`）不得 fail-close，必须以 ignored 形式可观测回传。
+- image artifact `ScenarioArtifact.metadata` 必须至少包含：
   - `adapter`
   - `prompt`
   - `source_image`
@@ -136,8 +137,8 @@ Runtime 在不引入 DAG 编排的前提下，必须支持 canonical local image
 | `extensions.mode` | 第一优先级 | 直接写入 `mode` | 记入 `local.applied_options` |
 | `extensions.method` | 仅当 `mode` 缺失 | 映射到 `mode` | 记入 `local.applied_options` |
 | `guidance_scale` | 无稳定同名请求字段 | 不 fail-close | 记入 `local.ignored_options` |
-| `eta` / `strength` | 无稳定同名请求字段 | 不 fail-close | 记入 `local.ignored_options` |
-| artifact metadata | 成功返回 image artifact | 至少填充 `adapter`、`prompt`、`source_image`、`ref_images_count`、`local.applied_options`、`local.ignored_options` | 供排障与兼容性回放 |
+| `eta` / `strength` / `clip_skip` | 无稳定同名请求字段 | 不 fail-close | 记入 `local.ignored_options` |
+| artifact metadata | 成功返回 image artifact | 写入 `ScenarioArtifact.metadata`，至少填充 `adapter`、`prompt`、`source_image`、`ref_images_count`、`local.applied_options`、`local.ignored_options` | 供排障与兼容性回放 |
 
 ## K-MMPROV-018 TTS VoiceReference Primary Contract
 
@@ -195,6 +196,8 @@ Video mode 与 content role 组合必须严格匹配：
 - `i2v_first_frame`：必须且仅 1 条 `IMAGE_URL+FIRST_FRAME`，可附文本 prompt。
 - `i2v_first_last`：必须包含 `IMAGE_URL+FIRST_FRAME` 与 `IMAGE_URL+LAST_FRAME` 各 1 条，可附文本 prompt。
 - `i2v_reference`：必须包含 1-4 条 `IMAGE_URL+REFERENCE_IMAGE`，可附文本 prompt。
+
+所有模式均可附加可选的 `VIDEO_URL+REFERENCE_VIDEO`（最多 1 条）和 `AUDIO_URL+REFERENCE_AUDIO`（最多 1 条），用于视频风格参考和背景音频输入。provider/model 是否支持这些可选角色由 catalog `input_roles` 声明决定。
 
 任一 mode/role 冲突必须 fail-close（`AI_MEDIA_SPEC_INVALID` 或 `AI_MEDIA_OPTION_UNSUPPORTED`）。
 

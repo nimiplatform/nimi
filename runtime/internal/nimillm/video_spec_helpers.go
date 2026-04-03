@@ -151,6 +151,14 @@ func VideoReferenceImageURIs(spec *runtimev1.VideoGenerateScenarioSpec) []string
 	return videoImageContentByRole(spec, runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE)
 }
 
+func VideoReferenceVideoURIs(spec *runtimev1.VideoGenerateScenarioSpec) []string {
+	return videoURLContentByRole(spec, runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL, runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO)
+}
+
+func VideoReferenceAudioURIs(spec *runtimev1.VideoGenerateScenarioSpec) []string {
+	return videoURLContentByRole(spec, runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL, runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO)
+}
+
 func VideoContentPayload(spec *runtimev1.VideoGenerateScenarioSpec) []map[string]any {
 	if spec == nil {
 		return nil
@@ -177,11 +185,27 @@ func VideoContentPayload(spec *runtimev1.VideoGenerateScenarioSpec) []map[string
 			}
 			payload["type"] = "image_url"
 			payload["image_url"] = map[string]any{"url": url}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
+			url := strings.TrimSpace(item.GetVideoUrl().GetUrl())
+			if url == "" {
+				continue
+			}
+			payload["type"] = "video_url"
+			payload["video_url"] = map[string]any{"url": url}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
+			url := strings.TrimSpace(item.GetAudioUrl().GetUrl())
+			if url == "" {
+				continue
+			}
+			payload["type"] = "audio_url"
+			payload["audio_url"] = map[string]any{"url": url}
 		default:
 			continue
 		}
-		if role := videoContentRoleName(item.GetRole()); role != "" {
-			payload["role"] = role
+		if item.GetType() != runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT {
+			if role := videoContentRoleName(item.GetRole()); role != "" {
+				payload["role"] = role
+			}
 		}
 		out = append(out, payload)
 	}
@@ -209,6 +233,32 @@ func videoImageContentByRole(spec *runtimev1.VideoGenerateScenarioSpec, role run
 	return out
 }
 
+func videoURLContentByRole(spec *runtimev1.VideoGenerateScenarioSpec, contentType runtimev1.VideoContentType, role runtimev1.VideoContentRole) []string {
+	if spec == nil {
+		return nil
+	}
+	out := make([]string, 0, 4)
+	for _, item := range spec.GetContent() {
+		if item == nil || item.GetType() != contentType || item.GetRole() != role {
+			continue
+		}
+		var url string
+		switch contentType {
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
+			url = strings.TrimSpace(item.GetVideoUrl().GetUrl())
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
+			url = strings.TrimSpace(item.GetAudioUrl().GetUrl())
+		default:
+			continue
+		}
+		if url == "" {
+			continue
+		}
+		out = append(out, url)
+	}
+	return out
+}
+
 func videoContentRoleName(role runtimev1.VideoContentRole) string {
 	switch role {
 	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT:
@@ -219,6 +269,10 @@ func videoContentRoleName(role runtimev1.VideoContentRole) string {
 		return "last_frame"
 	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
 		return "reference_image"
+	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+		return "reference_video"
+	case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+		return "reference_audio"
 	default:
 		return ""
 	}

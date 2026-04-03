@@ -58,6 +58,80 @@ func TestDeriveCanonicalImageFactsWorkflowBundle(t *testing.T) {
 	}
 }
 
+func TestDeriveCanonicalImageFactsSingleFileSafetensors(t *testing.T) {
+	facts := canonicalImageResolverFactsForImport(
+		"media",
+		[]string{"image"},
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		"model.safetensors",
+		[]string{"model.safetensors"},
+		nil,
+		nil,
+		"",
+		nil,
+	)
+
+	assetFamily, profileKind, artifactFormats := deriveCanonicalImageFacts(facts)
+	if assetFamily != engine.ImageAssetFamilySafetensorsNativeImage {
+		t.Fatalf("expected safetensors_native_image, got %s", assetFamily)
+	}
+	if profileKind != engine.ImageProfileKindSingleBinaryModel {
+		t.Fatalf("expected single_binary_model, got %s", profileKind)
+	}
+	if len(artifactFormats) != 1 || artifactFormats[0] != "safetensors" {
+		t.Fatalf("expected [safetensors], got %#v", artifactFormats)
+	}
+}
+
+func TestDeriveCanonicalImageFactsSafetensorsWithRolesButNoModelIndex(t *testing.T) {
+	// artifact_roles present but no model_index.json -> must NOT upgrade to workflow
+	facts := canonicalImageResolverFactsForImport(
+		"media",
+		[]string{"image"},
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		"model.safetensors",
+		[]string{"model.safetensors"},
+		nil,
+		[]string{"transformer", "vae"},
+		"",
+		nil,
+	)
+
+	assetFamily, profileKind, artifactFormats := deriveCanonicalImageFacts(facts)
+	if assetFamily != engine.ImageAssetFamilySafetensorsNativeImage {
+		t.Fatalf("artifact_roles without model_index.json must not produce workflow topology, got %s", assetFamily)
+	}
+	if profileKind != engine.ImageProfileKindSingleBinaryModel {
+		t.Fatalf("expected single_binary_model, got %s", profileKind)
+	}
+	if len(artifactFormats) != 1 || artifactFormats[0] != "safetensors" {
+		t.Fatalf("expected [safetensors], got %#v", artifactFormats)
+	}
+}
+
+func TestDeriveCanonicalImageFactsSlotOnlySafetensorsNotWorkflow(t *testing.T) {
+	// Slot components are safetensors but main model has no workflow bundle markers
+	facts := canonicalImageResolverFactsForImport(
+		"media",
+		[]string{"image"},
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		"main_model.safetensors",
+		[]string{"main_model.safetensors"},
+		nil,
+		nil,
+		"",
+		nil,
+	)
+
+	assetFamily, _, _ := deriveCanonicalImageFacts(facts)
+	if assetFamily == engine.ImageAssetFamilyWorkflowSafetensorsImage {
+		t.Fatal("slot-only safetensors without workflow bundle markers must not be classified as workflow")
+	}
+	if assetFamily != engine.ImageAssetFamilySafetensorsNativeImage {
+		t.Fatalf("expected safetensors_native_image, got %s", assetFamily)
+	}
+}
+
 func TestDeriveCanonicalImageFactsFailsCloseWithoutBundleMarkers(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",
@@ -138,6 +212,51 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 	}
 }
 
+func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	svc.mu.Lock()
+	svc.assets["asset_gguf"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset_gguf",
+		AssetId:      "local/gguf-image",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+		Entry:        "z_image_turbo-q4.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+	}
+	svc.assetRuntimeModes["asset_gguf"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.assets["asset_st_native"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset_st_native",
+		AssetId:      "local/safetensors-image",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+		Entry:        "model.safetensors",
+		Files:        []string{"model.safetensors"},
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	}
+	svc.assetRuntimeModes["asset_st_native"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.mu.Unlock()
+
+	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
+	if !ok {
+		t.Fatal("expected bootstrap selection to exist")
+	}
+	if selection.Conflict {
+		t.Fatalf("safetensors native install must not conflict with active GGUF, got %#v", selection)
+	}
+	if selection.EntryID != "linux-x64-nvidia-gguf" {
+		t.Fatalf("active supported GGUF must win, got %q", selection.EntryID)
+	}
+	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
+		t.Fatalf("supported selection should have no compatibility detail, got %q", selection.CompatibilityDetail)
+	}
+}
+
 func TestManagedSupervisedImageBootstrapSelectionIgnoresInertUnsupportedInstallsDuringAutoArbitration(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -182,5 +301,34 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresInertUnsupportedInstalls
 	}
 	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
 		t.Fatalf("supported bootstrap selection should not carry compatibility detail, got %q", selection.CompatibilityDetail)
+	}
+}
+
+func TestManagedSupervisedImageBootstrapSelectionDoesNotAutoSelectUnsupportedSafetensorsNative(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	svc.mu.Lock()
+	svc.assets["asset_st_native"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset_st_native",
+		AssetId:      "local/safetensors-image",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+		Entry:        "model.safetensors",
+		Files:        []string{"model.safetensors"},
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+	}
+	svc.assetRuntimeModes["asset_st_native"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.mu.Unlock()
+
+	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
+	if ok {
+		t.Fatalf("unsupported safetensors native install must not become bootstrap selection, got %#v", selection)
+	}
+	if selection.Matched || selection.Entry != nil || selection.EntryID != "" {
+		t.Fatalf("expected empty selection when only unsupported safetensors native is installed, got %#v", selection)
 	}
 }

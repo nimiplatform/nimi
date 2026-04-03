@@ -179,3 +179,67 @@ func TestProviderTargetNameForEngineIncludesSidecar(t *testing.T) {
 		t.Fatalf("unexpected sidecar provider target: %s", sidecarTarget)
 	}
 }
+
+func TestAppendEngineBootstrapFailureAuditIncludesImageMatrixAttribution(t *testing.T) {
+	store := auditlog.New(32, 32)
+	selection := &engine.ImageSupervisedMatrixSelection{
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:       "linux-x64-nvidia-safetensors-native",
+			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:  engine.ImageBackendClassNativeBinary,
+			ProductState:  engine.ImageProductStateUnsupported,
+		},
+	}
+
+	appendEngineBootstrapFailureAudit(store, "media", "local-media", "bootstrap failed", selection)
+
+	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"})
+	if len(resp.GetEvents()) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(resp.GetEvents()))
+	}
+	payload := resp.GetEvents()[0].GetPayload().GetFields()
+	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
+	}
+	if payload["backend_family"].GetStringValue() != string(engine.ImageBackendFamilyStableDiffusionGGML) {
+		t.Fatalf("unexpected backend_family: %q", payload["backend_family"].GetStringValue())
+	}
+	if payload["backend_class"].GetStringValue() != string(engine.ImageBackendClassNativeBinary) {
+		t.Fatalf("unexpected backend_class: %q", payload["backend_class"].GetStringValue())
+	}
+	if payload["product_state"].GetStringValue() != string(engine.ImageProductStateUnsupported) {
+		t.Fatalf("unexpected product_state: %q", payload["product_state"].GetStringValue())
+	}
+}
+
+func TestAppendRepairResolvedAuditIncludesImageMatrixAttribution(t *testing.T) {
+	store := auditlog.New(32, 32)
+	selection := &engine.ImageSupervisedMatrixSelection{
+		Entry: &engine.ImageSupervisedMatrixEntry{
+			EntryID:       "linux-x64-nvidia-safetensors-native",
+			BackendFamily: engine.ImageBackendFamilyStableDiffusionGGML,
+			BackendClass:  engine.ImageBackendClassNativeBinary,
+			ProductState:  engine.ImageProductStateUnsupported,
+		},
+	}
+
+	appendRepairResolvedAudit(store, "media", "recovered", selection)
+
+	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"})
+	if len(resp.GetEvents()) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(resp.GetEvents()))
+	}
+	payload := resp.GetEvents()[0].GetPayload().GetFields()
+	if payload["entry_id"].GetStringValue() != "linux-x64-nvidia-safetensors-native" {
+		t.Fatalf("unexpected entry_id: %q", payload["entry_id"].GetStringValue())
+	}
+	if payload["backend_family"].GetStringValue() != string(engine.ImageBackendFamilyStableDiffusionGGML) {
+		t.Fatalf("unexpected backend_family: %q", payload["backend_family"].GetStringValue())
+	}
+	if payload["backend_class"].GetStringValue() != string(engine.ImageBackendClassNativeBinary) {
+		t.Fatalf("unexpected backend_class: %q", payload["backend_class"].GetStringValue())
+	}
+	if payload["product_state"].GetStringValue() != string(engine.ImageProductStateUnsupported) {
+		t.Fatalf("unexpected product_state: %q", payload["product_state"].GetStringValue())
+	}
+}

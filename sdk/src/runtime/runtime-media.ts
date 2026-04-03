@@ -340,6 +340,28 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
               role: toVideoContentRole(entry.role || 'prompt'),
               text: normalizeText(entry.text),
               imageUrl: undefined,
+              videoUrl: undefined,
+              audioUrl: undefined,
+            };
+          }
+          if (entry.type === 'video_url') {
+            return {
+              type: VideoContentType.VIDEO_URL,
+              role: toVideoContentRole(entry.role),
+              text: '',
+              imageUrl: undefined,
+              videoUrl: { url: normalizeText(entry.videoUrl) },
+              audioUrl: undefined,
+            };
+          }
+          if (entry.type === 'audio_url') {
+            return {
+              type: VideoContentType.AUDIO_URL,
+              role: toVideoContentRole(entry.role),
+              text: '',
+              imageUrl: undefined,
+              videoUrl: undefined,
+              audioUrl: { url: normalizeText(entry.audioUrl) },
             };
           }
           return {
@@ -347,6 +369,8 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
             role: toVideoContentRole(entry.role),
             text: '',
             imageUrl: { url: normalizeText(entry.imageUrl) },
+            videoUrl: undefined,
+            audioUrl: undefined,
           };
         })
         : [];
@@ -625,7 +649,7 @@ function toVideoMode(value: VideoGenerateInput['mode']): VideoMode {
   }
 }
 
-function toVideoContentRole(value: 'prompt' | 'first_frame' | 'last_frame' | 'reference_image'): VideoContentRole {
+function toVideoContentRole(value: 'prompt' | 'first_frame' | 'last_frame' | 'reference_image' | 'reference_video' | 'reference_audio'): VideoContentRole {
   switch (value) {
     case 'prompt':
       return VideoContentRole.PROMPT;
@@ -635,6 +659,10 @@ function toVideoContentRole(value: 'prompt' | 'first_frame' | 'last_frame' | 're
       return VideoContentRole.LAST_FRAME;
     case 'reference_image':
       return VideoContentRole.REFERENCE_IMAGE;
+    case 'reference_video':
+      return VideoContentRole.REFERENCE_VIDEO;
+    case 'reference_audio':
+      return VideoContentRole.REFERENCE_AUDIO;
     default:
       return VideoContentRole.UNSPECIFIED;
   }
