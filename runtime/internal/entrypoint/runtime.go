@@ -73,18 +73,30 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 		return err
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	go func() {
-		<-ctx.Done()
-		stop() // restore default signal behavior: second Ctrl+C kills the process immediately
-	}()
-
 	d, err := daemon.New(cfg, logger, runtimeVersion)
 	if err != nil {
 		return err
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	signalCh := make(chan os.Signal, 2)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signalCh)
+	go func() {
+		signalCount := 0
+		for sig := range signalCh {
+			signalCount++
+			if signalCount == 1 {
+				logger.Info("runtime shutdown signal received", "signal", sig.String())
+				cancel()
+				continue
+			}
+			logger.Warn("runtime repeated shutdown signal received; forcing supervised engine cleanup", "signal", sig.String())
+			d.EmergencyStopSupervisedEngines()
+			cancel()
+		}
+	}()
 	return d.Run(ctx)
 }
 

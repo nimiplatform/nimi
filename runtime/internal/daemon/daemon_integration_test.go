@@ -221,3 +221,21 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		t.Fatalf("daemon run returned error: %v", err)
 	}
 }
+
+func TestDaemonStopSupervisedEnginesRunsOnlyOnce(t *testing.T) {
+	daemon := &Daemon{
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	stops := 0
+	daemon.stopSupervisedFn = func() {
+		stops++
+	}
+
+	daemon.stopSupervisedEngines("first stop")
+	daemon.EmergencyStopSupervisedEngines()
+	daemon.stopSupervisedEngines("third stop")
+
+	if stops != 1 {
+		t.Fatalf("expected supervised engines to stop once, got %d", stops)
+	}
+}

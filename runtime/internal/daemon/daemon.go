@@ -40,6 +40,8 @@ type Daemon struct {
 	providerFailureHints  map[string]string
 	startupStatusMu       sync.Mutex
 	startupDegradedReason string
+	stopSupervisedOnce    sync.Once
+	stopSupervisedFn      func()
 
 	// resolvedImageMatrix caches the v2 image supervised matrix selection
 	// from startup. Used for health attribution detail enrichment per K-PROV-002.
@@ -154,11 +156,7 @@ func (d *Daemon) shutdown() error {
 	d.state.SetStatus(health.StatusStopping, "shutting down")
 	d.grpc.SyncServingState()
 
-	// Stop supervised engines before servers.
-	if d.engineMgr != nil {
-		d.logger.Info("stopping supervised engines")
-		d.engineMgr.StopAll()
-	}
+	d.stopSupervisedEngines("stopping supervised engines")
 
 	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
 	defer cancel()
@@ -175,6 +173,24 @@ func (d *Daemon) shutdown() error {
 		return fmt.Errorf("shutdown grpc: %w", grpcErr)
 	}
 	return nil
+}
+
+func (d *Daemon) EmergencyStopSupervisedEngines() {
+	d.stopSupervisedEngines("forcing supervised engines to stop after repeated shutdown signal")
+}
+
+func (d *Daemon) stopSupervisedEngines(reason string) {
+	d.stopSupervisedOnce.Do(func() {
+		stopFn := d.stopSupervisedFn
+		if stopFn == nil && d.engineMgr != nil {
+			stopFn = d.engineMgr.StopAll
+		}
+		if stopFn == nil {
+			return
+		}
+		d.logger.Info(reason)
+		stopFn()
+	})
 }
 
 func (d *Daemon) sampleRuntimeResource(ctx context.Context) {

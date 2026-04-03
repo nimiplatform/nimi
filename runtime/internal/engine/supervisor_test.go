@@ -491,6 +491,64 @@ func TestSupervisorStreamsProcessOutputToLogger(t *testing.T) {
 	}
 }
 
+func TestSupervisorStreamsCarriageReturnProgressOutputToLogger(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix shell scripts")
+	}
+	setSupervisorTestHome(t)
+
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	script := writeTestScript(t, "printf 'step-1\\rstep-2\\rstep-3\\n'; sleep 2")
+	cfg := testSupervisorCfg(script)
+	cfg.StartupTimeout = 100 * time.Millisecond
+
+	sup := NewSupervisor(cfg, logger, nil)
+	ctx := context.Background()
+	if err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+
+	if !waitForCondition(2*time.Second, func() bool {
+		output := logBuffer.String()
+		return strings.Contains(output, "step-1") &&
+			strings.Contains(output, "step-2") &&
+			strings.Contains(output, "step-3")
+	}) {
+		t.Fatalf("expected carriage-return progress logs, got: %s", logBuffer.String())
+	}
+}
+
+func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix shell scripts")
+	}
+	setSupervisorTestHome(t)
+
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	script := writeTestScript(t, "python3 - <<'PY'\nimport sys, time\nsys.stderr.write('loading tensors from /tmp/ae.safetensors\\n')\nsys.stderr.flush()\nsys.stdout.write('453/1095 - 43.16it/s\\r')\nsys.stdout.flush()\ntime.sleep(0.1)\nsys.stderr.write('sampling using Euler method\\n')\nsys.stderr.flush()\nsys.stdout.write('1/8 - 5.71s/it\\r')\nsys.stdout.flush()\ntime.sleep(2)\nPY")
+	cfg := testSupervisorCfg(script)
+	cfg.Kind = engineMediaDiffusersBackend
+	cfg.StartupTimeout = 100 * time.Millisecond
+
+	sup := NewSupervisor(cfg, logger, nil)
+	ctx := context.Background()
+	if err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+
+	if !waitForCondition(2*time.Second, func() bool {
+		output := logBuffer.String()
+		return strings.Contains(output, "line=\"453/1095 - 43.16it/s\" phase=load_tensors") &&
+			strings.Contains(output, "line=\"1/8 - 5.71s/it\" phase=sampling")
+	}) {
+		t.Fatalf("expected phased progress logs, got: %s", logBuffer.String())
+	}
+}
+
 func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
 	setSupervisorTestHome(t)
 
