@@ -65,13 +65,19 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(true);
+  const loadingRef = useRef(false);
+  const offsetRef = useRef(0);
 
   const fetchSavedPosts = useCallback(async (startOffset: number) => {
     if (!canManageSavedPosts) {
       setLoadingInitial(false);
       setHasMore(false);
+      hasMoreRef.current = false;
       return;
     }
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
     const ids = readSavedPostIds();
     setSavedIds(ids);
@@ -84,7 +90,10 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
         setLoadingInitial(false);
       }
       setHasMore(false);
+      hasMoreRef.current = false;
       setOffset(startOffset);
+      offsetRef.current = startOffset;
+      loadingRef.current = false;
       return;
     }
 
@@ -124,10 +133,13 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
 
       const nextOffset = startOffset + pageIds.length;
       setOffset(nextOffset);
+      offsetRef.current = nextOffset;
       setHasMore(nextOffset < ids.length);
+      hasMoreRef.current = nextOffset < ids.length;
     } catch (error) {
       setLoadError(toErrorMessage(error, i18n.t('Profile.loadSavedPostsFailed', { defaultValue: 'Failed to load saved posts' })));
     } finally {
+      loadingRef.current = false;
       if (isInitial) {
         setLoadingInitial(false);
       } else {
@@ -139,34 +151,36 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
   useEffect(() => {
     setPosts([]);
     setOffset(0);
+    offsetRef.current = 0;
     setHasMore(true);
+    hasMoreRef.current = true;
+    loadingRef.current = false;
     setLoadError(null);
     void fetchSavedPosts(0);
   }, [fetchSavedPosts]);
 
   useEffect(() => {
+    const resetAndFetch = () => {
+      setPosts([]);
+      setOffset(0);
+      offsetRef.current = 0;
+      setHasMore(true);
+      hasMoreRef.current = true;
+      loadingRef.current = false;
+      setLoadError(null);
+      void fetchSavedPosts(0);
+    };
     const handleStorage = (event: StorageEvent) => {
       if (event.key && event.key !== SAVED_POSTS_STORAGE_KEY) {
         return;
       }
-      setPosts([]);
-      setOffset(0);
-      setHasMore(true);
-      setLoadError(null);
-      void fetchSavedPosts(0);
-    };
-    const handleSavedPostsUpdated = () => {
-      setPosts([]);
-      setOffset(0);
-      setHasMore(true);
-      setLoadError(null);
-      void fetchSavedPosts(0);
+      resetAndFetch();
     };
     window.addEventListener('storage', handleStorage);
-    window.addEventListener(SAVED_POSTS_UPDATED_EVENT, handleSavedPostsUpdated);
+    window.addEventListener(SAVED_POSTS_UPDATED_EVENT, resetAndFetch);
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener(SAVED_POSTS_UPDATED_EVENT, handleSavedPostsUpdated);
+      window.removeEventListener(SAVED_POSTS_UPDATED_EVENT, resetAndFetch);
     };
   }, [fetchSavedPosts]);
 
@@ -177,7 +191,10 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
     const handleBlockedUsersUpdated = () => {
       setPosts([]);
       setOffset(0);
+      offsetRef.current = 0;
       setHasMore(true);
+      hasMoreRef.current = true;
+      loadingRef.current = false;
       setLoadError(null);
       void fetchSavedPosts(0);
     };
@@ -192,15 +209,15 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && hasMore && !loadingMore) {
-          void fetchSavedPosts(offset);
+        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current) {
+          void fetchSavedPosts(offsetRef.current);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [fetchSavedPosts, hasMore, loadingMore, offset]);
+  }, [fetchSavedPosts, hasMore]);
 
   if (!canManageSavedPosts) {
     return (

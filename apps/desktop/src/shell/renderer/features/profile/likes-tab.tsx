@@ -47,10 +47,14 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(true);
+  const loadingRef = useRef(false);
 
   const fetchLiked = useCallback(
     async (cursorArg: string | null) => {
-      if (cursorArg && (loadingMore || !hasMore)) return;
+      if (cursorArg && (loadingRef.current || !hasMoreRef.current)) return;
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       try {
         setLoadError(null);
         if (cursorArg) {
@@ -75,9 +79,11 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
         });
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
+        hasMoreRef.current = nextCursor != null;
       } catch (error) {
         setLoadError(toErrorMessage(error, t('Profile.loadLikedPostsFailed', { defaultValue: 'Failed to load liked posts' })));
       } finally {
+        loadingRef.current = false;
         if (cursorArg) {
           setLoadingMore(false);
         } else {
@@ -85,13 +91,15 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
         }
       }
     },
-    [hasMore, loadingMore, profileId, t],
+    [profileId, t],
   );
 
   useEffect(() => {
     setLikedPosts([]);
     setCursor(null);
     setHasMore(true);
+    hasMoreRef.current = true;
+    loadingRef.current = false;
     setLoadError(null);
     void fetchLiked(null);
   }, [fetchLiked, profileId]);
@@ -104,12 +112,17 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
       setLikedPosts([]);
       setCursor(null);
       setHasMore(true);
+      hasMoreRef.current = true;
+      loadingRef.current = false;
       setLoadError(null);
       void fetchLiked(null);
     };
     window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
     return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
   }, [fetchLiked]);
+
+  const cursorRef = useRef<string | null>(null);
+  cursorRef.current = cursor;
 
   useEffect(() => {
     if (!hasMore) return;
@@ -118,15 +131,15 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && hasMore && !loadingMore && cursor) {
-          void fetchLiked(cursor);
+        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
+          void fetchLiked(cursorRef.current);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, fetchLiked, hasMore, loadingMore]);
+  }, [hasMore, fetchLiked]);
 
   if (loadingInitial) {
     return (

@@ -294,14 +294,14 @@ function WorldDetailPageBody({
       </WorldDetailSurface>
 
       {selectedAgent ? (
-        <div className="fixed inset-0 z-40 bg-black/55 px-5 py-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 px-5 py-6 backdrop-blur-sm">
           <button
             type="button"
             className="absolute inset-0"
             aria-label={t('WorldDetail.xianxia.v2.agents.quickSheetClose')}
             onClick={() => setSelectedAgentId(null)}
           />
-          <div className="relative flex min-h-full items-start justify-center sm:items-center">
+          <div className="relative flex items-center justify-center">
             <section className="relative z-10 w-full max-w-[620px] max-h-[calc(100vh-3rem)] overflow-hidden rounded-[28px] border border-[#4ECCA3]/20 bg-[#0d1511]/96 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/50 to-transparent" />
               <ScrollArea className="max-h-[calc(100vh-3rem-2px)]" viewportClassName="px-6 pb-6 pt-5">

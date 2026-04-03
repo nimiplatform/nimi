@@ -48,6 +48,8 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(true);
+  const loadingRef = useRef(false);
 
   const fetchPosts = useCallback(
     async (cursorArg: string | null) => {
@@ -55,12 +57,16 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
         setPosts([]);
         setCursor(null);
         setHasMore(false);
+        hasMoreRef.current = false;
         setLoadError(null);
         setLoadingInitial(false);
         setLoadingMore(false);
+        loadingRef.current = false;
         return;
       }
-      if (cursorArg && (loadingMore || !hasMore)) return;
+      if (cursorArg && (loadingRef.current || !hasMoreRef.current)) return;
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       try {
         setLoadError(null);
         if (cursorArg) {
@@ -89,9 +95,11 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
         });
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
+        hasMoreRef.current = nextCursor != null;
       } catch (error) {
         setLoadError(toErrorMessage(error, t('Profile.loadPostsFailed', { defaultValue: 'Failed to load posts' })));
       } finally {
+        loadingRef.current = false;
         if (cursorArg) {
           setLoadingMore(false);
         } else {
@@ -99,13 +107,15 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
         }
       }
     },
-    [blockedContent, hasMore, loadingMore, profileId, t],
+    [blockedContent, profileId, t],
   );
 
   useEffect(() => {
     setPosts([]);
     setCursor(null);
     setHasMore(true);
+    hasMoreRef.current = true;
+    loadingRef.current = false;
     setLoadError(null);
     if (blockedContent) {
       setLoadingInitial(false);
@@ -135,6 +145,9 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
     return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
   }, [blockedContent, fetchPosts]);
 
+  const cursorRef = useRef<string | null>(null);
+  cursorRef.current = cursor;
+
   useEffect(() => {
     if (!hasMore) return;
     const el = loadMoreRef.current;
@@ -142,15 +155,15 @@ export function PostsTab({ profileId, layout = 'grid', blockedContent = false }:
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && hasMore && !loadingMore && cursor) {
-          void fetchPosts(cursor);
+        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
+          void fetchPosts(cursorRef.current);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, fetchPosts, hasMore, loadingMore]);
+  }, [hasMore, fetchPosts]);
 
   if (loadingInitial) {
     return (

@@ -378,15 +378,35 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactS
   };
 }
 
+const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();
+
 export async function loadMergedSocialSnapshot(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   options: LoadSocialSnapshotOptions = {},
 ): Promise<SocialContactSnapshot> {
-  const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError, options);
-  const mergedSnapshot = mergeWithLocalContacts(snapshot);
-  cachedContacts = { ...mergedSnapshot };
-  return mergedSnapshot;
+  const key = options.includeCreatorAgents !== false ? 'full' : 'lite';
+  const existing = inflightSnapshots.get(key);
+  if (existing) return existing;
+
+  // If a 'full' snapshot is already inflight, a 'lite' caller can reuse it
+  if (key === 'lite') {
+    const full = inflightSnapshots.get('full');
+    if (full) return full;
+  }
+
+  const task = loadSocialSnapshotInternal(callApi, emitDataSyncError, options)
+    .then((snapshot) => {
+      const merged = mergeWithLocalContacts(snapshot);
+      cachedContacts = { ...merged };
+      return merged;
+    })
+    .finally(() => {
+      inflightSnapshots.delete(key);
+    });
+
+  inflightSnapshots.set(key, task);
+  return task;
 }
 
 export function getCachedContacts(): SocialContactSnapshot {

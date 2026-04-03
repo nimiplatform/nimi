@@ -140,7 +140,18 @@ export async function createMasterAgent(
   return (result && typeof result === 'object' ? result : {}) as Record<string, unknown>;
 }
 
+let inflightCreatorAgents: Promise<Record<string, unknown>[]> | null = null;
+
 export async function loadCreatorAgents(
+  callApi: DataSyncApiCaller,
+): Promise<Record<string, unknown>[]> {
+  if (inflightCreatorAgents) return inflightCreatorAgents;
+  const task = loadCreatorAgentsInternal(callApi).finally(() => { inflightCreatorAgents = null; });
+  inflightCreatorAgents = task;
+  return task;
+}
+
+async function loadCreatorAgentsInternal(
   callApi: DataSyncApiCaller,
 ): Promise<Record<string, unknown>[]> {
   const deniedFlagKey = 'nimi.data-sync.creator-agents.denied';

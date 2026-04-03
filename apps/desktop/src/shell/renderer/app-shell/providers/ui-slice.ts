@@ -122,16 +122,14 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           };
         }
 
+        const target = state.previousTab || 'runtime';
+        const keepProfile = target === 'contacts' || target === 'home' || target === 'explore';
         return {
-          activeTab: state.previousTab || 'runtime',
+          activeTab: target,
           previousTab: null,
-          selectedProfileId: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
-            ? state.selectedProfileId
-            : null,
-          selectedProfileIsAgent: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
-            ? state.selectedProfileIsAgent
-            : null,
-          selectedWorldId: null,
+          selectedProfileId: keepProfile ? state.selectedProfileId : null,
+          selectedProfileIsAgent: keepProfile ? state.selectedProfileIsAgent : null,
+          selectedWorldId: target === 'world-detail' ? state.selectedWorldId : null,
           selectedGiftTransactionId: null,
         };
       }),

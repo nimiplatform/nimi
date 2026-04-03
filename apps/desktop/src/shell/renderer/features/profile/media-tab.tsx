@@ -46,6 +46,8 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(true);
+  const loadingRef = useRef(false);
 
   const fetchMedia = useCallback(
     async (cursorArg: string | null, isAutoFetch = false) => {
@@ -53,12 +55,16 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
         setMediaPosts([]);
         setCursor(null);
         setHasMore(false);
+        hasMoreRef.current = false;
         setLoadError(null);
         setLoadingInitial(false);
         setLoadingMore(false);
+        loadingRef.current = false;
         return;
       }
-      if (cursorArg && !isAutoFetch && (loadingMore || !hasMore)) return;
+      if (cursorArg && !isAutoFetch && (loadingRef.current || !hasMoreRef.current)) return;
+      if (loadingRef.current) return;
+      loadingRef.current = true;
       try {
         if (!isAutoFetch) {
           setLoadError(null);
@@ -90,14 +96,18 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
         });
         setCursor(nextCursor);
         setHasMore(nextCursor != null);
+        hasMoreRef.current = nextCursor != null;
 
         // Auto-fetch more if not enough media in first batch
         if (!cursorArg && nextCursor && mediaItems.length < MIN_INITIAL_ITEMS) {
+          loadingRef.current = false;
           void fetchMedia(nextCursor, true);
+          return;
         }
       } catch (error) {
         setLoadError(toErrorMessage(error, t('Profile.loadMediaFailed', { defaultValue: 'Failed to load media' })));
       } finally {
+        loadingRef.current = false;
         if (!isAutoFetch) {
           if (cursorArg) {
             setLoadingMore(false);
@@ -107,13 +117,15 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
         }
       }
     },
-    [blockedContent, hasMore, loadingMore, profileId, t],
+    [blockedContent, profileId, t],
   );
 
   useEffect(() => {
     setMediaPosts([]);
     setCursor(null);
     setHasMore(true);
+    hasMoreRef.current = true;
+    loadingRef.current = false;
     setLoadError(null);
     if (blockedContent) {
       setLoadingInitial(false);
@@ -131,6 +143,8 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
       setMediaPosts([]);
       setCursor(null);
       setHasMore(true);
+      hasMoreRef.current = true;
+      loadingRef.current = false;
       setLoadError(null);
       if (blockedContent) {
         setLoadingInitial(false);
@@ -143,6 +157,9 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
     return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
   }, [blockedContent, fetchMedia]);
 
+  const cursorRef = useRef<string | null>(null);
+  cursorRef.current = cursor;
+
   useEffect(() => {
     if (!hasMore) return;
     const el = loadMoreRef.current;
@@ -150,15 +167,15 @@ export function MediaTab({ profileId, onMediaClick, blockedContent = false }: Me
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && hasMore && !loadingMore && cursor) {
-          fetchMedia(cursor);
+        if (entry?.isIntersecting && hasMoreRef.current && !loadingRef.current && cursorRef.current) {
+          void fetchMedia(cursorRef.current);
         }
       },
       { rootMargin: '200px', threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [cursor, hasMore, loadingMore, fetchMedia]);
+  }, [hasMore, fetchMedia]);
 
   // Flatten all media items for grid display
   const mediaItems: MediaGridItem[] = [];

@@ -17,7 +17,7 @@ const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.t
 
 test('anonymous runtime shell: default app tab is runtime', () => {
   assert.match(uiSliceSource, /activeTab: 'runtime',/);
-  assert.match(uiSliceSource, /activeTab: state\.previousTab \|\| 'runtime',/);
+  assert.match(uiSliceSource, /const target = state\.previousTab \|\| 'runtime';/);
 });
 
 test('anonymous runtime shell: desktop router mounts main layout at root even when anonymous', () => {

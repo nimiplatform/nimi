@@ -151,9 +151,10 @@ function toWorldComputed(raw: unknown, fallback: WorldListItem['computed']): Det
 }
 
 function formatAgentHandle(agent: Record<string, unknown>, display: Record<string, unknown> | null, name: string): string {
-  return readString(agent.handle)
-    ? `@${String(agent.handle)}`
-    : (readString(display?.role) ? `@${String(display?.role)}` : `@${name}`);
+  const raw = readString(agent.handle)
+    ? String(agent.handle)
+    : (readString(display?.role) ? String(display?.role) : name);
+  return raw.startsWith('~') ? raw : `@${raw}`;
 }
 
 function toWorldAgent(agent: Record<string, unknown>, worldCreatedAt: string): WorldAgent {

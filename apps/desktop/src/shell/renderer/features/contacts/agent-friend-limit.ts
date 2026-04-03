@@ -40,19 +40,21 @@ function isAgentFriend(friend: unknown): boolean {
 }
 
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
-  const social = await dataSync.loadSocialSnapshot();
+  const [social, subscriptionResult] = await Promise.allSettled([
+    dataSync.loadSocialSnapshot(),
+    dataSync.loadSubscriptionStatus(),
+  ]);
+  if (social.status === 'rejected') throw social.reason;
   let subscriptionRecord: JsonObject = {};
-  try {
-    const subscription = await dataSync.loadSubscriptionStatus();
-    subscriptionRecord = parseOptionalJsonObject(subscription) ?? {};
-  } catch {
-    // subscription API 失败时回退 FREE tier（limit=10）
+  if (subscriptionResult.status === 'fulfilled') {
+    subscriptionRecord = parseOptionalJsonObject(subscriptionResult.value) ?? {};
   }
+  // subscription API 失败时回退 FREE tier（limit=10）
 
   const tier = normalizeTier(subscriptionRecord.tier);
   const status = normalizeStatus(subscriptionRecord.status);
   const limit = LIMIT_BY_TIER[tier];
-  const friends = Array.isArray(social.friends) ? social.friends : [];
+  const friends = Array.isArray(social.value.friends) ? social.value.friends : [];
   const used = friends.filter((friend) => isAgentFriend(friend)).length;
   const canAdd = used < limit;
   const reason = canAdd
