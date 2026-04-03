@@ -683,3 +683,52 @@ func TestCleanStalePIDSkipsKillWithoutMetadata(t *testing.T) {
 		t.Fatalf("expected pid file cleanup without metadata, got err=%v", err)
 	}
 }
+
+func TestCleanStalePIDKillsWrappedExecProcess(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix signals")
+	}
+	setSupervisorTestHome(t)
+
+	sleepPath, err := exec.LookPath("sleep")
+	if err != nil {
+		t.Fatalf("look up sleep: %v", err)
+	}
+	script := writeTestScript(t, "exec "+sleepPath+" 60")
+	cfg := testSupervisorCfg(script)
+	cfg.MaxRestarts = 1
+	cfg.StartupTimeout = 100 * time.Millisecond
+
+	sup := NewSupervisor(cfg, testLogger(), nil)
+	if err := sup.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	pid := sup.Info().PID
+	t.Cleanup(func() {
+		if testProcessAlive(pid) {
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+		}
+	})
+
+	metadata, err := readSupervisorPIDMetadata(sup.pidMetadataPath())
+	if err != nil {
+		t.Fatalf("read supervisor pid metadata: %v", err)
+	}
+	wantPath := canonicalSupervisorProcessPath(sleepPath)
+	if !waitForCondition(time.Second, func() bool {
+		metadata, err = readSupervisorPIDMetadata(sup.pidMetadataPath())
+		return err == nil && metadata.ExpectedExecutablePath == wantPath
+	}) {
+		t.Fatalf("expected metadata executable path %q, got %q", wantPath, metadata.ExpectedExecutablePath)
+	}
+
+	staleCleaner := NewSupervisor(cfg, testLogger(), nil)
+	staleCleaner.cleanStalePID()
+
+	if !waitForCondition(3*time.Second, func() bool {
+		return !testProcessAlive(pid)
+	}) {
+		t.Fatalf("expected wrapped exec process %d to exit during stale cleanup", pid)
+	}
+}

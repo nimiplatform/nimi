@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,15 +15,58 @@ if (!fs.existsSync(binaryPath)) {
   process.exit(1);
 }
 
-const result = spawnSync(binaryPath, process.argv.slice(2), {
+const child = spawn(binaryPath, process.argv.slice(2), {
   cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,
 });
 
-if (result.error) {
-  process.stderr.write(`[run-runtime-dist] failed to start ${path.relative(repoRoot, binaryPath)}: ${result.error.message}\n`);
-  process.exit(1);
-}
+let childExited = false;
 
-process.exit(result.status ?? 1);
+const forwardSignal = (signal) => {
+  if (childExited || child.pid == null) {
+    return;
+  }
+  try {
+    child.kill(signal);
+  } catch {
+    // Child exit races are expected during shutdown.
+  }
+};
+
+const cleanupSignals = () => {
+  process.off('SIGINT', onSigInt);
+  process.off('SIGTERM', onSigTerm);
+};
+
+const onSigInt = () => {
+  if (process.platform === 'win32') {
+    forwardSignal('SIGINT');
+  }
+};
+const onSigTerm = () => {
+  forwardSignal('SIGTERM');
+};
+
+process.on('SIGINT', onSigInt);
+process.on('SIGTERM', onSigTerm);
+
+child.once('error', (error) => {
+  cleanupSignals();
+  process.stderr.write(`[run-runtime-dist] failed to start ${path.relative(repoRoot, binaryPath)}: ${error.message}\n`);
+  process.exit(1);
+});
+
+child.once('exit', (code, signal) => {
+  childExited = true;
+  cleanupSignals();
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
+  process.exit(code ?? 1);
+});
+
+await new Promise(() => {
+  // Keep the wrapper process alive until the child exits.
+});

@@ -75,7 +75,14 @@ func (s *Supervisor) Start(ctx context.Context) error {
 		s.mu.Unlock()
 		return fmt.Errorf("engine %s already running", s.cfg.Kind)
 	}
+	s.mu.Unlock()
 
+	// Clean up stale PID from a previous run before resolving the configured
+	// port. Stale supervised processes often fail precisely by leaving the
+	// listener bound, so port resolution must not short-circuit stale cleanup.
+	s.cleanStalePID()
+
+	s.mu.Lock()
 	port, err := resolvePort(s.cfg.Port)
 	if err != nil {
 		s.mu.Unlock()
@@ -85,9 +92,6 @@ func (s *Supervisor) Start(ctx context.Context) error {
 	s.runEpoch++
 	epoch := s.runEpoch
 	s.mu.Unlock()
-
-	// Clean up stale PID file from previous run.
-	s.cleanStalePID()
 
 	return s.spawn(ctx, epoch)
 }
@@ -115,43 +119,37 @@ func (s *Supervisor) Stop() error {
 		return nil
 	}
 
+	pid := cmd.Process.Pid
+
 	// SIGTERM first — try the process group, then fall back to direct PID.
 	// The process may have changed its PGID (e.g. setsid), so a group
 	// signal can return ESRCH even though the process is still alive.
-	if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGTERM); err != nil {
-		if directErr := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); directErr != nil {
-			// Neither group nor direct signal succeeded — truly gone.
-			select {
-			case <-process.done:
-			case <-time.After(100 * time.Millisecond):
-			}
-			s.setStatus(StatusStopped, "process already exited")
-			s.removePIDFile()
-			return nil
-		}
+	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
+		_ = syscall.Kill(pid, syscall.SIGTERM)
 	}
 
-	select {
-	case <-process.done:
+	if waitSupervisorProcessExit(process, pid, s.cfg.ShutdownTimeout) {
 		s.setStatus(StatusStopped, "graceful shutdown")
-	case <-time.After(s.cfg.ShutdownTimeout):
-		// Force kill — group first, then direct PID as fallback.
-		if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL); err != nil {
-			_ = syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
-		}
-		select {
-		case <-process.done:
-		case <-time.After(1 * time.Second):
-			s.logger.Warn("engine process did not reap after SIGKILL",
-				"engine", s.cfg.Kind,
-				"pid", cmd.Process.Pid,
-			)
-		}
-		s.setStatus(StatusStopped, "force killed after timeout")
+		s.removePIDFile()
+		return nil
 	}
 
-	s.removePIDFile()
-	return nil
+	// Force kill — group first, then direct PID as fallback.
+	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+	}
+	if waitSupervisorProcessExit(process, pid, time.Second) {
+		s.setStatus(StatusStopped, "force killed after timeout")
+		s.removePIDFile()
+		return nil
+	}
+
+	s.logger.Warn("engine process remained alive after SIGKILL",
+		"engine", s.cfg.Kind,
+		"pid", pid,
+	)
+	s.setStatus(StatusUnhealthy, "shutdown failed: process remained alive after SIGKILL")
+	return fmt.Errorf("stop engine %s: process %d remained alive after SIGKILL", s.cfg.Kind, pid)
 }
 
 // Status returns the current engine status.
@@ -354,6 +352,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 			s.removePIDFile()
 			return nil
 		}
+		s.writePIDFile()
 		s.logger.Warn("engine startup health check failed",
 			"engine", s.cfg.Kind,
 			"error", err,
@@ -364,6 +363,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		s.mu.Lock()
 		s.lastHealthyAt = time.Now()
 		s.mu.Unlock()
+		s.writePIDFile()
 		s.setStatus(StatusHealthy, "ready")
 	}
 
@@ -525,50 +525,6 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 			}
 		}
 	}
-}
-
-func waitSupervisorProcess(process *supervisedProcess) {
-	if process == nil || process.cmd == nil {
-		return
-	}
-	if process.release != nil {
-		defer process.release()
-	}
-	process.waitErr = process.cmd.Wait()
-	close(process.done)
-}
-
-func (s *Supervisor) currentProcess() *supervisedProcess {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.process
-}
-
-func (s *Supervisor) handleObservedProcessExit(ctx context.Context, process *supervisedProcess, epoch uint64) bool {
-	if process == nil {
-		return false
-	}
-	select {
-	case <-ctx.Done():
-		return true
-	case <-process.done:
-		s.handleExitedProcess(ctx, process, epoch)
-		return true
-	default:
-		return false
-	}
-}
-
-func (s *Supervisor) handleExitedProcess(ctx context.Context, process *supervisedProcess, epoch uint64) {
-	if !s.isRunEpochActive(epoch) {
-		return
-	}
-	crashDetail := s.buildCrashDetail(process.waitErr)
-	s.logger.Warn("engine process exited unexpectedly",
-		"engine", s.cfg.Kind,
-		"error", crashDetail,
-	)
-	s.handleCrash(ctx, crashDetail, epoch)
 }
 
 func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch uint64) {
@@ -813,22 +769,4 @@ func (s *Supervisor) recordStderrTail(line string) {
 	if len(s.stderrTail) > supervisorStderrTailLines {
 		s.stderrTail = append([]string(nil), s.stderrTail[len(s.stderrTail)-supervisorStderrTailLines:]...)
 	}
-}
-
-func (s *Supervisor) buildCrashDetail(waitErr error) string {
-	stage := "runtime"
-	if s.Status() == StatusStarting {
-		stage = "startup"
-	}
-	parts := []string{fmt.Sprintf("stage=%s", stage)}
-	if waitErr != nil {
-		parts = append(parts, strings.TrimSpace(waitErr.Error()))
-	}
-	s.mu.RLock()
-	stderrTail := append([]string(nil), s.stderrTail...)
-	s.mu.RUnlock()
-	if len(stderrTail) > 0 {
-		parts = append(parts, "stderr_tail="+strings.Join(stderrTail, " | "))
-	}
-	return strings.TrimSpace(strings.Join(parts, "; "))
 }

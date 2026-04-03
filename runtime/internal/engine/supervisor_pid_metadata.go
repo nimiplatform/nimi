@@ -24,11 +24,15 @@ func (s *Supervisor) pidMetadataPath() string {
 
 func (s *Supervisor) currentPIDMetadata() supervisorPIDMetadata {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
+	pid := s.pid
+	kind := s.cfg.Kind
+	binaryPath := s.cfg.BinaryPath
+	s.mu.RUnlock()
+	expectedPath := resolveSupervisorExpectedExecutablePath(pid, binaryPath)
 	return supervisorPIDMetadata{
-		PID:                    s.pid,
-		EngineKind:             s.cfg.Kind,
-		ExpectedExecutablePath: canonicalSupervisorProcessPath(s.cfg.BinaryPath),
+		PID:                    pid,
+		EngineKind:             kind,
+		ExpectedExecutablePath: expectedPath,
 	}
 }
 

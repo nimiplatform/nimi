@@ -14,7 +14,7 @@
     "build:sdk": "pnpm --filter @nimiplatform/sdk build",
     "build:runtime": "node scripts/build-runtime.mjs",
     "runtime:cmd": "cd runtime && go run ./cmd/nimi",
-    "runtime:serve": "pnpm runtime:cmd -- serve",
+    "runtime:serve": "pnpm build:runtime && node scripts/run-runtime-dist.mjs serve",
     "runtime:start": "pnpm build:runtime && node scripts/run-runtime-dist.mjs start",
     "runtime:stop": "pnpm build:runtime && node scripts/run-runtime-dist.mjs stop",
     "runtime:status": "pnpm build:runtime && node scripts/run-runtime-dist.mjs status",

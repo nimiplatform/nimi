@@ -127,17 +127,25 @@ func (s *Supervisor) cleanStalePID() {
 		"engine", s.cfg.Kind,
 		"pid", pid,
 	)
-	_ = signalSupervisorProcess(pid, syscall.SIGTERM)
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		time.Sleep(100 * time.Millisecond)
-		if !supervisorProcessAlive(pid) {
-			s.removePIDFile()
-			return
-		}
+	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
+		_ = syscall.Kill(pid, syscall.SIGTERM)
 	}
-	_ = signalSupervisorProcess(pid, syscall.SIGKILL)
-	s.removePIDFile()
+	if waitSupervisorProcessExit(nil, pid, 2*time.Second) {
+		s.removePIDFile()
+		return
+	}
+	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
+		_ = syscall.Kill(pid, syscall.SIGKILL)
+	}
+	if waitSupervisorProcessExit(nil, pid, time.Second) {
+		s.removePIDFile()
+		return
+	}
+	s.logger.Warn("stale engine process remained alive after SIGKILL",
+		"engine", s.cfg.Kind,
+		"pid", pid,
+	)
+	return
 }
 
 func resolvePort(desired int) (int, error) {

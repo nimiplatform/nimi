@@ -62,6 +62,14 @@ type LlamaImageBackendConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+// ManagedLlamaTarget explicitly selects the supervised llama model that a
+// single worker should load for this engine start.
+type ManagedLlamaTarget struct {
+	ModelPath    string
+	ModelAlias   string
+	EngineConfig ManagedLlamaEngineConfig
+}
+
 func (c LlamaImageBackendConfig) Enabled() bool {
 	return c.Mode != "" && c.Mode != LlamaImageBackendDisabled
 }
@@ -130,6 +138,11 @@ type EngineConfig struct {
 	// ModelsConfigPath is the llama YAML config file passed via
 	// --models-config-file.
 	ModelsConfigPath string
+
+	// ManagedLlamaTarget explicitly selects the single managed llama model to
+	// load for this engine start. When set, command construction must use this
+	// target instead of inferring the first YAML entry.
+	ManagedLlamaTarget *ManagedLlamaTarget
 
 	// BackendsPath is the llama backend install directory passed via
 	// --backends-path.

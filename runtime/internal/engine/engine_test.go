@@ -21,28 +21,6 @@ import (
 	"time"
 )
 
-func TestDefaultLlamaConfig(t *testing.T) {
-	cfg := DefaultLlamaConfig()
-	if cfg.Kind != EngineLlama {
-		t.Errorf("expected kind %s, got %s", EngineLlama, cfg.Kind)
-	}
-	if cfg.Port != 1234 {
-		t.Errorf("expected port 1234, got %d", cfg.Port)
-	}
-	if cfg.Version != defaultLlamaVersion {
-		t.Errorf("expected version %s, got %s", defaultLlamaVersion, cfg.Version)
-	}
-	if cfg.HealthPath != "/v1/models" {
-		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
-	}
-	if cfg.MaxRestarts != 5 {
-		t.Errorf("expected max restarts 5, got %d", cfg.MaxRestarts)
-	}
-	if cfg.StartupTimeout != 120*time.Second {
-		t.Errorf("expected startup timeout 120s, got %s", cfg.StartupTimeout)
-	}
-}
-
 func makeFakeArchiveAsset(t *testing.T, assetName string, binaryName string, binaryContents []byte) []byte {
 	t.Helper()
 

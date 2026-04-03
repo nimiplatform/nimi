@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 func setLlamaSupervisedPlatformForTest(t *testing.T, supported bool, platform string) {
@@ -76,6 +78,9 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 
 	if cfg.AIHealthIntervalSeconds != 8 {
 		t.Fatalf("aiHealthIntervalSeconds default mismatch: got=%d want=8", cfg.AIHealthIntervalSeconds)
+	}
+	if cfg.EngineLlamaVersion != engine.DefaultLlamaConfig().Version {
+		t.Fatalf("llama version default mismatch: got=%q want=%q", cfg.EngineLlamaVersion, engine.DefaultLlamaConfig().Version)
 	}
 	if cfg.AIHTTPTimeoutSeconds != 30 {
 		t.Fatalf("aiHttpTimeoutSeconds default mismatch: got=%d want=30", cfg.AIHTTPTimeoutSeconds)

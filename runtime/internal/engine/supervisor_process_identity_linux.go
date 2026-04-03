@@ -15,7 +15,14 @@ func supervisorProcessAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	return syscall.Kill(pid, syscall.Signal(0)) == nil
+	if syscall.Kill(pid, syscall.Signal(0)) != nil {
+		return false
+	}
+	state, err := linuxSupervisorProcessState(pid)
+	if err != nil {
+		return true
+	}
+	return state != "Z"
 }
 
 func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, bool) {
@@ -49,4 +56,22 @@ func supervisorProcessMatchesExpectedPath(pid int, expectedPath string) (bool, b
 
 func supervisorProcessIdentityValidationDetail(pid int, expectedPath string) string {
 	return fmt.Sprintf("pid=%d expected=%s", pid, canonicalSupervisorProcessPath(expectedPath))
+}
+
+func linuxSupervisorProcessState(pid int) (string, error) {
+	statPath := filepath.Join("/proc", strconv.Itoa(pid), "stat")
+	raw, err := os.ReadFile(statPath)
+	if err != nil {
+		return "", err
+	}
+	contents := string(raw)
+	closing := strings.LastIndex(contents, ")")
+	if closing == -1 || closing+2 >= len(contents) {
+		return "", fmt.Errorf("parse %s: missing process state", statPath)
+	}
+	fields := strings.Fields(contents[closing+1:])
+	if len(fields) == 0 {
+		return "", fmt.Errorf("parse %s: missing process state", statPath)
+	}
+	return strings.TrimSpace(fields[0]), nil
 }

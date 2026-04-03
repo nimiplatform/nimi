@@ -61,6 +61,10 @@ func llamaCommand(cfg EngineConfig) (*exec.Cmd, error) {
 }
 
 func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, llamaModelsConfigParameter, error) {
+	if target := normalizeManagedLlamaTarget(cfg.ManagedLlamaTarget, cfg.ModelsPath); target != nil {
+		return target.ModelPath, target.ModelAlias, managedLlamaTargetParams(target), nil
+	}
+
 	configPath := strings.TrimSpace(cfg.ModelsConfigPath)
 	if configPath == "" {
 		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("llama models config path is required")
@@ -93,6 +97,39 @@ func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, llamaModel
 	}
 
 	return "", "", llamaModelsConfigParameter{}, fmt.Errorf("llama models config %s does not contain a managed llama-cpp model entry", configPath)
+}
+
+func normalizeManagedLlamaTarget(target *ManagedLlamaTarget, modelsRoot string) *ManagedLlamaTarget {
+	if target == nil {
+		return nil
+	}
+	modelPath := strings.TrimSpace(target.ModelPath)
+	if modelPath == "" {
+		return nil
+	}
+	if !filepath.IsAbs(modelPath) && strings.TrimSpace(modelsRoot) != "" {
+		modelPath = filepath.Join(strings.TrimSpace(modelsRoot), filepath.FromSlash(modelPath))
+	}
+	return &ManagedLlamaTarget{
+		ModelPath:    modelPath,
+		ModelAlias:   strings.TrimSpace(target.ModelAlias),
+		EngineConfig: target.EngineConfig,
+	}
+}
+
+func managedLlamaTargetParams(target *ManagedLlamaTarget) llamaModelsConfigParameter {
+	if target == nil {
+		return llamaModelsConfigParameter{}
+	}
+	return llamaModelsConfigParameter{
+		Model:      strings.TrimSpace(target.ModelPath),
+		Mmproj:     strings.TrimSpace(target.EngineConfig.Mmproj),
+		CtxSize:    target.EngineConfig.CtxSize,
+		CacheTypeK: strings.TrimSpace(target.EngineConfig.CacheTypeK),
+		CacheTypeV: strings.TrimSpace(target.EngineConfig.CacheTypeV),
+		FlashAttn:  strings.TrimSpace(target.EngineConfig.FlashAttn),
+		NGPULayers: target.EngineConfig.NGPULayers,
+	}
 }
 
 // llamaBinaryName returns the expected binary name within the engines directory.
