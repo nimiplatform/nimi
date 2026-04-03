@@ -121,6 +121,7 @@ machines:
         to: REMOVED
         trigger: remove_model_from_installed
         source_rule: K-LOCAL-005
+    note: local_model_lifecycle 只表达 availability truth。residency / warmth 由 LocalWarmState 并行承载；ACTIVE 可与 warm_state=COLD 组合，表示模型可路由但当前未驻留。未加载或当前未命中 resident worker 不得单独触发 UNHEALTHY。
   - machine: local_service_lifecycle
     states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:
@@ -156,6 +157,7 @@ machines:
         to: REMOVED
         trigger: remove_service_from_installed
         source_rule: K-LOCAL-005
+    note: local_service_lifecycle 表达底层 service / engine process truth，不承载单个 model 的 residency；单个 llama model 是否当前 resident 必须由 LocalWarmState 或 runtime-private residency detail 表达。
   - machine: model_status
     states: [INSTALLED, PULLING, FAILED, REMOVED]
     transitions:

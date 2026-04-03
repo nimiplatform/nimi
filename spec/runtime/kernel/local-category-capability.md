@@ -51,6 +51,15 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
   - `ACTIVE`：runtime 已验证 bundle/registration/host 前置条件满足，可被路由选择；不要求进程常驻
   - `UNHEALTHY`：bundle、registration、warm/start 或真实运行探测失败，当前不可选
   - `REMOVED`：已移除
+- `ACTIVE` 明确不等于“当前已加载到 worker / engine process 中”。
+- `LocalWarmState` 是 public residency / warmth truth 的首要承载层：
+  - `COLD`：当前未驻留/未加载，但仍可处于 `ACTIVE`
+  - `WARMING`：正在加载、切换或建立 ready 证明
+  - `READY`：当前已有可服务 residency
+  - `FAILED`：最近一次加载/驻留尝试失败
+- `local_model_lifecycle` 与 `warm_state` 必须并行表达，不得互相覆盖：
+  - `ACTIVE + COLD` 是合法且稳定的 public 组合，表示“可路由但当前未驻留”
+  - 不得仅因 `/v1/models` 未出现目标模型，就把该 asset 从 `ACTIVE/INSTALLED` 直接压成 `UNHEALTHY`
 - 对 `local_service_lifecycle`，仍表示底层执行实例的运行/探测状态；它不等价于 Local Model Center 的用户可见 readiness badge。
 - `local_model_lifecycle` 的典型迁移触发为 `install/register`、`background_validation`、`warm_or_runtime_failure`、`maintenance_stop`、`remove`；细粒度迁移表仍以 `tables/state-transitions.yaml` 为准。
 
@@ -77,6 +86,13 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 - Model:Service = 1:1。一个 Model 至多关联一个 Service。
 - Node 是计算态，不持久化。每次查询 `ListNodeCatalog` 时从已安装的 Service 实时生成。
 - 未来可放宽为 1:N（同一 Model 多引擎实例），但当前版本不支持。
+- Step A（request-routed single-worker switch）在当前约束下是合法的：
+  - 请求必须显式绑定目标 model / local asset
+  - 同一 runtime state root 下，supervised llama 可在一次请求前把唯一 resident worker 切换到目标 Model
+  - 该切换不放宽 `Model:Service = 1:1`；它只改变当前 resident worker 绑定到哪一个 Model
+- Step B（bounded multi-worker residency）当前不在本规则许可范围内：
+  - 若同一 runtime state root 允许多个 supervised llama worker 并存，必须先完成新的 spec cutover，明确 Service 拓扑、Engine truth、residency budget 与 eviction 语义
+  - 在完成 cutover 前，runtime 不得把“多 worker 并驻”当作默认合法能力启用
 
 ## K-LOCAL-009 Install 语义
 

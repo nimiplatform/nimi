@@ -218,6 +218,7 @@
 | `K-LENG-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-018` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LENG-019` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

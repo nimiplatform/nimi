@@ -587,6 +587,13 @@ Phase 1 采用 1:1 绑定（一个 Model 对应一个 Service）：
 - Model:Service = 1:1。一个 Model 至多关联一个 Service。
 - Node 是计算态，不持久化。每次查询 `ListNodeCatalog` 时从已安装的 Service 实时生成。
 - 未来可放宽为 1:N（同一 Model 多引擎实例），但当前版本不支持。
+- Step A（request-routed single-worker switch）在当前约束下是合法的：
+  - 请求必须显式绑定目标 model / local asset
+  - 同一 runtime state root 下，supervised llama 可在一次请求前把唯一 resident worker 切换到目标 Model
+  - 该切换不放宽 `Model:Service = 1:1`；它只改变当前 resident worker 绑定到哪一个 Model
+- Step B（bounded multi-worker residency）当前不在本规则许可范围内：
+  - 若同一 runtime state root 允许多个 supervised llama worker 并存，必须先完成新的 spec cutover，明确 Service 拓扑、Engine truth、residency budget 与 eviction 语义
+  - 在完成 cutover 前，runtime 不得把“多 worker 并驻”当作默认合法能力启用
 
 #### 4.4.1 本地引擎
 
@@ -673,6 +680,7 @@ Phase 1 本地执行引擎固定为：
 - `GET /v1/models` 成功仅说明进程可达。
 - 对 `text.generate` / `text.embed` 至少还需一次最小执行或等价 warmup 成功，才能视为 ready。
 - supervised `llama` 在首次最小执行 / warmup 失败时，必须保留失败阶段、退出码或 stderr 摘要等结构化细节；不得仅因 `/v1/models` 可达就把模型提升为 ready。
+- 对 supervised `llama`，`/v1/models` 缺失目标模型只说明“当前 resident worker 未加载该模型”；对非当前 resident 的已验证模型，不得仅据此投影为 `UNHEALTHY`。
 - 对 `image.understand` / `audio.understand` 还必须验证 companion artifact（如 `mmproj`）完整。
 
 `media` / `media.diffusers` 健康探测：

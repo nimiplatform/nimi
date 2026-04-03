@@ -80,6 +80,13 @@
 
 仅凭“模型条目存在”或“进程可达”不得视为 healthy。
 
+对本地 native model，`warm_state` 的投影规则还必须满足：
+
+- `COLD` 表示“当前未加载/未预热”，属于 not-ready，不等于 unavailable
+- `WARMING` 表示正在建立 ready 证明，属于 not-ready，不等于 unavailable
+- `FAILED` 才表示最近一次 warm/load 失败
+- 仅当 `warm_state=FAILED`、`bundle_state` 非 ready、或目标 engine / target probe 证明真实失败时，才允许投影为 unavailable / unhealthy
+
 ## K-MODEL-007 与 RuntimeLocalService 的关系
 
 `RuntimeModelService` 提供统一视图，`RuntimeLocalService` 提供本地执行细节：
