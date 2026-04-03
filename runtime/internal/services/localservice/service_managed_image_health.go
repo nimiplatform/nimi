@@ -95,6 +95,13 @@ func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *ru
 	if err != nil {
 		return managedImagePreflightResult{}, err
 	}
+	if releaseErr := s.releaseManagedSupervisedImage(ctx, model, cached.Alias, cached.Profile, loadReason+"_cleanup"); releaseErr != nil {
+		s.logger.Warn("managed image explicit validation cleanup failed",
+			"local_asset_id", strings.TrimSpace(model.GetLocalAssetId()),
+			"load_reason", defaultString(strings.TrimSpace(loadReason), "unspecified"),
+			"error", releaseErr,
+		)
+	}
 	return managedImagePreflightResult{
 		detail: managedLocalImageReadyDetail(),
 	}, nil

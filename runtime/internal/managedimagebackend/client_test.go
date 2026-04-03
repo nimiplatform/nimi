@@ -153,6 +153,57 @@ func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
 	}
 }
 
+func TestFreeModelInvokesBackendFree(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatalf("ensureDescriptors: %v", err)
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer listener.Close()
+
+	var (
+		freeModelPath string
+		freeModelFile string
+	)
+
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		if method != backendFreeModelMethod {
+			return status.Error(codes.Unimplemented, method)
+		}
+		in := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
+		if err := stream.RecvMsg(in); err != nil {
+			return err
+		}
+		freeModelPath = readStringField(in, "ModelPath")
+		freeModelFile = readStringField(in, "ModelFile")
+		return stream.SendMsg(successResult("freed"))
+	}))
+	defer server.Stop()
+
+	go func() {
+		_ = server.Serve(listener)
+	}()
+
+	err = FreeModel(context.Background(), LoadModelRequest{
+		BackendAddress: listener.Addr().String(),
+		ModelsRoot:     "/tmp/models",
+		ModelPath:      "resolved/example/model.gguf",
+	})
+	if err != nil {
+		t.Fatalf("FreeModel: %v", err)
+	}
+	if freeModelPath != "/tmp/models" {
+		t.Fatalf("free model path mismatch: got=%q", freeModelPath)
+	}
+	if freeModelFile != "resolved/example/model.gguf" {
+		t.Fatalf("free model file mismatch: got=%q", freeModelFile)
+	}
+}
+
 func successResult(message string) *dynamicpb.Message {
 	result := dynamicpb.NewMessage(resultMessageDescriptor)
 	setStringField(result, "message", message)

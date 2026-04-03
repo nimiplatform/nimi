@@ -82,6 +82,7 @@ type Service struct {
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
 	managedImageLoadModel        func(context.Context, managedimagebackend.LoadModelRequest) error
+	managedImageFreeModel        func(context.Context, managedimagebackend.LoadModelRequest) error
 	assetProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState
 	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
@@ -135,6 +136,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		modelDownloadTimeout:         localModelDownloadTimeout,
 		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
 		managedImageLoadModel:        managedimagebackend.LoadModel,
+		managedImageFreeModel:        managedimagebackend.FreeModel,
 		assetProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
 		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),

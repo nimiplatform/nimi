@@ -52,6 +52,9 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 			return probe(ctx, endpoint)
 		}
 	}
+	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		return nil
+	}
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{}, nil
 	}
@@ -2611,8 +2614,13 @@ func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
 	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
 
 	loadCalls := 0
+	freeCalls := 0
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
 		loadCalls++
+		return nil
+	}
+	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		freeCalls++
 		return nil
 	}
 
@@ -2630,6 +2638,9 @@ func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
 	}
 	if loadCalls != 1 {
 		t.Fatalf("expected one managed image load, got %d", loadCalls)
+	}
+	if freeCalls != 1 {
+		t.Fatalf("expected one managed image free, got %d", freeCalls)
 	}
 	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("expected active image asset, got %s", got)
@@ -2672,8 +2683,13 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
 
 	loadCalls := 0
+	freeCalls := 0
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
 		loadCalls++
+		return nil
+	}
+	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		freeCalls++
 		return nil
 	}
 
@@ -2688,6 +2704,19 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 	}
 	if loadCalls != 1 {
 		t.Fatalf("expected cache hit on second explicit load, got %d calls", loadCalls)
+	}
+
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, "generate_request_cleanup"); err != nil {
+		t.Fatalf("first ReleaseManagedMediaImage: %v", err)
+	}
+	if freeCalls != 0 {
+		t.Fatalf("expected held model to stay resident after first release, got free_calls=%d", freeCalls)
+	}
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, "generate_request_cleanup"); err != nil {
+		t.Fatalf("second ReleaseManagedMediaImage: %v", err)
+	}
+	if freeCalls != 1 {
+		t.Fatalf("expected last release to free managed image once, got %d", freeCalls)
 	}
 
 	svc.SetManagedMediaDiffusersBackendHealth(false, "backend restarting")

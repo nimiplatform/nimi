@@ -136,6 +136,11 @@ func executeBackendSyncMedia(
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err
 			}
+			defer func() {
+				if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, profile, "generate_request_cleanup"); releaseErr != nil && logger != nil {
+					logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
+				}
+			}()
 			payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions)
 			if err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))

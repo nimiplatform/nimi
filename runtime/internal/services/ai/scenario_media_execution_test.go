@@ -34,7 +34,9 @@ type fakeLocalImageProfileResolver struct {
 	executionHealthy    bool
 	executionDetail     string
 	ensureLoadCalls     int
+	releaseCalls        int
 	lastLoadReason      string
+	lastReleaseReason   string
 	resolveProfileCalls int
 	resolveProfileErr   error
 	lastRequestedModel  string
@@ -67,6 +69,14 @@ func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.
 	f.ensureLoadCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastLoadReason = loadReason
+	f.profile = profile
+	return nil
+}
+
+func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, profile map[string]any, releaseReason string) error {
+	f.releaseCalls++
+	f.lastRequestedModel = requestedModelID
+	f.lastReleaseReason = releaseReason
 	f.profile = profile
 	return nil
 }
@@ -182,8 +192,14 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	if resolver.ensureLoadCalls != 1 {
 		t.Fatalf("expected exactly one managed image preload, got %d", resolver.ensureLoadCalls)
 	}
+	if resolver.releaseCalls != 1 {
+		t.Fatalf("expected exactly one managed image release, got %d", resolver.releaseCalls)
+	}
 	if resolver.lastLoadReason != "generate_request" {
 		t.Fatalf("expected generate load reason, got %q", resolver.lastLoadReason)
+	}
+	if resolver.lastReleaseReason != "generate_request_cleanup" {
+		t.Fatalf("expected generate release reason, got %q", resolver.lastReleaseReason)
 	}
 	if !resolver.executionHealthy {
 		t.Fatalf("expected successful execution status callback, detail=%q", resolver.executionDetail)

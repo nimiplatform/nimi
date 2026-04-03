@@ -29,6 +29,7 @@ type localImageProfileResolver interface {
 	ResolveManagedAssetPath(context.Context, string) (string, error)
 	ResolveCanonicalImageSelection(context.Context, string) (engine.ImageSupervisedMatrixSelection, error)
 	EnsureManagedMediaImageLoaded(context.Context, string, map[string]any, string) error
+	ReleaseManagedMediaImage(context.Context, string, map[string]any, string) error
 	UpdateManagedMediaImageExecutionStatus(context.Context, string, bool, string) error
 }
 

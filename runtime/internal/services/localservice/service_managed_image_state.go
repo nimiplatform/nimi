@@ -25,6 +25,7 @@ type managedImageLoadedState struct {
 	BackendAddress string
 	BackendEpoch   uint64
 	VerifiedAt     time.Time
+	HoldCount      int
 }
 
 type managedImageLoadInflight struct {
@@ -91,6 +92,17 @@ func (s *Service) clearManagedMediaImageLoadCache(localAssetID string) {
 	s.mu.Unlock()
 }
 
+func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, profile map[string]any, releaseReason string) error {
+	if s == nil {
+		return nil
+	}
+	model := s.resolveManagedMediaImageModel(requestedModelID)
+	if model == nil {
+		return nil
+	}
+	return s.releaseManagedSupervisedImage(ctx, model, "", profile, releaseReason)
+}
+
 func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, profile map[string]any, loadReason string) error {
 	if s == nil {
 		return fmt.Errorf("managed local image is unavailable")
@@ -146,7 +158,7 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 		"cfg_scale":       loadReq.CFGScale,
 		"threads":         loadReq.Threads,
 	})
-	if s.managedImageLoadCacheHit(localAssetID, requestHash, strings.TrimSpace(loadReq.BackendAddress), backendEpoch) {
+	if s.retainManagedImageLoadCacheEntry(localAssetID, requestHash, strings.TrimSpace(loadReq.BackendAddress), backendEpoch) {
 		s.logger.Debug("managed image load cache hit",
 			"local_asset_id", localAssetID,
 			"profile_alias", resolvedAlias,
@@ -188,6 +200,26 @@ func (s *Service) managedImageLoadCacheHit(localAssetID string, requestHash stri
 		entry.BackendEpoch == backendEpoch
 }
 
+func (s *Service) retainManagedImageLoadCacheEntry(localAssetID string, requestHash string, backendAddress string, backendEpoch uint64) bool {
+	if s == nil {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, ok := s.managedImageLoadCache[strings.TrimSpace(localAssetID)]
+	if !ok {
+		return false
+	}
+	if entry.RequestHash != strings.TrimSpace(requestHash) ||
+		entry.BackendAddress != strings.TrimSpace(backendAddress) ||
+		entry.BackendEpoch != backendEpoch {
+		return false
+	}
+	entry.HoldCount++
+	s.managedImageLoadCache[strings.TrimSpace(localAssetID)] = entry
+	return true
+}
+
 func (s *Service) runManagedImageLoadSingleflight(
 	ctx context.Context,
 	localAssetID string,
@@ -200,7 +232,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 ) error {
 	requestHash = strings.TrimSpace(requestHash)
 	for {
-		if s.managedImageLoadCacheHit(localAssetID, requestHash, loadReq.BackendAddress, backendEpoch) {
+		if s.retainManagedImageLoadCacheEntry(localAssetID, requestHash, loadReq.BackendAddress, backendEpoch) {
 			return nil
 		}
 
@@ -209,6 +241,8 @@ func (s *Service) runManagedImageLoadSingleflight(
 			entry.RequestHash == requestHash &&
 			entry.BackendAddress == strings.TrimSpace(loadReq.BackendAddress) &&
 			entry.BackendEpoch == backendEpoch {
+			entry.HoldCount++
+			s.managedImageLoadCache[localAssetID] = entry
 			s.mu.Unlock()
 			return nil
 		}
@@ -253,6 +287,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 				BackendAddress: strings.TrimSpace(loadReq.BackendAddress),
 				BackendEpoch:   backendEpoch,
 				VerifiedAt:     time.Now().UTC(),
+				HoldCount:      1,
 			}
 		}
 		inflight.err = loadErr
@@ -261,6 +296,104 @@ func (s *Service) runManagedImageLoadSingleflight(
 		s.mu.Unlock()
 		return loadErr
 	}
+}
+
+func (s *Service) releaseManagedSupervisedImage(
+	ctx context.Context,
+	model *runtimev1.LocalAssetRecord,
+	alias string,
+	profile map[string]any,
+	releaseReason string,
+) error {
+	if model == nil {
+		return nil
+	}
+	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	if localAssetID == "" {
+		return nil
+	}
+	resolvedAlias := strings.TrimSpace(alias)
+	resolvedProfile := cloneAnyMap(profile)
+	if len(resolvedProfile) == 0 {
+		cached, ok := s.cachedManagedMediaImageProfile(localAssetID)
+		if !ok || len(cached.Profile) == 0 {
+			return nil
+		}
+		resolvedAlias = cached.Alias
+		resolvedProfile = cached.Profile
+	}
+
+	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
+	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile)
+	if err != nil {
+		return nil
+	}
+	loadReq.BackendAddress = backendAddress
+	requestHash := managedImageLoadHash(map[string]any{
+		"alias":           resolvedAlias,
+		"backend_address": strings.TrimSpace(loadReq.BackendAddress),
+		"backend_epoch":   backendEpoch,
+		"models_root":     strings.TrimSpace(loadReq.ModelsRoot),
+		"model_path":      strings.TrimSpace(loadReq.ModelPath),
+		"options":         append([]string(nil), loadReq.Options...),
+		"cfg_scale":       loadReq.CFGScale,
+		"threads":         loadReq.Threads,
+	})
+
+	shouldFree := false
+	s.mu.Lock()
+	if entry, ok := s.managedImageLoadCache[localAssetID]; ok &&
+		entry.RequestHash == requestHash &&
+		entry.BackendAddress == strings.TrimSpace(loadReq.BackendAddress) &&
+		entry.BackendEpoch == backendEpoch {
+		if entry.HoldCount > 1 {
+			entry.HoldCount--
+			s.managedImageLoadCache[localAssetID] = entry
+		} else {
+			delete(s.managedImageLoadCache, localAssetID)
+			shouldFree = true
+		}
+	}
+	s.mu.Unlock()
+
+	if !shouldFree {
+		return nil
+	}
+
+	releaseFn := s.managedImageFreeModel
+	if releaseFn == nil {
+		releaseFn = managedimagebackend.FreeModel
+	}
+	cleanupCtx, cancel := managedImageCleanupContext(ctx, 15*time.Second)
+	defer cancel()
+
+	s.logger.Info("managed image release",
+		"local_asset_id", localAssetID,
+		"profile_alias", resolvedAlias,
+		"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+		"backend_epoch", backendEpoch,
+	)
+	if err := releaseFn(cleanupCtx, loadReq); err != nil {
+		s.logger.Warn("managed image release failed",
+			"local_asset_id", localAssetID,
+			"profile_alias", resolvedAlias,
+			"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+			"backend_epoch", backendEpoch,
+			"error", err,
+		)
+		return err
+	}
+	return nil
+}
+
+func managedImageCleanupContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		timeout = 15 * time.Second
+	}
+	if ctx == nil || ctx.Err() != nil {
+		return context.WithTimeout(context.Background(), timeout)
+	}
+	return context.WithTimeout(context.WithoutCancel(ctx), timeout)
 }
 
 func managedImageLoadHash(value any) string {

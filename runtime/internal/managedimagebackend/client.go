@@ -17,6 +17,7 @@ import (
 const (
 	backendLoadModelMethod     = "/backend.Backend/LoadModel"
 	backendGenerateImageMethod = "/backend.Backend/GenerateImage"
+	backendFreeModelMethod     = "/backend.Backend/Free"
 )
 
 type ImageRequest struct {
@@ -152,6 +153,42 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 	}
 	if success, message := readResult(loadResp); !success {
 		return fmt.Errorf("load managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful load result"))
+	}
+	return nil
+}
+
+func FreeModel(ctx context.Context, req LoadModelRequest) error {
+	if strings.TrimSpace(req.BackendAddress) == "" {
+		return fmt.Errorf("local backend address is required")
+	}
+	if err := ensureDescriptors(); err != nil {
+		return err
+	}
+
+	conn, err := grpc.DialContext(
+		ctx,
+		strings.TrimSpace(req.BackendAddress),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return fmt.Errorf("dial managed media backend: %w", err)
+	}
+	defer conn.Close()
+
+	freeReq := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
+	setStringField(freeReq, "ModelPath", req.ModelsRoot)
+	setStringField(freeReq, "ModelFile", req.ModelPath)
+	setInt32Field(freeReq, "Threads", req.Threads)
+	setFloatField(freeReq, "CFGScale", req.CFGScale)
+	setRepeatedStringField(freeReq, "Options", req.Options)
+
+	freeResp := dynamicpb.NewMessage(resultMessageDescriptor)
+	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
+		return fmt.Errorf("free managed media model: %w", err)
+	}
+	if success, message := readResult(freeResp); !success {
+		return fmt.Errorf("free managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful free result"))
 	}
 	return nil
 }
