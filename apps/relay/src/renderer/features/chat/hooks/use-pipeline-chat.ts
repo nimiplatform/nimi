@@ -95,7 +95,7 @@ export function usePipelineChat() {
     // Fire-and-forget: the IPC handler awaits the full AI turn, but the
     // renderer should clear the input immediately.  Progress is pushed
     // back via relay:chat:turn:phase / relay:chat:messages events.
-    await getBridge().chat.send({
+    void getBridge().chat.send({
       agentId: currentAgent.id,
       text: text.trim(),
     }).catch((err) => {

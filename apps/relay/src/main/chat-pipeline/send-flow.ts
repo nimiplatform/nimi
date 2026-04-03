@@ -245,8 +245,8 @@ export async function runLocalChatTurnSend(input: {
     }));
 
     const createPerceptionStatePromise = async () => {
+      const prepared = await deepPreparedPromise;
       try {
-        const prepared = await deepPreparedPromise;
         const recentTurnsForPerception = prepared.contextPacket.recentTurns
           .slice(-5)
           .map((turn) => ({ role: turn.role, text: turn.lines.join(' ') }));
@@ -261,7 +261,8 @@ export async function runLocalChatTurnSend(input: {
         });
         return { ok: true as const, perception, prepared };
       } catch (error) {
-        return { ok: false as const, error };
+        console.warn('[relay:send-flow] perception failed, degrading gracefully', error instanceof Error ? error.message : String(error));
+        return { ok: false as const, error, prepared };
       }
     };
     let perceptionStatePromise = createPerceptionStatePromise();
@@ -353,20 +354,19 @@ export async function runLocalChatTurnSend(input: {
     input.setSendPhase('planning-tail', turnTxnId);
 
     const perceptionState = await perceptionStatePromise;
-    if (!perceptionState.ok) throw perceptionState.error;
-    const perception = perceptionState.perception;
     const prepared = perceptionState.prepared;
     ensureNotAborted(input.abortSignal);
 
-    turnMode = perception.status === 'resolved'
+    const perception = perceptionState.ok ? perceptionState.perception : null;
+    turnMode = perception?.status === 'resolved'
       ? perception.turnMode
       : PERCEPTION_FAILURE_TURN_MODE;
-    if (perception.status === 'resolved' && perception.relevantMemoryIds.length > 0 && prepared.contextPacket.relationMemorySlots) {
+    if (perception?.status === 'resolved' && perception.relevantMemoryIds.length > 0 && prepared.contextPacket.relationMemorySlots) {
       const relevantSet = new Set(perception.relevantMemoryIds);
       prepared.contextPacket.relationMemorySlots = prepared.contextPacket.relationMemorySlots
         .filter((slot) => relevantSet.has(slot.id));
     }
-    const activeDirective = perception.status === 'resolved'
+    const activeDirective = perception?.status === 'resolved'
       ? (
         perception.conversationDirective
         || fastPerception.conversationDirective
@@ -375,14 +375,14 @@ export async function runLocalChatTurnSend(input: {
       )
       : null;
     prepared.contextPacket.perceptionOverlay = {
-      status: perception.status,
-      failureReason: perception.failureReason || '',
+      status: perception?.status || 'failed',
+      failureReason: perception?.failureReason || (perceptionState.ok ? '' : 'perception_promise_rejected'),
       refinedTurnMode: turnMode,
-      emotionalState: perception.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
-      emotionalCause: perception.status === 'resolved' ? (perception.emotionalState?.cause || '') : '',
-      suggestedApproach: perception.status === 'resolved' ? (perception.emotionalState?.suggestedApproach || '') : '',
+      emotionalState: perception?.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
+      emotionalCause: perception?.status === 'resolved' ? (perception.emotionalState?.cause || '') : '',
+      suggestedApproach: perception?.status === 'resolved' ? (perception.emotionalState?.suggestedApproach || '') : '',
       directive: activeDirective || '',
-      intimacyCeiling: perception.intimacyCeiling,
+      intimacyCeiling: perception?.intimacyCeiling ?? fastPerception.intimacyCeiling,
     };
     applyResolvedContentBoundaryHint({ contextPacket: prepared.contextPacket, policy: resolvedExperiencePolicy });
     prepared.contextPacket.turnMode = turnMode;
@@ -391,8 +391,8 @@ export async function runLocalChatTurnSend(input: {
       interactionProfile: prepared.contextPacket.target.interactionProfile,
       allowMultiReply: resolvedExperiencePolicy.deliveryPolicy.allowMultiReply,
       turnMode,
-      emotionalHint: perception.status === 'resolved' ? perception.emotionalState?.detected : undefined,
-      suggestedApproach: perception.status === 'resolved' ? perception.emotionalState?.suggestedApproach : undefined,
+      emotionalHint: perception?.status === 'resolved' ? perception.emotionalState?.detected : undefined,
+      suggestedApproach: perception?.status === 'resolved' ? perception.emotionalState?.suggestedApproach : undefined,
       momentum: prepared.contextPacket.interactionSnapshot?.conversationMomentum,
     });
     const recompiledResult = compileLocalChatPrompt({
@@ -414,9 +414,9 @@ export async function runLocalChatTurnSend(input: {
       turnId,
       turnMode,
       deliveryStyle: resolvedExperiencePolicy.deliveryPolicy.style,
-      emotionalState: perception.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
+      emotionalState: perception?.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
       directive: activeDirective || '',
-      intimacyCeiling: perception.intimacyCeiling,
+      intimacyCeiling: perception?.intimacyCeiling ?? fastPerception.intimacyCeiling,
       recentBeatTexts: [...recentBeatTexts, firstBeatMessage.content],
       sealedFirstBeatText: firstBeatMessage.content,
     });

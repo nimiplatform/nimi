@@ -557,6 +557,33 @@ export function registerIpcHandlers(
     }
   });
 
+  // ── Direct Chat (agent-less LLM chat) ────────────────────────────
+  // No requireAgentId — these handlers bypass the agent pipeline entirely.
+
+  const directChatHandlersPromise = import('./direct-chat/direct-chat-handler.js').then(
+    (mod) => mod.createDirectChatHandlers(runtime, getWebContents, routeState),
+  );
+
+  safeHandle('relay:direct-chat:send', async (_event, input: { text: string; sessionId?: string }) => {
+    const handlers = await directChatHandlersPromise;
+    await handlers.send(input);
+  });
+
+  safeHandle('relay:direct-chat:cancel', async (_event, input: { turnTxnId: string }) => {
+    const handlers = await directChatHandlersPromise;
+    handlers.cancel(input);
+  });
+
+  safeHandle('relay:direct-chat:history', async () => {
+    const handlers = await directChatHandlersPromise;
+    return handlers.history();
+  });
+
+  safeHandle('relay:direct-chat:clear', async (_event, input?: { sessionId?: string }) => {
+    const handlers = await directChatHandlersPromise;
+    await handlers.clear(input);
+  });
+
   safeHandle('relay:chat:proactive:toggle', async (_event, input: { enabled: boolean }) => {
     try {
       const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');

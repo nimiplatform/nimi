@@ -16,7 +16,10 @@
     "loadingAgents": "Loading agents...",
     "realmUnreachable": "Realm unreachable. Agent list is unavailable.",
     "go": "Go",
-    "noAgentsAvailable": "No agents available"
+    "noAgentsAvailable": "No agents available",
+    "addAgent": "Add Agent",
+    "clearAgent": "Clear Agent",
+    "noAgent": "No Agent"
   },
   "chat": {
     "aiChat": "AI Chat",
@@ -28,24 +31,10 @@
     "noMessages": "No messages yet in this channel",
     "messageAgent": "Message {{name}}...",
     "sendMessage": "Send a message...",
-    "greeting": "Hi, what can I help you with?",
-    "greetingSub": "Ask me anything or pick a quick action below",
+    "emptyHint": "Send a message to start chatting with {{name}}",
     "enterToSend": "Enter to send, Shift+Enter for new line",
     "clearHistory": "Clear history",
-    "quickAction": {
-      "writeCode": {
-        "label": "Write Code",
-        "prompt": "Help me write code"
-      },
-      "analyzeData": {
-        "label": "Analyze Data",
-        "prompt": "Help me analyze data"
-      },
-      "writeCopy": {
-        "label": "Write Copy",
-        "prompt": "Help me write copy"
-      }
-    }
+    "directGreeting": "How can I help you today?"
   },
   "sidebar": {
     "newChat": "New Chat",

@@ -1,51 +1,50 @@
-// Empty state — greeting + quick action cards for new conversation
-// Per design.md §14
+// Empty state — greeting for new conversation
+// Direct mode: generic greeting without agent
+// Agent mode: agent avatar + personalized greeting
 
 import { useTranslation } from 'react-i18next';
-import { Lightbulb, BarChart3, PenLine } from 'lucide-react';
 
 interface EmptyStateProps {
   agentName?: string;
-  onQuickAction?: (prompt: string) => void;
+  agentAvatarUrl?: string;
 }
 
-const quickActions = [
-  { icon: Lightbulb, key: 'writeCode' },
-  { icon: BarChart3, key: 'analyzeData' },
-  { icon: PenLine, key: 'writeCopy' },
-] as const;
-
-export function EmptyState({ agentName, onQuickAction }: EmptyStateProps) {
+export function EmptyState({ agentName, agentAvatarUrl }: EmptyStateProps) {
   const { t } = useTranslation();
 
-  return (
-    <div className="flex flex-col items-center justify-center h-full" style={{ paddingBottom: '20%' }}>
-      {/* Greeting */}
-      <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center mb-5">
-        <div className="w-3 h-3 rounded-full bg-accent" />
-      </div>
-      <h2 className="text-[20px] font-semibold mb-2 text-text-primary">
-        {t('chat.greeting', { name: agentName || 'AI' })}
-      </h2>
-      <p className="text-[13px] text-text-secondary mb-8">
-        {t('chat.greetingSub')}
-      </p>
-
-      {/* Quick action cards */}
-      <div className="flex gap-3">
-        {quickActions.map(({ icon: Icon, key }) => (
-          <button
-            key={key}
-            onClick={() => onQuickAction?.(t(`chat.quickAction.${key}.prompt`))}
-            className="flex flex-col items-center gap-2 px-5 py-4 rounded-xl bg-bg-elevated hover:bg-bg-surface border border-border-subtle hover:shadow-sm hover:-translate-y-0.5 transition-all duration-150 w-[140px]"
-          >
-            <Icon size={20} className="text-text-secondary" />
-            <span className="text-[13px] text-text-secondary">
-              {t(`chat.quickAction.${key}.label`)}
+  // Agent mode
+  if (agentName) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center" style={{ paddingBottom: '10%' }}>
+        {agentAvatarUrl ? (
+          <img
+            src={agentAvatarUrl}
+            alt={agentName}
+            className="w-16 h-16 rounded-full object-cover mb-4"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_15%,transparent)] flex items-center justify-center mb-4">
+            <span className="text-[24px] font-semibold text-[var(--nimi-action-primary-bg)]">
+              {agentName.charAt(0).toUpperCase()}
             </span>
-          </button>
-        ))}
+          </div>
+        )}
+        <p className="text-[14px] text-text-secondary">
+          {t('chat.emptyHint', { name: agentName })}
+        </p>
       </div>
+    );
+  }
+
+  // Direct mode — minimal greeting
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center" style={{ paddingBottom: '10%' }}>
+      <p className="text-[18px] font-medium text-text-primary mb-1">
+        {t('chat.directGreeting', 'How can I help you today?')}
+      </p>
+      <p className="text-[13px] text-text-muted">
+        {t('chat.typeMessage')}
+      </p>
     </div>
   );
 }

@@ -171,19 +171,26 @@ export function buildRelayLocalImageProfileExtensions(input: {
   }
   const entryOverrides = normalizeRelayLocalProfileEntryOverrides(input.entryOverrides);
   const extensions: Record<string, unknown> = {
-    profile_entries: profile.entries.map((entry) => ({
-      entryId: entry.entryId,
-      kind: entry.kind,
-      capability: entry.capability,
-      title: entry.title,
-      required: entry.required,
-      preferred: entry.preferred === true,
-      assetId: entry.assetId,
-      assetKind: entry.assetKind,
-      engine: entry.engine,
-      engineSlot: entry.engineSlot,
-      templateId: entry.templateId,
-    })),
+    profile_entries: profile.entries.map((entry) => {
+      const record: Record<string, unknown> = {
+        entryId: entry.entryId,
+        kind: entry.kind,
+        capability: entry.capability,
+        title: entry.title,
+        required: entry.required,
+        preferred: entry.preferred === true,
+        assetId: entry.assetId,
+        assetKind: entry.assetKind,
+        engine: entry.engine,
+      };
+      if (entry.engineSlot) {
+        record.engineSlot = entry.engineSlot;
+      }
+      if (entry.templateId) {
+        record.templateId = entry.templateId;
+      }
+      return record;
+    }),
   };
   if (entryOverrides.length > 0) {
     extensions.entry_overrides = entryOverrides.map((item) => ({

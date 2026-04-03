@@ -16,7 +16,10 @@
     "loadingAgents": "加载 Agent 中...",
     "realmUnreachable": "无法连接 Realm，暂时无法加载 Agent 列表。",
     "go": "确定",
-    "noAgentsAvailable": "暂无可用 Agent"
+    "noAgentsAvailable": "暂无可用 Agent",
+    "addAgent": "添加 Agent",
+    "clearAgent": "清除 Agent",
+    "noAgent": "无 Agent"
   },
   "chat": {
     "aiChat": "AI 对话",
@@ -28,24 +31,10 @@
     "noMessages": "此频道暂无消息",
     "messageAgent": "给 {{name}} 发消息...",
     "sendMessage": "发送消息...",
-    "greeting": "你好，有什么我可以帮你的？",
-    "greetingSub": "随意提问或选择下方快捷操作",
+    "emptyHint": "发送消息，开始与 {{name}} 聊天",
     "enterToSend": "Enter 发送，Shift+Enter 换行",
     "clearHistory": "清除历史",
-    "quickAction": {
-      "writeCode": {
-        "label": "写代码",
-        "prompt": "帮我写代码"
-      },
-      "analyzeData": {
-        "label": "分析数据",
-        "prompt": "帮我分析数据"
-      },
-      "writeCopy": {
-        "label": "写文案",
-        "prompt": "帮我写文案"
-      }
-    }
+    "directGreeting": "有什么我可以帮助的？"
   },
   "sidebar": {
     "newChat": "新对话",

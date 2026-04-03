@@ -1,9 +1,10 @@
-// Chat page — Beat-first AI chat
-// RL-PIPE-001 + RL-FEAT-003/004 voice
+// Chat page — Jan-like direct LLM chat with optional agent mode
+// Direct mode: agent-less chat via relay:direct-chat:* IPC
+// Agent mode: beat-first pipeline via relay:chat:* IPC (RL-PIPE-001)
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Settings, Check } from 'lucide-react';
+import { ChevronDown, Settings, Check, X, User } from 'lucide-react';
 import {
   Popover,
   PopoverTrigger,
@@ -14,7 +15,7 @@ import {
   ChatComposerResizeHandle,
   ChatComposerShell,
 } from '@nimiplatform/nimi-kit/features/chat/ui';
-import { usePipelineChat } from './hooks/use-pipeline-chat.js';
+import { useChat } from './hooks/use-chat.js';
 import { ChatView } from './components/chat-view.js';
 import { MessageInput } from './components/message-input.js';
 import { EmptyState } from './components/empty-state.js';
@@ -40,7 +41,7 @@ export function ChatPage() {
   const composerResizingRef = useRef(false);
   const chatLayoutRef = useRef<HTMLDivElement>(null);
 
-  const ai = usePipelineChat();
+  const ai = useChat();
 
   const lastAssistantText = ai.messages
     .filter((m) => m.role === 'assistant' && m.kind !== 'streaming' && m.content)
@@ -86,24 +87,27 @@ export function ChatPage() {
     }
   }, []);
 
-  // RL-CORE-001: No agent selected
-  // No agent — show inline agent picker (fallback if bootstrap auto-select failed)
-  if (!currentAgent) {
-    return <NoAgentFallback />;
-  }
+  const placeholder = currentAgent
+    ? t('chat.messageAgent', { name: currentAgent.name })
+    : t('chat.typeMessage');
 
   return (
     <div ref={chatLayoutRef} className="flex flex-col h-full">
-      {/* Header — agent avatar+name (dropdown) + settings */}
+      {/* Header — model picker (primary) + agent pill + settings */}
       <div className="flex items-center justify-between px-5 py-2.5">
-        <AgentSwitcher agent={currentAgent} />
-        <button
-          onClick={() => setDetailMode('settings')}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
-          title={t('settings.title', 'Settings')}
-        >
-          <Settings size={17} />
-        </button>
+        <div className="flex items-center gap-2 min-w-0">
+          <ChatModelPicker />
+        </div>
+        <div className="flex items-center gap-1">
+          <AgentPill agent={currentAgent} />
+          <button
+            onClick={() => setDetailMode('settings')}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+            title={t('settings.title', 'Settings')}
+          >
+            <Settings size={17} />
+          </button>
+        </div>
       </div>
 
       {/* Status banner */}
@@ -125,8 +129,8 @@ export function ChatPage() {
         <>
           {ai.messages.length === 0 ? (
             <EmptyState
-              agentName={currentAgent.name}
-              onQuickAction={(prompt) => ai.sendMessage(prompt)}
+              agentName={currentAgent?.name}
+              agentAvatarUrl={currentAgent?.avatarUrl}
             />
           ) : (
             <ChatView messages={ai.messages} sendPhase={ai.sendPhase} />
@@ -136,16 +140,18 @@ export function ChatPage() {
             <MessageInput
               onSend={ai.sendMessage}
               disabled={!ai.canChat || ai.isSending}
-              placeholder={t('chat.messageAgent', { name: currentAgent.name })}
+              placeholder={placeholder}
               isSending={ai.isSending}
               sendPhase={ai.sendPhase}
               onCancelTurn={() => ai.cancelTurn()}
-              modelPickerSlot={<ChatModelPicker />}
+              modelPickerSlot={null}
               toolbar={
-                <VoiceControls
-                  onTranscript={handleTranscript}
-                  lastAssistantText={lastAssistantText}
-                />
+                currentAgent ? (
+                  <VoiceControls
+                    onTranscript={handleTranscript}
+                    lastAssistantText={lastAssistantText}
+                  />
+                ) : null
               }
             />
           </ChatComposerShell>
@@ -156,15 +162,16 @@ export function ChatPage() {
 }
 
 // ---------------------------------------------------------------------------
-// AgentSwitcher — avatar + name dropdown to switch agents
+// AgentPill — compact agent control in header
 // ---------------------------------------------------------------------------
 
-function AgentSwitcher({ agent }: { agent: Agent }) {
+function AgentPill({ agent }: { agent: Agent | null }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { fetchAgentList, selectAgent } = useAgentProfile();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(false);
+  const setAgent = useAppStore((s) => s.setAgent);
 
   useEffect(() => {
     if (!open) return;
@@ -180,17 +187,31 @@ function AgentSwitcher({ agent }: { agent: Agent }) {
     setOpen(false);
   };
 
+  const handleClear = () => {
+    setAgent(null);
+    setOpen(false);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_5%,transparent)]">
-          <AgentAvatar agent={agent} size={28} />
-          <span className="text-[14px] font-medium text-[color:var(--nimi-text-primary)]">{agent.name}</span>
-          <ChevronDown size={14} className="text-[color:var(--nimi-text-muted)]" />
-        </button>
+        {agent ? (
+          <button className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
+            <AgentAvatar agent={agent} size={20} />
+            <span className="max-w-[100px] truncate">{agent.name}</span>
+            <ChevronDown size={12} className="text-text-muted" />
+          </button>
+        ) : (
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+            title={t('agent.addAgent', 'Add Agent')}
+          >
+            <User size={17} />
+          </button>
+        )}
       </PopoverTrigger>
 
-      <PopoverContent align="start" side="bottom" sideOffset={4} className="w-[280px] p-0">
+      <PopoverContent align="end" side="bottom" sideOffset={4} className="w-[280px] p-0">
         <div className="px-3 py-2.5">
           <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
             {t('agent.switchAgent')}
@@ -208,7 +229,7 @@ function AgentSwitcher({ agent }: { agent: Agent }) {
               </p>
             ) : (
               agents.map((a) => {
-                const selected = agent.id === a.id;
+                const selected = agent?.id === a.id;
                 return (
                   <button
                     key={a.id}
@@ -236,6 +257,18 @@ function AgentSwitcher({ agent }: { agent: Agent }) {
               })
             )}
           </ScrollArea>
+          {/* Clear Agent action */}
+          {agent && (
+            <div className="border-t border-[color:var(--nimi-border-subtle)]">
+              <button
+                onClick={handleClear}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-[13px] text-text-secondary transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)] hover:text-text-primary"
+              >
+                <X size={14} />
+                <span>{t('agent.clearAgent', 'Clear Agent')}</span>
+              </button>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -393,64 +426,9 @@ function ChatModelPicker() {
       loading={loading}
       loadingMessage={labels.loading}
       emptyMessage={selection.source === 'local' ? labels.noLocalModels : labels.noCloudModels}
-      side="top"
+      side="bottom"
       align="start"
     />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// NoAgentFallback — inline agent list when bootstrap auto-select failed
-// ---------------------------------------------------------------------------
-
-function NoAgentFallback() {
-  const { t } = useTranslation();
-  const { fetchAgentList, selectAgent } = useAgentProfile();
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAgentList()
-      .then(setAgents)
-      .catch(() => setAgents([]))
-      .finally(() => setLoading(false));
-  }, [fetchAgentList]);
-
-  return (
-    <div className="flex flex-1 items-center justify-center">
-      <div className="w-[320px]">
-        <h2 className="mb-1 text-center text-[17px] font-semibold text-text-primary">
-          {t('agent.noAgentSelected')}
-        </h2>
-        <p className="mb-5 text-center text-[13px] text-text-secondary">
-          {t('agent.selectToStart', 'Select an agent to start chatting')}
-        </p>
-
-        {loading ? (
-          <p className="text-center text-[13px] text-text-secondary">{t('agent.loadingAgents')}</p>
-        ) : agents.length === 0 ? (
-          <p className="text-center text-[13px] text-text-secondary">{t('agent.noAgentsAvailable')}</p>
-        ) : (
-          <div className="space-y-0.5 rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-overlay)] p-1">
-            {agents.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => selectAgent(a)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)]"
-              >
-                <AgentAvatar agent={a} size={32} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-[color:var(--nimi-text-primary)]">{a.name}</p>
-                  {a.handle && (
-                    <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">@{a.handle}</p>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
 

@@ -600,6 +600,24 @@ export type RelayInvokeMap = {
     request: { enabled: boolean };
     response: void;
   };
+
+  // ── Direct Chat (agent-less LLM chat) ────────────────────────────
+  'relay:direct-chat:send': {
+    request: { text: string; sessionId?: string };
+    response: void;
+  };
+  'relay:direct-chat:cancel': {
+    request: { turnTxnId: string };
+    response: void;
+  };
+  'relay:direct-chat:history': {
+    request: undefined;
+    response: RelayChatMessage[];
+  };
+  'relay:direct-chat:clear': {
+    request: { sessionId?: string } | undefined;
+    response: void;
+  };
 };
 
 export type RelayEventMap = {
@@ -758,6 +776,12 @@ export interface NimiRelayBridge {
   };
   desktop: {
     openConfig: (pageId?: string) => Promise<RelayInvokeResponse<'relay:desktop:open-config'>>;
+  };
+  directChat: {
+    send: (...args: RelayInvokeArgs<'relay:direct-chat:send'>) => Promise<RelayInvokeResponse<'relay:direct-chat:send'>>;
+    cancel: (...args: RelayInvokeArgs<'relay:direct-chat:cancel'>) => Promise<RelayInvokeResponse<'relay:direct-chat:cancel'>>;
+    history: (...args: RelayInvokeArgs<'relay:direct-chat:history'>) => Promise<RelayInvokeResponse<'relay:direct-chat:history'>>;
+    clear: (...args: RelayInvokeArgs<'relay:direct-chat:clear'>) => Promise<RelayInvokeResponse<'relay:direct-chat:clear'>>;
   };
   chat: {
     send: (...args: RelayInvokeArgs<'relay:chat:send'>) => Promise<RelayInvokeResponse<'relay:chat:send'>>;

@@ -670,6 +670,8 @@ function assetMatchesEntry(asset: LocalAssetOption, entry: RelayLocalImageProfil
   return asset.assetKind === entry.assetKind;
 }
 
+const PROFILE_DEFAULT_SENTINEL = '__profile_default__';
+
 function ProfileEntryOverrideField(props: {
   entry: RelayLocalImageProfileEntry;
   assets: LocalAssetOption[];
@@ -678,7 +680,7 @@ function ProfileEntryOverrideField(props: {
 }) {
   const { t } = useTranslation();
   const options = useMemo(() => [
-    { value: '', label: t('settings.useProfileDefault', 'Use profile default') },
+    { value: PROFILE_DEFAULT_SENTINEL, label: t('settings.useProfileDefault', 'Use profile default') },
     ...props.assets
       .filter((asset) => assetMatchesEntry(asset, props.entry))
       .map((asset) => ({
@@ -698,8 +700,8 @@ function ProfileEntryOverrideField(props: {
         </p>
       </div>
       <SelectField
-        value={props.selectedLocalAssetId}
-        onValueChange={(value) => props.onChange(props.entry.entryId, value)}
+        value={props.selectedLocalAssetId || PROFILE_DEFAULT_SENTINEL}
+        onValueChange={(value) => props.onChange(props.entry.entryId, value === PROFILE_DEFAULT_SENTINEL ? '' : value)}
         options={options}
         selectClassName="font-normal"
       />

@@ -173,6 +173,12 @@ const api: NimiRelayBridge = {
   desktop: {
     openConfig: (pageId) => invoke('relay:desktop:open-config', pageId ? { pageId } : undefined),
   },
+  directChat: {
+    send: (input) => invoke('relay:direct-chat:send', input),
+    cancel: (input) => invoke('relay:direct-chat:cancel', input),
+    history: () => invoke('relay:direct-chat:history'),
+    clear: (input) => invoke('relay:direct-chat:clear', input),
+  },
   chat: {
     send: (input) => invoke('relay:chat:send', input),
     cancel: (input) => invoke('relay:chat:cancel', input),

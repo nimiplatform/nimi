@@ -56,7 +56,7 @@ describe('RL-FEAT-001 — canChat feature gate', () => {
 
 describe('RL-CORE-004 — chat bridge payloads carry agent context', () => {
   it('sendMessage trims text and sends agentId through bridge.chat.send', () => {
-    assert.match(source, /await getBridge\(\)\.chat\.send\(\{\s*agentId:\s*currentAgent\.id,\s*text:\s*text\.trim\(\),/s, 'sendMessage must send trimmed text with the selected agentId');
+    assert.match(source, /(await|void)\s+getBridge\(\)\.chat\.send\(\{\s*agentId:\s*currentAgent\.id,\s*text:\s*text\.trim\(\),/s, 'sendMessage must send trimmed text with the selected agentId');
   });
 
   it('cancelTurn uses bridge.chat.cancel with the resolved turn transaction id', () => {

@@ -265,6 +265,14 @@ export async function composeInteractionTurnPlan(input: {
     perceptionLines.push(input.recentBeatTexts.join(' | '));
   }
 
+  const isExplicitMedia = input.turnMode === 'explicit-media';
+  const jsonSchemaExample = isExplicitMedia
+    ? '{"beats":[{"text":"...","intent":"media","relationMove":"friendly","sceneMove":"daily","pauseMs":650,"mediaRequest":{"kind":"image","prompt":"visual description"}}]}'
+    : '{"beats":[{"text":"...","intent":"answer","relationMove":"friendly","sceneMove":"daily","pauseMs":650}]}';
+  const composerExample = isExplicitMedia
+    ? '{"beats":[{"text":"正在为你画一幅主广场的全景。","intent":"media","relationMove":"friendly","sceneMove":"daily","pauseMs":650,"mediaRequest":{"kind":"image","prompt":"a panoramic view of the main plaza with fountains and trees"}}]}'
+    : '{"beats":[{"text":"先别一个人硬撑，把最压你的那件事丢给我。","intent":"invite","relationMove":"warm","sceneMove":"deeper","pauseMs":750}]}';
+
   const prompt = [
     input.invokeInput.prompt,
     '',
@@ -272,7 +280,7 @@ export async function composeInteractionTurnPlan(input: {
     '',
     pt(locale, 'composer.jsonFormat'),
     '```json',
-    '{"beats":[{"text":"...","intent":"answer","relationMove":"friendly","sceneMove":"daily","pauseMs":650}]}',
+    jsonSchemaExample,
     '```',
     '',
     pt(locale, 'composer.fieldExplain'),
@@ -295,7 +303,7 @@ export async function composeInteractionTurnPlan(input: {
     pt(locale, 'composer.sealedFirstBeat', { text: input.sealedFirstBeatText }),
     '',
     pt(locale, 'composer.exampleHeader'),
-    '{"beats":[{"text":"先别一个人硬撑，把最压你的那件事丢给我。","intent":"invite","relationMove":"warm","sceneMove":"deeper","pauseMs":750}]}',
+    composerExample,
     '',
     `turnMode=${input.turnMode}`,
     `deliveryStyle=${input.deliveryStyle || 'natural'}`,
