@@ -70,6 +70,13 @@ func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) error {
 	}); err != nil {
 		return err
 	}
+	return GenerateImage(ctx, req)
+}
+
+func GenerateImage(ctx context.Context, req ImageRequest) error {
+	if strings.TrimSpace(req.Dst) == "" {
+		return fmt.Errorf("managed media destination is required")
+	}
 	if err := ensureDescriptors(); err != nil {
 		return err
 	}

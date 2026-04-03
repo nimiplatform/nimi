@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/ggufmeta"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -117,6 +118,27 @@ func validateManagedModelEntryFile(path string) error {
 	return nil
 }
 
+func validateManagedModelEntryStaticCompatibility(path string, kind runtimev1.LocalAssetKind, capabilities []string, engine string) error {
+	entryPath := strings.TrimSpace(path)
+	if entryPath == "" {
+		return fmt.Errorf("managed local model entry path is empty")
+	}
+	if strings.ToLower(filepath.Ext(entryPath)) != ".gguf" {
+		return nil
+	}
+	if !isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
+		return nil
+	}
+	summary, err := ggufmeta.InspectPath(entryPath)
+	if err != nil {
+		return fmt.Errorf("inspect image gguf metadata: %w", err)
+	}
+	if issue := ggufmeta.StableDiffusionMetadataIssue(summary); issue != "" {
+		return fmt.Errorf("image gguf incompatible with runtime stablediffusion-ggml backend: %s", issue)
+	}
+	return nil
+}
+
 func ggufLooksHeaderOnlyPlaceholder(file *os.File) (bool, error) {
 	const sampleSize = 256
 	sample := make([]byte, sampleSize)
@@ -218,6 +240,9 @@ func (s *Service) validateManagedModelEntryForModel(path string, model *runtimev
 	if err := validateManagedModelEntryFile(path); err != nil {
 		return err
 	}
+	if err := validateManagedModelEntryStaticCompatibility(path, model.GetKind(), model.GetCapabilities(), model.GetEngine()); err != nil {
+		return err
+	}
 	expectedHash := expectedManagedModelEntryHash(model)
 	if expectedHash == "" {
 		return nil
@@ -267,7 +292,7 @@ func managedLocalModelReadyNotStartedDetail() string {
 }
 
 func managedLocalImageReadyDetail() string {
-	return "managed local image backend validated"
+	return "managed local image active; backend load verified"
 }
 
 func managedLocalImagePendingValidationDetail(reason string) string {

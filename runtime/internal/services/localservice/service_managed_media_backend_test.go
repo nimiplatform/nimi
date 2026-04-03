@@ -210,6 +210,22 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 	if got := valueAsString(valueAsObject(profile["parameters"])["model"]); got != "resolved/z_image_turbo/z_image_turbo-Q4_K_M.gguf" {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
+	options := valueAsStringSlice(profile["options"])
+	if !containsString(options, "diffusion_model") {
+		t.Fatalf("expected runtime-owned image profile to inject diffusion_model option, got=%v", options)
+	}
+	switch got := profile["cfg_scale"].(type) {
+	case int:
+		if got != 1 {
+			t.Fatalf("expected default cfg_scale=1 for canonical image profile, got=%#v", profile["cfg_scale"])
+		}
+	case float64:
+		if got != 1 {
+			t.Fatalf("expected default cfg_scale=1 for canonical image profile, got=%#v", profile["cfg_scale"])
+		}
+	default:
+		t.Fatalf("expected default cfg_scale=1 for canonical image profile, got=%#v", profile["cfg_scale"])
+	}
 	switch got := profile["step"].(type) {
 	case int:
 		if got != 25 {
@@ -221,6 +237,101 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 		}
 	default:
 		t.Fatalf("expected profile overrides to carry through without engine_config defaults, got=%#v", profile["step"])
+	}
+}
+
+func TestResolveManagedMediaImageProfilePreservesExplicitCFGScale(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"cfg_scale": 3,
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile with explicit cfg_scale: %v", err)
+	}
+	switch got := profile["cfg_scale"].(type) {
+	case int:
+		if got != 3 {
+			t.Fatalf("expected explicit cfg_scale to be preserved, got=%#v", profile["cfg_scale"])
+		}
+	case float64:
+		if got != 3 {
+			t.Fatalf("expected explicit cfg_scale to be preserved, got=%#v", profile["cfg_scale"])
+		}
+	default:
+		t.Fatalf("expected explicit cfg_scale to be preserved, got=%#v", profile["cfg_scale"])
+	}
+}
+
+func TestResolveManagedMediaImageProfileRetainsDiffusionModelWhenOverridesReplaceOptions(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+		},
+		"profile_overrides": map[string]any{
+			"options": []any{"offload_params_to_cpu:false"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve image profile with overriding options: %v", err)
+	}
+	options := valueAsStringSlice(profile["options"])
+	if !containsString(options, "diffusion_model") {
+		t.Fatalf("expected runtime-owned image profile to retain diffusion_model option, got=%v", options)
+	}
+	if !containsString(options, "offload_params_to_cpu:false") {
+		t.Fatalf("expected override option to survive normalization, got=%v", options)
 	}
 }
 

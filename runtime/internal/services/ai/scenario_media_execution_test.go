@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -34,6 +33,8 @@ type fakeLocalImageProfileResolver struct {
 	selection           engine.ImageSupervisedMatrixSelection
 	executionHealthy    bool
 	executionDetail     string
+	ensureLoadCalls     int
+	lastLoadReason      string
 	resolveProfileCalls int
 	resolveProfileErr   error
 	lastRequestedModel  string
@@ -62,6 +63,14 @@ func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context
 	return f.selection, nil
 }
 
+func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, profile map[string]any, loadReason string) error {
+	f.ensureLoadCalls++
+	f.lastRequestedModel = requestedModelID
+	f.lastLoadReason = loadReason
+	f.profile = profile
+	return nil
+}
+
 func (f *fakeLocalImageProfileResolver) UpdateManagedMediaImageExecutionStatus(_ context.Context, _ string, healthy bool, detail string) error {
 	f.executionHealthy = healthy
 	f.executionDetail = detail
@@ -71,10 +80,6 @@ func (f *fakeLocalImageProfileResolver) UpdateManagedMediaImageExecutionStatus(_
 func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsManagedModel(t *testing.T) {
 	t.Helper()
 
-	var (
-		loadModelPath string
-		loadModelFile string
-	)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("listen: %v", err)
@@ -84,14 +89,6 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
 		method, _ := grpc.MethodFromServerStream(stream)
 		switch method {
-		case "/backend.Backend/LoadModel":
-			in := dynamicpb.NewMessage(getManagedImageDescriptor(t, "ModelOptions"))
-			if err := stream.RecvMsg(in); err != nil {
-				return err
-			}
-			loadModelPath = readManagedImageStringField(in, "ModelPath")
-			loadModelFile = readManagedImageStringField(in, "ModelFile")
-			return stream.SendMsg(managedImageSuccessResult(t, "loaded"))
 		case "/backend.Backend/GenerateImage":
 			in := dynamicpb.NewMessage(getManagedImageDescriptor(t, "GenerateImageRequest"))
 			if err := stream.RecvMsg(in); err != nil {
@@ -122,8 +119,8 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 		forwardedExtensions: map[string]any{
 			"step": 25,
 		},
-		modelsRoot:      tempDir,
-		backendAddress:  listener.Addr().String(),
+		modelsRoot:     tempDir,
+		backendAddress: listener.Addr().String(),
 		selection: engine.ImageSupervisedMatrixSelection{
 			Matched:        true,
 			EntryID:        "linux-x64-nvidia-gguf",
@@ -179,14 +176,14 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	if err != nil {
 		t.Fatalf("executeBackendSyncMedia: %v", err)
 	}
-	if loadModelPath != tempDir {
-		t.Fatalf("expected managed image models root %q, got %q", tempDir, loadModelPath)
-	}
-	if loadModelFile != filepath.Join(tempDir, "resolved", "example", "model.gguf") {
-		t.Fatalf("expected absolute managed image model path, got %q", loadModelFile)
-	}
 	if len(artifacts) != 1 {
 		t.Fatalf("expected one artifact, got %d", len(artifacts))
+	}
+	if resolver.ensureLoadCalls != 1 {
+		t.Fatalf("expected exactly one managed image preload, got %d", resolver.ensureLoadCalls)
+	}
+	if resolver.lastLoadReason != "generate_request" {
+		t.Fatalf("expected generate load reason, got %q", resolver.lastLoadReason)
 	}
 	if !resolver.executionHealthy {
 		t.Fatalf("expected successful execution status callback, detail=%q", resolver.executionDetail)

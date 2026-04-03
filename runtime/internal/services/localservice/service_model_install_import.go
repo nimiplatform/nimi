@@ -130,6 +130,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if fallbackEnginesErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
+	logicalModelID := manifestStringDefault(manifest, "logical_model_id", "logicalModelId")
 	repo := manifestStringDefault(manifest, "repo")
 	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
 	if sourceValue, ok := manifest["source"]; ok {
@@ -150,6 +151,29 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		repo = "file://" + filepath.ToSlash(manifestPath)
 	}
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		tempModel := &runtimev1.LocalAssetRecord{
+			AssetId:        assetID,
+			Kind:           kind,
+			Capabilities:   append([]string(nil), capabilities...),
+			Engine:         engine,
+			Entry:          entry,
+			Source:         &runtimev1.LocalAssetSource{Repo: repo, Revision: revision},
+			Hashes:         cloneStringMap(hashes),
+			LogicalModelId: logicalModelID,
+		}
+		entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(resolveLocalModelsPath(s.localModelsPath), tempModel)
+		if resolveErr != nil {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+				Message: resolveErr.Error(),
+			})
+		}
+		if validateErr := s.validateManagedModelEntryForModel(entryPath, tempModel); validateErr != nil {
+			return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+				Message: validateErr.Error(),
+			})
+		}
+	}
 
 	record, err := s.installLocalAssetRecord(
 		assetID,
@@ -166,7 +190,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
 		engineConfig,
 		&modelregistry.NativeProjection{
-			LogicalModelID:  manifestStringDefault(manifest, "logical_model_id", "logicalModelId"),
+			LogicalModelID:  logicalModelID,
 			Family:          manifestStringDefault(manifest, "family"),
 			ArtifactRoles:   artifactRoles,
 			PreferredEngine: preferredEngine,

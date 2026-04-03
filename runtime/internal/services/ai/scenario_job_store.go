@@ -355,13 +355,35 @@ func (s *Service) submitScenarioAsyncJob(
 	mode runtimev1.ExecutionMode,
 	ignored []*runtimev1.IgnoredScenarioExtension,
 ) (*runtimev1.SubmitScenarioJobResponse, error) {
+	requestedModelID := ""
+	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED
+	if req != nil {
+		requestedModelID = strings.TrimSpace(req.GetHead().GetModelId())
+		scenarioType = req.GetScenarioType()
+	}
+	logLocalImageSubmit := s != nil &&
+		s.logger != nil &&
+		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE &&
+		preferredRoute(requestedModelID) == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	if logLocalImageSubmit {
+		s.logger.Info("submit local image scenario job: start", "requested_model_id", requestedModelID)
+	}
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
 	}
 
+	prepareStartedAt := time.Now()
 	remoteTarget, err := s.prepareScenarioRequestWithExtensions(ctx, req.GetHead(), req.GetScenarioType(), req.GetExtensions())
 	if err != nil {
 		return nil, err
+	}
+	if logLocalImageSubmit {
+		s.logger.Info(
+			"submit local image scenario job: request prepared",
+			"requested_model_id", requestedModelID,
+			"prepare_ms", time.Since(prepareStartedAt).Milliseconds(),
+			"remote_target", remoteTarget != nil,
+		)
 	}
 
 	idempotencyScope, err := buildScenarioJobIdempotencyScope(req)
@@ -382,6 +404,7 @@ func (s *Service) submitScenarioAsyncJob(
 	s.attachQueueWaitUnary(ctx, acquireResult)
 	s.logQueueWait("submit_scenario_job", req.GetHead().GetAppId(), acquireResult)
 
+	resolveStartedAt := time.Now()
 	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
 		ctx,
 		req.GetHead().GetRoutePolicy(),
@@ -392,8 +415,25 @@ func (s *Service) submitScenarioAsyncJob(
 	if err != nil {
 		return nil, err
 	}
+	if logLocalImageSubmit {
+		s.logger.Info(
+			"submit local image scenario job: provider resolved",
+			"requested_model_id", requestedModelID,
+			"model_resolved", strings.TrimSpace(modelResolved),
+			"route_decision", routeDecision.String(),
+			"resolve_ms", time.Since(resolveStartedAt).Milliseconds(),
+		)
+	}
+	capabilityStartedAt := time.Now()
 	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
+	}
+	if logLocalImageSubmit {
+		s.logger.Info(
+			"submit local image scenario job: capability validated",
+			"model_resolved", strings.TrimSpace(modelResolved),
+			"validate_ms", time.Since(capabilityStartedAt).Milliseconds(),
+		)
 	}
 	if _, iteration, resolveErr := resolveMusicGenerateExtensionPayload(req); resolveErr != nil {
 		return nil, resolveErr
@@ -453,6 +493,14 @@ func (s *Service) submitScenarioAsyncJob(
 		s.scenarioJobs.bindIdempotency(idempotencyScope, jobID)
 	}
 	go s.executeScenarioAsyncJob(jobCtx, jobID, cloneSubmitScenarioJobRequest(req), selectedProvider, modelResolved, remoteTarget)
+	if logLocalImageSubmit {
+		s.logger.Info(
+			"submit local image scenario job: submitted",
+			"job_id", jobID,
+			"trace_id", traceID,
+			"model_resolved", strings.TrimSpace(modelResolved),
+		)
+	}
 	return &runtimev1.SubmitScenarioJobResponse{
 		Job: snapshot,
 	}, nil

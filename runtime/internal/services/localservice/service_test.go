@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -76,6 +77,65 @@ func setManagedImageHostForTest(t *testing.T, chip string) {
 	t.Helper()
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "apple")
 	t.Setenv("NIMI_RUNTIME_GPU_MODEL", chip)
+}
+
+func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {
+	t.Helper()
+	manifestPath := filepath.Join(svc.localModelsPath, "resolved", filepath.FromSlash(logicalModelID), "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": logicalModelID,
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+		"engineConfig": map[string]any{
+			"backend": "stablediffusion-ggml",
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal image manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("mkdir image manifest dir: %v", err)
+	}
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write image entry: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write image manifest: %v", err)
+	}
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("import image asset: %v", err)
+	}
+	return imported.GetAsset()
+}
+
+func cacheManagedImageProfileForTest(t *testing.T, svc *Service, localAssetID string) map[string]any {
+	t.Helper()
+	model := svc.modelByID(localAssetID)
+	if model == nil {
+		t.Fatalf("missing local asset %q", localAssetID)
+	}
+	modelPath := filepath.Join(runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId()), model.GetEntry())
+	profile := map[string]any{
+		"backend": "stablediffusion-ggml",
+		"parameters": map[string]any{
+			"model": modelPath,
+		},
+		"cfg_scale": 1,
+		"options": []any{
+			"diffusion_model",
+			"llm_path:/tmp/qwen.gguf",
+			"vae_path:/tmp/ae.safetensors",
+		},
+	}
+	svc.cacheManagedMediaImageProfile(localAssetID, "test-managed-image-profile", profile)
+	return profile
 }
 
 func containsWarning(values []string, target string) bool {
@@ -1254,7 +1314,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 	payload := []byte("verified-vae")
 	sum := sha256.Sum256(payload)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
+		if r.URL.Path != "/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors" {
 			http.NotFound(w, r)
 			return
 		}
@@ -1270,13 +1330,13 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 			AssetId:    "local/z_image_ae",
 			Kind:       runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 			Engine:     "media",
-			Entry:      "vae/diffusion_pytorch_model.safetensors",
-			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
-			License:    "tongyi",
-			Repo:       "Tongyi-MAI/Z-Image-Turbo",
+			Entry:      "ae.safetensors",
+			Files:      []string{"ae.safetensors"},
+			License:    "apache-2.0",
+			Repo:       "black-forest-labs/FLUX.1-schnell",
 			Revision:   "main",
 			Hashes: map[string]string{
-				"vae/diffusion_pytorch_model.safetensors": fmt.Sprintf("sha256:%x", sum),
+				"ae.safetensors": fmt.Sprintf("sha256:%x", sum),
 			},
 		},
 	}
@@ -2323,7 +2383,7 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(entryPath, []byte("gguf"), 0o600); err != nil {
+	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
 		t.Fatalf("write entry file: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
@@ -2369,7 +2429,7 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(entryPath, []byte("gguf"), 0o600); err != nil {
+	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
 		t.Fatalf("write entry file: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
@@ -2417,9 +2477,7 @@ func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testi
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	imageEntryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
-	entryPayload := append([]byte("GGUF"), make([]byte, 4*1024-4)...)
-	entryPayload[4] = 1
-	if err := os.WriteFile(imageEntryPath, entryPayload, 0o600); err != nil {
+	if err := os.WriteFile(imageEntryPath, validImageTestGGUF(), 0o600); err != nil {
 		t.Fatalf("write entry file: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
@@ -2483,6 +2541,162 @@ func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testi
 	}
 	if got := mgr.lastStartConfig.MediaMode; got != engine.MediaModeProxyExecution {
 		t.Fatalf("expected explicit proxy media mode, got %q", got)
+	}
+}
+
+func TestListLocalAssetsDoesNotLoadManagedImageInBackground(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-list-idle")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	if _, err := svc.updateModelStatus(asset.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "seed unhealthy"); err != nil {
+		t.Fatalf("seed unhealthy image status: %v", err)
+	}
+
+	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	if err != nil {
+		t.Fatalf("ListLocalAssets: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one asset, got %d", len(resp.GetAssets()))
+	}
+	if loadCalls != 0 {
+		t.Fatalf("expected list to avoid managed image load, got %d calls", loadCalls)
+	}
+}
+
+func TestCheckLocalAssetHealthBulkDoesNotLoadManagedImage(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-health-bulk")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{})
+	if err != nil {
+		t.Fatalf("CheckLocalAssetHealth: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one asset, got %d", len(resp.GetAssets()))
+	}
+	if loadCalls != 0 {
+		t.Fatalf("expected bulk health to avoid managed image load, got %d calls", loadCalls)
+	}
+}
+
+func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-explicit-health")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: asset.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("CheckLocalAssetHealth(targeted): %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one health row, got %d", len(resp.GetAssets()))
+	}
+	if loadCalls != 1 {
+		t.Fatalf("expected one managed image load, got %d", loadCalls)
+	}
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active image asset, got %s", got)
+	}
+	if detail := resp.GetAssets()[0].GetDetail(); !strings.Contains(detail, "backend load verified") {
+		t.Fatalf("unexpected health detail: %q", detail)
+	}
+}
+
+func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-recovery-idle")
+	cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+	if _, err := svc.updateModelStatus(asset.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "seed unhealthy"); err != nil {
+		t.Fatalf("seed unhealthy image status: %v", err)
+	}
+
+	svc.runRecoverySweep(context.Background())
+	if loadCalls != 0 {
+		t.Fatalf("expected recovery sweep to skip managed image load, got %d calls", loadCalls)
+	}
+}
+
+func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-cache-reuse")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, "generate_request"); err != nil {
+		t.Fatalf("first EnsureManagedMediaImageLoaded: %v", err)
+	}
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, "generate_request"); err != nil {
+		t.Fatalf("second EnsureManagedMediaImageLoaded: %v", err)
+	}
+	if loadCalls != 1 {
+		t.Fatalf("expected cache hit on second explicit load, got %d calls", loadCalls)
+	}
+
+	svc.SetManagedMediaDiffusersBackendHealth(false, "backend restarting")
+	svc.SetManagedMediaDiffusersBackendHealth(true, "backend restarted")
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, "generate_request"); err != nil {
+		t.Fatalf("third EnsureManagedMediaImageLoaded after backend epoch bump: %v", err)
+	}
+	if loadCalls != 2 {
+		t.Fatalf("expected backend epoch change to invalidate cache, got %d calls", loadCalls)
 	}
 }
 

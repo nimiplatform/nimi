@@ -56,7 +56,7 @@ func TestTimeoutDurationUsesBoundedOverride(t *testing.T) {
 	}
 }
 
-func TestScenarioJobTimeoutDurationAllowsLongerLocalImageJobs(t *testing.T) {
+func TestScenarioJobTimeoutDurationFloorsShortLocalImageJobs(t *testing.T) {
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			TimeoutMs: int32((10 * time.Minute) / time.Millisecond),
@@ -65,8 +65,8 @@ func TestScenarioJobTimeoutDurationAllowsLongerLocalImageJobs(t *testing.T) {
 	}
 
 	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
-	if got != 10*time.Minute {
-		t.Fatalf("scenarioJobTimeoutDuration(local image 10m) = %s, want %s", got, 10*time.Minute)
+	if got != minLocalImageJobTimeout {
+		t.Fatalf("scenarioJobTimeoutDuration(local image 10m) = %s, want %s", got, minLocalImageJobTimeout)
 	}
 }
 
@@ -81,6 +81,32 @@ func TestScenarioJobTimeoutDurationClampsLocalImageJobsAtSixtyMinutes(t *testing
 	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
 	if got != maxLocalImageJobTimeout {
 		t.Fatalf("scenarioJobTimeoutDuration(local image 90m) = %s, want %s", got, maxLocalImageJobTimeout)
+	}
+}
+
+func TestScenarioJobTimeoutDurationPreservesLongerLocalImageJobsWithinCap(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			TimeoutMs: int32((30 * time.Minute) / time.Millisecond),
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	}
+
+	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
+	if got != 30*time.Minute {
+		t.Fatalf("scenarioJobTimeoutDuration(local image 30m) = %s, want %s", got, 30*time.Minute)
+	}
+}
+
+func TestScenarioJobTimeoutDurationFloorsDefaultLocalImageJobs(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head:         &runtimev1.ScenarioRequestHead{},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+	}
+
+	got := scenarioJobTimeoutDuration(req, defaultGenerateImageTimeout, true)
+	if got != minLocalImageJobTimeout {
+		t.Fatalf("scenarioJobTimeoutDuration(local image default) = %s, want %s", got, minLocalImageJobTimeout)
 	}
 }
 

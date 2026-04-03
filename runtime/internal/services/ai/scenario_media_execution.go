@@ -132,6 +132,10 @@ func executeBackendSyncMedia(
 				)
 			}
 			scenarioExtensions = forwardedExtensions
+			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, profile, "generate_request"); err != nil {
+				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
+				return nil, nil, "", err
+			}
 			payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions)
 			if err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))

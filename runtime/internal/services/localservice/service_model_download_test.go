@@ -16,7 +16,8 @@ import (
 
 func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	modelBytes := []byte("verified-gguf")
+	modelBytes := validTestGGUF()
+	modelBytes[64] = 'v'
 	modelHash := sha256.Sum256(modelBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/nimiplatform/demo-verified/resolve/main/model.gguf" {
@@ -98,7 +99,8 @@ func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 
 func TestInstallLocalModelDownloadsManagedBundleWhenSupervised(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	modelBytes := []byte("manual-gguf")
+	modelBytes := validTestGGUF()
+	modelBytes[64] = 'm'
 	modelHash := sha256.Sum256(modelBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/owner/manual-chat/resolve/main/model.gguf" {
@@ -141,7 +143,8 @@ func TestInstallLocalModelDownloadsManagedBundleWhenSupervised(t *testing.T) {
 func TestInstallLocalModelDownloadFailureQuarantinesNewBundleWithoutDeletingDownloadedBytes(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	modelBytes := []byte("manual-gguf")
+	modelBytes := validTestGGUF()
+	modelBytes[64] = 'q'
 	modelHash := sha256.Sum256(modelBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/owner/manual-chat/resolve/main/model.gguf" {
@@ -200,8 +203,10 @@ func TestInstallLocalModelDownloadFailureQuarantinesNewBundleWithoutDeletingDown
 func TestInstallLocalModelDownloadFailureRestoresExistingManagedBundle(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	oldBytes := []byte("old-managed-gguf")
-	newBytes := []byte("new-managed-gguf")
+	oldBytes := validTestGGUF()
+	oldBytes[64] = 'o'
+	newBytes := validTestGGUF()
+	newBytes[64] = 'n'
 	modelHash := sha256.Sum256(newBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/owner/manual-chat/resolve/main/model.gguf" {

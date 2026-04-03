@@ -134,7 +134,7 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write source model: %v", err)
 	}
 
@@ -172,8 +172,57 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 	if _, exists := manifest["engine_config"]; exists {
 		t.Fatalf("canonical supervised image manifest must not write engine_config backend markers: %#v", manifest["engine_config"])
 	}
+	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "backend validation pending") {
+		t.Fatalf("health detail = %q", detail)
+	}
 	if _, statErr := os.Stat(sourcePath); statErr != nil {
 		t.Fatalf("source file should remain after file import: %v", statErr)
+	}
+}
+
+func TestImportLocalImageModelFileAcceptsZImageTensorSignatureWithoutSDVersionMetadata(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validImageTestGGUFWithoutSDVersion(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath:     sourcePath,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+	})
+	if err != nil {
+		t.Fatalf("expected official-like z-image gguf import to succeed, got %v", err)
+	}
+}
+
+func TestImportLocalImageModelFileRejectsMissingRuntimeSupportedDiffusionIdentity(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "broken-image.gguf")
+	if err := os.WriteFile(sourcePath, invalidImageTestGGUFWithoutKnownDiffusionSignature(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath:     sourcePath,
+		Capabilities: []string{"image"},
+		Engine:       "media",
+	})
+	if err == nil {
+		t.Fatal("expected invalid image gguf import to fail")
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalAssetFile(image unsupported diffusion identity)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	if !strings.Contains(err.Error(), "runtime-supported diffusion") {
+		t.Fatalf("expected diffusion compatibility validation detail, got %v", err)
 	}
 }
 
@@ -185,7 +234,7 @@ func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *t
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write source model: %v", err)
 	}
 
@@ -219,7 +268,7 @@ func TestImportLocalImageModelFileSupportsAppleSiliconManagedImageHost(t *testin
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write source model: %v", err)
 	}
 
@@ -246,7 +295,7 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K_M.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write source model: %v", err)
 	}
 
@@ -289,7 +338,7 @@ func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *te
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
-	if err := os.WriteFile(sourcePath, validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write source model: %v", err)
 	}
 

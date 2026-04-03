@@ -525,7 +525,7 @@ func TestManagedMediaImageHealingNormalizesSupervisedEndpoint(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("mkdir manifest dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(filepath.Dir(manifestPath), entry), validTestGGUF(), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(filepath.Dir(manifestPath), entry), validImageTestGGUF(), 0o644); err != nil {
 		t.Fatalf("write image bundle entry: %v", err)
 	}
 	if err := os.WriteFile(manifestPath, []byte(`{"asset_id":"`+modelID+`","kind":"image","engine":"media","entry":"`+entry+`","capabilities":["image"],"engine_config":{"backend":"stablediffusion-ggml"}}`), 0o644); err != nil {

@@ -154,6 +154,8 @@ func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address st
 	s.managedMediaBackendConfigured = enabled
 	s.managedMediaBackendHealthy = false
 	s.managedMediaBackendAddress = strings.TrimSpace(address)
+	s.managedMediaBackendEpoch++
+	s.resetManagedMediaImageLoadCacheLocked()
 	now := nowISO()
 	if enabled {
 		if strings.TrimSpace(s.managedMediaBackendInstalledAt) == "" {
@@ -180,6 +182,8 @@ func (s *Service) SetManagedMediaDiffusersBackendHealth(healthy bool, detail str
 	}
 	s.managedMediaBackendHealthy = healthy
 	s.managedMediaBackendUpdatedAt = nowISO()
+	s.managedMediaBackendEpoch++
+	s.resetManagedMediaImageLoadCacheLocked()
 	trimmed := strings.TrimSpace(detail)
 	if healthy {
 		s.managedMediaBackendStatus = runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE

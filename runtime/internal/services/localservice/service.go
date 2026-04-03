@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 )
 
 const (
@@ -55,6 +56,7 @@ type Service struct {
 	managedMediaBackendDetail      string
 	managedMediaBackendInstalledAt string
 	managedMediaBackendUpdatedAt   string
+	managedMediaBackendEpoch       uint64
 
 	mu                        sync.RWMutex
 	assets                    map[string]*runtimev1.LocalAssetRecord
@@ -65,6 +67,8 @@ type Service struct {
 	verified                  []*runtimev1.LocalVerifiedAssetDescriptor
 	catalog                   []*runtimev1.LocalCatalogModelDescriptor
 	managedImageProfiles      map[string]managedImageProfileState
+	managedImageLoadCache     map[string]managedImageLoadedState
+	managedImageLoadInflight  map[string]*managedImageLoadInflight
 	engineMgr                 EngineManager
 	managedLlamaRegistrations map[string]managedLlamaRegistration
 	warmedModelKeys           map[string]struct{}
@@ -77,6 +81,7 @@ type Service struct {
 	artifactDownloadMaxBodyBytes int64
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
+	managedImageLoadModel        func(context.Context, managedimagebackend.LoadModelRequest) error
 	assetProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState
 	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
@@ -117,6 +122,8 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		verified:                     verified,
 		catalog:                      defaultCatalogFromVerified(verified),
 		managedImageProfiles:         make(map[string]managedImageProfileState),
+		managedImageLoadCache:        make(map[string]managedImageLoadedState),
+		managedImageLoadInflight:     make(map[string]*managedImageLoadInflight),
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
 		warmedModelOrder:             make([]string, 0, 512),
@@ -127,6 +134,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
 		modelDownloadTimeout:         localModelDownloadTimeout,
 		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
+		managedImageLoadModel:        managedimagebackend.LoadModel,
 		assetProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
 		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),

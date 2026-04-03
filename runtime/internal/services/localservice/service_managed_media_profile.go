@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sort"
 	"strings"
 
@@ -291,7 +292,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		return "", nil, nil, err
 	}
 
-	profile := mergeMaps(nil, profileOverrides)
+	profile := managedMediaNormalizeImageProfile(model, mergeMaps(structToMap(model.GetEngineConfig()), profileOverrides))
 
 	var modelPath string
 	slotPaths := map[string]string{}
@@ -355,6 +356,87 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	s.cacheManagedMediaImageProfile(model.GetLocalAssetId(), alias, profile)
 
 	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
+}
+
+func managedMediaNormalizeImageProfile(model *runtimev1.LocalAssetRecord, profile map[string]any) map[string]any {
+	out := cloneAnyMap(profile)
+	if model == nil {
+		return out
+	}
+	if !isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
+		return out
+	}
+	if strings.TrimSpace(valueAsString(out["backend"])) == "" {
+		out["backend"] = "stablediffusion-ggml"
+	}
+	if !managedMediaProfileHasCFGScale(out) {
+		out["cfg_scale"] = 1
+	}
+	out["options"] = managedMediaEnsureImageOptions(valueAsStringSlice(out["options"]))
+	return out
+}
+
+func managedMediaProfileHasCFGScale(profile map[string]any) bool {
+	for _, value := range []any{
+		profile["cfg_scale"],
+		profile["cfgScale"],
+		valueAsObject(profile["parameters"])["cfg_scale"],
+		valueAsObject(profile["parameters"])["cfgScale"],
+	} {
+		switch typed := value.(type) {
+		case float32:
+			if typed > 0 {
+				return true
+			}
+		case float64:
+			if typed > 0 {
+				return true
+			}
+		case int:
+			if typed > 0 {
+				return true
+			}
+		case int32:
+			if typed > 0 {
+				return true
+			}
+		case int64:
+			if typed > 0 {
+				return true
+			}
+		case string:
+			if trimmed := strings.TrimSpace(typed); trimmed != "" {
+				if parsed, err := strconv.ParseFloat(trimmed, 32); err == nil && parsed > 0 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func managedMediaEnsureImageOptions(options []string) []string {
+	out := make([]string, 0, len(options)+1)
+	hasDiffusionModel := false
+	for _, option := range options {
+		trimmed := strings.TrimSpace(option)
+		if trimmed == "" {
+			continue
+		}
+		if strings.EqualFold(trimmed, "diffusion_model") {
+			if hasDiffusionModel {
+				continue
+			}
+			hasDiffusionModel = true
+			out = append(out, "diffusion_model")
+			continue
+		}
+		out = append(out, trimmed)
+	}
+	if !hasDiffusionModel {
+		out = append([]string{"diffusion_model"}, out...)
+	}
+	return out
 }
 
 func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalAssetRecord {

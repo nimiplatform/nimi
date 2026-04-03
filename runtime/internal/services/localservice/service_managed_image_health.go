@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,13 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
 )
 
+var errManagedImageValidationPending = errors.New("managed local image backend validation pending")
+
 func (s *Service) checkManagedSupervisedImageHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*runtimev1.LocalAssetHealth, error) {
+	return s.checkManagedSupervisedImageHealthWithReason(ctx, model, "explicit_health_check")
+}
+
+func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Context, model *runtimev1.LocalAssetRecord, loadReason string) (*runtimev1.LocalAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -29,7 +36,7 @@ func (s *Service) checkManagedSupervisedImageHealth(ctx context.Context, model *
 		return s.setManagedSupervisedImageUnhealthy(model, appendSanitizedBootstrapFailureDetail(managedLocalImageExecutionFailureDetail(err.Error()), err))
 	}
 
-	result, err := s.preflightManagedSupervisedImage(ctx, model)
+	result, err := s.preflightManagedSupervisedImage(ctx, model, loadReason)
 	if err != nil {
 		detail := managedLocalImageExecutionFailureDetail(err.Error())
 		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
@@ -66,7 +73,7 @@ type managedImagePreflightResult struct {
 	detail  string
 }
 
-func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *runtimev1.LocalAssetRecord) (managedImagePreflightResult, error) {
+func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *runtimev1.LocalAssetRecord, loadReason string) (managedImagePreflightResult, error) {
 	if model == nil {
 		return managedImagePreflightResult{}, fmt.Errorf("managed local image is unavailable")
 	}
@@ -78,15 +85,14 @@ func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *ru
 			detail:  managedLocalImagePendingValidationDetail("runtime profile bindings not cached yet"),
 		}, nil
 	}
-	modelsRoot, backendAddress, err := s.ResolveManagedMediaBackendTarget(ctx)
-	if err != nil {
-		return managedImagePreflightResult{}, err
+	err := s.ensureManagedSupervisedImageLoaded(ctx, model, cached.Alias, cached.Profile, loadReason)
+	if errors.Is(err, errManagedImageValidationPending) {
+		return managedImagePreflightResult{
+			pending: true,
+			detail:  managedLocalImagePendingValidationDetail("runtime profile bindings not cached yet"),
+		}, nil
 	}
-	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, cached.Profile)
 	if err != nil {
-		return managedImagePreflightResult{}, err
-	}
-	if err := managedimagebackend.LoadModel(ctx, loadReq); err != nil {
 		return managedImagePreflightResult{}, err
 	}
 	return managedImagePreflightResult{
@@ -152,6 +158,7 @@ func (s *Service) setManagedSupervisedImageUnhealthy(model *runtimev1.LocalAsset
 		return nil, nil
 	}
 	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
+	s.clearManagedMediaImageLoadCache(localAssetID)
 	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		s.setModelHealthDetail(localAssetID, detail)
 		return modelHealth(s.modelByID(localAssetID)), nil

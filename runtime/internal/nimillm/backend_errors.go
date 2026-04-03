@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -153,6 +154,22 @@ func MapProviderRequestError(err error) error {
 	metadata := map[string]string{}
 	if providerMessage != "" {
 		metadata["provider_message"] = providerMessage
+	}
+	if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.DeadlineExceeded:
+			return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+				ActionHint: "retry_or_check_provider_endpoint",
+				Message:    "provider request timed out",
+				Metadata:   metadata,
+			})
+		case codes.Unavailable:
+			return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
+				ActionHint: "check_provider_endpoint_or_local_runtime_health",
+				Message:    "provider request failed",
+				Metadata:   metadata,
+			})
+		}
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{

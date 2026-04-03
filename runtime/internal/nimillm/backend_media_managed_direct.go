@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
@@ -112,7 +113,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	step := managedMediaResolveStep(profile, scenarioExtensions)
 
 	destinationPath := filepath.Join(tempDir, "artifact.png")
-	err = managedimagebackend.LoadModelAndGenerateImage(ctx, managedimagebackend.ImageRequest{
+	err = managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
 		BackendAddress: backendAddress,
 		ModelsRoot:     modelsRoot,
 		ModelPath:      modelPath,
@@ -130,6 +131,10 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		RefImages:      refImages,
 	})
 	if err != nil {
+		switch status.Code(err) {
+		case codes.DeadlineExceeded, codes.Unavailable:
+			return nil, nil, nil, MapProviderRequestError(err)
+		}
 		providerMessage := strings.TrimSpace(err.Error())
 		return nil, nil, nil, grpcerr.WithReasonCodeOptions(
 			codes.Internal,

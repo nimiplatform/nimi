@@ -375,6 +375,25 @@ func TestMapProviderRequestError_NetworkTimeout(t *testing.T) {
 	}
 }
 
+func TestMapProviderRequestError_GRPCDeadlineExceeded(t *testing.T) {
+	err := MapProviderRequestError(status.Error(codes.DeadlineExceeded, "generate managed media image: rpc error: code = DeadlineExceeded desc = context deadline exceeded"))
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatal("expected gRPC status error")
+	}
+	if st.Code() != codes.DeadlineExceeded {
+		t.Fatalf("expected DeadlineExceeded, got %v", st.Code())
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("expected AI_PROVIDER_TIMEOUT, got %v", reason)
+	}
+	metadata := extractErrorInfoMetadata(err)
+	if !strings.Contains(metadata["provider_message"], "DeadlineExceeded") {
+		t.Fatalf("expected provider_message to keep backend timeout detail, got %q", metadata["provider_message"])
+	}
+}
+
 func TestMapProviderRequestError_GenericNetwork(t *testing.T) {
 	err := MapProviderRequestError(&net.DNSError{Err: "connection refused"})
 	reason, ok := grpcerr.ExtractReasonCode(err)

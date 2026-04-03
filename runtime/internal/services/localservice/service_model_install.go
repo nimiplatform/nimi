@@ -310,6 +310,10 @@ func (s *Service) installLocalAssetRecord(
 			s.managedEndpointForAssetLocked(engine, capabilities, kind),
 		),
 	}
+	if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
+		isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
+		record.HealthDetail = managedLocalImagePendingValidationDetail("")
+	}
 	if isRunnableKind(kind) && len(record.GetCapabilities()) == 0 {
 		record.Capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
@@ -360,6 +364,10 @@ func (s *Service) installLocalAssetRecord(
 				endpoint,
 				s.managedEndpointForAssetLocked(engine, capabilities, kind),
 			)
+			if normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED &&
+				isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
+				cloned.HealthDetail = managedLocalImagePendingValidationDetail("")
+			}
 			s.assets[cloned.GetLocalAssetId()] = cloneLocalAsset(cloned)
 			s.setModelRuntimeModeLocked(cloned.GetLocalAssetId(), mode)
 			delete(s.assetProbeState, cloned.GetLocalAssetId())

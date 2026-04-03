@@ -116,6 +116,23 @@ func (s *Service) installManagedDownloadedModel(
 		}
 		actualHashes[relativeFile] = "sha256:" + fileHash
 	}
+	entryFile := strings.TrimSpace(spec.entry)
+	if entryFile == "" && len(files) > 0 {
+		entryFile = files[0]
+	}
+	entryPath := filepath.Join(stagingDir, filepath.FromSlash(entryFile))
+	if err := validateManagedModelEntryFile(entryPath); err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
+	if err := validateManagedModelEntryStaticCompatibility(entryPath, spec.kind, spec.capabilities, spec.engine); err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
 
 	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")
 	if err := writeModelManifest(manifestPathForStaging(stagingDir), managedModelManifestDescriptor{
