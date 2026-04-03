@@ -13,9 +13,9 @@ vi.stubGlobal('localStorage', {
   removeItem: (key: string) => storage.delete(key),
 });
 
-const listLocalModels = vi.fn().mockResolvedValue({
-  models: [
-    { localModelId: 'qwen3-4b', modelId: 'Qwen3-4B-Q4', capabilities: ['text.generate'], engine: 'llama', status: 2 },
+const listLocalAssets = vi.fn().mockResolvedValue({
+  assets: [
+    { localAssetId: 'qwen3-4b', logicalModelId: 'Qwen3-4B-Q4', capabilities: ['text.generate'], engine: 'llama', status: 2 },
   ],
   nextPageToken: '',
 });
@@ -32,7 +32,7 @@ const healthFn = vi.fn().mockResolvedValue({ status: 'healthy' });
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
-      local: { listLocalModels },
+      local: { listLocalAssets },
       connector: {
         listConnectors,
         listConnectorModels: vi.fn().mockResolvedValue({ models: [], nextPageToken: '' }),
@@ -109,7 +109,7 @@ describe('AiConfigSection', () => {
   it('fetches local models via kit data provider', async () => {
     renderSection();
     await waitFor(() => {
-      expect(listLocalModels).toHaveBeenCalled();
+      expect(listLocalAssets).toHaveBeenCalled();
     });
   });
 });

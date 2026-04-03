@@ -16,16 +16,18 @@ import type {
   ForgeWorkspacePatch,
   ForgeWorkspaceSnapshot,
 } from '@renderer/state/creator-world-workspace.js';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asRecord,
   createForgeAiClient,
   deriveRuleTruthDraftFromWorkspace,
   getSelectedAgentDraftEntries,
   resolveRuleTruthDraft,
-  resolveGeneratedImageUrl,
   toDraftStatus,
 } from './world-create-page-helpers';
+import {
+  generateEntityImage,
+  type ImageGenEntityContext,
+} from '@renderer/data/image-gen-client.js';
 
 function normalizeAgentHandle(characterName: string, worldId: string, index: number): string {
   const worldSuffix = String(worldId || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(-4) || 'wld';
@@ -496,7 +498,6 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         worldCover: { status: 'running', imageUrl: null },
       },
     });
-    const { runtime } = getPlatformClient();
     const world = input.snapshot.worldStateDraft as JsonObject;
     let worldName: string;
     try {
@@ -510,19 +511,16 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       input.setNotice(error instanceof Error ? error.message : 'World name is required before generating a cover.');
       return;
     }
-    const prompt = [
-      'Generate a cinematic world cover image.',
-      `World name: ${worldName}`,
-      `World description: ${String(world.description || input.snapshot.knowledgeGraph.worldSetting || '')}`,
-    ].join('\n');
+    const ctx: ImageGenEntityContext = {
+      target: 'world-banner',
+      worldName,
+      worldDescription: String(world.description || input.snapshot.knowledgeGraph.worldSetting || ''),
+      worldSetting: String(input.snapshot.knowledgeGraph.worldSetting || ''),
+    };
     void (async () => {
       try {
-        const result = await runtime.media.image.generate({
-          model: 'auto',
-          prompt,
-          responseFormat: 'url',
-        });
-        const imageUrl = resolveGeneratedImageUrl(result.artifacts);
+        const result = await generateEntityImage(ctx);
+        const imageUrl = result.candidates[0]?.url || '';
         input.patchWorkspaceSnapshot({
           assets: {
             worldCover: { status: 'succeeded', imageUrl },
@@ -549,20 +547,19 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         characterPortraits: portraits,
       },
     });
-    const { runtime } = getPlatformClient();
-    const prompt = [
-      'Generate a portrait image for this world character.',
-      `Character: ${name}`,
-      `World setting: ${input.snapshot.knowledgeGraph.worldSetting || 'N/A'}`,
-    ].join('\n');
+    const agentDraft = asRecord(input.snapshot.agentSync.draftsByCharacter[name]);
+    const ctx: ImageGenEntityContext = {
+      target: 'agent-avatar',
+      agentName: name,
+      agentConcept: String(agentDraft.concept || agentDraft.backstory || ''),
+      agentDna: agentDraft.dna && typeof agentDraft.dna === 'object' ? agentDraft.dna as JsonObject : null,
+      worldSetting: String(input.snapshot.knowledgeGraph.worldSetting || ''),
+      worldName: String((input.snapshot.worldStateDraft as JsonObject).name || ''),
+    };
     void (async () => {
       try {
-        const result = await runtime.media.image.generate({
-          model: 'auto',
-          prompt,
-          responseFormat: 'url',
-        });
-        const imageUrl = resolveGeneratedImageUrl(result.artifacts);
+        const result = await generateEntityImage(ctx);
+        const imageUrl = result.candidates[0]?.url || '';
         input.patchWorkspaceSnapshot({
           assets: {
             characterPortraits: {

@@ -86,9 +86,11 @@ function mapLocalStatus(raw: number): RouteLocalModel['status'] {
 /**
  * Creates a data provider that calls the runtime SDK directly.
  * Use this for Tauri apps where the SDK is available in the renderer.
+ *
+ * Accepts the SDK runtime client which uses `listLocalAssets` (asset-based model API).
  */
 export function createSdkRouteDataProvider(runtime: {
-  local: { listLocalModels: (req: any) => Promise<{ models: any[] }> };
+  local: { listLocalAssets: (req: any) => Promise<{ assets: any[] }> };
   connector: {
     listConnectors: (req: any) => Promise<{ connectors: any[] }>;
     listConnectorModels: (req: any) => Promise<{ models: any[] }>;
@@ -96,14 +98,14 @@ export function createSdkRouteDataProvider(runtime: {
 }): RouteModelPickerDataProvider {
   return {
     async listLocalModels() {
-      const response = await runtime.local.listLocalModels({});
-      return (response.models || [])
-        .map((m: any) => ({
-          localModelId: m.localModelId as string,
-          modelId: m.modelId as string,
-          engine: (m.engine || '') as string,
-          status: mapLocalStatus(m.status as number),
-          capabilities: [...(m.capabilities || [])] as string[],
+      const response = await runtime.local.listLocalAssets({});
+      return (response.assets || [])
+        .map((a: any) => ({
+          localModelId: (a.localAssetId || a.localModelId) as string,
+          modelId: (a.logicalModelId || a.modelId || a.assetId) as string,
+          engine: (a.engine || '') as string,
+          status: mapLocalStatus(a.status as number),
+          capabilities: [...(a.capabilities || [])] as string[],
         }))
         .sort((a: RouteLocalModel, b: RouteLocalModel) => {
           const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];

@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import WorkbenchPage from './workbench-page.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 import { i18n, initI18n } from '@renderer/i18n/index.js';
@@ -51,6 +52,10 @@ function createCharacterManifest(): CharacterCardSourceManifest {
     characterBookEntries: [],
   };
 }
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
 
 describe('WorkbenchPage', () => {
   beforeAll(async () => {
@@ -121,13 +126,15 @@ describe('WorkbenchPage', () => {
     }));
 
     render(
-      <I18nextProvider i18n={i18n}>
-        <MemoryRouter initialEntries={[`/workbench/${workspaceId}?panel=REVIEW`]}>
-          <Routes>
-            <Route path="/workbench/:workspaceId" element={<WorkbenchPage />} />
-          </Routes>
-        </MemoryRouter>
-      </I18nextProvider>,
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter initialEntries={[`/workbench/${workspaceId}?panel=REVIEW`]}>
+            <Routes>
+              <Route path="/workbench/:workspaceId" element={<WorkbenchPage />} />
+            </Routes>
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
     );
 
     const button = await screen.findByRole('button', { name: 'Build Publish Plan' });
@@ -157,13 +164,15 @@ describe('WorkbenchPage', () => {
     });
 
     render(
-      <I18nextProvider i18n={i18n}>
-        <MemoryRouter initialEntries={[`/workbench/${workspaceId}?panel=AGENTS`]}>
-          <Routes>
-            <Route path="/workbench/:workspaceId" element={<WorkbenchPage />} />
-          </Routes>
-        </MemoryRouter>
-      </I18nextProvider>,
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter initialEntries={[`/workbench/${workspaceId}?panel=AGENTS`]}>
+            <Routes>
+              <Route path="/workbench/:workspaceId" element={<WorkbenchPage />} />
+            </Routes>
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
     );
 
     fireEvent.click(await screen.findByRole('button', { name: 'Clone to World' }));

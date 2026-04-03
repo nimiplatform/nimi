@@ -7,6 +7,8 @@ import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js
 import { WorldCreatePageView } from '@renderer/pages/worlds/world-create-page.js';
 import { WorldMaintainPageView } from '@renderer/pages/worlds/world-maintain-page.js';
 import { publishForgeWorkspacePlan, type PublishProgress } from '@renderer/features/import/data/import-publish-client.js';
+import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
+import type { ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
 
 type WorkbenchPanel = ForgeWorkspacePanel;
 
@@ -61,6 +63,24 @@ export default function WorkbenchPage() {
 
   const [publishProgress, setPublishProgress] = useState<PublishProgress | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const imageGen = useImageGeneration();
+  const [visualPrompt, setVisualPrompt] = useState('');
+
+  const VISUAL_PHASE_LABELS: Record<string, string> = {
+    composing_prompt: 'Composing prompt...',
+    generating: 'Generating...',
+    uploading: 'Uploading...',
+    binding: 'Binding...',
+  };
+
+  function buildWorldImageContext(target: 'world-banner' | 'world-icon'): ImageGenEntityContext {
+    return {
+      target,
+      worldName: snapshot?.worldDraft.name || snapshot?.workspace.title || '',
+      worldDescription: snapshot?.worldDraft.description || '',
+      userPrompt: visualPrompt.trim() || undefined,
+    };
+  }
 
   if (!snapshot) {
     return (
@@ -259,6 +279,102 @@ export default function WorkbenchPage() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* World Visuals */}
+            <div className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-white">World Visuals</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => void imageGen.generate(buildWorldImageContext('world-banner'))}
+                    disabled={imageGen.busy}
+                    className="rounded-xl bg-white px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
+                  >
+                    {imageGen.busy ? (VISUAL_PHASE_LABELS[imageGen.phase] || imageGen.phase) : 'Generate Banner'}
+                  </button>
+                  <button
+                    onClick={() => void imageGen.generate(buildWorldImageContext('world-icon'))}
+                    disabled={imageGen.busy}
+                    className="rounded-xl border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
+                  >
+                    Generate Icon
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={visualPrompt}
+                  onChange={(e) => setVisualPrompt(e.target.value)}
+                  placeholder="Additional prompt instructions (optional)..."
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
+                />
+              </div>
+
+              {imageGen.error ? (
+                <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2">
+                  <p className="text-xs text-red-400">{imageGen.error}</p>
+                  <button onClick={imageGen.clearError} className="mt-1 text-xs text-red-300 underline">
+                    Dismiss
+                  </button>
+                </div>
+              ) : null}
+
+              {imageGen.candidates.length > 0 ? (
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {imageGen.candidates.map((candidate) => (
+                    <div
+                      key={candidate.id}
+                      className="group relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950"
+                    >
+                      <img src={candidate.url} alt="" className="aspect-video w-full object-cover" />
+                      <div className="absolute inset-0 flex items-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="flex w-full gap-1.5">
+                          {snapshot.worldDraft.worldId ? (
+                            <>
+                              <button
+                                onClick={() => void imageGen.useAsWorldBanner(snapshot.worldDraft.worldId!, candidate)}
+                                disabled={imageGen.busy}
+                                className="flex-1 rounded-lg bg-white px-2 py-1 text-[11px] font-medium text-black disabled:opacity-50"
+                              >
+                                Set as Banner
+                              </button>
+                              <button
+                                onClick={() => void imageGen.useAsWorldIcon(snapshot.worldDraft.worldId!, candidate)}
+                                disabled={imageGen.busy}
+                                className="flex-1 rounded-lg bg-neutral-700 px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                              >
+                                Set as Icon
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            onClick={() => void imageGen.saveToLibrary(candidate)}
+                            disabled={imageGen.busy}
+                            className="rounded-lg bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-300 disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => imageGen.removeCandidate(candidate.id)}
+                            className="rounded-lg bg-neutral-900 px-2 py-1 text-[11px] font-medium text-neutral-500"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {!snapshot.worldDraft.worldId && imageGen.candidates.length > 0 ? (
+                <p className="mt-2 text-xs text-neutral-500">
+                  Publish the world first to bind images as banner or icon.
+                </p>
+              ) : null}
             </div>
           </section>
         ) : null}

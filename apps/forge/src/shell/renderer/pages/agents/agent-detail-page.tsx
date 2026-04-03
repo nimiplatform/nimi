@@ -12,6 +12,8 @@ import {
   useCreatorKeysQuery,
 } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
+import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
+import type { ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
 import {
   DnaTab,
   KeysTab,
@@ -21,17 +23,26 @@ import {
 
 type TabId = 'profile' | 'dna' | 'preview' | 'keys';
 
+const PHASE_LABELS: Record<string, string> = {
+  composing_prompt: 'Composing prompt...',
+  generating: 'Generating...',
+  uploading: 'Uploading...',
+  binding: 'Setting avatar...',
+};
+
 export default function AgentDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { agentId } = useParams<{ agentId: string }>();
 
   const [activeTab, setActiveTab] = useState<TabId>('profile');
+  const [avatarPrompt, setAvatarPrompt] = useState('');
 
   const agentQuery = useAgentDetailQuery(agentId || '');
   const keysQuery = useCreatorKeysQuery();
   const mutations = useAgentMutations();
   const queryClient = useQueryClient();
+  const imageGen = useImageGeneration();
   const tabs: { id: TabId; label: string }[] = [
     { id: 'profile', label: t('agentDetail.tabProfile', 'Profile') },
     { id: 'dna', label: t('agentDetail.tabDna', 'DNA') },
@@ -66,6 +77,24 @@ export default function AgentDetailPage() {
     );
   }
 
+  function buildAgentImageContext(target: 'agent-avatar' | 'agent-portrait'): ImageGenEntityContext {
+    const soulPrime = soulPrimeQuery.data;
+    return {
+      target,
+      agentDna: agent!.dna,
+      agentSoulPrime: soulPrime ? {
+        backstory: String(soulPrime.structured?.backstory || ''),
+        coreValues: String(soulPrime.structured?.coreValues || ''),
+        personalityDescription: String(soulPrime.structured?.personalityDescription || ''),
+        guidelines: String(soulPrime.structured?.guidelines || ''),
+        catchphrase: String(soulPrime.structured?.catchphrase || ''),
+      } : null,
+      agentName: agent!.displayName || agent!.handle,
+      agentConcept: agent!.concept,
+      userPrompt: avatarPrompt.trim() || undefined,
+    };
+  }
+
   return (
     <div className="h-full overflow-auto p-6">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -93,6 +122,89 @@ export default function AgentDetailPage() {
               <p className="text-xs text-neutral-500">@{agent.handle}</p>
             </div>
           </div>
+        </div>
+
+        {/* Avatar Generation */}
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">
+              {t('agentDetail.avatarGeneration', 'Avatar Generation')}
+            </h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => void imageGen.generate(buildAgentImageContext('agent-avatar'))}
+                disabled={imageGen.busy}
+                className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
+              >
+                {imageGen.busy && imageGen.phase !== 'idle'
+                  ? PHASE_LABELS[imageGen.phase] || imageGen.phase
+                  : t('agentDetail.generateAvatar', 'Generate Avatar')}
+              </button>
+              <button
+                onClick={() => void imageGen.generate(buildAgentImageContext('agent-portrait'))}
+                disabled={imageGen.busy}
+                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
+              >
+                {t('agentDetail.generatePortrait', 'Generate Portrait')}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <input
+              type="text"
+              value={avatarPrompt}
+              onChange={(e) => setAvatarPrompt(e.target.value)}
+              placeholder={t('agentDetail.avatarPromptPlaceholder', 'Additional prompt instructions (optional)...')}
+              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
+            />
+          </div>
+
+          {imageGen.error ? (
+            <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
+              <p className="text-xs text-red-400">{imageGen.error}</p>
+              <button onClick={imageGen.clearError} className="mt-1 text-xs text-red-300 underline">
+                {t('agentDetail.dismiss', 'Dismiss')}
+              </button>
+            </div>
+          ) : null}
+
+          {imageGen.candidates.length > 0 ? (
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {imageGen.candidates.map((candidate) => (
+                <div
+                  key={candidate.id}
+                  className="group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950"
+                >
+                  <img src={candidate.url} alt="" className="aspect-square w-full object-cover" />
+                  <div className="absolute inset-0 flex items-end bg-black/60 p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex w-full gap-1.5">
+                      <button
+                        onClick={() => void imageGen.useAsAgentAvatar(agentId!, candidate)}
+                        disabled={imageGen.busy}
+                        className="flex-1 rounded bg-white px-2 py-1 text-[11px] font-medium text-black disabled:opacity-50"
+                      >
+                        {t('agentDetail.useAsAvatar', 'Use as Avatar')}
+                      </button>
+                      <button
+                        onClick={() => void imageGen.saveToLibrary(candidate)}
+                        disabled={imageGen.busy}
+                        className="rounded bg-neutral-700 px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                      >
+                        {t('agentDetail.save', 'Save')}
+                      </button>
+                      <button
+                        onClick={() => imageGen.removeCandidate(candidate.id)}
+                        className="rounded bg-neutral-800 px-2 py-1 text-[11px] font-medium text-neutral-400"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex border-b border-neutral-800">
