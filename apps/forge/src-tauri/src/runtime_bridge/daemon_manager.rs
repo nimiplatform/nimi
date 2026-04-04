@@ -410,9 +410,11 @@ fn run_runtime_cli(args: &[&str], stdin_payload: Option<&str>) -> Result<String,
 #[cfg(test)]
 mod tests {
     use super::{
-        config_get, config_set, grpc_addr, runtime_cli_command_spec, runtime_config_path, start,
-        status, stop, DEFAULT_GRPC_ADDR,
+        grpc_addr, runtime_cli_command_spec, runtime_config_path, start, status, stop,
+        DEFAULT_GRPC_ADDR,
     };
+    #[cfg(unix)]
+    use super::{config_get, config_set};
     use std::fs;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
@@ -548,8 +550,15 @@ mod tests {
         );
 
         let _ = stop();
-        let snapshot = status();
-        assert!(snapshot.last_error.is_none());
+        let current_exe = std::env::current_exe().expect("current exe");
+        with_env_var(
+            "NIMI_RUNTIME_BINARY",
+            current_exe.to_str().expect("current exe path"),
+            || {
+                let snapshot = status();
+                assert!(snapshot.last_error.is_none());
+            },
+        );
     }
 
     #[cfg(unix)]
