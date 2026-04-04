@@ -89,12 +89,12 @@ func TestValidateEngineDownloadRedirect(t *testing.T) {
 	}
 }
 
-func TestValidateOfficialLlamaBackendName(t *testing.T) {
+func TestValidateOfficialManagedImageBackendName(t *testing.T) {
 	for _, backendName := range []string{"llama-cpp", "whisper-ggml", "stablediffusion-ggml"} {
 		t.Run(backendName, func(t *testing.T) {
-			validated, err := validateOfficialLlamaBackendName(backendName)
+			validated, err := validateOfficialManagedImageBackendName(backendName)
 			if err != nil {
-				t.Fatalf("validateOfficialLlamaBackendName(%q): %v", backendName, err)
+				t.Fatalf("validateOfficialManagedImageBackendName(%q): %v", backendName, err)
 			}
 			if validated != backendName {
 				t.Fatalf("expected backend name %q, got %q", backendName, validated)
@@ -102,7 +102,7 @@ func TestValidateOfficialLlamaBackendName(t *testing.T) {
 		})
 	}
 
-	if _, err := validateOfficialLlamaBackendName("custom-backend"); err == nil {
+	if _, err := validateOfficialManagedImageBackendName("custom-backend"); err == nil {
 		t.Fatal("expected unsupported backend to fail validation")
 	}
 }

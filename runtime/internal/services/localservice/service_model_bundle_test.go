@@ -574,7 +574,7 @@ func TestManagedMediaImageHealingNormalizesSupervisedEndpoint(t *testing.T) {
 	svc.persistStateLocked()
 	svc.mu.Unlock()
 
-	healed, changed, err := svc.healManagedSupervisedLlamaRuntimeMode(localModelID)
+	healed, changed, err := svc.healManagedSupervisedRuntimeMode(localModelID)
 	if err != nil {
 		t.Fatalf("heal managed image endpoint: %v", err)
 	}

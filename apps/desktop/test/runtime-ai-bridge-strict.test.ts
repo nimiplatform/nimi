@@ -44,12 +44,12 @@ test('resolveSourceAndModel preserves explicit cloud provider and prefixes cloud
 test('resolveSourceAndModel prefixes llama selectors for local routes', () => {
   const resolved = resolveSourceAndModel({
     provider: 'llama',
-    model: 'z-image-turbo',
+    model: 'qwen3-chat',
     localProviderEndpoint: 'http://127.0.0.1:1234/v1',
   });
 
   assert.equal(resolved.source, 'local');
-  assert.equal(resolved.modelId, 'llama/z-image-turbo');
+  assert.equal(resolved.modelId, 'llama/qwen3-chat');
 });
 
 test('resolveSourceAndModel keeps generic local selector when provider is legacy nexa', () => {

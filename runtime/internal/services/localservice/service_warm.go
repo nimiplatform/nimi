@@ -34,7 +34,7 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 	if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalAssetId()); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(model.GetLocalAssetId()); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    managedLocalAssetRecordFailureDetail(err),
 			ActionHint: "inspect_local_runtime_model_health",

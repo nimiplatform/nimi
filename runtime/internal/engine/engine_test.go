@@ -363,7 +363,7 @@ func TestLlamaSupervisedPlatformSupportedFor(t *testing.T) {
 	}
 }
 
-func TestLlamaImageSupervisedPlatformSupportedFor(t *testing.T) {
+func TestManagedImageSupervisedPlatformSupportedFor(t *testing.T) {
 	tests := []struct {
 		name      string
 		goos      string
@@ -382,8 +382,8 @@ func TestLlamaImageSupervisedPlatformSupportedFor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := LlamaImageSupervisedPlatformSupportedFor(tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel); got != tt.want {
-				t.Fatalf("LlamaImageSupervisedPlatformSupportedFor(%q, %q, %q, %q) = %v, want %v", tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel, got, tt.want)
+			if got := ManagedImageSupervisedPlatformSupportedFor(tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel); got != tt.want {
+				t.Fatalf("ManagedImageSupervisedPlatformSupportedFor(%q, %q, %q, %q) = %v, want %v", tt.goos, tt.goarch, tt.gpuVendor, tt.gpuModel, got, tt.want)
 			}
 		})
 	}
@@ -1130,7 +1130,7 @@ func TestLlamaCommandArgs(t *testing.T) {
 	}
 	args := strings.Join(cmd.Args[1:], " ")
 
-	for _, want := range []string{"--host", "127.0.0.1", "--port", "5555", "--model", filepath.Join("/data/models", "qwen/qwen3.gguf"), "--alias", "managed-qwen"} {
+	for _, want := range []string{"--host", "127.0.0.1", "--port", "5555", "--model", filepath.Join("/data/models", "qwen/qwen3.gguf"), "--reasoning", "off", "--alias", "managed-qwen"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}
@@ -1177,7 +1177,7 @@ func TestDetectLlamaExternalBackendsReturnsNilOnInvalidYaml(t *testing.T) {
 	}
 }
 
-func TestDiscoverInstalledLlamaBackendRunPathPrefersAlias(t *testing.T) {
+func TestDiscoverInstalledManagedImageBackendRunPathPrefersAlias(t *testing.T) {
 	backendsPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "metal-stablediffusion-ggml")
 	if err := os.MkdirAll(backendDir, 0o755); err != nil {
@@ -1191,16 +1191,16 @@ func TestDiscoverInstalledLlamaBackendRunPathPrefersAlias(t *testing.T) {
 		t.Fatalf("write metadata.json: %v", err)
 	}
 
-	discovered, err := discoverInstalledLlamaBackendRunPath(backendsPath, "stablediffusion-ggml")
+	discovered, err := discoverInstalledManagedImageBackendRunPath(backendsPath, "stablediffusion-ggml")
 	if err != nil {
-		t.Fatalf("discoverInstalledLlamaBackendRunPath: %v", err)
+		t.Fatalf("discoverInstalledManagedImageBackendRunPath: %v", err)
 	}
 	if discovered != runPath {
 		t.Fatalf("run path mismatch: got=%q want=%q", discovered, runPath)
 	}
 }
 
-func TestDiscoverInstalledLlamaBackendRunPathRejectsMetaBackendTraversal(t *testing.T) {
+func TestDiscoverInstalledManagedImageBackendRunPathRejectsMetaBackendTraversal(t *testing.T) {
 	backendsPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "meta-stablediffusion-ggml")
 	if err := os.MkdirAll(backendDir, 0o755); err != nil {
@@ -1225,7 +1225,7 @@ func TestDiscoverInstalledLlamaBackendRunPathRejectsMetaBackendTraversal(t *test
 		t.Fatalf("write escape run.sh: %v", err)
 	}
 
-	_, err := discoverInstalledLlamaBackendRunPath(backendsPath, "stablediffusion-ggml")
+	_, err := discoverInstalledManagedImageBackendRunPath(backendsPath, "stablediffusion-ggml")
 	if err == nil {
 		t.Fatal("expected meta_backend_for traversal to be rejected")
 	}
@@ -1247,7 +1247,7 @@ func TestParseOCIImageReference(t *testing.T) {
 	}
 }
 
-func TestInstallLlamaBackendFromOCI(t *testing.T) {
+func TestInstallManagedImageBackendFromOCI(t *testing.T) {
 	tarball := makeFakeArchiveAsset(t, "backend.tar.gz", "run.sh", []byte("#!/bin/sh\n"))
 	layerDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(tarball))
 
@@ -1273,7 +1273,7 @@ func TestInstallLlamaBackendFromOCI(t *testing.T) {
 
 	registryHost := strings.TrimPrefix(server.URL, "https://")
 	backendsPath := t.TempDir()
-	err := installLlamaBackendFromOCI(context.Background(), backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+	err := installManagedImageBackendFromOCI(context.Background(), backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
 		BackendName:    "stablediffusion-ggml",
 		OS:             "darwin",
 		Arch:           "arm64",
@@ -1283,7 +1283,7 @@ func TestInstallLlamaBackendFromOCI(t *testing.T) {
 		Supported:      true,
 	})
 	if err != nil {
-		t.Fatalf("installLlamaBackendFromOCI: %v", err)
+		t.Fatalf("installManagedImageBackendFromOCI: %v", err)
 	}
 
 	runPath := filepath.Join(backendsPath, "metal-stablediffusion-ggml", "run.sh")
@@ -1291,9 +1291,9 @@ func TestInstallLlamaBackendFromOCI(t *testing.T) {
 		t.Fatalf("expected run.sh to be installed: %v", err)
 	}
 
-	metadata, err := readLlamaBackendMetadata(filepath.Join(backendsPath, "metal-stablediffusion-ggml", "metadata.json"))
+	metadata, err := readManagedImageBackendMetadata(filepath.Join(backendsPath, "metal-stablediffusion-ggml", "metadata.json"))
 	if err != nil {
-		t.Fatalf("readLlamaBackendMetadata: %v", err)
+		t.Fatalf("readManagedImageBackendMetadata: %v", err)
 	}
 	if metadata == nil {
 		t.Fatal("expected metadata.json to be installed")
@@ -1343,9 +1343,9 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 	if _, err := os.Stat(cudartPath); err != nil {
 		t.Fatalf("expected supplemental CUDA runtime DLL to be installed: %v", err)
 	}
-	metadata, err := readLlamaBackendMetadata(filepath.Join(backendsPath, spec.InstallDirName, "metadata.json"))
+	metadata, err := readManagedImageBackendMetadata(filepath.Join(backendsPath, spec.InstallDirName, "metadata.json"))
 	if err != nil {
-		t.Fatalf("readLlamaBackendMetadata: %v", err)
+		t.Fatalf("readManagedImageBackendMetadata: %v", err)
 	}
 	if metadata == nil || metadata.Alias != "stablediffusion-ggml" {
 		t.Fatalf("unexpected installed metadata: %#v", metadata)

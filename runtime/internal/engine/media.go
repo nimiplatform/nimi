@@ -13,7 +13,6 @@ import (
 const (
 	defaultMediaTorchIndexURL = "https://download.pytorch.org/whl/cu126"
 	mediaPythonVersion        = "3.12"
-	defaultLlamaEndpoint      = "http://127.0.0.1:1234/v1"
 )
 
 var mediaPackages = []string{
@@ -106,10 +105,6 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	cfg.CommandEnv["DIFFUSERS_CACHE"] = filepath.Join(cacheRoot, "diffusers")
 	cfg.CommandEnv["NIMI_MEDIA_MODE"] = string(mediaMode)
 	if mediaMode == MediaModeProxyExecution {
-		cfg.CommandEnv["NIMI_MEDIA_LLAMA_BASE_URL"] = firstNonEmpty(
-			strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL")),
-			defaultLlamaEndpoint,
-		)
 	} else {
 		cfg.CommandEnv["NIMI_MEDIA_DEVICE"] = "cuda"
 		cfg.CommandEnv["NIMI_MEDIA_IMAGE_DRIVER"] = "flux"
@@ -177,15 +172,6 @@ func MediaModeFromSelection(selection ImageSupervisedMatrixSelection) (MediaMode
 		}
 		return "", fmt.Errorf("%s", detail)
 	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if strings.TrimSpace(value) != "" {
-			return strings.TrimSpace(value)
-		}
-	}
-	return ""
 }
 
 // DetectMediaHostGPU returns the GPU vendor and CUDA readiness for the current host.

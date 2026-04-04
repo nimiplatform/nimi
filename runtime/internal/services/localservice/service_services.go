@@ -375,7 +375,7 @@ func isManagedImageBackendServiceID(serviceID string) bool {
 func managedImageBackendServiceMutationError(serviceID string) error {
 	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION, grpcerr.ReasonOptions{
 		Message:    fmt.Sprintf("local service %s is daemon-managed", strings.TrimSpace(serviceID)),
-		ActionHint: "manage_llama_image_backend_from_runtime_config",
+		ActionHint: "manage_managed_image_backend_from_runtime_config",
 	})
 }
 
@@ -402,7 +402,7 @@ func (s *Service) managedImageBackendServiceLocked() *runtimev1.LocalServiceDesc
 	return &runtimev1.LocalServiceDescriptor{
 		ServiceId:    managedImageBackendServiceID,
 		Title:        managedImageBackendServiceTitle,
-		Engine:       "llama",
+		Engine:       "media",
 		ArtifactType: "binary",
 		Endpoint:     endpoint,
 		Capabilities: []string{"image"},

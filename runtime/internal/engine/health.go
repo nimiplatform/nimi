@@ -103,12 +103,12 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 		} `json:"checks"`
 	}{}
 	// Parse body before checking status code so we can inspect image_driver
-	// even on non-2xx responses (e.g. 503 when llama-proxy is down).
+	// even on non-2xx responses (e.g. 503 when proxy_execution is fail-closed).
 	_ = json.Unmarshal(body, &healthPayload)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		// When the media engine reports not-ready solely because the
-		// llama-proxy sub-check failed but an image_driver is active
+		// proxy_execution sub-check failed but an image_driver is active
 		// (diffusers-backend is running), treat the engine as healthy
 		// for image operations. Without this, a health probe failure
 		// accumulates toward the 3-strike unhealthy threshold and can

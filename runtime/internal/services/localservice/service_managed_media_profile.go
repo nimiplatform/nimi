@@ -623,6 +623,7 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	rootAbs = canonicalManagedPath(rootAbs)
 	cleanEntry, err := sanitizeManagedEntryPath(artifact.GetEntry())
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -712,6 +713,7 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	rootAbs = canonicalManagedPath(rootAbs)
 	baseDir, err := resolveManagedBaseDir(rootAbs, itemID, sourceRepo)
 	if err != nil {
 		return "", err
@@ -760,6 +762,14 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 		}
 	}
 	return filepath.Join(modelsRoot, slugifyLocalModelID(itemID)), nil
+}
+
+func canonicalManagedPath(path string) string {
+	resolved, err := filepath.EvalSymlinks(strings.TrimSpace(path))
+	if err == nil && strings.TrimSpace(resolved) != "" {
+		return resolved
+	}
+	return path
 }
 
 func resolveManagedFileRepoPath(sourceRepo string) (string, error) {

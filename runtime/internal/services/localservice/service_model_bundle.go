@@ -325,7 +325,7 @@ func isManagedSupervisedLlamaModel(model *runtimev1.LocalAssetRecord, mode runti
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return false
 	}
-	if shouldHealManagedSupervisedLlamaRuntimeMode(model, mode) {
+	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
 		return true
 	}
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
@@ -347,13 +347,13 @@ func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runti
 	if ext != ".gguf" && ext != ".safetensors" && !strings.EqualFold(filepath.Base(entry), "model_index.json") {
 		return false
 	}
-	if shouldHealManagedSupervisedLlamaRuntimeMode(model, mode) {
+	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
 		return true
 	}
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
-func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
+func shouldHealManagedSupervisedRuntimeMode(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
 	if model == nil {
 		return false
 	}
@@ -387,7 +387,14 @@ func shouldHealManagedSupervisedLlamaRuntimeMode(model *runtimev1.LocalAssetReco
 	return strings.HasPrefix(strings.ToLower(logicalModelID), "nimi/")
 }
 
-func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*runtimev1.LocalAssetRecord, bool, error) {
+func managedSupervisedRuntimeBindingHealDetail(model *runtimev1.LocalAssetRecord) string {
+	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
+		return "managed image runtime binding healed to supervised managed endpoint"
+	}
+	return "managed llama runtime binding healed to supervised managed endpoint"
+}
+
+func (s *Service) healManagedSupervisedRuntimeMode(localModelID string) (*runtimev1.LocalAssetRecord, bool, error) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
 		return nil, false, nil
@@ -396,7 +403,7 @@ func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*r
 	if current == nil {
 		return nil, false, nil
 	}
-	if !shouldHealManagedSupervisedLlamaRuntimeMode(current, s.modelRuntimeMode(id)) {
+	if !shouldHealManagedSupervisedRuntimeMode(current, s.modelRuntimeMode(id)) {
 		return current, false, nil
 	}
 	s.mu.Lock()
@@ -405,7 +412,7 @@ func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*r
 	if record == nil {
 		return nil, false, nil
 	}
-	if !shouldHealManagedSupervisedLlamaRuntimeMode(record, s.assetRuntimeModes[id]) {
+	if !shouldHealManagedSupervisedRuntimeMode(record, s.assetRuntimeModes[id]) {
 		return cloneLocalAsset(record), false, nil
 	}
 	s.setModelRuntimeModeLocked(id, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
@@ -426,7 +433,7 @@ func (s *Service) healManagedSupervisedLlamaRuntimeMode(localModelID string) (*r
 		Source:       "local",
 		ModelId:      cloned.GetAssetId(),
 		LocalModelId: cloned.GetLocalAssetId(),
-		Detail:       "managed llama-backed runtime binding healed to supervised managed endpoint",
+		Detail:       managedSupervisedRuntimeBindingHealDetail(cloned),
 	})
 	s.persistStateLocked()
 	return cloneLocalAsset(cloned), true, nil
@@ -490,7 +497,7 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 	if localModelID == "" {
 		return "", false, fmt.Errorf("managed local model is unavailable")
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localModelID); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
 		return "", false, err
 	} else if healedModel != nil {
 		model = healedModel

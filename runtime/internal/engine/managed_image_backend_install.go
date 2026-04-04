@@ -16,20 +16,15 @@ import (
 	"time"
 )
 
-const llamaBackendRunScript = "run.sh"
+const managedImageBackendRunScript = "run.sh"
 
-var officialLlamaBackendAllowlist = map[string]struct{}{
+var officialManagedImageBackendAllowlist = map[string]struct{}{
 	"llama-cpp":            {},
 	"whisper-ggml":         {},
 	"stablediffusion-ggml": {},
 }
 
 const ociManifestMediaTypeV2 = "application/vnd.docker.distribution.manifest.v2+json"
-
-type llamaBackendPackageSpec struct {
-	InstallDirName string
-	ImageRef       string
-}
 
 type ociDistributionManifest struct {
 	SchemaVersion int                    `json:"schemaVersion"`
@@ -49,7 +44,7 @@ type ociImageReference struct {
 	Reference  string
 }
 
-type llamaBackendMetadata struct {
+type managedImageBackendMetadata struct {
 	Name           string `json:"name,omitempty"`
 	Alias          string `json:"alias,omitempty"`
 	MetaBackendFor string `json:"meta_backend_for,omitempty"`
@@ -143,7 +138,7 @@ func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string
 	if normalized.Mode != ManagedImageBackendOfficial {
 		return normalized, nil
 	}
-	validatedBackendName, err := validateOfficialLlamaBackendName(normalized.BackendName)
+	validatedBackendName, err := validateOfficialManagedImageBackendName(normalized.BackendName)
 	if err != nil {
 		return nil, err
 	}
@@ -185,13 +180,13 @@ func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string
 }
 
 func installManagedImageBackendPackage(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
-	validatedBackendName, err := validateOfficialLlamaBackendName(backendName)
+	validatedBackendName, err := validateOfficialManagedImageBackendName(backendName)
 	if err != nil {
 		return err
 	}
 	switch spec.PackageFormat {
 	case managedImageBackendPackageFormatOCIPayload:
-		return installLlamaBackendFromOCI(ctx, backendsPath, validatedBackendName, spec)
+		return installManagedImageBackendFromOCI(ctx, backendsPath, validatedBackendName, spec)
 	case managedImageBackendPackageFormatDirectArchive:
 		return installManagedImageBackendFromDirectArchive(ctx, backendsPath, validatedBackendName, spec)
 	case managedImageBackendPackageFormatNone:
@@ -204,61 +199,61 @@ func installManagedImageBackendPackage(ctx context.Context, backendsPath string,
 	}
 }
 
-func validateOfficialLlamaBackendName(backendName string) (string, error) {
+func validateOfficialManagedImageBackendName(backendName string) (string, error) {
 	trimmedBackendName := strings.TrimSpace(backendName)
 	if trimmedBackendName == "" {
-		return "", fmt.Errorf("llama backend name is required")
+		return "", fmt.Errorf("managed image backend name is required")
 	}
-	if _, ok := officialLlamaBackendAllowlist[trimmedBackendName]; !ok {
-		return "", fmt.Errorf("unsupported official llama backend %q", trimmedBackendName)
+	if _, ok := officialManagedImageBackendAllowlist[trimmedBackendName]; !ok {
+		return "", fmt.Errorf("unsupported official managed image backend %q", trimmedBackendName)
 	}
 	return trimmedBackendName, nil
 }
 
-func installLlamaBackendFromOCI(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
+func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
 	parsedRef, err := parseOCIImageReference(spec.ImageRef)
 	if err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	manifest, err := fetchOCIManifest(ctx, parsedRef)
 	if err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	if len(manifest.Layers) != 1 {
-		return fmt.Errorf("install llama backend %s: unsupported OCI layer count %d for %s", backendName, len(manifest.Layers), spec.ImageRef)
+		return fmt.Errorf("install managed image backend %s: unsupported OCI layer count %d for %s", backendName, len(manifest.Layers), spec.ImageRef)
 	}
 	layerDigest := strings.TrimSpace(manifest.Layers[0].Digest)
 	if layerDigest == "" {
-		return fmt.Errorf("install llama backend %s: OCI layer digest is required", backendName)
+		return fmt.Errorf("install managed image backend %s: OCI layer digest is required", backendName)
 	}
 
-	tmpDir, err := os.MkdirTemp(filepath.Dir(backendsPath), ".llama-backend-*")
+	tmpDir, err := os.MkdirTemp(filepath.Dir(backendsPath), ".managed-image-backend-*")
 	if err != nil {
-		return fmt.Errorf("install llama backend %s: create temp dir: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: create temp dir: %w", backendName, err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	layerPath := filepath.Join(tmpDir, "layer.tar.gz")
 	if _, err := downloadOCIImageBlobToFile(ctx, parsedRef, layerDigest, layerPath); err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 
 	stagedDir := filepath.Join(tmpDir, "payload")
 	if err := os.MkdirAll(stagedDir, 0o755); err != nil {
-		return fmt.Errorf("install llama backend %s: create staged dir: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: create staged dir: %w", backendName, err)
 	}
 	if err := extractManagedPayload(layerPath, stagedDir); err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
-	if err := writeLlamaBackendMetadata(filepath.Join(stagedDir, "metadata.json"), llamaBackendMetadata{
+	if err := writeManagedImageBackendMetadata(filepath.Join(stagedDir, "metadata.json"), managedImageBackendMetadata{
 		Name:  spec.InstallDirName,
 		Alias: backendName,
 	}); err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	targetDir := filepath.Join(backendsPath, spec.InstallDirName)
 	if err := installManagedBinaryPayload(targetDir, stagedDir); err != nil {
-		return fmt.Errorf("install llama backend %s: %w", backendName, err)
+		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 	return nil
 }
@@ -324,7 +319,7 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	if _, _, err := discoverManagedImageBackendExecutablePathInDir(stagedDir, spec.ExecutableCandidates); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
-	if err := writeLlamaBackendMetadata(filepath.Join(stagedDir, "metadata.json"), llamaBackendMetadata{
+	if err := writeManagedImageBackendMetadata(filepath.Join(stagedDir, "metadata.json"), managedImageBackendMetadata{
 		Name:  spec.InstallDirName,
 		Alias: backendName,
 	}); err != nil {
@@ -433,13 +428,13 @@ func downloadOCIImageBlobToFile(ctx context.Context, ref ociImageReference, dige
 	return destPath, nil
 }
 
-func writeLlamaBackendMetadata(path string, metadata llamaBackendMetadata) error {
+func writeManagedImageBackendMetadata(path string, metadata managedImageBackendMetadata) error {
 	payload, err := json.Marshal(metadata)
 	if err != nil {
-		return fmt.Errorf("marshal llama backend metadata: %w", err)
+		return fmt.Errorf("marshal managed image backend metadata: %w", err)
 	}
 	if err := os.WriteFile(path, payload, 0o644); err != nil {
-		return fmt.Errorf("write llama backend metadata %s: %w", path, err)
+		return fmt.Errorf("write managed image backend metadata %s: %w", path, err)
 	}
 	return nil
 }
@@ -469,10 +464,10 @@ func doOCIRegistryRequestWithRetry(ctx context.Context, sourceURL string, req *h
 	return nil, lastErr
 }
 
-func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName string) (string, error) {
+func discoverInstalledManagedImageBackendRunPath(backendsPath string, backendName string) (string, error) {
 	entries, err := os.ReadDir(backendsPath)
 	if err != nil {
-		return "", fmt.Errorf("read llama backends path: %w", err)
+		return "", fmt.Errorf("read managed image backends path: %w", err)
 	}
 	type candidate struct {
 		dir     string
@@ -486,8 +481,8 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 			continue
 		}
 		dir := entry.Name()
-		runPath := filepath.Join(backendsPath, dir, llamaBackendRunScript)
-		metadata, metadataErr := readLlamaBackendMetadata(filepath.Join(backendsPath, dir, "metadata.json"))
+		runPath := filepath.Join(backendsPath, dir, managedImageBackendRunScript)
+		metadata, metadataErr := readManagedImageBackendMetadata(filepath.Join(backendsPath, dir, "metadata.json"))
 		if metadataErr != nil {
 			return "", metadataErr
 		}
@@ -522,7 +517,7 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 		})
 	}
 	if len(candidates) == 0 {
-		return "", fmt.Errorf("llama backend %q not installed in %s", backendName, backendsPath)
+		return "", fmt.Errorf("managed image backend %q not installed in %s", backendName, backendsPath)
 	}
 	sort.Slice(candidates, func(i, j int) bool {
 		if candidates[i].score != candidates[j].score {
@@ -536,7 +531,7 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, backendName string, spec managedImageBackendPackageSpec, address string) (managedImageBackendLaunchConfig, error) {
 	switch spec.LaunchMode {
 	case managedImageBackendLaunchModePackageEntrypoint:
-		runPath, err := discoverInstalledLlamaBackendRunPath(backendsPath, backendName)
+		runPath, err := discoverInstalledManagedImageBackendRunPath(backendsPath, backendName)
 		if err != nil {
 			return managedImageBackendLaunchConfig{}, err
 		}
@@ -588,7 +583,7 @@ func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, bac
 		}
 		dir := entry.Name()
 		dirPath := filepath.Join(backendsPath, dir)
-		metadata, metadataErr := readLlamaBackendMetadata(filepath.Join(dirPath, "metadata.json"))
+		metadata, metadataErr := readManagedImageBackendMetadata(filepath.Join(dirPath, "metadata.json"))
 		if metadataErr != nil {
 			return "", "", metadataErr
 		}
@@ -681,20 +676,20 @@ func resolveMetaBackendRunPath(backendsPath string, metaBackendFor string) (stri
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", false
 	}
-	return filepath.Join(targetDir, llamaBackendRunScript), true
+	return filepath.Join(targetDir, managedImageBackendRunScript), true
 }
 
-func readLlamaBackendMetadata(path string) (*llamaBackendMetadata, error) {
+func readManagedImageBackendMetadata(path string) (*managedImageBackendMetadata, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("read llama backend metadata %s: %w", path, err)
+		return nil, fmt.Errorf("read managed image backend metadata %s: %w", path, err)
 	}
-	var metadata llamaBackendMetadata
+	var metadata managedImageBackendMetadata
 	if err := json.Unmarshal(raw, &metadata); err != nil {
-		return nil, fmt.Errorf("parse llama backend metadata %s: %w", path, err)
+		return nil, fmt.Errorf("parse managed image backend metadata %s: %w", path, err)
 	}
 	return &metadata, nil
 }

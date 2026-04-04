@@ -29,7 +29,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 	if current.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localModelID); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
 		detail := managedLocalAssetRecordFailureDetail(err)
 		if current.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 			s.setModelHealthDetail(localModelID, detail)
@@ -437,7 +437,7 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 		return nil, nil
 	}
 	localModelID := strings.TrimSpace(model.GetLocalAssetId())
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localModelID); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
 		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	} else if healedModel != nil {
 		model = healedModel

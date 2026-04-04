@@ -27,6 +27,9 @@ func TestLocalManagedImageBackendServiceListAndHealth(t *testing.T) {
 	if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED {
 		t.Fatalf("expected installed status, got %s", service.GetStatus())
 	}
+	if service.GetEngine() != "media" {
+		t.Fatalf("expected synthetic managed image backend service engine=media, got %q", service.GetEngine())
+	}
 	if service.GetEndpoint() != "grpc://127.0.0.1:50052" {
 		t.Fatalf("unexpected service endpoint: %q", service.GetEndpoint())
 	}

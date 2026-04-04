@@ -17,67 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestBackendGenerateImageManagedMediaForwardsScenarioExtensions(t *testing.T) {
-	var captured map[string]any
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/v1/media/image/generate" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeJSONBodyForBackendMediaTest(t, r)
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"artifact": map[string]any{
-				"mime_type":   "image/png",
-				"data_base64": base64.StdEncoding.EncodeToString([]byte("image-managed-media")),
-			},
-		})
-	}))
-	defer server.Close()
-
-	backend := NewBackend("llama", server.URL, "", time.Second)
-	spec := &runtimev1.ImageGenerateScenarioSpec{
-		Prompt: "make a forest",
-	}
-	scenarioExtensions := map[string]any{
-		"steps":          12,
-		"method":         "edit",
-		"guidance_scale": 7.5,
-	}
-
-	payload, _, compat, err := backend.GenerateImageManagedMedia(context.Background(), "local/image", spec, scenarioExtensions)
-	if err != nil {
-		t.Fatalf("GenerateImageManagedMedia failed: %v", err)
-	}
-	if string(payload) != "image-managed-media" {
-		t.Fatalf("unexpected payload: %q", string(payload))
-	}
-	if compat == nil {
-		t.Fatal("expected managed media compatibility diagnostics")
-	}
-	specPayload, ok := captured["spec"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected canonical spec payload, got=%T", captured["spec"])
-	}
-	capturedExtensions, ok := specPayload["extensions"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected extensions map in canonical spec, got=%T", specPayload["extensions"])
-	}
-	if got := ValueAsInt32(capturedExtensions["step"]); got != 12 {
-		t.Fatalf("expected step override from scenario extension, got=%d", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(capturedExtensions["mode"])); got != "edit" {
-		t.Fatalf("expected mode override from scenario extension, got=%q", got)
-	}
-	if got := ValueAsInt32(capturedExtensions["steps"]); got != 12 {
-		t.Fatalf("expected steps extension to be forwarded, got=%d", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(capturedExtensions["method"])); got != "edit" {
-		t.Fatalf("expected method extension to be forwarded, got=%q", got)
-	}
-}
-
 func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	var captured map[string]any
 
@@ -120,12 +59,8 @@ func TestBackendGenerateImageForwardsScenarioExtensions(t *testing.T) {
 	}
 }
 
-func TestBackendGenerateImageManagedMediaRejectsUnsupportedResponseFormat(t *testing.T) {
-	backend := NewBackend("llama", "http://127.0.0.1", "", time.Second)
-	_, _, _, err := backend.GenerateImageManagedMedia(context.Background(), "local/image", &runtimev1.ImageGenerateScenarioSpec{
-		Prompt:         "make a forest",
-		ResponseFormat: "signed_url",
-	}, nil)
+func TestNormalizeImageResponseFormatRejectsUnsupportedValue(t *testing.T) {
+	_, err := normalizeImageResponseFormat("signed_url")
 	if err == nil {
 		t.Fatal("expected unsupported response format error")
 	}

@@ -632,7 +632,7 @@ func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalAssetRe
 	if model == nil {
 		return managedLlamaRegistration{}
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalAssetId()); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(model.GetLocalAssetId()); err != nil {
 		return managedLlamaRegistration{
 			LocalModelID: strings.TrimSpace(model.GetLocalAssetId()),
 			ModelID:      strings.TrimSpace(model.GetAssetId()),

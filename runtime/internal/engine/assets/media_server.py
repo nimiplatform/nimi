@@ -20,10 +20,6 @@ if _raw_mode is None:
 MODE = _raw_mode.strip().lower()
 if MODE not in _VALID_MODES:
     raise SystemExit("invalid NIMI_MEDIA_MODE: %s" % MODE)
-LLAMA_BASE_URL = os.environ.get(
-    "NIMI_MEDIA_LLAMA_BASE_URL",
-    "http://127.0.0.1:1234/v1",
-).strip()
 
 DEFAULT_IMAGE_MODEL = os.environ.get(
     "NIMI_MEDIA_DEFAULT_IMAGE_MODEL",
@@ -53,8 +49,6 @@ ENGINE_STATE = {
     "checks": {},
     "models": [],
 }
-IMPORTED_MODELS_LOCK = threading.Lock()
-IMPORTED_MODELS = {}
 
 
 def _json_response(handler, status, payload):
@@ -434,179 +428,37 @@ def _catalog_payload():
     }
 
 
-def _normalized_base_url(value):
-    text = str(value or "").strip()
-    if not text:
-        return ""
-    return text.rstrip("/")
-
-
-def _llama_api_base():
-    return _normalized_base_url(LLAMA_BASE_URL)
-
-
-def _llama_management_base():
-    base = _llama_api_base()
-    if base.endswith("/v1"):
-        return base[:-3]
-    return base
-
-
-def _join_url(base, suffix):
-    normalized = _normalized_base_url(base)
-    clean_suffix = "/" + str(suffix or "").lstrip("/")
-    return normalized + clean_suffix
-
-
-def _http_json(method, url, payload=None):
-    data = None
-    headers = {"Content-Type": "application/json"}
-    if payload is not None:
-        data = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(url, data=data, method=method, headers=headers)
-    with urllib.request.urlopen(request, timeout=REMOTE_FETCH_TIMEOUT_SEC) as response:
-        body = response.read(MAX_JSON_BODY_BYTES)
-        if not body:
-            return {}
-        return json.loads(body.decode("utf-8"))
-
-
-def _proxy_llama_probe():
-    models_url = _join_url(_llama_api_base(), "models")
-    try:
-        payload = _http_json("GET", models_url)
-    except Exception as err:
-        return False, "llama proxy probe failed: %s" % err, [], models_url
-    models = []
-    for item in payload.get("data") or []:
-        if not isinstance(item, dict):
-            continue
-        model_id = str(item.get("id") or "").strip()
-        if model_id:
-            models.append(model_id)
-    return True, "llama image proxy ready", models, models_url
-
-
-def _imported_catalog_models(ready):
-    with IMPORTED_MODELS_LOCK:
-        items = [dict(item) for item in IMPORTED_MODELS.values()]
-    models = []
-    for item in items:
-        alias = str(item.get("name") or "").strip()
-        if not alias:
-            continue
-        models.append(
-            {
-                "id": alias,
-                "capabilities": ["image.generate"],
-                "ready": bool(ready),
-                "family": "llama-proxy",
-                "device": "supervised",
-                "driver": "stablediffusion-ggml",
-            }
-        )
-    return models
-
-
 def _proxy_health_payload():
-    ready, detail, _, probe_url = _proxy_llama_probe()
     return {
-        "status": "ok" if ready else "not_ready",
-        "ready": bool(ready),
-        "detail": detail,
-        "family": "llama-proxy",
+        "status": "ok",
+        "ready": True,
+        "detail": "runtime-owned proxy execution ready; native-binary image generation must use the managed image backend direct path",
+        "family": "managed-image-proxy",
         "device": "supervised",
         "image_driver": "stablediffusion-ggml",
         "video_driver": "",
         "checks": {
             "proxy_mode": True,
-            "llama_base_url": _llama_api_base(),
-            "probe_url": probe_url,
+            "execution_mode": "fail_closed",
+            "direct_path_required": True,
         },
-        "models": _imported_catalog_models(ready),
+        "models": [],
     }
 
 
 def _proxy_catalog_payload():
-    ready, detail, _, _ = _proxy_llama_probe()
     return {
-        "status": "ok" if ready else "not_ready",
-        "ready": bool(ready),
-        "detail": detail,
-        "models": _imported_catalog_models(ready),
+        "status": "ok",
+        "ready": True,
+        "detail": "runtime-owned proxy execution catalog is informational only; native-binary image generation must use the managed image backend direct path",
+        "models": [],
     }
 
 
-def _proxy_import_model(model_config):
-    alias = str((model_config or {}).get("name") or "").strip()
-    if not alias:
-        raise ValueError("managed media profile name is required")
-    backend = str((model_config or {}).get("backend") or "").strip()
-    if backend and backend != "stablediffusion-ggml":
-        raise ValueError("managed media backend must be stablediffusion-ggml")
-    import_url = _join_url(_llama_management_base(), "models/import")
-    response = _http_json("POST", import_url, model_config)
-    success = bool(response.get("success"))
-    if not success:
-        message = str(response.get("error") or response.get("message") or "managed image import failed").strip()
-        raise RuntimeError(message)
-    with IMPORTED_MODELS_LOCK:
-        IMPORTED_MODELS[alias] = dict(model_config or {})
-    return {
-        "success": True,
-        "message": str(response.get("message") or "managed image profile imported"),
-        "filename": str(response.get("filename") or alias),
-    }
-
-
-def _proxy_generate_image(model_id, spec):
-    prompt = str((spec or {}).get("prompt") or "").strip()
-    if not prompt:
-        raise ValueError("prompt is required")
-    model_id = str(model_id or "").strip()
-    if not model_id:
-        raise ValueError("model is required")
-    request_body = {
-        "model": model_id,
-        "prompt": prompt,
-        "negative_prompt": str((spec or {}).get("negative_prompt") or "").strip(),
-        "n": int((spec or {}).get("n") or 0),
-        "size": str((spec or {}).get("size") or "").strip(),
-        "aspect_ratio": str((spec or {}).get("aspect_ratio") or "").strip(),
-        "quality": str((spec or {}).get("quality") or "").strip(),
-        "style": str((spec or {}).get("style") or "").strip(),
-        "seed": int((spec or {}).get("seed") or 0),
-        "mask": str((spec or {}).get("mask") or "").strip(),
-        "response_format": str((spec or {}).get("response_format") or "b64_json").strip() or "b64_json",
-        "extensions": dict((spec or {}).get("extensions") or {}),
-    }
-    reference_images = [str(item).strip() for item in ((spec or {}).get("reference_images") or []) if str(item).strip()]
-    if reference_images:
-        request_body["file"] = reference_images[0]
-        request_body["files"] = list(reference_images)
-        if len(reference_images) > 1:
-            request_body["ref_images"] = reference_images[1:]
-    image_url = _join_url(_llama_api_base(), "images/generations")
-    response = _http_json("POST", image_url, request_body)
-    data = response.get("data") or []
-    if not data or not isinstance(data[0], dict):
-        raise RuntimeError("llama image proxy returned empty artifacts")
-    first = data[0]
-    if str(first.get("b64_json") or "").strip():
-        return {
-            "artifact": {
-                "mime_type": "image/png",
-                "data_base64": str(first.get("b64_json")),
-            }
-        }
-    if str(first.get("url") or "").strip():
-        return {
-            "artifact": {
-                "mime_type": "image/png",
-                "url": str(first.get("url")),
-            }
-        }
-    raise RuntimeError("llama image proxy returned unsupported artifact payload")
+def _proxy_generate_image_unavailable():
+    raise RuntimeError(
+        "proxy_execution image.generate is fail-closed; use the runtime-owned managed image backend direct path"
+    )
 
 
 def _generate_image(model_id, spec):
@@ -715,18 +567,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             payload = _read_json(self)
-            if self.path == "/models/import":
-                if MODE == "proxy_execution":
-                    _json_response(self, 200, _proxy_import_model(payload))
-                    return
-                _error_response(self, 404, "not_found", "route not found")
-                return
             if self.path == "/v1/media/image/generate":
                 spec = payload.get("spec")
                 if not isinstance(spec, dict):
                     raise ValueError("spec is required")
                 if MODE == "proxy_execution":
-                    _json_response(self, 200, _proxy_generate_image(payload.get("model"), spec))
+                    _proxy_generate_image_unavailable()
                     return
                 _json_response(self, 200, _generate_image(payload.get("model"), spec))
                 return
@@ -761,7 +607,13 @@ def main():
         warm_thread = threading.Thread(target=_warm_default_models, daemon=True)
         warm_thread.start()
     else:
-        _set_state("ok", True, "llama image proxy booting", checks={"proxy_mode": True}, models=[])
+        _set_state(
+            "ok",
+            True,
+            "runtime-owned proxy execution booting in fail-closed mode",
+            checks={"proxy_mode": True, "execution_mode": "fail_closed"},
+            models=[],
+        )
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     server.serve_forever()

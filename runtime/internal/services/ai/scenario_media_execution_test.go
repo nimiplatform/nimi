@@ -236,18 +236,10 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *testing.T) {
 	t.Helper()
 
-	var (
-		importCalled    bool
-		generateModelID string
-	)
+	var generateModelID string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/models/import":
-			importCalled = true
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"success": true,
-			})
 		case "/v1/media/image/generate":
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -320,9 +312,6 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 	)
 	if err != nil {
 		t.Fatalf("executeBackendSyncMedia: %v", err)
-	}
-	if importCalled {
-		t.Fatal("python pipeline path must not import managed media config")
 	}
 	if generateModelID != "flux.1-schnell" {
 		t.Fatalf("expected original model id on plain path, got %q", generateModelID)

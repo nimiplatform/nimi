@@ -42,7 +42,7 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 	if current == nil {
 		return nil, fmt.Errorf("managed llama local asset missing")
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localAssetID); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localAssetID); err != nil {
 		return nil, fmt.Errorf("%s", managedLocalAssetRecordFailureDetail(err))
 	} else if healedModel != nil {
 		current = healedModel

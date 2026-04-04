@@ -213,7 +213,7 @@ test('buildSelectedBinding falls back to llama for text when runtime metadata is
   }
 });
 
-test('loadRuntimeRouteOptions prefers llama adapter for managed media workflow image models', async () => {
+test('loadRuntimeRouteOptions preserves media routing for managed image workflow models', async () => {
   const options = await loadRuntimeRouteOptions({
     capability: 'image.generate',
     modId: 'world.nimi.test-ai',

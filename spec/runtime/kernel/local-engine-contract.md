@@ -179,7 +179,7 @@ v1 每个 runtime state root（默认 `~/.nimi`）同时只能有一个 canonica
 
 `media_server.py` 必须区分两类 mode，由 `NIMI_MEDIA_MODE` 环境变量驱动：
 
-1. `proxy_execution`：服务于 runtime-owned `native_binary` image 路径，health / catalog 暴露 proxy execution truth。
+1. `proxy_execution`：服务于 runtime-owned `native_binary` image 路径，health / catalog 暴露 runtime-owned proxy execution truth；稳定产品路径上不得再承担 image generation control-plane。
 2. `pipeline_supervised`：服务于 runtime-owned `python_pipeline` image 路径，health / catalog 暴露真实 pipeline truth。
 
 Mode 与 resolver 的映射固定：
@@ -193,6 +193,7 @@ HTTP contract：
 
 - `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`。
 - request body 与 artifact response envelope 在两种 mode 下保持同形；mode 差异只允许体现在 runtime-private detail / checks / catalog metadata。
+- `proxy_execution` 下的 `POST /v1/media/image/generate` 若未连接到 runtime-owned direct execution contract，必须 fail-close；不得再通过 llama route、llama management route 或其它 legacy control-plane 伪造成功。
 - `/models/import` 不属于 canonical image supervised contract；runtime-owned image path 不得依赖 llama model import API。
 
 ## K-LENG-015 Internal Lifecycle 状态机
@@ -353,7 +354,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 
 补充：
 
-- 对 llama-backed supervised image 路径，`local-media` 是唯一 app-facing execution endpoint；runtime / sdk / desktop 不得直接把该路径投射成 `llama` provider HTTP consume surface。
+- 对 runtime-owned managed image backend supervised 路径，`local-media` 是唯一 app-facing execution endpoint；runtime / sdk / desktop 不得直接把该路径投射成 `llama` provider HTTP consume surface。
 - runtime 允许在 `local-media` 内部执行 dynamic managed-image profile materialization；若需要额外内部导入步骤，必须保持为 runtime 私有实现，不得改变 app-facing canonical media consume path。
 
 `speech` 使用 runtime 私有 canonical speech HTTP API：
@@ -391,7 +392,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - `/healthz` 返回 ready 且 `/v1/catalog` 存在至少一个与目标 `logical_model_id` 可比对的 ready entry，才算健康。
 - catalog 不得暴露静态伪 model list。
 - `media.diffusers` 作为 fallback 时，必须在探测结果中暴露 fallback 原因，不得静默替换。
-- `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它 llama-backed image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
+- `engine=media` 的 image 资产若 backend/profile 解析到 `stablediffusion-ggml` 或其它实际受管 native-binary image backend，则 health 归因、bootstrap 目标与 host support 判断必须跟随实际受管 backend；不得因为 public engine 仍是 `media` 就错误要求 attached endpoint。
 - 若 host 不满足 daemon-managed image backend 的硬件前提，health / registration detail 必须直接暴露 canonical matrix compatibility 原因，不得仅返回 `managed diffusers backend unavailable` 或其它泛化 backend 缺失错误。
 
 `speech` 健康探测：

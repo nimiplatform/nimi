@@ -2,10 +2,10 @@ package engine
 
 import "strings"
 
-// LlamaImageSupervisedPlatformSupported reports whether the daemon-managed
+// ManagedImageSupervisedPlatformSupported reports whether the daemon-managed
 // stablediffusion-ggml image backend can be supervised on the current host.
-func LlamaImageSupervisedPlatformSupported() bool {
-	return LlamaImageSupervisedPlatformSupportedFor(
+func ManagedImageSupervisedPlatformSupported() bool {
+	return ManagedImageSupervisedPlatformSupportedFor(
 		currentGOOS(),
 		currentGOARCH(),
 		detectLocalGPUVendor(),
@@ -13,9 +13,9 @@ func LlamaImageSupervisedPlatformSupported() bool {
 	)
 }
 
-// LlamaImageSupervisedPlatformSupportedFor reports whether the daemon-managed
+// ManagedImageSupervisedPlatformSupportedFor reports whether the daemon-managed
 // stablediffusion-ggml image backend can be supervised on the provided host tuple.
-func LlamaImageSupervisedPlatformSupportedFor(goos string, goarch string, _ string, _ string) bool {
+func ManagedImageSupervisedPlatformSupportedFor(goos string, goarch string, _ string, _ string) bool {
 	normalizedGOOS := strings.ToLower(strings.TrimSpace(goos))
 	normalizedGOARCH := strings.ToLower(strings.TrimSpace(goarch))
 	if normalizedGOOS == "" || normalizedGOARCH == "" {
@@ -34,10 +34,10 @@ func LlamaImageSupervisedPlatformSupportedFor(goos string, goarch string, _ stri
 	}
 }
 
-// LlamaImageSupervisedPlatformSupportDetailFor returns the host compatibility
+// ManagedImageSupervisedPlatformSupportDetailFor returns the host compatibility
 // detail for the daemon-managed stablediffusion-ggml image backend.
-func LlamaImageSupervisedPlatformSupportDetailFor(goos string, goarch string, _ string, _ string) string {
-	if LlamaImageSupervisedPlatformSupportedFor(goos, goarch, "", "") {
+func ManagedImageSupervisedPlatformSupportDetailFor(goos string, goarch string, _ string, _ string) string {
+	if ManagedImageSupervisedPlatformSupportedFor(goos, goarch, "", "") {
 		return ""
 	}
 	return "managed image supervised mode is unavailable on this host for the daemon-managed stablediffusion-ggml backend"

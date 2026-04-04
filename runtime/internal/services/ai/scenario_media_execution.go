@@ -127,7 +127,7 @@ func executeBackendSyncMedia(
 			if len(profile) == 0 {
 				return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 			}
-			adapterName = adapterLlamaNative
+			adapterName = adapterMediaNative
 			modelsRoot, backendAddress, targetErr := s.localImageProfile.ResolveManagedMediaBackendTarget(ctx)
 			scenarioExtensions = forwardedExtensions
 			if targetErr != nil || strings.TrimSpace(modelsRoot) == "" || strings.TrimSpace(backendAddress) == "" {

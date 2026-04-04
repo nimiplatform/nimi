@@ -51,7 +51,7 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 - v2 matrix 按 `entry_id` 索引，以 `platform + asset_family + backend_family + profile_kind` 标识 topology 槽位。`topology_state` 与 `product_state` 分离；只有 `product_state=supported` 的 entry 才允许进入 install recommendation、activation、ready health success。
 - runtime 到 `media` engine 的私有协议必须直接承接 runtime canonical image/video spec，不得回落到 OpenAI-compatible `/v1/images/generations`、`/v1/video/generations` 或 legacy catalog-only 健康路径。
 - `media` engine 私有协议固定为：`GET /healthz`、`GET /v1/catalog`、`POST /v1/media/image/generate`、`POST /v1/media/video/generate`。
-- `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface；request body 与 artifact response envelope 在两种 mode 下保持同形。
+- `proxy_execution` 与 `pipeline_supervised` 共享同一 canonical HTTP surface；request body 与 artifact response envelope 在两种 mode 下保持同形，但 `proxy_execution` 不得再通过 llama route 承载稳定 image product path。
 - 对 v2 matrix resolver 选中的 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` image 路径，dynamic profile import 如需额外 materialization 步骤，只允许作为 runtime 私有内部实现存在；app-facing consume 仍必须固定落到 `POST /v1/media/image/generate`。
 - 对 v2 matrix resolver 选中的 `backend_class=native_binary` + `backend_family=stablediffusion-ggml` + `asset_family=safetensors_native_image` image 路径，适用与 `gguf_image` 相同的 native binary execution 规则；但 `product_state` 独立于 `gguf_image`，未经 host tuple 验证前保持 `unsupported`。
 - 对 v2 matrix resolver 选中的 `backend_class=python_pipeline` + `backend_family=diffusers` image 路径，必须确认该 entry 的 `product_state` 已达到 `supported` 且 `admission_gate` 已通过，方可进入 install / activation / execution。
@@ -360,5 +360,6 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 
 - For `backend_class=native_binary`, runtime may materialize profiles privately, but execution must terminate at the managed image backend gRPC contract and may not call llama `/models/import`.
 - `POST /v1/media/image/generate` is still the only canonical app-facing execution surface; callers must never observe a second image control-plane API.
+- If `proxy_execution` cannot connect the request to the managed image backend direct contract, it must fail-close instead of forwarding through llama or any legacy management route.
 - Supported native-binary tuples may be backed by a runtime-owned package entrypoint or a runtime-owned wrapper around the published backend binary, but both variants must preserve the same managed image backend gRPC contract and fail-close semantics.
 - Unsupported managed-image package tuples must fail-close before provider execution begins, using `AI_LOCAL_MODEL_UNAVAILABLE` rather than a generic provider internal error.
