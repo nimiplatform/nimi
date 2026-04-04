@@ -8,22 +8,22 @@ The canonical intake unit is one creator video link. Every extracted record must
 
 ## VFM-PIPE-002 — Stage-Bounded Extraction Order
 
-Stage 1 default extraction order is fixed:
+The default extraction order is fixed:
 
 1. title / description / tags / visible metadata
 2. platform subtitles first; speech transcription only when platform subtitles are unavailable
 3. structured recommendation extraction
+4. public comments may be cross-checked as store-name or address clues after the first structured extraction pass
 
-Stage 2 may extend the same record with:
+Later stages may extend the same record with:
 
-4. comments as store-name or address clues
 5. targeted visual clues only when store or address remains unresolved
 
 The product must not default to full-video visual understanding for every input.
 
 ## VFM-PIPE-003 — Long Video Coverage Disclosure
 
-For long creator videos, the stage-1 validation path may process leading audio segments first. This is a valid product path for proving recommendation extraction before full-length processing is expanded.
+For long creator videos, the current product path may process leading audio segments first. This is a valid shipping path for recommendation extraction before full-length processing is expanded.
 
 If extraction coverage is partial, the record must retain:
 
@@ -49,7 +49,7 @@ Each extracted record must retain, whether sourced from platform metadata, trans
 - review state
 - extraction coverage state
 
-Optional helper fields such as video summary or recommendation polarity may exist, but they are not substitutes for the canonical fields above.
+Optional helper fields such as video summary, recommendation polarity, selected route/model provenance, or retained public-comment clues may exist, but they are not substitutes for the canonical fields above.
 
 ## VFM-PIPE-005 — Fail-Close on Store Truth
 
@@ -77,9 +77,9 @@ For public videos, the pipeline must prefer direct platform APIs over HTML page 
 
 When selecting audio CDN URLs from the playurl response, the pipeline must prefer standard CDN hosts (`*.bilivideo.com`) over MCDN/P2P nodes (`*.mcdn.bilivideo.cn`), which are unreliable for cookieless access. Backup URLs in the playurl response provide standard CDN alternatives.
 
-## VFM-PIPE-011 — Creator Batch Intake
+## VFM-PIPE-011 — Future Creator Batch Intake Boundary
 
-The pipeline must support creator-scoped batch intake: given a creator's platform id (e.g. Bilibili `mid`), enumerate the creator's published videos via the platform space API (e.g. `/x/space/wbi/arc/search`), diff against already-known intake records, and feed new video entries into the single-video extraction pipeline. Batch intake is creator-scoped only; site-wide crawling is a non-goal.
+Creator-scoped batch intake remains a later-stage extension. When this feature is exposed, it must: given a creator's platform id (e.g. Bilibili `mid`), enumerate the creator's published videos via the platform space API (e.g. `/x/space/wbi/arc/search`), diff against already-known intake records, and feed new video entries into the single-video extraction pipeline. Batch intake is creator-scoped only; site-wide crawling is a non-goal.
 
 ## VFM-PIPE-012 — Audio Transcoding Portability
 
