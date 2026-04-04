@@ -25,7 +25,10 @@ func writeManagedAssetEntryFixture(t *testing.T, modelsRoot string, asset *runti
 		t.Fatal("asset fixture requires entry path")
 	}
 	var target string
-	if isRunnableKind(asset.GetKind()) && strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/") != "" {
+	repo := strings.TrimSpace(asset.GetSource().GetRepo())
+	if strings.HasPrefix(repo, "local-import/") {
+		target = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimPrefix(repo, "local-import/"), "/")), cleanEntry)
+	} else if isRunnableKind(asset.GetKind()) && strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/") != "" {
 		target = filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(asset.GetLogicalModelId()), "/")), cleanEntry)
 	} else {
 		target = filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(asset.GetAssetId()), cleanEntry)
@@ -602,6 +605,77 @@ func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testi
 	assertGRPCReasonCode(t, err, "optional slot asset missing", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
 }
 
+func TestResolveManagedMediaImageProfileSupportsLegacyLocalImportSlotSourceRepo(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+		"options": []any{
+			"diffusion_model",
+			"vae_path:old.safetensors",
+		},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	vaeRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "local-import/ae",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "ae.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source: &runtimev1.LocalAssetSource{
+			Repo: "local-import/local-import-ae",
+		},
+	}
+	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, vaeRecord, "vae")
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+			{
+				EntryId:    "legacy-vae-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "local-import/ae",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile with legacy local-import slot source: %v", err)
+	}
+	options := valueAsStringSlice(profile["options"])
+	if !containsString(options, "vae_path:resolved/local-import-ae/ae.safetensors") {
+		t.Fatalf("expected vae_path option from local-import repo slug, got=%v", options)
+	}
+}
+
 func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -755,6 +829,9 @@ func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *test
 	}
 	linkedDir := filepath.Join(modelsRoot, "linked-artifact")
 	if err := os.Symlink(outsideDir, linkedDir); err != nil {
+		if strings.Contains(err.Error(), "A required privilege is not held by the client") {
+			t.Skip("symlink privilege unavailable on this Windows host")
+		}
 		t.Fatalf("create symlinked artifact dir: %v", err)
 	}
 

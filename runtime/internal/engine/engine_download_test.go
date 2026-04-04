@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -100,6 +101,99 @@ func TestDownloadFromURLHashMismatchDownloadHelpers(t *testing.T) {
 	}
 	if !errors.Is(err, ErrEngineBinaryHashMismatch) {
 		t.Fatalf("expected ErrEngineBinaryHashMismatch, got %v", err)
+	}
+}
+
+func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
+	fakeBinary := []byte("#!/bin/sh\necho hello\n")
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 1 {
+			hijacker, ok := w.(http.Hijacker)
+			if !ok {
+				t.Fatal("expected hijacker support")
+			}
+			conn, _, err := hijacker.Hijack()
+			if err != nil {
+				t.Fatalf("hijack: %v", err)
+			}
+			_ = conn.Close()
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(fakeBinary)
+	}))
+	defer server.Close()
+
+	destPath := filepath.Join(t.TempDir(), "downloaded.bin")
+	hash, err := downloadURLToFile(server.URL+"/retry.bin", destPath)
+	if err != nil {
+		t.Fatalf("downloadURLToFile: %v", err)
+	}
+	if requests < 2 {
+		t.Fatalf("expected retry after transient EOF, got %d requests", requests)
+	}
+	wantSum := sha256.Sum256(fakeBinary)
+	if hash != hex.EncodeToString(wantSum[:]) {
+		t.Fatalf("hash mismatch: got=%s want=%s", hash, hex.EncodeToString(wantSum[:]))
+	}
+	info, err := os.Stat(destPath)
+	if err != nil {
+		t.Fatalf("stat downloaded file: %v", err)
+	}
+	if info.Size() != int64(len(fakeBinary)) {
+		t.Fatalf("downloaded size mismatch: got=%d want=%d", info.Size(), len(fakeBinary))
+	}
+}
+
+func TestTryWindowsCurlDownloadFallback(t *testing.T) {
+	if currentGOOS() != "windows" {
+		t.Skip("windows-only curl fallback")
+	}
+	sourceFile := filepath.Join(t.TempDir(), "source.bin")
+	fakeBinary := []byte("fake-windows-curl-download")
+	if err := os.WriteFile(sourceFile, fakeBinary, 0o644); err != nil {
+		t.Fatalf("write source file: %v", err)
+	}
+	originalLookPath := engineDownloadLookPath
+	originalCommand := engineDownloadCommand
+	engineDownloadLookPath = func(string) (string, error) {
+		return "curl.exe", nil
+	}
+	engineDownloadCommand = func(_ string, args ...string) *exec.Cmd {
+		dest := ""
+		for i := 0; i < len(args)-1; i++ {
+			if args[i] == "--output" {
+				dest = args[i+1]
+				break
+			}
+		}
+		if dest == "" {
+			t.Fatal("missing --output destination")
+		}
+		return exec.Command("cmd", "/c", "copy", "/Y", sourceFile, dest)
+	}
+	t.Cleanup(func() {
+		engineDownloadLookPath = originalLookPath
+		engineDownloadCommand = originalCommand
+	})
+
+	destPath := filepath.Join(t.TempDir(), "downloaded.bin")
+	hash, err := tryWindowsCurlDownload("https://github.com/example/release.zip", destPath, io.EOF)
+	if err != nil {
+		t.Fatalf("tryWindowsCurlDownload: %v", err)
+	}
+	wantSum := sha256.Sum256(fakeBinary)
+	if hash != hex.EncodeToString(wantSum[:]) {
+		t.Fatalf("hash mismatch: got=%s want=%s", hash, hex.EncodeToString(wantSum[:]))
+	}
+	info, err := os.Stat(destPath)
+	if err != nil {
+		t.Fatalf("stat downloaded file: %v", err)
+	}
+	if info.Size() != int64(len(fakeBinary)) {
+		t.Fatalf("downloaded size mismatch: got=%d want=%d", info.Size(), len(fakeBinary))
 	}
 }
 

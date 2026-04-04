@@ -708,6 +708,49 @@ func TestValidateLocalModelRequestInstalledImageFailsClosedWhenStartLeavesInstal
 	}
 }
 
+func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer loopbackServer.Close()
+
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-unhealthy",
+			AssetId:              "flux.1-schnell",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             loopbackServer.URL + "/v1",
+			HealthDetail:         "managed local image backend validation failed: stale failure",
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId:         "local-image-unhealthy",
+				AssetId:              "flux.1-schnell",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             loopbackServer.URL + "/v1",
+				HealthDetail:         "managed local image active; backend load verified",
+			},
+		},
+	}
+	svc.localModel = imageLister
+
+	if err := svc.validateLocalModelRequest(context.Background(), "local/flux.1-schnell", nil, runtimev1.Modal_MODAL_IMAGE); err != nil {
+		t.Fatalf("expected unhealthy image local model validation to recover via start, got %v", err)
+	}
+	if imageLister.startCalls != 1 {
+		t.Fatalf("expected unhealthy image local model to retry start once, got %d", imageLister.startCalls)
+	}
+}
+
 func TestLocalPreferredEnginesPrefersCanonicalEngines(t *testing.T) {
 	models := []*runtimev1.LocalAssetRecord{
 		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama"},

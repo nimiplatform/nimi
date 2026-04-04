@@ -9,8 +9,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
+	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -626,6 +627,12 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	if relPath, resolved, err := resolveManagedPassiveSourceRepoEntryPath(rootAbs, repo, cleanEntry); resolved {
+		if err != nil {
+			return "", err
+		}
+		return relPath, nil
+	}
 	var absPath string
 	if isRunnableKind(artifact.GetKind()) {
 		logicalModelID := strings.Trim(strings.TrimSpace(artifact.GetLogicalModelId()), "/")
@@ -651,6 +658,42 @@ func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRec
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	return filepath.ToSlash(relPath), nil
+}
+
+func resolveManagedPassiveSourceRepoEntryPath(rootAbs string, sourceRepo string, cleanEntry string) (string, bool, error) {
+	repo := strings.TrimSpace(sourceRepo)
+	const localImportPrefix = "local-import/"
+	if !strings.HasPrefix(repo, localImportPrefix) {
+		return "", false, nil
+	}
+	repoSlug := strings.Trim(strings.TrimPrefix(repo, localImportPrefix), "/")
+	if repoSlug == "" {
+		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	cleanBaseDir := filepath.Clean(filepath.FromSlash(repoSlug))
+	if cleanBaseDir == "." || cleanBaseDir == "" || filepath.IsAbs(cleanBaseDir) || cleanBaseDir == ".." ||
+		strings.HasPrefix(cleanBaseDir, ".."+string(filepath.Separator)) {
+		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	absPath := filepath.Join(rootAbs, "resolved", cleanBaseDir, cleanEntry)
+	absPath, err := filepath.Abs(absPath)
+	if err != nil {
+		return "", true, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
+		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if _, statErr := os.Stat(absPath); statErr != nil {
+		if os.IsNotExist(statErr) {
+			return "", false, nil
+		}
+		return "", true, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	relPath, err := filepath.Rel(rootAbs, absPath)
+	if err != nil {
+		return "", true, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	return filepath.ToSlash(relPath), true, nil
 }
 
 func (s *Service) resolvedLocalModelsPath() string {
@@ -702,23 +745,43 @@ func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRep
 func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) (string, error) {
 	repo := strings.TrimSpace(sourceRepo)
 	if strings.HasPrefix(repo, "file://") {
-		if parsed, err := url.Parse(repo); err == nil {
-			path := parsed.Path
-			if path != "" {
-				baseDir := filepath.Dir(path)
-				baseDir, err = filepath.Abs(baseDir)
-				if err == nil {
-					if resolvedBaseDir, resolveErr := filepath.EvalSymlinks(baseDir); resolveErr == nil {
-						baseDir = resolvedBaseDir
-					} else if !os.IsNotExist(resolveErr) {
-						return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-					}
-					return baseDir, nil
+		path, err := resolveManagedFileRepoPath(repo)
+		if err == nil && path != "" {
+			baseDir := filepath.Dir(path)
+			baseDir, err = filepath.Abs(baseDir)
+			if err == nil {
+				if resolvedBaseDir, resolveErr := filepath.EvalSymlinks(baseDir); resolveErr == nil {
+					baseDir = resolvedBaseDir
+				} else if !os.IsNotExist(resolveErr) {
+					return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 				}
+				return baseDir, nil
 			}
 		}
 	}
 	return filepath.Join(modelsRoot, slugifyLocalModelID(itemID)), nil
+}
+
+func resolveManagedFileRepoPath(sourceRepo string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(sourceRepo))
+	if err != nil {
+		return "", err
+	}
+	path, err := url.PathUnescape(parsed.Path)
+	if err != nil {
+		return "", err
+	}
+	switch {
+	case runtime.GOOS == "windows" && len(parsed.Host) == 2 && parsed.Host[1] == ':':
+		path = parsed.Host + filepath.FromSlash(path)
+	case parsed.Host != "" && parsed.Host != "localhost" && runtime.GOOS == "windows":
+		path = `\\` + parsed.Host + filepath.FromSlash(path)
+	case runtime.GOOS == "windows" && len(path) >= 3 && path[0] == '/' && path[2] == ':':
+		path = path[1:]
+	case parsed.Host != "" && parsed.Host != "localhost":
+		path = string(filepath.Separator) + filepath.Join(parsed.Host, filepath.FromSlash(path))
+	}
+	return filepath.FromSlash(path), nil
 }
 
 func valueAsString(value any) string {

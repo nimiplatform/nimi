@@ -19,10 +19,11 @@ type Manager struct {
 	registry *Registry
 	onState  StateChangeFunc
 
-	llamaModelsPath       string
-	llamaModelsConfigPath string
-	llamaBackendsPath     string
-	llamaImageBackend     *LlamaImageBackendConfig
+	llamaModelsPath          string
+	llamaModelsConfigPath    string
+	llamaBackendsPath        string
+	managedImageBackendsPath string
+	managedImageBackend      *ManagedImageBackendConfig
 
 	mu          sync.RWMutex
 	supervisors map[EngineKind]*Supervisor
@@ -60,17 +61,22 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 	if err != nil {
 		return nil, err
 	}
+	managedImageBackendsPath, err := defaultManagedImageBackendsPath()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Manager{
-		logger:                logger,
-		baseDir:               baseDir,
-		registry:              registry,
-		onState:               onState,
-		llamaModelsPath:       modelsPath,
-		llamaModelsConfigPath: modelsConfigPath,
-		llamaBackendsPath:     backendsPath,
-		supervisors:           make(map[EngineKind]*Supervisor),
-		starting:              make(map[EngineKind]bool),
+		logger:                   logger,
+		baseDir:                  baseDir,
+		registry:                 registry,
+		onState:                  onState,
+		llamaModelsPath:          modelsPath,
+		llamaModelsConfigPath:    modelsConfigPath,
+		llamaBackendsPath:        backendsPath,
+		managedImageBackendsPath: managedImageBackendsPath,
+		supervisors:              make(map[EngineKind]*Supervisor),
+		starting:                 make(map[EngineKind]bool),
 	}, nil
 }
 
@@ -106,6 +112,14 @@ func defaultLlamaBackendsPath() (string, error) {
 	return filepath.Join(home, ".nimi", "runtime", "llama-backends"), nil
 }
 
+func defaultManagedImageBackendsPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve home directory: %w", err)
+	}
+	return filepath.Join(home, ".nimi", "runtime", "managed-image-backends"), nil
+}
+
 // SetLlamaPaths overrides the default llama model directory and generated
 // config path used when callers do not explicitly populate EngineConfig.
 func (m *Manager) SetLlamaPaths(modelsPath string, modelsConfigPath string) {
@@ -115,37 +129,32 @@ func (m *Manager) SetLlamaPaths(modelsPath string, modelsConfigPath string) {
 	m.llamaModelsConfigPath = strings.TrimSpace(modelsConfigPath)
 }
 
-// SetLlamaImageBackend configures the daemon-managed llama image backend
-// process that should be registered via --external-grpc-backends.
-func (m *Manager) SetLlamaImageBackend(cfg *LlamaImageBackendConfig) {
+// SetManagedImageBackend configures the daemon-managed runtime-owned image backend.
+func (m *Manager) SetManagedImageBackend(cfg *ManagedImageBackendConfig) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.llamaImageBackend = normalizeLlamaImageBackendConfig(cfg)
+	m.managedImageBackend = normalizeManagedImageBackendConfig(cfg)
 }
 
 // EnsureManagedImageBackend starts the runtime-owned managed image gRPC backend
 // without registering it as a llama external backend.
-func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *LlamaImageBackendConfig) error {
-	normalized := normalizeLlamaImageBackendConfig(cfg)
+func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
+	normalized := normalizeManagedImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return nil
 	}
 	m.mu.RLock()
-	backendsPath := strings.TrimSpace(m.llamaBackendsPath)
+	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
 	m.mu.RUnlock()
-	llamaBinaryPath := ""
-	if latest := m.latestRegistryEntry(EngineLlama); latest != nil {
-		llamaBinaryPath = strings.TrimSpace(latest.BinaryPath)
-	}
-	resolved, err := ensureOfficialLlamaImageBackend(ctx, llamaBinaryPath, backendsPath, normalized)
+	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, normalized)
 	if err != nil {
 		return err
 	}
-	auxCfg, err := llamaImageBackendEngineConfig(resolved)
+	auxCfg, err := managedImageBackendEngineConfig(resolved)
 	if err != nil {
 		return err
 	}
-	return m.startLlamaImageBackend(ctx, auxCfg)
+	return m.startManagedImageBackend(ctx, auxCfg)
 }
 
 func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
@@ -156,7 +165,6 @@ func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 	modelsPath := strings.TrimSpace(m.llamaModelsPath)
 	modelsConfigPath := strings.TrimSpace(m.llamaModelsConfigPath)
 	backendsPath := strings.TrimSpace(m.llamaBackendsPath)
-	imageBackend := cloneLlamaImageBackendConfig(m.llamaImageBackend)
 	m.mu.RUnlock()
 	if cfg.ModelsPath == "" {
 		cfg.ModelsPath = modelsPath
@@ -171,11 +179,6 @@ func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {
 		cfg.ExternalBackends = detectLlamaExternalBackends(cfg.ModelsConfigPath)
 	} else {
 		cfg.ExternalBackends = normalizeLlamaExternalBackends(cfg.ExternalBackends)
-	}
-	if cfg.LlamaImageBackend == nil {
-		cfg.LlamaImageBackend = normalizeLlamaImageBackendConfig(imageBackend)
-	} else {
-		cfg.LlamaImageBackend = normalizeLlamaImageBackendConfig(cfg.LlamaImageBackend)
 	}
 	return cfg
 }
@@ -234,11 +237,6 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 	}
 
 	cfg.BinaryPath = binaryPath
-	resolvedImageBackend, err := ensureOfficialLlamaImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LlamaImageBackend)
-	if err != nil {
-		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
-	}
-	cfg.LlamaImageBackend = resolvedImageBackend
 	return cfg, nil
 }
 
@@ -291,11 +289,6 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 
 	if err := sup.Stop(); err != nil {
 		return err
-	}
-	if kind == EngineLlama {
-		if err := m.stopLlamaImageBackend(); err != nil {
-			return err
-		}
 	}
 	m.removeSupervisorIfCurrent(kind, sup)
 	return nil
@@ -365,7 +358,7 @@ func (m *Manager) ListEngines() []SupervisorInfo {
 	m.mu.RLock()
 	running := make(map[EngineKind]SupervisorInfo, len(m.supervisors))
 	for kind, s := range m.supervisors {
-		if kind == engineMediaDiffusersBackend {
+		if kind == engineManagedImageBackend {
 			continue
 		}
 		running[kind] = s.Info()
@@ -452,31 +445,14 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 	return info
 }
 
-func (m *Manager) prepareLlamaStart(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	if cfg.LlamaImageBackend == nil || !cfg.LlamaImageBackend.Enabled() {
-		return cfg, nil
-	}
-	resolvedImageBackend, err := ensureOfficialLlamaImageBackend(ctx, cfg.BinaryPath, cfg.BackendsPath, cfg.LlamaImageBackend)
-	if err != nil {
-		return cfg, fmt.Errorf("prepare llama image backend: %w", err)
-	}
-	cfg.LlamaImageBackend = resolvedImageBackend
-	auxCfg, err := llamaImageBackendEngineConfig(resolvedImageBackend)
-	if err != nil {
-		return cfg, err
-	}
-	if err := m.startLlamaImageBackend(ctx, auxCfg); err != nil {
-		return cfg, err
-	}
-	entry := strings.TrimSpace(resolvedImageBackend.BackendName) + ":" + strings.TrimSpace(resolvedImageBackend.Address)
-	cfg.ExternalGRPCBackends = normalizeLlamaExternalGRPCBackends(append(cfg.ExternalGRPCBackends, entry))
+func (m *Manager) prepareLlamaStart(_ context.Context, cfg EngineConfig) (EngineConfig, error) {
 	return cfg, nil
 }
 
-func (m *Manager) startLlamaImageBackend(ctx context.Context, cfg EngineConfig) error {
+func (m *Manager) startManagedImageBackend(ctx context.Context, cfg EngineConfig) error {
 	m.mu.Lock()
-	existing, ok := m.supervisors[engineMediaDiffusersBackend]
-	if m.starting[engineMediaDiffusersBackend] {
+	existing, ok := m.supervisors[engineManagedImageBackend]
+	if m.starting[engineManagedImageBackend] {
 		m.mu.Unlock()
 		return nil
 	}
@@ -484,27 +460,27 @@ func (m *Manager) startLlamaImageBackend(ctx context.Context, cfg EngineConfig) 
 		m.mu.Unlock()
 		return nil
 	}
-	m.starting[engineMediaDiffusersBackend] = true
+	m.starting[engineManagedImageBackend] = true
 	if ok {
-		delete(m.supervisors, engineMediaDiffusersBackend)
+		delete(m.supervisors, engineManagedImageBackend)
 	}
 	sup := NewSupervisor(cfg, m.logger, m.onState)
-	m.supervisors[engineMediaDiffusersBackend] = sup
+	m.supervisors[engineManagedImageBackend] = sup
 	m.mu.Unlock()
-	defer m.finishEngineStart(engineMediaDiffusersBackend)
+	defer m.finishEngineStart(engineManagedImageBackend)
 	if ok {
 		_ = existing.Stop()
 	}
 	if err := sup.Start(ctx); err != nil {
-		m.removeSupervisorIfCurrent(engineMediaDiffusersBackend, sup)
+		m.removeSupervisorIfCurrent(engineManagedImageBackend, sup)
 		return err
 	}
 	return nil
 }
 
-func (m *Manager) stopLlamaImageBackend() error {
+func (m *Manager) stopManagedImageBackend() error {
 	m.mu.RLock()
-	sup, ok := m.supervisors[engineMediaDiffusersBackend]
+	sup, ok := m.supervisors[engineManagedImageBackend]
 	m.mu.RUnlock()
 	if !ok {
 		return nil
@@ -512,7 +488,7 @@ func (m *Manager) stopLlamaImageBackend() error {
 	if err := sup.Stop(); err != nil {
 		return err
 	}
-	m.removeSupervisorIfCurrent(engineMediaDiffusersBackend, sup)
+	m.removeSupervisorIfCurrent(engineManagedImageBackend, sup)
 	return nil
 }
 

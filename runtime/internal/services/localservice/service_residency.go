@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultLocalModelKeepAlive = 5 * time.Minute
-	managedImageBackendEngine  = "media-diffusers-backend"
+	defaultLocalModelKeepAlive    = 5 * time.Minute
+	managedImageBackendEngineName = "media-diffusers-backend"
 )
 
 type localAssetResidencyState struct {
@@ -87,7 +87,7 @@ func residencyEnginesForModel(model *runtimev1.LocalAssetRecord, mode runtimev1.
 		engines = append(engines, executionEngine)
 	}
 	if isManagedSupervisedImageModel(model, mode) {
-		engines = appendUniqueString(engines, managedImageBackendEngine)
+		engines = appendUniqueString(engines, managedImageBackendEngineName)
 	}
 	return dedupeStrings(engines)
 }

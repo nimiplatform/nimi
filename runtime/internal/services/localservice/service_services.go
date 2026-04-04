@@ -32,7 +32,7 @@ func (s *Service) ListLocalServices(_ context.Context, req *runtimev1.ListLocalS
 		}
 		services = append(services, cloneServiceDescriptor(service))
 	}
-	if managed := s.managedMediaDiffusersBackendServiceLocked(); managed != nil {
+	if managed := s.managedImageBackendServiceLocked(); managed != nil {
 		if statusFilter == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNSPECIFIED || managed.GetStatus() == statusFilter {
 			services = append(services, managed)
 		}
@@ -57,8 +57,8 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if serviceID == "" {
 		serviceID = "svc_" + ulid.Make().String()
 	}
-	if isManagedMediaDiffusersBackendServiceID(serviceID) {
-		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
+	if isManagedImageBackendServiceID(serviceID) {
+		return nil, managedImageBackendServiceMutationError(serviceID)
 	}
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
@@ -148,8 +148,8 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedMediaDiffusersBackendServiceID(serviceID) {
-		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
+	if isManagedImageBackendServiceID(serviceID) {
+		return nil, managedImageBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -216,8 +216,8 @@ func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalSe
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedMediaDiffusersBackendServiceID(serviceID) {
-		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
+	if isManagedImageBackendServiceID(serviceID) {
+		return nil, managedImageBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -243,7 +243,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		}
 		services = append(services, cloneServiceDescriptor(service))
 	}
-	if managed := s.managedMediaDiffusersBackendServiceLocked(); managed != nil {
+	if managed := s.managedImageBackendServiceLocked(); managed != nil {
 		if target == "" || managed.GetServiceId() == target {
 			services = append(services, managed)
 		}
@@ -261,7 +261,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 		if service == nil {
 			continue
 		}
-		if isManagedMediaDiffusersBackendServiceID(service.GetServiceId()) {
+		if isManagedImageBackendServiceID(service.GetServiceId()) {
 			healthRows = append(healthRows, service)
 			continue
 		}
@@ -351,8 +351,8 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 			ActionHint: "select_local_service",
 		})
 	}
-	if isManagedMediaDiffusersBackendServiceID(serviceID) {
-		return nil, managedMediaDiffusersBackendServiceMutationError(serviceID)
+	if isManagedImageBackendServiceID(serviceID) {
+		return nil, managedImageBackendServiceMutationError(serviceID)
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
@@ -368,18 +368,18 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 	return &runtimev1.RemoveLocalServiceResponse{Service: svc}, nil
 }
 
-func isManagedMediaDiffusersBackendServiceID(serviceID string) bool {
-	return strings.EqualFold(strings.TrimSpace(serviceID), managedMediaDiffusersBackendServiceID)
+func isManagedImageBackendServiceID(serviceID string) bool {
+	return strings.EqualFold(strings.TrimSpace(serviceID), managedImageBackendServiceID)
 }
 
-func managedMediaDiffusersBackendServiceMutationError(serviceID string) error {
+func managedImageBackendServiceMutationError(serviceID string) error {
 	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION, grpcerr.ReasonOptions{
 		Message:    fmt.Sprintf("local service %s is daemon-managed", strings.TrimSpace(serviceID)),
 		ActionHint: "manage_llama_image_backend_from_runtime_config",
 	})
 }
 
-func (s *Service) managedMediaDiffusersBackendServiceLocked() *runtimev1.LocalServiceDescriptor {
+func (s *Service) managedImageBackendServiceLocked() *runtimev1.LocalServiceDescriptor {
 	if !s.managedMediaBackendConfigured {
 		return nil
 	}
@@ -400,8 +400,8 @@ func (s *Service) managedMediaDiffusersBackendServiceLocked() *runtimev1.LocalSe
 		updatedAt = installedAt
 	}
 	return &runtimev1.LocalServiceDescriptor{
-		ServiceId:    managedMediaDiffusersBackendServiceID,
-		Title:        managedMediaDiffusersBackendServiceTitle,
+		ServiceId:    managedImageBackendServiceID,
+		Title:        managedImageBackendServiceTitle,
 		Engine:       "llama",
 		ArtifactType: "binary",
 		Endpoint:     endpoint,

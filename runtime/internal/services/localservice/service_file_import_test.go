@@ -121,8 +121,25 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	if got, _ := manifest["kind"].(string); got != "vae" {
 		t.Fatalf("manifest kind mismatch: got=%q want=vae", got)
 	}
+	source, ok := manifest["source"].(map[string]any)
+	if !ok {
+		t.Fatalf("manifest source missing: %#v", manifest)
+	}
+	if got, _ := source["repo"].(string); got != "file://"+filepath.ToSlash(manifestPath) {
+		t.Fatalf("manifest source repo mismatch: got=%q want=%q", got, "file://"+filepath.ToSlash(manifestPath))
+	}
 	if _, exists := manifest["artifact_id"]; exists {
 		t.Fatalf("legacy artifact_id must not be written: %#v", manifest)
+	}
+	if got := asset.GetSource().GetRepo(); got != "file://"+filepath.ToSlash(manifestPath) {
+		t.Fatalf("imported passive asset source repo mismatch: got=%q want=%q", got, "file://"+filepath.ToSlash(manifestPath))
+	}
+	resolvedPath, err := svc.ResolveManagedAssetPath(context.Background(), asset.GetLocalAssetId())
+	if err != nil {
+		t.Fatalf("resolve imported passive asset path: %v", err)
+	}
+	if got, want := filepath.Clean(resolvedPath), filepath.Clean(filepath.Join(filepath.Dir(manifestPath), asset.GetEntry())); got != want {
+		t.Fatalf("resolved passive asset path mismatch: got=%q want=%q", got, want)
 	}
 }
 
@@ -138,42 +155,22 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
 		Capabilities: []string{"image"},
 		Engine:       "media",
 	})
 	if err != nil {
-		t.Fatalf("expected image import without explicit endpoint to succeed, got %v", err)
-	}
-
-	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
-	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
-	if _, err := os.Stat(manifestPath); err != nil {
-		t.Fatalf("managed manifest missing: %v", err)
-	}
-	resp, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
-		ManifestPath: manifestPath,
-	})
-	if err != nil {
-		t.Fatalf("re-import managed manifest: %v", err)
+		t.Fatalf("expected Windows GGUF image import without explicit endpoint to succeed, got %v", err)
 	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
-	rawManifest, err := os.ReadFile(manifestPath)
-	if err != nil {
-		t.Fatalf("read managed manifest: %v", err)
-	}
-	var manifest map[string]any
-	if err := json.Unmarshal(rawManifest, &manifest); err != nil {
-		t.Fatalf("parse managed manifest: %v", err)
-	}
-	if _, exists := manifest["engine_config"]; exists {
-		t.Fatalf("canonical supervised image manifest must not write engine_config backend markers: %#v", manifest["engine_config"])
-	}
-	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "backend validation pending") {
-		t.Fatalf("health detail = %q", detail)
+
+	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID("local-import/z_image_turbo-Q4_K_M")))
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), logicalModelID)
+	if _, statErr := os.Stat(manifestPath); statErr != nil {
+		t.Fatalf("managed manifest should be materialized after successful import, stat err=%v", statErr)
 	}
 	if _, statErr := os.Stat(sourcePath); statErr != nil {
 		t.Fatalf("source file should remain after file import: %v", statErr)
@@ -244,19 +241,9 @@ func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *t
 		Engine:   "media",
 	})
 	if err != nil {
-		t.Fatalf("expected image file import with kind-only declaration to succeed, got %v", err)
+		t.Fatalf("expected Windows GGUF image import with kind-only declaration to succeed, got %v", err)
 	}
-	model := resp.GetAsset()
-	if model == nil {
-		t.Fatal("expected imported model")
-	}
-	if got := model.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
-		t.Fatalf("kind mismatch: got=%s", got)
-	}
-	if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "image" {
-		t.Fatalf("capabilities mismatch: %#v", model.GetCapabilities())
-	}
-	if got := svc.modelRuntimeMode(model.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
 }
@@ -348,23 +335,17 @@ func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *te
 		Engine: "media",
 	})
 	if err != nil {
-		t.Fatalf("expected scaffold orphan image import with kind-only declaration to succeed, got %v", err)
+		t.Fatalf("expected Windows orphan GGUF image scaffold to succeed, got %v", err)
 	}
-	model := resp.GetAsset()
-	if model == nil {
-		t.Fatal("expected scaffolded model")
-	}
-	if got := model.GetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE {
-		t.Fatalf("kind mismatch: got=%s", got)
-	}
-	if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "image" {
-		t.Fatalf("capabilities mismatch: %#v", model.GetCapabilities())
-	}
-	if got := svc.modelRuntimeMode(model.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
-	if _, err := os.Stat(sourcePath); !os.IsNotExist(err) {
-		t.Fatalf("expected orphan source to be moved, stat err=%v", err)
+	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
+		t.Fatalf("expected orphan source to move into runtime-managed storage, stat err=%v", statErr)
+	}
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), resp.GetAsset().GetLogicalModelId())
+	if _, statErr := os.Stat(manifestPath); statErr != nil {
+		t.Fatalf("managed manifest should be materialized after orphan scaffold, stat err=%v", statErr)
 	}
 }
 

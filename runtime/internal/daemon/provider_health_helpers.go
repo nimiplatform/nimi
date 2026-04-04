@@ -30,7 +30,7 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	switch kind {
 	case engine.EngineLlama:
 		return "local", true
-	case engineMediaDiffusersBackend:
+	case engineManagedImageBackend:
 		return "local-image", true
 	case engine.EngineMedia:
 		return "local-media", true
@@ -66,8 +66,8 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 		return engine.EngineMedia, true
 	case string(engine.EngineSpeech):
 		return engine.EngineSpeech, true
-	case string(engineMediaDiffusersBackend):
-		return engineMediaDiffusersBackend, true
+	case string(engineManagedImageBackend):
+		return engineManagedImageBackend, true
 	case string(engineSidecar):
 		return engineSidecar, true
 	default:
@@ -124,7 +124,7 @@ func (d *Daemon) decorateProviderProbeError(providerName string, probeErr error)
 // isImageRelatedEngine returns true for engine kinds that participate in the
 // image supervised matrix (K-PROV-002).
 func isImageRelatedEngine(kind engine.EngineKind) bool {
-	return kind == engine.EngineMedia || kind == engineMediaDiffusersBackend
+	return kind == engine.EngineMedia || kind == engineManagedImageBackend
 }
 
 // imageAttributionDetail formats v2 resolver fields into a structured string

@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestLocalManagedMediaDiffusersBackendServiceListAndHealth(t *testing.T) {
+func TestLocalManagedImageBackendServiceListAndHealth(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 
 	listed, err := svc.ListLocalServices(context.Background(), &runtimev1.ListLocalServicesRequest{})
 	if err != nil {
@@ -21,7 +21,7 @@ func TestLocalManagedMediaDiffusersBackendServiceListAndHealth(t *testing.T) {
 		t.Fatalf("expected 1 synthetic service, got %d", len(listed.GetServices()))
 	}
 	service := listed.GetServices()[0]
-	if service.GetServiceId() != managedMediaDiffusersBackendServiceID {
+	if service.GetServiceId() != managedImageBackendServiceID {
 		t.Fatalf("unexpected service id: %q", service.GetServiceId())
 	}
 	if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED {
@@ -31,9 +31,9 @@ func TestLocalManagedMediaDiffusersBackendServiceListAndHealth(t *testing.T) {
 		t.Fatalf("unexpected service endpoint: %q", service.GetEndpoint())
 	}
 
-	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 	healthy, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	if err != nil {
 		t.Fatalf("check local service health(active): %v", err)
@@ -45,9 +45,9 @@ func TestLocalManagedMediaDiffusersBackendServiceListAndHealth(t *testing.T) {
 		t.Fatalf("expected active status, got %s", healthy.GetServices()[0].GetStatus())
 	}
 
-	svc.SetManagedMediaDiffusersBackendHealth(false, "tcp dial failed")
+	svc.SetManagedImageBackendHealth(false, "tcp dial failed")
 	unhealthy, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	if err != nil {
 		t.Fatalf("check local service health(unhealthy): %v", err)
@@ -60,31 +60,31 @@ func TestLocalManagedMediaDiffusersBackendServiceListAndHealth(t *testing.T) {
 	}
 }
 
-func TestLocalManagedMediaDiffusersBackendServiceRejectsMutations(t *testing.T) {
+func TestLocalManagedImageBackendServiceRejectsMutations(t *testing.T) {
 	svc := newTestService(t)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 	ctx := context.Background()
 
 	_, err := svc.InstallLocalService(ctx, &runtimev1.InstallLocalServiceRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "InstallLocalService(managed_image_backend)", codes.FailedPrecondition)
 	assertGRPCReasonCode(t, err, "InstallLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 
 	_, err = svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "StartLocalService(managed_image_backend)", codes.FailedPrecondition)
 	assertGRPCReasonCode(t, err, "StartLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "StopLocalService(managed_image_backend)", codes.FailedPrecondition)
 	assertGRPCReasonCode(t, err, "StopLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{
-		ServiceId: managedMediaDiffusersBackendServiceID,
+		ServiceId: managedImageBackendServiceID,
 	})
 	assertGRPCCode(t, err, "RemoveLocalService(managed_image_backend)", codes.FailedPrecondition)
 	assertGRPCReasonCode(t, err, "RemoveLocalService(managed_image_backend)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)

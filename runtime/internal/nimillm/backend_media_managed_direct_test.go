@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"math"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -17,7 +18,7 @@ func TestResolveManagedMediaModelPath(t *testing.T) {
 	})
 
 	t.Run("keeps absolute model path", func(t *testing.T) {
-		absolute := filepath.Join(string(filepath.Separator), "tmp", "models", "resolved", "nimi", "example", "model.gguf")
+		absolute := filepath.Join(os.TempDir(), "models", "resolved", "nimi", "example", "model.gguf")
 		if got := resolveManagedMediaModelPath("/ignored", absolute); got != absolute {
 			t.Fatalf("resolveManagedMediaModelPath() = %q, want %q", got, absolute)
 		}

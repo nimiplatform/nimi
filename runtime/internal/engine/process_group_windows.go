@@ -24,6 +24,10 @@ func signalSupervisorProcess(pid int, sig syscall.Signal) error {
 	return process.Signal(sig)
 }
 
+func signalSupervisorProcessDirect(pid int, sig syscall.Signal) error {
+	return signalSupervisorProcess(pid, sig)
+}
+
 func bindSupervisorProcessLifecycle(cmd *exec.Cmd) (func(), error) {
 	if cmd == nil || cmd.Process == nil || cmd.Process.Pid <= 0 {
 		return nil, nil

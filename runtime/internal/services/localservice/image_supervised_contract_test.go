@@ -205,10 +205,16 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 		t.Fatal("expected bootstrap selection to exist")
 	}
 	if selection.Conflict {
-		t.Fatalf("expected active supported selection to win over inert workflow install, got conflict=%#v", selection)
+		t.Fatalf("expected active recognized selection to win over inert workflow install, got conflict=%#v", selection)
 	}
 	if selection.EntryID != "windows-x64-nvidia-gguf" {
 		t.Fatalf("unexpected bootstrap entry id: %q", selection.EntryID)
+	}
+	if selection.ProductState != engine.ImageProductStateSupported {
+		t.Fatalf("expected Windows GGUF bootstrap selection to be marked supported, got %s", selection.ProductState)
+	}
+	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
+		t.Fatalf("expected no compatibility detail for supported Windows GGUF topology, got %q", selection.CompatibilityDetail)
 	}
 }
 
@@ -247,17 +253,20 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 		t.Fatal("expected bootstrap selection to exist")
 	}
 	if selection.Conflict {
-		t.Fatalf("safetensors native install must not conflict with active GGUF, got %#v", selection)
+		t.Fatalf("safetensors native install must not conflict with recognized GGUF topology, got %#v", selection)
 	}
 	if selection.EntryID != "linux-x64-nvidia-gguf" {
-		t.Fatalf("active supported GGUF must win, got %q", selection.EntryID)
+		t.Fatalf("active recognized GGUF topology must win, got %q", selection.EntryID)
 	}
-	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
-		t.Fatalf("supported selection should have no compatibility detail, got %q", selection.CompatibilityDetail)
+	if selection.ProductState != engine.ImageProductStateUnsupported {
+		t.Fatalf("expected Linux GGUF topology to be marked unsupported after rollback, got %s", selection.ProductState)
+	}
+	if !strings.Contains(selection.CompatibilityDetail, "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected honest rollback detail, got %q", selection.CompatibilityDetail)
 	}
 }
 
-func TestManagedSupervisedImageBootstrapSelectionIgnoresInertUnsupportedInstallsDuringAutoArbitration(t *testing.T) {
+func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindowsGGUFDuringAutoArbitration(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
@@ -291,16 +300,19 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresInertUnsupportedInstalls
 
 	selection, ok := svc.ManagedSupervisedImageBootstrapSelection()
 	if !ok {
-		t.Fatal("expected supported install to be auto-arbitrated")
+		t.Fatal("expected supported Windows GGUF topology to become bootstrap selection")
 	}
 	if selection.Conflict {
-		t.Fatalf("expected inert unsupported workflow install to be ignored, got conflict=%#v", selection)
+		t.Fatalf("supported installed-only Windows GGUF topology must not conflict during bootstrap arbitration, got %#v", selection)
 	}
 	if selection.EntryID != "windows-x64-nvidia-gguf" {
 		t.Fatalf("unexpected bootstrap entry id: %q", selection.EntryID)
 	}
+	if selection.ProductState != engine.ImageProductStateSupported {
+		t.Fatalf("expected Windows GGUF bootstrap selection to stay supported, got %s", selection.ProductState)
+	}
 	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
-		t.Fatalf("supported bootstrap selection should not carry compatibility detail, got %q", selection.CompatibilityDetail)
+		t.Fatalf("expected no compatibility detail for supported Windows GGUF topology, got %q", selection.CompatibilityDetail)
 	}
 }
 

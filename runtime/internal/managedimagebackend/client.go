@@ -338,6 +338,11 @@ func ensureDescriptors() error {
 							InputType:  stringPtr(".backend.GenerateImageRequest"),
 							OutputType: stringPtr(".backend.Result"),
 						},
+						{
+							Name:       stringPtr("Free"),
+							InputType:  stringPtr(".backend.ModelOptions"),
+							OutputType: stringPtr(".backend.Result"),
+						},
 					},
 				},
 			},

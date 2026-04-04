@@ -172,9 +172,10 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		BackendFamily:         ImageBackendFamilyStableDiffusionGGML,
 		ControlPlane:          ImageControlPlaneRuntime,
 		ExecutionPlane:        EngineMedia,
-		SupportedCapabilities: []string{"image.generate.t2i", "image.generate.i2i"},
+		SupportedCapabilities: nil,
 		TopologyState:         ImageTopologyStateDefined,
-		ProductState:          ImageProductStateSupported,
+		ProductState:          ImageProductStateUnsupported,
+		Detail:                "defined topology only; no published runtime-owned managed image backend package has been validated for this host tuple",
 	},
 	{
 		EntryID:               "windows-x64-nvidia-safetensors-native",

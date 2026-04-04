@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -94,6 +96,42 @@ func TestLocalStartLocalModelRequiresExactManagedLlamaModel(t *testing.T) {
 	}
 	if !strings.Contains(started.GetAsset().GetHealthDetail(), "available_models=other-model") {
 		t.Fatalf("expected available model listing, got %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestWaitForManagedEnginePortReleaseWaitsUntilLoopbackPortIsFree(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	time.AfterFunc(200*time.Millisecond, func() {
+		_ = ln.Close()
+	})
+
+	startedAt := time.Now()
+	if err := waitForManagedEnginePortRelease(context.Background(), port, 2*time.Second); err != nil {
+		t.Fatalf("waitForManagedEnginePortRelease: %v", err)
+	}
+	if elapsed := time.Since(startedAt); elapsed < 150*time.Millisecond {
+		t.Fatalf("expected wait to observe delayed release, elapsed=%s", elapsed)
+	}
+}
+
+func TestWaitForManagedEnginePortReleaseTimesOutWhenPortStaysOccupied(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	port := ln.Addr().(*net.TCPAddr).Port
+	err = waitForManagedEnginePortRelease(context.Background(), port, 250*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected occupied port to time out")
+	}
+	if !strings.Contains(err.Error(), "remained unavailable") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -258,7 +296,7 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 	}
 }
 
-func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
+func TestManagedImageBackendPlatformSupport(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
@@ -266,8 +304,8 @@ func TestManagedMediaDiffusersBackendPlatformSupport(t *testing.T) {
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 
 	modelID := "local/image-model"
 	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
@@ -299,8 +337,8 @@ func TestBuildManagedLlamaRegistrationsExcludesManagedMediaImageAssets(t *testin
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 
 	modelID := "local/image-media-model"
 	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
@@ -361,7 +399,7 @@ func TestManagedLlamaRegistrationForManagedImageStaysDetachedFromLlama(t *testin
 	modelsPath := filepath.Join(t.TempDir(), "models")
 	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 
 	modelID := "local/image-model"
 	writeManagedLlamaManifest(t, modelsPath, modelID, "./weights/image-model.gguf", []string{"image"})
@@ -387,7 +425,7 @@ func TestManagedLlamaRegistrationForManagedImageStaysDetachedFromLlama(t *testin
 		t.Fatalf("managed image should not be cached as llama registration, got %+v", stale)
 	}
 
-	svc.SetManagedMediaDiffusersBackendHealth(true, "daemon-managed image backend active")
+	svc.SetManagedImageBackendHealth(true, "daemon-managed image backend active")
 
 	registration := svc.managedLlamaRegistrationForModel(installed)
 	if registration.Managed {

@@ -376,7 +376,8 @@ func TestLlamaImageSupervisedPlatformSupportedFor(t *testing.T) {
 		{name: "darwin m5 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple M5 Max", want: true},
 		{name: "darwin a19 supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple A19", want: true},
 		{name: "darwin unknown apple supported", goos: "darwin", goarch: "arm64", gpuVendor: "apple", gpuModel: "Apple Silicon", want: true},
-		{name: "linux amd64 follows llama support", goos: "linux", goarch: "amd64", gpuVendor: "", gpuModel: "", want: true},
+		{name: "windows amd64 supported", goos: "windows", goarch: "amd64", gpuVendor: "nvidia", gpuModel: "RTX 4090", want: true},
+		{name: "linux amd64 unsupported for managed image backend", goos: "linux", goarch: "amd64", gpuVendor: "", gpuModel: "", want: false},
 	}
 
 	for _, tt := range tests {
@@ -463,8 +464,11 @@ func TestClassifyMediaHost(t *testing.T) {
 
 func TestLlamaExpectedSHA256(t *testing.T) {
 	const version = "b8575"
-	const asset = "llama-b8575-bin-macos-arm64.tar.gz"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
+	asset, err := llamaAssetName(version)
+	if err != nil {
+		t.Fatalf("llamaAssetName: %v", err)
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/"+version {
 			http.NotFound(w, r)
@@ -694,7 +698,7 @@ func TestProbeSupervisorHealthTCP(t *testing.T) {
 	defer listener.Close()
 
 	cfg := EngineConfig{
-		Kind:           engineMediaDiffusersBackend,
+		Kind:           engineManagedImageBackend,
 		HealthMode:     HealthModeTCP,
 		Address:        listener.Addr().String(),
 		HealthInterval: 100 * time.Millisecond,
@@ -859,7 +863,7 @@ func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 	mgr.supervisors[EngineMedia] = NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
-	mgr.supervisors[engineMediaDiffusersBackend] = NewSupervisor(EngineConfig{Kind: engineMediaDiffusersBackend, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[engineManagedImageBackend] = NewSupervisor(EngineConfig{Kind: engineManagedImageBackend, ShutdownTimeout: time.Second}, nil, nil)
 
 	mgr.StopAll()
 
@@ -892,7 +896,7 @@ func TestManagerStopEngineLlamaRemovesImageBackendSupervisor(t *testing.T) {
 		t.Fatalf("NewManager: %v", err)
 	}
 	mgr.supervisors[EngineLlama] = NewSupervisor(EngineConfig{Kind: EngineLlama, ShutdownTimeout: time.Second}, nil, nil)
-	mgr.supervisors[engineMediaDiffusersBackend] = NewSupervisor(EngineConfig{Kind: engineMediaDiffusersBackend, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[engineManagedImageBackend] = NewSupervisor(EngineConfig{Kind: engineManagedImageBackend, ShutdownTimeout: time.Second}, nil, nil)
 
 	if err := mgr.StopEngine(EngineLlama); err != nil {
 		t.Fatalf("StopEngine llama: %v", err)
@@ -900,8 +904,8 @@ func TestManagerStopEngineLlamaRemovesImageBackendSupervisor(t *testing.T) {
 	if _, exists := mgr.supervisors[EngineLlama]; exists {
 		t.Fatal("expected llama supervisor to be removed from manager map")
 	}
-	if _, exists := mgr.supervisors[engineMediaDiffusersBackend]; exists {
-		t.Fatal("expected managed llama image backend supervisor to be removed from manager map")
+	if _, exists := mgr.supervisors[engineManagedImageBackend]; !exists {
+		t.Fatal("expected managed image backend supervisor to remain managed independently from llama")
 	}
 }
 
@@ -1269,9 +1273,14 @@ func TestInstallLlamaBackendFromOCI(t *testing.T) {
 
 	registryHost := strings.TrimPrefix(server.URL, "https://")
 	backendsPath := t.TempDir()
-	err := installLlamaBackendFromOCI(context.Background(), backendsPath, "stablediffusion-ggml", llamaBackendPackageSpec{
+	err := installLlamaBackendFromOCI(context.Background(), backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:    "stablediffusion-ggml",
+		OS:             "darwin",
+		Arch:           "arm64",
+		GPUVendor:      "apple",
 		InstallDirName: "metal-stablediffusion-ggml",
 		ImageRef:       registryHost + "/test/llama-backends:test-tag",
+		Supported:      true,
 	})
 	if err != nil {
 		t.Fatalf("installLlamaBackendFromOCI: %v", err)
@@ -1291,6 +1300,125 @@ func TestInstallLlamaBackendFromOCI(t *testing.T) {
 	}
 	if metadata.Alias != "stablediffusion-ggml" {
 		t.Fatalf("backend alias mismatch: %q", metadata.Alias)
+	}
+}
+
+func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
+	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
+	supplementalArchive := makeFakeArchiveAsset(t, "payload.zip", "cudart64_12.dll", []byte("fake-cudart"))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/sd.zip":
+			_, _ = w.Write(archive)
+		case "/cudart.zip":
+			_, _ = w.Write(supplementalArchive)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	backendsPath := t.TempDir()
+	spec := managedImageBackendPackageSpec{
+		BackendName:    "stablediffusion-ggml",
+		InstallDirName: "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageFormat:  managedImageBackendPackageFormatDirectArchive,
+		ArchiveURL:     server.URL + "/sd.zip",
+		ArchiveSHA256:  fmt.Sprintf("%x", sha256.Sum256(archive)),
+		SupplementalArchives: []managedImageBackendArchiveSource{{
+			URL:    server.URL + "/cudart.zip",
+			SHA256: fmt.Sprintf("%x", sha256.Sum256(supplementalArchive)),
+		}},
+		ExecutableCandidates: []string{"sd.exe"},
+		Supported:            true,
+	}
+	if err := installManagedImageBackendFromDirectArchive(context.Background(), backendsPath, "stablediffusion-ggml", spec); err != nil {
+		t.Fatalf("installManagedImageBackendFromDirectArchive: %v", err)
+	}
+	executablePath := filepath.Join(backendsPath, spec.InstallDirName, "sd.exe")
+	if _, err := os.Stat(executablePath); err != nil {
+		t.Fatalf("expected Windows backend executable to be installed: %v", err)
+	}
+	cudartPath := filepath.Join(backendsPath, spec.InstallDirName, "cudart64_12.dll")
+	if _, err := os.Stat(cudartPath); err != nil {
+		t.Fatalf("expected supplemental CUDA runtime DLL to be installed: %v", err)
+	}
+	metadata, err := readLlamaBackendMetadata(filepath.Join(backendsPath, spec.InstallDirName, "metadata.json"))
+	if err != nil {
+		t.Fatalf("readLlamaBackendMetadata: %v", err)
+	}
+	if metadata == nil || metadata.Alias != "stablediffusion-ggml" {
+		t.Fatalf("unexpected installed metadata: %#v", metadata)
+	}
+}
+
+func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testing.T) {
+	backendsPath := t.TempDir()
+	backendDir := filepath.Join(backendsPath, "sd-win-cuda12-x64-stablediffusion-ggml")
+	if err := os.MkdirAll(backendDir, 0o755); err != nil {
+		t.Fatalf("mkdir backend dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(backendDir, "sd.exe"), []byte("fake-windows-backend"), 0o755); err != nil {
+		t.Fatalf("write sd.exe: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(backendDir, "metadata.json"), []byte(`{"name":"sd-win-cuda12-x64-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
+		t.Fatalf("write metadata.json: %v", err)
+	}
+
+	originalExecutable := managedImageBackendCurrentExecutable
+	managedImageBackendCurrentExecutable = func() (string, error) {
+		return filepath.Join(t.TempDir(), "nimi.exe"), nil
+	}
+	t.Cleanup(func() {
+		managedImageBackendCurrentExecutable = originalExecutable
+	})
+
+	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:          "stablediffusion-ggml",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
+		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
+		WrapperDriver:        "stable-diffusion.cpp",
+		ExecutableCandidates: []string{"sd.exe"},
+	}, "127.0.0.1:50052")
+	if err != nil {
+		t.Fatalf("discoverInstalledManagedImageBackendLaunchConfig: %v", err)
+	}
+	if got := filepath.Base(launchCfg.Command); got != "nimi.exe" {
+		t.Fatalf("unexpected wrapper command: %q", launchCfg.Command)
+	}
+	if got, want := strings.Join(launchCfg.Args, " "), "managed-image-backend serve --listen 127.0.0.1:50052 --driver stable-diffusion.cpp --backend-executable "+filepath.Join(backendDir, "sd.exe"); got != want {
+		t.Fatalf("unexpected wrapper args: got=%q want=%q", got, want)
+	}
+	if launchCfg.WorkingDir != backendDir {
+		t.Fatalf("unexpected wrapper working dir: %q", launchCfg.WorkingDir)
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testing.T) {
+	spec, ok := resolveManagedImageBackendPackageSpecForHost(
+		"stablediffusion-ggml",
+		"windows",
+		"amd64",
+		"nvidia",
+		true,
+	)
+	if !ok {
+		t.Fatal("expected Windows nvidia/cuda host to resolve a managed image backend package")
+	}
+	if !spec.Supported {
+		t.Fatalf("expected Windows managed image backend package to be supported, got %#v", spec)
+	}
+	if spec.PackageFormat != managedImageBackendPackageFormatDirectArchive {
+		t.Fatalf("expected direct archive package format, got %q", spec.PackageFormat)
+	}
+	if spec.LaunchMode != managedImageBackendLaunchModeRuntimeWrapper {
+		t.Fatalf("expected runtime wrapper launch mode, got %q", spec.LaunchMode)
+	}
+	if got := strings.TrimSpace(spec.WrapperDriver); got != "stable-diffusion.cpp" {
+		t.Fatalf("unexpected wrapper driver: %q", got)
+	}
+	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
+		t.Fatal("expected archive URL for Windows managed image backend package")
 	}
 }
 

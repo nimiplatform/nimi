@@ -16,7 +16,7 @@ const (
 	EngineMedia  EngineKind = "media"
 	EngineSpeech EngineKind = "speech"
 
-	engineMediaDiffusersBackend EngineKind = "media-diffusers-backend"
+	engineManagedImageBackend EngineKind = "managed-image-backend"
 )
 
 // EngineStatus represents the lifecycle state of a supervised engine.
@@ -37,19 +37,19 @@ const (
 	HealthModeTCP  EngineHealthMode = "tcp"
 )
 
-// LlamaImageBackendMode selects how the llama image backend is supplied.
-type LlamaImageBackendMode string
+// ManagedImageBackendMode selects how the runtime-owned managed image backend is supplied.
+type ManagedImageBackendMode string
 
 const (
-	LlamaImageBackendDisabled LlamaImageBackendMode = "disabled"
-	LlamaImageBackendOfficial LlamaImageBackendMode = "official"
-	LlamaImageBackendCustom   LlamaImageBackendMode = "custom"
+	ManagedImageBackendDisabled ManagedImageBackendMode = "disabled"
+	ManagedImageBackendOfficial ManagedImageBackendMode = "official"
+	ManagedImageBackendCustom   ManagedImageBackendMode = "custom"
 )
 
-// LlamaImageBackendConfig holds the daemon-managed llama image backend process
-// configuration used by managed llama image workflows.
-type LlamaImageBackendConfig struct {
-	Mode        LlamaImageBackendMode
+// ManagedImageBackendConfig holds the daemon-managed runtime-owned image
+// backend process configuration used by native-binary image workflows.
+type ManagedImageBackendConfig struct {
+	Mode        ManagedImageBackendMode
 	BackendName string
 	Address     string
 	Command     string
@@ -70,15 +70,15 @@ type ManagedLlamaTarget struct {
 	EngineConfig ManagedLlamaEngineConfig
 }
 
-func (c LlamaImageBackendConfig) Enabled() bool {
-	return c.Mode != "" && c.Mode != LlamaImageBackendDisabled
+func (c ManagedImageBackendConfig) Enabled() bool {
+	return c.Mode != "" && c.Mode != ManagedImageBackendDisabled
 }
 
-func cloneLlamaImageBackendConfig(input *LlamaImageBackendConfig) *LlamaImageBackendConfig {
+func cloneManagedImageBackendConfig(input *ManagedImageBackendConfig) *ManagedImageBackendConfig {
 	if input == nil {
 		return nil
 	}
-	cloned := &LlamaImageBackendConfig{
+	cloned := &ManagedImageBackendConfig{
 		Mode:            input.Mode,
 		BackendName:     input.BackendName,
 		Address:         input.Address,
@@ -156,8 +156,8 @@ type EngineConfig struct {
 	// boot via --external-grpc-backends in name:uri form.
 	ExternalGRPCBackends []string
 
-	// LlamaImageBackend configures the daemon-managed llama image backend.
-	LlamaImageBackend *LlamaImageBackendConfig
+	// ManagedImageBackend configures the daemon-managed runtime-owned image backend.
+	ManagedImageBackend *ManagedImageBackendConfig
 
 	// HealthPath is the HTTP path used for health probing.
 	HealthPath string

@@ -356,3 +356,9 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 - `ScenarioStreamDelta` 必须使用显式 oneof 分支表达 text/artifact；不得再混用自由字段或让消费方根据场景类型推断 delta 语义。
 - `google.protobuf.Struct` 仅允许保留在 workflow/internal explicit-dynamic envelope 等非稳定 product surface，不得继续作为 text/embed/stt/image/video/music 等高频 app-facing 能力的事实源。
 - SDK/desktop/relay 的高层 helper 必须直接消费这些 typed output/delta，不得把稳定 protobuf message 重新降格为 `Record<string, unknown>` 再解析。
+## K-MMPROV-038 Native-Binary Managed Backend Contract
+
+- For `backend_class=native_binary`, runtime may materialize profiles privately, but execution must terminate at the managed image backend gRPC contract and may not call llama `/models/import`.
+- `POST /v1/media/image/generate` is still the only canonical app-facing execution surface; callers must never observe a second image control-plane API.
+- Supported native-binary tuples may be backed by a runtime-owned package entrypoint or a runtime-owned wrapper around the published backend binary, but both variants must preserve the same managed image backend gRPC contract and fail-close semantics.
+- Unsupported managed-image package tuples must fail-close before provider execution begins, using `AI_LOCAL_MODEL_UNAVAILABLE` rather than a generic provider internal error.

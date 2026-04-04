@@ -109,3 +109,6 @@
 - rule_id: K-MMPROV-037
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_proto_linkage]
+- rule_id: K-MMPROV-038
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]

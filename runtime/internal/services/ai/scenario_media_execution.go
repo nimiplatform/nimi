@@ -129,14 +129,17 @@ func executeBackendSyncMedia(
 			}
 			adapterName = adapterLlamaNative
 			modelsRoot, backendAddress, targetErr := s.localImageProfile.ResolveManagedMediaBackendTarget(ctx)
+			scenarioExtensions = forwardedExtensions
 			if targetErr != nil || strings.TrimSpace(modelsRoot) == "" || strings.TrimSpace(backendAddress) == "" {
+				if targetErr != nil {
+					return nil, nil, "", targetErr
+				}
 				return nil, nil, "", grpcerr.WithReasonCodeOptions(
 					codes.FailedPrecondition,
 					runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 					grpcerr.ReasonOptions{Message: "managed image backend target is unavailable"},
 				)
 			}
-			scenarioExtensions = forwardedExtensions
 			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, profile, scenarioExtensions, "generate_request"); err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err

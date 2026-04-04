@@ -135,11 +135,12 @@ entries:
     backend_family: stablediffusion-ggml
     control_plane: runtime
     execution_plane: media
-    supported_capabilities:
-      - image.generate.t2i
-      - image.generate.i2i
+    supported_capabilities: []
     topology_state: defined
-    product_state: supported
+    product_state: unsupported
+    detail: >-
+      defined topology only; no published runtime-owned managed image backend
+      package has been validated for this host tuple.
 
   - entry_id: windows-x64-nvidia-safetensors-native
     host_match:

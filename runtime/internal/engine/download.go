@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -22,6 +24,11 @@ var (
 	ErrEngineBinaryDownloadFailed = errors.New("engine binary download failed")
 	// ErrEngineBinaryHashMismatch indicates checksum mismatch against authority.
 	ErrEngineBinaryHashMismatch = errors.New("engine binary hash mismatch")
+)
+
+var (
+	engineDownloadLookPath = exec.LookPath
+	engineDownloadCommand  = exec.Command
 )
 
 var githubReleaseRedirectHosts = map[string]struct{}{
@@ -128,18 +135,33 @@ func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 
 
 func doEngineDownloadRequest(sourceURL string, base *http.Client, fallbackTimeout time.Duration) (*http.Response, error) {
 	client := newEngineDownloadHTTPClient(sourceURL, base, fallbackTimeout)
-	req, err := http.NewRequest(http.MethodGet, sourceURL, nil)
-	if err != nil {
-		return nil, err
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		req, err := http.NewRequest(http.MethodGet, sourceURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", "nimi-runtime/0.1")
+		req.Header.Set("Accept", "application/vnd.github+json")
+		resp, err := client.Do(req)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
+		if !isRetryableEngineDownloadError(err) || attempt == 2 {
+			break
+		}
+		time.Sleep(time.Duration(attempt+1) * 300 * time.Millisecond)
 	}
-	req.Header.Set("User-Agent", "nimi-runtime/0.1")
-	req.Header.Set("Accept", "application/vnd.github+json")
-	return client.Do(req)
+	return nil, lastErr
 }
 
 func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	resp, err := doEngineDownloadRequest(sourceURL, nil, 30*time.Minute)
 	if err != nil {
+		if hash, fallbackErr := tryWindowsCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
+			return hash, nil
+		}
 		return "", fmt.Errorf("%w: request engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer resp.Body.Close()
@@ -170,6 +192,44 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	shouldRemove = false
 
 	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+func tryWindowsCurlDownload(sourceURL string, destPath string, requestErr error) (string, error) {
+	if currentGOOS() != "windows" {
+		return "", requestErr
+	}
+	if !isRetryableEngineDownloadError(requestErr) {
+		return "", requestErr
+	}
+	parsed, err := url.Parse(strings.TrimSpace(sourceURL))
+	if err != nil {
+		return "", err
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if _, ok := githubReleaseRedirectHosts[host]; !ok && host != "github.com" {
+		return "", requestErr
+	}
+	curlPath, err := engineDownloadLookPath("curl.exe")
+	if err != nil {
+		return "", err
+	}
+	cmd := engineDownloadCommand(
+		curlPath,
+		"-L",
+		"--fail",
+		"--silent",
+		"--show-error",
+		"--retry", "3",
+		"--retry-delay", "1",
+		"--header", "Accept: application/vnd.github+json",
+		"--output", destPath,
+		sourceURL,
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("curl download failed: %v: %s", err, strings.TrimSpace(string(output)))
+	}
+	return sha256File(destPath)
 }
 
 func isEngineArchiveAsset(name string) bool {
@@ -469,6 +529,9 @@ func newEngineDownloadHTTPClient(sourceURL string, base *http.Client, fallbackTi
 			client.Timeout = fallbackTimeout
 		}
 	}
+	if transport := cloneEngineDownloadTransport(client.Transport); transport != nil {
+		client.Transport = transport
+	}
 	baseCheckRedirect := client.CheckRedirect
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) == 0 {
@@ -483,6 +546,38 @@ func newEngineDownloadHTTPClient(sourceURL string, base *http.Client, fallbackTi
 		return nil
 	}
 	return client
+}
+
+func cloneEngineDownloadTransport(base http.RoundTripper) *http.Transport {
+	if typed, ok := base.(*http.Transport); ok && typed != nil {
+		cloned := typed.Clone()
+		cloned.ForceAttemptHTTP2 = false
+		return cloned
+	}
+	if typed, ok := http.DefaultTransport.(*http.Transport); ok && typed != nil {
+		cloned := typed.Clone()
+		cloned.ForceAttemptHTTP2 = false
+		return cloned
+	}
+	return nil
+}
+
+func isRetryableEngineDownloadError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, io.EOF) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return true
+	}
+	lower := strings.ToLower(strings.TrimSpace(err.Error()))
+	return strings.Contains(lower, "eof") ||
+		strings.Contains(lower, "connection reset") ||
+		strings.Contains(lower, "broken pipe") ||
+		strings.Contains(lower, "tls handshake timeout")
 }
 
 func validateEngineDownloadRedirect(sourceURL string, redirectURL string) error {

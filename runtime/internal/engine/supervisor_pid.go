@@ -128,14 +128,14 @@ func (s *Supervisor) cleanStalePID() {
 		"pid", pid,
 	)
 	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
-		_ = syscall.Kill(pid, syscall.SIGTERM)
+		_ = signalSupervisorProcessDirect(pid, syscall.SIGTERM)
 	}
 	if waitSupervisorProcessExit(nil, pid, 2*time.Second) {
 		s.removePIDFile()
 		return
 	}
 	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
-		_ = syscall.Kill(pid, syscall.SIGKILL)
+		_ = signalSupervisorProcessDirect(pid, syscall.SIGKILL)
 	}
 	if waitSupervisorProcessExit(nil, pid, time.Second) {
 		s.removePIDFile()

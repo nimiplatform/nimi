@@ -332,6 +332,91 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 	}
 }
 
+func TestExecuteBackendSyncMediaImageFailsClosedWhenBackendTargetUnavailable(t *testing.T) {
+	t.Helper()
+
+	resolver := &fakeLocalImageProfileResolver{
+		profile: map[string]any{
+			"backend": "stablediffusion-ggml",
+			"parameters": map[string]any{
+				"model": "resolved/example/model.gguf",
+			},
+		},
+		forwardedExtensions: map[string]any{
+			"step": 25,
+		},
+		modelsRoot:     "",
+		backendAddress: "",
+		selection: engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			EntryID:        "windows-x64-nvidia-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:        "windows-x64-nvidia-gguf",
+				ProductState:   engine.ImageProductStateSupported,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		},
+	}
+	svc := &Service{
+		localImageProfile: resolver,
+	}
+	selectedProvider := &localProvider{
+		media: nimillm.NewBackend("local-media", "http://127.0.0.1:65535", "", 0),
+	}
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			ModelId: "local-import/z_image_turbo-Q4_K",
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+				ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
+					Prompt: "orange cat",
+					N:      1,
+					Size:   "1024x1024",
+				},
+			},
+		},
+	}
+
+	_, _, _, err := executeBackendSyncMedia(
+		context.Background(),
+		svc,
+		nil,
+		req,
+		selectedProvider,
+		"media/local-import/z_image_turbo-Q4_K",
+		adapterMediaNative,
+		nil,
+		nil,
+		nil,
+	)
+	if err != nil {
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+			t.Fatalf("backend target unavailable reason = %v (ok=%v), want %v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		}
+		if !strings.Contains(err.Error(), "managed image backend target is unavailable") {
+			t.Fatalf("expected managed backend target detail, got %v", err)
+		}
+		if resolver.ensureLoadCalls != 0 {
+			t.Fatalf("expected no direct managed image preload when backend target unavailable, got %d", resolver.ensureLoadCalls)
+		}
+		if resolver.releaseCalls != 0 {
+			t.Fatalf("expected no direct managed image release when backend target unavailable, got %d", resolver.releaseCalls)
+		}
+		return
+	}
+	t.Fatal("expected backend target unavailable to fail-close")
+}
+
 func getManagedImageDescriptor(t *testing.T, name string) protoreflect.MessageDescriptor {
 	t.Helper()
 	fileDescriptor, err := protodesc.NewFile((&descriptorpb.FileDescriptorProto{

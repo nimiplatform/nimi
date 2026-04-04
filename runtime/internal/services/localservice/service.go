@@ -98,6 +98,7 @@ type Service struct {
 	recoveryCancel               context.CancelFunc
 	recoveryDone                 chan struct{}
 	localModelKeepAlive          time.Duration
+	managedPortAvailable         func(int) bool
 }
 
 type entryHashCacheState struct {
@@ -152,6 +153,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
 		entryHashCache:               make(map[string]entryHashCacheState),
 		localModelKeepAlive:          defaultLocalModelKeepAlive,
+		managedPortAvailable:         loopbackPortAvailable,
 	}
 	if err := svc.restoreState(); err != nil {
 		return nil, err

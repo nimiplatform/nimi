@@ -72,6 +72,8 @@ func main() {
 		exitIfCommandError("provider", runRuntimeProvider(args[2:]))
 	case "config":
 		exitIfCommandError("config", runRuntimeConfig(args[2:]))
+	case "managed-image-backend":
+		exitIfCommandError("managed-image-backend", runManagedImageBackend(args[2:]))
 	default:
 		printUsage()
 		os.Exit(2)

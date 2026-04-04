@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestResolveImageSupervisedMatrixSupportedGGUF(t *testing.T) {
+func TestResolveImageSupervisedMatrixRecognizesUnsupportedLinuxGGUF(t *testing.T) {
 	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
 		OS:              "linux",
 		Arch:            "amd64",
@@ -16,16 +16,46 @@ func TestResolveImageSupervisedMatrixSupportedGGUF(t *testing.T) {
 		ArtifactFormats: []string{"gguf"},
 	})
 	if !selection.Matched || selection.Conflict || selection.Entry == nil {
-		t.Fatalf("expected supported GGUF selection, got %#v", selection)
+		t.Fatalf("expected linux GGUF topology to remain recognized, got %#v", selection)
 	}
 	if selection.EntryID != "linux-x64-nvidia-gguf" {
+		t.Fatalf("unexpected entry id: %q", selection.EntryID)
+	}
+	if selection.ProductState != ImageProductStateUnsupported {
+		t.Fatalf("unexpected product state: %s", selection.ProductState)
+	}
+	if selection.ControlPlane != ImageControlPlaneRuntime || selection.ExecutionPlane != EngineMedia {
+		t.Fatalf("unexpected planes: control=%s execution=%s", selection.ControlPlane, selection.ExecutionPlane)
+	}
+	if !strings.Contains(selection.CompatibilityDetail, "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected honest rollback detail, got %q", selection.CompatibilityDetail)
+	}
+}
+
+func TestResolveImageSupervisedMatrixSupportsWindowsGGUF(t *testing.T) {
+	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
+		OS:              "windows",
+		Arch:            "amd64",
+		GPUVendor:       "nvidia",
+		CUDAReady:       true,
+		AssetFamily:     ImageAssetFamilyGGUFImage,
+		ProfileKind:     ImageProfileKindSingleBinaryModel,
+		ArtifactFormats: []string{"gguf"},
+	})
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		t.Fatalf("expected Windows GGUF topology to be supported, got %#v", selection)
+	}
+	if selection.EntryID != "windows-x64-nvidia-gguf" {
 		t.Fatalf("unexpected entry id: %q", selection.EntryID)
 	}
 	if selection.ProductState != ImageProductStateSupported {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
-	if selection.ControlPlane != ImageControlPlaneRuntime || selection.ExecutionPlane != EngineMedia {
-		t.Fatalf("unexpected planes: control=%s execution=%s", selection.ControlPlane, selection.ExecutionPlane)
+	if len(selection.SupportedCapabilities) == 0 {
+		t.Fatalf("expected supported capabilities, got %#v", selection.SupportedCapabilities)
+	}
+	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
+		t.Fatalf("expected empty compatibility detail, got %q", selection.CompatibilityDetail)
 	}
 }
 
@@ -89,6 +119,9 @@ func TestResolveImageSupervisedMatrixCanonicalFactsBeatLegacyHints(t *testing.T)
 	})
 	if selection.EntryID != "windows-x64-nvidia-gguf" {
 		t.Fatalf("canonical facts must win over legacy hints, got %q", selection.EntryID)
+	}
+	if selection.ProductState != ImageProductStateSupported {
+		t.Fatalf("expected Windows GGUF to be supported, got %s", selection.ProductState)
 	}
 }
 

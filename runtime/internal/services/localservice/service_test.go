@@ -53,6 +53,9 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 			return probe(ctx, endpoint)
 		}
 	}
+	svc.managedPortAvailable = func(int) bool {
+		return true
+	}
 	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
 		return nil
 	}
@@ -2468,13 +2471,20 @@ func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testin
 		ManifestPath: manifestPath,
 	})
 	if err != nil {
-		t.Fatalf("expected image import without explicit endpoint to succeed, got %v", err)
+		t.Fatalf("expected Windows GGUF manifest import without explicit endpoint to succeed, got %v", err)
 	}
 	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-		t.Fatalf("runtime mode mismatch: got=%s", got)
+		t.Fatalf("expected supervised runtime mode, got %s", got)
 	}
-	if got := resp.GetAsset().GetEndpoint(); got != "http://127.0.0.1:8321/v1" {
-		t.Fatalf("expected supervised image endpoint to use managed media execution endpoint, got %q", got)
+	current := svc.modelByID(resp.GetAsset().GetLocalAssetId())
+	if current == nil {
+		t.Fatal("expected imported asset to be stored")
+	}
+	if got := executionRuntimeEngineForModel(current); got != "media" {
+		t.Fatalf("expected execution runtime engine media, got %q", got)
+	}
+	if got := managedRuntimeEngineForModel(current); got != "" {
+		t.Fatalf("expected runtime-owned image control plane to expose no supervisor engine, got %q", got)
 	}
 }
 
@@ -2577,8 +2587,8 @@ func TestLocalStartManagedImageModelUsesSelectionAwareMediaEngineConfig(t *testi
 	setManagedImageHostForTest(t, "Apple M4 Max")
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-start", "asset.manifest.json")
@@ -2668,8 +2678,8 @@ func TestListLocalAssetsDoesNotLoadManagedImageInBackground(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
@@ -2734,6 +2744,90 @@ func TestStartLocalAssetFailsClosedForUnsupportedSafetensorsNativeSelection(t *t
 	}
 }
 
+func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	svc.SetManagedMediaEndpoint("http://127.0.0.1:8321/v1")
+	svc.SetManagedImageBackendConfig(false, "")
+	mgr := &mockEngineManager{}
+	svc.SetEngineManager(mgr)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-proxy-start", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-proxy-start",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+		"source": map[string]any{
+			"repo": "file://" + filepath.ToSlash(manifestPath),
+		},
+		"engine_config": map[string]any{
+			"backend": "stablediffusion-ggml",
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	imageEntryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(imageEntryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("expected Windows GGUF image import to succeed before backend availability is checked, got %v", err)
+	}
+
+	models, listErr := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	if listErr != nil {
+		t.Fatalf("ListLocalAssets: %v", listErr)
+	}
+	if len(models.GetAssets()) != 1 {
+		t.Fatalf("expected one imported asset, got %d", len(models.GetAssets()))
+	}
+	imported := models.GetAssets()[0]
+	if got := svc.modelRuntimeMode(imported.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("expected supervised runtime mode after import, got %s", got)
+	}
+	cacheManagedImageProfileForTest(t, svc, imported.GetLocalAssetId())
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: imported.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("expected StartLocalAsset to return unhealthy asset state instead of transport error, got %v", err)
+	}
+	if got := started.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy asset state when managed image backend target is unavailable, got %s", got)
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "managed image backend target is unavailable") {
+		t.Fatalf("expected backend target unavailable detail, got %q", started.GetAsset().GetHealthDetail())
+	}
+	if mgr.startConfigCalls != 1 || mgr.startCalls != 0 {
+		t.Fatalf("expected selection-aware managed engine bootstrap attempt before fail-close, got config_calls=%d plain_calls=%d", mgr.startConfigCalls, mgr.startCalls)
+	}
+	if mgr.lastStartConfig.ImageSupervisedSelection == nil {
+		t.Fatal("expected image selection to be forwarded into managed engine start config")
+	}
+	if got := mgr.lastStartConfig.ImageSupervisedSelection.EntryID; got != "windows-x64-nvidia-gguf" {
+		t.Fatalf("unexpected image selection entry: %q", got)
+	}
+}
+
 func TestCheckLocalAssetHealthFailsClosedForUnsupportedSafetensorsNativeSelection(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
@@ -2777,8 +2871,8 @@ func TestCheckLocalAssetHealthBulkDoesNotLoadManagedImage(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
@@ -2805,8 +2899,8 @@ func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	freeCalls := 0
@@ -2849,8 +2943,8 @@ func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
@@ -2874,8 +2968,8 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	freeCalls := 0
@@ -2914,8 +3008,8 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 		t.Fatalf("expected keep_alive release to keep managed image resident, got %d", freeCalls)
 	}
 
-	svc.SetManagedMediaDiffusersBackendHealth(false, "backend restarting")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "backend restarted")
+	svc.SetManagedImageBackendHealth(false, "backend restarting")
+	svc.SetManagedImageBackendHealth(true, "backend restarted")
 	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request"); err != nil {
 		t.Fatalf("third EnsureManagedMediaImageLoaded after backend epoch bump: %v", err)
 	}
@@ -2928,8 +3022,8 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	var loadRequests []managedimagebackend.LoadModelRequest
 	svc.managedImageLoadModel = func(_ context.Context, req managedimagebackend.LoadModelRequest) error {
@@ -3007,8 +3101,8 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc.localModelKeepAlive = 0
-	svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
-	svc.SetManagedMediaDiffusersBackendHealth(true, "image backend active")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
 
 	loadCalls := 0
 	freeCalls := 0
@@ -3048,7 +3142,7 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	if !containsString(engineMgr.stopEngines, "media") {
 		t.Fatalf("expected media engine idle-stop, got %#v", engineMgr.stopEngines)
 	}
-	if !containsString(engineMgr.stopEngines, managedImageBackendEngine) {
+	if !containsString(engineMgr.stopEngines, managedImageBackendEngineName) {
 		t.Fatalf("expected managed image backend idle-stop, got %#v", engineMgr.stopEngines)
 	}
 	updated := svc.modelByID(asset.GetLocalAssetId())
@@ -3466,6 +3560,9 @@ func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
 		t.Fatalf("create linked manifest dir: %v", err)
 	}
 	if err := os.Symlink(outsideManifest, linkedManifest); err != nil {
+		if strings.Contains(err.Error(), "A required privilege is not held by the client") {
+			t.Skip("symlink privilege unavailable on this Windows host")
+		}
 		t.Fatalf("create manifest symlink: %v", err)
 	}
 

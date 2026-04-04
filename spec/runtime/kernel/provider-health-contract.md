@@ -53,7 +53,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `tables/local-image-supervised-backend-matrix.yaml`（v2）是 canonical local image supervised health 归因的唯一平台事实源。health attribution 必须消费 v2 matrix resolver 输出的 `entry_id`、`backend_family`、`backend_class`、`product_state`；不得各自推断。
 - `local-media` 的 host support 判断不得只按 public engine=`media` 一刀切；必须由 v2 matrix resolver 输出的 `backend_class` / `backend_family` / `control_plane` / `execution_plane` 驱动。
 - `product_state=unsupported` 的 entry 命中时，health 必须返回 recognized-but-unsupported 归因并以 `AI_LOCAL_MODEL_UNAVAILABLE` fail-close。`product_state=proposed` 且 admission 未通过时同理。
-- `darwin/arm64` 上的 daemon-managed `stablediffusion-ggml` supervised probe target 属于正式支持的 canonical image path；provider health 必须直接消费 v2 matrix selection，不得再附加独立的 Apple `M5+` / `A19+` 代际门槛。
+- `darwin/arm64` 与 `windows/amd64 + nvidia + cuda_ready` 上的 daemon-managed `stablediffusion-ggml` supervised probe target 属于正式支持的 canonical image path；provider health 必须直接消费 v2 matrix selection，不得再附加独立的 host-generation 门槛。
 - 当 image 资产被 v2 matrix resolver 判定为 `backend_class=native_binary` + `control_plane=runtime` 时，provider health 归因必须落到 runtime-owned image control plane 与其真实受管 backend，不得继续把它视为 attached-only `local-media` 资产并要求外部 endpoint。
 - 对 runtime-owned supervised image 资产（`control_plane=runtime`, `execution_plane=media`）：
   - `local-media` probe target仍是 app-facing execution health 的唯一 loopback 事实源。
@@ -136,3 +136,8 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | `cloud-openrouter` | `openrouter` | OpenRouter |
 
 `openai`/`anthropic` 为直连 provider，不经过 Nimi 适配层，无独立探测目标。
+## K-PROV-007 Managed Image Health Admission
+
+- `tables/managed-image-backend-packages.yaml` gates whether a recognized `native_binary + stablediffusion-ggml` tuple may ever become healthy.
+- If the matrix recognizes the topology but the managed image backend package table marks the tuple unsupported, provider health must report recognized-but-unsupported detail and keep the asset unavailable.
+- Health attribution for supported native-binary tuples must be based on the managed image backend gRPC target plus `local-media` execution readiness, not on llama management routes.

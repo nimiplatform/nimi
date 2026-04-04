@@ -61,7 +61,7 @@ func runtimeManagedAssetManifestPath(modelsRoot string, logicalModelID string) s
 }
 
 func runtimeManagedPassiveAssetDir(modelsRoot string, assetID string) string {
-	return filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(assetID))
+	return filepath.Join(modelsRoot, "resolved", slugifyLocalModelID(assetID))
 }
 
 func runtimeManagedPassiveAssetManifestPath(modelsRoot string, assetID string) string {
@@ -465,7 +465,7 @@ func (s *Service) importLocalPassiveAssetFile(
 		"files":         []string{destFileName},
 		"license":       "unknown",
 		"source": map[string]any{
-			"repo":     "local-import/" + slugifyLocalModelID(artifactID),
+			"repo":     "file://" + filepath.ToSlash(manifestPath),
 			"revision": "local",
 		},
 		"integrity_mode": "local_unverified",

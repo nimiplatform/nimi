@@ -5,10 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -19,8 +21,8 @@ import (
 const generatedManagedLlamaModelsConfigRelPath = ".nimi/runtime/llama-models.yaml"
 
 const (
-	managedMediaDiffusersBackendServiceID    = "svc_managed_image_backend"
-	managedMediaDiffusersBackendServiceTitle = "Managed Image Backend"
+	managedImageBackendServiceID    = "svc_managed_image_backend"
+	managedImageBackendServiceTitle = "Managed Image Backend"
 )
 
 type managedLlamaRegistration struct {
@@ -154,9 +156,9 @@ func (s *Service) SetManagedSpeechEndpoint(endpoint string) {
 
 }
 
-// SetManagedMediaDiffusersBackendConfig records whether the managed diffusers image
+// SetManagedImageBackendConfig records whether the managed image
 // backend is configured for daemon-supervised local media workflows.
-func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address string) {
+func (s *Service) SetManagedImageBackendConfig(enabled bool, address string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.managedMediaBackendConfigured = enabled
@@ -180,9 +182,9 @@ func (s *Service) SetManagedMediaDiffusersBackendConfig(enabled bool, address st
 	s.managedMediaBackendUpdatedAt = now
 }
 
-// SetManagedMediaDiffusersBackendHealth records the current managed diffusers image
+// SetManagedImageBackendHealth records the current managed image
 // backend health reported by the engine supervisor.
-func (s *Service) SetManagedMediaDiffusersBackendHealth(healthy bool, detail string) {
+func (s *Service) SetManagedImageBackendHealth(healthy bool, detail string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.managedMediaBackendConfigured {
@@ -252,10 +254,50 @@ func (s *Service) SyncManagedLlamaAssets(ctx context.Context) error {
 	if err := mgr.StopEngine("llama"); err != nil {
 		return fmt.Errorf("restart managed llama stop: %w", err)
 	}
+	if err := waitForManagedEnginePortReleaseWithProbe(ctx, info.Port, 5*time.Second, s.managedPortAvailable); err != nil {
+		return fmt.Errorf("restart managed llama wait for port %d: %w", info.Port, err)
+	}
 	if err := mgr.StartEngine(ctx, "llama", info.Port, info.Version); err != nil {
 		return fmt.Errorf("restart managed llama start: %w", err)
 	}
 	return nil
+}
+
+func waitForManagedEnginePortRelease(ctx context.Context, port int, timeout time.Duration) error {
+	return waitForManagedEnginePortReleaseWithProbe(ctx, port, timeout, loopbackPortAvailable)
+}
+
+func waitForManagedEnginePortReleaseWithProbe(ctx context.Context, port int, timeout time.Duration, probe func(int) bool) error {
+	if port <= 0 || port > 65535 {
+		return fmt.Errorf("invalid managed engine port %d", port)
+	}
+	if probe == nil {
+		probe = loopbackPortAvailable
+	}
+
+	deadline := time.Now().Add(timeout)
+	for {
+		if probe(port) {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("configured port %d remained unavailable after %s", port, timeout)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+}
+
+func loopbackPortAvailable(port int) bool {
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return false
+	}
+	_ = ln.Close()
+	return true
 }
 
 func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegistration, []byte, error) {

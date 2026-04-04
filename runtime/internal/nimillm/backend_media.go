@@ -17,6 +17,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+const managedMediaProxyImportSupportMessage = "managed media proxy requires llama management endpoint /models/import support"
+
 func (b *Backend) isMediaBackend() bool {
 	if b == nil {
 		return false
@@ -221,6 +223,75 @@ func normalizeImageResponseFormat(raw string) (string, error) {
 		return "url", nil
 	default:
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+}
+
+// ProbeManagedMediaProxyImportSupport verifies that a managed media proxy can
+// reach a llama management endpoint that exposes POST /models/import. This is
+// a hard requirement for proxy_execution mode because image aliases are loaded
+// through that management route before /images/generations can run.
+func (b *Backend) ProbeManagedMediaProxyImportSupport(ctx context.Context) error {
+	if b == nil {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    managedMediaProxyImportSupportMessage,
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
+
+	var health struct {
+		Ready  bool           `json:"ready"`
+		Detail string         `json:"detail"`
+		Checks map[string]any `json:"checks"`
+	}
+	if err := b.getJSON(ctx, "/healthz", &health); err != nil {
+		return err
+	}
+	if !health.Ready {
+		detail := strings.TrimSpace(health.Detail)
+		if detail == "" {
+			detail = "managed media proxy is not ready"
+		}
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
+
+	llamaBase := strings.TrimSpace(ValueAsString(health.Checks["llama_base_url"]))
+	if llamaBase == "" {
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    managedMediaProxyImportSupportMessage + "; media proxy health did not expose llama_base_url",
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
+
+	managementBase := strings.TrimSuffix(strings.TrimSuffix(strings.TrimSpace(llamaBase), "/"), "/v1")
+	request, err := b.newRequest(ctx, http.MethodPost, managementBase+"/models/import", bytes.NewReader([]byte("{}")))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	if b.apiKey != "" {
+		request.Header.Set("Authorization", "Bearer "+b.apiKey)
+	}
+
+	response, err := b.do(request)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+
+	switch response.StatusCode {
+	case http.StatusNotFound, http.StatusNotImplemented, http.StatusMethodNotAllowed:
+		return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    managedMediaProxyImportSupportMessage + "; current llama endpoint does not expose that route",
+			ActionHint: "inspect_local_runtime_model_health",
+			Metadata: map[string]string{
+				"llama_base_url": strings.TrimSpace(llamaBase),
+			},
+		})
+	default:
+		return nil
 	}
 }
 

@@ -158,7 +158,7 @@ func TestProviderTargetNameForEngineSeparatesMediaDiffusersBackend(t *testing.T)
 		t.Fatalf("unexpected llama provider target: %s", llamaTarget)
 	}
 
-	diffusersTarget, ok := providerTargetNameForEngine(engineMediaDiffusersBackend)
+	diffusersTarget, ok := providerTargetNameForEngine(engineManagedImageBackend)
 	if !ok {
 		t.Fatal("expected media diffusers provider target mapping")
 	}

@@ -24,10 +24,14 @@ func LlamaImageSupervisedPlatformSupportedFor(goos string, goarch string, _ stri
 	if !LlamaSupervisedPlatformSupportedFor(normalizedGOOS, normalizedGOARCH) {
 		return false
 	}
-	if normalizedGOOS != "darwin" {
+	switch {
+	case normalizedGOOS == "darwin" && normalizedGOARCH == "arm64":
 		return true
+	case normalizedGOOS == "windows" && normalizedGOARCH == "amd64":
+		return true
+	default:
+		return false
 	}
-	return normalizedGOARCH == "arm64"
 }
 
 // LlamaImageSupervisedPlatformSupportDetailFor returns the host compatibility
@@ -45,7 +49,8 @@ func detectLocalGPUVendor() string {
 	if normalizedGOOS == "darwin" && normalizedGOARCH == "arm64" {
 		return "Apple"
 	}
-	return ""
+	vendor, _ := detectMediaHostGPU()
+	return strings.TrimSpace(vendor)
 }
 
 func detectLocalGPUModel() string {

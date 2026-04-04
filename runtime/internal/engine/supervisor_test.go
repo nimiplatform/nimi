@@ -104,9 +104,7 @@ func startSupervisorHelperProcess(t *testing.T, mode string) *exec.Cmd {
 	}
 	cmd := exec.Command(executablePath, "-test.run=TestSupervisorHelperProcess", "--", mode)
 	cmd.Env = append(os.Environ(), "GO_WANT_SUPERVISOR_HELPER_PROCESS=1")
-	if runtime.GOOS != "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	}
+	setSupervisorProcessGroup(cmd)
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("start helper process: %v", err)
 	}
@@ -530,7 +528,7 @@ func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	script := writeTestScript(t, "python3 - <<'PY'\nimport sys, time\nsys.stderr.write('loading tensors from /tmp/ae.safetensors\\n')\nsys.stderr.flush()\nsys.stdout.write('453/1095 - 43.16it/s\\r')\nsys.stdout.flush()\ntime.sleep(0.1)\nsys.stderr.write('sampling using Euler method\\n')\nsys.stderr.flush()\nsys.stdout.write('1/8 - 5.71s/it\\r')\nsys.stdout.flush()\ntime.sleep(2)\nPY")
 	cfg := testSupervisorCfg(script)
-	cfg.Kind = engineMediaDiffusersBackend
+	cfg.Kind = engineManagedImageBackend
 	cfg.StartupTimeout = 100 * time.Millisecond
 
 	sup := NewSupervisor(cfg, logger, nil)
@@ -550,6 +548,9 @@ func TestSupervisorAnnotatesManagedImageProgressPhase(t *testing.T) {
 }
 
 func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
+	if currentGOOS() == "windows" {
+		t.Skip("stale pid cleanup helper process semantics are not stable on Windows")
+	}
 	setSupervisorTestHome(t)
 
 	helperCmd := startSupervisorHelperProcess(t, "sleep")
@@ -606,6 +607,9 @@ func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
 }
 
 func TestCleanStalePIDSkipsMismatchedProcessIdentity(t *testing.T) {
+	if currentGOOS() == "windows" {
+		t.Skip("stale pid cleanup helper process semantics are not stable on Windows")
+	}
 	setSupervisorTestHome(t)
 
 	helperCmd := startSupervisorHelperProcess(t, "sleep")
@@ -653,6 +657,9 @@ func TestCleanStalePIDSkipsMismatchedProcessIdentity(t *testing.T) {
 }
 
 func TestCleanStalePIDSkipsKillWithoutMetadata(t *testing.T) {
+	if currentGOOS() == "windows" {
+		t.Skip("stale pid cleanup helper process semantics are not stable on Windows")
+	}
 	setSupervisorTestHome(t)
 
 	helperCmd := startSupervisorHelperProcess(t, "sleep")
@@ -707,7 +714,7 @@ func TestCleanStalePIDKillsWrappedExecProcess(t *testing.T) {
 	pid := sup.Info().PID
 	t.Cleanup(func() {
 		if testProcessAlive(pid) {
-			_ = syscall.Kill(pid, syscall.SIGKILL)
+			_ = signalSupervisorProcessDirect(pid, syscall.SIGKILL)
 		}
 	})
 

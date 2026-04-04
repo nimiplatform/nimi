@@ -125,7 +125,7 @@ func (s *Supervisor) Stop() error {
 	// The process may have changed its PGID (e.g. setsid), so a group
 	// signal can return ESRCH even though the process is still alive.
 	if err := signalSupervisorProcess(pid, syscall.SIGTERM); err != nil {
-		_ = syscall.Kill(pid, syscall.SIGTERM)
+		_ = signalSupervisorProcessDirect(pid, syscall.SIGTERM)
 	}
 
 	if waitSupervisorProcessExit(process, pid, s.cfg.ShutdownTimeout) {
@@ -136,7 +136,7 @@ func (s *Supervisor) Stop() error {
 
 	// Force kill — group first, then direct PID as fallback.
 	if err := signalSupervisorProcess(pid, syscall.SIGKILL); err != nil {
-		_ = syscall.Kill(pid, syscall.SIGKILL)
+		_ = signalSupervisorProcessDirect(pid, syscall.SIGKILL)
 	}
 	if waitSupervisorProcessExit(process, pid, time.Second) {
 		s.setStatus(StatusStopped, "force killed after timeout")
@@ -660,7 +660,7 @@ func splitProcessLogToken(data []byte, atEOF bool) (advance int, token []byte, e
 }
 
 func (s *Supervisor) trackProcessLogPhase(stream, line string) string {
-	if s.cfg.Kind != engineMediaDiffusersBackend {
+	if s.cfg.Kind != engineManagedImageBackend {
 		return ""
 	}
 	phase := detectMediaProcessLogPhase(stream, line)

@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -184,6 +185,12 @@ func TestRunRuntimeAuditExportWritesSecureOutputFile(t *testing.T) {
 	info, err := os.Stat(outputPath)
 	if err != nil {
 		t.Fatalf("stat export output: %v", err)
+	}
+	if runtime.GOOS == "windows" {
+		if info.Mode().Perm()&0o111 != 0 {
+			t.Fatalf("expected no executable bits on Windows output file, got=%o", info.Mode().Perm())
+		}
+		return
 	}
 	if perms := info.Mode().Perm(); perms != 0o600 {
 		t.Fatalf("output permissions mismatch: got=%o want=600", perms)

@@ -98,7 +98,8 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 			warmEndpoint = strings.TrimSpace(warmed.GetEndpoint())
 		}
 	}
-	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal) {
+	if (selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldStartInstalledLocalModel(selected, modal)) ||
+		(selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY && shouldRetryUnhealthyLocalModelStart(selected, modal)) {
 		if err := s.primeInstalledLocalModelRequest(ctx, selected, requestedModelID, modal, scenarioExtensions); err != nil {
 			return err
 		}
@@ -192,6 +193,30 @@ func shouldStartInstalledLocalModel(model *runtimev1.LocalAssetRecord, modal run
 	default:
 		return false
 	}
+}
+
+func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
+	if model == nil || model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		return false
+	}
+	if strings.TrimSpace(model.GetLocalAssetId()) == "" {
+		return false
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_IMAGE:
+	default:
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "media") {
+		return false
+	}
+	for _, capability := range model.GetCapabilities() {
+		normalized := strings.ToLower(strings.TrimSpace(capability))
+		if normalized == "image" || normalized == "image.generate" {
+			return true
+		}
+	}
+	return false
 }
 
 func nonActiveLocalModelStartDetail(model *runtimev1.LocalAssetRecord) string {
@@ -373,7 +398,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 		if len(engineCandidates) == 0 {
 			return nil, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH, ""
 		}
-		if selected := firstRunnableLocalModel(engineCandidates); selected != nil {
+		if selected := firstRunnableLocalModel(engineCandidates, selector.modal); selected != nil {
 			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(engineCandidates)
@@ -381,20 +406,20 @@ func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector loc
 
 	if selector.preferLocal {
 		for _, engine := range localPreferredEngines(selector.modal) {
-			if selected := firstRunnableLocalModel(filterLocalModelsByEngine(candidates, engine)); selected != nil {
+			if selected := firstRunnableLocalModel(filterLocalModelsByEngine(candidates, engine), selector.modal); selected != nil {
 				return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 			}
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
 	}
 
-	if selected := firstRunnableLocalModel(candidates); selected != nil {
+	if selected := firstRunnableLocalModel(candidates, selector.modal); selected != nil {
 		return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 	}
 	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
 }
 
-func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord) *runtimev1.LocalAssetRecord {
+func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord, modal runtimev1.Modal) *runtimev1.LocalAssetRecord {
 	for _, candidate := range models {
 		if candidate == nil {
 			continue
@@ -407,6 +432,11 @@ func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord) *runtimev1.Lo
 	}
 	for _, candidate := range models {
 		if candidate != nil && candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+			return candidate
+		}
+	}
+	for _, candidate := range models {
+		if shouldRetryUnhealthyLocalModelStart(candidate, modal) {
 			return candidate
 		}
 	}

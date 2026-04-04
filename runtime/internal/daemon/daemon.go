@@ -49,8 +49,8 @@ type Daemon struct {
 }
 
 const (
-	engineMediaDiffusersBackend = engine.EngineKind("media-diffusers-backend")
-	engineSidecar               = engine.EngineKind("sidecar")
+	engineManagedImageBackend = engine.EngineKind("managed-image-backend")
+	engineSidecar             = engine.EngineKind("sidecar")
 )
 
 func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
@@ -293,10 +293,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			d.setDegradedStatus(detail)
 		}
 	}
-	mgr.SetLlamaImageBackend(nil)
+	mgr.SetManagedImageBackend(nil)
+	managedImageBackendConfigured := false
 	if managedImageLoopback {
-		if err := mgr.EnsureManagedImageBackend(ctx, &engine.LlamaImageBackendConfig{
-			Mode:        engine.LlamaImageBackendOfficial,
+		if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
+			Mode:        engine.ManagedImageBackendOfficial,
 			BackendName: "stablediffusion-ggml",
 			Address:     "127.0.0.1:50052",
 		}); err != nil {
@@ -304,7 +305,8 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			d.setDegradedStatus(detail)
 			appendStartupFailureAudit(d.auditStore, detail)
 		} else if svc != nil {
-			svc.MarkManagedEngineUsed(string(engineMediaDiffusersBackend), "engine_bootstrap")
+			managedImageBackendConfigured = true
+			svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
 		}
 	}
 	managedMediaLoopback := managedImageLoopback || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
@@ -325,10 +327,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		} else {
 			svc.SetManagedSpeechEndpoint("")
 		}
-		if managedImageLoopback {
-			svc.SetManagedMediaDiffusersBackendConfig(true, "127.0.0.1:50052")
+		if managedImageBackendConfigured {
+			svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
 		} else {
-			svc.SetManagedMediaDiffusersBackendConfig(false, "")
+			svc.SetManagedImageBackendConfig(false, "")
 		}
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
@@ -506,13 +508,13 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(engineName), string(engineMediaDiffusersBackend)) {
+	if strings.EqualFold(strings.TrimSpace(engineName), string(engineManagedImageBackend)) {
 		if svc := d.grpc.LocalService(); svc != nil {
 			switch strings.ToLower(strings.TrimSpace(status)) {
 			case "healthy":
-				svc.SetManagedMediaDiffusersBackendHealth(true, detail)
+				svc.SetManagedImageBackendHealth(true, detail)
 			case "unhealthy":
-				svc.SetManagedMediaDiffusersBackendHealth(false, detail)
+				svc.SetManagedImageBackendHealth(false, detail)
 			}
 		}
 	}
