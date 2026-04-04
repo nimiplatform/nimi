@@ -130,12 +130,12 @@ export const SelectField = forwardRef<HTMLButtonElement, SelectFieldProps>(funct
           position="popper"
           sideOffset={6}
           className={cn(
-            'z-[var(--nimi-z-popover)] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]',
+            'z-[var(--nimi-z-popover)] min-w-[var(--radix-select-trigger-width)] max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] shadow-[var(--nimi-elevation-floating)]',
             'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             contentClassName,
           )}
         >
-          <SelectPrimitive.Viewport className="p-1">
+          <SelectPrimitive.Viewport className="max-h-[min(var(--radix-select-content-available-height),24rem)] overflow-y-auto overscroll-contain p-1">
             {options.map((option) => (
               <SelectPrimitive.Item
                 key={option.value}
