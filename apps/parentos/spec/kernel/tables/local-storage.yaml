@@ -1,0 +1,339 @@
+schema_version: 1
+
+tables:
+  - name: families
+    description: "Single local family profile."
+    columns:
+      - { name: familyId, type: TEXT, pk: true, description: "ULID" }
+      - { name: displayName, type: TEXT, nullable: false }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [familyId], unique: true }
+
+  - name: children
+    description: "Child profiles stored under one local family."
+    columns:
+      - { name: childId, type: TEXT, pk: true, description: "ULID" }
+      - { name: familyId, type: TEXT, nullable: false, fk: "families.familyId" }
+      - { name: displayName, type: TEXT, nullable: false }
+      - { name: gender, type: TEXT, nullable: false, description: "male | female" }
+      - { name: birthDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: birthWeightKg, type: REAL, nullable: true }
+      - { name: birthHeightCm, type: REAL, nullable: true }
+      - { name: birthHeadCircCm, type: REAL, nullable: true }
+      - { name: avatarPath, type: TEXT, nullable: true }
+      - { name: nurtureMode, type: TEXT, nullable: false, default: "balanced", description: "relaxed | balanced | advanced" }
+      - { name: nurtureModeOverrides, type: TEXT, nullable: true, description: "JSON object: domain -> mode override" }
+      - { name: allergies, type: TEXT, nullable: true, description: "JSON array of known allergies" }
+      - { name: medicalNotes, type: TEXT, nullable: true, description: "JSON array of medical notes" }
+      - { name: recorderProfiles, type: TEXT, nullable: true, description: "JSON array of recorder profiles: [{id,name}]" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [familyId] }
+      - { columns: [birthDate] }
+
+  - name: growth_measurements
+    description: "Structured child growth measurements."
+    columns:
+      - { name: measurementId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: typeId, type: TEXT, nullable: false, description: "References growth-standards.yaml typeId" }
+      - { name: value, type: REAL, nullable: false }
+      - { name: measuredAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: percentile, type: REAL, nullable: true }
+      - { name: source, type: TEXT, nullable: true, description: "manual | ocr | imported" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, typeId, measuredAt] }
+      - { columns: [childId, ageMonths] }
+
+  - name: milestone_records
+    description: "Achievement records for spec-backed milestones."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: milestoneId, type: TEXT, nullable: false, description: "References milestone-catalog.yaml" }
+      - { name: achievedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: ageMonthsWhenAchieved, type: INTEGER, nullable: true }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: photoPath, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, milestoneId], unique: true }
+      - { columns: [childId, achievedAt] }
+
+  - name: reminder_states
+    description: "Per-child reminder engine state."
+    columns:
+      - { name: stateId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: ruleId, type: TEXT, nullable: false, description: "References reminder-rules.yaml" }
+      - { name: status, type: TEXT, nullable: false, description: "pending | active | completed | dismissed | overdue" }
+      - { name: activatedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: dismissedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: dismissReason, type: TEXT, nullable: true }
+      - { name: repeatIndex, type: INTEGER, nullable: false, default: 0 }
+      - { name: nextTriggerAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, ruleId, repeatIndex], unique: true }
+      - { columns: [childId, status] }
+      - { columns: [nextTriggerAt] }
+
+  - name: vaccine_records
+    description: "Structured vaccine administration records."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: ruleId, type: TEXT, nullable: false, description: "References the vaccine reminder rule" }
+      - { name: vaccineName, type: TEXT, nullable: false }
+      - { name: vaccinatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: batchNumber, type: TEXT, nullable: true }
+      - { name: hospital, type: TEXT, nullable: true }
+      - { name: adverseReaction, type: TEXT, nullable: true }
+      - { name: photoPath, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, ruleId], unique: true }
+      - { columns: [childId, vaccinatedAt] }
+
+  - name: journal_entries
+    description: "Observation journal entries with optional voice, photo, and Montessori fields."
+    columns:
+      - { name: entryId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: contentType, type: TEXT, nullable: false, description: "text | voice | photo | mixed" }
+      - { name: textContent, type: TEXT, nullable: true }
+      - { name: voicePath, type: TEXT, nullable: true, description: "App-local audio file path" }
+      - { name: photoPaths, type: TEXT, nullable: true, description: "JSON array of local photo paths" }
+      - { name: recordedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: observationMode, type: TEXT, nullable: true, description: "quick-capture | focused-observation | daily-reflection | five-minute" }
+      - { name: dimensionId, type: TEXT, nullable: true, description: "References observation-framework.yaml dimensionId" }
+      - { name: selectedTags, type: TEXT, nullable: true, description: "JSON array of quickTags from the selected dimension" }
+      - { name: guidedAnswers, type: TEXT, nullable: true, description: "JSON object keyed by guided question" }
+      - { name: observationDuration, type: INTEGER, nullable: true }
+      - { name: keepsake, type: INTEGER, nullable: false, default: 0, description: "0 | 1" }
+      - { name: recorderId, type: TEXT, nullable: true, description: "Recorder identity such as dad | mom" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, recordedAt] }
+      - { columns: [childId, ageMonths] }
+      - { columns: [childId, keepsake] }
+
+  - name: journal_tags
+    description: "Secondary journal tags, including spec-gated AI suggestions after parent confirmation."
+    columns:
+      - { name: tagId, type: TEXT, pk: true, description: "ULID" }
+      - { name: entryId, type: TEXT, nullable: false, fk: "journal_entries.entryId" }
+      - { name: domain, type: TEXT, nullable: false, description: "Tag family; Phase 2 AI suggestions use observation" }
+      - { name: tag, type: TEXT, nullable: false }
+      - { name: source, type: TEXT, nullable: false, description: "manual | ai" }
+      - { name: confidence, type: REAL, nullable: true, description: "0-1 for AI-suggested tags" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [entryId] }
+      - { columns: [domain, tag] }
+
+  - name: ai_conversations
+    description: "Advisor conversation sessions."
+    columns:
+      - { name: conversationId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: title, type: TEXT, nullable: true }
+      - { name: startedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: lastMessageAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: messageCount, type: INTEGER, nullable: false, default: 0 }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, lastMessageAt] }
+
+  - name: ai_messages
+    description: "Advisor message history."
+    columns:
+      - { name: messageId, type: TEXT, pk: true, description: "ULID" }
+      - { name: conversationId, type: TEXT, nullable: false, fk: "ai_conversations.conversationId" }
+      - { name: role, type: TEXT, nullable: false, description: "user | assistant" }
+      - { name: content, type: TEXT, nullable: false }
+      - { name: contextSnapshot, type: TEXT, nullable: true, description: "JSON payload captured at send time" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [conversationId, createdAt] }
+
+  - name: growth_reports
+    description: "Structured local reports saved from the reports surface."
+    columns:
+      - { name: reportId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: reportType, type: TEXT, nullable: false, description: "monthly | quarterly | quarterly-letter" }
+      - { name: periodStart, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: periodEnd, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: ageMonthsStart, type: INTEGER, nullable: false }
+      - { name: ageMonthsEnd, type: INTEGER, nullable: false }
+      - { name: content, type: TEXT, nullable: false, description: "JSON structured report payload" }
+      - { name: generatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, reportType, periodStart] }
+
+  # ── 口腔发育 ─────────────────────────────────────────────
+
+  - name: dental_records
+    description: "Dental events: tooth eruption, loss, caries, cleanings, orthodontic assessments."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: eventType, type: TEXT, nullable: false, description: "eruption | loss | caries | cleaning | ortho-assessment" }
+      - { name: toothId, type: TEXT, nullable: true, description: "FDI tooth number (e.g. '51' for upper-right primary central incisor), null for whole-mouth events" }
+      - { name: toothSet, type: TEXT, nullable: true, description: "primary | permanent" }
+      - { name: eventDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: severity, type: TEXT, nullable: true, description: "For caries: mild | moderate | severe; for ortho: normal | monitor | referral" }
+      - { name: hospital, type: TEXT, nullable: true }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: photoPath, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, eventDate] }
+      - { columns: [childId, toothId] }
+      - { columns: [childId, eventType] }
+
+  # ── 过敏记录 ─────────────────────────────────────────────
+
+  - name: allergy_records
+    description: "Structured allergy tracking with severity, reaction type, and status timeline. Replaces the flat children.allergies JSON for detailed tracking."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: allergen, type: TEXT, nullable: false, description: "Allergen name (e.g. '牛奶蛋白', '花粉', '青霉素')" }
+      - { name: category, type: TEXT, nullable: false, description: "food | drug | environmental | contact | other" }
+      - { name: reactionType, type: TEXT, nullable: true, description: "skin | respiratory | gastrointestinal | anaphylaxis | other" }
+      - { name: severity, type: TEXT, nullable: false, description: "mild | moderate | severe" }
+      - { name: diagnosedAt, type: TEXT, nullable: true, description: "ISO 8601 date of first confirmed diagnosis" }
+      - { name: ageMonthsAtDiagnosis, type: INTEGER, nullable: true }
+      - { name: status, type: TEXT, nullable: false, description: "active | outgrown | uncertain" }
+      - { name: statusChangedAt, type: TEXT, nullable: true, description: "ISO 8601 date when status last changed" }
+      - { name: confirmedBy, type: TEXT, nullable: true, description: "Diagnosis method: skin-prick | blood-test | oral-challenge | clinical-history" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, status] }
+      - { columns: [childId, category] }
+
+  # ── 睡眠记录 ─────────────────────────────────────────────
+
+  - name: sleep_records
+    description: "Daily sleep records: bedtime, wake time, duration, and quality."
+    columns:
+      - { name: recordId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: sleepDate, type: TEXT, nullable: false, description: "ISO 8601 date (the night of, e.g. 2026-04-02 for the night of Apr 2)" }
+      - { name: bedtime, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: wakeTime, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: durationMinutes, type: INTEGER, nullable: true, description: "Total sleep including naps" }
+      - { name: napCount, type: INTEGER, nullable: true, description: "Number of daytime naps (relevant for younger children)" }
+      - { name: napMinutes, type: INTEGER, nullable: true, description: "Total nap duration" }
+      - { name: quality, type: TEXT, nullable: true, description: "good | fair | poor" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, sleepDate], unique: true }
+      - { columns: [childId, ageMonths] }
+
+  # ── 就医与用药事件 ──────────────────────────────────────
+
+  - name: medical_events
+    description: "General medical events: injuries, fractures, surgeries, skin conditions (eczema flares), medication courses, hearing screenings."
+    columns:
+      - { name: eventId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: eventType, type: TEXT, nullable: false, description: "injury | fracture | surgery | skin-condition | medication | hearing-screening | other" }
+      - { name: title, type: TEXT, nullable: false, description: "Short summary (e.g. '左前臂骨折', '湿疹发作', '新生儿听力筛查')" }
+      - { name: eventDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: endDate, type: TEXT, nullable: true, description: "ISO 8601 date for conditions/medication courses with a duration" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: severity, type: TEXT, nullable: true, description: "mild | moderate | severe" }
+      - { name: result, type: TEXT, nullable: true, description: "For screenings: pass | refer | fail; for surgeries: success | complications" }
+      - { name: hospital, type: TEXT, nullable: true }
+      - { name: medication, type: TEXT, nullable: true, description: "Drug name if applicable" }
+      - { name: dosage, type: TEXT, nullable: true, description: "Dosage description if applicable" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: photoPath, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, eventDate] }
+      - { columns: [childId, eventType] }
+
+  # ── Tanner 分期 ─────────────────────────────────────────
+
+  - name: tanner_assessments
+    description: "Puberty Tanner staging assessments. Separate staging for breast/genital and pubic hair."
+    columns:
+      - { name: assessmentId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: assessedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: breastOrGenitalStage, type: INTEGER, nullable: true, description: "Tanner stage 1-5 (breast for female, genital for male)" }
+      - { name: pubicHairStage, type: INTEGER, nullable: true, description: "Tanner stage 1-5" }
+      - { name: assessedBy, type: TEXT, nullable: true, description: "self | parent | physician" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, assessedAt] }
+
+  # ── 体能测评 ─────────────────────────────────────────────
+
+  - name: fitness_assessments
+    description: "Physical fitness assessments: school PE tests, sports evaluations, screening results."
+    columns:
+      - { name: assessmentId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: assessedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: assessmentSource, type: TEXT, nullable: true, description: "school-pe | sports-club | clinic | self" }
+      - { name: run50m, type: REAL, nullable: true, description: "50m sprint in seconds" }
+      - { name: run800m, type: REAL, nullable: true, description: "800m run in seconds (female)" }
+      - { name: run1000m, type: REAL, nullable: true, description: "1000m run in seconds (male)" }
+      - { name: sitAndReach, type: REAL, nullable: true, description: "Sit-and-reach flexibility in cm" }
+      - { name: standingLongJump, type: REAL, nullable: true, description: "Standing long jump in cm" }
+      - { name: sitUps, type: INTEGER, nullable: true, description: "Sit-ups count in 1 minute" }
+      - { name: pullUps, type: INTEGER, nullable: true, description: "Pull-ups count (male)" }
+      - { name: ropeSkipping, type: INTEGER, nullable: true, description: "Jump rope count in 1 minute" }
+      - { name: vitalCapacity, type: INTEGER, nullable: true, description: "Vital capacity in mL (肺活量)" }
+      - { name: footArchStatus, type: TEXT, nullable: true, description: "normal | flat | high-arch | monitoring" }
+      - { name: overallGrade, type: TEXT, nullable: true, description: "School PE grade if applicable: excellent | good | pass | fail" }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, assessedAt] }
+
+  # ── 以下为已有系统表 ────────────────────────────────────
+
+  - name: app_settings
+    description: "App-level local settings."
+    columns:
+      - { name: key, type: TEXT, pk: true }
+      - { name: value, type: TEXT, nullable: false }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+
+constraints:
+  - "All ULID fields use ULID identifiers."
+  - "All datetime fields use ISO 8601 strings."
+  - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
+  - "childId is the primary filter field for child-scoped tables."
+  - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter in Phase 2."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments."
+  - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

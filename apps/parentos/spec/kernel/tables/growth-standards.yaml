@@ -1,0 +1,422 @@
+# ──────────────────────────────────────────────────────────────
+# growth-standards.yaml — ParentOS 生长曲线参考标准
+# 定义生长数据类型和 WHO 标准参考结构。
+# 实际 WHO LMS 数值数据通过代码内嵌或外部数据文件加载。
+# ──────────────────────────────────────────────────────────────
+
+field_contract:
+  measurementType:
+    typeId:         { type: string, required: true }
+    displayName:    { type: string, required: true }
+    unit:           { type: string, required: true }
+    precision:      { type: integer, required: true, description: "小数位数" }
+    ageRange:
+      type: object
+      required: true
+      fields:
+        startMonths: { type: integer }
+        endMonths:   { type: integer }
+    frequency:      { type: string, required: true, description: "建议测量频率" }
+    standardSource: { type: string, required: true }
+    curveType:      { type: enum, values: [lms-percentile, reference-range] }
+    referenceCoverage:
+      type: object
+      required: false
+      description: "官方参考线覆盖范围；超出后仍可记录，但不得继续渲染伪造参考线"
+      fields:
+        startMonths: { type: integer }
+        endMonths:   { type: integer }
+
+  percentileLine:
+    values: [P3, P10, P25, P50, P75, P90, P97]
+    description: "WHO 生长标准百分位线"
+
+constraints:
+  - "P50 is the median reference line"
+  - "记录 ageRange 与官方参考覆盖 referenceCoverage 可以不同；超出 referenceCoverage 时必须 fail-close"
+  - "AI 分析只做趋势描述（如'生长速度放缓'），不做诊断判断"
+  - "低于 P3 或高于 P97 时提示'建议咨询专业人士'，不做解读"
+  - "生长曲线按性别区分（male/female）"
+
+measurementTypes:
+
+  - typeId: height
+    displayName: "身高/身长"
+    unit: "cm"
+    precision: 1
+    ageRange: { startMonths: 0, endMonths: 216 }
+    frequency: "0-12月每月；1-3岁每季度；3-18岁每半年"
+    standardSource: "WHO-growth-standards-2006 (0-5y) + WHO-growth-references-2007 (5-19y)"
+    curveType: lms-percentile
+
+  - typeId: weight
+    displayName: "体重"
+    unit: "kg"
+    precision: 2
+    ageRange: { startMonths: 0, endMonths: 216 }
+    referenceCoverage: { startMonths: 0, endMonths: 120 }
+    frequency: "0-12月每月；1-3岁每季度；3-18岁每半年"
+    standardSource: "WHO-growth-standards-2006 (0-5y) + WHO-growth-references-2007 (5-19y)"
+    curveType: lms-percentile
+
+  - typeId: head-circumference
+    displayName: "头围"
+    unit: "cm"
+    precision: 1
+    ageRange: { startMonths: 0, endMonths: 36 }
+    frequency: "0-12月每月；1-3岁每季度"
+    standardSource: "WHO-growth-standards-2006"
+    curveType: lms-percentile
+
+  - typeId: bmi
+    displayName: "BMI"
+    unit: "kg/m²"
+    precision: 1
+    ageRange: { startMonths: 24, endMonths: 216 }
+    frequency: "和身高体重同步计算"
+    standardSource: "WHO-growth-references-2007"
+    curveType: lms-percentile
+
+  - typeId: vision-left
+    displayName: "左眼视力"
+    unit: "decimal"
+    precision: 1
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: vision-right
+    displayName: "右眼视力"
+    unit: "decimal"
+    precision: 1
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: hyperopia-reserve
+    displayName: "远视储备"
+    unit: "D (屈光度)"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 144 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: bone-age
+    displayName: "骨龄"
+    unit: "years"
+    precision: 1
+    ageRange: { startMonths: 36, endMonths: 192 }
+    frequency: "按需（建议青春期前后每年）"
+    standardSource: "GP-atlas / TW3"
+    curveType: reference-range
+
+  # ── 眼健康扩展 ──────────────────────────────────────────
+
+  - typeId: corrected-vision-left
+    displayName: "左眼矫正视力"
+    unit: "decimal"
+    precision: 1
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: corrected-vision-right
+    displayName: "右眼矫正视力"
+    unit: "decimal"
+    precision: 1
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-sph-left
+    displayName: "左眼球镜 (SPH)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-sph-right
+    displayName: "右眼球镜 (SPH)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-cyl-left
+    displayName: "左眼柱镜 (CYL)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-cyl-right
+    displayName: "右眼柱镜 (CYL)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-axis-left
+    displayName: "左眼轴位 (AXIS)"
+    unit: "°"
+    precision: 0
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: refraction-axis-right
+    displayName: "右眼轴位 (AXIS)"
+    unit: "°"
+    precision: 0
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: axial-length-left
+    displayName: "左眼眼轴长度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023 / IOL-master normative"
+    curveType: reference-range
+
+  - typeId: axial-length-right
+    displayName: "右眼眼轴长度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023 / IOL-master normative"
+    curveType: reference-range
+
+  - typeId: corneal-curvature-left
+    displayName: "左眼角膜曲率 (平均K)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: corneal-curvature-right
+    displayName: "右眼角膜曲率 (平均K)"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  # ── 体成分 ──────────────────────────────────────────────
+
+  - typeId: body-fat-percentage
+    displayName: "体脂率"
+    unit: "%"
+    precision: 1
+    ageRange: { startMonths: 60, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "McCarthy-2006 pediatric body-fat references"
+    curveType: reference-range
+
+  # ── 脊柱筛查 ────────────────────────────────────────────
+
+  - typeId: scoliosis-cobb-angle
+    displayName: "脊柱侧弯 Cobb 角"
+    unit: "°"
+    precision: 0
+    ageRange: { startMonths: 96, endMonths: 216 }
+    frequency: "青春期每年"
+    standardSource: "SRS scoliosis screening guidelines"
+    curveType: reference-range
+
+  # ── 实验室检查 ──────────────────────────────────────────
+
+  - typeId: lab-vitamin-d
+    displayName: "维生素D (25-OH)"
+    unit: "ng/mL"
+    precision: 1
+    ageRange: { startMonths: 0, endMonths: 216 }
+    frequency: "每年（婴幼儿期可更频繁）"
+    standardSource: "AAP / Endocrine Society 2011"
+    curveType: reference-range
+
+  - typeId: lab-ferritin
+    displayName: "血清铁蛋白"
+    unit: "ng/mL"
+    precision: 1
+    ageRange: { startMonths: 6, endMonths: 216 }
+    frequency: "每年"
+    standardSource: "WHO iron-deficiency guidelines 2020"
+    curveType: reference-range
+
+  - typeId: lab-hemoglobin
+    displayName: "血红蛋白"
+    unit: "g/L"
+    precision: 0
+    ageRange: { startMonths: 6, endMonths: 216 }
+    frequency: "每年"
+    standardSource: "WHO hemoglobin cutoffs 2011"
+    curveType: reference-range
+
+  - typeId: lab-calcium
+    displayName: "血钙"
+    unit: "mmol/L"
+    precision: 2
+    ageRange: { startMonths: 0, endMonths: 216 }
+    frequency: "按需"
+    standardSource: "Pediatric reference intervals"
+    curveType: reference-range
+
+  - typeId: lab-zinc
+    displayName: "血锌"
+    unit: "μmol/L"
+    precision: 1
+    ageRange: { startMonths: 6, endMonths: 216 }
+    frequency: "按需"
+    standardSource: "IZiNCG 2004"
+    curveType: reference-range
+
+# ── Reference Ranges (非百分位曲线) ───────────────────────
+
+referenceRanges:
+
+  vision:
+    description: "各年龄段正常视力参考范围"
+    ranges:
+      - ageMonths: 36
+        normalMin: 0.5
+        normalMax: 1.0
+        note: "3 岁视力尚在发育中"
+      - ageMonths: 48
+        normalMin: 0.6
+        normalMax: 1.2
+      - ageMonths: 60
+        normalMin: 0.8
+        normalMax: 1.5
+      - ageMonths: 72
+        normalMin: 1.0
+        normalMax: 1.5
+        note: "6 岁视力应基本成熟"
+
+  hyperopiaReserve:
+    description: "各年龄段远视储备参考值"
+    ranges:
+      - ageMonths: 36
+        normalMin: 2.0
+        normalMax: 3.5
+        note: "3 岁平均远视储备约 +2.50D"
+      - ageMonths: 48
+        normalMin: 1.75
+        normalMax: 3.0
+      - ageMonths: 60
+        normalMin: 1.50
+        normalMax: 2.50
+      - ageMonths: 72
+        normalMin: 1.00
+        normalMax: 2.00
+        note: "入学时储备低于 +0.75D 高度近视风险"
+      - ageMonths: 96
+        normalMin: 0.50
+        normalMax: 1.50
+      - ageMonths: 120
+        normalMin: 0.00
+        normalMax: 1.00
+
+  boneAge:
+    description: "骨龄与实际年龄的偏差参考"
+    constraints:
+      - "骨龄与实际年龄差在 ±1 年内视为正常"
+      - "偏差超过 ±2 年建议咨询内分泌科"
+      - "仅作参考，不做诊断"
+
+  axialLength:
+    description: "儿童眼轴长度参考范围（按年龄段）"
+    ranges:
+      - ageMonths: 36
+        normalMin: 21.0
+        normalMax: 22.5
+        note: "3 岁平均眼轴约 22 mm"
+      - ageMonths: 72
+        normalMin: 22.0
+        normalMax: 23.5
+        note: "6 岁平均约 22.5-23 mm，超过 24 mm 需关注"
+      - ageMonths: 120
+        normalMin: 22.5
+        normalMax: 24.0
+      - ageMonths: 144
+        normalMin: 23.0
+        normalMax: 24.5
+        note: "12 岁后眼轴年增长应 < 0.3 mm"
+
+  scoliosisCobb:
+    description: "脊柱侧弯 Cobb 角分级"
+    constraints:
+      - "0-10° 属于正常范围或姿势性侧弯"
+      - "10-25° 需定期监测，尤其是骨骼未成熟者"
+      - "25-40° 通常建议支具治疗"
+      - "> 40° 通常建议手术评估"
+      - "仅作参考，不做诊断"
+
+  labVitaminD:
+    description: "25-OH 维生素 D 参考范围"
+    constraints:
+      - "< 12 ng/mL 为严重缺乏"
+      - "12-20 ng/mL 为缺乏"
+      - "20-30 ng/mL 为不足"
+      - "30-100 ng/mL 为充足"
+      - "> 100 ng/mL 有中毒风险"
+      - "仅作参考，不做诊断"
+
+  labFerritin:
+    description: "血清铁蛋白参考范围"
+    constraints:
+      - "< 12 ng/mL 提示铁储备耗竭"
+      - "12-30 ng/mL 可能铁不足"
+      - "> 30 ng/mL 通常铁储备充足"
+      - "仅作参考，不做诊断"
+
+  labHemoglobin:
+    description: "血红蛋白参考范围（按年龄）"
+    ranges:
+      - ageMonths: 6
+        normalMin: 105
+        normalMax: 140
+      - ageMonths: 24
+        normalMin: 110
+        normalMax: 140
+      - ageMonths: 60
+        normalMin: 115
+        normalMax: 145
+      - ageMonths: 144
+        normalMin: 120
+        normalMax: 160
+        note: "青春期后男女有差异"
+
+  labCalcium:
+    description: "血钙参考范围"
+    constraints:
+      - "儿童正常范围约 2.20-2.70 mmol/L"
+      - "仅作参考，不做诊断"
+
+  labZinc:
+    description: "血锌参考范围"
+    constraints:
+      - "儿童正常范围约 10.7-17.6 μmol/L"
+      - "低于 10.7 μmol/L 提示锌缺乏"
+      - "仅作参考，不做诊断"

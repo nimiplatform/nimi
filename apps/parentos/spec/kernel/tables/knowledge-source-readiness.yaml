@@ -1,0 +1,136 @@
+version: 1
+
+field_contract:
+  domain:
+    type: string
+    required: true
+    description: "Knowledge domain id aligned with reminder-rules.yaml domain values where applicable."
+  source:
+    type: string
+    required: true
+    description: "Authority source label."
+  sourceLevel:
+    type: enum
+    values: [national, international, academic]
+    required: true
+    description: "Source authority tier."
+  status:
+    type: enum
+    values: [reviewed, needs-review]
+    required: true
+    description: "reviewed may enter AI free-form prompt paths; needs-review is limited to rules, charts, and structured factual displays."
+  owner:
+    type: string
+    required: true
+    description: "Human owner for review and maintenance."
+  lastReviewedAt:
+    type: string
+    required: false
+    description: "Last manual review timestamp in ISO 8601."
+  notes:
+    type: string
+    required: false
+    description: "Current status note."
+
+constraints:
+  - "domain must be unique across all entries"
+  - "status=reviewed entries must include lastReviewedAt"
+  - "status=needs-review domains must not enter free-form AI prompt generation in ParentOS"
+  - "new domains must update the narrative projection in parentos.md section 8.2"
+
+sources:
+  - domain: vaccine
+    source: "China National Immunization Program (NIP-2024)"
+    sourceLevel: national
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Dose timing and catch-up rules still require manual review."
+
+  - domain: checkup
+    source: "National Basic Public Health Service Specification (NBPHS-2023)"
+    sourceLevel: national
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Checkup item coverage and timing still require manual review."
+
+  - domain: growth
+    source: "WHO Child Growth Standards (2006/2007)"
+    sourceLevel: international
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "WHO LMS assets and chart loading are implemented, but growth remains needs-review and is limited to rules, charts, and structured facts only."
+
+  - domain: vision
+    source: "National child vision screening guidance"
+    sourceLevel: national
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Reference values and screening timing still require manual review."
+
+  - domain: milestone
+    source: "CDC Developmental Milestones (2022 revision)"
+    sourceLevel: international
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Localization fit still requires manual review."
+
+  - domain: sensitivity
+    source: "Montessori Sensitive Periods Framework"
+    sourceLevel: academic
+    status: reviewed
+    owner: product
+    lastReviewedAt: "2026-03-15"
+    notes: "Classic literature review completed for the 9 sensitive periods."
+
+  - domain: sleep
+    source: "AAP Safe Sleep Recommendations (2022)"
+    sourceLevel: international
+    status: reviewed
+    owner: product
+    lastReviewedAt: "2026-03-15"
+    notes: "Classic literature review completed."
+
+  - domain: nutrition
+    source: "WHO Complementary Feeding (2023)"
+    sourceLevel: international
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Timing and China-specific nutrition alignment still require manual review."
+
+  - domain: dental
+    source: "AAPD / AAO Guidelines (2023)"
+    sourceLevel: international
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Sealant and fluoride timing guidance still requires manual review."
+
+  - domain: sexuality
+    source: "UNESCO Comprehensive Sexuality Education (2018)"
+    sourceLevel: international
+    status: reviewed
+    owner: product
+    lastReviewedAt: "2026-03-15"
+    notes: "Classic literature review completed."
+
+  - domain: digital
+    source: "WHO Screen Time Guidelines (2019)"
+    sourceLevel: international
+    status: reviewed
+    owner: product
+    lastReviewedAt: "2026-03-15"
+    notes: "Classic literature review completed."
+
+  - domain: observation
+    source: "Montessori + Dweck + Gardner + Erikson + CASEL + Lerner + Kohlberg + Bowlby + Flavell"
+    sourceLevel: academic
+    status: needs-review
+    owner: product
+    lastReviewedAt: null
+    notes: "Observation remains needs-review for free-form generation. Phase 2 only allows local closed-set dimension/tag suggestion against spec-backed quickTags after parent confirmation."

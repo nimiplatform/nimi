@@ -1,0 +1,373 @@
+# ──────────────────────────────────────────────────────────────
+# ability-model.yaml — ParentOS AI 时代能力模型
+#
+# 这是观察框架的上层解读层。
+# 底层 20 个观察维度（observation-framework.yaml）负责采集行为数据；
+# 本表定义 7 层能力模型，将底层观察聚合为面向未来的成长叙事。
+#
+# 架构关系:
+#   家长观察记录
+#     → 20 个发展维度（采集层，学术驱动）
+#     → 7 层能力模型（解读层，本表）
+#     → 成长报告 / AI 分析输出（面向家长的叙事）
+#
+# 本表不引入新的观察动作——家长不需要学习新的观察方式。
+# 它的作用是让 AI 分析引擎在生成报告和趋势总结时，
+# 从"发育是否正常"的视角升级为"面向未来的能力是否在生长"的视角。
+#
+# 设计原则:
+#   - UI 上不出现"AI 时代"字样——家长不需要知道这是一个面向 AI 的模型
+#   - 不替代发育观察——如果一个孩子某项发育里程碑未达成，不会因为"AI 能力"视角而被淡化
+#   - 每层能力都有可观察的行为锚点，不是抽象评判
+# ──────────────────────────────────────────────────────────────
+
+field_contract:
+  ability:
+    abilityId:      { type: string, required: true, pattern: "^PO-ABL-[A-Z]{3,6}-[0-9]{3}$" }
+    layer:          { type: enum, required: true, values: [bedrock, foundation, quality-control, creative-engine, drive, network] }
+    displayName:    { type: string, required: true }
+    parentQuestion: { type: string, required: true, description: "面向家长的一句话概括" }
+    description:    { type: string, required: true }
+    sourceObservations:
+      type: array
+      items: string
+      required: true
+      description: "映射的底层观察维度 dimensionId 列表（来自 observation-framework.yaml）"
+    ageRelevance:
+      type: object
+      required: true
+      fields:
+        startMonths: { type: integer }
+        endMonths:   { type: integer, description: "-1 表示无上限" }
+    developmentalAnchors:
+      type: array
+      items:
+        type: object
+        fields:
+          ageRange:    { type: string, description: "年龄段描述" }
+          whatToLookFor: { type: string, description: "在这个年龄段，该能力的表现形式" }
+      required: true
+      description: "不同年龄段的行为锚点——让 AI 知道该能力在各阶段长什么样"
+    aiAnalysisPrompt:
+      type: string
+      required: true
+      description: "AI 生成报告时使用的分析视角提示"
+
+constraints:
+  - "abilityId must be unique"
+  - "sourceObservations 中的 dimensionId 必须在 observation-framework.yaml 中存在"
+  - "本表不引入新的家长观察动作——所有数据来源于底层维度的已有记录"
+  - "AI 输出遵循 parentos.md §6.2 的安全措辞规则，本表不覆盖该约束"
+  - "报告中不对能力层做评分或排名，只做趋势描述和行为证据引用"
+
+# ── 能力架构总览 ──────────────────────────────────────────
+
+layerModel:
+  description: |
+    8 层能力构成一个协作系统，不是线性阶梯。
+    最底层是亲子关系——它是所有其他能力发展的基床：
+    - 基床层 (bedrock): 亲子关系质量 — 一切观察、沟通、引导的基础通道。通道不通，其他层都是空转
+    - 基础通道层 (foundation): 逻辑思维 + 语言表达 — 与 AI/人沟通的基本通道
+    - 质量控制层 (quality-control): 判断力 + 元认知 — 验证 AI 输出、校准自己的认知边界
+    - 创造力引擎层 (creative-engine): 提问能力 + 跨学科迁移 — 提出有价值的问题、连接不同领域
+    - 驱动层 (drive): 主动性与目标感 — 有自己想解决的问题、想创造的东西
+    - 网络层 (network): 人际协作 — 在"人 + AI + 人"的网络中有效协作
+
+# ── 8 层能力定义 ──────────────────────────────────────────
+
+abilities:
+
+  # ════════════════════════════════════════════════════════════
+  # 基床层 (Bedrock)
+  # 亲子关系是所有其他能力发展的地基。
+  # 一个安全、畅通、被尊重的亲子关系决定了：
+  # - 家长能否持续观察到孩子的真实状态
+  # - 提醒和引导能否真正传递到孩子
+  # - 孩子是否敢于探索、犯错、和提问
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-RELQ-001
+    layer: bedrock
+    displayName: "亲子关系"
+    parentQuestion: "你和孩子之间的沟通通道畅通吗？"
+    description: |
+      亲子关系是一切能力发展的基床。
+      一个孩子的专注力、判断力、提问能力、主动性——所有这些能力的生长，
+      都依赖于他/她和父母之间有一个安全、畅通、被尊重的关系。
+      当关系质量高时，孩子敢于探索、敢于犯错、敢于说出真实想法；
+      当关系通道关闭时，即使其他维度的发展正常，家长也观察不到、引导不了。
+      特别是孩子长大后，这个通道是否畅通，直接决定了
+      ParentOS 的一切观察、提醒、分析能否落到实处。
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-RELQ-001   # 亲子关系质量（核心映射：双向互动质量）
+      - PO-OBS-ATTC-001   # 安全感与依恋（孩子侧的依恋行为）
+      - PO-OBS-EMOT-001   # 情绪状态（家是否是安全的情绪释放空间）
+      - PO-OBS-SOCL-001   # 社交互动（亲子互动模式如何影响对外社交）
+    developmentalAnchors:
+      - ageRange: "0-3 岁"
+        whatToLookFor: "敏感性回应——你能准确读懂孩子的需求吗？一致性回应——你的反应是否稳定可预测？"
+      - ageRange: "3-6 岁"
+        whatToLookFor: "无条件积极关注——孩子犯错时你分离了行为和人格吗？关系修复——冲突后你们怎么和好？"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "信息通道——孩子会主动告诉你学校的事吗？倾听质量——你听的时候放下手机了吗？权力平衡——你允许孩子反驳你吗？"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "敏感话题承载力——能就恋爱/压力/身体变化对话吗？角色转型——你从管教者变成顾问了吗？关系韧性——争吵后能修复吗？危机权重——孩子出事时你是前三个想联系的人吗？"
+    aiAnalysisPrompt: |
+      亲子关系是其他所有能力发展的基床。分析时关注：
+      1. 沟通通道状态：是否畅通（孩子主动分享）、单向（只有家长问）、还是关闭（事务性对话为主）
+      2. 互动质量趋势：深度对话 vs 事务性对话的比例变化
+      3. 修复能力：冲突后是否有修复行为出现
+      4. 与 ATTC 的交叉：孩子侧的依恋行为和家长侧的互动质量是否一致
+      绝不评判家长的教养方式——只描述互动模式的变化。
+      如果通道在关闭，温和地指出这个趋势，导向"可以关注一下沟通方式"。
+
+  # ════════════════════════════════════════════════════════════
+  # 基础通道层 (Foundation)
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-LOGIC-001
+    layer: foundation
+    displayName: "逻辑思维"
+    parentQuestion: "孩子能不能把一件事拆清楚、讲明白？"
+    description: |
+      逻辑思维解决的是"能不能把问题拆清楚"。
+      它不只是数学能力，更是把复杂事物分解为可处理步骤的思维习惯。
+      在 AI 时代，这决定了一个人能否精确地向 AI 定义问题边界。
+    ageRelevance: { startMonths: 24, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-EXEC-001   # 自我管理（计划、策略调整）
+      - PO-OBS-EXPL-001   # 探索与好奇（实验精神、因果推理）
+      - PO-OBS-META-001   # 学习自觉性（知道怎么分解学习任务）
+      - PO-OBS-ORDR-001   # 秩序感（早期分类、排列——逻辑前驱）
+    developmentalAnchors:
+      - ageRange: "2-6 岁"
+        whatToLookFor: "分类、排序、因果探索（'为什么'连问）、简单的如果-那么推理"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "多步骤任务的自主拆解、策略选择、计划调整、错误后的归因分析"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "抽象推理、假设验证、论证和反驳、系统性思考"
+    aiAnalysisPrompt: "从观察记录中寻找孩子在问题分解、因果推理、策略规划方面的行为证据。关注的是思维过程，不是答案对错。"
+
+  - abilityId: PO-ABL-EXPR-001
+    layer: foundation
+    displayName: "精确表达"
+    parentQuestion: "孩子能不能把自己的想法清楚地说出来？"
+    description: |
+      语言能力解决的是"能不能把意图精确传达"。
+      不只是词汇量和语法，更是结构化表达——能用对方听得懂的方式、
+      按逻辑顺序、带上必要的上下文来说清一件事。
+      这是与 AI 和人有效协作的前提条件。
+    ageRelevance: { startMonths: 12, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-LANG-001   # 语言与沟通
+      - PO-OBS-CASL-001   # 社会情感能力（用语言表达情绪、协商冲突）
+      - PO-OBS-EMOT-001   # 情绪状态（用语言代替行为表达情绪）
+    developmentalAnchors:
+      - ageRange: "1-3 岁"
+        whatToLookFor: "从单词到短句、能用语言表达基本需求、自言自语叙述行为"
+      - ageRange: "3-6 岁"
+        whatToLookFor: "讲述完整故事、描述事件的前因后果、使用因果连接词（因为、所以）"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "有条理地说明观点、区分事实和感受、能根据听众调整表达方式"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "书面与口头的结构化论述、精确定义概念、有效传达复杂想法"
+    aiAnalysisPrompt: "从语言和沟通相关记录中，关注孩子是否在从'能说'发展为'能说清楚'——结构化程度、上下文意识、听众适应性。"
+
+  # ════════════════════════════════════════════════════════════
+  # 质量控制层 (Quality Control)
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-JUDG-001
+    layer: quality-control
+    displayName: "判断力"
+    parentQuestion: "孩子能不能分辨什么是好的、什么是平庸的？"
+    description: |
+      判断力是"知道 AI 输出的东西对不对好不好"的能力。
+      AI 时代最大的风险不是 AI 错得离谱，而是错得很像对的。
+      逻辑能帮你验证推理链，但很多领域的判断靠的是审美、直觉和经验积累。
+      一个孩子读过大量好文章，才能判断 AI 写的东西是平庸的；
+      做过大量真实实验，才能感觉到 AI 给的方案哪里不对劲。
+      这种判断力的底层是大量的一手经验，没有捷径。
+    ageRelevance: { startMonths: 36, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-GROW-001   # 面对挑战的态度（能否识别自己的作品质量）
+      - PO-OBS-INDU-001   # 胜任感与成就（对自己作品有质量意识）
+      - PO-OBS-EXPL-001   # 探索与好奇（一手经验积累）
+      - PO-OBS-MORL-001   # 是非判断（价值层面的判断力）
+      - PO-OBS-MINT-001   # 天赋与兴趣倾向（在擅长领域积累的鉴赏力）
+    developmentalAnchors:
+      - ageRange: "3-6 岁"
+        whatToLookFor: "能区分'好看/不好看''好听/不好听'——审美判断的萌芽；对自己的作品有满意/不满意的自我评价"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "在擅长领域能说出'这个好在哪里'；读完一本书能有自己的评价而非复述大意；做完项目能识别哪些部分可以更好"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "能评价信息源的可信度；对'看起来正确'的内容保持警惕；在深耕领域有独立的品质标准"
+    aiAnalysisPrompt: "判断力的底层是一手经验的积累。从记录中寻找孩子在哪些领域有深度投入和实践，以及是否开始发展出自己的品质标准和鉴别力。"
+
+  - abilityId: PO-ABL-MCOG-001
+    layer: quality-control
+    displayName: "元认知"
+    parentQuestion: "孩子知道自己知道什么、不知道什么吗？"
+    description: |
+      元认知是"知道自己知道什么、不知道什么"的能力。
+      跟 AI 协作时，如果你不清楚自己的知识边界，
+      你就无法判断什么时候该信 AI、什么时候该质疑、什么时候该去找人类专家。
+      元认知弱的人会出现两个极端：要么完全依赖 AI，要么完全不信 AI。
+      这个能力从很小的时候就可以培养——
+      让孩子习惯说"这个我不确定"比"这个我知道"更有价值。
+    ageRelevance: { startMonths: 48, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-META-001   # 学习自觉性（核心映射：知道自己的学习策略和边界）
+      - PO-OBS-GROW-001   # 面对挑战的态度（能否准确评估任务难度）
+      - PO-OBS-EXEC-001   # 自我管理（计划和监控能力的自我觉察）
+    developmentalAnchors:
+      - ageRange: "4-6 岁"
+        whatToLookFor: "能说'我不知道'而非瞎猜；对'你确定吗'的追问能修正自己的回答"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "知道自己擅长/不擅长什么；做完任务能准确判断自己做得好不好；遇到不会的能定位到'我哪里不懂'"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "清晰的知识边界感——能区分'我知道''我大概知道''我不知道'；面对信息能判断该信还是该质疑"
+    aiAnalysisPrompt: "从元认知相关记录中寻找：孩子是否在发展'知道自己不知道什么'的能力。关键信号包括主动说'我不确定'、准确的自我评估、以及面对信息时的辨别姿态。"
+
+  # ════════════════════════════════════════════════════════════
+  # 创造力引擎层 (Creative Engine)
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-QUES-001
+    layer: creative-engine
+    displayName: "提问能力"
+    parentQuestion: "孩子能不能提出让人想不到的好问题？"
+    description: |
+      AI 时代"回答"在贬值，"提出好问题"在升值。
+      好问题的前提是对一个领域有足够深的理解，
+      能意识到哪里存在未被解决的矛盾、哪里的共识可能是错的。
+      这本质上是好奇心加上批判性思维。
+      很多孩子的提问本能是被"标准答案"教育压掉的——需要从小保护。
+    ageRelevance: { startMonths: 24, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-EXPL-001   # 探索与好奇（提问频率、问题深度）
+      - PO-OBS-LANG-001   # 语言与沟通（问题的语言复杂度）
+      - PO-OBS-MORL-001   # 是非判断（质疑规则公平性——批判性思维）
+      - PO-OBS-IDEN-001   # 自我认同探索（质疑既有观点——独立思考）
+    developmentalAnchors:
+      - ageRange: "2-6 岁"
+        whatToLookFor: "'为什么'连问不止；能就同一话题追问到第三层以上；提出的问题让大人需要想一想"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "能提出'如果……会怎样'的假设性问题；质疑书本或老师说的'为什么是这样'；问题从信息型转向思考型"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "能识别领域内的未解问题或矛盾；提出'大家都这么认为，但真的是这样吗'类型的问题；能formulate清晰的研究问题"
+    aiAnalysisPrompt: "从探索、语言和批判性思维相关记录中，关注孩子提出的问题本身——是在索取信息，还是在挑战假设、探索边界。提问的深度和原创性是核心指标。"
+
+  - abilityId: PO-ABL-XFER-001
+    layer: creative-engine
+    displayName: "跨领域连接"
+    parentQuestion: "孩子能不能把不同领域的东西联系起来？"
+    description: |
+      真正有价值的创新几乎都发生在学科交叉处。
+      一个既懂生物又懂编程的人能用 AI 做到纯生物学家和纯程序员都做不到的事。
+      培养方向不是"专精一门"，而是"有一两个深度锚点，同时保持广泛的好奇心"。
+    ageRelevance: { startMonths: 48, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-MINT-001   # 天赋与兴趣倾向（是否有多个活跃的智能倾向）
+      - PO-OBS-EXPL-001   # 探索与好奇（兴趣广度）
+      - PO-OBS-CONC-001   # 专注力（深度投入的领域数量）
+      - PO-OBS-REPT-001   # 重复行为（在不同领域的精进模式）
+    developmentalAnchors:
+      - ageRange: "4-6 岁"
+        whatToLookFor: "在游戏中混合不同类型的材料/场景；把一个领域学到的东西自发用到另一个领域"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "兴趣领域超过一个且有真实投入；能说出'这个跟那个好像有关系'；在跨领域项目中表现出整合能力"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "有 1-2 个深度锚点加上广泛好奇心；主动在不同学科之间建立连接；独立项目体现跨领域思维"
+    aiAnalysisPrompt: "从多元智能和探索相关记录中，关注孩子的兴趣是否有跨领域特征——不是'什么都碰一下'，而是在不同领域之间建立了有意义的连接。"
+
+  # ════════════════════════════════════════════════════════════
+  # 驱动层 (Drive)
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-AGNC-001
+    layer: drive
+    displayName: "主动性与目标感"
+    parentQuestion: "孩子有自己想做的事吗？"
+    description: |
+      AI 能帮你做任何事，但不能告诉你"该做什么"。
+      如果一个人没有自己想解决的问题、想创造的东西、想探索的方向，
+      AI 再强也只是一个闲置的工具。
+      这种内驱力是 AI 时代最稀缺的东西。
+    ageRelevance: { startMonths: 12, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-CHOI-001   # 选择与意志（主动选择、坚持选择）
+      - PO-OBS-INDP-001   # 独立性（自主完成、拒绝不必要的帮助）
+      - PO-OBS-CONC-001   # 专注力（自发深度投入——不是被安排的任务）
+      - PO-OBS-INDU-001   # 胜任感与成就（因自己的成果感到自豪）
+      - PO-OBS-IDEN-001   # 自我认同探索（有自己的方向和计划）
+      - PO-OBS-ATTC-001   # 安全感（安全依恋是自主探索的基础）
+    developmentalAnchors:
+      - ageRange: "1-3 岁"
+        whatToLookFor: "强烈的'我自己来'意愿；对自己选择的活动能长时间投入；不轻易被转移注意力"
+      - ageRange: "3-6 岁"
+        whatToLookFor: "有自己的'项目'（哪怕是反复搭同一种积木城堡）；能说出'我想要做……'而非只回应安排"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "自发设定目标并为之努力；主动寻找实现目标的资源；能区分'我想做的'和'别人让我做的'"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "有清晰的兴趣方向或问题意识；主动规划时间和路径；不需要外部压力也能持续投入"
+    aiAnalysisPrompt: "内驱力不是'听话'或'自律'，而是'有自己想做的事'。从记录中寻找孩子自发发起、自主选择、自我驱动的行为证据。尤其关注那些不是被安排、而是自己决定去做的事情。"
+
+  # ════════════════════════════════════════════════════════════
+  # 网络层 (Network)
+  # ════════════════════════════════════════════════════════════
+
+  - abilityId: PO-ABL-COLB-001
+    layer: network
+    displayName: "协作与影响力"
+    parentQuestion: "孩子能不能和别人一起把事情做成？"
+    description: |
+      AI 时代不是人和 AI 单独配对的时代，更可能是"人 + AI + 人"的协作网络。
+      说服、共情、谈判、领导力——这些不会因为 AI 存在而贬值，
+      反而会因为技术执行力被拉平而更加重要。
+    ageRelevance: { startMonths: 30, endMonths: -1 }
+    sourceObservations:
+      - PO-OBS-SOCL-001   # 社交互动（合作游戏、冲突解决）
+      - PO-OBS-CASL-001   # 社会情感能力（共情、团队角色、决策）
+      - PO-OBS-EMOT-001   # 情绪状态（情绪调节在协作中的作用）
+      - PO-OBS-PYDC-001   # 青少年积极发展（联结、关怀）
+      - PO-OBS-ATTC-001   # 安全感（信任是协作的基础）
+    developmentalAnchors:
+      - ageRange: "2.5-6 岁"
+        whatToLookFor: "从平行游戏到合作游戏的过渡；能用语言协商'我们一起……'；在冲突中开始尝试沟通而非肢体"
+      - ageRange: "6-12 岁"
+        whatToLookFor: "在团队中能承担角色；能调整自己的想法以达成共识；主动帮助他人、分享知识"
+      - ageRange: "12-18 岁"
+        whatToLookFor: "能说服他人接受自己的方案（不是强迫）；在团队中能协调不同意见；展示出领导力或有效的跟随力"
+    aiAnalysisPrompt: "从社交和情感相关记录中，关注孩子是否在从'能和别人相处'发展为'能和别人一起创造价值'——协商能力、影响力、团队中的建设性角色。"
+
+# ── AI 分析规则（能力模型层）──────────────────────────────
+
+aiAnalysisRules:
+  description: "AI 基于能力模型生成成长报告时的规则"
+
+  reportTypes:
+    - type: ability-profile
+      description: "从近期观察记录中，按 7 层能力生成孩子的能力发展画像"
+      format: |
+        不做评分、不做排名、不做横向比较。
+        每层能力输出：
+        1. 近期行为证据（引用具体观察记录）
+        2. 发展趋势描述（增长/稳定/需关注）
+        3. 当前年龄段的行为锚点对照
+      frequency: "月度或季度报告中作为一个章节"
+
+    - type: cross-ability-insight
+      description: "识别不同能力层之间的联动关系"
+      examples:
+        - "专注力（基础通道）和判断力（质量控制）在绘画领域同时增长——孩子在这个领域积累了大量一手经验"
+        - "提问能力（创造力引擎）在科学领域活跃，但表达能力（基础通道）还跟不上问题的深度——可以关注如何帮助孩子把好问题说清楚"
+
+  outputConstraints:
+    - "不给能力层打分（无1-10评分、无星级、无等级）"
+    - "不做横向比较（不说'同龄人中排第几'）"
+    - "不给标签（不说'你的孩子是逻辑型/创意型'）"
+    - "始终用行为证据支撑趋势描述"
+    - "遵循 parentos.md §6.2 的安全措辞规则"
+    - "如果某层能力数据不足（观察记录少于 3 条），不做分析，只说'该领域观察记录尚少，暂无法分析趋势'"

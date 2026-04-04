@@ -1,0 +1,1019 @@
+# ──────────────────────────────────────────────────────────────
+# observation-framework.yaml — ParentOS 多理论融合观察框架
+#
+# 将多种儿童发展理论的专业观察方法论转化为家长可用的结构化工具。
+# 不要求家长学理论，用引导式问题帮助家长看到孩子行为的本质。
+#
+# 理论来源按年龄段分层：
+#   0-6岁: 蒙特梭利观察法 (Montessori)
+#   6-12岁: 执行功能 (Diamond) + CASEL 社会情感学习 + 成长型思维 (Dweck)
+#          + 多元智能 (Gardner) + 勤勉 vs 自卑 (Erikson Stage 4)
+#   12-18岁: 自我认同 (Erikson Stage 5) + 积极青少年发展 PYD 5C (Lerner)
+#           + 元认知 + 道德发展 (Kohlberg)
+#   全年龄: 依恋理论 (Bowlby/Ainsworth)
+#
+# Sources:
+#   - Maria Montessori, "The Absorbent Mind", "The Discovery of the Child"
+#   - AMI / AMS observation guidelines
+#   - Adele Diamond, "Executive Functions" (2013)
+#   - CASEL, "SEL Framework" (2020)
+#   - Carol Dweck, "Mindset" (2006)
+#   - Howard Gardner, "Frames of Mind" (1983, revised)
+#   - Erik Erikson, "Identity and the Life Cycle" (1959)
+#   - Richard Lerner, "The Five Cs of PYD" (2005)
+#   - John Bowlby, "Attachment and Loss" (1969)
+#   - Lawrence Kohlberg, "Stages of Moral Development"
+# ──────────────────────────────────────────────────────────────
+
+# ── 设计理念 ──────────────────────────────────────────────
+
+designPhilosophy:
+  principle: "教家长用发展心理学家的眼睛看孩子——在不同年龄段，自动切换最合适的观察视角"
+  approach:
+    - "不教理论，用引导式问题代替"
+    - "观察 → 记录 → AI 分析 → 洞察，家长只需完成前两步"
+    - "降低记录门槛：选择题 > 简短文字 > 长文描述"
+    - "客观描述行为，不评判好坏对错"
+    - "根据孩子月龄自动展示对应年龄段的观察维度"
+    - "同一个孩子随着成长，观察维度自然过渡（如专注力维度从感官探索→学习策略→自我驱动学习）"
+  antiPatterns:
+    - "不让家长给孩子打分"
+    - "不做横向比较（你的孩子 vs 别的孩子）"
+    - "不用'应该''正常''异常'等评判性词汇"
+    - "不做诊断性结论"
+    - "不给理论贴标签（不在UI上显示'蒙特梭利''CASEL'等术语）"
+
+# ── 理论-年龄映射 ────────────────────────────────────────
+
+frameworkMapping:
+  description: "不同年龄段激活的理论框架。UI 不展示理论名称，只展示观察维度。"
+  layers:
+    - ageRange: { startMonths: 0, endMonths: 72 }
+      primaryFramework: "Montessori"
+      dimensions: [CONC, REPT, CHOI, INDP, SOCL, EMOT, MOVE, LANG, ORDR, EXPL]
+
+    - ageRange: { startMonths: 72, endMonths: 144 }
+      primaryFramework: "Executive Function + CASEL + Growth Mindset + Multiple Intelligences + Erikson-Industry"
+      dimensions: [EXEC, CASL, GROW, MINT, INDU, SOCL, EMOT, LANG, EXPL]
+
+    - ageRange: { startMonths: 144, endMonths: 216 }
+      primaryFramework: "Erikson-Identity + PYD 5C + Metacognition + Moral Development"
+      dimensions: [IDEN, PYDC, META, MORL, SOCL, EMOT, LANG]
+
+    - ageRange: { startMonths: 0, endMonths: -1 }
+      primaryFramework: "Attachment + Relationship Quality (cross-age)"
+      dimensions: [ATTC, RELQ]
+
+  transitionRules:
+    - "维度切换不是突然的，在过渡期(±12个月)两套维度并存"
+    - "通用维度(SOCL, EMOT, LANG, EXPL)在所有年龄段保持，但引导问题和信号随年龄进化"
+    - "家长看到的是连续的观察体验，不会意识到底层理论框架的切换"
+
+# ── 观察模式 ──────────────────────────────────────────────
+
+observationModes:
+
+  - modeId: quick-capture
+    displayName: "快速捕捉"
+    description: "看到有趣/特别的行为时，30 秒内完成记录"
+    duration: "< 1 分钟"
+    format: "选择维度 + 简短描述/拍照/语音"
+    frequency: "随时"
+    guidancePrompt: "刚才孩子做了什么让你注意到了？"
+
+  - modeId: focused-observation
+    displayName: "专注观察"
+    description: "选定一个维度，安静观察 10-15 分钟，不干预"
+    duration: "10-15 分钟"
+    format: "引导式问题 + 结构化记录"
+    frequency: "建议每周 1-2 次"
+    guidancePrompt: "找一个孩子正在做事的时刻，安静地坐在旁边观察。不要介入、不要说话、不要评价。只是看。"
+    tips:
+      - "选择孩子自发活动的时刻，不要在你安排的活动中观察"
+      - "坐在不显眼的位置，避免眼神接触引导孩子"
+      - "如果孩子来找你，简短回应后继续观察"
+      - "记下你看到的事实，不是你的感受或判断"
+
+  - modeId: daily-reflection
+    displayName: "每日回顾"
+    description: "一天结束时花 2 分钟回顾今天印象最深的观察"
+    duration: "2-3 分钟"
+    format: "AI 引导式对话"
+    frequency: "每天睡前"
+    guidancePrompt: "今天有没有什么时刻，孩子的行为让你觉得有意思、意外、或者特别？"
+
+  - modeId: five-minute
+    displayName: "五分钟模式"
+    description: "系统主动推一个极简问题，家长语音或文字回答即可。适合碎片化时间。"
+    duration: "< 1 分钟"
+    format: "系统推问题 → 语音/文字回答 → 自动归类"
+    frequency: "系统判断最佳时机推送，或家长主动进入"
+    guidancePrompt: null
+    notes:
+      - "问题由系统根据当前最需补充的维度自动生成，来源于各维度的 guidedQuestions"
+      - "与其他三种模式的区别：其他模式由家长主动发起并选择维度，五分钟模式由系统推送问题和维度"
+      - "每次只推一个问题，回答后可选择'再来一个'或结束"
+      - "碎片化回答长期积累比刻意长记录更真实"
+
+# ── 观察维度 ──────────────────────────────────────────────
+# 蒙氏教师的核心观察维度，转化为家长可理解的框架
+
+field_contract:
+  dimension:
+    dimensionId:     { type: string, required: true, pattern: "^PO-OBS-[A-Z]{3,6}-[0-9]{3}$" }
+    displayName:     { type: string, required: true }
+    parentQuestion:  { type: string, required: true, description: "用家长能理解的一句话概括这个维度" }
+    ageRelevance:
+      type: object
+      fields:
+        startMonths: { type: integer }
+        endMonths:   { type: integer, description: "-1 表示无上限" }
+    indicators:
+      type: array
+      items:
+        type: object
+        fields:
+          signal:      { type: string, description: "可观察的行为信号" }
+          meaning:     { type: string, description: "这个信号可能意味着什么" }
+    guidedQuestions:
+      type: array
+      items: string
+      description: "引导家长观察的具体问题"
+    quickTags:
+      type: array
+      items: string
+      description: "快速记录时的预设标签"
+    source: { type: string, required: true }
+
+constraints:
+  - "guidedQuestions 必须是开放式的描述性问题，不是 yes/no 判断题"
+  - "indicators.meaning 使用'可能意味着'而非'说明''证明'"
+  - "所有维度的解读仅供参考，不做发育评估"
+
+dimensions:
+
+  # ── 1. 专注力 (Concentration) ────────────────────────────
+
+  - dimensionId: PO-OBS-CONC-001
+    displayName: "专注力"
+    parentQuestion: "孩子能不能沉浸在一件事情里？"
+    ageRelevance: { startMonths: 3, endMonths: -1 }
+    indicators:
+      - signal: "长时间注视或操作同一个物品/活动"
+        meaning: "深度专注状态，这是蒙氏所说的'正常化'的核心标志"
+      - signal: "周围有干扰（噪音、其他孩子）但不受影响"
+        meaning: "专注力正在发展到抗干扰阶段"
+      - signal: "被打断时表现出不悦或抗拒"
+        meaning: "孩子的专注正在被外部因素中断，尽量减少不必要的打断"
+      - signal: "完成后表现出满足和平静"
+        meaning: "蒙氏称之为'工作后的喜悦'，是内在动机驱动的标志"
+      - signal: "频繁切换活动，每样只做一小会儿"
+        meaning: "可能还在寻找感兴趣的活动，或环境刺激过多"
+    guidedQuestions:
+      - "孩子刚才做了什么活动？持续了大约多长时间？"
+      - "在做这件事的时候，孩子的表情和身体状态是什么样的？"
+      - "有没有被外界打扰？被打扰后的反应是什么？"
+      - "结束后孩子的情绪如何？"
+      - "这个活动是孩子自己选择的，还是你安排的？"
+    quickTags:
+      - "深度专注"
+      - "反复操作"
+      - "容易分心"
+      - "被打断后难以恢复"
+      - "完成后很满足"
+      - "自发选择"
+    source: "Montessori-concentration-normalization"
+
+  # ── 2. 重复 (Repetition) ─────────────────────────────────
+
+  - dimensionId: PO-OBS-REPT-001
+    displayName: "重复行为"
+    parentQuestion: "孩子是不是在反复做同一件事？"
+    ageRelevance: { startMonths: 6, endMonths: 72 }
+    indicators:
+      - signal: "反复将物品放入容器再倒出"
+        meaning: "可能在探索空间关系和因果逻辑"
+      - signal: "反复爬同一段楼梯、走同一条线路"
+        meaning: "运动技能的自我完善，通过重复建立身体记忆"
+      - signal: "反复听同一个故事、看同一本书"
+        meaning: "语言和叙事理解的深化过程"
+      - signal: "反复排列、堆叠、分类物品"
+        meaning: "秩序感和数学思维的早期发展"
+      - signal: "重复后表现出更高的熟练度或变化"
+        meaning: "从简单重复进入精进阶段，是掌握新技能的标志"
+    guidedQuestions:
+      - "孩子重复做了什么？大约重复了多少次？"
+      - "每次重复和上一次有没有什么不同（更快、更准确、加入了变化）？"
+      - "是你要求他/她重复的，还是自发的？"
+      - "重复的时候孩子看起来无聊还是投入？"
+    quickTags:
+      - "自发重复"
+      - "精进性重复"
+      - "机械重复"
+      - "创造性变化"
+      - "越来越熟练"
+    source: "Montessori-repetition-mastery"
+
+  # ── 3. 选择与意志 (Choice & Will) ───────────────────────
+
+  - dimensionId: PO-OBS-CHOI-001
+    displayName: "选择与意志"
+    parentQuestion: "孩子能不能自己决定做什么？"
+    ageRelevance: { startMonths: 12, endMonths: -1 }
+    indicators:
+      - signal: "主动从多个选项中选择一个活动"
+        meaning: "意志力和决策能力正在发展"
+      - signal: "拒绝成人安排的活动，坚持自己的选择"
+        meaning: "自主意识的表现（不等于'叛逆'）"
+      - signal: "选择了一个有挑战性的活动并坚持"
+        meaning: "对自己能力边界的探索"
+      - signal: "总是选择同一个活动"
+        meaning: "可能正处于某个技能的敏感期，需要通过重复来掌握"
+      - signal: "无法选择，在活动之间犹豫不决"
+        meaning: "可能选项过多，或对环境不够熟悉"
+    guidedQuestions:
+      - "今天孩子自己选择了什么活动/玩具/食物？"
+      - "选择的过程是快速决定还是犹豫了很久？"
+      - "有没有拒绝你的建议？拒绝的方式是什么？"
+      - "选择之后坚持了多久？有没有中途放弃？"
+    quickTags:
+      - "自主选择"
+      - "果断决定"
+      - "犹豫不决"
+      - "坚持己见"
+      - "放弃选择"
+      - "寻求帮助"
+    source: "Montessori-will-development"
+
+  # ── 4. 独立性 (Independence) ─────────────────────────────
+
+  - dimensionId: PO-OBS-INDP-001
+    displayName: "独立性"
+    parentQuestion: "孩子在哪些事情上不需要你的帮助了？"
+    ageRelevance: { startMonths: 9, endMonths: -1 }
+    indicators:
+      - signal: "尝试自己完成以前需要帮助的事"
+        meaning: "独立性发展的积极信号"
+      - signal: "'我自己来！'——拒绝帮助"
+        meaning: "强烈的自主需求，这是正常且积极的"
+      - signal: "遇到困难时先自己尝试解决，实在不行再求助"
+        meaning: "问题解决能力和挫折耐受力的发展"
+      - signal: "主动承担力所能及的任务（收拾玩具、倒水）"
+        meaning: "蒙氏称之为'日常生活练习'，是独立性的核心发展路径"
+      - signal: "遇到困难立刻哭闹或求助"
+        meaning: "可能需要更多鼓励自主尝试的机会"
+    guidedQuestions:
+      - "今天孩子自己完成了什么以前做不到的事？"
+      - "遇到困难时是怎么反应的？"
+      - "你是主动帮忙了，还是等孩子来请求帮助？"
+      - "有没有什么事是孩子想自己做但你替他/她做了的？"
+    quickTags:
+      - "自己完成"
+      - "拒绝帮助"
+      - "主动求助"
+      - "先尝试后求助"
+      - "新技能达成"
+      - "日常自理"
+    source: "Montessori-independence"
+
+  # ── 5. 社交互动 (Social Interaction) ────────────────────
+
+  - dimensionId: PO-OBS-SOCL-001
+    displayName: "社交互动"
+    parentQuestion: "孩子和其他人在一起时是什么状态？"
+    ageRelevance: { startMonths: 6, endMonths: -1 }
+    indicators:
+      - signal: "在其他孩子旁边各玩各的（平行游戏）"
+        meaning: "2 岁前这是正常的社交发展阶段，不代表'不合群'"
+      - signal: "主动邀请或加入其他孩子的活动"
+        meaning: "合作性社交能力的发展"
+      - signal: "观察其他孩子但不加入"
+        meaning: "蒙氏称为'旁观者游戏'，是通过观察学习的方式"
+      - signal: "因物品发生冲突"
+        meaning: "所有权概念的发展期，需要引导而非惩罚"
+      - signal: "主动分享或帮助他人"
+        meaning: "同理心和亲社会行为的萌芽"
+      - signal: "在陌生环境中紧贴家长"
+        meaning: "安全依恋的表现，不要强迫孩子'大方'"
+    guidedQuestions:
+      - "孩子今天和谁互动了？互动方式是什么（语言/动作/表情）？"
+      - "在群体中孩子倾向于什么角色（发起者/跟随者/观察者）？"
+      - "有没有发生冲突？孩子怎么处理的？"
+      - "有没有表现出帮助、分享、安慰他人的行为？"
+    quickTags:
+      - "平行游戏"
+      - "合作游戏"
+      - "旁观学习"
+      - "主动社交"
+      - "回避社交"
+      - "冲突发生"
+      - "主动分享"
+      - "寻求安全感"
+    source: "Montessori-social-development, Parten-play-stages"
+
+  # ── 6. 情绪状态 (Emotional State) ───────────────────────
+
+  - dimensionId: PO-OBS-EMOT-001
+    displayName: "情绪状态"
+    parentQuestion: "孩子今天的心情怎么样？"
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    indicators:
+      - signal: "在活动中表现出平静和满足"
+        meaning: "蒙氏'正常化'状态的外在表现"
+      - signal: "突然的情绪爆发（大哭/发怒）"
+        meaning: "可能有未被满足的需求，或自我调节能力在发展中"
+      - signal: "情绪转换迅速（哭完很快恢复）"
+        meaning: "幼儿的正常情绪模式，情绪调节能力在逐步建立"
+      - signal: "长时间情绪低落或焦躁"
+        meaning: "值得关注的信号，观察是否有持续的触发因素"
+      - signal: "用语言表达自己的情绪"
+        meaning: "情绪认知和表达能力的发展"
+    guidedQuestions:
+      - "今天孩子情绪最好的时刻是什么时候？在做什么？"
+      - "有没有情绪波动比较大的时刻？前后发生了什么？"
+      - "孩子用什么方式表达不满或不开心（哭闹/语言/动作）？"
+      - "你做了什么帮助孩子平静下来？效果如何？"
+    quickTags:
+      - "平静满足"
+      - "兴奋喜悦"
+      - "焦躁不安"
+      - "哭闹"
+      - "愤怒"
+      - "恐惧"
+      - "快速恢复"
+      - "需要安慰"
+      - "用语言表达"
+    source: "Montessori-normalization"
+
+  # ── 7. 运动与身体 (Movement & Body) ────────────────────
+
+  - dimensionId: PO-OBS-MOVE-001
+    displayName: "运动与身体"
+    parentQuestion: "孩子的身体在探索什么？"
+    ageRelevance: { startMonths: 0, endMonths: 72 }
+    indicators:
+      - signal: "反复练习某个新动作（翻身、爬、走）"
+        meaning: "运动敏感期中的自我驱动练习"
+      - signal: "对攀爬、跳跃、平衡有强烈兴趣"
+        meaning: "大运动发展的内在需求"
+      - signal: "反复操作小物品（拧、捏、倒、插）"
+        meaning: "精细动作发展，手眼协调能力在建立"
+      - signal: "身体动作有节奏感（走路有韵律、拍手有节拍）"
+        meaning: "身体控制力和节奏感的发展"
+      - signal: "手眼不协调、动作笨拙"
+        meaning: "正常的发展阶段，需要更多练习机会而非纠正"
+    guidedQuestions:
+      - "今天孩子最喜欢的身体活动是什么？"
+      - "有没有反复练习什么动作？"
+      - "有没有尝试什么新的运动挑战？"
+      - "精细动作方面：有没有操作小物品的行为？"
+    quickTags:
+      - "大运动练习"
+      - "精细动作"
+      - "手眼协调"
+      - "平衡挑战"
+      - "新动作尝试"
+      - "动作越来越流畅"
+    source: "Montessori-movement-sensitive-period"
+
+  # ── 8. 语言与沟通 (Language & Communication) ────────────
+
+  - dimensionId: PO-OBS-LANG-001
+    displayName: "语言与沟通"
+    parentQuestion: "孩子今天说了什么有趣的话？"
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    indicators:
+      - signal: "模仿成人的语句或语调"
+        meaning: "语言习得的自然过程"
+      - signal: "不断问'为什么''这是什么'"
+        meaning: "求知欲驱动的语言探索，尽可能认真回答"
+      - signal: "自言自语（叙述自己在做什么）"
+        meaning: "内部语言的发展，是思维能力的重要标志"
+      - signal: "造出新词或创造性使用语言"
+        meaning: "语言规则的内化和创造性应用"
+      - signal: "用身体语言代替口头表达"
+        meaning: "语言表达还在发展中，或此刻身体表达更有效"
+    guidedQuestions:
+      - "今天孩子说了什么让你印象深刻的话？"
+      - "和孩子对话时，他/她的回应方式是什么？"
+      - "有没有问你什么问题？"
+      - "有没有自言自语或'讲故事'的行为？"
+    quickTags:
+      - "新词汇"
+      - "长句子"
+      - "提问"
+      - "自言自语"
+      - "模仿语言"
+      - "创造性表达"
+      - "非语言沟通"
+    source: "Montessori-language-sensitive-period"
+
+  # ── 9. 秩序感 (Sense of Order) ──────────────────────────
+
+  - dimensionId: PO-OBS-ORDR-001
+    displayName: "秩序感"
+    parentQuestion: "孩子对事物的位置和顺序在意吗？"
+    ageRelevance: { startMonths: 10, endMonths: 48 }
+    indicators:
+      - signal: "坚持物品放回原位"
+        meaning: "秩序敏感期的典型表现"
+      - signal: "日常流程被改变时强烈抗议"
+        meaning: "对可预测环境的内在需求，不是'任性'"
+      - signal: "自发地整理、排列物品"
+        meaning: "内在秩序感在外化为行为"
+      - signal: "注意到环境中的微小变化"
+        meaning: "细节敏感期和秩序感的交叉表现"
+    guidedQuestions:
+      - "孩子有没有对什么东西的位置/顺序特别在意？"
+      - "日常流程改变时孩子的反应是什么？"
+      - "有没有自发整理或排列东西的行为？"
+      - "有没有因为'不对'而情绪激动的情况？"
+    quickTags:
+      - "物归原位"
+      - "坚持顺序"
+      - "自发整理"
+      - "注意变化"
+      - "因变化不安"
+    source: "Montessori-order-sensitive-period"
+
+  # ── 10. 探索与好奇 (Exploration & Curiosity) ───────────
+
+  - dimensionId: PO-OBS-EXPL-001
+    displayName: "探索与好奇"
+    parentQuestion: "孩子今天对什么东西特别感兴趣？"
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    indicators:
+      - signal: "长时间研究某个物品/现象"
+        meaning: "深度好奇心，是科学思维的萌芽"
+      - signal: "用多种感官探索（看、摸、闻、听、尝）"
+        meaning: "感觉统合发展的自然过程"
+      - signal: "尝试不同的操作方式（翻转、拆解、组合）"
+        meaning: "实验精神和因果推理能力的发展"
+      - signal: "对自然世界表现出兴趣（动物、植物、天气）"
+        meaning: "宇宙教育的起点（蒙氏称之为'Cosmic Education'）"
+    guidedQuestions:
+      - "今天孩子对什么东西表现出特别的兴趣？"
+      - "他/她是怎么探索的（看/摸/拆/问）？"
+      - "探索了多长时间？"
+      - "你有没有回应他/她的好奇心？用什么方式？"
+    quickTags:
+      - "深度好奇"
+      - "多感官探索"
+      - "反复实验"
+      - "提问不止"
+      - "自然观察"
+      - "拆解研究"
+    source: "Montessori-absorbent-mind"
+
+  # ════════════════════════════════════════════════════════════
+  # 6-12 岁维度 (学龄期)
+  # 理论来源: 执行功能 + CASEL + 成长型思维 + 多元智能 + Erikson
+  # ════════════════════════════════════════════════════════════
+
+  # ── 11. 执行功能 (Executive Function) ───────────────────
+
+  - dimensionId: PO-OBS-EXEC-001
+    displayName: "自我管理"
+    parentQuestion: "孩子能不能管好自己的事情？"
+    ageRelevance: { startMonths: 60, endMonths: 144 }
+    indicators:
+      - signal: "能按计划完成多步骤任务（如：先做作业→整理书包→准备明天的东西）"
+        meaning: "工作记忆和计划能力在发展"
+      - signal: "能抵抗诱惑（如：想玩但先完成手头的事）"
+        meaning: "抑制控制能力的发展，是自律的核心"
+      - signal: "当原计划行不通时能调整策略"
+        meaning: "认知灵活性——执行功能的三大核心之一"
+      - signal: "忘记带东西、忘记任务、经常丢三落四"
+        meaning: "工作记忆还在发展中，可以用外部工具（清单、提醒）辅助"
+      - signal: "能预估完成一件事需要多长时间"
+        meaning: "时间感知和计划能力的进阶表现"
+      - signal: "做事容易冲动，行动在思考之前"
+        meaning: "抑制控制仍在发展，需要练习而非批评"
+    guidedQuestions:
+      - "孩子今天需要完成什么任务？他/她是怎么安排顺序的？"
+      - "有没有遇到计划被打乱的情况？他/她怎么调整的？"
+      - "有没有需要'忍住不做'的时刻？结果如何？"
+      - "有没有忘记什么事情？忘记后的反应是什么？"
+    quickTags:
+      - "按计划执行"
+      - "灵活调整"
+      - "抵抗诱惑"
+      - "容易分心"
+      - "忘事"
+      - "冲动行为"
+      - "时间管理"
+      - "使用清单/工具"
+    source: "Diamond-executive-function-2013"
+
+  # ── 12. 社会情感能力 (CASEL SEL) ────────────────────────
+
+  - dimensionId: PO-OBS-CASL-001
+    displayName: "社会情感能力"
+    parentQuestion: "孩子了解自己的情绪吗？能和别人好好相处吗？"
+    ageRelevance: { startMonths: 72, endMonths: 144 }
+    indicators:
+      # 自我意识
+      - signal: "能准确地说出自己的情绪（不只是'开心/不开心'，而是'我觉得委屈/紧张/失望'）"
+        meaning: "情绪词汇量和自我意识在扩展"
+      - signal: "能识别什么情境会触发自己的情绪"
+        meaning: "情绪自我觉察能力的发展"
+      # 自我管理
+      - signal: "生气或沮丧时有自己的冷静方式（深呼吸、独处、画画）"
+        meaning: "开始建立个人化的情绪调节策略"
+      - signal: "能设定目标并为之努力"
+        meaning: "自我驱动力和延迟满足能力的发展"
+      # 社会意识
+      - signal: "注意到别人的情绪变化并回应（'你看起来不开心'）"
+        meaning: "共情能力的发展"
+      # 关系技能
+      - signal: "在冲突中尝试用语言协商而非肢体"
+        meaning: "冲突解决能力在发展"
+      - signal: "能在团队中承担角色并配合他人"
+        meaning: "合作能力和团队意识"
+      # 负责任的决策
+      - signal: "做决定前会考虑后果（'如果我这样做会怎样'）"
+        meaning: "因果推理和责任意识的发展"
+    guidedQuestions:
+      - "孩子今天有没有说出自己的感受？用了什么词？"
+      - "有没有注意到别人的情绪？怎么回应的？"
+      - "遇到不顺心的事时怎么处理的？"
+      - "有没有做什么决定？做决定的过程是怎样的？"
+      - "和朋友/同学之间有什么互动？"
+    quickTags:
+      - "准确表达情绪"
+      - "自我调节"
+      - "共情回应"
+      - "语言解决冲突"
+      - "团队合作"
+      - "考虑后果"
+      - "情绪爆发"
+      - "退缩回避"
+    source: "CASEL-SEL-framework-2020"
+
+  # ── 13. 成长型思维 (Growth Mindset) ────────────────────
+
+  - dimensionId: PO-OBS-GROW-001
+    displayName: "面对挑战的态度"
+    parentQuestion: "孩子遇到困难时是什么反应？"
+    ageRelevance: { startMonths: 48, endMonths: -1 }
+    indicators:
+      # 成长型思维信号
+      - signal: "遇到困难说'我还没学会'而不是'我不行'"
+        meaning: "成长型思维的语言标志——相信能力可以通过努力改变"
+      - signal: "失败后愿意换一种方法再试"
+        meaning: "把失败看作学习过程的一部分"
+      - signal: "对挑战性任务表现出兴趣而非回避"
+        meaning: "主动寻求挑战是成长型思维的行为表现"
+      - signal: "关注自己的进步而非和别人比较"
+        meaning: "内在参照标准正在建立"
+      # 固定型思维信号
+      - signal: "遇到困难就说'我做不到''我太笨了'"
+        meaning: "可能在某些领域形成了固定型思维，需要关注表扬方式"
+      - signal: "只愿意做确定能做好的事，回避挑战"
+        meaning: "害怕失败可能与'聪明'标签带来的压力有关"
+      - signal: "别人成功时表现出嫉妒或沮丧"
+        meaning: "在零和框架中看待能力，需要转变为共同成长的视角"
+      - signal: "被表扬'聪明'后更不愿意尝试难题"
+        meaning: "Dweck 研究证实的现象：智力表扬会削弱挑战意愿"
+    guidedQuestions:
+      - "孩子今天遇到了什么困难？他/她的第一反应是什么？"
+      - "有没有失败或犯错的时刻？之后怎么做的？"
+      - "你今天怎么表扬孩子的？表扬的是结果还是过程？"
+      - "孩子有没有主动选择做一件有挑战的事？"
+      - "有没有说过'我不行''太难了'这类话？在什么情境下？"
+    quickTags:
+      - "迎接挑战"
+      - "失败后再试"
+      - "关注过程"
+      - "关注进步"
+      - "回避挑战"
+      - "害怕犯错"
+      - "说'我不行'"
+      - "和别人比较"
+    source: "Dweck-mindset-2006"
+
+  # ── 14. 智能倾向 (Multiple Intelligences) ──────────────
+
+  - dimensionId: PO-OBS-MINT-001
+    displayName: "天赋与兴趣倾向"
+    parentQuestion: "孩子在什么事情上特别投入或有天赋？"
+    ageRelevance: { startMonths: 36, endMonths: -1 }
+    indicators:
+      - signal: "对文字、阅读、讲故事特别着迷"
+        meaning: "语言智能倾向——通过文字理解和表达世界"
+      - signal: "喜欢数字、逻辑谜题、分类排序"
+        meaning: "逻辑-数学智能倾向"
+      - signal: "对音乐节奏敏感、自发哼唱、能记住旋律"
+        meaning: "音乐智能倾向"
+      - signal: "擅长画画、搭建、空间想象"
+        meaning: "空间智能倾向"
+      - signal: "通过身体学习，运动协调性好，手工灵活"
+        meaning: "身体-动觉智能倾向"
+      - signal: "善于理解他人、社交能力强、天然的小领导"
+        meaning: "人际智能倾向"
+      - signal: "喜欢独处思考、有丰富的内心世界、自我认知清晰"
+        meaning: "内省智能倾向"
+      - signal: "对动物、植物、自然现象有持续的观察兴趣"
+        meaning: "自然观察智能倾向"
+    guidedQuestions:
+      - "孩子最近最投入的活动是什么类型的？"
+      - "在什么事情上不用催促也能主动做很久？"
+      - "和同龄人相比，什么方面显得特别轻松或突出？"
+      - "孩子自己说想做什么？不想做什么？"
+    quickTags:
+      - "语言文字"
+      - "逻辑推理"
+      - "音乐节奏"
+      - "空间视觉"
+      - "身体运动"
+      - "人际交往"
+      - "内省反思"
+      - "自然观察"
+    source: "Gardner-multiple-intelligences-1983"
+
+  # ── 15. 胜任感 (Erikson: Industry vs. Inferiority) ─────
+
+  - dimensionId: PO-OBS-INDU-001
+    displayName: "胜任感与成就"
+    parentQuestion: "孩子觉得自己能把事情做好吗？"
+    ageRelevance: { startMonths: 72, endMonths: 144 }
+    indicators:
+      - signal: "完成作品/任务后主动展示给他人看"
+        meaning: "对自己的能力有信心，希望得到认可"
+      - signal: "坚持完成一件困难的事并为此自豪"
+        meaning: "勤勉感（industry）的核心表现"
+      - signal: "对自己在某个领域的能力有清晰认知（'我擅长画画'）"
+        meaning: "能力自我概念正在形成"
+      - signal: "总是说'我做不好''别人都比我强'"
+        meaning: "可能正在发展自卑感，需要关注是否有持续的负面反馈来源"
+      - signal: "不愿意在别人面前展示自己的作品或表现"
+        meaning: "对被评价有焦虑，可能与过度比较有关"
+      - signal: "乐于帮助比自己小的孩子或教别人做事"
+        meaning: "通过教导他人建立胜任感和价值感"
+    guidedQuestions:
+      - "孩子最近完成了什么让他/她自豪的事？"
+      - "有没有说过'我做不到'或'我不行'？在什么领域？"
+      - "在学校/兴趣班里，孩子觉得自己的位置是什么？"
+      - "你最近表扬了孩子什么？他/她的反应是什么？"
+      - "有没有主动帮助或教导其他人的行为？"
+    quickTags:
+      - "主动展示成果"
+      - "坚持到完成"
+      - "为能力自豪"
+      - "说'我不行'"
+      - "害怕被评价"
+      - "乐于帮助他人"
+      - "和同伴比较"
+    source: "Erikson-industry-vs-inferiority"
+
+  # ════════════════════════════════════════════════════════════
+  # 12-18 岁维度 (青春期)
+  # 理论来源: Erikson 自我认同 + PYD 5C + 元认知 + 道德发展
+  # ════════════════════════════════════════════════════════════
+
+  # ── 16. 自我认同 (Erikson: Identity vs. Role Confusion) ─
+
+  - dimensionId: PO-OBS-IDEN-001
+    displayName: "自我认同探索"
+    parentQuestion: "孩子在思考'我是谁'吗？"
+    ageRelevance: { startMonths: 132, endMonths: 216 }
+    indicators:
+      - signal: "尝试不同的穿着风格、音乐偏好、兴趣圈子"
+        meaning: "身份探索的正常过程，Erikson 称之为'心理延缓期'(psychosocial moratorium)"
+      - signal: "质疑家庭的价值观或规则"
+        meaning: "从接受他人价值观转向建构自己的价值体系——这是健康的"
+      - signal: "对某个身份标签非常认同（'我是一个音乐人/程序员/运动员'）"
+        meaning: "开始在某个领域形成身份承诺"
+      - signal: "经常说'你不理解我''没人理解我'"
+        meaning: "对独特性的强调，是自我意识发展的一部分"
+      - signal: "回避自我探索，不关心未来，随波逐流"
+        meaning: "可能处于身份混乱阶段，值得关注但不必焦虑"
+      - signal: "对未来有自己的想法和计划"
+        meaning: "身份形成趋向成熟"
+    guidedQuestions:
+      - "最近孩子有没有表达对自己的新认识？（'我发现我喜欢/不喜欢…'）"
+      - "有没有尝试什么新的风格、兴趣、圈子？"
+      - "有没有质疑家里的规矩或你们的观点？他/她怎么表达的？"
+      - "关于未来，孩子最近说了什么？"
+      - "在同伴群体中，孩子是跟随者还是有自己的主见？"
+    quickTags:
+      - "尝试新身份"
+      - "质疑规则"
+      - "身份承诺"
+      - "寻找归属"
+      - "随波逐流"
+      - "对未来有想法"
+      - "感觉被误解"
+    source: "Erikson-identity-vs-role-confusion"
+
+  # ── 17. 积极发展五要素 (PYD 5C) ────────────────────────
+
+  - dimensionId: PO-OBS-PYDC-001
+    displayName: "青少年积极发展"
+    parentQuestion: "孩子在哪些方面在积极发展？"
+    ageRelevance: { startMonths: 120, endMonths: 216 }
+    indicators:
+      # Competence (能力)
+      - signal: "在学业、社交、体育或其他领域表现出持续进步"
+        meaning: "能力感(Competence)是积极发展的第一个 C"
+      # Confidence (自信)
+      - signal: "在不确定的情境中也敢于行动和表达"
+        meaning: "自信(Confidence)——对自己能力的积极信念"
+      # Character (品格)
+      - signal: "即使没人看见也能做对的事"
+        meaning: "品格(Character)——内化的道德标准"
+      # Connection (联结)
+      - signal: "和家人、朋友、老师、社区保持积极的关系"
+        meaning: "联结(Connection)——健康的人际关系网"
+      # Caring (关怀)
+      - signal: "主动关心他人的感受和处境"
+        meaning: "关怀(Caring)——超越自我的同理与行动"
+    guidedQuestions:
+      - "孩子最近在什么方面有明显的进步或成长？"
+      - "在什么情境下孩子表现出自信？什么情况下不自信？"
+      - "有没有在'没人监督'的情况下做出好的选择？"
+      - "和家人/朋友/老师的关系质量如何？"
+      - "有没有主动关心或帮助他人的行为？"
+    quickTags:
+      - "能力进步"
+      - "自信表达"
+      - "品格闪光"
+      - "关系良好"
+      - "主动关怀"
+      - "能力退缩"
+      - "关系紧张"
+    source: "Lerner-PYD-5C-2005"
+
+  # ── 18. 元认知 (Metacognition) ──────────────────────────
+
+  - dimensionId: PO-OBS-META-001
+    displayName: "学习自觉性"
+    parentQuestion: "孩子知道自己怎么学习最有效吗？"
+    ageRelevance: { startMonths: 96, endMonths: 216 }
+    indicators:
+      - signal: "能说出自己擅长/不擅长什么学科或技能"
+        meaning: "自我评估能力——元认知的基础"
+      - signal: "考试或做题前会先想策略（'我先把简单的做完'）"
+        meaning: "计划性元认知——知道如何分配认知资源"
+      - signal: "做完作业会自己检查"
+        meaning: "监控性元认知——对自己的学习过程有觉察"
+      - signal: "能识别'我不懂'并准确定位不懂的部分"
+        meaning: "高级元认知能力——知道自己不知道什么"
+      - signal: "发现一种学习方法不管用后会换方法"
+        meaning: "调节性元认知——基于反馈调整策略"
+      - signal: "只会死记硬背，不会用其他学习方法"
+        meaning: "学习策略库还在建立中，可以引导尝试不同方法"
+    guidedQuestions:
+      - "孩子觉得自己学什么最容易？什么最难？"
+      - "面对一个学习任务，他/她会先做什么？"
+      - "做完后会自己检查吗？怎么检查的？"
+      - "遇到不会的问题时通常怎么处理？"
+      - "有没有总结过'我发现这样做更有效'这类经验？"
+    quickTags:
+      - "知道自己的强弱"
+      - "有学习策略"
+      - "会自我检查"
+      - "能定位不懂之处"
+      - "灵活换方法"
+      - "只用死记硬背"
+      - "不知从何下手"
+    source: "Flavell-metacognition"
+
+  # ── 19. 道德发展 (Moral Development) ───────────────────
+
+  - dimensionId: PO-OBS-MORL-001
+    displayName: "是非判断与价值观"
+    parentQuestion: "孩子怎么判断什么是对的、什么是错的？"
+    ageRelevance: { startMonths: 72, endMonths: 216 }
+    indicators:
+      - signal: "因为怕惩罚而遵守规则"
+        meaning: "Kohlberg 前习俗水平——基于后果的道德判断，低龄阶段正常"
+      - signal: "因为'大家都这样做'而遵守规则"
+        meaning: "习俗水平——基于社会期望的道德判断"
+      - signal: "即使不被惩罚也会做他/她认为'对'的事"
+        meaning: "开始发展内在的道德标准"
+      - signal: "质疑规则的公平性（'这个规定不公平'）"
+        meaning: "后习俗思维的萌芽——开始用原则评价规则"
+      - signal: "在道德困境中能权衡多方利益"
+        meaning: "抽象道德推理能力在发展"
+      - signal: "对社会不公正事件表现出关注和愤怒"
+        meaning: "社会正义感在建立"
+    guidedQuestions:
+      - "孩子最近有没有和你讨论过什么是'公平'或'不公平'？"
+      - "有没有在做一件事之前考虑过'这样做对不对'？"
+      - "有没有因为觉得'不对'而拒绝做某事？即使同伴都在做？"
+      - "他/她为什么觉得那件事是对的/错的？理由是什么？"
+    quickTags:
+      - "遵守规则"
+      - "内在判断"
+      - "质疑公平性"
+      - "不随大流"
+      - "关注正义"
+      - "害怕惩罚"
+      - "同伴压力"
+    source: "Kohlberg-moral-development"
+
+  # ════════════════════════════════════════════════════════════
+  # 全年龄通用维度
+  # ════════════════════════════════════════════════════════════
+
+  # ── 20. 亲子依恋 (Attachment) ──────────────────────────
+
+  - dimensionId: PO-OBS-ATTC-001
+    displayName: "安全感与亲子关系"
+    parentQuestion: "孩子在你身边感到安全吗？"
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    indicators:
+      # 婴幼儿 (0-3)
+      - signal: "受到惊吓或不安时主动寻找照护者"
+        meaning: "安全依恋的核心标志——把你当作'安全基地'"
+      - signal: "离开照护者去探索，时不时回头确认你在"
+        meaning: "安全依恋下的探索行为——信任你会在那里"
+      # 学龄期 (6-12)
+      - signal: "遇到挫折时愿意和你说"
+        meaning: "信任亲子关系，把你当作情感支持的来源"
+      - signal: "在外面受了委屈，回家后情绪释放（大哭）"
+        meaning: "家是安全的情绪释放空间——这是好事"
+      # 青春期 (12-18)
+      - signal: "虽然独立意识很强，但关键时刻仍会征求你的意见"
+        meaning: "健康的依恋在青春期表现为'有距离的信任'"
+      - signal: "完全不和家长沟通，封闭所有信息"
+        meaning: "值得关注的信号——可能需要调整沟通方式"
+    guidedQuestions:
+      - "孩子今天有没有主动找你说话/寻求安慰/分享经历？"
+      - "你们今天有没有'质量时间'（不看手机、全身心在一起的时刻）？"
+      - "孩子遇到问题时会找你吗？还是更倾向于找其他人或自己消化？"
+      - "你觉得现在你们之间的关系距离是合适的吗？"
+    quickTags:
+      - "主动亲近"
+      - "主动分享"
+      - "寻求安慰"
+      - "安全探索"
+      - "拒绝沟通"
+      - "过度黏人"
+      - "质量时间"
+    source: "Bowlby-attachment-1969"
+
+  # ── 21. 亲子关系质量 (Relationship Quality) ────────────
+  # 与 ATTC 的区别：ATTC 观察的是孩子的依恋行为（单向），
+  # 本维度观察的是亲子互动的双向质量——包括家长的沟通方式和关系动态。
+  # 亲子关系是一切观察、沟通、引导的基础通道。通道不通，其他维度都是空转。
+
+  - dimensionId: PO-OBS-RELQ-001
+    displayName: "亲子关系质量"
+    parentQuestion: "你和孩子之间的沟通通道畅通吗？"
+    ageRelevance: { startMonths: 0, endMonths: -1 }
+    indicators:
+      # ── 婴幼儿期 (0-3) ──
+      - signal: "你能准确判断孩子哭声的含义（饿了/困了/不舒服/要抱）"
+        meaning: "敏感性回应——关系质量的早期基石"
+      - signal: "你回应孩子的速度和方式是稳定的，不因自己心情波动"
+        meaning: "一致性回应——孩子由此建立对世界的可预测感"
+      - signal: "你能在孩子探索时保持'在场但不干预'的状态"
+        meaning: "安全基地功能——你既在又不侵入"
+      # ── 学龄前 (3-6) ──
+      - signal: "孩子做错事时，你分离了行为和人格（'这件事不对' vs '你怎么这么笨'）"
+        meaning: "无条件积极关注——孩子感受到的是'被爱的人做了不对的事'而非'不被爱'"
+      - signal: "你和孩子之间有专属的仪式或暗号（如特殊的告别方式、睡前固定流程）"
+        meaning: "关系独特性——孩子感受到'我和你之间有特别的东西'"
+      - signal: "冲突后你会主动修复关系（道歉、拥抱、解释）"
+        meaning: "关系修复能力——比避免冲突更重要的是冲突后能修复"
+      # ── 学龄期 (6-12) ──
+      - signal: "孩子会主动和你分享学校/朋友的事，包括不愉快的"
+        meaning: "信息通道畅通——孩子认为告诉你是安全的"
+      - signal: "你在孩子说话时能放下手机全神贯注地听"
+        meaning: "被倾听的体验——关系质量的日常维护"
+      - signal: "你允许孩子表达不同意见，甚至反驳你"
+        meaning: "关系中的权力平衡在向对等方向发展"
+      - signal: "孩子在外面的表现和在家里的表现差异很大"
+        meaning: "可能在家里不敢展现真实自我——关系中可能有压力源"
+      # ── 青春期 (12-18) ──
+      - signal: "你们能就敏感话题（恋爱、压力、身体变化）进行对话"
+        meaning: "关系深度——能承载敏感话题是高质量关系的标志"
+      - signal: "孩子遇到真正的困难时，你是他/她前三个想联系的人之一"
+        meaning: "关系的实际权重——不是口头上的亲近，而是危机时刻的选择"
+      - signal: "你能接受孩子的选择即使你不同意，并表达'我不同意但我尊重你的决定'"
+        meaning: "从'管教关系'过渡到'顾问关系'——青春期关系转型的核心"
+      - signal: "争吵后孩子或你能先开口缓和，不让冷战持续超过一天"
+        meaning: "双向修复——关系韧性的标志"
+      - signal: "孩子不再和你说任何心里话，所有对话都是事务性的"
+        meaning: "沟通通道可能在关闭——需要关注，但不要强行撬开"
+    guidedQuestions:
+      - "今天你和孩子之间最好的一个互动时刻是什么？"
+      - "有没有什么时刻你觉得沟通不太顺畅？发生了什么？"
+      - "你今天有没有认真听孩子说话（不打断、不评判、不急着给建议）的时刻？"
+      - "孩子今天有没有主动和你分享什么？还是你主动问的？"
+      - "有没有什么事是孩子不愿意告诉你的？你觉得原因是什么？"
+      - "你今天对孩子说过'对不起'或'谢谢你告诉我'吗？"
+    quickTags:
+      - "深度对话"
+      - "质量时间"
+      - "主动分享"
+      - "认真倾听"
+      - "冲突修复"
+      - "敏感话题"
+      - "事务性对话"
+      - "冷战"
+      - "我先道歉了"
+      - "放下手机"
+    source: "Gottman-relationship-research, Gordon-PET, Ginott-parent-child-communication"
+
+# ── AI 分析规则 ──────────────────────────────────────────
+
+aiAnalysisRules:
+  description: "AI 基于观察记录的多框架分析规则"
+
+  analysisTypes:
+
+    # 所有年龄通用
+    - type: pattern-detection
+      description: "从多条观察记录中识别行为模式"
+      ageRange: { startMonths: 0, endMonths: -1 }
+      examples:
+        - "最近两周，专注力维度的记录频繁出现'深度专注'标签，且持续时间在增加"
+        - "亲子依恋维度的记录显示孩子在遇到挫折时更多地选择和你沟通"
+
+    - type: trend-summary
+      description: "生成阶段性观察总结"
+      ageRange: { startMonths: 0, endMonths: -1 }
+      examples:
+        - "本月观察 12 条：专注力 5 条（集中在绘画活动）、独立性 3 条（穿衣自理进步）、社交 4 条（开始合作游戏）"
+        - "本月观察 8 条：学习自觉性 3 条（开始使用清单管理作业）、面对挑战 2 条（数学测验失利后主动练题）、社会情感 3 条（和同学冲突后用语言协商）"
+
+    # 0-6 岁特有
+    - type: sensitive-period-matching
+      description: "将观察到的行为信号与 sensitive-periods.yaml 中的敏感期进行匹配"
+      ageRange: { startMonths: 0, endMonths: 72 }
+      examples:
+        - "观察到大量重复排列行为 + 秩序敏感期月龄范围 → 提示'孩子可能正处于秩序敏感期'"
+        - "大量语言相关记录（新词汇、提问、自言自语）+ 18-24 月龄 → 提示语言爆发期"
+
+    # 6-12 岁特有
+    - type: mindset-analysis
+      description: "从面对挑战维度的记录中分析思维模式倾向"
+      ageRange: { startMonths: 48, endMonths: 144 }
+      examples:
+        - "近期 5 条挑战相关记录中 4 条标记为'迎接挑战''失败后再试' → 孩子在这个领域倾向于成长型思维"
+        - "数学领域连续出现'说我不行''回避挑战' → 可能在数学领域形成了固定型思维，观察一下表扬方式是否聚焦于结果而非过程"
+
+    - type: intelligence-profile
+      description: "从智能倾向维度的长期记录中描绘孩子的多元智能画像"
+      ageRange: { startMonths: 36, endMonths: -1 }
+      examples:
+        - "过去 3 个月的记录中，'语言文字''内省反思'标签出现频率最高 → 孩子可能更偏向语言智能和内省智能"
+
+    - type: executive-function-growth
+      description: "追踪执行功能（自我管理）能力的发展轨迹"
+      ageRange: { startMonths: 60, endMonths: 144 }
+      examples:
+        - "3 个月前：'忘事''容易分心'标签多 → 现在：'使用清单/工具''按计划执行'增加 → 工作记忆辅助策略在建立"
+
+    # 12-18 岁特有
+    - type: identity-exploration-tracking
+      description: "追踪青少年的身份探索过程"
+      ageRange: { startMonths: 132, endMonths: 216 }
+      examples:
+        - "过去半年记录显示孩子在音乐领域持续投入（从'尝试新身份'到'身份承诺'），同时在学业领域出现'质疑规则' → 可能正在形成以音乐为核心的身份认同"
+
+    - type: moral-reasoning-development
+      description: "观察道德推理的发展水平变化"
+      ageRange: { startMonths: 72, endMonths: 216 }
+      examples:
+        - "早期记录多为'遵守规则'(怕惩罚) → 近期出现'质疑公平性''内在判断' → 道德推理正从前习俗水平向习俗/后习俗水平发展"
+
+    # 全年龄——关系质量
+    - type: relationship-quality-tracking
+      description: "追踪亲子关系质量的变化趋势，关注沟通通道是否畅通"
+      ageRange: { startMonths: 0, endMonths: -1 }
+      examples:
+        - "近期 RELQ 维度记录中'深度对话''主动分享'标签增多，'事务性对话'减少 → 沟通通道在改善"
+        - "最近一个月 RELQ 记录中出现 3 次'冷战'标签 → 关系可能处于紧张期，观察是否有'冲突修复'行为跟随"
+        - "ATTC 和 RELQ 交叉分析：孩子的依恋行为（ATTC）稳定，但家长记录的互动质量（RELQ）在下降 → 可能是家长端的沟通方式需要关注"
+      analysisConstraints:
+        - "关系质量分析绝不评判家长（不说'你做得不够好'）"
+        - "只描述互动模式的变化趋势"
+        - "出现持续负面信号时，导向'可以和专业的家庭教育指导师聊聊'，不做关系诊断"
+
+  outputConstraints:
+    - "AI 输出使用'观察到''可能''倾向于'等非确定性措辞"
+    - "不输出任何诊断性语言（如'发育迟缓''异常''障碍'）"
+    - "分析结论附带观察记录来源引用（哪一天、哪条记录）"
+    - "建议类输出限于'可以尝试''可以关注'，不使用'应该''必须'"
+    - "不在 UI 上展示理论名称（如'根据 Erikson 理论'），用家长能理解的语言"
+    - "多元智能分析强调'每个孩子都有自己的智能组合'，不暗示某些智能比其他更好"
+    - "成长型思维分析不给孩子贴标签（'你的孩子是固定型思维'），而是描述在具体领域的行为模式"
+    - "关系质量分析不评判家长的教养方式，只描述互动模式和趋势"
+
+# ── 记录关联 ─────────────────────────────────────────────
+# 观察记录存储在 local-storage.yaml#journal_entries 中
+# 通过以下扩展字段关联到本框架
+
+journalExtension:
+  description: "journal_entries 表中 observation-framework 相关字段"
+  fields:
+    observationMode:   { type: TEXT, nullable: true, description: "quick-capture | focused-observation | daily-reflection | five-minute" }
+    dimensionId:       { type: TEXT, nullable: true, description: "对应本表的 dimensionId" }
+    selectedTags:      { type: TEXT, nullable: true, description: "JSON array: 从 quickTags 中选择的标签" }
+    guidedAnswers:     { type: TEXT, nullable: true, description: "JSON object: 引导问题的回答 { questionIndex: answer }" }
+    observationDuration: { type: INTEGER, nullable: true, description: "观察时长（分钟）" }
+  note: "这些字段扩展 journal_entries，不创建新表"

@@ -1,0 +1,136 @@
+# ──────────────────────────────────────────────────────────────
+# nurture-modes.yaml — ParentOS 养育模式参数表
+# 三种模式只影响"强度"，不影响"标准"。
+# P0 底线标准（疫苗、体检、安全、发育异常预警）在任何模式下均不降级。
+# ──────────────────────────────────────────────────────────────
+
+field_contract:
+  mode:
+    modeId:         { type: enum, required: true, values: [relaxed, balanced, advanced] }
+    displayName:    { type: string, required: true }
+    subtitle:       { type: string, required: true }
+    description:    { type: string, required: true }
+    parameters:
+      type: object
+      required: true
+      fields:
+        reminderBehavior:
+          type: object
+          fields:
+            P0: { type: enum, values: [push], description: "底线标准，所有模式均 push" }
+            P1: { type: enum, values: [push, silent] }
+            P2: { type: enum, values: [push, silent, hidden] }
+            P3: { type: enum, values: [push, silent, hidden] }
+        pushFrequency:
+          type: object
+          fields:
+            maxDailyPush:    { type: integer, description: "每日最大推送数" }
+            digestMode:      { type: enum, values: [realtime, daily, weekly] }
+        contentDepth:
+          type: enum
+          values: [essential, standard, comprehensive]
+          description: "内容展示深度"
+        aiAnalysisDetail:
+          type: enum
+          values: [summary, standard, detailed]
+          description: "AI 分析报告详细程度"
+        comparisonDisplay:
+          type: enum
+          values: [none, range, percentile]
+          description: "同龄参考数据展示方式"
+        milestoneTracking:
+          type: enum
+          values: [passive, prompted, proactive]
+          description: "里程碑追踪模式"
+        interestGuidance:
+          type: enum
+          values: [none, observe, plan]
+          description: "兴趣培养建议程度"
+        toneStyle:
+          type: string
+          description: "AI 输出和提醒文案的语气风格"
+
+constraints:
+  - "P0 reminders must be push in ALL modes — 底线标准不因模式降级"
+  - "comparisonDisplay=percentile only available in advanced mode"
+  - "interestGuidance=plan only available in advanced mode"
+  - "模式可随时切换，不影响已记录的数据"
+  - "可按领域(domain)混合模式设置"
+
+modes:
+
+  - modeId: relaxed
+    displayName: "轻松养"
+    subtitle: "快乐成长，顺其自然"
+    description: "只在真正重要的时刻提醒你。相信孩子有自己的成长节奏，减少不必要的焦虑。"
+    parameters:
+      reminderBehavior:
+        P0: push
+        P1: silent
+        P2: hidden
+        P3: hidden
+      pushFrequency:
+        maxDailyPush: 2
+        digestMode: weekly
+      contentDepth: essential
+      aiAnalysisDetail: summary
+      comparisonDisplay: none
+      milestoneTracking: passive
+      interestGuidance: none
+      toneStyle: "温暖、简短、肯定性。避免使用'应该''建议''需要'等指令性词汇。示例：'这个月宝宝可能会对秩序特别敏感，这很正常。'"
+
+  - modeId: balanced
+    displayName: "均衡养"
+    subtitle: "科学育儿，从容应对"
+    description: "在关键节点给出适度提醒和建议。帮你掌握核心知识，不过度不缺位。"
+    parameters:
+      reminderBehavior:
+        P0: push
+        P1: push
+        P2: silent
+        P3: hidden
+      pushFrequency:
+        maxDailyPush: 5
+        digestMode: daily
+      contentDepth: standard
+      aiAnalysisDetail: standard
+      comparisonDisplay: range
+      milestoneTracking: prompted
+      interestGuidance: observe
+      toneStyle: "清晰、专业但不生硬。提供信息和选择，不制造压力。示例：'6 月龄是辅食添加的推荐时间。以下是添加辅食的要点。'"
+
+  - modeId: advanced
+    displayName: "进阶养"
+    subtitle: "全面规划，精细陪伴"
+    description: "覆盖每个发展细节，提供系统化的成长计划。适合希望深入了解并主动参与孩子每个发展阶段的家长。"
+    parameters:
+      reminderBehavior:
+        P0: push
+        P1: push
+        P2: push
+        P3: push
+      pushFrequency:
+        maxDailyPush: 10
+        digestMode: realtime
+      contentDepth: comprehensive
+      aiAnalysisDetail: detailed
+      comparisonDisplay: percentile
+      milestoneTracking: proactive
+      interestGuidance: plan
+      toneStyle: "详细、结构化、行动导向。提供具体步骤和进阶内容。示例：'骨龄评估窗口（8-10岁）：建议预约内分泌科，评估内容包括左手腕X光片……'"
+
+# ── Domain-Level Override ──────────────────────────────────
+# 家长可以对不同领域设置不同模式
+# 例如：健康用均衡养，兴趣培养用轻松养
+
+domainOverrideSchema:
+  description: "允许按 reminder-rules.yaml 中的 domain 字段单独设置模式"
+  example:
+    globalMode: balanced
+    overrides:
+      vaccine: balanced      # 疫苗跟随全局
+      interest: relaxed      # 兴趣培养用轻松养
+      bone-age: advanced     # 骨龄用进阶养
+  constraints:
+    - "domain override 中 P0 规则仍然强制 push，无论 domain 设为什么模式"
+    - "未设置 override 的 domain 跟随 globalMode"

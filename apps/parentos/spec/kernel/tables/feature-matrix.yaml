@@ -1,0 +1,185 @@
+features:
+  - featureId: PO-FEAT-001
+    name: "Child profile CRUD"
+    phase: 1
+    priority: P0
+    contract: profile-contract
+    description: "Create, edit, and delete child profiles."
+    tables: [local-storage.yaml#children, local-storage.yaml#families]
+
+  - featureId: PO-FEAT-002
+    name: "Reminder engine"
+    phase: 1
+    priority: P0
+    contract: timeline-contract
+    description: "Project reminder states from reminder-rules.yaml and child context."
+    tables: [reminder-rules.yaml, local-storage.yaml#reminder_states]
+
+  - featureId: PO-FEAT-003
+    name: "Growth timeline"
+    phase: 1
+    priority: P0
+    contract: timeline-contract
+    description: "Render timeline buckets for current, upcoming, and recently completed items."
+    tables: [local-storage.yaml#reminder_states]
+
+  - featureId: PO-FEAT-004
+    name: "Growth measurement entry"
+    phase: 1
+    priority: P0
+    contract: profile-contract
+    description: "Record local height, weight, head circumference, and other structured measurements."
+    tables: [local-storage.yaml#growth_measurements, growth-standards.yaml]
+
+  - featureId: PO-FEAT-005
+    name: "Growth curve charts"
+    phase: 1
+    priority: P0
+    contract: profile-contract
+    description: "Render local growth measurements with WHO-backed reference curves only where official data exists."
+    tables: [growth-standards.yaml]
+
+  - featureId: PO-FEAT-006
+    name: "Vaccine tracking"
+    phase: 1
+    priority: P0
+    contract: profile-contract
+    description: "Track vaccine records and related reminder progress."
+    tables: [local-storage.yaml#vaccine_records, reminder-rules.yaml]
+
+  - featureId: PO-FEAT-007
+    name: "Milestone tracking"
+    phase: 1
+    priority: P1
+    contract: profile-contract
+    description: "Record structured milestone achievements."
+    tables: [milestone-catalog.yaml, local-storage.yaml#milestone_records]
+
+  - featureId: PO-FEAT-008
+    name: "Parent journal"
+    phase: 1
+    priority: P1
+    contract: journal-contract
+    description: "Create text, photo, voice, and mixed observation entries."
+    tables: [local-storage.yaml#journal_entries, local-storage.yaml#journal_tags]
+
+  - featureId: PO-FEAT-009
+    name: "Nurture mode settings"
+    phase: 1
+    priority: P1
+    contract: app-shell-contract
+    description: "Manage global nurture mode and per-domain overrides."
+    tables: [nurture-modes.yaml]
+
+  - featureId: PO-FEAT-010
+    name: "AI growth advisor"
+    phase: 1
+    priority: P1
+    contract: advisor-contract
+    description: "Answer questions from local structured records and reviewed domains only."
+    tables: [local-storage.yaml#ai_conversations, local-storage.yaml#ai_messages]
+    runtimeDependency: "runtime.ai.text.generate"
+
+  - featureId: PO-FEAT-011
+    name: "Sensitive period guide"
+    phase: 1
+    priority: P1
+    contract: timeline-contract
+    description: "Project sensitive-period guidance by child age."
+    tables: [sensitive-periods.yaml]
+
+  - featureId: PO-FEAT-012
+    name: "Observation framework guidance"
+    phase: 1
+    priority: P1
+    contract: journal-contract
+    description: "Guide journal capture with spec-backed observation dimensions, questions, and quick tags."
+    tables: [observation-framework.yaml, local-storage.yaml#journal_entries]
+
+  - featureId: PO-FEAT-013
+    name: "Observation pattern identification"
+    phase: 1
+    priority: P2
+    contract: advisor-contract
+    description: "Reserved for a narrower future scope; not broadly implemented while observation remains needs-review."
+    tables: [observation-framework.yaml, sensitive-periods.yaml]
+    runtimeDependency: "runtime.ai.text.generate"
+
+  - featureId: PO-FEAT-020
+    name: "Voice observation capture"
+    phase: 2
+    priority: P1
+    contract: journal-contract
+    description: "Record app-local audio and optionally transcribe it through typed local STT before save."
+    tables: [local-storage.yaml#journal_entries]
+    runtimeDependency: "runtime.ai.stt"
+
+  - featureId: PO-FEAT-021
+    name: "AI journal tags"
+    phase: 2
+    priority: P2
+    contract: journal-contract
+    description: "Local-first closed-set AI tag suggestion for journal drafts. Output is limited to a spec-backed dimensionId plus quickTags after parent review; no open-ended explanation or diagnosis."
+    tables: [local-storage.yaml#journal_tags]
+    runtimeDependency: "runtime.ai.text.generate"
+
+  - featureId: PO-FEAT-022
+    name: "Checkup OCR"
+    phase: 2
+    priority: P2
+    contract: profile-contract
+    description: "Extract structured growth measurements from a local checkup image and require parent confirmation before import."
+    tables: [local-storage.yaml#growth_measurements]
+    runtimeDependency: "runtime.ai.vision"
+
+  - featureId: PO-FEAT-023
+    name: "Structured growth reports"
+    phase: 2
+    priority: P2
+    contract: advisor-contract
+    description: "Generate and persist structured local reports from child profile, measurements, journal, milestones, vaccines, and reminder state without free-form AI narration."
+    tables: [local-storage.yaml#growth_reports]
+
+  - featureId: PO-FEAT-024
+    name: "Deterministic trend analysis"
+    phase: 2
+    priority: P2
+    contract: advisor-contract
+    description: "Deterministic local trend analysis from journal and growth records. Output stays structured and evidence-backed; no free-form AI explanation for needs-review domains."
+    tables: [local-storage.yaml#growth_reports, local-storage.yaml#journal_entries, local-storage.yaml#growth_measurements]
+
+  - featureId: PO-FEAT-030
+    name: "Family collaboration"
+    phase: 3
+    priority: P2
+    contract: app-shell-contract
+    description: "Future multi-caregiver collaboration around one child profile."
+
+  - featureId: PO-FEAT-031
+    name: "Data export"
+    phase: 3
+    priority: P2
+    contract: profile-contract
+    description: "Future export of a child profile into a shareable document."
+
+  - featureId: PO-FEAT-032
+    name: "Personalized reminders"
+    phase: 3
+    priority: P2
+    contract: timeline-contract
+    description: "Future reminder prioritization informed by historical data."
+    tables: [reminder-rules.yaml]
+    runtimeDependency: "runtime.ai.text.generate"
+
+  - featureId: PO-FEAT-033
+    name: "Interest profile"
+    phase: 3
+    priority: P3
+    contract: profile-contract
+    description: "Future long-term tracking of child interests and strengths."
+
+constraints:
+  - "Phase 1 must preserve the reminder -> record -> review core loop."
+  - "Phase 2 AI features must stay within typed runtime contracts and current knowledge-source-readiness gates."
+  - "Reports and trends for needs-review domains stay structured and local until a later freeze says otherwise."
+  - "ability-model.yaml is not a runtime source in Phase 1 or Phase 2."

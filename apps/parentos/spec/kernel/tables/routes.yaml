@@ -1,0 +1,113 @@
+# ──────────────────────────────────────────────────────────────
+# routes.yaml — ParentOS 路由表
+# ──────────────────────────────────────────────────────────────
+
+routes:
+  - path: /timeline
+    displayName: "成长时间线"
+    feature: timeline
+    description: "主页。展示今日待办、即将到来的提醒、最近记录。"
+    isDefault: true
+    icon: calendar
+
+  - path: /profile
+    displayName: "成长档案"
+    feature: profile
+    description: "孩子的完整档案：基本信息、生长曲线、里程碑、疫苗记录。"
+    icon: user
+
+  - path: /profile/growth
+    displayName: "生长曲线"
+    feature: profile
+    description: "身高体重头围的生长曲线图表。"
+    parent: /profile
+
+  - path: /profile/milestones
+    displayName: "发育里程碑"
+    feature: profile
+    description: "发育里程碑达成追踪。"
+    parent: /profile
+
+  - path: /profile/vaccines
+    displayName: "疫苗记录"
+    feature: profile
+    description: "疫苗接种记录和计划。"
+    parent: /profile
+
+  - path: /profile/dental
+    displayName: "口腔发育"
+    feature: profile
+    description: "牙齿萌出、换牙、龋齿、口腔检查记录。"
+    parent: /profile
+
+  - path: /profile/allergies
+    displayName: "过敏记录"
+    feature: profile
+    description: "过敏原追踪、严重程度、状态变化。"
+    parent: /profile
+
+  - path: /profile/sleep
+    displayName: "睡眠记录"
+    feature: profile
+    description: "每日睡眠时长、作息规律、午睡记录。"
+    parent: /profile
+
+  - path: /profile/medical-events
+    displayName: "就医记录"
+    feature: profile
+    description: "伤病、手术、用药、听力筛查等医学事件。"
+    parent: /profile
+
+  - path: /profile/tanner
+    displayName: "青春期发育"
+    feature: profile
+    description: "Tanner 分期评估记录。"
+    parent: /profile
+
+  - path: /profile/fitness
+    displayName: "体能测评"
+    feature: profile
+    description: "学校体测、体能评估成绩记录。"
+    parent: /profile
+
+  - path: /journal
+    displayName: "观察日记"
+    feature: journal
+    description: "家长观察记录，支持文字、语音、照片。"
+    icon: book-open
+
+  - path: /advisor
+    displayName: "成长顾问"
+    feature: advisor
+    description: "AI 成长分析顾问，基于孩子档案的个性化问答。"
+    icon: message-circle
+
+  - path: /reports
+    displayName: "成长报告"
+    feature: reports
+    description: "定期成长分析报告。"
+    icon: bar-chart
+    phase: 2
+
+  - path: /settings
+    displayName: "设置"
+    feature: settings
+    description: "家庭管理、孩子档案管理、养育模式配置、提醒偏好。"
+    icon: settings
+
+  - path: /settings/children
+    displayName: "孩子管理"
+    feature: settings
+    description: "添加/编辑孩子档案。"
+    parent: /settings
+
+  - path: /settings/nurture-mode
+    displayName: "养育模式"
+    feature: settings
+    description: "全局和按领域的养育模式配置。"
+    parent: /settings
+
+constraints:
+  - "isDefault: true 的路由仅有一个"
+  - "子路由的 feature 跟随父路由"
+  - "gated: true 的路由在对应 phase 实现前不注册到 router，不出现在导航中"
