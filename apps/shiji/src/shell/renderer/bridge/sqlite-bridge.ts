@@ -1,6 +1,11 @@
 import { invokeChecked } from './invoke.js';
 
-// ── Types (mirror Rust query.rs structs) ─────────────────────────────────
+export class BridgeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BridgeError';
+  }
+}
 
 export type LearnerProfile = {
   id: string;
@@ -14,10 +19,10 @@ export type LearnerProfile = {
   encounterCompletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  strengthTags: string; // JSON string — parse on use
-  interestTags: string; // JSON string
-  supportNotes: string; // JSON string
-  guardianGuidance: string; // JSON string
+  strengthTags: string;
+  interestTags: string;
+  supportNotes: string;
+  guardianGuidance: string;
 };
 
 export type Session = {
@@ -105,51 +110,201 @@ export type LearnerContextNote = {
   updatedAt: string;
 };
 
-// ── Parse helpers ─────────────────────────────────────────────────────────
+type JsonRecord = Record<string, unknown>;
+
+function expectRecord(value: unknown, label: string): JsonRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BridgeError(`${label}: expected object`);
+  }
+  return value as JsonRecord;
+}
+
+function expectArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw new BridgeError(`${label}: expected array`);
+  }
+  return value;
+}
+
+function expectString(record: JsonRecord, key: string, label: string, allowEmpty = false): string {
+  const value = record[key];
+  if (typeof value !== 'string') {
+    throw new BridgeError(`${label}.${key}: expected string`);
+  }
+  const normalized = value.trim();
+  if (!allowEmpty && !normalized) {
+    throw new BridgeError(`${label}.${key}: expected non-empty string`);
+  }
+  return normalized;
+}
+
+function expectNumber(record: JsonRecord, key: string, label: string): number {
+  const value = record[key];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new BridgeError(`${label}.${key}: expected finite number`);
+  }
+  return value;
+}
+
+function expectBoolean(record: JsonRecord, key: string, label: string): boolean {
+  if (typeof record[key] !== 'boolean') {
+    throw new BridgeError(`${label}.${key}: expected boolean`);
+  }
+  return record[key] as boolean;
+}
+
+function expectNullableString(record: JsonRecord, key: string, label: string): string | null {
+  const value = record[key];
+  if (value == null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw new BridgeError(`${label}.${key}: expected string or null`);
+  }
+  return value.trim();
+}
+
+function expectNullableNumber(record: JsonRecord, key: string, label: string): number | null {
+  const value = record[key];
+  if (value == null) {
+    return null;
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new BridgeError(`${label}.${key}: expected number or null`);
+  }
+  return value;
+}
 
 function parseProfile(raw: unknown): LearnerProfile {
-  const r = raw as Record<string, unknown>;
+  const record = expectRecord(raw, 'learner_profile');
   return {
-    id: String(r['id'] ?? ''),
-    authUserId: String(r['authUserId'] ?? ''),
-    displayName: String(r['displayName'] ?? ''),
-    age: Number(r['age'] ?? 0),
-    communicationStyle: String(r['communicationStyle'] ?? ''),
-    guardianGoals: String(r['guardianGoals'] ?? ''),
-    profileVersion: Number(r['profileVersion'] ?? 1),
-    isActive: Boolean(r['isActive']),
-    encounterCompletedAt: r['encounterCompletedAt'] != null ? String(r['encounterCompletedAt']) : null,
-    createdAt: String(r['createdAt'] ?? ''),
-    updatedAt: String(r['updatedAt'] ?? ''),
-    strengthTags: String(r['strengthTags'] ?? '[]'),
-    interestTags: String(r['interestTags'] ?? '[]'),
-    supportNotes: String(r['supportNotes'] ?? '[]'),
-    guardianGuidance: String(r['guardianGuidance'] ?? '{}'),
+    id: expectString(record, 'id', 'learner_profile'),
+    authUserId: expectString(record, 'authUserId', 'learner_profile'),
+    displayName: expectString(record, 'displayName', 'learner_profile'),
+    age: expectNumber(record, 'age', 'learner_profile'),
+    communicationStyle: expectString(record, 'communicationStyle', 'learner_profile', true),
+    guardianGoals: expectString(record, 'guardianGoals', 'learner_profile', true),
+    profileVersion: expectNumber(record, 'profileVersion', 'learner_profile'),
+    isActive: expectBoolean(record, 'isActive', 'learner_profile'),
+    encounterCompletedAt: expectNullableString(record, 'encounterCompletedAt', 'learner_profile'),
+    createdAt: expectString(record, 'createdAt', 'learner_profile'),
+    updatedAt: expectString(record, 'updatedAt', 'learner_profile'),
+    strengthTags: expectString(record, 'strengthTags', 'learner_profile'),
+    interestTags: expectString(record, 'interestTags', 'learner_profile'),
+    supportNotes: expectString(record, 'supportNotes', 'learner_profile'),
+    guardianGuidance: expectString(record, 'guardianGuidance', 'learner_profile'),
   };
 }
 
 function parseSession(raw: unknown): Session {
-  const r = raw as Record<string, unknown>;
+  const record = expectRecord(raw, 'session');
   return {
-    id: String(r['id'] ?? ''),
-    learnerId: String(r['learnerId'] ?? ''),
-    learnerProfileVersion: Number(r['learnerProfileVersion'] ?? 1),
-    worldId: String(r['worldId'] ?? ''),
-    agentId: String(r['agentId'] ?? ''),
-    contentType: String(r['contentType'] ?? ''),
-    truthMode: String(r['truthMode'] ?? ''),
-    sessionStatus: String(r['sessionStatus'] ?? ''),
-    chapterIndex: Number(r['chapterIndex'] ?? 1),
-    sceneType: String(r['sceneType'] ?? 'campfire'),
-    rhythmCounter: Number(r['rhythmCounter'] ?? 0),
-    trunkEventIndex: Number(r['trunkEventIndex'] ?? 0),
-    startedAt: String(r['startedAt'] ?? ''),
-    updatedAt: String(r['updatedAt'] ?? ''),
-    completedAt: r['completedAt'] != null ? String(r['completedAt']) : null,
+    id: expectString(record, 'id', 'session'),
+    learnerId: expectString(record, 'learnerId', 'session'),
+    learnerProfileVersion: expectNumber(record, 'learnerProfileVersion', 'session'),
+    worldId: expectString(record, 'worldId', 'session'),
+    agentId: expectString(record, 'agentId', 'session'),
+    contentType: expectString(record, 'contentType', 'session'),
+    truthMode: expectString(record, 'truthMode', 'session'),
+    sessionStatus: expectString(record, 'sessionStatus', 'session'),
+    chapterIndex: expectNumber(record, 'chapterIndex', 'session'),
+    sceneType: expectString(record, 'sceneType', 'session'),
+    rhythmCounter: expectNumber(record, 'rhythmCounter', 'session'),
+    trunkEventIndex: expectNumber(record, 'trunkEventIndex', 'session'),
+    startedAt: expectString(record, 'startedAt', 'session'),
+    updatedAt: expectString(record, 'updatedAt', 'session'),
+    completedAt: expectNullableString(record, 'completedAt', 'session'),
   };
 }
 
-// ── Learner Profile commands ──────────────────────────────────────────────
+function parseDialogueTurn(raw: unknown): DialogueTurn {
+  const record = expectRecord(raw, 'dialogue_turn');
+  return {
+    id: expectString(record, 'id', 'dialogue_turn'),
+    sessionId: expectString(record, 'sessionId', 'dialogue_turn'),
+    seq: expectNumber(record, 'seq', 'dialogue_turn'),
+    role: expectString(record, 'role', 'dialogue_turn'),
+    content: expectString(record, 'content', 'dialogue_turn'),
+    sceneType: expectString(record, 'sceneType', 'dialogue_turn'),
+    createdAt: expectString(record, 'createdAt', 'dialogue_turn'),
+  };
+}
+
+function parseChoice(raw: unknown): Choice {
+  const record = expectRecord(raw, 'choice');
+  return {
+    id: expectString(record, 'id', 'choice'),
+    sessionId: expectString(record, 'sessionId', 'choice'),
+    turnId: expectString(record, 'turnId', 'choice'),
+    choiceKey: expectString(record, 'choiceKey', 'choice'),
+    choiceLabel: expectString(record, 'choiceLabel', 'choice'),
+    choiceDescription: expectString(record, 'choiceDescription', 'choice', true),
+    consequencePreview: expectString(record, 'consequencePreview', 'choice', true),
+    selectedAt: expectString(record, 'selectedAt', 'choice', true),
+  };
+}
+
+function parseKnowledgeEntry(raw: unknown): KnowledgeEntry {
+  const record = expectRecord(raw, 'knowledge_entry');
+  return {
+    id: expectString(record, 'id', 'knowledge_entry'),
+    learnerId: expectString(record, 'learnerId', 'knowledge_entry'),
+    worldId: expectString(record, 'worldId', 'knowledge_entry'),
+    conceptKey: expectString(record, 'conceptKey', 'knowledge_entry'),
+    domain: expectString(record, 'domain', 'knowledge_entry'),
+    depth: expectNumber(record, 'depth', 'knowledge_entry'),
+    contentType: expectString(record, 'contentType', 'knowledge_entry'),
+    truthMode: expectString(record, 'truthMode', 'knowledge_entry'),
+    firstSeenAt: expectString(record, 'firstSeenAt', 'knowledge_entry'),
+    updatedAt: expectString(record, 'updatedAt', 'knowledge_entry'),
+  };
+}
+
+function parseChapterProgress(raw: unknown): ChapterProgress {
+  const record = expectRecord(raw, 'chapter_progress');
+  return {
+    id: expectString(record, 'id', 'chapter_progress'),
+    learnerId: expectString(record, 'learnerId', 'chapter_progress'),
+    sessionId: expectString(record, 'sessionId', 'chapter_progress'),
+    worldId: expectString(record, 'worldId', 'chapter_progress'),
+    chapterIndex: expectNumber(record, 'chapterIndex', 'chapter_progress'),
+    title: expectString(record, 'title', 'chapter_progress', true),
+    summary: expectString(record, 'summary', 'chapter_progress', true),
+    verificationScore: expectNullableNumber(record, 'verificationScore', 'chapter_progress'),
+    metacognitionCompleted: expectBoolean(record, 'metacognitionCompleted', 'chapter_progress'),
+    startedAt: expectString(record, 'startedAt', 'chapter_progress'),
+    completedAt: expectNullableString(record, 'completedAt', 'chapter_progress'),
+  };
+}
+
+function parseAchievement(raw: unknown): Achievement {
+  const record = expectRecord(raw, 'achievement');
+  return {
+    id: expectString(record, 'id', 'achievement'),
+    learnerId: expectString(record, 'learnerId', 'achievement'),
+    achievementKey: expectString(record, 'achievementKey', 'achievement'),
+    unlockedAt: expectString(record, 'unlockedAt', 'achievement'),
+  };
+}
+
+function parseContextNote(raw: unknown): LearnerContextNote {
+  const record = expectRecord(raw, 'learner_context_note');
+  return {
+    id: expectString(record, 'id', 'learner_context_note'),
+    learnerId: expectString(record, 'learnerId', 'learner_context_note'),
+    sourceType: expectString(record, 'sourceType', 'learner_context_note'),
+    noteType: expectString(record, 'noteType', 'learner_context_note'),
+    noteKey: expectString(record, 'noteKey', 'learner_context_note'),
+    noteValue: expectString(record, 'noteValue', 'learner_context_note'),
+    status: expectString(record, 'status', 'learner_context_note'),
+    createdAt: expectString(record, 'createdAt', 'learner_context_note'),
+    updatedAt: expectString(record, 'updatedAt', 'learner_context_note'),
+  };
+}
+
+function parseList<T>(value: unknown, label: string, parseItem: (item: unknown) => T): T[] {
+  return expectArray(value, label).map((item) => parseItem(item));
+}
 
 export type CreateProfileInput = {
   id: string;
@@ -171,7 +326,7 @@ export async function sqliteCreateLearnerProfile(input: CreateProfileInput): Pro
 }
 
 export async function sqliteGetLearnerProfiles(authUserId: string): Promise<LearnerProfile[]> {
-  return invokeChecked('get_learner_profiles', { authUserId }, (v) => (v as unknown[]).map(parseProfile));
+  return invokeChecked('get_learner_profiles', { authUserId }, (value) => parseList(value, 'learner_profiles', parseProfile));
 }
 
 export type UpdateProfileInput = {
@@ -196,8 +351,6 @@ export async function sqliteSetActiveProfile(authUserId: string, profileId: stri
   return invokeChecked('set_active_profile', { authUserId, profileId }, () => undefined);
 }
 
-// ── Session commands ──────────────────────────────────────────────────────
-
 export type CreateSessionInput = {
   id: string;
   learnerId: string;
@@ -215,7 +368,7 @@ export async function sqliteCreateSession(input: CreateSessionInput): Promise<Se
 }
 
 export async function sqliteGetSession(sessionId: string): Promise<Session | null> {
-  return invokeChecked('get_session', { sessionId }, (v) => v != null ? parseSession(v) : null);
+  return invokeChecked('get_session', { sessionId }, (value) => (value == null ? null : parseSession(value)));
 }
 
 export type UpdateSessionInput = {
@@ -234,65 +387,65 @@ export async function sqliteUpdateSession(input: UpdateSessionInput): Promise<Se
 }
 
 export async function sqliteGetSessionsForLearner(learnerId: string): Promise<Session[]> {
-  return invokeChecked('get_sessions_for_learner', { learnerId }, (v) => (v as unknown[]).map(parseSession));
+  return invokeChecked('get_sessions_for_learner', { learnerId }, (value) => parseList(value, 'sessions', parseSession));
 }
-
-// ── Dialogue Turn commands ────────────────────────────────────────────────
 
 export async function sqliteInsertDialogueTurn(turn: Omit<DialogueTurn, never>): Promise<void> {
   return invokeChecked('insert_dialogue_turn', turn, () => undefined);
 }
 
 export async function sqliteGetDialogueTurns(sessionId: string): Promise<DialogueTurn[]> {
-  return invokeChecked('get_dialogue_turns', { sessionId }, (v) => v as DialogueTurn[]);
+  return invokeChecked('get_dialogue_turns', { sessionId }, (value) => parseList(value, 'dialogue_turns', parseDialogueTurn));
 }
-
-// ── Choice commands ───────────────────────────────────────────────────────
 
 export async function sqliteInsertChoice(choice: Choice): Promise<void> {
   return invokeChecked('insert_choice', choice, () => undefined);
 }
 
 export async function sqliteGetChoicesForSession(sessionId: string): Promise<Choice[]> {
-  return invokeChecked('get_choices_for_session', { sessionId }, (v) => v as Choice[]);
+  return invokeChecked('get_choices_for_session', { sessionId }, (value) => parseList(value, 'choices', parseChoice));
 }
-
-// ── Knowledge Entry commands ──────────────────────────────────────────────
 
 export async function sqliteUpsertKnowledgeEntry(entry: KnowledgeEntry): Promise<void> {
   return invokeChecked('upsert_knowledge_entry', entry, () => undefined);
 }
 
 export async function sqliteGetKnowledgeEntries(learnerId: string, worldId?: string): Promise<KnowledgeEntry[]> {
-  return invokeChecked('get_knowledge_entries', { learnerId, worldId: worldId ?? null }, (v) => v as KnowledgeEntry[]);
+  return invokeChecked(
+    'get_knowledge_entries',
+    { learnerId, worldId: worldId ?? null },
+    (value) => parseList(value, 'knowledge_entries', parseKnowledgeEntry),
+  );
 }
-
-// ── Chapter Progress commands ─────────────────────────────────────────────
 
 export async function sqliteUpsertChapterProgress(progress: ChapterProgress): Promise<void> {
   return invokeChecked('upsert_chapter_progress', progress, () => undefined);
 }
 
 export async function sqliteGetChapterProgress(learnerId: string, sessionId?: string): Promise<ChapterProgress[]> {
-  return invokeChecked('get_chapter_progress', { learnerId, sessionId: sessionId ?? null }, (v) => v as ChapterProgress[]);
+  return invokeChecked(
+    'get_chapter_progress',
+    { learnerId, sessionId: sessionId ?? null },
+    (value) => parseList(value, 'chapter_progress', parseChapterProgress),
+  );
 }
-
-// ── Achievement commands ──────────────────────────────────────────────────
 
 export async function sqliteUnlockAchievement(achievement: Achievement): Promise<void> {
   return invokeChecked('unlock_achievement', achievement, () => undefined);
 }
 
 export async function sqliteGetAchievements(learnerId: string): Promise<Achievement[]> {
-  return invokeChecked('get_achievements', { learnerId }, (v) => v as Achievement[]);
+  return invokeChecked('get_achievements', { learnerId }, (value) => parseList(value, 'achievements', parseAchievement));
 }
-
-// ── Context Note commands ─────────────────────────────────────────────────
 
 export async function sqliteInsertContextNote(note: LearnerContextNote): Promise<void> {
   return invokeChecked('insert_learner_context_note', note, () => undefined);
 }
 
 export async function sqliteGetContextNotes(learnerId: string, status?: string): Promise<LearnerContextNote[]> {
-  return invokeChecked('get_learner_context_notes', { learnerId, status: status ?? null }, (v) => v as LearnerContextNote[]);
+  return invokeChecked(
+    'get_learner_context_notes',
+    { learnerId, status: status ?? null },
+    (value) => parseList(value, 'learner_context_notes', parseContextNote),
+  );
 }

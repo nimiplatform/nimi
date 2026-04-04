@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ENCOUNTER_SCRIPTS, MAX_ENCOUNTER_COUNT, type EncounterScript } from './data/encounter-scripts.js';
+import { getAvailableEncounterScripts, type EncounterScript } from './data/encounter-scripts.js';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { sqliteUpdateLearnerProfile } from '@renderer/bridge/sqlite-bridge.js';
 
@@ -9,80 +9,89 @@ type EncounterState =
   | { phase: 'active'; scriptIndex: number }
   | { phase: 'done' };
 
-/**
- * CharacterEncounter — SJ-SHELL-009
- *
- * First-visit overlay: a historical character appears with a dilemma.
- * UI layer runs without SQLite.
- * Persistence (encounterCompletedAt) requires SQLite to be ready.
- */
 export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const activeProfile = useAppStore((s) => s.activeProfile);
-  const updateProfileEncounterCompleted = useAppStore((s) => s.updateProfileEncounterCompleted);
+  const activeProfile = useAppStore((state) => state.activeProfile);
+  const updateProfileEncounterCompleted = useAppStore((state) => state.updateProfileEncounterCompleted);
+  const availableScripts = getAvailableEncounterScripts();
 
   const [state, setState] = useState<EncounterState>({ phase: 'active', scriptIndex: 0 });
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const currentScript: EncounterScript | null =
-    state.phase === 'active' && state.scriptIndex < ENCOUNTER_SCRIPTS.length
-      ? (ENCOUNTER_SCRIPTS[state.scriptIndex] ?? null)
+    state.phase === 'active' && state.scriptIndex < availableScripts.length
+      ? (availableScripts[state.scriptIndex] ?? null)
       : null;
 
   const persistEncounterCompleted = useCallback(async () => {
     if (!activeProfile) {
-      return; // No profile yet — will be written when profile is created (SJ-SHELL-009:8d)
+      return;
     }
+
     const now = new Date().toISOString();
-    try {
-      // JSON-serialize array/object fields — SQLite bridge stores them as JSON strings
-      await sqliteUpdateLearnerProfile({
-        id: activeProfile.id,
-        displayName: activeProfile.displayName,
-        age: activeProfile.age,
-        communicationStyle: activeProfile.communicationStyle,
-        guardianGoals: activeProfile.guardianGoals,
-        strengthTags: JSON.stringify(activeProfile.strengthTags),
-        interestTags: JSON.stringify(activeProfile.interestTags),
-        supportNotes: JSON.stringify(activeProfile.supportNotes),
-        guardianGuidance: JSON.stringify(activeProfile.guardianGuidance),
-        encounterCompletedAt: now,
-        updatedAt: now,
-      });
-      updateProfileEncounterCompleted(activeProfile.id, now);
-    } catch {
-      // Best-effort — SQLite may not be ready yet (Phase 0 non-blocking)
-    }
+    await sqliteUpdateLearnerProfile({
+      id: activeProfile.id,
+      displayName: activeProfile.displayName,
+      age: activeProfile.age,
+      communicationStyle: activeProfile.communicationStyle,
+      guardianGoals: activeProfile.guardianGoals,
+      strengthTags: JSON.stringify(activeProfile.strengthTags),
+      interestTags: JSON.stringify(activeProfile.interestTags),
+      supportNotes: JSON.stringify(activeProfile.supportNotes),
+      guardianGuidance: JSON.stringify(activeProfile.guardianGuidance),
+      encounterCompletedAt: now,
+      updatedAt: now,
+    });
+    updateProfileEncounterCompleted(activeProfile.id, now);
   }, [activeProfile, updateProfileEncounterCompleted]);
 
   const handleAccept = useCallback(async () => {
     if (!currentScript) {
       return;
     }
-    await persistEncounterCompleted();
-    navigate(`/explore/${currentScript.worldId}/agent/${currentScript.agentId}`);
-  }, [currentScript, persistEncounterCompleted, navigate]);
+    try {
+      setActionError(null);
+      await persistEncounterCompleted();
+      navigate(`/explore/${currentScript.worldId}/agent/${currentScript.agentId}`);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    }
+  }, [currentScript, navigate, persistEncounterCompleted]);
 
   const handleNext = useCallback(async () => {
     if (state.phase !== 'active') {
       return;
     }
+
     const nextIndex = state.scriptIndex + 1;
-    if (nextIndex >= MAX_ENCOUNTER_COUNT || nextIndex >= ENCOUNTER_SCRIPTS.length) {
-      // Completed all encounters — SJ-SHELL-009:5
-      await persistEncounterCompleted();
-      setState({ phase: 'done' });
-    } else {
-      setState({ phase: 'active', scriptIndex: nextIndex });
+    try {
+      setActionError(null);
+      if (nextIndex >= availableScripts.length) {
+        await persistEncounterCompleted();
+        setState({ phase: 'done' });
+      } else {
+        setState({ phase: 'active', scriptIndex: nextIndex });
+      }
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
     }
-  }, [state, persistEncounterCompleted]);
+  }, [availableScripts.length, persistEncounterCompleted, state]);
 
   const handleDismiss = useCallback(async () => {
-    await persistEncounterCompleted();
-    onDismiss();
-  }, [persistEncounterCompleted, onDismiss]);
+    try {
+      setActionError(null);
+      await persistEncounterCompleted();
+      onDismiss();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    }
+  }, [onDismiss, persistEncounterCompleted]);
 
-  // "Done" state — transition to full timeline — SJ-SHELL-009:5
+  if (availableScripts.length === 0) {
+    return null;
+  }
+
   if (state.phase === 'done') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-950/70 backdrop-blur-sm">
@@ -107,10 +116,8 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-amber-950/60 backdrop-blur-sm">
-      {/* Encounter card — slides up from bottom */}
       <div className="w-full max-w-lg mb-12 mx-4">
         <div className="bg-amber-50 rounded-3xl overflow-hidden shadow-2xl">
-          {/* Preview tags — SJ-SHELL-009:3 */}
           <div className="flex gap-2 px-6 pt-5">
             {currentScript.previewTags.map((tag) => (
               <span
@@ -122,19 +129,19 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
             ))}
           </div>
 
-          {/* Character name */}
           <div className="px-6 pt-3 pb-1">
             <span className="text-sm text-amber-600 font-medium">{currentScript.characterName}</span>
           </div>
 
-          {/* Opening line — dilemma, not introduction — SJ-SHELL-009:2 */}
           <div className="px-6 pb-6">
             <p className="text-neutral-800 text-lg leading-relaxed font-medium">
               &ldquo;{currentScript.openingLine}&rdquo;
             </p>
+            {actionError ? (
+              <p className="mt-3 text-sm text-red-700">{actionError}</p>
+            ) : null}
           </div>
 
-          {/* Actions — zero learning cost, only two choices — SJ-SHELL-009:9 */}
           <div className="border-t border-amber-100 flex">
             <button
               onClick={() => void handleNext()}
@@ -151,7 +158,6 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
           </div>
         </div>
 
-        {/* Dismiss link — SJ-SHELL-009:6 */}
         <div className="text-center mt-4">
           <button
             onClick={() => void handleDismiss()}
@@ -165,31 +171,17 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-/**
- * useEncounterShouldShow — SJ-SHELL-009:8
- *
- * Returns whether the first-visit encounter should be displayed.
- *
- * Trigger logic:
- * a) No active profile → always trigger (definitionally first-time visitor)
- * b) Active profile + encounterCompletedAt non-null → don't trigger
- * c) Active profile + encounterCompletedAt null → trigger
- */
 export function useEncounterShouldShow(): boolean {
-  const activeProfile = useAppStore((s) => s.activeProfile);
-  const profilesLoaded = useAppStore((s) => s.profilesLoaded);
+  const activeProfile = useAppStore((state) => state.activeProfile);
+  const profilesLoaded = useAppStore((state) => state.profilesLoaded);
 
-  // If profiles not loaded yet, don't show (avoids flicker)
-  if (!profilesLoaded) {
+  if (!profilesLoaded || getAvailableEncounterScripts().length === 0) {
     return false;
   }
 
-  // No profile → always trigger (SJ-SHELL-009:8a)
   if (!activeProfile) {
     return true;
   }
 
-  // Profile with null encounterCompletedAt → trigger (SJ-SHELL-009:8c)
-  // Profile with non-null encounterCompletedAt → don't trigger (SJ-SHELL-009:8b)
   return activeProfile.encounterCompletedAt === null;
 }

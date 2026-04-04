@@ -1,29 +1,83 @@
-/**
- * memory-client.ts — Realm API: agent dyadic memory
- * Uses AgentsService (SDK-generated) per feature-matrix.yaml dialogue-session
- * Note: SJ-DIAL-002 — agent memory records what the character remembers about
- * this student; distinct from local learner_context_notes (pedagogical app state)
- * Full typed implementation: Phase 1 Step 1.5
- */
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
+import { commitAgentMemories } from '@nimiplatform/sdk/realm';
+import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
-type CommitMemoryBody = RealmServiceArgs<'AgentsService', 'agentControllerCommitMemory'>[1];
+type DyadicMemoryResult = RealmServiceResult<'AgentsService', 'agentControllerListDyadicMemories'>;
+type DyadicMemoryDto = DyadicMemoryResult extends (infer T)[] ? T : never;
 
-export async function recallAgentMemory(agentId: string, learnerId: string): Promise<unknown> {
-  // GET /api/agent/accounts/{id}/memory/dyadic/{userId} — AgentsService.agentControllerListDyadicMemories
-  return getPlatformClient().realm.services.AgentsService.agentControllerListDyadicMemories(agentId, learnerId);
+export type AgentMemoryRecord = {
+  id: string;
+  content: string;
+  class: string;
+  createdAt: string;
+};
+
+export type WriteAgentMemoryInput = {
+  agentId: string;
+  learnerId: string;
+  worldId: string;
+  sessionId: string;
+  memoryText: string;
+};
+
+function expectObject(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label}: expected object`);
+  }
+  return value as Record<string, unknown>;
 }
 
-export async function writeAgentMemory(agentId: string, learnerId: string, memoryText: string): Promise<void> {
-  // POST /api/agent/accounts/{id}/memory/commits — AgentsService.agentControllerCommitMemory
-  // commit is required by CommitAgentMemoryDto; callers must supply it via the typed extension
-  // commitAgentMemories() from @nimiplatform/sdk/realm for full envelope construction.
-  // This stub fixes positional arg signature; commit envelope must be wired before production use.
-  const body: CommitMemoryBody = {
-    content: memoryText,
-    type: 'DYADIC',
+function expectArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label}: expected array`);
+  }
+  return value;
+}
+
+function expectString(record: Record<string, unknown>, key: string, label: string): string {
+  const value = record[key];
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`${label}.${key}: expected non-empty string`);
+  }
+  return value.trim();
+}
+
+function parseMemory(raw: unknown): AgentMemoryRecord {
+  const record = expectObject(raw, 'agent_memory');
+  return {
+    id: expectString(record, 'id', 'agent_memory'),
+    content: expectString(record, 'content', 'agent_memory'),
+    class: expectString(record, 'class', 'agent_memory'),
+    createdAt: expectString(record, 'createdAt', 'agent_memory'),
+  };
+}
+
+export async function recallAgentMemory(agentId: string, learnerId: string): Promise<AgentMemoryRecord[]> {
+  const result = await getPlatformClient().realm.services.AgentsService.agentControllerListDyadicMemories(agentId, learnerId);
+  return expectArray(result as DyadicMemoryDto[], 'agent_memory_list').map((item) => parseMemory(item));
+}
+
+export async function writeAgentMemory(input: WriteAgentMemoryInput): Promise<void> {
+  const { agentId, learnerId, worldId, sessionId, memoryText } = input;
+  await commitAgentMemories(getPlatformClient().realm, {
+    agentId,
     userId: learnerId,
-  } as CommitMemoryBody;
-  await getPlatformClient().realm.services.AgentsService.agentControllerCommitMemory(agentId, body);
+    worldId,
+    type: 'DYADIC',
+    content: memoryText,
+    commit: {
+      worldId,
+      appId: 'nimi.shiji',
+      sessionId,
+      effectClass: 'MEMORY_ONLY',
+      scope: 'WORLD',
+      schemaId: 'shiji.agent-memory',
+      schemaVersion: '1',
+      actorRefs: [
+        { actorId: agentId, actorType: 'agent', role: 'speaker' },
+        { actorId: learnerId, actorType: 'user', role: 'learner' },
+      ],
+      reason: 'dialogue_session_summary',
+    },
+  });
 }

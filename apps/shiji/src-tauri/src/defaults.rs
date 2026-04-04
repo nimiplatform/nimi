@@ -113,22 +113,80 @@ pub fn runtime_defaults() -> RuntimeDefaults {
             jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
         },
         runtime: RuntimeExecutionDefaults {
-            local_provider_endpoint: env_value(
-                "NIMI_LOCAL_PROVIDER_ENDPOINT",
-                "http://127.0.0.1:1234/v1",
-            ),
-            local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", "local-model"),
-            local_open_ai_endpoint: env_value(
-                "NIMI_LOCAL_OPENAI_ENDPOINT",
-                "http://127.0.0.1:1234/v1",
-            ),
+            local_provider_endpoint: env_value("NIMI_LOCAL_PROVIDER_ENDPOINT", ""),
+            local_provider_model: env_value("NIMI_LOCAL_PROVIDER_MODEL", ""),
+            local_open_ai_endpoint: env_value("NIMI_LOCAL_OPENAI_ENDPOINT", ""),
             credential_ref_id: env_value("NIMI_CREDENTIAL_REF_ID", ""),
-            target_type: env_value("NIMI_TARGET_TYPE", "AGENT"),
+            target_type: env_value("NIMI_TARGET_TYPE", ""),
             target_account_id: env_value("NIMI_TARGET_ACCOUNT_ID", ""),
             agent_id: env_value("NIMI_AGENT_ID", ""),
             world_id: env_value("NIMI_WORLD_ID", ""),
             provider: env_value("NIMI_PROVIDER", ""),
             user_confirmed_upload: env_value("NIMI_USER_CONFIRMED_UPLOAD", "") == "1",
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::runtime_defaults;
+
+    fn with_env_vars(vars: &[(&str, Option<&str>)], run: impl FnOnce()) {
+        let saved: Vec<(String, Option<String>)> = vars
+            .iter()
+            .map(|(key, _)| ((*key).to_string(), std::env::var(key).ok()))
+            .collect();
+        for (key, value) in vars {
+            match value {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+
+        run();
+
+        for (key, value) in saved {
+            match value {
+                Some(value) => std::env::set_var(&key, value),
+                None => std::env::remove_var(&key),
+            }
+        }
+    }
+
+    #[test]
+    fn runtime_defaults_provide_non_empty_realm_defaults_without_env() {
+        with_env_vars(
+            &[
+                ("NIMI_REALM_URL", None),
+                ("NIMI_REALM_JWKS_URL", None),
+                ("NIMI_REALM_JWT_ISSUER", None),
+                ("NIMI_REALM_JWT_AUDIENCE", None),
+            ],
+            || {
+                let defaults = runtime_defaults();
+                assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
+                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
+                assert_eq!(defaults.realm.jwt_audience, "nimi-runtime");
+            },
+        );
+    }
+
+    #[test]
+    fn runtime_defaults_normalize_loopback_without_explicit_port() {
+        with_env_vars(
+            &[
+                ("NIMI_REALM_URL", Some("http://localhost")),
+                ("NIMI_REALM_JWKS_URL", None),
+                ("NIMI_REALM_JWT_ISSUER", None),
+                ("NIMI_REALM_JWT_AUDIENCE", None),
+            ],
+            || {
+                let defaults = runtime_defaults();
+                assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
+                assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+                assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
+            },
+        );
     }
 }

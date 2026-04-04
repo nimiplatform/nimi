@@ -26,7 +26,7 @@ Context assembly gathers data from Realm and local state before prompt construct
 4. **WorldRules** — fetched via `GET /api/world/by-id/{worldId}/rules`, cached per session
 5. **AgentRules** — fetched via `GET /api/world/by-id/{worldId}/agent-rules`, filtered by active agent
 6. **Lorebook entries** — fetched via `GET /api/world/by-id/{worldId}/lorebooks`, keyword-matched against recent dialogue context
-7. **Trunk events** — fetched via `GET /api/world/by-id/{worldId}/events`, ordered chronologically
+7. **Trunk events** — reserved for a future typed surface and omitted from the current stable dialogue assembly
 8. **Agent memory** — fetched via `GET /api/agent/{agentId}/memory/recall`, DYADIC class
 9. **Session state** — read from local SQLite: chapter index, scene type, rhythm counter, trunk event index, knowledge flags, and the session's snapshotted `contentType` / `truthMode`
 10. **Dialogue history** — read from local SQLite: recent N turns for continuity window
@@ -36,7 +36,7 @@ Assembly sources 3 (learner adaptation notes) and 8 (agent memory) serve distinc
 - **Learner adaptation notes** record what the app observes about the student's learning style: communication preferences, pacing sensitivity, analogy affinity. Stored in local SQLite only, never written to Realm.
 The two may overlap in topic but differ in authority: memory is in-character relationship state, notes are pedagogical app state.
 
-Assembly results are cached per session with TTL-based invalidation for Realm data. Default cache TTL: 15 minutes for WorldRules, AgentRules, and Lorebooks; 30 minutes for trunk events. Local state (session, dialogue history, knowledge flags) is always read fresh. Classification used for stable dialogue comes from the session snapshot after session creation, not from live catalog re-reads.
+Assembly results are cached per session with TTL-based invalidation for Realm data. Default cache TTL: 15 minutes for WorldRules, AgentRules, and Lorebooks. Trunk event caching is not active in the stable path because the events surface is not yet approved. Local state (session, dialogue history, knowledge flags) is always read fresh. Classification used for stable dialogue comes from the session snapshot after session creation, not from live catalog re-reads.
 
 ## SJ-DIAL-003 — Prompt Builder
 
@@ -51,7 +51,7 @@ The prompt builder (`engine/prompt-builder.ts`) assembles an LLM system prompt d
 7. **Narrative governance block** — from WorldRules: pacing rules, choice format, knowledge scaffolding rules, perspective rules
 8. **Scene directive block** — from local state: current scene type (crisis/campfire/verification/metacognition), specific instructions per type
 9. **Knowledge state block** — from local SQLite: concepts Snow has learned (depth >= 1) marked as "known", concepts at depth 0 flagged for potential explanation
-10. **Trunk horizon block** — from trunk events + local index: next locked event, proximity assessment, convergence/freedom directive
+10. **Trunk horizon block** — reserved for a future typed events surface and omitted from the current stable prompt
 11. **Lorebook injection** — keyword-matched entries relevant to current context
 12. **Memory snippets** — DYADIC memory entries for relationship continuity
 13. **Recent dialogue** — last N turns as conversation history
@@ -66,7 +66,7 @@ Prompt priority is fixed from highest to lowest as:
 6. Adaptation block
 7. Relationship block
 8. World context block
-9. Trunk horizon block
+9. Trunk horizon block (only after the events surface is approved)
 10. Knowledge state block
 11. Recent dialogue
 12. Memory snippets
@@ -76,7 +76,7 @@ If assembled content exceeds budget, trim in this order:
 
 1. Remove lorebook injection first
 2. Remove memory snippets next
-3. Compress recent dialogue, then knowledge state, then trunk horizon, then world context, then relationship
+3. Compress recent dialogue, then knowledge state, then world context, then relationship. If trunk horizon is re-enabled in a future phase, it trims before world context
 4. Blocks 1-6 above are the stable-dialogue minimum set and must not be deleted
 5. If the model budget cannot fit the stable-dialogue minimum set, the turn must fail-close with an actionable error instead of silently degrading the prompt contract
 
@@ -115,7 +115,7 @@ The pacing enforcer (`engine/pacing-enforcer.ts`) maintains narrative rhythm:
 6. **Metacognition trigger** — when trunk event is reached (chapter boundary), scene type switches to metacognition for "looking back" reflection
 7. `campfire` and other non-`crisis` scene types may render without structured A/B choices
 
-8. Scene types (`crisis | campfire | verification | metacognition | transition`) are ShiJi app-layer enums assigned by the pacing enforcer. They are not sourced from the Realm `Scene` entity's `sceneType` field. Realm scenes (via `GET /api/world/by-id/{worldId}/scenes`) provide location and setting metadata; ShiJi pacing scene types are an orthogonal pedagogical rhythm concept.
+8. Scene types (`crisis | campfire | verification | metacognition | transition`) are ShiJi app-layer enums assigned by the pacing enforcer. They are not sourced from the Realm `Scene` entity's `sceneType` field. If a typed scene metadata surface is approved later, it may provide location and setting metadata, but ShiJi pacing scene types remain an orthogonal pedagogical rhythm concept.
 
 Pacing state persists in SQLite `sessions` table and survives app restart.
 
@@ -130,7 +130,7 @@ Trunk convergence (`engine/trunk-convergence.ts`) manages the "locked trunk + fr
 5. **Arrival detection** — when AI output references or describes the trunk event, index advances and chapter progress is recorded
 6. **Never block user choice** — convergence guides, not forces. If user's choices diverge, the prompt explains structural constraints through character dialogue ("not that your idea was wrong, but the forces of the era...") per the roleplay design
 
-> **Phase 2 dependency**: trunk events require `GET /api/world/by-id/{worldId}/events` which is not yet available. Phase 1 dialogue runs without trunk convergence; the pipeline omits steps 6 and 7 of this rule until the endpoint ships.
+> **Blocked surface**: trunk events require `GET /api/world/by-id/{worldId}/events`, which remains `proposed` in `api-surface.yaml`. Stable dialogue must run without trunk convergence; the pipeline omits this rule until the typed endpoint is approved and shipped.
 
 ## SJ-DIAL-008 — Session Lifecycle
 
@@ -139,7 +139,7 @@ Session management for dialogue continuity:
 1. **Create** — new session on first dialogue with a world+agent pair; initialize chapter=1, scene=1, rhythm=0, and snapshot the current `contentType` / `truthMode` from `world-catalog.yaml`
 2. **Resume** — existing session loads from SQLite; Realm data re-fetched, local state preserved
 3. **Pause** — user navigates away; session state auto-saves to SQLite
-4. **Complete** — final trunk event reached; session marked complete, summary generated
+4. **Complete** — session may complete through app-defined end conditions; trunk-driven completion remains blocked until the events surface ships
 5. **Multiple sessions** — one active session per world+agent pair; starting a new session with same pair offers to continue or restart
 6. **Catalog drift isolation** — later catalog reclassification does not retroactively alter the snapshotted classification of an existing session
 7. **Restart** — when user chooses restart for an existing world+agent pair:
@@ -244,13 +244,11 @@ Dialogue must maintain frequent interaction even outside high-stakes crisis scen
 
 ## SJ-DIAL-019 — Temporal Immersion
 
-The dialogue page displays the in-story historical date to create a sense of being inside that time period:
+Temporal immersion is currently blocked in the stable path because it depends on typed trunk-event data that has not shipped yet.
 
-1. The dialogue view includes a persistent date display showing the current narrative date in both era notation and CE — e.g., "贞观三年 腊月十五 / 公元 629 年"
-2. The narrative date is initialized from the session's first trunk event timestamp and advances as the story progresses through trunk events and scene transitions
-3. Date advancement is driven by trunk event metadata (per SJ-DIAL-007): each trunk event carries a `timelineSeq` that maps to a historical date; when a trunk event is reached, the display updates
-4. Between trunk events, the date may advance incrementally based on pacing cues in the AI output (e.g., "三天后" or "转眼到了春天") detected by post-processing
-5. The date display is decorative and immersive — it does not create gameplay pressure and has no mechanical consequence
-6. If precise date data is unavailable for a trunk event, the temporal display is omitted rather than showing imprecise data
+1. When the events surface is approved in a future phase, the dialogue view may include a persistent date display showing the current narrative date in both era notation and CE.
+2. Date advancement must be driven by typed trunk-event metadata rather than guessed free-text cues alone.
+3. The date display is decorative and immersive — it does not create gameplay pressure and has no mechanical consequence.
+4. If precise typed date data is unavailable, the temporal display is omitted rather than showing imprecise data.
 
-> **Phase 2 dependency**: temporal display requires trunk event timestamps from the events endpoint. Phase 1 dialogue runs without temporal display; the date header is omitted until trunk events ship.
+> **Blocked surface**: temporal display requires trunk event timestamps from the proposed events endpoint. Stable dialogue omits the date header until that typed surface ships.

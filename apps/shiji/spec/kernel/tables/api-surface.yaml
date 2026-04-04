@@ -7,7 +7,7 @@ endpoints:
   # ── World Discovery ──────────────────────────────────
   - method: GET
     path: /api/world
-    status: existing
+    status: proposed
     feature: explore-home
     description: 列出所有 ACTIVE 状态的公开 World browse projection
     response: WorldDetailDto[]
@@ -133,10 +133,12 @@ endpoints:
       - title
       - timelineSeq
       - summary
+    notes:
+      - Proposed surfaces are backend requests captured by the spec and must not be treated as already implemented
 
   - method: GET
     path: /api/world/by-id/{worldId}/scenes
-    status: existing
+    status: proposed
     feature: dialogue-session
     description: 获取 World 场景列表
     response: WorldSceneDto[]
@@ -144,6 +146,8 @@ endpoints:
       - id
       - title
       - sceneType
+    notes:
+      - Proposed surfaces are backend requests captured by the spec and must not be treated as already implemented
 
   # ── Agent Memory ─────────────────────────────────────
   - method: GET

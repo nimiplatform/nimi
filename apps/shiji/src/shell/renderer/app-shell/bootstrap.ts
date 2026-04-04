@@ -4,6 +4,7 @@ import { createPlatformClient } from '@nimiplatform/sdk';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
 import { invoke } from '@renderer/bridge/invoke.js';
+import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-daemon.js';
 
 /**
  * runShiJiBootstrap — Phase 0 bootstrap sequence (SJ-SHELL-001)
@@ -28,6 +29,9 @@ export async function runShiJiBootstrap(): Promise<void> {
     // Step 1: Runtime defaults
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
+    if (!store.aiModel && runtimeDefaults.runtime.localProviderModel) {
+      store.setAiModel(runtimeDefaults.runtime.localProviderModel);
+    }
 
     // Step 2: Platform client
     const { runtime, realm } = await createPlatformClient({
@@ -47,18 +51,18 @@ export async function runShiJiBootstrap(): Promise<void> {
         getCurrentUser: () => useAppStore.getState().auth.user,
         setAuthSession: (user, accessToken, refreshToken) => {
           const u = user as Record<string, unknown> | null;
-          if (!u || !u['id']) {
-            return;
+          if (!u || typeof u['id'] !== 'string' || !String(u['id']).trim()) {
+            throw new Error('platform auth session is missing a valid user.id');
           }
           useAppStore.getState().setAuthSession(
             {
               id: String(u['id']),
-              displayName: String(u['displayName'] || u['name'] || ''),
+              displayName: typeof u['displayName'] === 'string' ? u['displayName'] : '',
               email: u['email'] ? String(u['email']) : undefined,
               avatarUrl: u['avatarUrl'] ? String(u['avatarUrl']) : undefined,
             },
             accessToken,
-            refreshToken || '',
+            refreshToken ?? '',
           );
         },
         clearAuthSession: () => {
@@ -83,6 +87,13 @@ export async function runShiJiBootstrap(): Promise<void> {
 
     // Step 5: Runtime readiness check (blocking — SJ-SHELL-001:5 hard-cut)
     // Runtime must be available for AI generation. No cloud-only fallback.
+    const daemonStatus = await getDaemonStatus();
+    if (!daemonStatus.running) {
+      const startedDaemon = await startDaemon();
+      if (!startedDaemon.running) {
+        throw new Error(startedDaemon.lastError?.trim() || 'runtime daemon failed to start');
+      }
+    }
     const runtimeReadyTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('runtime ready timeout (15s)')), 15_000),
     );

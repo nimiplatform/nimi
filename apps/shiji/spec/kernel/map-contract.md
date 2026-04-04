@@ -10,16 +10,17 @@ The map view is a secondary Explore surface:
 1. Timeline remains the primary navigation metaphor for ShiJi
 2. Map view augments historical understanding with place, movement, and event context
 3. Map view must not replace timeline ordering, chapter flow, or catalog gating
-4. The atlas route exists only for worlds and views explicitly enabled by `map-surface.yaml`
+4. The atlas route exists only after `map-profile` is approved in `api-surface.yaml` and the corresponding worlds/views are explicitly enabled by `map-surface.yaml`
 
 ## SJ-MAP-002 — Catalog and Profile Gating
 
 Map availability is governed by both catalog metadata and map profiles:
 
-1. Only worlds present in `world-catalog.yaml` may be considered for map display
-2. A world is atlas-eligible only when `mapAvailability = true` in `world-catalog.yaml`
-3. Atlas-eligible worlds must also have a matching enabled profile in `map-surface.yaml`
-4. If either catalog gating or map profile is missing, the map path must fail-close
+1. Atlas is currently blocked in the stable product because `GET /api/world/by-id/{worldId}/map-profile` is still `proposed`
+2. Only worlds present in `world-catalog.yaml` may be considered for map display once the typed map surface is approved
+3. A world is atlas-eligible only when `mapAvailability = true` in `world-catalog.yaml`
+4. Atlas-eligible worlds must also have a matching enabled profile in `map-surface.yaml`
+5. If either catalog gating or map profile is missing, the map path must fail-close
 
 ## SJ-MAP-003 — Map Content Surface
 

@@ -6,6 +6,8 @@ mod defaults;
 mod desktop_paths;
 #[path = "../../../shared-tauri/oauth_commands.rs"]
 mod oauth_commands;
+#[path = "../../../forge/src-tauri/src/runtime_bridge/mod.rs"]
+mod runtime_bridge;
 mod session_logging;
 mod sqlite;
 
@@ -29,71 +31,14 @@ fn get_storage_dirs() -> Result<ShiJiStorageDirs, String> {
     })
 }
 
-// ── Runtime Bridge Stubs ──────────────────────────────────────────────────
-// Phase 0: stub commands that return errors. The TypeScript bootstrap handles
-// runtime unavailability non-blockingly (SJ-SHELL-001:5-6).
-// Full gRPC bridge follows in Phase 3 when TTS/STT/image generation is needed.
-
-#[tauri::command]
-async fn runtime_bridge_unary(_payload: serde_json::Value) -> Result<serde_json::Value, String> {
-    Err("shiji: runtime bridge not yet configured".to_string())
-}
-
-#[tauri::command]
-async fn runtime_bridge_stream_open(
-    _app: tauri::AppHandle,
-    _payload: serde_json::Value,
-) -> Result<serde_json::Value, String> {
-    Err("shiji: runtime bridge not yet configured".to_string())
-}
-
-#[tauri::command]
-fn runtime_bridge_stream_close(_payload: serde_json::Value) {}
-
-#[tauri::command]
-fn runtime_bridge_status(_app: tauri::AppHandle) -> serde_json::Value {
-    serde_json::json!({
-        "running": false,
-        "managed": false,
-        "launchMode": "INVALID",
-        "grpcAddr": ""
-    })
-}
-
-#[tauri::command]
-fn runtime_bridge_start(
-    _app: tauri::AppHandle,
-) -> Result<serde_json::Value, String> {
-    Err("shiji: runtime bridge not yet configured".to_string())
-}
-
-#[tauri::command]
-fn runtime_bridge_stop(
-    _app: tauri::AppHandle,
-) -> Result<serde_json::Value, String> {
-    Err("shiji: runtime bridge not yet configured".to_string())
-}
-
-#[tauri::command]
-fn runtime_bridge_restart(
-    _app: tauri::AppHandle,
-) -> Result<serde_json::Value, String> {
-    Err("shiji: runtime bridge not yet configured".to_string())
-}
-
-#[tauri::command]
-fn runtime_bridge_config_get() -> Result<serde_json::Value, String> {
-    Ok(serde_json::json!({}))
-}
-
-#[tauri::command]
-fn runtime_bridge_config_set(
-    _payload: serde_json::Value,
-) -> Result<serde_json::Value, String> {
-    Ok(serde_json::json!({}))
+fn configure_runtime_bridge_env() {
+    if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
+        std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
+    }
 }
 
 fn main() {
+    configure_runtime_bridge_env();
     session_logging::install_panic_hook();
     session_logging::log_boot_marker("shiji main() entered");
 
@@ -104,15 +49,15 @@ fn main() {
             oauth_commands::open_external_url,
             oauth_commands::oauth_token_exchange,
             oauth_commands::oauth_listen_for_code,
-            runtime_bridge_unary,
-            runtime_bridge_stream_open,
-            runtime_bridge_stream_close,
-            runtime_bridge_status,
-            runtime_bridge_start,
-            runtime_bridge_stop,
-            runtime_bridge_restart,
-            runtime_bridge_config_get,
-            runtime_bridge_config_set,
+            runtime_bridge::runtime_bridge_unary,
+            runtime_bridge::runtime_bridge_stream_open,
+            runtime_bridge::runtime_bridge_stream_close,
+            runtime_bridge::runtime_bridge_status,
+            runtime_bridge::runtime_bridge_start,
+            runtime_bridge::runtime_bridge_stop,
+            runtime_bridge::runtime_bridge_restart,
+            runtime_bridge::runtime_bridge_config_get,
+            runtime_bridge::runtime_bridge_config_set,
             session_logging::log_renderer_event,
             sqlite::queries::create_learner_profile,
             sqlite::queries::get_learner_profiles,

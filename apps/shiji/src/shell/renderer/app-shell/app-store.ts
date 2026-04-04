@@ -170,7 +170,7 @@ export const useAppStore = create<ShiJiStore>((set) => ({
   },
 
   // Settings
-  aiModel: 'gemini-2.0-flash',
+  aiModel: '',
   setAiModel(model) {
     set({ aiModel: model });
   },

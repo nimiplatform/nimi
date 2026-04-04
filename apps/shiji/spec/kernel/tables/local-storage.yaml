@@ -1,5 +1,7 @@
-# ShiJi — Local Storage
+# ShiJi - Local Storage
 # Authoritative source for SQLite tables used by ShiJi learner data and session continuity.
+
+schema_version: 2
 
 tables:
   - name: sessions
@@ -71,6 +73,8 @@ tables:
     logical_relationships:
       - learnerId -> learner_profiles.id
       - worldId -> world-catalog.yaml worldId
+    logical_unique_keys:
+      - learnerId, worldId, conceptKey
     required_columns:
       - id
       - learnerId
@@ -83,7 +87,7 @@ tables:
       - firstSeenAt
       - updatedAt
     indexes:
-      - learnerId, worldId, conceptKey
+      - UNIQUE learnerId, worldId, conceptKey
       - learnerId, contentType, truthMode
 
   - name: learner_profiles

@@ -30,12 +30,6 @@ routes:
     lazy: true
     description: 人物详情 — 人物简介、人格、关系、开始对话入口
 
-  - path: /explore/map
-    feature: explore-atlas
-    component: ExploreAtlasPage
-    lazy: true
-    description: 历史地图视图 — 具备地图 profile 的 world 时空联动浏览
-
   # ── Session (SJ-DIAL-*) ──────────────────────────────
   - path: /session/:sessionId
     feature: dialogue-session

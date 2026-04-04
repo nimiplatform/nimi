@@ -1,9 +1,9 @@
-# ShiJi — Feature Matrix
+# ShiJi - Feature Matrix
 # Authoritative source for feature phasing, priority, and dependencies.
 # Referenced by: kernel contracts, routes.yaml
 
 features:
-  # ── Phase 1: Core ────────────────────────────────────
+  # Phase 1: Core
   - id: app-shell
     name: App Shell + Bootstrap + Auth
     phase: 1
@@ -12,7 +12,7 @@ features:
     dependencies:
       - "@nimiplatform/sdk"
       - "@nimiplatform/nimi-kit"
-    description: Tauri shell, SDK bootstrap, auth flow, error boundary, 首次体验人物邂逅
+    description: Tauri shell、SDK bootstrap、auth flow、error boundary 与首轮使用体验。
 
   - id: settings
     name: 应用设置
@@ -21,7 +21,7 @@ features:
     contract: SJ-SHELL-005 ~ 007
     dependencies:
       - app-shell
-    description: 模型选择、语音开关、学习提醒、家长模式、learner profile、多 Profile 管理、版本控制
+    description: 模型选择、学习提醒、家长模式、learner profile、多 Profile 管理与版本控制。
 
   - id: explore-home
     name: 时间长河浏览
@@ -32,7 +32,7 @@ features:
       - app-shell
     realm-apis:
       - GET /api/world
-    description: 目录白名单驱动的统一时间长河浏览、分类校验、叙事过渡、多视角重玩信号
+    description: 目录白名单驱动的统一时间长河浏览、分类校验、叙事过滤与多视角重玩信号。
 
   - id: explore-world-detail
     name: 时期详情 + 人物列表
@@ -45,7 +45,7 @@ features:
       - GET /api/world/by-id/{worldId}/detail-with-agents
       - GET /api/world/by-id/{worldId}/agents
       - GET /api/world/by-id/{worldId}/bindings
-    description: World 详情、推荐人物卡片网格
+    description: World 详情、推荐人物卡片网格与世界公开素材展示。
 
   - id: explore-agent-detail
     name: 人物详情
@@ -56,7 +56,7 @@ features:
       - explore-world-detail
     realm-apis:
       - GET /api/agent/accounts/{agentId}
-    description: Agent DNA、简介、"开始对话"入口
+    description: Agent DNA、简介与开始对话入口。
 
   - id: dialogue-session
     name: 沉浸式对话
@@ -69,15 +69,13 @@ features:
       - GET /api/world/by-id/{worldId}/rules
       - GET /api/world/by-id/{worldId}/agent-rules
       - GET /api/world/by-id/{worldId}/lorebooks
-      - GET /api/world/by-id/{worldId}/events
-      - GET /api/world/by-id/{worldId}/scenes
       - GET /api/agent/{agentId}/memory/recall
       - POST /api/agent/{agentId}/memory/write
     runtime-apis:
       - runtime.ai.text.generate (streaming)
-    description: 对话引擎全管线 — session classification snapshot、prompt 构建、流式生成、选项解析、节奏控制。注：trunk convergence (SJ-DIAL-007) 和 temporal immersion (SJ-DIAL-019) 在 Phase 1 不可用，阻塞于 /events 端点
+    description: 对话引擎全管线，包括 session classification snapshot、prompt 构建、流式生成、选项解析与节奏控制。当前稳定范围不包含 trunk convergence、temporal immersion 或 scene metadata，因为 events/scenes typed surface 尚未获批。
 
-  # ── Phase 2: Education ───────────────────────────────
+  # Phase 2: Education
   - id: knowledge-graph
     name: 知识图谱
     phase: 2
@@ -85,7 +83,7 @@ features:
     contract: SJ-KNOW-001 ~ 006, SJ-KNOW-007
     dependencies:
       - dialogue-session
-    description: 按朝代/领域分类的已学概念可视化
+    description: 按朝代、领域分类的已学概念可视化。
 
   - id: knowledge-world
     name: 单时期知识详情
@@ -94,7 +92,7 @@ features:
     contract: SJ-KNOW-005, SJ-KNOW-007 ~ 008
     dependencies:
       - knowledge-graph
-    description: 单个 World 内的知识 depth 分布
+    description: 单个 World 内的知识 depth 分布。
 
   - id: progress-overview
     name: 学习进度
@@ -103,7 +101,7 @@ features:
     contract: SJ-PROG-001 ~ 003, SJ-PROG-006 ~ 007
     dependencies:
       - dialogue-session
-    description: 统计、章节时间线、探索覆盖率
+    description: 统计、章节时间线与探索覆盖率。
 
   - id: achievements
     name: 成就勋章
@@ -112,7 +110,7 @@ features:
     contract: SJ-PROG-004
     dependencies:
       - progress-overview
-    description: 探索/知识/对话/特殊成就解锁
+    description: 探索、知识、对话与特殊成就解锁。
 
   - id: explore-atlas
     name: 历史地图视图
@@ -123,9 +121,9 @@ features:
       - explore-home
     realm-apis:
       - GET /api/world/by-id/{worldId}/map-profile
-    description: 时间线联动的历史地点、路线与事件锚点地图
+    description: 时间线联动的历史地点、路线与事件锚点地图。当前 `map-profile` 仍为 proposed surface，因此 atlas 不能暴露在稳定产品路径中。
 
-  # ── Phase 3: Multimodal ──────────────────────────────
+  # Phase 3: Multimodal
   - id: tts-playback
     name: TTS 语音合成
     phase: 3
@@ -136,7 +134,7 @@ features:
     runtime-apis:
       - runtime.media.tts.synthesize
       - runtime.media.tts.list.voices
-    description: 历史人物语音朗读对白
+    description: 历史人物语音朗读对白。
 
   - id: stt-input
     name: STT 语音输入
@@ -147,7 +145,7 @@ features:
       - dialogue-session
     runtime-apis:
       - runtime.media.stt.transcribe
-    description: 学生语音输入转文字
+    description: 学生语音输入转文本。
 
   - id: scene-illustration
     name: 场景配图
@@ -158,7 +156,7 @@ features:
       - dialogue-session
     runtime-apis:
       - runtime.media.image.generate
-    description: 关键场景水墨风配图生成
+    description: 关键场景水墨风配图生成。
 
   - id: ambient-audio
     name: 环境音
@@ -166,9 +164,9 @@ features:
     priority: P3
     dependencies:
       - dialogue-session
-    description: 场景类型驱动的背景音效切换
+    description: 场景类型驱动的背景音效切换。
 
-  # ── Phase 4: Polish ──────────────────────────────────
+  # Phase 4: Polish
   - id: learning-report
     name: 学习报告导出
     phase: 4
@@ -177,4 +175,4 @@ features:
     dependencies:
       - progress-overview
       - knowledge-graph
-    description: 家长/教师可查看的学习进度报告
+    description: 家长与教师可查看的学习进度报告。

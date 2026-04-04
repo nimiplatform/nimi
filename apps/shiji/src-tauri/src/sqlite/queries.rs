@@ -475,7 +475,12 @@ pub fn upsert_knowledge_entry(input: UpsertKnowledgeEntryInput) -> Result<(), St
             "INSERT INTO knowledge_entries
              (id,learnerId,worldId,conceptKey,domain,depth,contentType,truthMode,firstSeenAt,updatedAt)
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
-             ON CONFLICT(id) DO UPDATE SET depth=excluded.depth, updatedAt=excluded.updatedAt",
+             ON CONFLICT(learnerId,worldId,conceptKey) DO UPDATE SET
+               domain=excluded.domain,
+               depth=MAX(knowledge_entries.depth, excluded.depth),
+               contentType=excluded.contentType,
+               truthMode=excluded.truthMode,
+               updatedAt=excluded.updatedAt",
             params![input.id, input.learner_id, input.world_id, input.concept_key,
                     input.domain, input.depth, input.content_type, input.truth_mode,
                     input.first_seen_at, input.updated_at],

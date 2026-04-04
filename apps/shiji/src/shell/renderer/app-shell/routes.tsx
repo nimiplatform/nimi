@@ -6,7 +6,6 @@ import { ShellLayout } from './shell-layout.js';
 const ExploreHomePage = lazy(() => import('@renderer/features/explore/explore-home-page.js'));
 const WorldDetailPage = lazy(() => import('@renderer/features/explore/world-detail-page.js'));
 const AgentDetailPage = lazy(() => import('@renderer/features/explore/agent-detail-page.js'));
-const ExploreAtlasPage = lazy(() => import('@renderer/features/explore/explore-atlas-page.js'));
 
 const DialogueSessionPage = lazy(() => import('@renderer/features/session/dialogue-session-page.js'));
 
@@ -49,7 +48,6 @@ export function AppRoutes() {
         <Route element={<ShellLayout />}>
           {/* Explore */}
           <Route path="explore" element={<PageSuspense><ExploreHomePage /></PageSuspense>} />
-          <Route path="explore/map" element={<PageSuspense><ExploreAtlasPage /></PageSuspense>} />
           <Route path="explore/:worldId" element={<PageSuspense><WorldDetailPage /></PageSuspense>} />
           <Route path="explore/:worldId/agent/:agentId" element={<PageSuspense><AgentDetailPage /></PageSuspense>} />
 
