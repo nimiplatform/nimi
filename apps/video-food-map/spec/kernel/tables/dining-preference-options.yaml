@@ -1,0 +1,77 @@
+groups:
+  - id: dietary_restrictions
+    label: Dietary restrictions
+    options:
+      - id: no_beef
+        label: 不吃牛肉
+      - id: no_lamb
+        label: 不吃羊肉
+      - id: no_pork
+        label: 不吃猪肉
+      - id: no_offal
+        label: 不吃内脏
+      - id: no_seafood
+        label: 不吃海鲜
+      - id: no_raw_food
+        label: 不吃生食
+      - id: no_dairy
+        label: 不吃乳制品
+      - id: no_spicy
+        label: 不吃辣
+  - id: taboo_ingredients
+    label: Taboo ingredients
+    options:
+      - id: no_coriander
+        label: 不要香菜
+      - id: no_scallion
+        label: 不要葱
+      - id: no_garlic
+        label: 不要蒜
+      - id: no_onion
+        label: 不要洋葱
+      - id: no_ginger
+        label: 不要姜
+      - id: no_peanut
+        label: 不要花生
+      - id: no_tree_nut
+        label: 不要坚果
+      - id: no_mushroom
+        label: 不要菌菇
+  - id: flavor_preferences
+    label: Flavor preferences
+    options:
+      - id: prefer_light
+        label: 更喜欢清淡
+      - id: prefer_fresh
+        label: 更喜欢鲜口
+      - id: prefer_sour
+        label: 更喜欢酸口
+      - id: prefer_sweet
+        label: 更喜欢甜口
+      - id: prefer_spicy
+        label: 更喜欢香辣
+      - id: prefer_ma_la
+        label: 更喜欢麻辣
+      - id: prefer_chargrill
+        label: 更喜欢炭火香
+      - id: prefer_crispy
+        label: 更喜欢脆口
+  - id: cuisine_preferences
+    label: Cuisine preferences
+    options:
+      - id: cuisine_yue
+        label: 更常找粤菜
+      - id: cuisine_chuan
+        label: 更常找川菜
+      - id: cuisine_xiang
+        label: 更常找湘菜
+      - id: cuisine_hotpot
+        label: 更常找火锅
+      - id: cuisine_bbq
+        label: 更常找烧烤
+      - id: cuisine_noodles
+        label: 更常找面食
+      - id: cuisine_japanese
+        label: 更常找日料
+      - id: cuisine_brunch
+        label: 更常找早午餐

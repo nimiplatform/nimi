@@ -1,4 +1,5 @@
 import { invoke } from '@renderer/bridge/invoke.js';
+import { hasTauriInvoke } from '@renderer/bridge/env.js';
 import {
   parseImportRecordResult,
   parseSnapshot,
@@ -38,4 +39,21 @@ export async function saveVideoFoodMapSettings(settings: VideoFoodMapSettings): 
 
 export async function loadVideoFoodMapRuntimeOptions(): Promise<VideoFoodMapRuntimeOptions> {
   return parseVideoFoodMapRuntimeOptions(await invoke('video_food_map_runtime_options_get'));
+}
+
+export async function openExternalUrl(url: string): Promise<void> {
+  const normalized = String(url || '').trim();
+  if (!normalized) {
+    throw new Error('url is required');
+  }
+
+  if (hasTauriInvoke()) {
+    await invoke('video_food_map_open_external_url', { url: normalized });
+    return;
+  }
+
+  const openedWindow = window.open(normalized, '_blank', 'noopener,noreferrer');
+  if (!openedWindow) {
+    throw new Error('external url could not be opened');
+  }
 }

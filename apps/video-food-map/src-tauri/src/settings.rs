@@ -19,16 +19,36 @@ pub enum VideoFoodMapRouteSource {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoFoodMapRouteSetting {
+    #[serde(default)]
     pub route_source: VideoFoodMapRouteSource,
+    #[serde(default)]
     pub connector_id: String,
+    #[serde(default)]
     pub model: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct VideoFoodMapDiningProfile {
+    #[serde(default)]
+    pub dietary_restrictions: Vec<String>,
+    #[serde(default)]
+    pub taboo_ingredients: Vec<String>,
+    #[serde(default)]
+    pub flavor_preferences: Vec<String>,
+    #[serde(default)]
+    pub cuisine_preferences: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct VideoFoodMapSettings {
+    #[serde(default)]
     pub stt: VideoFoodMapRouteSetting,
+    #[serde(default)]
     pub text: VideoFoodMapRouteSetting,
+    #[serde(default)]
+    pub dining_profile: VideoFoodMapDiningProfile,
 }
 
 impl Default for VideoFoodMapRouteSetting {
@@ -46,6 +66,18 @@ impl Default for VideoFoodMapSettings {
         Self {
             stt: VideoFoodMapRouteSetting::default(),
             text: VideoFoodMapRouteSetting::default(),
+            dining_profile: VideoFoodMapDiningProfile::default(),
+        }
+    }
+}
+
+impl Default for VideoFoodMapDiningProfile {
+    fn default() -> Self {
+        Self {
+            dietary_restrictions: Vec::new(),
+            taboo_ingredients: Vec::new(),
+            flavor_preferences: Vec::new(),
+            cuisine_preferences: Vec::new(),
         }
     }
 }
@@ -77,10 +109,32 @@ fn normalize_route_setting(value: VideoFoodMapRouteSetting) -> VideoFoodMapRoute
     }
 }
 
+fn normalize_string_list(values: Vec<String>) -> Vec<String> {
+    let mut normalized = Vec::new();
+    for value in values {
+        let trimmed = normalize_text(&value);
+        if trimmed.is_empty() || normalized.contains(&trimmed) {
+            continue;
+        }
+        normalized.push(trimmed);
+    }
+    normalized
+}
+
+fn normalize_dining_profile(value: VideoFoodMapDiningProfile) -> VideoFoodMapDiningProfile {
+    VideoFoodMapDiningProfile {
+        dietary_restrictions: normalize_string_list(value.dietary_restrictions),
+        taboo_ingredients: normalize_string_list(value.taboo_ingredients),
+        flavor_preferences: normalize_string_list(value.flavor_preferences),
+        cuisine_preferences: normalize_string_list(value.cuisine_preferences),
+    }
+}
+
 pub fn normalize_settings(value: VideoFoodMapSettings) -> VideoFoodMapSettings {
     VideoFoodMapSettings {
         stt: normalize_route_setting(value.stt),
         text: normalize_route_setting(value.text),
+        dining_profile: normalize_dining_profile(value.dining_profile),
     }
 }
 
@@ -144,7 +198,8 @@ pub fn load_runtime_options() -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_settings, VideoFoodMapRouteSetting, VideoFoodMapRouteSource, VideoFoodMapSettings,
+        normalize_settings, VideoFoodMapDiningProfile, VideoFoodMapRouteSetting,
+        VideoFoodMapRouteSource, VideoFoodMapSettings,
     };
 
     #[test]
@@ -160,11 +215,47 @@ mod tests {
                 connector_id: " connector-2 ".to_string(),
                 model: " qwen-plus ".to_string(),
             },
+            dining_profile: VideoFoodMapDiningProfile::default(),
         });
 
         assert_eq!(normalized.stt.connector_id, "connector-1");
         assert_eq!(normalized.stt.model, "local/whisper");
         assert_eq!(normalized.text.connector_id, "connector-2");
         assert_eq!(normalized.text.model, "qwen-plus");
+    }
+
+    #[test]
+    fn normalizes_and_deduplicates_dining_profile_values() {
+        let normalized = normalize_settings(VideoFoodMapSettings {
+            stt: VideoFoodMapRouteSetting::default(),
+            text: VideoFoodMapRouteSetting::default(),
+            dining_profile: VideoFoodMapDiningProfile {
+                dietary_restrictions: vec![
+                    " no_beef ".to_string(),
+                    "no_beef".to_string(),
+                    "".to_string(),
+                ],
+                taboo_ingredients: vec![" no_coriander ".to_string()],
+                flavor_preferences: vec![" prefer_light ".to_string()],
+                cuisine_preferences: vec![" cuisine_bbq ".to_string()],
+            },
+        });
+
+        assert_eq!(
+            normalized.dining_profile.dietary_restrictions,
+            vec!["no_beef"]
+        );
+        assert_eq!(
+            normalized.dining_profile.taboo_ingredients,
+            vec!["no_coriander"]
+        );
+        assert_eq!(
+            normalized.dining_profile.flavor_preferences,
+            vec!["prefer_light"]
+        );
+        assert_eq!(
+            normalized.dining_profile.cuisine_preferences,
+            vec!["cuisine_bbq"]
+        );
     }
 }

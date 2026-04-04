@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { openExternalUrl } from '@renderer/data/api.js';
+import { formatDistanceLabel, type UserLocation } from '@renderer/data/nearby.js';
 import type { MapPoint } from '@renderer/data/types.js';
 
 type MapSurfaceProps = {
   points: MapPoint[];
   selectedVenueId: string | null;
+  selectedPoint: MapPoint | null;
+  selectedPointDistanceKm?: number | null;
   onSelectVenue: (venueId: string) => void;
+  currentLocation?: UserLocation | null;
   focusCenter?: [number, number] | null;
   focusZoom?: number | null;
   focusKey?: string | null;
@@ -92,6 +97,15 @@ function buildClusterMarkerHtml(count: number, active: boolean): string {
     '<div style="display:flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 10px;border-radius:999px;',
     `background:${background};color:white;font-size:13px;font-weight:700;border:3px solid white;box-shadow:${shadow};">`,
     `${count}家`,
+    '</div>',
+  ].join('');
+}
+
+function buildCurrentLocationMarkerHtml(): string {
+  return [
+    '<div style="position:relative;width:18px;height:18px;">',
+    '<span style="position:absolute;inset:-8px;border-radius:999px;background:rgba(37,99,235,0.14);"></span>',
+    '<span style="position:absolute;inset:0;border-radius:999px;background:#2563eb;border:3px solid white;box-shadow:0 10px 24px rgba(37,99,235,0.24);"></span>',
     '</div>',
   ].join('');
 }
@@ -249,10 +263,40 @@ function buildClusterMarker(
   return marker;
 }
 
+function buildCurrentLocationMarker(AMap: AMapInstance, currentLocation: UserLocation): AMapMarker {
+  const marker = new AMap.Marker({
+    position: [currentLocation.longitude, currentLocation.latitude],
+    anchor: 'center',
+    content: buildCurrentLocationMarkerHtml(),
+    title: '你在这里',
+    zIndex: 200,
+  });
+  if (marker.setLabel) {
+    marker.setLabel({
+      direction: 'top',
+      offset: new AMap.Pixel(0, -10),
+      content: '<div style="padding:4px 8px;border-radius:999px;background:rgba(37,99,235,0.92);color:white;font-size:12px;font-weight:700;white-space:nowrap;">你在这里</div>',
+    });
+  }
+  return marker;
+}
+
+function buildAmapNavigationHref(point: MapPoint): string {
+  const destination = `${point.longitude},${point.latitude},${point.venueName || '目的地'}`;
+  return `https://uri.amap.com/navigation?to=${encodeURIComponent(destination)}&mode=car&src=nimi-video-food-map&coordinate=gaode&callnative=0`;
+}
+
+function buildAmapMarkerHref(point: MapPoint): string {
+  return `https://uri.amap.com/marker?position=${encodeURIComponent(`${point.longitude},${point.latitude}`)}&name=${encodeURIComponent(point.venueName || '目的地')}&src=nimi-video-food-map&coordinate=gaode`;
+}
+
 export function MapSurface({
   points,
   selectedVenueId,
+  selectedPoint,
+  selectedPointDistanceKm = null,
   onSelectVenue,
+  currentLocation = null,
   focusCenter = null,
   focusZoom = null,
   focusKey = null,
@@ -263,6 +307,7 @@ export function MapSurface({
   const viewportKeyRef = useRef('');
   const [loadState, setLoadState] = useState<'idle' | 'ready' | 'failed'>('idle');
   const [zoomLevel, setZoomLevel] = useState(4);
+  const [externalOpenError, setExternalOpenError] = useState('');
 
   useEffect(() => {
     let disposed = false;
@@ -324,37 +369,48 @@ export function MapSurface({
       markerRefs.current = [];
     }
 
-    if (points.length === 0) {
+    if (points.length === 0 && !currentLocation) {
       mapRef.current.clearMap();
       mapRef.current.setZoomAndCenter(4, DEFAULT_CENTER);
       return;
     }
 
-    const displayItems = buildDisplayItems(points, zoomLevel, selectedVenueId);
+    const displayItems = points.length > 0 ? buildDisplayItems(points, zoomLevel, selectedVenueId) : [];
     const markers = displayItems.map((item) =>
       item.kind === 'venue'
         ? buildVenueMarker(AMap, item.point, item.active, onSelectVenue)
         : buildClusterMarker(AMap, item, mapRef.current!),
     );
+    if (currentLocation) {
+      markers.unshift(buildCurrentLocationMarker(AMap, currentLocation));
+    }
     markerRefs.current = markers;
-    mapRef.current.add(markers as unknown[]);
+    if (markers.length > 0) {
+      mapRef.current.add(markers as unknown[]);
+    }
 
     const selected = selectedVenueId
       ? points.find((point) => point.venueId === selectedVenueId) || null
       : null;
     const selectedKey = selected ? `selected:${selected.venueId}:${points.length}` : '';
-    const fitKey = `fit:${points.length}`;
+    const fitKey = `fit:${points.length}:${currentLocation ? 'location' : 'map-only'}`;
+    const locationKey = currentLocation
+      ? `location:${currentLocation.latitude}:${currentLocation.longitude}:${points.length}`
+      : '';
     if (focusCenter && focusZoom && focusKey && viewportKeyRef.current !== focusKey) {
       mapRef.current.setZoomAndCenter(focusZoom, focusCenter);
       viewportKeyRef.current = focusKey;
     } else if (selected && viewportKeyRef.current !== selectedKey) {
       mapRef.current.setZoomAndCenter(16, [selected.longitude, selected.latitude]);
       viewportKeyRef.current = selectedKey;
+    } else if (points.length === 0 && currentLocation && viewportKeyRef.current !== locationKey) {
+      mapRef.current.setZoomAndCenter(13, [currentLocation.longitude, currentLocation.latitude]);
+      viewportKeyRef.current = locationKey;
     } else if (!selected && !focusCenter && viewportKeyRef.current !== fitKey) {
       mapRef.current.setFitView(markers as unknown[], false, [72, 72, 72, 72]);
       viewportKeyRef.current = fitKey;
     }
-  }, [focusCenter, focusZoom, loadState, onSelectVenue, points, selectedVenueId, zoomLevel]);
+  }, [currentLocation, focusCenter, focusKey, focusZoom, loadState, onSelectVenue, points, selectedVenueId, zoomLevel]);
 
   return (
     <Surface tone="canvas" elevation="base" className="relative flex min-h-[520px] overflow-hidden border border-[var(--nimi-border-subtle)]">
@@ -371,9 +427,60 @@ export function MapSurface({
       {loadState === 'ready' && points.length === 0 ? (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="rounded-2xl border border-dashed border-[var(--nimi-border-subtle)] bg-white/92 px-6 py-5 text-center text-sm text-[var(--nimi-text-secondary)] shadow-sm">
-            当前还没有可上图的地点。
+            {currentLocation
+              ? '你附近当前还没有已上图的地点。'
+              : '当前还没有可上图的地点。'}
             <br />
-            有解析结果但没坐标的记录会继续保留在列表里。
+            {currentLocation
+              ? '可以换个范围，或者导入更多视频后再回来看看。'
+              : '有解析结果但没坐标的记录会继续保留在列表里。'}
+          </div>
+        </div>
+      ) : null}
+      {selectedPoint ? (
+        <div className="absolute left-4 bottom-4 max-w-[320px]">
+          <div className="rounded-3xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] bg-white/96 p-4 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-base font-semibold text-[var(--nimi-text-primary)]">{selectedPoint.venueName || '未明确店名'}</div>
+              {selectedPointDistanceKm != null ? (
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,white)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">
+                  离你约 {formatDistanceLabel(selectedPointDistanceKm)}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{selectedPoint.addressText || '暂时只有坐标，没有更完整地址。'}</div>
+            <div className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+              坐标 {selectedPoint.longitude.toFixed(5)}, {selectedPoint.latitude.toFixed(5)}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setExternalOpenError('');
+                  void openExternalUrl(buildAmapNavigationHref(selectedPoint)).catch((error) => {
+                    setExternalOpenError(error instanceof Error ? error.message : '外部导航没有打开成功。');
+                  });
+                }}
+                className="rounded-full bg-[var(--nimi-action-primary-bg)] px-3 py-2 text-sm font-medium text-white shadow-[0_12px_24px_rgba(249,115,22,0.22)]"
+              >
+                打开高德导航
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setExternalOpenError('');
+                  void openExternalUrl(buildAmapMarkerHref(selectedPoint)).catch((error) => {
+                    setExternalOpenError(error instanceof Error ? error.message : '外部地图没有打开成功。');
+                  });
+                }}
+                className="rounded-full border border-[var(--nimi-border-subtle)] bg-white px-3 py-2 text-sm font-medium text-[var(--nimi-text-primary)]"
+              >
+                先看位置
+              </button>
+            </div>
+            {externalOpenError ? (
+              <div className="mt-3 text-xs text-[var(--nimi-status-danger)]">{externalOpenError}</div>
+            ) : null}
           </div>
         </div>
       ) : null}

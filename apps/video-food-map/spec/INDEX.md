@@ -13,10 +13,16 @@
 
 | Contract | Rule IDs | Scope |
 |----------|----------|-------|
-| [app-shell-contract.md](kernel/app-shell-contract.md) | VFM-SHELL-001 ~ 008 | Standalone app shell, stage boundaries, runtime dependency, kit-first UI, theme, surface mapping, adoption |
-| [extraction-contract.md](kernel/extraction-contract.md) | VFM-PIPE-001 ~ 012 | Video intake, staged extraction order, coverage disclosure, dedupe, STT language, cookieless API, creator batch, FFmpeg |
-| [discovery-contract.md](kernel/discovery-contract.md) | VFM-DISC-001 ~ 007 | Map promotion, creator search, confirmation order, comment supplement, geocoding gate |
-| [menu-advisor-contract.md](kernel/menu-advisor-contract.md) | VFM-MENU-001 ~ 004 | Menu capture, dietary guardrails, party-size recommendations |
+| [app-shell-contract.md](kernel/app-shell-contract.md) | VFM-SHELL-001 ~ 010 | Standalone app shell, stage boundaries, runtime dependency, kit-first UI, theme, surface mapping, adoption, runtime route settings, pre-menu preference setup |
+| [extraction-contract.md](kernel/extraction-contract.md) | VFM-PIPE-001 ~ 012 | Video intake, extraction order, coverage disclosure, dedupe, STT language, cookieless API, future creator batch boundary, FFmpeg |
+| [discovery-contract.md](kernel/discovery-contract.md) | VFM-DISC-001 ~ 010 | Map promotion, creator search, confirmation order, comment supplement, geocoding gate, user curation, current-location nearby discovery, navigation handoff |
+| [menu-advisor-contract.md](kernel/menu-advisor-contract.md) | VFM-MENU-001 ~ 005 | Menu capture, dietary guardrails, party-size recommendations, dining preference profile persistence |
+
+## Kernel Tables
+
+| Table | Scope |
+|-------|-------|
+| [dining-preference-options.yaml](kernel/tables/dining-preference-options.yaml) | Canonical option groups for dietary restrictions, taboo ingredients, flavor preferences, and cuisine preferences |
 
 ## Authoritative Imports
 

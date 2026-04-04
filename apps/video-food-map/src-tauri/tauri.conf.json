@@ -36,6 +36,9 @@
   },
   "bundle": {
     "active": false,
+    "macOS": {
+      "infoPlist": "Info.plist"
+    },
     "targets": "all",
     "icon": [
       "icons/icon.png",

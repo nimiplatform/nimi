@@ -24,3 +24,11 @@ These inputs influence dish selection only after the menu/store truth is establi
 ## VFM-MENU-004 — Recommendation Transparency
 
 Menu advice must explain why a dish is suggested, flagged, or excluded. Uncertain suggestions must remain visibly uncertain.
+
+## VFM-MENU-005 — Dining Preference Profile Persistence
+
+The app must persist a structured dining preference profile in app-owned local settings for later menu-advice use.
+
+- the profile must support at least dietary restrictions, taboo ingredients, flavor preferences, and cuisine preferences
+- collecting or editing this profile may ship before real menu capture and dish recommendation
+- saved preferences are personal configuration only; they must not rewrite extracted venue truth, review state, or map-promotion eligibility

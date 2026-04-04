@@ -25,7 +25,7 @@ The app consumes `nimi-runtime` through typed SDK runtime surfaces. Product code
 
 ## VFM-SHELL-004 — Stage Separation
 
-Stage 1 map discovery, stage 2 store confirmation, and stage 3 menu advice must remain separable. A blocked stage 2 or stage 3 feature must not block stage 1 map discovery from shipping.
+Stage 1 single-video discovery, stage 2 creator-scaled intake and stronger review, and stage 3 menu advice must remain separable. A blocked later-stage feature must not block the shipped stage-1 discovery product from continuing to ship.
 
 ## VFM-SHELL-005 — Kit-First UI Contract
 
@@ -41,14 +41,31 @@ Product surfaces must use kit primitives as follows:
 
 | Product Surface | Kit Primitives |
 |---|---|
-| Video Intake | Surface (panel), TextField, Button |
-| Creator Search | SearchField, Surface (card), StatusBadge |
-| Map Surface | Surface (canvas) + app-local map renderer |
-| Review Queue | Surface (panel), Sidebar (entity-row), StatusBadge, Button |
-| Menu Advisor | Dialog (overlay), Surface (card), Button |
+| Video Intake | Surface (panel), SearchField, Button, StatusBadge |
+| Creator / Venue Discovery | SearchField, SelectField, Sidebar (entity-row), ScrollArea, StatusBadge |
+| Map Surface | Surface (canvas) + app-local map renderer + Button |
+| Review Queue | Surface (panel/card), ScrollArea, StatusBadge, Button |
+| Menu Advisor | Surface (placeholder or future panel), StatusBadge, Button |
 
 App-local composition components are permitted for map rendering and extraction visualization, but must be registered in `nimi-ui-compositions.yaml` per `P-DESIGN-019`.
 
 ## VFM-SHELL-008 — Adoption Registration
 
 Each shell-level module must be registered in `nimi-ui-adoption.yaml` per `P-DESIGN-020`, declaring `scheme_support: [light, dark]`, `default_scheme: light`, and `accent_pack: video-food-map-accent`.
+
+## VFM-SHELL-009 — Runtime Route Settings Surface
+
+The shell must expose app-owned route settings for at least:
+
+- speech transcription
+- text extraction
+
+Available local and cloud options must be loaded from typed runtime surfaces, not hard-coded into the app. The chosen route settings must persist in app-managed settings so later imports can reuse them.
+
+## VFM-SHELL-010 — Pre-Menu Preference Setup Surface
+
+Before menu capture ships, the shell may still expose a first-class surface for collecting the user's dining preference profile.
+
+- this surface may live under the existing menu-advisor entry instead of staying a pure placeholder
+- profile setup must use app-managed local settings, not temporary in-memory state
+- saving the profile early must not imply that menu capture or dish generation is already available

@@ -31,12 +31,15 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 | Module | Purpose |
 |--------|---------|
 | Video Intake | accept Bilibili (stage 1), Douyin and user-submitted links (future) |
-| Creator Intake | pull a creator's full video list and feed new entries into the extraction pipeline |
+| Runtime Route Settings | choose local or cloud routes for speech transcription and text extraction from current runtime options |
+| Creator Intake | future: pull a creator's full video list and feed new entries into the extraction pipeline |
 | Extraction Pipeline | platform subtitles or speech transcription, structured recommendation extraction |
-| Comment Supplement | store name and address completion from video comments |
+| Comment Supplement | store name and address completion from filtered public video comments |
 | Review Queue | unresolved store names, address conflicts, mixed-result cleanup |
 | Creator Search | search by creator, area, dish, cuisine, flavor |
-| Map Surface | show only locatable food records |
+| Map Surface | show only locatable food records, support current-location nearby discovery, and hand off to navigation |
+| User Curation | manual confirmation and favorites on venue candidates |
+| Dining Preference Profile | persist taboo ingredients, dietary restrictions, and taste preferences for later dining advice |
 | Menu Advisor | capture menu photos and produce dining suggestions |
 
 ## 3. Staged Scope
@@ -45,23 +48,28 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 - single video in, cookieless public video access via direct API
 - platform subtitle-first; speech transcription as fallback
-- creator batch intake via platform space API with incremental diff
 - structured recommendation record out
+- public-comment clue screening and store/address completion
 - locatable records on map
+- explicit current-location lookup for nearby mapped venues
 - creator / store / dish / cuisine / flavor search
+- review queue, manual confirmation, and favorites
+- runtime route settings for speech and text extraction
+- saved dining preference profile for later dining advice
 - partial-coverage disclosure for long-video validation
 
 ### Stage 2
 
-- comment-based store name and address completion via reply API
+- creator batch intake via platform space API with incremental diff
 - targeted visual clues from storefronts, signs, menus
 - stronger store/address confirmation
 - area search strengthened by confirmed coordinates
+- richer operator actions in review beyond simple confirm/favorite
 
 ### Stage 3
 
 - menu capture
-- dietary warnings
+- dietary warnings using the saved dining preference profile
 - party-size and flavor-preference dish suggestions
 
 ## 4. Platform Scope

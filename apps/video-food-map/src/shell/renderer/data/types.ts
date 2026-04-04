@@ -105,9 +105,17 @@ export type VideoFoodMapRouteSetting = {
   model: string;
 };
 
+export type VideoFoodMapDiningProfile = {
+  dietaryRestrictions: string[];
+  tabooIngredients: string[];
+  flavorPreferences: string[];
+  cuisinePreferences: string[];
+};
+
 export type VideoFoodMapSettings = {
   stt: VideoFoodMapRouteSetting;
   text: VideoFoodMapRouteSetting;
+  diningProfile: VideoFoodMapDiningProfile;
 };
 
 export type VideoFoodMapRuntimeOption = {
@@ -317,11 +325,30 @@ function parseRouteSetting(value: unknown): VideoFoodMapRouteSetting {
   };
 }
 
+function parseDiningProfile(value: unknown): VideoFoodMapDiningProfile {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {
+      dietaryRestrictions: [],
+      tabooIngredients: [],
+      flavorPreferences: [],
+      cuisinePreferences: [],
+    };
+  }
+  const record = value as Record<string, unknown>;
+  return {
+    dietaryRestrictions: asStringArray(record.dietaryRestrictions),
+    tabooIngredients: asStringArray(record.tabooIngredients),
+    flavorPreferences: asStringArray(record.flavorPreferences),
+    cuisinePreferences: asStringArray(record.cuisinePreferences),
+  };
+}
+
 export function parseVideoFoodMapSettings(value: unknown): VideoFoodMapSettings {
   const record = asRecord(value, 'videoFoodMapSettings');
   return {
     stt: parseRouteSetting(record.stt),
     text: parseRouteSetting(record.text),
+    diningProfile: parseDiningProfile(record.diningProfile),
   };
 }
 

@@ -11,6 +11,7 @@ mod settings;
 use std::env;
 use std::path::PathBuf;
 use std::thread;
+use url::Url;
 
 fn load_dotenv_files() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -68,6 +69,13 @@ fn explain_import_error(error: &str) -> String {
         return "暂时只支持 Bilibili 视频链接，请换一个包含 BV 号的链接再试。".to_string();
     }
     normalized.to_string()
+}
+
+fn validate_external_url(url: &Url) -> Result<(), String> {
+    match url.scheme() {
+        "http" | "https" => Ok(()),
+        scheme => Err(format!("unsupported external url scheme: {scheme}")),
+    }
 }
 
 #[tauri::command]
@@ -141,6 +149,18 @@ fn video_food_map_toggle_venue_favorite(venue_id: String) -> Result<db::ImportRe
     db::toggle_venue_favorite(&trimmed)
 }
 
+#[tauri::command]
+fn video_food_map_open_external_url(url: String) -> Result<bool, String> {
+    let normalized = url.trim();
+    if normalized.is_empty() {
+        return Err("url is required".to_string());
+    }
+    let parsed = Url::parse(normalized).map_err(|error| error.to_string())?;
+    validate_external_url(&parsed)?;
+    webbrowser::open(parsed.as_str()).map_err(|error| error.to_string())?;
+    Ok(true)
+}
+
 fn main() {
     load_dotenv_files();
     tauri::Builder::default()
@@ -152,6 +172,7 @@ fn main() {
             video_food_map_import_video,
             video_food_map_set_venue_confirmation,
             video_food_map_toggle_venue_favorite,
+            video_food_map_open_external_url,
         ])
         .run(tauri::generate_context!())
         .expect("error running video-food-map");
@@ -159,7 +180,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::explain_import_error;
+    use super::{explain_import_error, validate_external_url};
+    use url::Url;
 
     #[test]
     fn explains_missing_runtime_connector() {
@@ -189,5 +211,16 @@ mod tests {
         let message = explain_import_error("FAILED_PRECONDITION: AI_PROVIDER_ENDPOINT_FORBIDDEN");
         assert!(message.contains("云端语音转写"));
         assert!(message.contains("runtime"));
+    }
+
+    #[test]
+    fn accepts_http_and_https_external_urls() {
+        assert!(validate_external_url(&Url::parse("https://uri.amap.com/marker").unwrap()).is_ok());
+        assert!(validate_external_url(&Url::parse("http://example.com").unwrap()).is_ok());
+    }
+
+    #[test]
+    fn rejects_non_http_external_urls() {
+        assert!(validate_external_url(&Url::parse("file:///tmp/test").unwrap()).is_err());
     }
 }
