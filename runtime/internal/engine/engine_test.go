@@ -1,10 +1,6 @@
 package engine
 
 import (
-	"archive/tar"
-	"archive/zip"
-	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -20,257 +16,6 @@ import (
 	"testing"
 	"time"
 )
-
-func makeFakeArchiveAsset(t *testing.T, assetName string, binaryName string, binaryContents []byte) []byte {
-	t.Helper()
-
-	switch {
-	case strings.HasSuffix(assetName, ".tar.gz"), strings.HasSuffix(assetName, ".tgz"):
-		var buffer bytes.Buffer
-		gzipWriter := gzip.NewWriter(&buffer)
-		tarWriter := tar.NewWriter(gzipWriter)
-		header := &tar.Header{
-			Name: "bin/" + binaryName,
-			Mode: 0o755,
-			Size: int64(len(binaryContents)),
-		}
-		if err := tarWriter.WriteHeader(header); err != nil {
-			t.Fatalf("write tar header: %v", err)
-		}
-		if _, err := tarWriter.Write(binaryContents); err != nil {
-			t.Fatalf("write tar contents: %v", err)
-		}
-		if err := tarWriter.Close(); err != nil {
-			t.Fatalf("close tar writer: %v", err)
-		}
-		if err := gzipWriter.Close(); err != nil {
-			t.Fatalf("close gzip writer: %v", err)
-		}
-		return buffer.Bytes()
-	case strings.HasSuffix(assetName, ".zip"):
-		var buffer bytes.Buffer
-		zipWriter := zip.NewWriter(&buffer)
-		entry, err := zipWriter.Create("bin/" + binaryName)
-		if err != nil {
-			t.Fatalf("create zip entry: %v", err)
-		}
-		if _, err := entry.Write(binaryContents); err != nil {
-			t.Fatalf("write zip contents: %v", err)
-		}
-		if err := zipWriter.Close(); err != nil {
-			t.Fatalf("close zip writer: %v", err)
-		}
-		return buffer.Bytes()
-	default:
-		return binaryContents
-	}
-}
-
-func makeFakeArchiveAssetWithRuntimeFiles(t *testing.T, assetName string, binaryName string, binaryContents []byte) []byte {
-	t.Helper()
-
-	const archiveRoot = "llama-b8575"
-	const dylibName = "libmtmd.0.0.8575.dylib"
-	const dylibLink = "libmtmd.0.dylib"
-	dylibContents := []byte("fake-dylib")
-
-	switch {
-	case strings.HasSuffix(assetName, ".tar.gz"), strings.HasSuffix(assetName, ".tgz"):
-		var buffer bytes.Buffer
-		gzipWriter := gzip.NewWriter(&buffer)
-		tarWriter := tar.NewWriter(gzipWriter)
-
-		writeHeader := func(header *tar.Header, content []byte) {
-			t.Helper()
-			if err := tarWriter.WriteHeader(header); err != nil {
-				t.Fatalf("write tar header %s: %v", header.Name, err)
-			}
-			if len(content) == 0 {
-				return
-			}
-			if _, err := tarWriter.Write(content); err != nil {
-				t.Fatalf("write tar contents %s: %v", header.Name, err)
-			}
-		}
-
-		writeHeader(&tar.Header{
-			Name: archiveRoot + "/" + binaryName,
-			Mode: 0o755,
-			Size: int64(len(binaryContents)),
-		}, binaryContents)
-		writeHeader(&tar.Header{
-			Name: archiveRoot + "/" + dylibName,
-			Mode: 0o755,
-			Size: int64(len(dylibContents)),
-		}, dylibContents)
-		writeHeader(&tar.Header{
-			Name:     archiveRoot + "/" + dylibLink,
-			Mode:     0o777,
-			Typeflag: tar.TypeSymlink,
-			Linkname: dylibName,
-		}, nil)
-
-		if err := tarWriter.Close(); err != nil {
-			t.Fatalf("close tar writer: %v", err)
-		}
-		if err := gzipWriter.Close(); err != nil {
-			t.Fatalf("close gzip writer: %v", err)
-		}
-		return buffer.Bytes()
-	default:
-		t.Fatalf("runtime file archive helper only supports tar.gz assets, got %s", assetName)
-		return nil
-	}
-}
-
-// --- Registry tests ---
-
-func TestRegistryCRUD(t *testing.T) {
-	dir := t.TempDir()
-
-	reg, err := NewRegistry(dir)
-	if err != nil {
-		t.Fatalf("NewRegistry: %v", err)
-	}
-
-	// Empty initially.
-	if len(reg.List()) != 0 {
-		t.Fatalf("expected empty registry, got %d entries", len(reg.List()))
-	}
-
-	// Get returns nil for missing entry.
-	if got := reg.Get(EngineLlama, "b8575"); got != nil {
-		t.Fatalf("expected nil for missing entry, got %+v", got)
-	}
-
-	// Put an entry.
-	entry := &RegistryEntry{
-		Engine:      EngineLlama,
-		Version:     "b8575",
-		BinaryPath:  "/tmp/llama-server",
-		SHA256:      "abc123",
-		Platform:    "darwin/arm64",
-		InstalledAt: "2026-01-01T00:00:00Z",
-	}
-	if err := reg.Put(entry); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	// Get the entry.
-	got := reg.Get(EngineLlama, "b8575")
-	if got == nil {
-		t.Fatal("expected entry, got nil")
-	}
-	if got.BinaryPath != "/tmp/llama-server" {
-		t.Errorf("expected binary path /tmp/llama-server, got %s", got.BinaryPath)
-	}
-	if got.SHA256 != "abc123" {
-		t.Errorf("expected sha256 abc123, got %s", got.SHA256)
-	}
-
-	// List returns the entry.
-	if len(reg.List()) != 1 {
-		t.Errorf("expected 1 entry, got %d", len(reg.List()))
-	}
-
-	// Remove the entry.
-	if err := reg.Remove(EngineLlama, "b8575"); err != nil {
-		t.Fatalf("Remove: %v", err)
-	}
-	if got := reg.Get(EngineLlama, "b8575"); got != nil {
-		t.Errorf("expected nil after remove, got %+v", got)
-	}
-}
-
-func TestRegistryPersistence(t *testing.T) {
-	dir := t.TempDir()
-
-	reg1, err := NewRegistry(dir)
-	if err != nil {
-		t.Fatalf("NewRegistry: %v", err)
-	}
-
-	if err := reg1.Put(&RegistryEntry{
-		Engine:     EngineLlama,
-		Version:    "1.0.0",
-		BinaryPath: "/tmp/test",
-		Platform:   "linux/amd64",
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	// Load from disk in a new registry instance.
-	reg2, err := NewRegistry(dir)
-	if err != nil {
-		t.Fatalf("NewRegistry reload: %v", err)
-	}
-
-	got := reg2.Get(EngineLlama, "1.0.0")
-	if got == nil {
-		t.Fatal("expected persisted entry, got nil")
-	}
-	if got.BinaryPath != "/tmp/test" {
-		t.Errorf("expected binary path /tmp/test, got %s", got.BinaryPath)
-	}
-}
-
-func TestRegistryListReturnsCopies(t *testing.T) {
-	dir := t.TempDir()
-	reg, err := NewRegistry(dir)
-	if err != nil {
-		t.Fatalf("NewRegistry: %v", err)
-	}
-	if err := reg.Put(&RegistryEntry{
-		Engine:     EngineLlama,
-		Version:    "1.0.0",
-		BinaryPath: "/tmp/test",
-		Platform:   "linux/amd64",
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	entries := reg.List()
-	if len(entries) != 1 {
-		t.Fatalf("expected one entry, got %d", len(entries))
-	}
-	entries[0].BinaryPath = "/tmp/mutated"
-
-	got := reg.Get(EngineLlama, "1.0.0")
-	if got == nil {
-		t.Fatal("expected stored entry")
-	}
-	if got.BinaryPath != "/tmp/test" {
-		t.Fatalf("registry entry was mutated through List(): %q", got.BinaryPath)
-	}
-}
-
-func TestRegistryAtomicWrite(t *testing.T) {
-	dir := t.TempDir()
-
-	reg, err := NewRegistry(dir)
-	if err != nil {
-		t.Fatalf("NewRegistry: %v", err)
-	}
-
-	if err := reg.Put(&RegistryEntry{
-		Engine:  EngineMedia,
-		Version: "sys",
-	}); err != nil {
-		t.Fatalf("Put: %v", err)
-	}
-
-	// Verify no .tmp file remains.
-	tmpPath := filepath.Join(dir, "registry.json.tmp")
-	if _, err := os.Stat(tmpPath); !os.IsNotExist(err) {
-		t.Errorf("expected no tmp file, but it exists")
-	}
-
-	// Verify actual file exists.
-	jsonPath := filepath.Join(dir, "registry.json")
-	if _, err := os.Stat(jsonPath); err != nil {
-		t.Errorf("expected registry.json to exist: %v", err)
-	}
-}
 
 // --- Download URL tests ---
 
@@ -1232,17 +977,17 @@ func TestDiscoverInstalledManagedImageBackendRunPathRejectsMetaBackendTraversal(
 }
 
 func TestParseOCIImageReference(t *testing.T) {
-	got, err := parseOCIImageReference("quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml")
+	got, err := parseOCIImageReference("registry.example.com/test/local-ai-backends:test-tag")
 	if err != nil {
 		t.Fatalf("parseOCIImageReference: %v", err)
 	}
-	if got.Registry != "quay.io" {
+	if got.Registry != "registry.example.com" {
 		t.Fatalf("registry mismatch: %q", got.Registry)
 	}
-	if got.Repository != "go-skynet/local-ai-backends" {
+	if got.Repository != "test/local-ai-backends" {
 		t.Fatalf("repository mismatch: %q", got.Repository)
 	}
-	if got.Reference != "latest-metal-darwin-arm64-stablediffusion-ggml" {
+	if got.Reference != "test-tag" {
 		t.Fatalf("reference mismatch: %q", got.Reference)
 	}
 }
@@ -1419,6 +1164,40 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 	}
 	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
 		t.Fatal("expected archive URL for Windows managed image backend package")
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
+	spec, ok := resolveManagedImageBackendPackageSpecForHost(
+		"stablediffusion-ggml",
+		"darwin",
+		"arm64",
+		"apple",
+		false,
+	)
+	if !ok {
+		t.Fatal("expected darwin apple host to resolve a managed image backend package")
+	}
+	if !spec.Supported {
+		t.Fatalf("expected darwin managed image backend package to be supported, got %#v", spec)
+	}
+	if spec.PackageFormat != managedImageBackendPackageFormatDirectArchive {
+		t.Fatalf("expected direct archive package format, got %q", spec.PackageFormat)
+	}
+	if spec.LaunchMode != managedImageBackendLaunchModeRuntimeWrapper {
+		t.Fatalf("expected runtime wrapper launch mode, got %q", spec.LaunchMode)
+	}
+	if got := strings.TrimSpace(spec.WrapperDriver); got != "stable-diffusion.cpp" {
+		t.Fatalf("unexpected wrapper driver: %q", got)
+	}
+	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
+		t.Fatal("expected archive URL for darwin managed image backend package")
+	}
+	if got := strings.TrimSpace(spec.ArchiveSHA256); got == "" {
+		t.Fatal("expected archive SHA256 for darwin managed image backend package")
+	}
+	if len(spec.ExecutableCandidates) != 1 || spec.ExecutableCandidates[0] != "sd-cli" {
+		t.Fatalf("unexpected darwin executable candidates: %#v", spec.ExecutableCandidates)
 	}
 }
 

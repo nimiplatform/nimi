@@ -54,6 +54,7 @@ func TestLlamaCommandArgsUsesExplicitManagedTarget(t *testing.T) {
 		"--host", "127.0.0.1",
 		"--port", "5555",
 		"--model", filepath.Join("/data/models", "qwen/qwen3.gguf"),
+		"--reasoning", "off",
 		"--alias", "managed-qwen-explicit",
 		"--ctx-size", "16384",
 		"--cache-type-k", "q4_0",

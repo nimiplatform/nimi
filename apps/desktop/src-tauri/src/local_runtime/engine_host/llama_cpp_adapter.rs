@@ -8,7 +8,9 @@ use super::{
     LLAMA_CPP_HEALTH_POLL_INTERVAL_MS, LLAMA_CPP_START_TIMEOUT_MS_DEFAULT,
     LLAMA_CPP_STOP_GRACE_MS_DEFAULT,
 };
-use crate::local_runtime::engine_pack::{ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary};
+use crate::local_runtime::engine_pack::{
+    ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary,
+};
 use crate::local_runtime::types::{resolved_model_dir, LocalAiAssetRecord, LocalAiAssetStatus};
 
 pub(super) struct LlamaCppProcessAdapter;

@@ -1,8 +1,6 @@
 use reqwest::blocking::Client;
 
-use super::model_index::{
-    ModelIndexCacheRecord, RemoteLeaderboardResponse, FETCH_TIMEOUT_SECS,
-};
+use super::model_index::{ModelIndexCacheRecord, RemoteLeaderboardResponse, FETCH_TIMEOUT_SECS};
 use super::types::LocalAiRecommendationFeedCacheState;
 
 pub(super) fn build_client() -> Result<Client, String> {

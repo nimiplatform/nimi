@@ -146,15 +146,62 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	m.mu.RLock()
 	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
 	m.mu.RUnlock()
+	installStartedAt := time.Now()
+	installRequired := false
+	if normalized.Mode == ManagedImageBackendOfficial {
+		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHost(normalized.BackendName); ok {
+			attrs := []any{
+				"backend", normalized.BackendName,
+				"mode", normalized.Mode,
+				"package_format", spec.PackageFormat,
+				"install_dir", spec.InstallDirName,
+				"backends_path", backendsPath,
+			}
+			if source := managedImageBackendInstallSource(spec); source != "" {
+				attrs = append(attrs, "source", source)
+			}
+			if _, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, normalized.BackendName, spec, normalized.Address); err == nil {
+				m.logger.Info("managed image backend package already installed", attrs...)
+			} else {
+				installRequired = true
+				attrs = append(attrs, "reason", err)
+				m.logger.Info("installing managed image backend package", attrs...)
+			}
+		}
+	}
 	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, normalized)
 	if err != nil {
 		return err
+	}
+	if normalized.Mode == ManagedImageBackendOfficial && installRequired {
+		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHost(normalized.BackendName); ok {
+			m.logger.Info(
+				"managed image backend package installed",
+				"backend", normalized.BackendName,
+				"mode", normalized.Mode,
+				"package_format", spec.PackageFormat,
+				"install_dir", spec.InstallDirName,
+				"backends_path", backendsPath,
+				"duration_ms", time.Since(installStartedAt).Milliseconds(),
+			)
+		}
 	}
 	auxCfg, err := managedImageBackendEngineConfig(resolved)
 	if err != nil {
 		return err
 	}
 	return m.startManagedImageBackend(ctx, auxCfg)
+}
+
+func managedImageBackendInstallSource(spec managedImageBackendPackageSpec) string {
+	switch spec.PackageFormat {
+	case managedImageBackendPackageFormatDirectArchive:
+		return strings.TrimSpace(spec.ArchiveURL)
+	case managedImageBackendPackageFormatOCIPayload:
+		return strings.TrimSpace(spec.ImageRef)
+	default:
+		return ""
+	}
 }
 
 func (m *Manager) applyLlamaPaths(cfg EngineConfig) EngineConfig {

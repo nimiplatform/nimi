@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 
 use super::engine_pack::{
     binary_name, copy_bundle_to_cache, ensure_executable, env_download_url, env_expected_sha256,
-    github_user_agent, runtime_root_path, now_nanos, GithubReleaseAsset, GithubReleasePayload,
+    github_user_agent, now_nanos, runtime_root_path, GithubReleaseAsset, GithubReleasePayload,
     GITHUB_RELEASE_API,
 };
 
@@ -328,9 +328,7 @@ pub(super) fn resolve_bootstrap_source() -> Result<(String, String), String> {
     resolve_latest_release_asset()
 }
 
-pub(super) fn download_and_prepare_bundle(
-    cache_dir: &Path,
-) -> Result<(PathBuf, String), String> {
+pub(super) fn download_and_prepare_bundle(cache_dir: &Path) -> Result<(PathBuf, String), String> {
     let (asset_name, asset_url) = resolve_bootstrap_source()?;
 
     let temp_root = runtime_root_path()?.join(format!("engine-pack-tmp-{}", now_nanos()));

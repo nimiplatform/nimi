@@ -361,7 +361,10 @@ fn copy_bundle_directory(source_dir: &Path, destination_dir: &Path) -> Result<()
     Ok(())
 }
 
-pub(super) fn copy_bundle_to_cache(source_bundle_dir: &Path, cache_dir: &Path) -> Result<PathBuf, String> {
+pub(super) fn copy_bundle_to_cache(
+    source_bundle_dir: &Path,
+    cache_dir: &Path,
+) -> Result<PathBuf, String> {
     remove_path_if_exists(cache_dir)?;
     fs::create_dir_all(cache_dir).map_err(|error| {
         format!(
@@ -571,9 +574,8 @@ pub fn ensure_llama_cpp_binary() -> Result<EnginePackBootstrapResult, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        binary_name, bundle_manifest_path, cache_bundle_dir_path,
-        collect_bundle_runtime_files, copy_bundle_to_cache, now_nanos,
-        resolve_existing_llama_cpp_binary, write_bundle_manifest,
+        binary_name, bundle_manifest_path, cache_bundle_dir_path, collect_bundle_runtime_files,
+        copy_bundle_to_cache, now_nanos, resolve_existing_llama_cpp_binary, write_bundle_manifest,
     };
     use crate::local_runtime::engine_pack_download::asset_score;
     use std::fs;

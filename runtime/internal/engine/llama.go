@@ -48,6 +48,7 @@ func llamaCommand(cfg EngineConfig) (*exec.Cmd, error) {
 		"--host", "127.0.0.1",
 		"--port", strconv.Itoa(cfg.Port),
 		"--model", modelPath,
+		"--reasoning", "off",
 	}
 	if modelAlias != "" {
 		args = append(args, "--alias", modelAlias)

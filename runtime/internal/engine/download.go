@@ -159,7 +159,7 @@ func doEngineDownloadRequest(sourceURL string, base *http.Client, fallbackTimeou
 func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	resp, err := doEngineDownloadRequest(sourceURL, nil, 30*time.Minute)
 	if err != nil {
-		if hash, fallbackErr := tryWindowsCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
+		if hash, fallbackErr := tryCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
 			return hash, nil
 		}
 		return "", fmt.Errorf("%w: request engine binary: %v", ErrEngineBinaryDownloadFailed, err)
@@ -184,6 +184,10 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 
 	hasher := sha256.New()
 	if _, err := io.Copy(io.MultiWriter(out, hasher), resp.Body); err != nil {
+		if hash, fallbackErr := tryCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
+			shouldRemove = false
+			return hash, nil
+		}
 		return "", fmt.Errorf("%w: write engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	if err := out.Close(); err != nil {
@@ -194,10 +198,7 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func tryWindowsCurlDownload(sourceURL string, destPath string, requestErr error) (string, error) {
-	if currentGOOS() != "windows" {
-		return "", requestErr
-	}
+func tryCurlDownload(sourceURL string, destPath string, requestErr error) (string, error) {
 	if !isRetryableEngineDownloadError(requestErr) {
 		return "", requestErr
 	}
@@ -206,10 +207,14 @@ func tryWindowsCurlDownload(sourceURL string, destPath string, requestErr error)
 		return "", err
 	}
 	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
-	if _, ok := githubReleaseRedirectHosts[host]; !ok && host != "github.com" {
+	if _, ok := githubReleaseRedirectHosts[host]; !ok {
 		return "", requestErr
 	}
-	curlPath, err := engineDownloadLookPath("curl.exe")
+	curlBinaryName := "curl"
+	if currentGOOS() == "windows" {
+		curlBinaryName = "curl.exe"
+	}
+	curlPath, err := engineDownloadLookPath(curlBinaryName)
 	if err != nil {
 		return "", err
 	}
@@ -221,6 +226,8 @@ func tryWindowsCurlDownload(sourceURL string, destPath string, requestErr error)
 		"--show-error",
 		"--retry", "3",
 		"--retry-delay", "1",
+		"--proto", "=https",
+		"--proto-redir", "=https",
 		"--header", "Accept: application/vnd.github+json",
 		"--output", destPath,
 		sourceURL,

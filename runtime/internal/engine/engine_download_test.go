@@ -147,10 +147,7 @@ func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
 	}
 }
 
-func TestTryWindowsCurlDownloadFallback(t *testing.T) {
-	if currentGOOS() != "windows" {
-		t.Skip("windows-only curl fallback")
-	}
+func TestTryCurlDownloadFallback(t *testing.T) {
 	sourceFile := filepath.Join(t.TempDir(), "source.bin")
 	fakeBinary := []byte("fake-windows-curl-download")
 	if err := os.WriteFile(sourceFile, fakeBinary, 0o644); err != nil {
@@ -158,8 +155,10 @@ func TestTryWindowsCurlDownloadFallback(t *testing.T) {
 	}
 	originalLookPath := engineDownloadLookPath
 	originalCommand := engineDownloadCommand
-	engineDownloadLookPath = func(string) (string, error) {
-		return "curl.exe", nil
+	lookedUp := ""
+	engineDownloadLookPath = func(name string) (string, error) {
+		lookedUp = name
+		return name, nil
 	}
 	engineDownloadCommand = func(_ string, args ...string) *exec.Cmd {
 		dest := ""
@@ -172,7 +171,10 @@ func TestTryWindowsCurlDownloadFallback(t *testing.T) {
 		if dest == "" {
 			t.Fatal("missing --output destination")
 		}
-		return exec.Command("cmd", "/c", "copy", "/Y", sourceFile, dest)
+		if currentGOOS() == "windows" {
+			return exec.Command("cmd", "/c", "copy", "/Y", sourceFile, dest)
+		}
+		return exec.Command("sh", "-c", "cp \"$1\" \"$2\"", "sh", sourceFile, dest)
 	}
 	t.Cleanup(func() {
 		engineDownloadLookPath = originalLookPath
@@ -180,9 +182,16 @@ func TestTryWindowsCurlDownloadFallback(t *testing.T) {
 	})
 
 	destPath := filepath.Join(t.TempDir(), "downloaded.bin")
-	hash, err := tryWindowsCurlDownload("https://github.com/example/release.zip", destPath, io.EOF)
+	hash, err := tryCurlDownload("https://github.com/example/release.zip", destPath, io.EOF)
 	if err != nil {
-		t.Fatalf("tryWindowsCurlDownload: %v", err)
+		t.Fatalf("tryCurlDownload: %v", err)
+	}
+	if currentGOOS() == "windows" {
+		if lookedUp != "curl.exe" {
+			t.Fatalf("expected curl.exe lookup on windows, got %q", lookedUp)
+		}
+	} else if lookedUp != "curl" {
+		t.Fatalf("expected curl lookup on non-windows, got %q", lookedUp)
 	}
 	wantSum := sha256.Sum256(fakeBinary)
 	if hash != hex.EncodeToString(wantSum[:]) {
