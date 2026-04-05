@@ -30,6 +30,8 @@ classifiers:
   spec_yaml:
     - "spec/**/*.yaml"
     - "spec/**/*.yml"
+    - "apps/**/spec/**/*.yaml"
+    - "apps/**/spec/**/*.yml"
   generated:
     - "runtime/internal/providerregistry/generated.go"
     - "runtime/catalog/providers/**"
