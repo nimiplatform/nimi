@@ -205,7 +205,7 @@ test('Runtime.generate rejects unsupported provider ids with ACTION_INPUT_INVALI
   );
 });
 
-test('Runtime.stream maps text, done, and error chunks', async () => {
+test('Runtime.stream maps reasoning, text, done, and error chunks', async () => {
   installNodeGrpcBridge({
     invokeUnary: async () => {
       throw new Error('unexpected unary');
@@ -223,6 +223,20 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
             started: {
               routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'local/qwen2.5',
+            },
+          },
+        }));
+        yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
+          eventType: StreamEventType.STREAM_EVENT_DELTA,
+          payload: {
+            oneofKind: 'delta',
+            delta: {
+              delta: {
+                oneofKind: 'reasoning',
+                reasoning: {
+                  text: 'thinking',
+                },
+              },
             },
           },
         }));
@@ -274,6 +288,7 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
     }
 
     assert.deepEqual(parts, [
+      { type: 'reasoning', text: 'thinking' },
       { type: 'text', text: 'hello' },
       {
         type: 'done',

@@ -5,6 +5,7 @@ import { createNimiError } from './errors.js';
 import type { RuntimeMetadata } from './types.js';
 import type {
   NimiFinishReason,
+  NimiReasoningConfig,
   TextGenerateInput,
   TextGenerateOutput,
   TextMessage,
@@ -21,6 +22,7 @@ export type RuntimeGenerateInput = {
   provider?: string;
   prompt: RuntimePrompt;
   system?: string;
+  reasoning?: NimiReasoningConfig;
   maxTokens?: number;
   temperature?: number;
   topP?: number;
@@ -47,6 +49,7 @@ export type RuntimeStreamInput = RuntimeGenerateInput & {
 
 export type RuntimeStreamChunk =
   | { type: 'text'; text: string }
+  | { type: 'reasoning'; text: string }
   | {
     type: 'done';
     usage: {
@@ -192,6 +195,7 @@ function toGenerateInput(input: RuntimeGenerateInput): TextGenerateInput {
     maxTokens: input.maxTokens,
     temperature: input.temperature,
     topP: input.topP,
+    reasoning: input.reasoning,
     subjectUserId,
     route: target.route,
     timeoutMs: input.timeoutMs,
@@ -239,6 +243,12 @@ function mapStreamPart(part: TextStreamPart): RuntimeStreamChunk | null {
   if (part.type === 'delta') {
     return {
       type: 'text',
+      text: part.text,
+    };
+  }
+  if (part.type === 'reasoning-delta') {
+    return {
+      type: 'reasoning',
       text: part.text,
     };
   }

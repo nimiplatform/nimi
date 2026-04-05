@@ -139,6 +139,9 @@ SDK runtime 高层文本/embedding/语音与多媒体 convenience surface 必须
 - `runtime.media.tts.synthesize()` 必须从 `GetScenarioArtifactsResponse.output.speechSynthesize` 投影稳定结果，不得仅把 artifact 列表当作隐式语义载体。
 - `runtime.media.stt.transcribe()` 必须从 `GetScenarioArtifactsResponse.output.speechTranscribe` 投影转录结果，不得再从 artifact bytes 恢复文本语义。
 - `runtime.media.image.generate()`、`runtime.media.video.generate()`、`runtime.media.music.generate()` 必须从 `GetScenarioArtifactsResponse.output.{imageGenerate|videoGenerate|musicGenerate}` 投影稳定结果，不得仅把 artifact 列表当作隐式语义载体。
-- 流式 text/speech/media helper 必须从 `ScenarioStreamDelta` 显式 oneof 分支读取 `text` 或 `artifact`，不得依赖旧的自由字段或手工 `Record<string, unknown>` 解析。
+- 文本 stable surface 必须以 typed `reasoning` 配置透传 `TextGenerateScenarioSpec.reasoning`；不得继续用 metadata、extensions 或自由对象拼装推理开关。
+- 流式 text/speech/media helper 必须从 `ScenarioStreamDelta` 显式 oneof 分支读取 `text`、`reasoning` 或 `artifact`；不得依赖旧的自由字段或手工 `Record<string, unknown>` 解析。
+- `runtime.ai.text.stream()` 的稳定顺序必须允许 `start -> reasoning-delta* -> delta* -> finish|error`；SDK 不得把 reasoning chunk 合并回普通 text，也不得在 unsupported provider 上伪造 reasoning 事件。
+- high-level `Runtime.stream()` 若暴露文本 convenience chunk，也必须保留独立 reasoning chunk 类型；不得为了兼容旧 helper 折叠 reasoning 语义。
 - `Struct` 仅允许出现在 low-level explicit-dynamic scenario/workflow 边界；稳定 product surface 不得把 `Struct` 暴露为默认 app-facing contract。
 - stable helper 缺 typed output、缺 artifact metadata、缺稳定 mime/result 字段时必须 fail-close；不得补默认 `artifactId`、`application/octet-stream`、空 artifact 成功、或 content-type 占位值来伪装成功路径。

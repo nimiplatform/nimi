@@ -202,6 +202,23 @@ export interface IgnoredScenarioExtension {
     reason: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ReasoningConfig
+ */
+export interface ReasoningConfig {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningMode mode = 1
+     */
+    mode: ReasoningMode;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningTraceMode trace_mode = 2
+     */
+    traceMode: ReasoningTraceMode;
+    /**
+     * @generated from protobuf field: int32 budget_tokens = 3
+     */
+    budgetTokens: number;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.TextGenerateScenarioSpec
  */
 export interface TextGenerateScenarioSpec {
@@ -229,6 +246,10 @@ export interface TextGenerateScenarioSpec {
      * @generated from protobuf field: int32 max_tokens = 6
      */
     maxTokens: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningConfig reasoning = 7
+     */
+    reasoning?: ReasoningConfig;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextEmbedScenarioSpec
@@ -758,6 +779,15 @@ export interface TextStreamDelta {
     text: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ReasoningStreamDelta
+ */
+export interface ReasoningStreamDelta {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ArtifactStreamDelta
  */
 export interface ArtifactStreamDelta {
@@ -789,6 +819,12 @@ export interface ScenarioStreamDelta {
          * @generated from protobuf field: nimi.runtime.v1.ArtifactStreamDelta artifact = 2
          */
         artifact: ArtifactStreamDelta;
+    } | {
+        oneofKind: "reasoning";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningStreamDelta reasoning = 3
+         */
+        reasoning: ReasoningStreamDelta;
     } | {
         oneofKind: undefined;
     };
@@ -1994,6 +2030,40 @@ export enum FinishReason {
     ERROR = 5
 }
 /**
+ * @generated from protobuf enum nimi.runtime.v1.ReasoningMode
+ */
+export enum ReasoningMode {
+    /**
+     * @generated from protobuf enum value: REASONING_MODE_DEFAULT = 0;
+     */
+    DEFAULT = 0,
+    /**
+     * @generated from protobuf enum value: REASONING_MODE_OFF = 1;
+     */
+    OFF = 1,
+    /**
+     * @generated from protobuf enum value: REASONING_MODE_ON = 2;
+     */
+    ON = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ReasoningTraceMode
+ */
+export enum ReasoningTraceMode {
+    /**
+     * @generated from protobuf enum value: REASONING_TRACE_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: REASONING_TRACE_MODE_HIDE = 1;
+     */
+    HIDE = 1,
+    /**
+     * @generated from protobuf enum value: REASONING_TRACE_MODE_SEPARATE = 2;
+     */
+    SEPARATE = 2
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.TokenProviderHealthStatus
  */
 export enum TokenProviderHealthStatus {
@@ -2866,6 +2936,69 @@ class IgnoredScenarioExtension$Type extends MessageType<IgnoredScenarioExtension
  */
 export const IgnoredScenarioExtension = new IgnoredScenarioExtension$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ReasoningConfig$Type extends MessageType<ReasoningConfig> {
+    constructor() {
+        super("nimi.runtime.v1.ReasoningConfig", [
+            { no: 1, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningMode", ReasoningMode, "REASONING_MODE_"] },
+            { no: 2, name: "trace_mode", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningTraceMode", ReasoningTraceMode, "REASONING_TRACE_MODE_"] },
+            { no: 3, name: "budget_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReasoningConfig>): ReasoningConfig {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.mode = 0;
+        message.traceMode = 0;
+        message.budgetTokens = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ReasoningConfig>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningConfig): ReasoningConfig {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasoningMode mode */ 1:
+                    message.mode = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasoningTraceMode trace_mode */ 2:
+                    message.traceMode = reader.int32();
+                    break;
+                case /* int32 budget_tokens */ 3:
+                    message.budgetTokens = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReasoningConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasoningMode mode = 1; */
+        if (message.mode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.mode);
+        /* nimi.runtime.v1.ReasoningTraceMode trace_mode = 2; */
+        if (message.traceMode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.traceMode);
+        /* int32 budget_tokens = 3; */
+        if (message.budgetTokens !== 0)
+            writer.tag(3, WireType.Varint).int32(message.budgetTokens);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningConfig
+ */
+export const ReasoningConfig = new ReasoningConfig$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.TextGenerateScenarioSpec", [
@@ -2874,7 +3007,8 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
             { no: 3, name: "tools", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolSpec },
             { no: 4, name: "temperature", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
             { no: 5, name: "top_p", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
-            { no: 6, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 6, name: "max_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "reasoning", kind: "message", T: () => ReasoningConfig }
         ]);
     }
     create(value?: PartialMessage<TextGenerateScenarioSpec>): TextGenerateScenarioSpec {
@@ -2912,6 +3046,9 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
                 case /* int32 max_tokens */ 6:
                     message.maxTokens = reader.int32();
                     break;
+                case /* nimi.runtime.v1.ReasoningConfig reasoning */ 7:
+                    message.reasoning = ReasoningConfig.internalBinaryRead(reader, reader.uint32(), options, message.reasoning);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2942,6 +3079,9 @@ class TextGenerateScenarioSpec$Type extends MessageType<TextGenerateScenarioSpec
         /* int32 max_tokens = 6; */
         if (message.maxTokens !== 0)
             writer.tag(6, WireType.Varint).int32(message.maxTokens);
+        /* nimi.runtime.v1.ReasoningConfig reasoning = 7; */
+        if (message.reasoning)
+            ReasoningConfig.internalBinaryWrite(message.reasoning, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4616,6 +4756,53 @@ class TextStreamDelta$Type extends MessageType<TextStreamDelta> {
  */
 export const TextStreamDelta = new TextStreamDelta$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ReasoningStreamDelta$Type extends MessageType<ReasoningStreamDelta> {
+    constructor() {
+        super("nimi.runtime.v1.ReasoningStreamDelta", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReasoningStreamDelta>): ReasoningStreamDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReasoningStreamDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningStreamDelta): ReasoningStreamDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReasoningStreamDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningStreamDelta
+ */
+export const ReasoningStreamDelta = new ReasoningStreamDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ArtifactStreamDelta$Type extends MessageType<ArtifactStreamDelta> {
     constructor() {
         super("nimi.runtime.v1.ArtifactStreamDelta", [
@@ -4675,7 +4862,8 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
     constructor() {
         super("nimi.runtime.v1.ScenarioStreamDelta", [
             { no: 1, name: "text", kind: "message", oneof: "delta", T: () => TextStreamDelta },
-            { no: 2, name: "artifact", kind: "message", oneof: "delta", T: () => ArtifactStreamDelta }
+            { no: 2, name: "artifact", kind: "message", oneof: "delta", T: () => ArtifactStreamDelta },
+            { no: 3, name: "reasoning", kind: "message", oneof: "delta", T: () => ReasoningStreamDelta }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamDelta>): ScenarioStreamDelta {
@@ -4702,6 +4890,12 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
                         artifact: ArtifactStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).artifact)
                     };
                     break;
+                case /* nimi.runtime.v1.ReasoningStreamDelta reasoning */ 3:
+                    message.delta = {
+                        oneofKind: "reasoning",
+                        reasoning: ReasoningStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).reasoning)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -4720,6 +4914,9 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
         /* nimi.runtime.v1.ArtifactStreamDelta artifact = 2; */
         if (message.delta.oneofKind === "artifact")
             ArtifactStreamDelta.internalBinaryWrite(message.delta.artifact, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningStreamDelta reasoning = 3; */
+        if (message.delta.oneofKind === "reasoning")
+            ReasoningStreamDelta.internalBinaryWrite(message.delta.reasoning, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

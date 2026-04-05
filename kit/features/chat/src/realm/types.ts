@@ -1,16 +1,12 @@
-import { getPlatformClient } from '@nimiplatform/sdk';
-import type { UseChatComposerOptions } from './headless.js';
+import type { RealmServiceRegistry } from '@nimiplatform/sdk/realm';
+import type { UseChatComposerOptions } from '../headless.js';
 import type {
   RealmMessageViewDto,
   RealmSendMessageInputDto,
-} from './realm/codec.js';
-import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
+} from './codec.js';
+import type { ChatComposerAdapter, ChatComposerSubmitInput } from '../types.js';
 
-function realm() {
-  return getPlatformClient().realm;
-}
-
-type HumanChatsService = ReturnType<typeof realm>['services']['HumanChatsService'];
+type HumanChatsService = RealmServiceRegistry['HumanChatsService'];
 
 export type RealmChatViewDto =
   Awaited<ReturnType<HumanChatsService['getChatById']>>;

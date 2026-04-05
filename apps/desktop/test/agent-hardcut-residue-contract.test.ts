@@ -37,7 +37,10 @@ test('agent hard-cut residues stay confined to explicit host-private and rejecti
   );
   assert.deepEqual(
     findFilesContaining(/\bAGENT_LOCAL\b/),
-    ['src/shell/renderer/infra/bootstrap/core-capabilities.ts'],
+    [
+      'src/shell/renderer/features/chat/chat-agent-runtime.ts',
+      'src/shell/renderer/infra/bootstrap/core-capabilities.ts',
+    ],
   );
   assert.deepEqual(
     findFilesContaining(/HANDLE_PREFIX_UNSUPPORTED/),

@@ -3,7 +3,6 @@ import logoImage from '../../assets/logo.svg';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
-import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
@@ -30,13 +29,9 @@ import {
 } from './navigation-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
-const ChatList = lazy(async () => {
-  const mod = await import('@renderer/features/chats/chat-list');
-  return { default: mod.ChatList };
-});
-const MessageTimeline = lazy(async () => {
-  const mod = await import('@renderer/features/turns/message-timeline');
-  return { default: mod.MessageTimeline };
+const ChatPage = lazy(async () => {
+  const mod = await import('@renderer/features/chat/chat-page');
+  return { default: mod.ChatPage };
 });
 const ContactsPanel = lazy(async () => {
   const mod = await import('@renderer/features/contacts/contacts-panel');
@@ -159,66 +154,6 @@ function parseUnreadCount(input: unknown): number {
     }
   }
   return 0;
-}
-
-function ChatLayout() {
-  const MIN_CHAT_LIST_WIDTH = 240;
-  const MAX_CHAT_LIST_WIDTH = 460;
-  const [chatListWidth, setChatListWidth] = useState(280);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef(false);
-
-  useEffect(() => {
-    const onMouseMove = (event: globalThis.MouseEvent) => {
-      if (!resizingRef.current || !containerRef.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextWidth = Math.min(
-        MAX_CHAT_LIST_WIDTH,
-        Math.max(MIN_CHAT_LIST_WIDTH, Math.round(event.clientX - rect.left)),
-      );
-      setChatListWidth(nextWidth);
-    };
-
-    const onMouseUp = () => {
-      resizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
-
-  const startResize = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    resizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
-  return (
-    <div ref={containerRef} className="flex min-h-0 flex-1">
-      <div className="relative shrink-0 bg-white" style={{ width: `${chatListWidth}px` }}>
-        <ChatList />
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={i18n.t('Layout.resizeChatList', { defaultValue: 'Resize chat list' })}
-          onMouseDown={startResize}
-          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
-        />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
-        <MessageTimeline />
-      </div>
-    </div>
-  );
 }
 
 type MainLayoutViewProps = {
@@ -572,7 +507,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
             {props.activeTab === 'chat' ? (
               <div data-testid={E2E_IDS.panel('chat')} className="flex min-h-0 flex-1">
-                <ChatLayout />
+                <ChatPage />
               </div>
             ) : null}
 

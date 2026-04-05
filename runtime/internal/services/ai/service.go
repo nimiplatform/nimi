@@ -27,6 +27,7 @@ const (
 	minStreamChunkBytes         = 32
 	defaultGenerateTimeout      = 120 * time.Second
 	defaultStreamFirstTimeout   = 10 * time.Second
+	defaultStreamIdleTimeout    = 30 * time.Second
 	defaultStreamTotalTimeout   = 120 * time.Second
 	defaultEmbedTimeout         = 20 * time.Second
 	defaultGenerateImageTimeout = 120 * time.Second
@@ -56,6 +57,7 @@ type Service struct {
 	speechCatalog            *catalog.Resolver
 	allowLoopback            bool
 	streamFirstPacketTimeout time.Duration
+	streamIdleTimeout        time.Duration
 }
 
 // New creates a Service with all dependencies.
@@ -145,6 +147,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		voiceAssets:              newVoiceAssetStore(),
 		connStore:                connStore,
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,
+		streamIdleTimeout:        defaultStreamIdleTimeout,
 	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
 	if err != nil {

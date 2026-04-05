@@ -1,5 +1,14 @@
 import { startTransition } from 'react';
 import type { OfflineTier } from '@runtime/offline/types.js';
+import {
+  DEFAULT_CHAT_SOURCE_FILTER,
+  DEFAULT_CHAT_SETUP_STATE,
+  DEFAULT_LAST_SELECTED_THREAD_BY_MODE,
+  DEFAULT_SELECTED_TARGET_BY_SOURCE,
+  DEFAULT_VIEW_MODE_BY_SOURCE_TARGET,
+  EMPTY_AGENT_CONVERSATION_SELECTION,
+  EMPTY_AI_CONVERSATION_SELECTION,
+} from '@renderer/features/chat/chat-shell-types';
 import type { AppStoreSet, AppStoreState } from './store-types';
 
 type UiSlice = Pick<AppStoreState,
@@ -10,6 +19,14 @@ type UiSlice = Pick<AppStoreState,
   | 'desktopUpdateState'
   | 'activeTab'
   | 'previousTab'
+  | 'chatMode'
+  | 'chatSourceFilter'
+  | 'selectedTargetBySource'
+  | 'viewModeBySourceTarget'
+  | 'lastSelectedThreadByMode'
+  | 'aiConversationSelection'
+  | 'agentConversationSelection'
+  | 'chatSetupState'
   | 'selectedChatId'
   | 'selectedProfileId'
   | 'selectedProfileIsAgent'
@@ -26,6 +43,14 @@ type UiSlice = Pick<AppStoreState,
   | 'setDesktopReleaseError'
   | 'setDesktopUpdateState'
   | 'setActiveTab'
+  | 'setChatMode'
+  | 'setChatSourceFilter'
+  | 'setSelectedTargetForSource'
+  | 'setChatViewMode'
+  | 'setLastSelectedThreadForMode'
+  | 'setAiConversationSelection'
+  | 'setAgentConversationSelection'
+  | 'setChatSetupState'
   | 'setSelectedChatId'
   | 'setSelectedProfileId'
   | 'setSelectedProfileIsAgent'
@@ -47,8 +72,16 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     desktopReleaseInfo: null,
     desktopReleaseError: null,
     desktopUpdateState: null,
-    activeTab: 'runtime',
+    activeTab: 'chat',
     previousTab: null,
+    chatMode: 'ai',
+    chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
+    selectedTargetBySource: { ...DEFAULT_SELECTED_TARGET_BY_SOURCE },
+    viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
+    lastSelectedThreadByMode: { ...DEFAULT_LAST_SELECTED_THREAD_BY_MODE },
+    aiConversationSelection: { ...EMPTY_AI_CONVERSATION_SELECTION },
+    agentConversationSelection: { ...EMPTY_AGENT_CONVERSATION_SELECTION },
+    chatSetupState: { ...DEFAULT_CHAT_SETUP_STATE },
     selectedChatId: null,
     selectedProfileId: null,
     selectedProfileIsAgent: null,
@@ -69,7 +102,68 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         set({ activeTab: tab });
       });
     },
-    setSelectedChatId: (chatId) => set({ selectedChatId: chatId }),
+    setChatMode: (mode) => {
+      startTransition(() => {
+        set({ chatMode: mode });
+      });
+    },
+    setChatSourceFilter: (filter) => {
+      startTransition(() => {
+        set({ chatSourceFilter: filter });
+      });
+    },
+    setSelectedTargetForSource: (source, targetId) =>
+      set((state) => ({
+        selectedTargetBySource: {
+          ...state.selectedTargetBySource,
+          [source]: targetId,
+        },
+      })),
+    setChatViewMode: (source, targetId, mode) =>
+      set((state) => ({
+        viewModeBySourceTarget: {
+          ...state.viewModeBySourceTarget,
+          [`${source}:${targetId}`]: mode,
+        },
+      })),
+    setLastSelectedThreadForMode: (mode, threadId) =>
+      set((state) => ({
+        lastSelectedThreadByMode: {
+          ...state.lastSelectedThreadByMode,
+          [mode]: threadId,
+        },
+      })),
+    setAiConversationSelection: (selection) =>
+      set((state) => ({
+        aiConversationSelection: selection,
+        lastSelectedThreadByMode: {
+          ...state.lastSelectedThreadByMode,
+          ai: selection.threadId,
+        },
+      })),
+    setAgentConversationSelection: (selection) =>
+      set((state) => ({
+        agentConversationSelection: selection,
+        lastSelectedThreadByMode: {
+          ...state.lastSelectedThreadByMode,
+          agent: selection.threadId,
+        },
+      })),
+    setChatSetupState: (mode, setupState) =>
+      set((state) => ({
+        chatSetupState: {
+          ...state.chatSetupState,
+          [mode]: setupState,
+        },
+      })),
+    setSelectedChatId: (chatId) =>
+      set((state) => ({
+        selectedChatId: chatId,
+        lastSelectedThreadByMode: {
+          ...state.lastSelectedThreadByMode,
+          human: chatId,
+        },
+      })),
     setSelectedProfileId: (profileId) => set({ selectedProfileId: profileId }),
     setSelectedProfileIsAgent: (isAgent) => set({ selectedProfileIsAgent: isAgent }),
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId }),
@@ -122,7 +216,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
           };
         }
 
-        const target = state.previousTab || 'runtime';
+        const target = state.previousTab || 'chat';
         const keepProfile = target === 'contacts' || target === 'home' || target === 'explore';
         return {
           activeTab: target,

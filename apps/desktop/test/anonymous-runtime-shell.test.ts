@@ -15,9 +15,9 @@ const mainLayoutTopbarSource = readWorkspaceFile('src/shell/renderer/app-shell/l
 const loginPageSource = readWorkspaceFile('src/shell/renderer/features/auth/login-page.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 
-test('anonymous runtime shell: default app tab is runtime', () => {
-  assert.match(uiSliceSource, /activeTab: 'runtime',/);
-  assert.match(uiSliceSource, /const target = state\.previousTab \|\| 'runtime';/);
+test('anonymous chat shell: default app tab is chat', () => {
+  assert.match(uiSliceSource, /activeTab: 'chat',/);
+  assert.match(uiSliceSource, /const target = state\.previousTab \|\| 'chat';/);
 });
 
 test('anonymous runtime shell: desktop router mounts main layout at root even when anonymous', () => {
@@ -28,10 +28,10 @@ test('anonymous runtime shell: desktop router mounts main layout at root even wh
   assert.match(appRoutesSource, /<Route path="\*" element={<Navigate to="\/" replace \/>} \/>/);
 });
 
-test('anonymous runtime shell: main layout normalizes anonymous desktop tabs back to runtime', () => {
-  assert.match(mainLayoutSource, /flags\.mode === 'desktop' && authStatus !== 'authenticated' && activeTab !== 'runtime'/);
-  assert.match(mainLayoutSource, /setActiveTab\('runtime'\);/);
-  assert.match(mainLayoutSource, /state: \{ returnToRuntime: true },/);
+test('anonymous chat shell: main layout no longer forces desktop anonymous users back to runtime', () => {
+  assert.doesNotMatch(mainLayoutSource, /authStatus !== 'authenticated' && activeTab !== 'runtime'/);
+  assert.match(mainLayoutSource, /state: \{ returnToChat: true },/);
+  assert.match(mainLayoutSource, /setActiveTab\('chat'\);/);
 });
 
 test('anonymous runtime shell: topbar exposes login action and main rail hides while anonymous', () => {
@@ -42,10 +42,10 @@ test('anonymous runtime shell: topbar exposes login action and main rail hides w
   assert.match(e2eIdsSource, /topbarLoginButton: 'topbar-login-button',/);
 });
 
-test('anonymous runtime shell: login page exposes a return-to-runtime button', () => {
+test('anonymous chat shell: login page exposes a return-to-chat button', () => {
   assert.match(loginPageSource, /data-testid=\{E2E_IDS\.loginBackButton\}/);
-  assert.match(loginPageSource, /setActiveTab\('runtime'\);/);
+  assert.match(loginPageSource, /setActiveTab\('chat'\);/);
   assert.match(loginPageSource, /navigate\('\/', \{ replace: true \}\);/);
-  assert.match(loginPageSource, /Auth\.backToRuntime/);
+  assert.match(loginPageSource, /Auth\.backToChat/);
   assert.match(e2eIdsSource, /loginBackButton: 'login-back-button',/);
 });

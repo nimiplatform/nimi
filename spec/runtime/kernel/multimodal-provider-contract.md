@@ -348,12 +348,16 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 - async `VIDEO_GENERATE` -> `GetScenarioArtifactsResponse.output.video_generate.artifacts[]`
 - async `MUSIC_GENERATE` -> `GetScenarioArtifactsResponse.output.music_generate.artifacts[]`
 - stream text delta -> `ScenarioStreamDelta.text.text`
+- stream reasoning delta -> `ScenarioStreamDelta.reasoning.text`
 - stream artifact delta -> `ScenarioStreamDelta.artifact.{chunk,mime_type}`
 
 约束：
 
 - `ScenarioOutput` 必须作为稳定 product output 的唯一 oneof 容器；sync 路径挂在 `ExecuteScenarioResponse.output`，async artifact/job 路径挂在 `GetScenarioArtifactsResponse.output`。不得要求 SDK/app 通过 `Struct.fields.*`、artifact bytes、或 MIME 约定猜测字段语义。
-- `ScenarioStreamDelta` 必须使用显式 oneof 分支表达 text/artifact；不得再混用自由字段或让消费方根据场景类型推断 delta 语义。
+- `TEXT_GENERATE` 请求中的 reasoning 配置必须使用 typed `TextGenerateScenarioSpec.reasoning`，至少覆盖 `mode`、`trace_mode`、`budget_tokens`；legacy/缺省请求保持 `OFF + HIDE` 语义，不得因模型默认值漂移破坏旧客户端。
+- `ScenarioStreamDelta` 必须使用显式 oneof 分支表达 text/reasoning/artifact；不得再混用自由字段或让消费方根据场景类型推断 delta 语义。
+- provider 若不支持请求的 reasoning 开关、独立 trace 或 budget，必须 fail-close；不得把 reasoning 静默并入正文、伪造空 trace，或在 stable surface 上假装成功。
+- text stream timeout 语义必须拆分为首包超时、空闲超时和绝对上限；reasoning/text/tool/usage 增量都应视为 activity 并刷新 idle timer，但单纯 started 事件不构成有效进展。
 - `google.protobuf.Struct` 仅允许保留在 workflow/internal explicit-dynamic envelope 等非稳定 product surface，不得继续作为 text/embed/stt/image/video/music 等高频 app-facing 能力的事实源。
 - SDK/desktop/relay 的高层 helper 必须直接消费这些 typed output/delta，不得把稳定 protobuf message 重新降格为 `Record<string, unknown>` 再解析。
 ## K-MMPROV-038 Native-Binary Managed Backend Contract

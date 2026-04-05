@@ -26,6 +26,10 @@ const messageTimelineSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/turns/message-timeline.tsx'),
   'utf8',
 );
+const humanConversationTranscriptSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/turns/human-conversation-transcript.tsx'),
+  'utf8',
+);
 
 describe('TurnInput attachment staging helpers', () => {
   test('stages image attachments instead of sending immediately', () => {
@@ -279,15 +283,15 @@ describe('TurnInput attachment staging helpers', () => {
 
   test('message timeline renders local upload placeholders with a spinner overlay', () => {
     assert.match(
-      messageTimelineSource,
+      humanConversationTranscriptSource,
       /const uploadPlaceholders = useChatUploadPlaceholders\(selectedChatId\);/,
     );
     assert.match(
-      messageTimelineSource,
+      humanConversationTranscriptSource,
       /<RealmChatTimeline/,
     );
     assert.match(
-      messageTimelineSource,
+      humanConversationTranscriptSource,
       /t\('ChatTimeline\.uploadingMedia', 'Uploading\.\.\.'\)/,
     );
   });

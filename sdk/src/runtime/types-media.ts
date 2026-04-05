@@ -9,6 +9,8 @@ import type {
 } from './generated/runtime/v1/ai';
 
 export type NimiRoutePolicy = 'local' | 'cloud';
+export type NimiReasoningMode = 'default' | 'off' | 'on';
+export type NimiReasoningTraceMode = 'hide' | 'separate';
 
 export type NimiFinishReason =
   | 'stop'
@@ -27,6 +29,12 @@ export type NimiTraceInfo = {
   traceId?: string;
   modelResolved?: string;
   routeDecision?: NimiRoutePolicy;
+};
+
+export type NimiReasoningConfig = {
+  mode?: NimiReasoningMode;
+  traceMode?: NimiReasoningTraceMode;
+  budgetTokens?: number;
 };
 
 export type TextMessageContentPart =
@@ -59,6 +67,7 @@ export type TextGenerateInput = {
   route?: NimiRoutePolicy;
   timeoutMs?: number;
   connectorId?: string;
+  reasoning?: NimiReasoningConfig;
   metadata?: Record<string, string>;
 };
 
@@ -75,6 +84,7 @@ export type TextGenerateOutput = {
 
 export type TextStreamPart =
   | { type: 'start' }
+  | { type: 'reasoning-delta'; text: string }
   | { type: 'delta'; text: string }
   | { type: 'finish'; finishReason: NimiFinishReason; usage: NimiTokenUsage; trace: NimiTraceInfo }
   | { type: 'error'; error: NimiError };

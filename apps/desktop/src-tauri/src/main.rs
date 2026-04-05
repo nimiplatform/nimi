@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod chat_agent_store;
+mod chat_ai_store;
 mod desktop_e2e_fixture;
 mod desktop_paths;
 mod desktop_release;

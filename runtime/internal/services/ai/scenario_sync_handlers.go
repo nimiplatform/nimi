@@ -52,6 +52,9 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
+	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC); err != nil {
+		return nil, err
+	}
 	resolved, err := s.resolveTextGenerateScenario(ctx, req.GetHead(), modelResolved, remoteTarget, selectedProvider, spec)
 	if err != nil {
 		return nil, err

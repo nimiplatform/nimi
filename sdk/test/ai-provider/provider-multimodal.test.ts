@@ -180,31 +180,22 @@ test('toRuntimePrompt rejects unsafe loopback media URLs', () => {
   );
 });
 
-test('toRuntimePrompt reasoning part maps to TEXT part', () => {
-  const result = toRuntimePrompt([
-    {
-      role: 'assistant',
-      content: [
-        { type: 'reasoning', text: 'thinking about this...' },
-        { type: 'text', text: 'The answer is 42' },
-      ],
+test('toRuntimePrompt reasoning part fails closed', () => {
+  assert.throws(
+    () => toRuntimePrompt([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'reasoning', text: 'thinking about this...' },
+          { type: 'text', text: 'The answer is 42' },
+        ],
+      },
+    ]),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED);
+      return true;
     },
-  ]);
-
-  assert.equal(result.input.length, 1);
-  const msg = result.input[0]!;
-
-  // content is concatenation of reasoning + text
-  assert.equal(msg.content, 'thinking about this...\nThe answer is 42');
-
-  // both map to TEXT parts
-  assert.equal(msg.parts.length, 2);
-  assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
-  assert.equal(msg.parts[0]!.content.text, 'thinking about this...');
-  assert.equal(msg.parts[1]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[1]!.content.oneofKind, 'text');
-  assert.equal(msg.parts[1]!.content.text, 'The answer is 42');
+  );
 });
 
 test('toRuntimePrompt mixed file and text with URL object produces correct parts', () => {

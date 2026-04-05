@@ -3,6 +3,7 @@ import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatStreamStatusProps = {
   partialText?: string | null;
+  reasoningText?: string | null;
   mode: 'streaming' | 'interrupted';
   avatar?: ReactNode;
   className?: string;
@@ -12,6 +13,7 @@ export type ChatStreamStatusProps = {
   loadingIndicator?: ReactNode;
   emptyStreamingFallback?: ReactNode;
   interruptedSuffix?: ReactNode;
+  reasoningLabel?: ReactNode;
 };
 
 function DefaultLoadingIndicator() {
@@ -26,6 +28,7 @@ function DefaultLoadingIndicator() {
 
 export function ChatStreamStatus({
   partialText,
+  reasoningText,
   mode,
   avatar,
   className,
@@ -35,6 +38,7 @@ export function ChatStreamStatus({
   loadingIndicator = <DefaultLoadingIndicator />,
   emptyStreamingFallback,
   interruptedSuffix,
+  reasoningLabel = 'Thought process',
 }: ChatStreamStatusProps) {
   const resolvedEmptyStreamingFallback = emptyStreamingFallback ?? loadingIndicator;
   const resolvedInterruptedSuffix = interruptedSuffix ?? (
@@ -50,6 +54,16 @@ export function ChatStreamStatus({
           bubbleClassName,
         )}
         >
+          {reasoningText ? (
+            <details className="mb-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] px-3 py-2">
+              <summary className="cursor-pointer text-xs font-medium text-[var(--nimi-text-muted)]">
+                {reasoningLabel}
+              </summary>
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-6 text-[var(--nimi-text-secondary)]">
+                {reasoningText}
+              </pre>
+            </details>
+          ) : null}
           {mode === 'streaming'
             ? (partialText || resolvedEmptyStreamingFallback)
             : (

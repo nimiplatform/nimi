@@ -156,7 +156,9 @@ export function createLanguageModelImpl(
           start(controller) {
             void (async () => {
               const textId = 'nimi-text-1';
+              const reasoningId = 'nimi-reasoning-1';
               let textOpen = false;
+              let reasoningOpen = false;
               controller.enqueue({
                 type: 'stream-start',
                 warnings: [],
@@ -175,6 +177,25 @@ export function createLanguageModelImpl(
                 }
                 case 'delta': {
                   const deltaPayload = event.payload.delta.delta;
+                  if (deltaPayload?.oneofKind === 'reasoning') {
+                    const reasoning = normalizeText(deltaPayload.reasoning.text);
+                    if (!reasoning) {
+                      continue;
+                    }
+                    if (!reasoningOpen) {
+                      reasoningOpen = true;
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: reasoningId,
+                      });
+                    }
+                    controller.enqueue({
+                      type: 'reasoning-delta',
+                      id: reasoningId,
+                      delta: reasoning,
+                    });
+                    continue;
+                  }
                   const delta = deltaPayload?.oneofKind === 'text'
                     ? normalizeText(deltaPayload.text.text)
                     : '';
@@ -212,6 +233,13 @@ export function createLanguageModelImpl(
                   streamUsage = event.payload.usage;
                   continue;
                 case 'completed':
+                  if (reasoningOpen) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: reasoningId,
+                    });
+                    reasoningOpen = false;
+                  }
                   if (textOpen) {
                     controller.enqueue({
                       type: 'text-end',
@@ -237,6 +265,12 @@ export function createLanguageModelImpl(
                 }
               }
 
+              if (reasoningOpen) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: reasoningId,
+                });
+              }
               if (textOpen) {
                 controller.enqueue({
                   type: 'text-end',

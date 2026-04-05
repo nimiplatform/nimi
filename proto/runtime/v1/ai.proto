@@ -61,6 +61,18 @@ enum FinishReason {
   FINISH_REASON_ERROR = 5;
 }
 
+enum ReasoningMode {
+  REASONING_MODE_DEFAULT = 0;
+  REASONING_MODE_OFF = 1;
+  REASONING_MODE_ON = 2;
+}
+
+enum ReasoningTraceMode {
+  REASONING_TRACE_MODE_UNSPECIFIED = 0;
+  REASONING_TRACE_MODE_HIDE = 1;
+  REASONING_TRACE_MODE_SEPARATE = 2;
+}
+
 enum TokenProviderHealthStatus {
   TOKEN_PROVIDER_HEALTH_STATUS_UNSPECIFIED = 0;
   TOKEN_PROVIDER_HEALTH_STATUS_HEALTHY = 1;
@@ -193,6 +205,12 @@ message IgnoredScenarioExtension {
   string reason = 2;
 }
 
+message ReasoningConfig {
+  ReasoningMode mode = 1;
+  ReasoningTraceMode trace_mode = 2;
+  int32 budget_tokens = 3;
+}
+
 message TextGenerateScenarioSpec {
   repeated ChatMessage input = 1;
   string system_prompt = 2;
@@ -200,6 +218,7 @@ message TextGenerateScenarioSpec {
   float temperature = 4;
   float top_p = 5;
   int32 max_tokens = 6;
+  ReasoningConfig reasoning = 7;
 }
 
 message TextEmbedScenarioSpec {
@@ -367,6 +386,10 @@ message TextStreamDelta {
   string text = 1;
 }
 
+message ReasoningStreamDelta {
+  string text = 1;
+}
+
 message ArtifactStreamDelta {
   bytes chunk = 1;
   string mime_type = 2;
@@ -376,6 +399,7 @@ message ScenarioStreamDelta {
   oneof delta {
     TextStreamDelta text = 1;
     ArtifactStreamDelta artifact = 2;
+    ReasoningStreamDelta reasoning = 3;
   }
 }
 

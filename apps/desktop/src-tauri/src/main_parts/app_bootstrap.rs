@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    desktop_release, desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell,
-    runtime_bridge, runtime_mod,
+    chat_agent_store, chat_ai_store, desktop_release, desktop_updates, external_agent_gateway,
+    local_runtime, menu_bar_shell, runtime_bridge, runtime_mod,
 };
 
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
@@ -218,6 +218,24 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             runtime_mod::commands::runtime_mod_purge_action_execution_ledger,
             runtime_mod::commands::runtime_mod_media_cache_put,
             runtime_mod::commands::runtime_mod_media_cache_gc,
+            chat_ai_store::chat_ai_list_threads,
+            chat_ai_store::chat_ai_get_thread_bundle,
+            chat_ai_store::chat_ai_create_thread,
+            chat_ai_store::chat_ai_update_thread_metadata,
+            chat_ai_store::chat_ai_create_message,
+            chat_ai_store::chat_ai_update_message,
+            chat_ai_store::chat_ai_get_draft,
+            chat_ai_store::chat_ai_put_draft,
+            chat_ai_store::chat_ai_delete_draft,
+            chat_agent_store::chat_agent_list_threads,
+            chat_agent_store::chat_agent_get_thread_bundle,
+            chat_agent_store::chat_agent_create_thread,
+            chat_agent_store::chat_agent_update_thread_metadata,
+            chat_agent_store::chat_agent_create_message,
+            chat_agent_store::chat_agent_update_message,
+            chat_agent_store::chat_agent_get_draft,
+            chat_agent_store::chat_agent_put_draft,
+            chat_agent_store::chat_agent_delete_draft,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,

@@ -10,7 +10,21 @@ import type {
 } from '@renderer/bridge';
 import type { RuntimeModRegisterFailure } from '@runtime/mod';
 import type { RuntimeModSettingsMap } from '@nimiplatform/sdk/mod';
+import type {
+  ConversationMode,
+  ConversationSourceFilter,
+  ConversationSetupState,
+  ConversationViewMode,
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { OfflineTier } from '@runtime/offline/types.js';
+import type {
+  AiConversationSelection,
+  AgentConversationSelection,
+  ChatSetupStateByMode,
+  LastSelectedThreadByMode,
+  SelectedTargetBySource,
+  ViewModeBySourceTarget,
+} from '@renderer/features/chat/chat-shell-types';
 import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -82,6 +96,14 @@ export type AppStoreState = {
   runtimeFields: RuntimeFieldMap;
   activeTab: AppTab;
   previousTab: AppTab | null;
+  chatMode: ConversationMode;
+  chatSourceFilter: ConversationSourceFilter;
+  selectedTargetBySource: SelectedTargetBySource;
+  viewModeBySourceTarget: ViewModeBySourceTarget;
+  lastSelectedThreadByMode: LastSelectedThreadByMode;
+  aiConversationSelection: AiConversationSelection;
+  agentConversationSelection: AgentConversationSelection;
+  chatSetupState: ChatSetupStateByMode;
   selectedChatId: string | null;
   selectedProfileId: string | null;
   selectedProfileIsAgent: boolean | null;
@@ -116,6 +138,18 @@ export type AppStoreState = {
   setRuntimeField: (key: string, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setActiveTab: (tab: AppTab) => void;
+  setChatMode: (mode: ConversationMode) => void;
+  setChatSourceFilter: (filter: ConversationSourceFilter) => void;
+  setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
+  setChatViewMode: (
+    source: ConversationMode,
+    targetId: string,
+    mode: ConversationViewMode,
+  ) => void;
+  setLastSelectedThreadForMode: (mode: ConversationMode, threadId: string | null) => void;
+  setAiConversationSelection: (selection: AiConversationSelection) => void;
+  setAgentConversationSelection: (selection: AgentConversationSelection) => void;
+  setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
   setSelectedProfileId: (profileId: string | null) => void;
   setSelectedProfileIsAgent: (isAgent: boolean | null) => void;

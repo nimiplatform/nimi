@@ -23,6 +23,7 @@ import {
   extractGenerateText,
   fromRoutePolicy,
   normalizeText,
+  toReasoningConfig,
   toFinishReason,
   toRoutePolicy,
   toRuntimeMessages,
@@ -77,6 +78,7 @@ export async function runtimeGenerateText(
           temperature: Number(input.temperature || 0),
           topP: Number(input.topP || 0),
           maxTokens: Number(input.maxTokens || 0),
+          reasoning: toReasoningConfig(input.reasoning),
         },
       },
     },
@@ -157,6 +159,7 @@ export async function runtimeStreamText(
             temperature: Number(input.temperature || 0),
             topP: Number(input.topP || 0),
             maxTokens: Number(input.maxTokens || 0),
+            reasoning: toReasoningConfig(input.reasoning),
           },
         },
       },
@@ -196,11 +199,18 @@ export async function runtimeStreamText(
         case 'delta': {
           const streamDelta = event.payload.delta;
           const deltaPayload = streamDelta.delta;
-          const delta = deltaPayload?.oneofKind === 'text'
-            ? normalizeText(deltaPayload.text.text)
-            : '';
-          if (delta.length > 0) {
-            yield { type: 'delta' as const, text: delta };
+          if (deltaPayload?.oneofKind === 'reasoning') {
+            const reasoning = normalizeText(deltaPayload.reasoning.text);
+            if (reasoning.length > 0) {
+              yield { type: 'reasoning-delta' as const, text: reasoning };
+            }
+            continue;
+          }
+          if (deltaPayload?.oneofKind === 'text') {
+            const delta = normalizeText(deltaPayload.text.text);
+            if (delta.length > 0) {
+              yield { type: 'delta' as const, text: delta };
+            }
           }
           continue;
         }

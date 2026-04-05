@@ -3,18 +3,28 @@ import { useEffect, useMemo, useRef } from 'react';
 import {
   useChatComposer,
   type UseChatComposerResult,
-} from './headless.js';
-import type { RealmMessageViewDto, RealmSendMessageInputDto } from './realm/codec.js';
+} from '../headless.js';
+import type { RealmMessageViewDto, RealmSendMessageInputDto } from './codec.js';
+import {
+  advanceRealmChatSessionAck,
+  buildRealmTextMessageInput,
+  createRealmChatSessionOpenPayload,
+  createRealmChatSessionState,
+  getRealmReplayMaxSeq,
+  normalizeRealmChatEventEnvelope,
+  parseRealmChatSessionReadyPayload,
+  parseRealmChatSyncRequiredPayload,
+  parseRealmSocketChatEvent,
+  rememberRealmChatSeenEvent,
+  resolveRealmChatSyncRequest,
+} from './helpers.js';
 import type {
   RealmChatComposerAdapter,
   RealmChatComposerAdapterOptions,
   RealmChatEventEnvelope,
-  RealmChatEventEnvelopeDto,
   RealmChatRealtimeSocket,
   RealmChatService,
-  RealmChatSessionReadyPayload,
   RealmChatSessionState,
-  RealmChatSessionSyncRequiredPayload,
   RealmChatSyncResultDto,
   RealmChatViewDto,
   RealmListChatsResultDto,
@@ -23,21 +33,10 @@ import type {
   RealmStartChatResultDto,
   UseRealmChatComposerOptions,
   UseRealmChatRealtimeControllerOptions,
-} from './realm-types.js';
+} from './types.js';
 
 function realm() {
   return getPlatformClient().realm;
-}
-
-function normalizeText(value: string): string {
-  return String(value || '').trim();
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
 }
 
 function normalizeString(value: unknown): string {
@@ -50,204 +49,6 @@ function normalizeChatId(chatId: string): string {
 
 function normalizeLimit(limit: number, fallback: number, max: number): number {
   return Number.isFinite(limit) ? Math.min(max, Math.max(1, Math.floor(limit))) : fallback;
-}
-
-function createCanonicalTextPayload(content: string) {
-  return { content };
-}
-
-function buildRealmTextMessageInput(
-  content: string,
-  options: Partial<RealmSendMessageInputDto> = {},
-): RealmSendMessageInputDto {
-  const text = normalizeText(content);
-  if (!text) {
-    throw new Error('Chat message text is required');
-  }
-  const next = {
-    type: 'TEXT',
-    text,
-    payload: createCanonicalTextPayload(text),
-    ...options,
-  } as RealmSendMessageInputDto;
-
-  if (!normalizeText(String(next.text || ''))) {
-    next.text = text;
-  }
-  if (!next.payload) {
-    next.payload = createCanonicalTextPayload(text) as RealmSendMessageInputDto['payload'];
-  }
-  return next;
-}
-
-function rememberRealmChatSeenEvent(
-  seen: Map<string, number>,
-  key: string,
-  limit = 3000,
-): boolean {
-  const normalizedKey = normalizeString(key);
-  if (!normalizedKey) {
-    return false;
-  }
-  if (seen.has(normalizedKey)) {
-    seen.delete(normalizedKey);
-    seen.set(normalizedKey, Date.now());
-    return true;
-  }
-  seen.set(normalizedKey, Date.now());
-  if (seen.size > limit) {
-    const { done, value } = seen.keys().next();
-    if (!done && value !== undefined) {
-      seen.delete(value);
-    }
-  }
-  return false;
-}
-
-function normalizeRealmChatEventEnvelope(payload: RealmChatEventEnvelopeDto): RealmChatEventEnvelope | null {
-  const eventId = normalizeString(payload.eventId);
-  const chatId = normalizeString(payload.chatId);
-  const kind = normalizeString(payload.kind);
-  const seqRaw = Number(payload.seq);
-  const seq = Number.isFinite(seqRaw) ? Math.max(0, Math.floor(seqRaw)) : 0;
-  if (!eventId || !chatId || !kind || seq <= 0) {
-    return null;
-  }
-  return {
-    ...payload,
-    sessionId: normalizeString(payload.sessionId),
-    eventId,
-    chatId,
-    kind,
-    seq,
-  };
-}
-
-function parseRealmSocketChatEvent(payload: unknown): RealmChatEventEnvelope | null {
-  const record = asRecord(payload);
-  if (!record) {
-    return null;
-  }
-  const eventId = normalizeString(record.eventId);
-  const chatId = normalizeString(record.chatId);
-  const kind = normalizeString(record.kind);
-  const seqRaw = Number(record.seq);
-  const seq = Number.isFinite(seqRaw) ? Math.max(0, Math.floor(seqRaw)) : 0;
-  if (!eventId || !chatId || !kind || seq <= 0) {
-    return null;
-  }
-  return {
-    actorId: normalizeString(record.actorId),
-    seq,
-    eventId,
-    chatId,
-    kind,
-    occurredAt: normalizeString(record.occurredAt),
-    payload: (asRecord(record.payload) ?? {}) as RealmChatEventEnvelopeDto['payload'],
-    sessionId: normalizeString(record.sessionId),
-  };
-}
-
-function parseRealmChatSessionReadyPayload(payload: unknown): RealmChatSessionReadyPayload | null {
-  const record = asRecord(payload);
-  if (!record) {
-    return null;
-  }
-  const chatId = normalizeString(record.chatId);
-  const sessionId = normalizeString(record.sessionId);
-  const resumeToken = normalizeString(record.resumeToken);
-  const lastAckSeqRaw = Number(record.lastAckSeq);
-  const lastAckSeq = Number.isFinite(lastAckSeqRaw) ? Math.max(0, Math.floor(lastAckSeqRaw)) : 0;
-  if (!chatId || !sessionId || !resumeToken) {
-    return null;
-  }
-  return { chatId, sessionId, resumeToken, lastAckSeq };
-}
-
-function parseRealmChatSyncRequiredPayload(payload: unknown): RealmChatSessionSyncRequiredPayload | null {
-  const record = asRecord(payload);
-  if (!record) {
-    return null;
-  }
-  const chatId = normalizeString(record.chatId);
-  if (!chatId) {
-    return null;
-  }
-  const requestedAfterSeqRaw = Number(record.requestedAfterSeq);
-  return {
-    chatId,
-    requestedAfterSeq: Number.isFinite(requestedAfterSeqRaw)
-      ? Math.max(0, Math.floor(requestedAfterSeqRaw))
-      : 0,
-  };
-}
-
-function getRealmReplayMaxSeq(events: readonly RealmChatEventEnvelopeDto[], fallbackSeq: number): number {
-  return events.reduce((maxSeq, candidate) => {
-    const normalized = normalizeRealmChatEventEnvelope(candidate);
-    return normalized ? Math.max(maxSeq, normalized.seq) : maxSeq;
-  }, fallbackSeq);
-}
-
-function createRealmChatSessionState(payload: RealmChatSessionReadyPayload): RealmChatSessionState {
-  return {
-    chatId: payload.chatId,
-    sessionId: payload.sessionId,
-    resumeToken: payload.resumeToken,
-    lastAckSeq: payload.lastAckSeq,
-  };
-}
-
-function createRealmChatSessionOpenPayload(
-  chatId: string | null,
-  session: RealmChatSessionState | null,
-): { chatId: string; resumeToken?: string; lastAckSeq: number } | null {
-  const normalizedChatId = normalizeString(chatId);
-  if (!normalizedChatId) {
-    return null;
-  }
-  return {
-    chatId: normalizedChatId,
-    resumeToken: session?.chatId === normalizedChatId ? session.resumeToken : undefined,
-    lastAckSeq: session?.chatId === normalizedChatId ? session.lastAckSeq : 0,
-  };
-}
-
-function advanceRealmChatSessionAck(
-  session: RealmChatSessionState | null,
-  event: RealmChatEventEnvelope,
-): {
-  nextSession: RealmChatSessionState;
-  ackPayload: { chatId: string; sessionId: string; ackSeq: number };
-} | null {
-  if (!session || session.chatId !== event.chatId || event.seq <= session.lastAckSeq) {
-    return null;
-  }
-  return {
-    nextSession: { ...session, lastAckSeq: event.seq },
-    ackPayload: {
-      chatId: session.chatId,
-      sessionId: session.sessionId,
-      ackSeq: event.seq,
-    },
-  };
-}
-
-function resolveRealmChatSyncRequest(input: {
-  payload: RealmChatSessionSyncRequiredPayload | null;
-  selectedChatId: string | null;
-  session: RealmChatSessionState | null;
-}): { chatId: string; requestedAfterSeq: number } | null {
-  const chatId = normalizeString(input.payload?.chatId || '');
-  if (!chatId || chatId !== normalizeString(input.selectedChatId || '')) {
-    return null;
-  }
-  return {
-    chatId,
-    requestedAfterSeq: input.payload && input.payload.requestedAfterSeq > 0
-      ? input.payload.requestedAfterSeq
-      : Math.max(0, Math.floor(input.session?.lastAckSeq || 0)),
-  };
 }
 
 function openRealmChatSessionOnSocket(

@@ -152,6 +152,15 @@ func (p *localProvider) StreamGenerateTextScenario(
 	return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
+func (p *localProvider) StreamGenerateTextScenarioRich(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	handler nimillm.TextStreamEventHandler,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return p.StreamGenerateTextScenario(ctx, modelID, spec, handler.OnText)
+}
+
 func (p *localProvider) pickAvailabilityBackend(modelID string) (*nimillm.Backend, string, bool, bool) {
 	return p.pickCapabilityBackend(modelID, "text.generate", true)
 }

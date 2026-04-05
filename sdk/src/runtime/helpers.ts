@@ -4,6 +4,8 @@ import {
   ChatContentPartType,
   FallbackPolicy,
   FinishReason,
+  ReasoningMode,
+  ReasoningTraceMode,
   ScenarioJobEventType,
   ScenarioJobStatus,
   RoutePolicy,
@@ -11,6 +13,7 @@ import {
   type ScenarioOutput,
   type ChatContentPart,
   type ChatMessage,
+  type ReasoningConfig,
   type ScenarioJobEvent,
 } from './generated/runtime/v1/ai';
 import {
@@ -24,6 +27,7 @@ import { extractGenerateText as extractGenerateTextShared } from '../internal/sc
 import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
 import type {
   NimiFinishReason,
+  NimiReasoningConfig,
   NimiRoutePolicy,
   NimiTokenUsage,
   NimiTraceInfo,
@@ -172,6 +176,33 @@ export function toTraceInfo(input: {
     traceId: normalizeText(input.traceId) || undefined,
     modelResolved: normalizeText(input.modelResolved) || undefined,
     routeDecision: Number(input.routeDecision) === RoutePolicy.CLOUD ? 'cloud' : 'local',
+  };
+}
+
+export function toReasoningConfig(value: NimiReasoningConfig | undefined): ReasoningConfig | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  let mode = ReasoningMode.DEFAULT;
+  if (value.mode === 'on') {
+    mode = ReasoningMode.ON;
+  } else if (value.mode === 'off') {
+    mode = ReasoningMode.OFF;
+  }
+
+  let traceMode = ReasoningTraceMode.UNSPECIFIED;
+  if (value.traceMode === 'separate') {
+    traceMode = ReasoningTraceMode.SEPARATE;
+  } else if (value.traceMode === 'hide') {
+    traceMode = ReasoningTraceMode.HIDE;
+  }
+
+  const budgetTokens = Number(value.budgetTokens || 0);
+  return {
+    mode,
+    traceMode,
+    budgetTokens: Number.isFinite(budgetTokens) ? budgetTokens : 0,
   };
 }
 

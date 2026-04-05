@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { resolveRealmMessageText } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -8,11 +6,15 @@ import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { SidebarAffordanceBadge, SidebarHeader, SidebarItem, SidebarSearch, SidebarShell } from '@renderer/components/sidebar.js';
-import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
+import { i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';
-
-type ChatViewDto = RealmModel<'ChatViewDto'>;
+import {
+  compareHumanChatsByRecency,
+  formatHumanChatTime,
+  getHumanChatPreview,
+  getHumanChatTitle,
+  type HumanChatViewDto,
+} from '@renderer/features/chat/chat-human-thread-model';
 
 function ChatSkeletonBlock(props: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
@@ -49,71 +51,8 @@ function ChatListLoadingSkeleton() {
   );
 }
 
-function getChatTitle(chat: ChatViewDto): string {
-  const displayName = String(chat.otherUser?.displayName || '').trim();
-  const handle = String(chat.otherUser?.handle || '').trim();
-  return displayName || handle || String(chat.id || i18n.t('Common.unknown', { defaultValue: 'Unknown' }));
-}
-
-function getChatPreview(
-  chat: ChatViewDto,
-  noMessagesFallback = i18n.t('Chat.noMessages', { defaultValue: 'No messages yet' }),
-): string {
-  const lastMsg = chat.lastMessage;
-  if (lastMsg) {
-    const resolvedText = resolveRealmMessageText(lastMsg).trim();
-    if (resolvedText) return resolvedText;
-    const attachmentText = resolveCanonicalChatAttachmentPreviewText(lastMsg.payload);
-    if (attachmentText) return attachmentText;
-  }
-  return noMessagesFallback;
-}
-
-function getAvatarUrl(chat: ChatViewDto): string | null {
+function getAvatarUrl(chat: HumanChatViewDto): string | null {
   return chat.otherUser?.avatarUrl || null;
-}
-
-function resolveChatSortTime(chat: ChatViewDto): number {
-  const primary = Date.parse(String(chat.lastMessageAt || ''));
-  if (Number.isFinite(primary)) {
-    return primary;
-  }
-
-  const messageTime = Date.parse(String(chat.lastMessage?.createdAt || ''));
-  if (Number.isFinite(messageTime)) {
-    return messageTime;
-  }
-
-  const createdAt = Date.parse(String(chat.createdAt || ''));
-  if (Number.isFinite(createdAt)) {
-    return createdAt;
-  }
-
-  return 0;
-}
-
-function compareChatsByRecency(left: ChatViewDto, right: ChatViewDto): number {
-  const delta = resolveChatSortTime(right) - resolveChatSortTime(left);
-  if (delta !== 0) {
-    return delta;
-  }
-  return String(right.id || '').localeCompare(String(left.id || ''));
-}
-
-function formatChatTime(isoString: string | null | undefined): string {
-  if (!isoString) return '';
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return '';
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return formatRelativeLocaleTime(date);
-  if (diffMin < 60) return formatRelativeLocaleTime(date);
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return formatRelativeLocaleTime(date);
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return formatLocaleDate(date, { weekday: 'short' });
-  return formatLocaleDate(date, { month: 'short', day: 'numeric' });
 }
 
 function ChatRowAffordance(props: { timeLabel: string; unread: number }) {
@@ -169,9 +108,9 @@ export function ChatList() {
     enabled: authStatus === 'authenticated',
   });
 
-  const allChats = (chatsQuery.data?.items || []) as ChatViewDto[];
+  const allChats = (chatsQuery.data?.items || []) as HumanChatViewDto[];
   const allChatsSorted = useMemo(
-    () => [...allChats].sort(compareChatsByRecency),
+    () => [...allChats].sort(compareHumanChatsByRecency),
     [allChats],
   );
   const [searchText, setSearchText] = useState('');
@@ -181,8 +120,8 @@ export function ChatList() {
     const q = searchText.trim().toLowerCase();
     if (!q) return allChatsSorted;
     return allChatsSorted.filter((chat) => {
-      const title = getChatTitle(chat).toLowerCase();
-      const preview = getChatPreview(chat).toLowerCase();
+      const title = getHumanChatTitle(chat).toLowerCase();
+      const preview = getHumanChatPreview(chat).toLowerCase();
       const handle = String(chat.otherUser?.handle || '').toLowerCase();
       return title.includes(q) || preview.includes(q) || handle.includes(q);
     });
@@ -226,9 +165,9 @@ export function ChatList() {
         ) : (
           chats.map((chat) => {
             const active = chat.id === selectedChatId;
-            const title = getChatTitle(chat);
+            const title = getHumanChatTitle(chat);
             const unread = Number(chat.unreadCount || 0);
-            const timeLabel = formatChatTime(chat.lastMessageAt);
+            const timeLabel = formatHumanChatTime(chat.lastMessageAt);
             return (
               <SidebarItem
                 key={chat.id}
@@ -237,7 +176,7 @@ export function ChatList() {
                 active={active}
                 className="mb-2 items-start py-3"
                 label={title}
-                description={getChatPreview(chat, t('Chat.noMessages'))}
+                description={getHumanChatPreview(chat, t('Chat.noMessages'))}
                 trailing={<ChatRowAffordance timeLabel={timeLabel} unread={unread} />}
                 icon={(
                   <ChatAvatarButton

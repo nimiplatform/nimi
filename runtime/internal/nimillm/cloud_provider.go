@@ -286,6 +286,15 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	return backend.StreamGenerateText(ctx, resolvedModelID, spec.GetInput(), spec.GetSystemPrompt(), spec.GetTemperature(), spec.GetTopP(), spec.GetMaxTokens(), onDelta)
 }
 
+func (p *CloudProvider) StreamGenerateTextScenarioRich(
+	ctx context.Context,
+	modelID string,
+	spec *runtimev1.TextGenerateScenarioSpec,
+	handler TextStreamEventHandler,
+) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
+	return p.StreamGenerateTextScenario(ctx, modelID, spec, handler.OnText)
+}
+
 // ResolveMediaBackend returns the underlying Backend for sync media operations.
 func (p *CloudProvider) ResolveMediaBackend(modelID string) (*Backend, string) {
 	backend, resolvedModelID, _, _ := p.PickBackend(modelID)

@@ -119,7 +119,12 @@ export function extractTextValue(part: unknown): string {
     return normalizeText(record.text);
   }
   if (record.type === 'reasoning') {
-    return normalizeText(record.text);
+    throw createNimiError({
+      message: 'reasoning prompt parts are not supported on the stable runtime request surface',
+      reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
+      actionHint: 'remove_reasoning_prompt_part',
+      source: 'sdk',
+    });
   }
   if (record.type === 'tool-result') {
     return normalizeText(JSON.stringify(record.result || null));
@@ -260,10 +265,12 @@ function extractContentParts(
         result.push(createTextChatContentPart(text));
       }
     } else if (record.type === 'reasoning') {
-      const text = normalizeText(record.text);
-      if (text) {
-        result.push(createTextChatContentPart(text));
-      }
+      throw createNimiError({
+        message: 'reasoning prompt parts are not supported on the stable runtime request surface',
+        reasonCode: ReasonCode.AI_MEDIA_OPTION_UNSUPPORTED,
+        actionHint: 'remove_reasoning_prompt_part',
+        source: 'sdk',
+      });
     } else if (record.type === 'file') {
       if (record.artifactId || record.artifact_id || record.localArtifactId || record.local_artifact_id) {
         result.push(createArtifactRefPart(record));

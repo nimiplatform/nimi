@@ -2,6 +2,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
 export const STREAM_FIRST_PACKET_TIMEOUT_MS = 10_000;
+export const STREAM_IDLE_TIMEOUT_MS = 30_000;
 export const STREAM_TEXT_TOTAL_TIMEOUT_MS = 120_000;
 export const STREAM_SPEECH_TOTAL_TIMEOUT_MS = 45_000;
 export const STREAM_VIDEO_TOTAL_TIMEOUT_MS = 300_000;
@@ -16,16 +17,20 @@ export type StreamState = {
   chatId: string;
   phase: StreamPhase;
   partialText: string;
+  partialReasoningText: string;
   errorMessage: string | null;
   interrupted: boolean;
   startedAt: number;
   firstPacketAt: number | null;
+  lastActivityAt: number | null;
+  idleDeadlineAt: number | null;
   reasonCode: string | null;
   traceId: string | null;
   cancelSource: StreamCancelSource | null;
 };
 
 export type StreamEvent =
+  | { type: 'reasoning_delta'; textDelta: string }
   | { type: 'text_delta'; textDelta: string }
   | { type: 'done'; usage?: { inputTokens?: number; outputTokens?: number } }
   | { type: 'error'; message: string; reasonCode?: string; traceId?: string };
@@ -35,6 +40,7 @@ type StreamListener = (state: StreamState) => void;
 const activeStreams = new Map<string, StreamState>();
 const abortControllers = new Map<string, AbortController>();
 const firstPacketTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const totalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const terminalCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const listeners = new Set<StreamListener>();
@@ -44,10 +50,13 @@ function emptyState(chatId: string): StreamState {
     chatId,
     phase: 'idle',
     partialText: '',
+    partialReasoningText: '',
     errorMessage: null,
     interrupted: false,
     startedAt: 0,
     firstPacketAt: null,
+    lastActivityAt: null,
+    idleDeadlineAt: null,
     reasonCode: null,
     traceId: null,
     cancelSource: null,
@@ -69,6 +78,11 @@ function clearTimers(chatId: string) {
   if (fpt) {
     clearTimeout(fpt);
     firstPacketTimers.delete(chatId);
+  }
+  const idle = idleTimers.get(chatId);
+  if (idle) {
+    clearTimeout(idle);
+    idleTimers.delete(chatId);
   }
   const tt = totalTimers.get(chatId);
   if (tt) {
@@ -150,10 +164,13 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
     chatId,
     phase: 'waiting',
     partialText: '',
+    partialReasoningText: '',
     errorMessage: null,
     interrupted: false,
     startedAt: Date.now(),
     firstPacketAt: null,
+    lastActivityAt: null,
+    idleDeadlineAt: null,
     reasonCode: null,
     traceId: null,
     cancelSource: null,
@@ -216,19 +233,75 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
   return abortController;
 }
 
+function hasPartialContent(state: StreamState): boolean {
+  return state.partialText.length > 0 || state.partialReasoningText.length > 0;
+}
+
+function resetIdleTimeout(chatId: string, abortController: AbortController) {
+  const existing = idleTimers.get(chatId);
+  if (existing) {
+    clearTimeout(existing);
+  }
+
+  const idleDeadlineAt = Date.now() + STREAM_IDLE_TIMEOUT_MS;
+  const current = activeStreams.get(chatId);
+  if (current && (current.phase === 'waiting' || current.phase === 'streaming')) {
+    setStreamState(chatId, {
+      ...current,
+      idleDeadlineAt,
+    });
+  }
+
+  const timer = setTimeout(() => {
+    const latest = activeStreams.get(chatId);
+    if (!latest || (latest.phase !== 'waiting' && latest.phase !== 'streaming')) {
+      return;
+    }
+    const errorState: StreamState = {
+      ...latest,
+      phase: 'error',
+      errorMessage: `No stream activity within ${STREAM_IDLE_TIMEOUT_MS / 1000}s`,
+      interrupted: hasPartialContent(latest),
+      cancelSource: 'timeout',
+    };
+    setStreamState(chatId, errorState);
+    clearTimers(chatId);
+    abortController.abort();
+    abortControllers.delete(chatId);
+    scheduleTerminalCleanup(chatId);
+    notify(errorState);
+    logRendererEvent({
+      level: 'warn',
+      area: 'stream-controller',
+      message: 'stream:idle-timeout',
+      details: { chatId, idleTimeoutMs: STREAM_IDLE_TIMEOUT_MS },
+    });
+  }, STREAM_IDLE_TIMEOUT_MS);
+
+  idleTimers.set(chatId, timer);
+}
+
 export function feedStreamEvent(chatId: string, event: StreamEvent) {
   const current = activeStreams.get(chatId);
   if (!current || (current.phase !== 'waiting' && current.phase !== 'streaming')) {
     return;
   }
 
-  if (event.type === 'text_delta') {
+  if (event.type === 'text_delta' || event.type === 'reasoning_delta') {
     const isFirst = current.phase === 'waiting';
+    const now = Date.now();
     const updated: StreamState = {
       ...current,
       phase: 'streaming',
-      partialText: current.partialText + event.textDelta,
-      firstPacketAt: isFirst ? Date.now() : current.firstPacketAt,
+      partialText: event.type === 'text_delta'
+        ? current.partialText + event.textDelta
+        : current.partialText,
+      partialReasoningText: event.type === 'reasoning_delta'
+        ? current.partialReasoningText + event.textDelta
+        : current.partialReasoningText,
+      firstPacketAt: isFirst ? now : current.firstPacketAt,
+      lastActivityAt: now,
+      idleDeadlineAt: now + STREAM_IDLE_TIMEOUT_MS,
     };
     setStreamState(chatId, updated);
 
@@ -239,6 +312,10 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
         clearTimeout(fpt);
         firstPacketTimers.delete(chatId);
       }
+    }
+    const abortController = abortControllers.get(chatId);
+    if (abortController) {
+      resetIdleTimeout(chatId, abortController);
     }
 
     notify(updated);
@@ -269,7 +346,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
         ...current,
         phase: 'cancelled',
         cancelSource: 'backpressure',
-        interrupted: true,
+        interrupted: hasPartialContent(current),
         reasonCode,
         traceId: event.traceId ?? current.traceId,
       };
@@ -285,7 +362,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
       ...current,
       phase: 'error',
       errorMessage: event.message,
-      interrupted: current.partialText.length > 0,
+      interrupted: hasPartialContent(current),
       reasonCode,
       traceId: event.traceId ?? current.traceId,
     };
@@ -313,7 +390,7 @@ export function cancelStream(chatId: string) {
   const cancelledState: StreamState = {
     ...current,
     phase: 'cancelled',
-    interrupted: current.partialText.length > 0,
+    interrupted: hasPartialContent(current),
     cancelSource: 'user',
   };
   setStreamState(chatId, cancelledState);
@@ -325,7 +402,11 @@ export function cancelStream(chatId: string) {
     level: 'info',
     area: 'stream-controller',
     message: 'stream:cancelled',
-    details: { chatId, partialLength: current.partialText.length },
+    details: {
+      chatId,
+      partialLength: current.partialText.length,
+      partialReasoningLength: current.partialReasoningText.length,
+    },
   });
 }
 

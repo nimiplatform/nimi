@@ -32,10 +32,6 @@ export function MainLayout() {
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   useEffect(() => {
-    if (flags.mode === 'desktop' && authStatus !== 'authenticated' && activeTab !== 'runtime') {
-      setActiveTab('runtime');
-      return;
-    }
     if (!flags.enableRuntimeTab && activeTab === 'runtime') {
       setActiveTab('chat');
       return;
@@ -104,9 +100,9 @@ export function MainLayout() {
         void onLogout();
       }}
       onLogin={() => {
-        setActiveTab('runtime');
+        setActiveTab('chat');
         void navigate('/login', {
-          state: { returnToRuntime: true },
+          state: { returnToChat: true },
         });
       }}
       onTitlebarMouseDown={onTitlebarMouseDown}

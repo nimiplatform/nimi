@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -78,6 +79,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	requestCtx, requestCancel := context.WithCancel(requestBaseCtx)
 	defer requestCancel()
 	firstPacketTimedOut := &atomic.Bool{}
+	idleTimedOut := &atomic.Bool{}
 	firstPacketSeen := &atomic.Bool{}
 	firstTimeout := s.streamFirstPacketTimeout
 	if totalTimeout > 0 && totalTimeout < firstTimeout {
@@ -96,6 +98,42 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if firstPacketTimer != nil {
 		defer firstPacketTimer.Stop()
 	}
+	idleTimeout := s.streamIdleTimeout
+	if totalTimeout > 0 && totalTimeout < idleTimeout {
+		idleTimeout = totalTimeout
+	}
+	var idleTimer *time.Timer
+	var idleTimerMu sync.Mutex
+	resetIdleTimer := func() {
+		if idleTimeout <= 0 || idleTimedOut.Load() {
+			return
+		}
+		idleTimerMu.Lock()
+		defer idleTimerMu.Unlock()
+		if idleTimer == nil {
+			idleTimer = time.AfterFunc(idleTimeout, func() {
+				idleTimedOut.Store(true)
+				requestCancel()
+			})
+			return
+		}
+		idleTimer.Reset(idleTimeout)
+	}
+	if idleTimeout > 0 {
+		defer func() {
+			idleTimerMu.Lock()
+			defer idleTimerMu.Unlock()
+			if idleTimer != nil {
+				idleTimer.Stop()
+			}
+		}()
+	}
+	recordActivity := func() {
+		if firstPacketSeen.CompareAndSwap(false, true) && firstPacketTimer != nil {
+			firstPacketTimer.Stop()
+		}
+		resetIdleTimer()
+	}
 
 	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
 		stream.Context(),
@@ -105,6 +143,12 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		remoteTarget,
 	)
 	if err != nil {
+		return err
+	}
+	if err := s.validateScenarioCapability(stream.Context(), req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+		return err
+	}
+	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM); err != nil {
 		return err
 	}
 	s.recordRouteAutoSwitch(
@@ -138,6 +182,8 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 	failAndStop := func(cause error) error {
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
+			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		} else if idleTimedOut.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}
 		if s.logger != nil {
@@ -175,6 +221,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	var usage *runtimev1.UsageStats
 	var finishReason runtimev1.FinishReason
 	streamSimulated := false
+	separateReasoning := requestedReasoningSeparate(resolved.spec)
 
 	var chunkBuf strings.Builder
 	sendDelta := func(text string) error {
@@ -193,6 +240,30 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 				Delta: &runtimev1.ScenarioStreamDelta{
 					Delta: &runtimev1.ScenarioStreamDelta_Text{
 						Text: &runtimev1.TextStreamDelta{
+							Text: chunk,
+						},
+					},
+				},
+			},
+		})
+	}
+	var reasoningBuf strings.Builder
+	sendReasoning := func(text string) error {
+		if !separateReasoning || text == "" {
+			return nil
+		}
+		reasoningBuf.WriteString(text)
+		if reasoningBuf.Len() < minStreamChunkBytes {
+			return nil
+		}
+		chunk := reasoningBuf.String()
+		reasoningBuf.Reset()
+		return send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload: &runtimev1.StreamScenarioEvent_Delta{
+				Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{
+						Reasoning: &runtimev1.ReasoningStreamDelta{
 							Text: chunk,
 						},
 					},
@@ -219,22 +290,57 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			},
 		})
 	}
+	flushReasoning := func() error {
+		if reasoningBuf.Len() == 0 {
+			return nil
+		}
+		chunk := reasoningBuf.String()
+		reasoningBuf.Reset()
+		return send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload: &runtimev1.StreamScenarioEvent_Delta{
+				Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{
+						Reasoning: &runtimev1.ReasoningStreamDelta{
+							Text: chunk,
+						},
+					},
+				},
+			},
+		})
+	}
 
+	richStreamer, canRichStreamScenario := selectedProvider.(scenarioRichStreamingTextProvider)
 	scenarioStreamer, canStreamScenario := selectedProvider.(scenarioStreamingTextProvider)
 	scenarioGenerator, canGenerateScenario := selectedProvider.(scenarioTextProvider)
 	if remoteTarget != nil && s.selector.cloudProvider != nil {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = s.selector.cloudProvider.StreamGenerateTextScenarioWithTarget(requestCtx, modelResolved, resolved.spec, func(part string) error {
-			firstPacketSeen.Store(true)
+			recordActivity()
 			return sendDelta(part)
 		}, remoteTarget)
+		if err != nil {
+			return failAndStop(err)
+		}
+	} else if separateReasoning && canRichStreamScenario {
+		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
+		usage, finishReason, err = richStreamer.StreamGenerateTextScenarioRich(requestCtx, modelResolved, resolved.spec, nimillm.TextStreamEventHandler{
+			OnText: func(part string) error {
+				recordActivity()
+				return sendDelta(part)
+			},
+			OnReasoning: func(part string) error {
+				recordActivity()
+				return sendReasoning(part)
+			},
+		})
 		if err != nil {
 			return failAndStop(err)
 		}
 	} else if canStreamScenario {
 		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
 		usage, finishReason, err = scenarioStreamer.StreamGenerateTextScenario(requestCtx, modelResolved, resolved.spec, func(part string) error {
-			firstPacketSeen.Store(true)
+			recordActivity()
 			return sendDelta(part)
 		})
 		if err != nil {
@@ -263,13 +369,16 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		finishReason = streamFinish
 		parts := nimillm.SplitText(outputText, 24)
 		for _, part := range parts {
-			firstPacketSeen.Store(true)
+			recordActivity()
 			if err := sendDelta(part); err != nil {
 				return err
 			}
 		}
 	}
 
+	if err := flushReasoning(); err != nil {
+		return err
+	}
 	if err := flushDelta(); err != nil {
 		return err
 	}

@@ -217,3 +217,68 @@ test('runtimeStreamText returns an empty usage object when the stream ends witho
     totalTokens: undefined,
   });
 });
+
+test('runtimeStreamText keeps reasoning deltas separate from text deltas', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        streamScenario: async () => ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              payload: {
+                oneofKind: 'delta',
+                delta: {
+                  delta: {
+                    oneofKind: 'reasoning',
+                    reasoning: {
+                      text: 'thinking',
+                    },
+                  },
+                },
+              },
+            };
+            yield {
+              payload: {
+                oneofKind: 'delta',
+                delta: {
+                  delta: {
+                    oneofKind: 'text',
+                    text: {
+                      text: 'answer',
+                    },
+                  },
+                },
+              },
+            };
+            yield {
+              payload: {
+                oneofKind: 'completed',
+                completed: {
+                  finishReason: 1,
+                },
+              },
+            };
+          },
+        }),
+      },
+    } as never),
+  });
+
+  const result = await runtimeStreamText(ctx, {
+    model: 'chat/default',
+    input: 'hello',
+    reasoning: {
+      mode: 'on',
+      traceMode: 'separate',
+    },
+  });
+
+  const parts = [];
+  for await (const part of result.stream) {
+    parts.push(part);
+  }
+
+  assert.equal(parts[0]?.type, 'start');
+  assert.deepEqual(parts[1], { type: 'reasoning-delta', text: 'thinking' });
+  assert.deepEqual(parts[2], { type: 'delta', text: 'answer' });
+});

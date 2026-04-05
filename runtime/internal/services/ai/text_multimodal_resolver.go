@@ -43,6 +43,7 @@ func (s *Service) resolveTextGenerateScenario(
 	if !ok || cloned == nil {
 		return textGenerateResolution{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	normalizeClonedReasoningConfig(cloned)
 
 	cleanupFns := make([]func(), 0, 2)
 	release := func() {

@@ -31,9 +31,9 @@ export function LoginPage() {
     return <Navigate to="/" replace />;
   }
 
-  const onReturnToRuntime = () => {
-    setActiveTab('runtime');
-    if ((location.state as { returnToRuntime?: boolean } | null)?.returnToRuntime && window.history.length > 1) {
+  const onReturnToChat = () => {
+    setActiveTab('chat');
+    if ((location.state as { returnToChat?: boolean } | null)?.returnToChat && window.history.length > 1) {
       navigate(-1);
       return;
     }
@@ -47,10 +47,10 @@ export function LoginPage() {
           <button
             type="button"
             data-testid={E2E_IDS.loginBackButton}
-            onClick={onReturnToRuntime}
+            onClick={onReturnToChat}
             className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm backdrop-blur transition hover:bg-white hover:text-[#1f2937]"
-            aria-label={t('Auth.backToRuntime', { defaultValue: 'Back to AI Runtime' })}
-            title={t('Auth.backToRuntime', { defaultValue: 'Back to AI Runtime' })}
+            aria-label={t('Auth.backToChat', { defaultValue: 'Back to Chat' })}
+            title={t('Auth.backToChat', { defaultValue: 'Back to Chat' })}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />

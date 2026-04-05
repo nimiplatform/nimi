@@ -1895,6 +1895,15 @@ pub struct IgnoredScenarioExtension {
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningConfig {
+    #[prost(enumeration = "ReasoningMode", tag = "1")]
+    pub mode: i32,
+    #[prost(enumeration = "ReasoningTraceMode", tag = "2")]
+    pub trace_mode: i32,
+    #[prost(int32, tag = "3")]
+    pub budget_tokens: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TextGenerateScenarioSpec {
     #[prost(message, repeated, tag = "1")]
@@ -1909,6 +1918,8 @@ pub struct TextGenerateScenarioSpec {
     pub top_p: f32,
     #[prost(int32, tag = "6")]
     pub max_tokens: i32,
+    #[prost(message, optional, tag = "7")]
+    pub reasoning: ::core::option::Option<ReasoningConfig>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TextEmbedScenarioSpec {
@@ -2180,6 +2191,11 @@ pub struct TextStreamDelta {
     pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningStreamDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ArtifactStreamDelta {
     #[prost(bytes = "vec", tag = "1")]
     pub chunk: ::prost::alloc::vec::Vec<u8>,
@@ -2188,7 +2204,7 @@ pub struct ArtifactStreamDelta {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScenarioStreamDelta {
-    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2")]
+    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2, 3")]
     pub delta: ::core::option::Option<scenario_stream_delta::Delta>,
 }
 /// Nested message and enum types in `ScenarioStreamDelta`.
@@ -2199,6 +2215,8 @@ pub mod scenario_stream_delta {
         Text(super::TextStreamDelta),
         #[prost(message, tag = "2")]
         Artifact(super::ArtifactStreamDelta),
+        #[prost(message, tag = "3")]
+        Reasoning(super::ReasoningStreamDelta),
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2972,6 +2990,64 @@ impl FinishReason {
             "FINISH_REASON_TOOL_CALL" => Some(Self::ToolCall),
             "FINISH_REASON_CONTENT_FILTER" => Some(Self::ContentFilter),
             "FINISH_REASON_ERROR" => Some(Self::Error),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ReasoningMode {
+    Default = 0,
+    Off = 1,
+    On = 2,
+}
+impl ReasoningMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Default => "REASONING_MODE_DEFAULT",
+            Self::Off => "REASONING_MODE_OFF",
+            Self::On => "REASONING_MODE_ON",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REASONING_MODE_DEFAULT" => Some(Self::Default),
+            "REASONING_MODE_OFF" => Some(Self::Off),
+            "REASONING_MODE_ON" => Some(Self::On),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ReasoningTraceMode {
+    Unspecified = 0,
+    Hide = 1,
+    Separate = 2,
+}
+impl ReasoningTraceMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REASONING_TRACE_MODE_UNSPECIFIED",
+            Self::Hide => "REASONING_TRACE_MODE_HIDE",
+            Self::Separate => "REASONING_TRACE_MODE_SEPARATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REASONING_TRACE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "REASONING_TRACE_MODE_HIDE" => Some(Self::Hide),
+            "REASONING_TRACE_MODE_SEPARATE" => Some(Self::Separate),
             _ => None,
         }
     }

@@ -130,6 +130,80 @@ export {
 } from './local-ai-parsers.js';
 
 export type {
+  ChatAiRouteKind,
+  ChatAiMessageRole,
+  ChatAiMessageStatus,
+  ChatAiRouteSnapshot,
+  ChatAiThreadSummary,
+  ChatAiThreadRecord,
+  ChatAiMessagePart,
+  ChatAiToolCallError,
+  ChatAiToolCall,
+  ChatAiAttachment,
+  ChatAiMessageContent,
+  ChatAiMessageError,
+  ChatAiMessageRecord,
+  ChatAiDraftRecord,
+  ChatAiThreadBundle,
+  ChatAiCreateThreadInput,
+  ChatAiUpdateThreadMetadataInput,
+  ChatAiCreateMessageInput,
+  ChatAiUpdateMessageInput,
+  ChatAiPutDraftInput,
+} from './chat-ai-types.js';
+
+export {
+  parseChatAiRouteSnapshot,
+  parseChatAiAttachment,
+  parseChatAiMessageContent,
+  parseChatAiMessageError,
+  parseChatAiThreadSummary,
+  parseChatAiThreadSummaries,
+  parseChatAiThreadRecord,
+  parseChatAiMessageRecord,
+  parseChatAiDraftRecord,
+  parseChatAiThreadBundle,
+  parseChatAiCreateThreadInput,
+  parseChatAiUpdateThreadMetadataInput,
+  parseChatAiCreateMessageInput,
+  parseChatAiUpdateMessageInput,
+  parseChatAiPutDraftInput,
+} from './chat-ai-parsers.js';
+
+export type {
+  AgentLocalMessageRole,
+  AgentLocalMessageStatus,
+  AgentLocalTargetSnapshot,
+  AgentLocalThreadSummary,
+  AgentLocalThreadRecord,
+  AgentLocalMessageError,
+  AgentLocalMessageRecord,
+  AgentLocalDraftRecord,
+  AgentLocalThreadBundle,
+  AgentLocalCreateThreadInput,
+  AgentLocalUpdateThreadMetadataInput,
+  AgentLocalCreateMessageInput,
+  AgentLocalUpdateMessageInput,
+  AgentLocalPutDraftInput,
+} from './chat-agent-types.js';
+
+export {
+  parseAgentLocalTargetSnapshot,
+  parseAgentLocalThreadSummary,
+  parseAgentLocalThreadSummaries,
+  parseAgentLocalThreadRecord,
+  parseAgentLocalMessageError,
+  parseAgentLocalMessageRecord,
+  parseAgentLocalDraftRecord,
+  parseAgentLocalThreadBundle,
+  parseAgentLocalCreateThreadInput,
+  parseAgentLocalUpdateThreadMetadataInput,
+  parseAgentLocalCreateMessageInput,
+  parseAgentLocalUpdateMessageInput,
+  parseAgentLocalPutDraftInput,
+} from './chat-agent-parsers.js';
+
+export type {
   ExternalAgentActionExecutionMode,
   ExternalAgentActionRiskLevel,
   ExternalAgentActionDescriptor,
