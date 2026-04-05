@@ -1,5 +1,5 @@
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import whoLmsData from './who-lms-data.json';
+import whoLmsData from './generated/who-lms-data.json';
 
 export interface WHOPercentilePoint {
   ageMonths: number;

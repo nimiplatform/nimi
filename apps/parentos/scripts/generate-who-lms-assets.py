@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 
 
 APP_ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_PATH = APP_ROOT / "src" / "shell" / "renderer" / "features" / "profile" / "who-lms-data.json"
+OUTPUT_PATH = APP_ROOT / "src" / "shell" / "renderer" / "features" / "profile" / "generated" / "who-lms-data.json"
 DAY_TO_MONTHS = 30.4375
 PERCENTILE_COLUMNS = ("P3", "P10", "P25", "P50", "P75", "P90", "P97")
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -287,7 +287,10 @@ def main() -> None:
     }
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUTPUT_PATH.write_text(
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
     print(f"Wrote {OUTPUT_PATH}")
 
 

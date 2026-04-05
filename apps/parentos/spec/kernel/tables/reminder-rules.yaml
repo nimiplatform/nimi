@@ -78,7 +78,6 @@ constraints:
 
 rules:
   # -- 一类疫苗（免费，必须接种）--
-
   - ruleId: PO-REM-VAC-001
     domain: vaccine
     category: rigid
@@ -90,7 +89,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [newborn, hepatitis-b]
-
   - ruleId: PO-REM-VAC-002
     domain: vaccine
     category: rigid
@@ -102,7 +100,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [newborn, bcg]
-
   - ruleId: PO-REM-VAC-003
     domain: vaccine
     category: rigid
@@ -114,7 +111,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [hepatitis-b]
-
   - ruleId: PO-REM-VAC-004
     domain: vaccine
     category: rigid
@@ -126,7 +122,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [polio, ipv]
-
   - ruleId: PO-REM-VAC-005
     domain: vaccine
     category: rigid
@@ -138,7 +133,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [dtap]
-
   - ruleId: PO-REM-VAC-006
     domain: vaccine
     category: rigid
@@ -150,7 +144,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [dtap]
-
   - ruleId: PO-REM-VAC-007
     domain: vaccine
     category: rigid
@@ -162,7 +155,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [dtap, polio]
-
   - ruleId: PO-REM-VAC-008
     domain: vaccine
     category: rigid
@@ -174,7 +166,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [hepatitis-b, meningococcal]
-
   - ruleId: PO-REM-VAC-009
     domain: vaccine
     category: rigid
@@ -186,7 +177,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [mmr]
-
   - ruleId: PO-REM-VAC-010
     domain: vaccine
     category: rigid
@@ -198,7 +188,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [japanese-encephalitis]
-
   - ruleId: PO-REM-VAC-011
     domain: vaccine
     category: rigid
@@ -210,7 +199,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [meningococcal, polio]
-
   - ruleId: PO-REM-VAC-012
     domain: vaccine
     category: rigid
@@ -222,7 +210,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [hepatitis-a]
-
   - ruleId: PO-REM-VAC-013
     domain: vaccine
     category: rigid
@@ -234,7 +221,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [mmr, dtap, booster]
-
   - ruleId: PO-REM-VAC-014
     domain: vaccine
     category: rigid
@@ -246,7 +232,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [japanese-encephalitis, booster]
-
   - ruleId: PO-REM-VAC-015
     domain: vaccine
     category: rigid
@@ -258,7 +243,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [meningococcal, booster]
-
   - ruleId: PO-REM-VAC-016
     domain: vaccine
     category: rigid
@@ -270,7 +254,6 @@ rules:
     actionType: go_hospital
     source: "NIP-2024"
     tags: [polio, booster]
-
   - ruleId: PO-REM-VAC-017
     domain: vaccine
     category: rigid
@@ -284,7 +267,6 @@ rules:
     tags: [dt, meningococcal, booster]
 
   # -- 二类疫苗（自费，推荐接种）--
-
   - ruleId: PO-REM-VAC-050
     domain: vaccine
     category: rigid
@@ -296,7 +278,6 @@ rules:
     actionType: go_hospital
     source: "WHO-2023-rotavirus"
     tags: [rotavirus, optional]
-
   - ruleId: PO-REM-VAC-051
     domain: vaccine
     category: rigid
@@ -308,7 +289,6 @@ rules:
     actionType: go_hospital
     source: "WHO-2023-varicella"
     tags: [varicella, optional]
-
   - ruleId: PO-REM-VAC-052
     domain: vaccine
     category: rigid
@@ -321,7 +301,6 @@ rules:
     repeatRule: { intervalMonths: 12, maxRepeats: -1 }
     source: "CDC-influenza"
     tags: [influenza, annual, optional]
-
   - ruleId: PO-REM-VAC-053
     domain: vaccine
     category: rigid
@@ -336,7 +315,6 @@ rules:
 
   # ── Checkup (体检) ───────────────────────────────────────
   # Source: 国家基本公共卫生服务规范（2023）
-
   - ruleId: PO-REM-CHK-001
     domain: checkup
     category: rigid
@@ -348,7 +326,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [newborn, home-visit]
-
   - ruleId: PO-REM-CHK-002
     domain: checkup
     category: rigid
@@ -360,7 +337,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [postpartum]
-
   - ruleId: PO-REM-CHK-003
     domain: checkup
     category: rigid
@@ -372,7 +348,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [infant]
-
   - ruleId: PO-REM-CHK-004
     domain: checkup
     category: rigid
@@ -384,7 +359,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [infant, blood-test]
-
   - ruleId: PO-REM-CHK-005
     domain: checkup
     category: rigid
@@ -396,7 +370,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [infant]
-
   - ruleId: PO-REM-CHK-006
     domain: checkup
     category: rigid
@@ -408,7 +381,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [annual]
-
   - ruleId: PO-REM-CHK-007
     domain: checkup
     category: rigid
@@ -420,7 +392,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [autism-screening]
-
   - ruleId: PO-REM-CHK-008
     domain: checkup
     category: rigid
@@ -432,7 +403,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [annual]
-
   - ruleId: PO-REM-CHK-009
     domain: checkup
     category: rigid
@@ -444,7 +414,6 @@ rules:
     actionType: go_hospital
     source: "NBPHS-2023"
     tags: [toddler]
-
   - ruleId: PO-REM-CHK-010
     domain: checkup
     category: rigid
@@ -457,7 +426,6 @@ rules:
     repeatRule: { intervalMonths: 12, maxRepeats: 3 }
     source: "NBPHS-2023"
     tags: [annual, preschool]
-
   - ruleId: PO-REM-CHK-011
     domain: checkup
     category: rigid
@@ -472,7 +440,6 @@ rules:
 
   # ── Vision (视力) ────────────────────────────────────────
   # Source: 国家卫健委《0-6 岁儿童眼保健及视力检查服务规范》
-
   - ruleId: PO-REM-VIS-001
     domain: vision
     category: rigid
@@ -484,7 +451,6 @@ rules:
     actionType: go_hospital
     source: "NHC-vision-2023"
     tags: [hyperopia-reserve, myopia-prevention]
-
   - ruleId: PO-REM-VIS-002
     domain: vision
     category: rigid
@@ -497,7 +463,6 @@ rules:
     repeatRule: { intervalMonths: 6, maxRepeats: 4 }
     source: "NHC-vision-2023"
     tags: [myopia-prevention]
-
   - ruleId: PO-REM-VIS-003
     domain: vision
     category: rigid
@@ -512,7 +477,6 @@ rules:
     tags: [myopia-monitoring]
 
   # ── Dental (牙齿) ────────────────────────────────────────
-
   - ruleId: PO-REM-DEN-001
     domain: dental
     category: rigid
@@ -524,7 +488,6 @@ rules:
     actionType: go_hospital
     source: "AAPD-2023"
     tags: [first-tooth]
-
   - ruleId: PO-REM-DEN-002
     domain: dental
     category: rigid
@@ -536,7 +499,6 @@ rules:
     actionType: go_hospital
     source: "AAPD-2023"
     tags: [sealant, molar]
-
   - ruleId: PO-REM-DEN-003
     domain: dental
     category: rigid
@@ -548,7 +510,6 @@ rules:
     actionType: go_hospital
     source: "AAPD-2023"
     tags: [sealant, molar]
-
   - ruleId: PO-REM-DEN-004
     domain: dental
     category: stage
@@ -562,7 +523,6 @@ rules:
     tags: [orthodontics]
 
   # ── Bone Age (骨龄) ──────────────────────────────────────
-
   - ruleId: PO-REM-BON-001
     domain: bone-age
     category: stage
@@ -574,7 +534,6 @@ rules:
     actionType: go_hospital
     source: "Pediatric-Endocrine-2023"
     tags: [bone-age, baseline]
-
   - ruleId: PO-REM-BON-002
     domain: bone-age
     category: stage
@@ -586,7 +545,6 @@ rules:
     actionType: go_hospital
     source: "Pediatric-Endocrine-2023"
     tags: [bone-age, puberty-prediction]
-
   - ruleId: PO-REM-BON-003
     domain: bone-age
     category: stage
@@ -601,7 +559,6 @@ rules:
     tags: [bone-age, growth-plate]
 
   # ── Growth (生长发育监测) ─────────────────────────────────
-
   - ruleId: PO-REM-GRO-001
     domain: growth
     category: rigid
@@ -614,7 +571,6 @@ rules:
     repeatRule: { intervalMonths: 1, maxRepeats: 12 }
     source: "WHO-growth-standards-2006"
     tags: [growth-curve, monthly]
-
   - ruleId: PO-REM-GRO-002
     domain: growth
     category: rigid
@@ -627,7 +583,6 @@ rules:
     repeatRule: { intervalMonths: 3, maxRepeats: 8 }
     source: "WHO-growth-standards-2006"
     tags: [growth-curve, quarterly]
-
   - ruleId: PO-REM-GRO-003
     domain: growth
     category: rigid
@@ -642,7 +597,6 @@ rules:
     tags: [growth-curve, biannual]
 
   # ── Safety (安全) ────────────────────────────────────────
-
   - ruleId: PO-REM-SAF-001
     domain: safety
     category: stage
@@ -654,7 +608,6 @@ rules:
     actionType: read_guide
     source: "AAP-safety-2023"
     tags: [home-safety, crawling]
-
   - ruleId: PO-REM-SAF-002
     domain: safety
     category: stage
@@ -669,7 +622,6 @@ rules:
 
   # ── Sensitivity (敏感期) ─────────────────────────────────
   # 完整定义见 sensitive-periods.yaml，这里只放提醒规则
-
   - ruleId: PO-REM-SEN-001
     domain: sensitivity
     category: stage
@@ -681,7 +633,6 @@ rules:
     actionType: read_guide
     source: "Montessori-sensitive-periods"
     tags: [oral, exploration]
-
   - ruleId: PO-REM-SEN-002
     domain: sensitivity
     category: stage
@@ -693,7 +644,6 @@ rules:
     actionType: observe
     source: "Montessori-sensitive-periods"
     tags: [order, environment]
-
   - ruleId: PO-REM-SEN-003
     domain: sensitivity
     category: stage
@@ -705,7 +655,6 @@ rules:
     actionType: read_guide
     source: "Montessori-sensitive-periods"
     tags: [language, vocabulary-explosion]
-
   - ruleId: PO-REM-SEN-004
     domain: sensitivity
     category: stage
@@ -717,7 +666,6 @@ rules:
     actionType: read_guide
     source: "Montessori-sensitive-periods"
     tags: [fine-motor]
-
   - ruleId: PO-REM-SEN-005
     domain: sensitivity
     category: stage
@@ -731,7 +679,6 @@ rules:
     tags: [social, peer-interaction]
 
   # ── Interest (兴趣培养) ──────────────────────────────────
-
   - ruleId: PO-REM-INT-001
     domain: interest
     category: stage
@@ -743,7 +690,6 @@ rules:
     actionType: observe
     source: "Suzuki-method"
     tags: [music, window]
-
   - ruleId: PO-REM-INT-002
     domain: interest
     category: stage
@@ -755,7 +701,6 @@ rules:
     actionType: read_guide
     source: "NASPE-2023"
     tags: [sports, fundamental-movement]
-
   - ruleId: PO-REM-INT-003
     domain: interest
     category: stage
@@ -769,7 +714,6 @@ rules:
     tags: [interest-deepening]
 
   # ── Digital (数字素养) ───────────────────────────────────
-
   - ruleId: PO-REM-DIG-001
     domain: digital
     category: stage
@@ -781,7 +725,6 @@ rules:
     actionType: read_guide
     source: "WHO-screen-time-2019"
     tags: [screen-time]
-
   - ruleId: PO-REM-DIG-002
     domain: digital
     category: stage
@@ -795,7 +738,6 @@ rules:
     tags: [internet-safety]
 
   # ── Sexuality (性教育) ───────────────────────────────────
-
   - ruleId: PO-REM-SEX-001
     domain: sexuality
     category: stage
@@ -807,7 +749,6 @@ rules:
     actionType: read_guide
     source: "UNESCO-CSE-2018"
     tags: [body-awareness]
-
   - ruleId: PO-REM-SEX-002
     domain: sexuality
     category: stage
@@ -821,7 +762,6 @@ rules:
     tags: [puberty-education]
 
   # ── Emotional / Social (情绪/社交) ───────────────────────
-
   - ruleId: PO-REM-EMO-001
     domain: emotional
     category: stage
@@ -833,7 +773,6 @@ rules:
     actionType: read_guide
     source: "Bowlby-attachment"
     tags: [separation-anxiety, kindergarten-prep]
-
   - ruleId: PO-REM-EMO-002
     domain: emotional
     category: stage
@@ -847,7 +786,6 @@ rules:
     tags: [communication-shift, pre-adolescent]
 
   # ── Nutrition (营养) ─────────────────────────────────────
-
   - ruleId: PO-REM-NUT-001
     domain: nutrition
     category: rigid
@@ -859,7 +797,6 @@ rules:
     actionType: read_guide
     source: "WHO-complementary-feeding-2023"
     tags: [solid-food, iron]
-
   - ruleId: PO-REM-NUT-002
     domain: nutrition
     category: stage
@@ -873,7 +810,6 @@ rules:
     tags: [vitamin-d, daily]
 
   # ── Sleep (睡眠) ─────────────────────────────────────────
-
   - ruleId: PO-REM-SLP-001
     domain: sleep
     category: stage
@@ -885,7 +821,6 @@ rules:
     actionType: read_guide
     source: "AAP-safe-sleep-2022"
     tags: [safe-sleep, sids-prevention]
-
   - ruleId: PO-REM-SLP-002
     domain: sleep
     category: stage
@@ -899,7 +834,6 @@ rules:
     tags: [sleep-routine]
 
   # ── Hygiene Training (如厕) ──────────────────────────────
-
   - ruleId: PO-REM-HYG-001
     domain: hygiene
     category: stage
@@ -913,7 +847,6 @@ rules:
     tags: [toilet-training, readiness]
 
   # ── Independence (独立能力) ──────────────────────────────
-
   - ruleId: PO-REM-IND-001
     domain: independence
     category: stage
@@ -925,7 +858,6 @@ rules:
     actionType: read_guide
     source: "Montessori-practical-life"
     tags: [self-care, chores]
-
   - ruleId: PO-REM-IND-002
     domain: independence
     category: stage
@@ -939,7 +871,6 @@ rules:
     tags: [financial-literacy, allowance]
 
   # ── Values (价值观建设) ──────────────────────────────────
-
   - ruleId: PO-REM-VAL-001
     domain: values
     category: stage
@@ -953,7 +884,6 @@ rules:
     tags: [empathy, moral-development]
 
   # ── Career (生涯探索) ───────────────────────────────────
-
   - ruleId: PO-REM-CAR-001
     domain: career
     category: stage
@@ -971,7 +901,6 @@ rules:
   #         Gordon Parent Effectiveness Training, Ginott Parent-Child Communication
   # 亲子关系是所有其他维度能否发挥作用的"底层协议"。
   # 通道不通，观察再准、分析再好，信息也传不进去。
-
   - ruleId: PO-REM-REL-001
     domain: relationship
     category: stage
@@ -983,7 +912,6 @@ rules:
     actionType: read_guide
     source: "Bowlby-attachment-1969, Ainsworth-strange-situation"
     tags: [secure-attachment, responsiveness, foundation]
-
   - ruleId: PO-REM-REL-002
     domain: relationship
     category: stage
@@ -995,7 +923,6 @@ rules:
     actionType: observe
     source: "Ainsworth-secure-base"
     tags: [secure-base, exploration, presence]
-
   - ruleId: PO-REM-REL-003
     domain: relationship
     category: stage
@@ -1007,7 +934,6 @@ rules:
     actionType: read_guide
     source: "Erikson-autonomy-vs-shame, Gordon-PET"
     tags: [autonomy, relationship-deposit, choice]
-
   - ruleId: PO-REM-REL-004
     domain: relationship
     category: stage
@@ -1019,7 +945,6 @@ rules:
     actionType: read_guide
     source: "Ginott-parent-child-communication, Rogers-unconditional-positive-regard"
     tags: [unconditional-regard, error-handling, trust-building]
-
   - ruleId: PO-REM-REL-005
     domain: relationship
     category: stage
@@ -1031,7 +956,6 @@ rules:
     actionType: read_guide
     source: "Gottman-relationship-repair"
     tags: [conflict-repair, modeling, resilience]
-
   - ruleId: PO-REM-REL-006
     domain: relationship
     category: stage
@@ -1043,7 +967,6 @@ rules:
     actionType: observe
     source: "Gordon-PET, Gottman-emotion-coaching"
     tags: [listening, conversation-balance, academic-trap]
-
   - ruleId: PO-REM-REL-007
     domain: relationship
     category: stage
@@ -1055,7 +978,6 @@ rules:
     actionType: read_guide
     source: "Gordon-PET"
     tags: [respecting-silence, privacy, trust]
-
   - ruleId: PO-REM-REL-008
     domain: relationship
     category: stage
@@ -1067,7 +989,6 @@ rules:
     actionType: observe
     source: "Gottman-relationship-research"
     tags: [shared-activity, relationship-reserve, pre-adolescent]
-
   - ruleId: PO-REM-REL-009
     domain: relationship
     category: stage
@@ -1079,7 +1000,6 @@ rules:
     actionType: read_guide
     source: "Gordon-PET, Faber-Mazlish"
     tags: [active-listening, last-to-speak, communication-skill]
-
   - ruleId: PO-REM-REL-010
     domain: relationship
     category: stage
@@ -1091,7 +1011,6 @@ rules:
     actionType: read_guide
     source: "Ginott-parent-child-communication, Dweck-praise-research"
     tags: [criticism-style, self-esteem, open-dialogue]
-
   - ruleId: PO-REM-REL-011
     domain: relationship
     category: stage
@@ -1103,7 +1022,6 @@ rules:
     actionType: read_guide
     source: "Erikson-identity-vs-role-confusion, Steinberg-adolescent-autonomy"
     tags: [boundary-respect, patience, adolescent-privacy]
-
   - ruleId: PO-REM-REL-012
     domain: relationship
     category: stage
@@ -1115,7 +1033,6 @@ rules:
     actionType: read_guide
     source: "Ginott-parent-child-communication"
     tags: [public-evaluation, privacy, adolescent-sensitivity]
-
   - ruleId: PO-REM-REL-013
     domain: relationship
     category: stage
@@ -1127,7 +1044,6 @@ rules:
     actionType: read_guide
     source: "Montessori-natural-consequences, Gordon-PET"
     tags: [modeling, natural-consequences, anti-lecturing]
-
   - ruleId: PO-REM-REL-014
     domain: relationship
     category: stage
@@ -1139,7 +1055,6 @@ rules:
     actionType: read_guide
     source: "Gordon-PET, Steinberg-adolescent-autonomy"
     tags: [role-transition, consultant-parent, trust]
-
   - ruleId: PO-REM-REL-015
     domain: relationship
     category: stage
@@ -1151,7 +1066,6 @@ rules:
     actionType: read_guide
     source: "Gottman-relationship-research"
     tags: [vulnerability, equality, adult-relationship]
-
   - ruleId: PO-REM-REL-016
     domain: relationship
     category: stage
@@ -1169,7 +1083,6 @@ rules:
   # 这些规则需要 triggerCondition，由提醒引擎结合孩子档案数据评估。
   # Phase 3 实现，spec 先定义数据结构和触发条件。
   # ════════════════════════════════════════════════════════════
-
   - ruleId: PO-REM-PGRW-001
     domain: growth
     category: personalized
@@ -1185,7 +1098,6 @@ rules:
     actionType: ai_consult
     source: "WHO-growth-velocity-2009"
     tags: [growth-velocity, personalized]
-
   - ruleId: PO-REM-PGRW-002
     domain: growth
     category: personalized
@@ -1201,7 +1113,6 @@ rules:
     actionType: ai_consult
     source: "WHO-growth-standards-2006"
     tags: [weight-faltering, personalized]
-
   - ruleId: PO-REM-PVIS-001
     domain: vision
     category: personalized
@@ -1217,7 +1128,6 @@ rules:
     actionType: ai_consult
     source: "NHC-vision-2023"
     tags: [myopia-risk, hyperopia-reserve, personalized]
-
   - ruleId: PO-REM-PMLS-001
     domain: language
     category: personalized
@@ -1233,7 +1143,6 @@ rules:
     actionType: ai_consult
     source: "CDC-milestones-2022"
     tags: [language-delay-watch, personalized]
-
   - ruleId: PO-REM-PINT-001
     domain: interest
     category: personalized

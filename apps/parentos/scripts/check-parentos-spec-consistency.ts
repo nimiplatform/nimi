@@ -1,7 +1,7 @@
 /**
  * check-parentos-spec-consistency.ts
  * Validates routes.yaml ↔ routes.tsx/shell-layout.tsx consistency
- * and local-storage.yaml ↔ migrations.rs column alignment.
+ * and local-storage.yaml ↔ sqlite migration DDL alignment.
  */
 
 import { readFileSync } from 'node:fs';
@@ -80,18 +80,21 @@ const storageYaml = parseYaml(
   readFileSync(resolve(ROOT, 'spec/kernel/tables/local-storage.yaml'), 'utf-8'),
 ) as { tables: Array<{ name: string; columns: Array<{ name: string }> }> };
 
-const migrationsRs = readFileSync(
+const migrationsSqlSources = [
   resolve(ROOT, 'src-tauri/src/sqlite/migrations.rs'),
-  'utf-8',
-);
+  resolve(ROOT, 'src-tauri/src/sqlite/migrations_schema.rs'),
+]
+  .map((path) => readFileSync(path, 'utf-8'))
+  .join('\n');
 
 for (const table of storageYaml.tables) {
-  // Extract column names from the CREATE TABLE block in migrations.rs
+  // Extract column names from the CREATE TABLE blocks emitted by the sqlite
+  // migration modules. Schema DDL may be factored out of migrations.rs.
   const tableRegex = new RegExp(`CREATE TABLE IF NOT EXISTS ${table.name}\\s*\\(([^;]+?)\\);`, 's');
-  const match = migrationsRs.match(tableRegex);
+  const match = migrationsSqlSources.match(tableRegex);
 
   if (!match) {
-    fail(`Table '${table.name}' not found in migrations.rs`);
+    fail(`Table '${table.name}' not found in sqlite migrations`);
     continue;
   }
 
@@ -99,7 +102,7 @@ for (const table of storageYaml.tables) {
   for (const col of table.columns) {
     // Column name should appear in DDL (case-sensitive, camelCase)
     if (!ddl.includes(col.name)) {
-      fail(`Column '${table.name}.${col.name}' missing from migrations.rs`);
+      fail(`Column '${table.name}.${col.name}' missing from sqlite migrations`);
     }
   }
   pass(`Table '${table.name}' columns aligned (${table.columns.length} columns)`);
