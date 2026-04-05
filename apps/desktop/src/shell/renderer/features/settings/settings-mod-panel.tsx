@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { showModTabLimitBanner } from '@renderer/mod-ui/host/mod-tab-limit-banner';
 import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions.js';
-import { Button, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
+import { Button, FormFeedback, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
 import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage.js';
 
 type RuntimeModSettingsRecord = Record<string, unknown>;
@@ -109,11 +109,16 @@ export function ModSettingsPage() {
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const runtimeModDisabledIds = useAppStore((state) => state.runtimeModDisabledIds);
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
+  const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
+  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const runtimeModSettingsById = useAppStore((state) => state.runtimeModSettingsById);
   const setRuntimeModSettings = useAppStore((state) => state.setRuntimeModSettings);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const [feedback, setFeedback] = useState<{
+    kind: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+  } | null>(null);
 
   const runtimeMods = useMemo(() => {
     const registeredSet = new Set(registeredRuntimeModIds.map((id) => normalizeModId(id)).filter(Boolean));
@@ -178,14 +183,14 @@ export function ModSettingsPage() {
     if (!selectedModId) return;
     const parsed = parseSettingsJson(jsonDraft);
     if (!parsed) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('ModSettings.invalidJson'),
       });
       return;
     }
     setRuntimeModSettings(selectedModId, parsed);
-    setStatusBanner({
+    setFeedback({
       kind: 'success',
       message: t('ModSettings.saved', { modId: selectedModId }),
     });
@@ -195,7 +200,7 @@ export function ModSettingsPage() {
     if (!selectedModId) return;
     setRuntimeModSettings(selectedModId, {});
     setJsonDraft('{}');
-    setStatusBanner({
+    setFeedback({
       kind: 'info',
       message: t('ModSettings.reset', { modId: selectedModId }),
     });
@@ -206,7 +211,6 @@ export function ModSettingsPage() {
     const result = openModWorkspaceTab(resolveModTabId(selectedMod.id), selectedMod.name, selectedMod.id);
     if (result === 'rejected-limit') {
       showModTabLimitBanner({
-        setStatusBanner,
         setActiveTab: (tab) => {
           setActiveTab(tab as AppTab);
         },
@@ -219,6 +223,7 @@ export function ModSettingsPage() {
       title={t('ModSettings.pageTitle')}
       description={t('ModSettings.pageDescription')}
     >
+      <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('ModSettings.pageTitle')} />
       <section className="mt-8">
         <div className="rounded-2xl border border-mint-100 bg-mint-50/50 p-5">
           <div className="flex gap-4">
@@ -234,6 +239,19 @@ export function ModSettingsPage() {
           </div>
         </div>
       </section>
+      {runtimeModFailures.length > 0 || Object.keys(fusedRuntimeMods).length > 0 ? (
+        <section className="mt-8">
+          <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,white)] p-5">
+            <p className="text-sm font-semibold text-gray-900">{t('ModSettings.runtimeIssuesTitle')}</p>
+            <p className="mt-1 text-xs text-gray-600">
+              {t('ModSettings.runtimeIssuesDescription', {
+                failures: runtimeModFailures.length,
+                fused: Object.keys(fusedRuntimeMods).length,
+              })}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       {runtimeMods.length === 0 ? (
         <section className="mt-8">

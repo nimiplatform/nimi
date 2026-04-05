@@ -16,9 +16,11 @@ import {
   ICON_USER,
 } from './settings-assets.js';
 import {
+  FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
@@ -30,7 +32,6 @@ export function ProfilePage() {
   const authRefreshToken = useAppStore((s) => s.auth.refreshToken);
   const realmBaseUrl = useAppStore((s) => String(s.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const setAuthSession = useAppStore((s) => s.setAuthSession);
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const displayName = String(user?.displayName || user?.handle || 'User');
   const userHandle = String(user?.handle || 'me');
   const userAvatarUrl = typeof user?.avatarUrl === 'string' ? user.avatarUrl : null;
@@ -43,6 +44,7 @@ export function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [linkingProvider, setLinkingProvider] = useState<OAuthProvider | null>(null);
   const [unlinkingProvider, setUnlinkingProvider] = useState<OAuthProvider | null>(null);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const profileAutosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectedProviders = Array.isArray(user?.oauthProviders)
@@ -135,12 +137,9 @@ export function ProfilePage() {
       const accessToken = await resolveProviderAccessToken(provider);
       await dataSync.linkOauth(provider, accessToken);
       await refreshCurrentUser();
-      setStatusBanner({
-        kind: 'success',
-        message: `${provider} account linked.`,
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : `Failed to link ${provider} account.`,
       });
@@ -157,12 +156,9 @@ export function ProfilePage() {
     try {
       await dataSync.unlinkOauth(provider);
       await refreshCurrentUser();
-      setStatusBanner({
-        kind: 'success',
-        message: `${provider} account unlinked.`,
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : `Failed to unlink ${provider} account.`,
       });
@@ -257,13 +253,13 @@ export function ProfilePage() {
         setBio(typeof updatedUser.bio === 'string' ? updatedUser.bio : '');
       }
       if (!silentSuccess) {
-        setStatusBanner({
+        setFeedback({
           kind: 'success',
           message: t('Profile.updateSuccess'),
         });
       }
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('Profile.updateError'),
       });
@@ -279,21 +275,21 @@ export function ProfilePage() {
       return;
     }
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('Profile.avatarUnsupportedFormat'),
       });
       return;
     }
     if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('Profile.avatarSizeLimit'),
       });
       return;
     }
     if (!realmBaseUrl) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('Profile.avatarUploadUnavailable'),
       });
@@ -318,12 +314,12 @@ export function ProfilePage() {
         throw new Error(t('Profile.avatarUploadFailed'));
       }
       setAvatarUrl(nextAvatarUrl);
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: t('Profile.avatarUploadSuccess'),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('Profile.avatarUploadFailed'),
       });
@@ -371,6 +367,9 @@ export function ProfilePage() {
       title={t('Profile.pageTitle')}
       description={t('Profile.pageDescription')}
     >
+      {feedback ? (
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+      ) : null}
       <section className="sticky top-0 z-10 -mx-6 bg-white px-6 pb-4 pt-2">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 p-6 text-white shadow-lg">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />

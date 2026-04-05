@@ -1,17 +1,5 @@
 version: 1
 sidebars:
-  - id: chat.sidebar
-    module: features/chats/chat-list.tsx
-    surface_profile: baseline
-    family: desktop-sidebar-v1
-    item_kinds:
-      - entity-row
-    has_search: true
-    has_primary_action: false
-    has_sections: false
-    has_resize_handle: false
-    testid_required: true
-    source_rule: D-SHELL-023
   - id: contacts.sidebar
     module: features/contacts/contacts-view.tsx
     surface_profile: baseline

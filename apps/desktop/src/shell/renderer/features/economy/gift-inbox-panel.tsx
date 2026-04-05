@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   type CommerceGiftStatus,
 } from '@nimiplatform/nimi-kit/features/commerce/headless';
@@ -13,6 +14,7 @@ import { formatLocaleDate } from '@renderer/i18n';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
 import { useTranslation } from 'react-i18next';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 function formatGiftDate(input: string | null | undefined): string {
   const value = String(input || '').trim();
@@ -77,7 +79,7 @@ export function GiftInboxPanel() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const selectedGiftTransactionId = useAppStore((state) => state.selectedGiftTransactionId);
   const setSelectedGiftTransactionId = useAppStore((state) => state.setSelectedGiftTransactionId);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const currentUserId = String(currentUser?.id || '').trim();
   const {
@@ -102,7 +104,7 @@ export function GiftInboxPanel() {
     selectedGiftTransactionId,
     onActionSuccess: async (kind) => {
       await invalidateNotificationQueries();
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: kind === 'accept'
           ? t('GiftInbox.acceptedSuccess', { defaultValue: 'Gift accepted and credited to your wallet.' })
@@ -111,13 +113,13 @@ export function GiftInboxPanel() {
     },
     onError: (error, kind) => {
       if (kind === 'accept') {
-        setStatusBanner({
+        setFeedback({
           kind: 'error',
           message: toErrorMessage(error, t('GiftInbox.acceptError', { defaultValue: 'Failed to accept gift' })),
         });
       }
       if (kind === 'reject') {
-        setStatusBanner({
+        setFeedback({
           kind: 'error',
           message: toErrorMessage(error, t('GiftInbox.rejectError', { defaultValue: 'Failed to reject gift' })),
         });
@@ -214,6 +216,9 @@ export function GiftInboxPanel() {
         </div>
 
         <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-4 px-6 py-5">
+          {feedback ? (
+            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+          ) : null}
           <GiftInboxDetail
             gift={selectedGift}
             status={selectedGiftStatus}
@@ -305,6 +310,9 @@ export function GiftInboxPanel() {
       </div>
 
       <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-3 px-6 py-5">
+        {feedback ? (
+          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+        ) : null}
         <GiftInboxList
           items={giftItems}
           loading={listLoading}

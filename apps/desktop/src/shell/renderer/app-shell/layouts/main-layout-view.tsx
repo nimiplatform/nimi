@@ -174,6 +174,8 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const flags = getShellFeatureFlags();
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
+  const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
+  const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const isAnonymousShell = props.authStatus !== 'authenticated';
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
@@ -188,6 +190,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     label: t('Navigation.mods'),
     icon: renderShellNavIcon('puzzle'),
   };
+  const modsHasIssues = runtimeModFailures.length > 0 || Object.keys(fusedRuntimeMods).length > 0;
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
 
@@ -420,7 +423,10 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onOpenWallet={openWalletFromTitlebar}
         onOpenNotifications={openNotificationsFromTitlebar}
         onToggleSettingsMenu={toggleSettingsMenuFromTitlebar}
+        activeTab={props.activeTab}
         onLogin={props.onLogin}
+        onOpenChat={() => props.onNav('chat')}
+        onOpenRuntimeConfig={() => props.onNav('runtime')}
         onMouseDown={props.onTitlebarMouseDown}
       />
 
@@ -468,6 +474,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     item={modsNavItem}
                     active={props.activeTab === 'mods' || activeModTab}
                     collapsed
+                    badge={modsHasIssues ? <span className="inline-flex h-2 w-2 rounded-full bg-orange-500" /> : null}
                     onClick={() => props.onNav('mods')}
                   />
                 ) : null}

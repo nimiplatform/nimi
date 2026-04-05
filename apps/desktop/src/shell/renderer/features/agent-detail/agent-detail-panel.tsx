@@ -11,15 +11,16 @@ import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { toAgentDetailData } from './agent-detail-model.js';
 import { AgentDetailView } from './agent-detail-view.js';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export function AgentDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const navigateBack = useAppStore((state) => state.navigateBack);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const agentIdentifier = String(selectedProfileId || '').trim();
 
@@ -86,7 +87,7 @@ export function AgentDetailPanel() {
   const handleAddFriendClick = () => {
     if (!resolvedAgentId) return;
     if (agentLimitQuery.data && !agentLimitQuery.data.canAdd) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: agentLimitQuery.data.reason || i18n.t('Contacts.agentFriendLimitReachedShort', { defaultValue: 'Agent friend limit reached' }),
       });
@@ -97,13 +98,7 @@ export function AgentDetailPanel() {
 
   const handleAddFriendSubmit = async (agentId: string, _message?: string) => {
     await dataSync.requestOrAcceptFriend(agentId);
-    setStatusBanner({
-      kind: 'success',
-      message: i18n.t('Contacts.friendRequestSentOrAccepted', {
-        name: agent?.displayName || agent?.handle || i18n.t('AgentDetail.agentBadge', { defaultValue: 'Agent' }),
-        defaultValue: 'Friend request sent or accepted for {{name}}.',
-      }),
-    });
+    setFeedback(null);
     void agentLimitQuery.refetch();
   };
 
@@ -125,6 +120,11 @@ export function AgentDetailPanel() {
 
   return (
     <>
+      {feedback ? (
+        <div className="px-6 pt-4">
+          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+        </div>
+      ) : null}
       <AgentDetailView
         agent={agent!}
         stats={stats}
@@ -165,13 +165,7 @@ export function AgentDetailPanel() {
         receiverAvatarUrl={agent?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: i18n.t('Contacts.giftSentTo', {
-              name: agent?.displayName || agent?.handle || i18n.t('AgentDetail.agentBadge', { defaultValue: 'Agent' }),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
+          setFeedback(null);
         }}
       />
       <QuickAddFriendModal

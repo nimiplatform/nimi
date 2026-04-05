@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-04
+> 生成时间: 2026-04-05
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -1716,6 +1716,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 只有 source development 的 runtime 模式才允许 `go run ./cmd/nimi` / `PATH` 解析流程。
 - 只有 shell 级致命错误才进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
+- `runtime_defaults.realm.accessToken` 仅是 operator/debug override 输入，不是 canonical persisted login source。
 
 ### Runtime JWT Config Sync
 
@@ -1739,9 +1740,10 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 **D-BOOT-002 — Platform Client 初始化**
 
-使用 `D-BOOT-001` 获取的 realmBaseUrl 和 accessToken 初始化 SDK 根导出的 `createPlatformClient()`。
+使用 `D-BOOT-001` 获取的 realmBaseUrl 与 resolved bootstrap auth session 初始化 SDK 根导出的 `createPlatformClient()`。
 
 - 必须在 DataSync 初始化之前完成。
+- resolved bootstrap auth session 的优先级：env override → `auth_session_load` 读取的共享持久会话 → anonymous。
 
 **D-BOOT-003 — DataSync Facade 初始化**
 
@@ -1786,6 +1788,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 - 成功时设置 `auth.status = 'authenticated'`。
 - 失败时设置 `auth.status = 'anonymous'`。
+- source=`persisted` 且 bootstrap 期间发生 unauthorized / decrypt / schema 失败时，必须清空共享 auth session 文件。
 - `auth.status = 'anonymous'` 时，desktop shell 仍进入主壳并默认落到 `AI Runtime`；外层主导航隐藏，右上角提供显式 `Login` 入口，登录页可返回当前 Runtime 子页。
 
 阶段 ⑧ 设置 `bootstrapReady` / `bootstrapError` 标志，失败时清除 auth 状态。整个启动链有一个关键的幂等性守卫：`bootstrapPromise` 单例确保 bootstrap 全局只执行一次——即使在 HMR（热模块替换）场景下重复触发也安全。
@@ -1845,13 +1848,18 @@ IPC 层的基础设施先于具体命令。统一的 `invoke()` 入口先检查 
 
 **Runtime Defaults 命令** — `runtime_defaults` 返回 realm 和运行时执行默认值，采用防御性解析：
 
-**D-IPC-001 — Runtime Defaults 命令**
+**D-IPC-001 — Bootstrap / Auth Session 命令**
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
 - `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
+
+共享 auth session 命令集：
+- `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
+- `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
+- `auth_session_clear`：删除共享 auth session 文件。
 
 **Daemon 生命周期命令** — status、start、stop、restart，报告 `launchMode`：
 
@@ -2120,17 +2128,24 @@ Auth 状态机
 
 `bootstrapAuthSession` 在启动序列中执行（`D-BOOT-007`）。
 
-- 输入：`flowId`（追踪 ID）、`accessToken`（若当前 bootstrap 上下文显式提供）。
+- Desktop 冷启动解析顺序固定为：
+  - `runtime_defaults.realm.accessToken` 若存在，则仅作为本次运行的显式 override。
+  - 否则调用共享 Tauri IPC `auth_session_load` 读取 `~/.nimi/auth/session.v1.json`。
+  - 两者都缺失时进入匿名启动。
+- 输入：`flowId`（追踪 ID）、resolved bootstrap session（`accessToken`、`refreshToken?`、source=`env|persisted|anonymous`）。
 - 成功时：设置 `auth.status = 'authenticated'`、存储 token。
-- 失败时：设置 `auth.status = 'anonymous'`、清除 token。
+- 失败时：设置 `auth.status = 'anonymous'`、清除 token；若 source=`persisted` 且为 401 / decrypt / schema 失败，则必须调用 `auth_session_clear` 清空共享持久会话。
 
 **D-AUTH-002 — Token 持久化（Desktop）**
 
-Desktop 环境通过 Tauri backend / runtime host 热状态持久化 token：
+Desktop 环境的长期会话真源是共享 Tauri backend auth session 存储：
 
-- 获取：运行时 host / data-sync 热状态提供当前会话 token；`runtime_defaults` 不作为 bearer token 的长期持久化渠道。
-- 更新：DataSync facade 的 `setToken()` 同步到热状态和 Zustand store。
-- 清除：`clearAuthSession()` 清空 store 并停止所有轮询。
+- 路径：`~/.nimi/auth/session.v1.json`。
+- 记录：`schemaVersion`、`realmBaseUrl`、`user`、`updatedAt`、`expiresAt`、`accessTokenCiphertext`、`refreshTokenCiphertext?`。
+- 获取：renderer 只通过 `auth_session_load` 读取已解密的 normalized session；`runtime_defaults` 不作为 bearer token 的长期持久化渠道。
+- 更新：登录成功、2FA 完成、OTP 完成、wallet 登录成功、SDK `onTokenRefreshed`、DataSync proactive refresh 成功后，必须立即调用 `auth_session_save` 原子覆盖整个会话。
+- 清除：logout、refresh 失败、bootstrap unauthorized、schema/decrypt 失败时必须调用 `auth_session_clear`。
+- `DataSyncHotState` 与 Zustand store 只是进程内 / HMR 缓存，不是 desktop 长期持久化真源。
 
 **D-AUTH-003 — Token 持久化（Web）**
 
@@ -2731,7 +2746,7 @@ Mods Panel（`features/mods/mods-panel.tsx`）直接承载单页 Mod Hub：
 - **右侧 content**：根据 `activeTab` 渲染对应面板。
 
 Content 面板映射：
-- `chat` → `ChatList` + `MessageTimeline` + `TurnInput`
+- `chat` → `ChatPage`
 - `contacts` → `ContactsPanel`
 - `world` → `WorldList`
 - `explore` → `ExplorePanel`
@@ -3007,7 +3022,11 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
 **D-SEC-002 — Bearer Token 管理**
 
 - Token 存储在 Zustand store `auth.token` 字段。
-- DataSync 热状态中保持 token 副本。
+- DataSync 热状态中保持 token 副本，但该热状态仅用于进程内 / HMR 连续性，不是长期持久化真源。
+- Desktop 长期持久化层固定为 `~/.nimi/auth/session.v1.json`，其中 accessToken / refreshToken 只允许以 ciphertext 形式落盘。
+- 加密密钥必须存放在 OS secure store（共享 service/account，versioned）。
+- session 文件写入必须原子替换；平台支持时要求 owner-only 权限。
+- secure-store 读取失败、ciphertext 解密失败、schema 校验失败时必须 fail-close，不得回退到明文或猜测恢复。
 - Token 更新通过 `setToken()` 同步到所有消费者。
 - Token 清除触发：logout、auth 失败、bootstrap 错误。
 
@@ -3015,7 +3034,7 @@ Desktop 的安全策略由 5 层纵深防御构成，从最基础的网络限制
 
 Web 环境 session 存储安全约束（参考 `D-AUTH-003`）：
 
-- localStorage 不得持久化 raw access token；浏览器持久化层只允许保存非敏感会话元数据并设置合理过期时间。
+- localStorage 不得持久化 raw access token 或 raw refresh token；浏览器持久化层只允许保存非敏感会话元数据并设置合理过期时间。
 - 敏感页面（economy、auth）需在操作前重新验证 token 有效性。
 - 禁止将 token 写入 cookie 以避免 CSRF 风险。
 - logout 操作必须清除所有 localStorage 中的认证数据。
@@ -4031,6 +4050,9 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | 命令 | 描述 |
 |---|---|
 | runtime_defaults | Get realm and runtime execution defaults |
+| auth_session_load | Load the shared encrypted desktop auth session from ~/.nimi/auth/session.v1.json |
+| auth_session_save | Atomically overwrite the shared encrypted desktop auth session |
+| auth_session_clear | Delete the shared desktop auth session file |
 | desktop_release_info_get | Read validated desktop release metadata for the packaged shell + bundled runtime unit |
 | desktop_update_state_get | Read current desktop updater state machine snapshot |
 | desktop_update_check | Check GitHub release metadata for a newer packaged desktop update |

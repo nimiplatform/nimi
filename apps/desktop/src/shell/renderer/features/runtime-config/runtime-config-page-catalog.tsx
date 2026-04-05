@@ -5,7 +5,6 @@ import {
 import {
   useRuntimeModelPickerPanel,
 } from '@nimiplatform/nimi-kit/features/model-picker/runtime';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
@@ -26,8 +25,12 @@ import {
   type RuntimeModelCatalogProvider,
 } from './runtime-config-catalog-sdk-service';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
-type CatalogPageProps = { state: RuntimeConfigStateV11 };
+type CatalogPageProps = {
+  model: RuntimeConfigPanelControllerModel;
+  state: RuntimeConfigStateV11;
+};
 
 type VoiceRow = {
   voiceId: string;
@@ -142,8 +145,7 @@ function sourceTone(source: RuntimeModelCatalogProvider['source'] | RuntimeCatal
   return 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]';
 }
 
-export function CatalogPage({ state: _state }: CatalogPageProps) {
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+export function CatalogPage({ model, state: _state }: CatalogPageProps) {
   const [providers, setProviders] = useState<RuntimeModelCatalogProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [providerModels, setProviderModels] = useState<RuntimeCatalogProviderModelsResponse | null>(null);
@@ -161,9 +163,9 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       setProviders(rows);
       setSelectedProviderId((current) => (current && rows.some((row) => row.provider === current) ? current : rows[0]?.provider || ''));
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Catalog load failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Catalog load failed: ${error instanceof Error ? error.message : String(error || '')}` });
     }
-  }, [setStatusBanner]);
+  }, [model]);
 
   const selectedProvider = useMemo(() => providers.find((provider) => provider.provider === selectedProviderId) || null, [providers, selectedProviderId]);
 
@@ -175,11 +177,11 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       setProviderModels(response);
       setOverlayYamlDraft(response.provider.yaml || '');
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Model list load failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Model list load failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setLoadingModels(false);
     }
-  }, [setStatusBanner]);
+  }, [model]);
 
   useEffect(() => { void loadProviders(); }, [loadProviders]);
   useEffect(() => { if (selectedProviderId) void loadProviderModels(selectedProviderId); }, [loadProviderModels, selectedProviderId]);
@@ -188,7 +190,7 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   const onSaveOverlayYaml = useCallback(async () => {
     if (!selectedProvider) return;
     if (!overlayYamlDraft.trim()) {
-      setStatusBanner({ kind: 'error', message: 'Overlay YAML cannot be empty.' });
+      model.setPageFeedback({ kind: 'error', message: 'Overlay YAML cannot be empty.' });
       return;
     }
     setSavingOverlayYaml(true);
@@ -197,13 +199,13 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
-      setStatusBanner({ kind: 'success', message: `Overlay YAML saved for ${selectedProvider.provider}.` });
+      model.setPageFeedback({ kind: 'success', message: `Overlay YAML saved for ${selectedProvider.provider}.` });
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Overlay YAML save failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Overlay YAML save failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setSavingOverlayYaml(false);
     }
-  }, [loadProviderModels, loadProviders, overlayYamlDraft, selectedProvider, setStatusBanner]);
+  }, [loadProviderModels, loadProviders, model, overlayYamlDraft, selectedProvider]);
 
   const onDeleteOverlayYaml = useCallback(async () => {
     if (!selectedProvider) return;
@@ -213,13 +215,13 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
-      setStatusBanner({ kind: 'success', message: `Overlay removed for ${selectedProvider.provider}.` });
+      model.setPageFeedback({ kind: 'success', message: `Overlay removed for ${selectedProvider.provider}.` });
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Overlay remove failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Overlay remove failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setSavingOverlayYaml(false);
     }
-  }, [loadProviderModels, loadProviders, selectedProvider, setStatusBanner]);
+  }, [loadProviderModels, loadProviders, model, selectedProvider]);
 
   const onDeleteModel = useCallback(async (modelId: string) => {
     if (!selectedProvider) return;
@@ -229,13 +231,13 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       emitModelCatalogUpdated(selectedProvider.provider);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
-      setStatusBanner({ kind: 'success', message: `Custom model removed: ${modelId}.` });
+      model.setPageFeedback({ kind: 'success', message: `Custom model removed: ${modelId}.` });
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Delete model failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Delete model failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setDeletingModelId('');
     }
-  }, [loadProviderModels, loadProviders, selectedProvider, setStatusBanner]);
+  }, [loadProviderModels, loadProviders, model, selectedProvider]);
 
   const onSubmitModel = useCallback(async () => {
     if (!selectedProvider) return;
@@ -283,13 +285,13 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       setShowAddModel(false);
       await loadProviders();
       await loadProviderModels(selectedProvider.provider);
-      setStatusBanner({ kind: 'success', message: `Custom model saved for ${selectedProvider.provider}.` });
+      model.setPageFeedback({ kind: 'success', message: `Custom model saved for ${selectedProvider.provider}.` });
     } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Save model failed: ${error instanceof Error ? error.message : String(error || '')}` });
+      model.setPageFeedback({ kind: 'error', message: `Save model failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
       setSavingModel(false);
     }
-  }, [formState, loadProviderModels, loadProviders, selectedProvider, setStatusBanner]);
+  }, [formState, loadProviderModels, loadProviders, model, selectedProvider]);
 
   return (
     <RuntimePageShell className="space-y-4">

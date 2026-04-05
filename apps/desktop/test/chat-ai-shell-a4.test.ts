@@ -8,6 +8,10 @@ import {
   resolveThreadTitleAfterFirstSend,
   toAiRouteSnapshotFromResolvedRoute,
 } from '../src/shell/renderer/features/chat/chat-ai-thread-model.js';
+import {
+  resolveAiChatThinkingSupport,
+  resolveChatThinkingConfig,
+} from '../src/shell/renderer/features/chat/chat-thinking.js';
 import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types.js';
 import type { RuntimeFieldMap } from '../src/shell/renderer/app-shell/providers/store-types.js';
 
@@ -164,6 +168,7 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
     },
     prompt: 'hello',
     threadId: 'thread-local',
+    reasoningPreference: 'off',
     runtimeConfigState: state,
     runtimeFields: createRuntimeFields(),
   }, {
@@ -202,6 +207,7 @@ test('chat ai a4: invoke runtime hydrates cloud model ids from connector state w
     },
     prompt: 'hello cloud',
     threadId: 'thread-cloud',
+    reasoningPreference: 'off',
     runtimeConfigState: state,
     runtimeFields: createRuntimeFields(),
   }, {
@@ -233,5 +239,46 @@ test('chat ai a4: first successful send replaces placeholder thread title', () =
   assert.equal(
     resolveThreadTitleAfterFirstSend('Existing title', 'ignored'),
     'Existing title',
+  );
+});
+
+test('chat ai a4: thinking support stays fail-close except for ollama cloud routes', () => {
+  assert.deepEqual(
+    resolveAiChatThinkingSupport({
+      routeKind: 'local',
+      connectorId: null,
+      provider: null,
+      modelId: null,
+      routeBinding: null,
+    }),
+    {
+      supported: false,
+      reason: 'local_managed_unsupported',
+    },
+  );
+
+  assert.deepEqual(
+    resolveAiChatThinkingSupport({
+      routeKind: 'cloud',
+      connectorId: 'connector-ollama',
+      provider: 'ollama',
+      modelId: 'qwen3:4b',
+      routeBinding: null,
+    }),
+    {
+      supported: true,
+      reason: null,
+    },
+  );
+
+  assert.deepEqual(
+    resolveChatThinkingConfig('on', {
+      supported: false,
+      reason: 'provider_unsupported',
+    }),
+    {
+      mode: 'off',
+      traceMode: 'hide',
+    },
   );
 });

@@ -18,7 +18,6 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
   const closeModWorkspaceTab = useAppStore((state) => state.closeModWorkspaceTab);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const touchModWorkspaceTab = useAppStore((state) => state.touchModWorkspaceTab);
   const modWorkspaceTabs = useAppStore((state) => state.modWorkspaceTabs);
   const markRuntimeModFused = useAppStore((state) => state.markRuntimeModFused);
@@ -49,7 +48,6 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
         const result = openModWorkspaceTab(tabId, title, modId);
         if (result === 'rejected-limit') {
           showModTabLimitBanner({
-            setStatusBanner,
             setActiveTab: (tab) => {
               setActiveTab(tab);
             },
@@ -86,7 +84,6 @@ export function useUiExtensionContext(options: UseUiExtensionContextOptions = {}
       options.sidebarCollapsed,
       openModWorkspaceTab,
       setActiveTab,
-      setStatusBanner,
       touchModWorkspaceTab,
       runtimeFields,
       setRuntimeFields,

@@ -19,6 +19,7 @@ import {
 import { ContactsView } from './contacts-view';
 import { AddContactModal } from './add-contact-modal';
 import { resolveAgentFriendLimit } from './agent-friend-limit';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -39,11 +40,11 @@ export function ContactsPanel() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
   const [activeFilter, setActiveFilter] = useState<TabFilter>(() => loadStoredContactsFilter('humans'));
   const [addContactOpen, setAddContactOpen] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', authStatus],
@@ -161,22 +162,16 @@ export function ContactsPanel() {
       }
       await dataSync.requestOrAcceptFriend(candidate.id, message);
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.friendRequestSentOrAccepted', {
-          name: candidate.displayName,
-          defaultValue: 'Friend request sent or accepted for {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
       const message = toErrorMessage(error, t('Contacts.addContactFailed', { defaultValue: 'Failed to add contact' }));
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message,
       });
       throw error instanceof Error ? error : new Error(message);
     }
-  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, setStatusBanner, t]);
+  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, t]);
 
   const onViewRequestProfile = useCallback((request: ContactRequestRecord) => {
     navigateToProfile(request.id, request.isAgent ? 'agent-detail' : 'profile');
@@ -189,77 +184,53 @@ export function ContactsPanel() {
       }
       await dataSync.requestOrAcceptFriend(request.userId);
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.requestAccepted', {
-          name: request.displayName,
-          defaultValue: 'Accepted request from {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' })),
       });
     }
-  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, setStatusBanner, t]);
+  }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, t]);
 
   const onRejectRequest = useCallback(async (request: ContactRequestRecord) => {
     try {
       await dataSync.rejectOrRemoveFriend(request.userId);
       await refetchContacts();
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.requestRejected', {
-          name: request.displayName,
-          defaultValue: 'Rejected request from {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' })),
       });
     }
-  }, [refetchContacts, setStatusBanner, t]);
+  }, [refetchContacts, t]);
 
   const onCancelRequest = useCallback(async (request: ContactRequestRecord) => {
     try {
       await dataSync.rejectOrRemoveFriend(request.userId);
       await refetchContacts();
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.requestCancelled', {
-          name: request.displayName,
-          defaultValue: 'Cancelled request to {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.cancelRequestFailed', { defaultValue: 'Failed to cancel friend request' })),
       });
     }
-  }, [refetchContacts, setStatusBanner, t]);
+  }, [refetchContacts, t]);
 
   const onRemoveFriend = useCallback(async (contact: ContactRecord) => {
     try {
       await dataSync.rejectOrRemoveFriend(contact.id);
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.friendRemoved', {
-          name: contact.displayName,
-          defaultValue: 'Removed {{name}} from your friends.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
     }
-  }, [refetchContacts, agentLimitQuery.refetch, setStatusBanner, t]);
+  }, [refetchContacts, agentLimitQuery.refetch, t]);
 
   const onBlockFriend = useCallback(async (contact: ContactRecord) => {
     try {
@@ -277,20 +248,14 @@ export function ContactsPanel() {
         tags: contact.tags,
       });
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.userBlocked', {
-          name: contact.displayName,
-          defaultValue: 'Blocked {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
     }
-  }, [refetchContacts, agentLimitQuery.refetch, setStatusBanner, t]);
+  }, [refetchContacts, agentLimitQuery.refetch, t]);
 
   const onUnblockUser = useCallback(async (contact: ContactRecord) => {
     try {
@@ -308,20 +273,14 @@ export function ContactsPanel() {
         tags: contact.tags,
       });
       await refetchContacts();
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.userUnblocked', {
-          name: contact.displayName,
-          defaultValue: 'Unblocked {{name}}.',
-        }),
-      });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.unblockUserFailed', { defaultValue: 'Failed to unblock user' })),
       });
     }
-  }, [refetchContacts, setStatusBanner, t]);
+  }, [refetchContacts, t]);
 
   const onMessage = useCallback(async (contact: ContactRecord) => {
     if (contact.isAgent) {
@@ -343,12 +302,12 @@ export function ContactsPanel() {
       });
       setActiveTab('chat');
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' })),
       });
     }
-  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, setStatusBanner, t]);
+  }, [queryClient, setActiveTab, setRuntimeFields, setSelectedChatId, t]);
 
   return (
     <>
@@ -367,6 +326,8 @@ export function ContactsPanel() {
         filteredRequests={filteredRequests}
         loading={contactsQuery.isPending}
         error={contactsQuery.isError}
+        feedback={feedback}
+        onDismissFeedback={() => setFeedback(null)}
         onSearchTextChange={setSearchText}
         onFilterChange={onFilterChange}
         onMessage={(contact) => {

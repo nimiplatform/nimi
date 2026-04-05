@@ -39,6 +39,7 @@ export type TestConnectorCommandContext = {
   testingConnector: boolean;
   updateState: RuntimeConfigStateUpdater;
   setStatusBanner: (next: StatusBanner | null) => void;
+  setControlFeedback: (next: StatusBanner | null) => void;
 };
 
 export type RuntimeConfigPanelProviderCommandFactories = {

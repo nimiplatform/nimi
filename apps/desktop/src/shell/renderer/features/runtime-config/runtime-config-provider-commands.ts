@@ -50,14 +50,14 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
       state: input.state,
       selectedConnector: input.selectedConnector,
       updateState: input.updateState,
-      setStatusBanner: input.setStatusBanner,
+      setControlFeedback: input.setControlFeedback,
     });
   } catch (error) {
     markSelectedConnectorTestFailedCommand({
       state: input.state,
       selectedConnector: input.selectedConnector,
       updateState: input.updateState,
-      setStatusBanner: input.setStatusBanner,
+      setControlFeedback: input.setControlFeedback,
       error,
     });
   }

@@ -14,6 +14,10 @@ import {
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
 } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
+import {
+  resolveAgentChatThinkingSupport,
+  resolveChatThinkingConfig,
+} from '../src/shell/renderer/features/chat/chat-thinking.js';
 import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
 
 function readWorkspaceFile(relativePath: string): string {
@@ -153,6 +157,7 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
     agentId: 'agent-1',
     prompt: 'hello',
     threadId: 'thread-1',
+    reasoningPreference: 'off',
     routeResult: {
       channel: 'LOCAL',
       providerSelectable: false,
@@ -191,11 +196,79 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
   assert.equal(result.text, 'hi');
 });
 
+test('agent local mode keeps thinking unsupported and forces effective off config', () => {
+  assert.deepEqual(resolveAgentChatThinkingSupport(), {
+    supported: false,
+    reason: 'agent_route_unsupported',
+  });
+  assert.deepEqual(
+    resolveChatThinkingConfig('on', resolveAgentChatThinkingSupport()),
+    {
+      mode: 'off',
+      traceMode: 'hide',
+    },
+  );
+});
+
 test('agent shell stays desktop-owned and uses social snapshot plus local agent store', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+  const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
   assert.match(adapterSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterSource, /chatAgentStoreClient\.createThread/);
-  assert.match(adapterSource, /streamChatAgentRuntime/);
+  assert.match(adapterSource, /chatAgentStoreClient\.commitTurnResult/);
+  assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
+  assert.match(adapterSource, /matchConversationTurnEvent/);
+  assert.match(adapterSource, /createInitialAgentSubmitDriverState/);
+  assert.match(adapterSource, /reduceAgentSubmitDriverEvent/);
+  assert.match(adapterSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
+  assert.match(adapterSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
+  assert.match(adapterSource, /resolveAgentSubmitDriverProjectionRefresh/);
+  assert.match(adapterSource, /useAgentConversationEffects/);
+  assert.match(adapterSource, /useAgentConversationPresentation/);
+  assert.match(adapterSource, /resolveAuthoritativeAgentThreadBundle/);
+  assert.match(adapterSource, /assertAgentTurnLifecycleCompleted/);
+  assert.match(adapterSource, /setSubmittingThreadId\(activeThreadId\)/);
+  assert.match(adapterSource, /setFooterHostState\(activeThreadId,\s*null\)/);
+  assert.match(adapterSource, /finally\s*\{\s*setSubmittingThreadId\(null\);/);
+  assert.match(adapterSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
+  assert.match(adapterSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
+  assert.match(adapterSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
+  assert.match(presentationSource, /resolveAgentFooterViewState/);
+  assert.match(presentationSource, /resolveAgentConversationSurfaceState/);
+  assert.match(presentationSource, /resolveAgentConversationHostView/);
+  assert.match(presentationSource, /resolveAgentConversationHostSnapshot/);
+  assert.match(presentationSource, /resolveAgentTargetSummaries/);
+  assert.match(presentationSource, /resolveAgentCanonicalMessages/);
+  assert.match(presentationSource, /resolveAgentSelectedTargetId/);
+  assert.match(effectsSource, /applyDriverEffects/);
+  assert.match(effectsSource, /applyHostInteractionPatch/);
+  assert.doesNotMatch(adapterSource, /streamState\s*&&\s*streamState\.phase === 'waiting'/);
+  assert.doesNotMatch(adapterSource, /streamState\s*&&\s*\(streamState\.phase === 'waiting' \|\| streamState\.phase === 'streaming'\)/);
+  assert.doesNotMatch(adapterSource, /overlayAgentAssistantVisibleState/);
+  assert.doesNotMatch(adapterSource, /createInitialAgentSubmitSessionState/);
+  assert.doesNotMatch(adapterSource, /reduceAgentSubmitSessionEvent/);
+  assert.doesNotMatch(adapterSource, /resolveCompletedAgentSubmitSession/);
+  assert.doesNotMatch(adapterSource, /resolveInterruptedAgentSubmitSession/);
+  assert.doesNotMatch(adapterSource, /resolveProjectionRefreshAgentSubmitSession/);
+  assert.doesNotMatch(adapterSource, /resolveCompletedAgentSubmitHostFlow/);
+  assert.doesNotMatch(adapterSource, /resolveInterruptedAgentSubmitHostFlow/);
+  assert.doesNotMatch(adapterSource, /resolveAgentProjectionRefreshOutcome/);
+  assert.doesNotMatch(adapterSource, /resolveCompletedAgentHostInteraction/);
+  assert.doesNotMatch(adapterSource, /resolveInterruptedAgentHostInteraction/);
+  assert.doesNotMatch(adapterSource, /resolveProjectionRefreshAgentHostInteraction/);
+  assert.doesNotMatch(adapterSource, /applyAuthoritativeBundle/);
+  assert.doesNotMatch(adapterSource, /applySubmitOutcome/);
+  assert.doesNotMatch(adapterSource, /if \(!refreshOutcome\.hostInteractionPatch\)/);
+  assert.doesNotMatch(adapterSource, /let streamedText =/);
+  assert.doesNotMatch(adapterSource, /let streamedReasoningText =/);
+  assert.doesNotMatch(adapterSource, /let runtimeTraceId =/);
+  assert.doesNotMatch(adapterSource, /let promptTraceId =/);
+  assert.doesNotMatch(adapterSource, /let assistantVisible =/);
+  assert.doesNotMatch(adapterSource, /let workingBundle =/);
+  assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createMessage/);
+  assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.updateMessage/);
   assert.doesNotMatch(adapterSource, /relay:/);
-  assert.doesNotMatch(adapterSource, /local-chat/);
+  assert.doesNotMatch(adapterSource, /nimi-mods\/runtime\/local-chat/);
+  assert.doesNotMatch(adapterSource, /RuntimeStatusSidebar/);
 });

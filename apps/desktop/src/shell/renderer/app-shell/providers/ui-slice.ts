@@ -9,7 +9,10 @@ import {
   EMPTY_AGENT_CONVERSATION_SELECTION,
   EMPTY_AI_CONVERSATION_SELECTION,
 } from '@renderer/features/chat/chat-shell-types';
+import { loadStoredChatThinkingPreference, persistStoredChatThinkingPreference } from '@renderer/features/chat/chat-settings-storage';
 import type { AppStoreSet, AppStoreState } from './store-types';
+
+const initialChatThinkingPreference = loadStoredChatThinkingPreference();
 
 type UiSlice = Pick<AppStoreState,
   | 'bootstrapReady'
@@ -20,6 +23,7 @@ type UiSlice = Pick<AppStoreState,
   | 'activeTab'
   | 'previousTab'
   | 'chatMode'
+  | 'chatThinkingPreference'
   | 'chatSourceFilter'
   | 'selectedTargetBySource'
   | 'viewModeBySourceTarget'
@@ -36,6 +40,7 @@ type UiSlice = Pick<AppStoreState,
   | 'chatProfilePanelTarget'
   | 'offlineTier'
   | 'statusBanner'
+  | 'modsFeedback'
   | 'setOfflineTier'
   | 'setBootstrapReady'
   | 'setBootstrapError'
@@ -44,6 +49,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setDesktopUpdateState'
   | 'setActiveTab'
   | 'setChatMode'
+  | 'setChatThinkingPreference'
   | 'setChatSourceFilter'
   | 'setSelectedTargetForSource'
   | 'setChatViewMode'
@@ -63,6 +69,7 @@ type UiSlice = Pick<AppStoreState,
   | 'navigateToGiftInbox'
   | 'navigateBack'
   | 'setStatusBanner'
+  | 'setModsFeedback'
 >;
 
 export function createUiSlice(set: AppStoreSet): UiSlice {
@@ -75,6 +82,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     activeTab: 'chat',
     previousTab: null,
     chatMode: 'ai',
+    chatThinkingPreference: initialChatThinkingPreference,
     chatSourceFilter: DEFAULT_CHAT_SOURCE_FILTER,
     selectedTargetBySource: { ...DEFAULT_SELECTED_TARGET_BY_SOURCE },
     viewModeBySourceTarget: { ...DEFAULT_VIEW_MODE_BY_SOURCE_TARGET },
@@ -91,6 +99,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
     statusBanner: null,
+    modsFeedback: null,
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
     setBootstrapError: (message) => set({ bootstrapError: message }),
@@ -106,6 +115,11 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
       startTransition(() => {
         set({ chatMode: mode });
       });
+    },
+    setChatThinkingPreference: (preference) => {
+      const normalizedPreference = preference === 'on' ? 'on' : 'off';
+      persistStoredChatThinkingPreference(normalizedPreference);
+      set({ chatThinkingPreference: normalizedPreference });
     },
     setChatSourceFilter: (filter) => {
       startTransition(() => {
@@ -228,5 +242,6 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         };
       }),
     setStatusBanner: (banner) => set({ statusBanner: banner }),
+    setModsFeedback: (banner) => set({ modsFeedback: banner }),
   };
 }

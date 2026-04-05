@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { runtimeSlotRegistry } from '@renderer/mod-ui/registry/slot-registry';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { i18n } from '@renderer/i18n';
 import type {
   UiExtensionContext,
   UiExtensionRegistration,
@@ -59,7 +58,7 @@ export function SlotHost(props: SlotHostProps) {
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
   const setRuntimeModFailures = useAppStore((state) => state.setRuntimeModFailures);
   const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const setModsFeedback = useAppStore((state) => state.setModsFeedback);
   const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
 
   useEffect(() => {
@@ -80,7 +79,7 @@ export function SlotHost(props: SlotHostProps) {
         runtimeModDisabledIds,
         runtimeModUninstalledIds,
         setRuntimeModFailures,
-        setStatusBanner,
+        setStatusBanner: setModsFeedback,
       });
     } finally {
       setRetryingModId(null);
@@ -91,7 +90,7 @@ export function SlotHost(props: SlotHostProps) {
     runtimeModDisabledIds,
     runtimeModUninstalledIds,
     setRuntimeModFailures,
-    setStatusBanner,
+    setModsFeedback,
   ]);
 
   const handleRenderFailure = useCallback((entry: UiExtensionRegistration, error: unknown) => {
@@ -106,14 +105,6 @@ export function SlotHost(props: SlotHostProps) {
     const mergedMessage = mergedChain.join(' -> ') || 'render failed';
 
     context.markModFused(entry.modId, mergedMessage, 'render');
-    setStatusBanner({
-      kind: 'warning',
-      message: i18n.t('ModUI.renderFailedWithChain', {
-        modId: entry.modId,
-        chain: mergedMessage,
-        defaultValue: `Mod ${entry.modId} render failed, error chain: ${mergedMessage}`,
-      }),
-    });
     logRendererEvent({
       level: 'warn',
       area: 'mod-ui',
@@ -125,7 +116,7 @@ export function SlotHost(props: SlotHostProps) {
         errorChain: mergedChain,
       },
     });
-  }, [context, runtimeModFailures, setStatusBanner, slot]);
+  }, [context, runtimeModFailures, slot]);
 
   const renderEntry = useCallback((entry: UiExtensionRegistration, entryBase: ReactNode) => {
     return renderSlotEntry({

@@ -576,7 +576,7 @@ function checkRendererDesignTables() {
       hasWorldException = true;
     }
   }
-  for (const requiredModule of ['features/chats/chat-list.tsx', 'features/explore/explore-view.tsx', 'features/contacts/contacts-view.tsx']) {
+  for (const requiredModule of ['features/chat/chat-page.tsx', 'features/explore/explore-view.tsx', 'features/contacts/contacts-view.tsx']) {
     if (!baselineModules.has(requiredModule)) {
       fail(`${surfacesPath} missing baseline module: ${requiredModule}`);
     }
@@ -611,7 +611,6 @@ function checkRendererDesignTables() {
     fail(`${sidebarsPath} must define at least one sidebar row`);
   }
   const requiredSidebarModules = new Set([
-    'features/chats/chat-list.tsx',
     'features/contacts/contacts-view.tsx',
     'features/runtime-config/runtime-config-panel-view.tsx',
     'features/settings/settings-panel-body.tsx',

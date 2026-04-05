@@ -7,6 +7,7 @@ import {
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
 } from '@nimiplatform/nimi-kit/ui';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 /* ------------------------------------------------------------------ */
 /*  Card — thin wrapper around kit Surface with tone="card"           */
@@ -159,4 +160,13 @@ export function StatusBadge({
       {text}
     </KitStatusBadge>
   );
+}
+
+export function FormFeedback(props: {
+  feedback: InlineFeedbackState | null;
+  title?: string;
+  onDismiss?: () => void;
+  className?: string;
+}) {
+  return <InlineFeedback {...props} />;
 }

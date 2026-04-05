@@ -9,6 +9,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   type NotificationFilterTab,
   type NotificationItemView,
@@ -78,8 +79,8 @@ function toErrorMessage(error: unknown, fallback: string): string {
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const { t } = useTranslation();
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [activeFilter, setActiveFilter] = useState<NotificationFilterTab>('all');
   const [rejectingItem, setRejectingItem] = useState<NotificationItemView | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -207,7 +208,7 @@ export function NotificationPanel() {
         return next;
       });
       updateUnreadCount(previousUnreadCount);
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('NotificationPanel.markReadError')),
       });
@@ -238,7 +239,7 @@ export function NotificationPanel() {
     } catch (error) {
       setReadOverrides(previousReadOverrides);
       updateUnreadCount(previousUnreadCount);
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('NotificationPanel.markAllReadError')),
       });
@@ -269,13 +270,15 @@ export function NotificationPanel() {
       await refreshNotifications();
       input.onSuccess?.();
       if (input.successMessage) {
-        setStatusBanner({
+        setFeedback({
           kind: 'success',
           message: input.successMessage,
         });
+      } else {
+        setFeedback(null);
       }
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, input.errorMessage),
       });
@@ -290,7 +293,7 @@ export function NotificationPanel() {
 
   const acceptFriendRequest = async (item: NotificationItemView) => {
     if (!item.actorId) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
       });
@@ -304,17 +307,13 @@ export function NotificationPanel() {
       task: async () => {
         await dataSync.requestOrAcceptFriend(actorId);
       },
-      successMessage: t('Contacts.requestAccepted', {
-        name: item.actorName,
-        defaultValue: 'Accepted request from {{name}}.',
-      }),
       errorMessage: t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
     });
   };
 
   const rejectFriendRequest = async (item: NotificationItemView) => {
     if (!item.actorId) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
       });
@@ -328,10 +327,6 @@ export function NotificationPanel() {
       task: async () => {
         await dataSync.rejectOrRemoveFriend(actorId);
       },
-      successMessage: t('Contacts.requestRejected', {
-        name: item.actorName,
-        defaultValue: 'Rejected request from {{name}}.',
-      }),
       errorMessage: t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
     });
   };
@@ -385,7 +380,6 @@ export function NotificationPanel() {
           rating,
         });
       },
-      successMessage: t('NotificationPanel.reviewSubmitted'),
       errorMessage: t('NotificationPanel.reviewError'),
     });
   };
@@ -397,7 +391,7 @@ export function NotificationPanel() {
     try {
       await notificationsQuery.fetchNextPage();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('NotificationPanel.loadMoreError')),
       });
@@ -598,6 +592,11 @@ export function NotificationPanel() {
           </Button>
         ))}
         </div>
+        {feedback ? (
+          <div className="pb-4">
+            <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+          </div>
+        ) : null}
       </div>
 
       <ScrollArea

@@ -4,7 +4,7 @@
 > Source: `spec/desktop/kernel/tables/renderer-design-surfaces.yaml`
 | Surface ID | Module | Role | Profile | Exception Policy | Source Rule |
 |---|---|---|---|---|---|
-| `chat.list.root` | `features/chats/chat-list.tsx` | `chat_root` | `baseline` | `none` | `D-SHELL-019` |
+| `chat.page.root` | `features/chat/chat-page.tsx` | `chat_root` | `baseline` | `none` | `D-SHELL-019` |
 | `explore.view.root` | `features/explore/explore-view.tsx` | `explore_root` | `baseline` | `allowlisted_arbitrary` | `D-SHELL-019` |
 | `explore.quick_add_friend.dialog` | `features/explore/quick-add-friend-modal.tsx` | `quick_add_friend_dialog` | `baseline` | `none` | `D-SHELL-022` |
 | `contacts.view.root` | `features/contacts/contacts-view.tsx` | `contacts_root` | `baseline` | `allowlisted_arbitrary` | `D-SHELL-019` |

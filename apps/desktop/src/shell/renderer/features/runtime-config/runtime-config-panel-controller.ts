@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
@@ -11,6 +11,7 @@ import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
 import { useRuntimeConfigDaemonController } from './runtime-config-panel-controller-daemon';
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
 import { useRuntimeConfigBridgeSync } from './runtime-config-panel-controller-bridge-sync';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -21,9 +22,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const offlineTier = useAppStore((state) => state.offlineTier);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
+  const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
+  const [connectorTestFeedback, setConnectorTestFeedback] = useState<InlineFeedbackState | null>(null);
 
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
@@ -50,20 +52,21 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         state: panelState.state,
         discovering: panelState.discovering,
         updateState: panelState.updateState,
-        setStatusBanner,
+        setStatusBanner: setPageFeedback,
       },
       health: {
         state: panelState.state,
         checkingHealth: panelState.checkingHealth,
         updateState: panelState.updateState,
-        setStatusBanner,
+        setStatusBanner: setPageFeedback,
       },
       testSelectedConnector: {
         state: panelState.state,
         selectedConnector: derived.selectedConnector,
         testingConnector: panelState.testingConnector,
         updateState: panelState.updateState,
-        setStatusBanner,
+        setStatusBanner: setPageFeedback,
+        setControlFeedback: setConnectorTestFeedback,
       },
     },
   }), [
@@ -78,7 +81,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     panelState.state,
     panelState.testingConnector,
     panelState.updateState,
-    setStatusBanner,
+    setConnectorTestFeedback,
+    setPageFeedback,
   ]);
 
   const commands = useMemo(
@@ -96,13 +100,13 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const daemon = useRuntimeConfigDaemonController({
     updateState: panelState.updateState,
     runLocalHealthCheck: commands.runLocalHealthCheck,
-    setStatusBanner,
+    setStatusBanner: setPageFeedback,
   });
 
   const installActions = useRuntimeConfigInstallActions({
     localManifestSummaries,
     refreshLocalSnapshot,
-    setStatusBanner,
+    setStatusBanner: setPageFeedback,
     updateState: panelState.updateState,
   });
 
@@ -125,7 +129,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setState: panelState.setState,
     runtimeFields,
     setRuntimeFields,
-    setStatusBanner,
+    setStatusBanner: setPageFeedback,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
     discoverLocalModels: commands.discoverLocalModels,
@@ -158,7 +162,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     hydrated: panelState.hydrated,
     state: panelState.state,
     setState: panelState.setState,
-    setStatusBanner,
+    setStatusBanner: setPageFeedback,
   });
 
   const resolveRuntimeProfile = useCallback(async (
@@ -175,6 +179,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
 
   return {
     state: panelState.state,
+    hydrated: panelState.hydrated,
     runtimeStatus: derived.runtimeStatus,
     activePage: panelState.state?.activePage || 'overview',
     showCloudApiKey: panelState.showCloudApiKey,
@@ -195,11 +200,15 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
+    pageFeedback,
+    connectorTestFeedback,
     localModelLifecycleById: installActions.localModelLifecycleById,
     localModelLifecycleErrorById: installActions.localModelLifecycleErrorById,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setLocalModelQuery: panelState.setLocalModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
+    setPageFeedback,
+    setConnectorTestFeedback,
     onChangePage,
     updateState: panelState.updateState,
     discoverLocalModels: commands.discoverLocalModels,

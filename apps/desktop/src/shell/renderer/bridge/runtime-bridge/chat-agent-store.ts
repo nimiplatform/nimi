@@ -1,24 +1,38 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
+  parseAgentLocalCancelTurnInput,
+  parseAgentLocalCommitTurnResult,
+  parseAgentLocalCommitTurnResultInput,
   parseAgentLocalCreateMessageInput,
   parseAgentLocalCreateThreadInput,
   parseAgentLocalDraftRecord,
+  parseAgentLocalLoadTurnContextInput,
   parseAgentLocalMessageRecord,
+  parseAgentLocalProjectionRebuildResult,
   parseAgentLocalPutDraftInput,
   parseAgentLocalThreadBundle,
   parseAgentLocalThreadRecord,
   parseAgentLocalThreadSummaries,
+  parseAgentLocalTurnContext,
+  parseAgentLocalTurnRecord,
   parseAgentLocalUpdateMessageInput,
   parseAgentLocalUpdateThreadMetadataInput,
+  type AgentLocalCancelTurnInput,
+  type AgentLocalCommitTurnResult,
+  type AgentLocalCommitTurnResultInput,
   type AgentLocalCreateMessageInput,
   type AgentLocalCreateThreadInput,
   type AgentLocalDraftRecord,
+  type AgentLocalLoadTurnContextInput,
   type AgentLocalMessageRecord,
+  type AgentLocalProjectionRebuildResult,
   type AgentLocalPutDraftInput,
   type AgentLocalThreadBundle,
   type AgentLocalThreadRecord,
   type AgentLocalThreadSummary,
+  type AgentLocalTurnContext,
+  type AgentLocalTurnRecord,
   type AgentLocalUpdateMessageInput,
   type AgentLocalUpdateThreadMetadataInput,
 } from './types';
@@ -90,6 +104,34 @@ export async function deleteDraft(threadId: string): Promise<void> {
   }, () => undefined);
 }
 
+export async function loadTurnContext(input: AgentLocalLoadTurnContextInput): Promise<AgentLocalTurnContext> {
+  requireTauri('chat_agent_load_turn_context');
+  return invokeChecked('chat_agent_load_turn_context', {
+    payload: parseAgentLocalLoadTurnContextInput(input),
+  }, parseAgentLocalTurnContext);
+}
+
+export async function commitTurnResult(input: AgentLocalCommitTurnResultInput): Promise<AgentLocalCommitTurnResult> {
+  requireTauri('chat_agent_commit_turn_result');
+  return invokeChecked('chat_agent_commit_turn_result', {
+    payload: parseAgentLocalCommitTurnResultInput(input),
+  }, parseAgentLocalCommitTurnResult);
+}
+
+export async function cancelTurn(input: AgentLocalCancelTurnInput): Promise<AgentLocalTurnRecord> {
+  requireTauri('chat_agent_cancel_turn');
+  return invokeChecked('chat_agent_cancel_turn', {
+    payload: parseAgentLocalCancelTurnInput(input),
+  }, parseAgentLocalTurnRecord);
+}
+
+export async function rebuildProjection(threadId: string): Promise<AgentLocalProjectionRebuildResult> {
+  requireTauri('chat_agent_rebuild_projection');
+  return invokeChecked('chat_agent_rebuild_projection', {
+    payload: { threadId },
+  }, parseAgentLocalProjectionRebuildResult);
+}
+
 export const chatAgentStoreClient = {
   listThreads,
   getThreadBundle,
@@ -100,4 +142,8 @@ export const chatAgentStoreClient = {
   getDraft,
   putDraft,
   deleteDraft,
+  loadTurnContext,
+  commitTurnResult,
+  cancelTurn,
+  rebuildProjection,
 };

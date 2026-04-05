@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -241,8 +242,8 @@ type WorldDetailProps = {
 export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const isReady = authStatus === 'authenticated' && !!world.id;
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
   const enteredAtRef = useRef(0);
   const primaryReadyLoggedRef = useRef(false);
@@ -492,6 +493,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     },
     onSuccess: async (data) => {
       const agentId = typeof data?.id === 'string' && data.id ? data.id : null;
+      setFeedback(null);
       await queryClient.invalidateQueries({ queryKey: worldDetailWithAgentsQueryKey(world.id) });
       if (agentId) {
         navigateToProfile(agentId, 'agent-detail');
@@ -499,12 +501,17 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : '创建 Agent 失败，请重试';
-      setStatusBanner({ kind: 'error', message });
+      setFeedback({ kind: 'error', message });
     },
   });
 
   return (
     <ScrollArea className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
+      {feedback ? (
+        <div className="mx-auto w-full max-w-[1400px] px-5 pt-5">
+          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+        </div>
+      ) : null}
       {worldData.type === 'OASIS' ? (
         <OasisWorldDetailPage
           world={worldData}

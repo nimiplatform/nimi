@@ -25,6 +25,7 @@ import type {
   SelectedTargetBySource,
   ViewModeBySourceTarget,
 } from '@renderer/features/chat/chat-shell-types';
+import type { ChatThinkingPreference } from '@renderer/features/chat/chat-thinking';
 import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -97,6 +98,7 @@ export type AppStoreState = {
   activeTab: AppTab;
   previousTab: AppTab | null;
   chatMode: ConversationMode;
+  chatThinkingPreference: ChatThinkingPreference;
   chatSourceFilter: ConversationSourceFilter;
   selectedTargetBySource: SelectedTargetBySource;
   viewModeBySourceTarget: ViewModeBySourceTarget;
@@ -125,6 +127,7 @@ export type AppStoreState = {
   runtimeModFailures: RuntimeModRegisterFailure[];
   offlineTier: OfflineTier;
   statusBanner: StatusBanner | null;
+  modsFeedback: StatusBanner | null;
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (message: string | null) => void;
@@ -139,6 +142,7 @@ export type AppStoreState = {
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setActiveTab: (tab: AppTab) => void;
   setChatMode: (mode: ConversationMode) => void;
+  setChatThinkingPreference: (preference: ChatThinkingPreference) => void;
   setChatSourceFilter: (filter: ConversationSourceFilter) => void;
   setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
   setChatViewMode: (
@@ -177,6 +181,7 @@ export type AppStoreState = {
   clearRuntimeModFuse: (modId: string) => void;
   setRuntimeModFailures: (failures: RuntimeModRegisterFailure[]) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
+  setModsFeedback: (banner: StatusBanner | null) => void;
 };
 
 export type AppStoreSet = (

@@ -16,6 +16,7 @@ import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals'
 import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   normalizeMediaType,
   resolveMediaUrl,
@@ -68,13 +69,13 @@ export function PostCard(input: PostCardProps) {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const authStatus = useAppStore((state) => state.auth.status);
   const currentUserId = useAppStore((state) => state.auth.user?.id);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [isSavedPost, setIsSavedPost] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const authorId = String(
     post.authorId
@@ -96,7 +97,7 @@ export function PostCard(input: PostCardProps) {
   const ui = usePostCardUi({
     authorId,
     initialLiked: post.likedByCurrentUser || false,
-    setStatusBanner,
+    setFeedback,
   });
 
   const firstDisplayAttachment = hasMedia
@@ -214,16 +215,10 @@ export function PostCard(input: PostCardProps) {
         handle: post.author.handle || '',
         avatarUrl: post.author.avatarUrl,
       });
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Home.blockUserSuccess', {
-          name: post.author.displayName || post.author.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: "Blocked {{name}}. You won't see their posts anymore.",
-        }),
-      });
+      setFeedback(null);
       onBlock?.();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toBannerErrorMessage(
           error,
@@ -234,7 +229,7 @@ export function PostCard(input: PostCardProps) {
       ui.setIsBlocking(false);
       ui.setShowBlockConfirm(false);
     }
-  }, [authorId, post.author.avatarUrl, post.author.displayName, post.author.handle, setStatusBanner, ui]);
+  }, [authorId, onBlock, post.author.avatarUrl, post.author.displayName, post.author.handle, ui]);
 
   const handleReportPost = useCallback(async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
     try {
@@ -244,13 +239,10 @@ export function PostCard(input: PostCardProps) {
         reason: payload.reason,
         description: payload.description,
       });
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Home.reportSubmitted', { defaultValue: 'Report submitted successfully' }),
-      });
+      setFeedback(null);
       ui.setShowReportModal(false);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toBannerErrorMessage(
           error,
@@ -259,7 +251,7 @@ export function PostCard(input: PostCardProps) {
       });
       throw error;
     }
-  }, [post.id, setStatusBanner, ui]);
+  }, [post.id, ui]);
 
   const handleToggleLike = useCallback(async () => {
     if (!post.id || isLikePending) {
@@ -277,7 +269,7 @@ export function PostCard(input: PostCardProps) {
       }
     } catch (error) {
       ui.setIsLiked(previous);
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toBannerErrorMessage(
           error,
@@ -287,7 +279,7 @@ export function PostCard(input: PostCardProps) {
     } finally {
       setIsLikePending(false);
     }
-  }, [isLikePending, post.id, setStatusBanner, ui]);
+  }, [isLikePending, post.id, ui]);
 
   const handleUpdateVisibility = useCallback(async (visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
     if (!post.id || isVisibilityPending) {
@@ -297,20 +289,17 @@ export function PostCard(input: PostCardProps) {
     try {
       await dataSync.updatePostVisibility(post.id, visibility);
       setPostVisibility(visibility);
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Home.postVisibilityUpdated', { defaultValue: 'Post visibility updated' }),
-      });
+      setFeedback(null);
       ui.setShowEditVisibilityModal(false);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : i18n.t('Home.postVisibilityUpdateFailed', { defaultValue: 'Failed to update post visibility' }),
       });
     } finally {
       setIsVisibilityPending(false);
     }
-  }, [isVisibilityPending, post.id, setStatusBanner, ui]);
+  }, [isVisibilityPending, post.id, ui]);
 
   const handleDeletePost = useCallback(async () => {
     if (!post.id) {
@@ -319,10 +308,10 @@ export function PostCard(input: PostCardProps) {
     ui.setIsDeleting(true);
     try {
       await dataSync.deletePost(post.id);
-      setStatusBanner({ kind: 'success', message: i18n.t('Home.postDeleted', { defaultValue: 'Post deleted successfully' }) });
+      setFeedback(null);
       onDelete?.();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : i18n.t('Home.postDeleteFailed', { defaultValue: 'Failed to delete post' }),
       });
@@ -330,12 +319,12 @@ export function PostCard(input: PostCardProps) {
       ui.setIsDeleting(false);
       ui.setShowDeleteConfirm(false);
     }
-  }, [onDelete, post.id, setStatusBanner, ui]);
+  }, [onDelete, post.id, ui]);
 
   const handleEditPost = useCallback(() => {
     ui.togglePostMenu();
     if (!canEditPostAttachment) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.editUnsupportedAttachment', {
           defaultValue: 'Editing is only available for resource-backed image and video posts right now.',
@@ -344,7 +333,7 @@ export function PostCard(input: PostCardProps) {
       return;
     }
     setEditModalOpen(true);
-  }, [canEditPostAttachment, setStatusBanner, ui]);
+  }, [canEditPostAttachment, ui]);
 
   const handleCopyLink = useCallback(async () => {
     ui.togglePostMenu();
@@ -354,22 +343,19 @@ export function PostCard(input: PostCardProps) {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(postLink);
       }
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Home.postLinkCopied', { defaultValue: 'Post link copied' }),
-      });
+      setFeedback(null);
     } catch {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.copyLinkFailed', { defaultValue: 'Failed to copy post link' }),
       });
     }
-  }, [post.id, setStatusBanner, ui]);
+  }, [post.id, ui]);
 
   const handleSavePost = useCallback(() => {
     ui.togglePostMenu();
     if (!post.id || typeof window === 'undefined') {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
       });
@@ -386,19 +372,14 @@ export function PostCard(input: PostCardProps) {
       window.localStorage.setItem(savedPostsStorageKey, JSON.stringify(nextIds));
       window.dispatchEvent(new CustomEvent(savedPostsUpdatedEvent, { detail: { savedIds: nextIds } }));
       setIsSavedPost(nextSaved);
-      setStatusBanner({
-        kind: 'success',
-        message: nextSaved
-          ? i18n.t('Home.postSaved', { defaultValue: 'Post saved' })
-          : i18n.t('Home.postRemovedFromSaved', { defaultValue: 'Post removed from saved' }),
-      });
+      setFeedback(null);
     } catch {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.savePostFailed', { defaultValue: 'Failed to save post' }),
       });
     }
-  }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, setStatusBanner, ui]);
+  }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, ui]);
 
   const handleAddFriend = useCallback(async (message?: string) => {
     if (!authorId) {
@@ -406,20 +387,14 @@ export function PostCard(input: PostCardProps) {
     }
     await dataSync.requestOrAcceptFriend(authorId, message);
     ui.setIsFriend(true);
-    setStatusBanner({
-      kind: 'success',
-      message: i18n.t('Home.friendRequestSentTo', {
-        name: post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-        defaultValue: 'Friend request sent to {{name}}',
-      }),
-    });
+    setFeedback(null);
     await queryClient.invalidateQueries({ queryKey: ['contacts'] });
-  }, [authorId, post.author?.displayName, post.author?.handle, queryClient, setStatusBanner, ui]);
+  }, [authorId, queryClient, ui]);
 
   const handleChat = useCallback(async () => {
     const userId = authorId;
     if (!userId) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.missingAuthorForChat', { defaultValue: 'Cannot start chat: user ID not found' }),
       });
@@ -487,7 +462,7 @@ export function PostCard(input: PostCardProps) {
         });
       }
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toBannerErrorMessage(
           error,
@@ -503,7 +478,6 @@ export function PostCard(input: PostCardProps) {
     setActiveTab,
     setRuntimeFields,
     setSelectedChatId,
-    setStatusBanner,
   ]);
 
   const openAuthorProfile = useCallback(() => {
@@ -522,6 +496,9 @@ export function PostCard(input: PostCardProps) {
 
   return (
     <>
+      {feedback ? (
+        <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-3" />
+      ) : null}
       <PostCardArticle
         post={post}
         authorId={authorId}
@@ -569,13 +546,7 @@ export function PostCard(input: PostCardProps) {
         receiverAvatarUrl={post.author?.avatarUrl}
         onClose={() => ui.setIsSendGiftOpen(false)}
         onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: i18n.t('Contacts.giftSentTo', {
-              name: post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
+          setFeedback(null);
           ui.setIsSendGiftOpen(false);
         }}
       />
@@ -635,14 +606,11 @@ export function PostCard(input: PostCardProps) {
         onComplete={({ success }) => {
           setEditModalOpen(false);
           if (success) {
-            setStatusBanner({
-              kind: 'success',
-              message: i18n.t('Home.postUpdated', { defaultValue: 'Post updated successfully!' }),
-            });
+            setFeedback(null);
             onDelete?.();
             return;
           }
-          setStatusBanner({
+          setFeedback({
             kind: 'error',
             message: i18n.t('Home.postUpdateFailed', { defaultValue: 'Failed to update post' }),
           });

@@ -482,7 +482,10 @@ mod tests {
             payload.get("reasonCode").and_then(Value::as_str),
             Some("AI_PROVIDER_UNAVAILABLE")
         );
-        let details = payload.get("details").and_then(Value::as_object).expect("details object");
+        let details = payload
+            .get("details")
+            .and_then(Value::as_object)
+            .expect("details object");
         assert_eq!(
             details.get("provider_message").and_then(Value::as_str),
             Some("dial tcp 127.0.0.1:8321: connect: connection refused")
@@ -513,7 +516,10 @@ mod tests {
             "{\"reasonCode\":\"AI_PROVIDER_UNAVAILABLE\",\"actionHint\":\"check_provider_endpoint_or_local_runtime_health\",\"message\":\"provider request failed\"}",
             rich_status.into(),
         )));
-        let details = payload.get("details").and_then(Value::as_object).expect("details object");
+        let details = payload
+            .get("details")
+            .and_then(Value::as_object)
+            .expect("details object");
         assert_eq!(
             details.get("provider_message").and_then(Value::as_str),
             Some("dial tcp 127.0.0.1:8321: connect: connection refused")

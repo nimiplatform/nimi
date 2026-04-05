@@ -147,7 +147,17 @@ function countLocalButtonFamilies(content) {
 }
 
 function usesSharedOverlayPrimitive(content) {
-  return /(?:components\/overlay\.js|\.\/overlay\.js)/u.test(content);
+  if (/(?:components\/overlay\.js|\.\/overlay\.js)/u.test(content)) {
+    return true;
+  }
+  if (/@nimiplatform\/nimi-kit\/features\/commerce\/ui/u.test(content) && /\bSendGiftDialog\b/u.test(content)) {
+    return true;
+  }
+  if (/@nimiplatform\/nimi-kit\/ui/u.test(content)
+    && /\bTooltip(?:Provider|Trigger|Content)?\b/u.test(content)) {
+    return true;
+  }
+  return false;
 }
 
 function usesSharedSidebarPrimitive(content) {

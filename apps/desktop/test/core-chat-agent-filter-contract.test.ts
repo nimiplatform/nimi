@@ -19,10 +19,11 @@ test('core chat flow filters agent threads out of product chat data', () => {
   assert.match(source, /items:\s*filterHumanChatItems/);
 });
 
-test('core chat UI no longer infers agent threads from handle prefixes', () => {
-  const chatListSource = readDesktopFile('src/shell/renderer/features/chats/chat-list.tsx');
+test('core human chat UI no longer infers agent threads from handle prefixes', () => {
+  const humanThreadModelSource = readDesktopFile('src/shell/renderer/features/chat/chat-human-thread-model.ts');
   const timelineSource = readDesktopFile('src/shell/renderer/features/turns/message-timeline-utils.tsx');
-  assert.match(chatListSource, /kind="human"/);
-  assert.doesNotMatch(chatListSource, /startsWith\('~'\)/);
+  assert.match(humanThreadModelSource, /export function getHumanTargetId/);
+  assert.match(humanThreadModelSource, /chat\.otherUser\?\.id/);
+  assert.doesNotMatch(humanThreadModelSource, /startsWith\('~'\)/);
   assert.doesNotMatch(timelineSource, /startsWith\('~'\)/);
 });

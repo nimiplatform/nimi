@@ -5,9 +5,11 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { dataSync } from '@runtime/data-sync';
 import {
+  FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 type StorageSnapshot = {
   queryCacheBytes: number;
@@ -56,8 +58,8 @@ function estimateQueryCacheBytes(): number {
 export function DataManagementPage() {
   const { t } = useTranslation();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const [deleting, setDeleting] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -103,7 +105,7 @@ export function DataManagementPage() {
 
   const handleClearCache = () => {
     queryClient.clear();
-    setStatusBanner({ kind: 'success', message: t('DataManagement.cacheCleared') });
+    setFeedback({ kind: 'success', message: t('DataManagement.cacheCleared') });
     void refreshStorageSnapshot();
   };
 
@@ -117,20 +119,20 @@ export function DataManagementPage() {
         reason: 'user_request',
       });
       if (!result.accepted) {
-        setStatusBanner({
+        setFeedback({
           kind: 'warning',
           message: result.message || `${result.reasonCode || 'DELETE_UNAVAILABLE'}: ${result.actionHint || 'check backend support'}`,
         });
         return;
       }
-      setStatusBanner({
+      setFeedback({
         kind: 'warning',
         message: result.taskId
           ? `Account deletion requested (task ${result.taskId}).`
           : t('DataManagement.deleteAccountWarning'),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DataManagement.deleteRequestFailed'),
       });
@@ -141,6 +143,9 @@ export function DataManagementPage() {
 
   return (
     <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')} contentClassName="max-w-4xl">
+      {feedback ? (
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+      ) : null}
       {/* Storage Usage */}
       <section>
         <SectionTitle>{t('DataManagement.storageUsageTitle')}</SectionTitle>
@@ -237,7 +242,7 @@ export function DataManagementPage() {
             onClick={() => {
               void logoutAndClearSession({
                 clearAuthSession,
-                setStatusBanner,
+                onFeedback: setFeedback,
               });
             }}
             className="mt-4 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-300"

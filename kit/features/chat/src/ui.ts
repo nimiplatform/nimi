@@ -15,12 +15,19 @@ export { CanonicalMessageBubble } from './components/canonical-message-bubble.js
 export type { CanonicalMessageBubbleProps } from './components/canonical-message-bubble.js';
 export { CanonicalDrawerSection } from './components/canonical-drawer-section.js';
 export type { CanonicalDrawerSectionProps } from './components/canonical-drawer-section.js';
+export {
+  CanonicalSettingsCollapsibleSection,
+  CanonicalSettingsSegmentButton,
+  CanonicalSettingsToggleRow,
+} from './components/canonical-settings-controls.js';
 export { CanonicalDrawerShell } from './components/canonical-drawer-shell.js';
 export type { CanonicalDrawerShellProps } from './components/canonical-drawer-shell.js';
 export { CanonicalStagePanel } from './components/canonical-stage-panel.js';
 export type { CanonicalStagePanelProps } from './components/canonical-stage-panel.js';
 export { CanonicalRightSidebar } from './components/canonical-right-sidebar.js';
 export type { CanonicalRightSidebarProps } from './components/canonical-right-sidebar.js';
+export { CanonicalRuntimeInspectSidebar } from './components/canonical-runtime-inspect-sidebar.js';
+export type { CanonicalRuntimeInspectProps } from './components/canonical-runtime-inspect-sidebar.js';
 export { CanonicalTargetPane } from './components/canonical-target-pane.js';
 export type { CanonicalTargetPaneProps } from './components/canonical-target-pane.js';
 export { CanonicalTranscriptView } from './components/canonical-transcript-view.js';
@@ -71,6 +78,12 @@ export type {
   CanonicalMessageAvatarSlot,
   CanonicalMessageContentSlot,
   CanonicalMessageRenderContext,
+  CanonicalRuntimeInspectPanelKey,
+  CanonicalRuntimeInspectPanelState,
+  CanonicalRuntimeInspectSectionData,
+  CanonicalRuntimeInspectStatusChip,
   CanonicalTranscriptGroup,
   ChatComposerAttachmentsSlot,
+  ChatComposerMediaAction,
+  ChatComposerVoiceState,
 } from './types.js';

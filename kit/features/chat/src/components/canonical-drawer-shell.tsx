@@ -26,9 +26,10 @@ export function CanonicalDrawerShell({
         open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
       )}
       aria-hidden={!open}
+      data-canonical-drawer-shell="true"
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4" data-canonical-drawer-header="true">
           <div>
             <p className="text-sm font-semibold text-gray-900">{title}</p>
             {subtitle ? (
@@ -48,7 +49,7 @@ export function CanonicalDrawerShell({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ willChange: 'transform' }}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ willChange: 'transform' }} data-canonical-drawer-scroll="true">
           {children}
         </div>
       </div>

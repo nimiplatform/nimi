@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   changeLocale,
   getCurrentLocale,
@@ -9,9 +8,11 @@ import {
   type SupportedLocale,
 } from '@renderer/i18n';
 import {
+  FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 type SettingsDropdownOption = {
   value: string;
@@ -133,11 +134,11 @@ function SettingsDropdown({
 
 export function LanguageRegionPage() {
   const { t } = useTranslation();
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [language, setLanguage] = useState<SupportedLocale>(getCurrentLocale());
   const [timezone, setTimezone] = useState('Asia/Shanghai');
   const [dateFormat, setDateFormat] = useState('YYYY-MM-DD');
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const languageOptions: SettingsDropdownOption[] = SUPPORTED_LOCALES.map((locale) => ({
     value: locale,
     label: getLocaleLabel(locale),
@@ -165,8 +166,9 @@ export function LanguageRegionPage() {
     setSaving(true);
     try {
       await changeLocale(locale);
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('LanguageRegion.changeLanguageError'),
       });
@@ -180,6 +182,9 @@ export function LanguageRegionPage() {
       title={t('LanguageRegion.pageTitle')}
       description={t('LanguageRegion.pageDescription')}
     >
+      {feedback ? (
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+      ) : null}
       <section>
         <SectionTitle>{t('LanguageRegion.sectionDisplayLanguage')}</SectionTitle>
         <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">

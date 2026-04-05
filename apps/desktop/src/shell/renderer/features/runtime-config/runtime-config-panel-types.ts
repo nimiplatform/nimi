@@ -4,6 +4,7 @@ import type {
   RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeBridgeDaemonStatus } from '@renderer/bridge';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type {
   LocalRuntimeAssetKind,
   LocalRuntimeCatalogItemDescriptor,
@@ -23,6 +24,7 @@ export type RuntimeProfileTargetDescriptor = {
 
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
+  hydrated: boolean;
   runtimeStatus: ProviderStatusV11 | null;
   activePage: RuntimeConfigStateV11['activePage'];
   showCloudApiKey: boolean;
@@ -43,11 +45,15 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
+  pageFeedback: InlineFeedbackState | null;
+  connectorTestFeedback: InlineFeedbackState | null;
   localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setLocalModelQuery: (value: string) => void;
   setConnectorModelQuery: (value: string) => void;
+  setPageFeedback: (value: InlineFeedbackState | null) => void;
+  setConnectorTestFeedback: (value: InlineFeedbackState | null) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   discoverLocalModels: () => Promise<void>;

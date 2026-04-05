@@ -36,7 +36,7 @@ export const DEFAULT_LAST_SELECTED_THREAD_BY_MODE: LastSelectedThreadByMode = {
 };
 
 export const DEFAULT_SELECTED_TARGET_BY_SOURCE: SelectedTargetBySource = {
-  ai: null,
+  ai: 'ai:assistant',
   human: null,
   agent: null,
 };

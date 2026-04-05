@@ -10,6 +10,7 @@ import type {
 } from '../types.js';
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
+import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 
 type MessageVisualPosition = 'single' | 'start' | 'middle' | 'end';
 
@@ -293,7 +294,7 @@ export function CanonicalTranscriptView({
   emptyDescription = 'The transcript stays empty until the first exchange is created.',
   historyIntro = null,
   content,
-  widthClassName = 'max-w-3xl',
+  widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
   onNearBottomChange,
   onSeedFirstTurn,
   footerContent,
@@ -325,13 +326,14 @@ export function CanonicalTranscriptView({
     <div
       ref={scrollRootRef}
       className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-5"
+      data-canonical-transcript-root="true"
       onScroll={handleScroll}
       style={{
         background: 'linear-gradient(180deg, rgba(250,252,252,0.88) 0%, rgba(243,247,248,0.92) 100%)',
         overflowAnchor: 'none',
       }}
     >
-      <div className={cn('mx-auto space-y-5', widthClassName)}>
+      <div className={cn('mx-auto space-y-5', widthClassName)} data-canonical-transcript-width={widthClassName}>
         {loading ? (
           <div className="rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(237,247,247,0.86))] px-6 py-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
             <div className="h-4 w-28 rounded-full bg-slate-200/80" />

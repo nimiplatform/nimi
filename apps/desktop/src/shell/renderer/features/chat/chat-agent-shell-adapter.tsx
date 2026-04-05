@@ -2,60 +2,90 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  type ReactNode,
   useRef,
   useState,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CanonicalDrawerSection,
-  CanonicalComposer,
   createReadyConversationSetupState,
-  type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
-import { Button } from '@nimiplatform/nimi-kit/ui';
+import {
+  ConversationOrchestrationRegistry,
+  matchConversationTurnEvent,
+} from '@nimiplatform/nimi-kit/features/chat/headless';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import {
-  type AgentLocalDraftRecord,
   type AgentLocalMessageRecord,
   type AgentLocalTargetSnapshot,
   type AgentLocalThreadBundle,
-  type AgentLocalThreadRecord,
-  type AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import { randomIdV11, type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import {
   findAgentConversationThreadByAgentId,
-  getAgentTargetDisplaySummary,
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
-  toConversationThreadSummary,
 } from './chat-agent-thread-model';
 import {
-  streamChatAgentRuntime,
+  createEmptyAgentThreadBundle,
+  resolveAuthoritativeAgentThreadBundle,
+} from './chat-agent-shell-bundle';
+import {
+  assertAgentTurnLifecycleCompleted,
+  type AgentTurnLifecycleState,
+} from './chat-agent-shell-lifecycle';
+import {
+  type AgentHostFlowFooterState,
+} from './chat-agent-shell-host-flow';
+import {
+  createInitialAgentSubmitDriverState,
+  reduceAgentSubmitDriverEvent,
+  resolveCompletedAgentSubmitDriverCheckpoint,
+  resolveInterruptedAgentSubmitDriverCheckpoint,
+  resolveAgentSubmitDriverProjectionRefresh,
+} from './chat-agent-shell-submit-driver';
+import {
+  resolveAgentLocalRoute,
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
+import { createAgentLocalChatConversationProvider } from './chat-agent-orchestration';
 import { resolveAiConversationRouteReadiness } from './chat-ai-route-readiness';
 import type { AgentConversationSelection } from './chat-shell-types';
-import { ChatSettingsPanel } from './chat-settings-panel';
-import { ChatTargetSelector } from './chat-target-selector';
 import {
   createReasoningMessageContentRenderer,
-  RuntimeStreamFooter,
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
 import {
-  feedStreamEvent,
+  getChatThinkingUnsupportedCopy,
+  resolveAgentChatThinkingSupport,
+} from './chat-thinking';
+import {
   getStreamState,
   startStream,
   STREAM_TEXT_TOTAL_TIMEOUT_MS,
 } from '../turns/stream-controller';
+import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import {
+  bundleQueryKey,
+  normalizeText,
+  sortThreadSummaries,
+  toAbortError,
+  toConversationHistoryMessages,
+  toErrorMessage,
+  toStructuredProviderError,
+  THREADS_QUERY_KEY,
+  TARGETS_QUERY_KEY,
+  upsertBundleDraft,
+  upsertThreadSummary,
+  isEmptyPendingAssistantMessage,
+} from './chat-agent-shell-core';
+import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
+import { useAgentConversationEffects } from './chat-agent-shell-effects';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -68,172 +98,49 @@ type UseAgentConversationModeHostInput = {
   setSelection: (selection: AgentConversationSelection) => void;
 };
 
-const THREADS_QUERY_KEY = ['chat-agent-threads'];
-const TARGETS_QUERY_KEY = ['chat-agent-friends'];
-
-function bundleQueryKey(threadId: string): readonly ['chat-agent-thread-bundle', string] {
-  return ['chat-agent-thread-bundle', threadId];
-}
-
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function sortThreadSummaries(threads: readonly AgentLocalThreadSummary[]): AgentLocalThreadSummary[] {
-  return [...threads].sort((left, right) => {
-    const timeDelta = right.updatedAtMs - left.updatedAtMs;
-    if (timeDelta !== 0) {
-      return timeDelta;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
-
-function upsertThreadSummary(
-  threads: readonly AgentLocalThreadSummary[],
-  nextThread: AgentLocalThreadSummary,
-): AgentLocalThreadSummary[] {
-  const filtered = threads.filter((thread) => thread.id !== nextThread.id);
-  filtered.push(nextThread);
-  return sortThreadSummaries(filtered);
-}
-
-function replaceMessage(
-  messages: readonly AgentLocalMessageRecord[],
-  nextMessage: AgentLocalMessageRecord,
-): AgentLocalMessageRecord[] {
-  const filtered = messages.filter((message) => message.id !== nextMessage.id);
-  filtered.push(nextMessage);
-  return [...filtered].sort((left, right) => {
-    const timeDelta = left.createdAtMs - right.createdAtMs;
-    if (timeDelta !== 0) {
-      return timeDelta;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
-
-function upsertBundleDraft(
-  bundle: AgentLocalThreadBundle | null | undefined,
-  draft: AgentLocalDraftRecord | null,
-): AgentLocalThreadBundle | null | undefined {
-  if (!bundle) {
-    return bundle;
-  }
-  return {
-    ...bundle,
-    draft,
-  };
-}
-
-function createEmptyBundle(thread: AgentLocalThreadRecord): AgentLocalThreadBundle {
-  return {
-    thread,
-    messages: [],
-    draft: null,
-  };
-}
-
-function toErrorMessage(error: unknown, fallback = 'Unknown error'): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error || fallback);
-}
-
-function normalizeReasoningText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function isEmptyPendingAssistantMessage(message: ReturnType<typeof toConversationMessageViewModel>): boolean {
-  if (message.role !== 'assistant' || message.status !== 'pending') {
-    return false;
-  }
-  return !message.text.trim() && !normalizeReasoningText(message.metadata?.reasoningText) && !message.error;
-}
-
-function ChatAgentTargetRail(input: {
-  target: AgentLocalTargetSnapshot;
-}) {
-  const { t } = useTranslation();
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-  const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const detailQuery = useQuery({
-    queryKey: ['agent-chat-target-detail', input.target.agentId],
-    queryFn: async () => dataSync.loadAgentDetails(input.target.agentId),
-    enabled: Boolean(input.target.agentId),
-  });
-
-  const profile = detailQuery.data;
-  const displayName = String(profile?.displayName || input.target.displayName).trim() || input.target.displayName;
-  const handle = String(profile?.handle || input.target.handle).trim() || input.target.handle;
-  const bio = String(profile?.bio || input.target.bio || '').trim() || null;
-  const worldId = String(profile?.worldId || input.target.worldId || '').trim() || null;
-  const worldName = String(profile?.worldName || input.target.worldName || '').trim() || null;
-
-  return (
-    <div className="space-y-4">
-      <CanonicalDrawerSection title={t('Chat.agentTarget', { defaultValue: 'Agent target' })}>
-        <div>
-          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {displayName}
-          </div>
-          <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            @{handle}
-          </div>
-        </div>
-        {bio ? (
-          <p className="text-sm leading-6 text-[var(--nimi-text-secondary)]">
-            {bio}
-          </p>
-        ) : null}
-        <div className="space-y-1 text-xs text-[var(--nimi-text-muted)]">
-          {worldName ? <div>{worldName}</div> : null}
-          {input.target.ownershipType ? <div>{input.target.ownershipType}</div> : null}
-        </div>
-      </CanonicalDrawerSection>
-      <CanonicalDrawerSection title={t('Chat.agentActions', { defaultValue: 'Actions' })}>
-        <Button
-          tone="secondary"
-          size="sm"
-          fullWidth
-          onClick={() => navigateToProfile(input.target.agentId, 'agent-detail')}
-        >
-          {t('Chat.agentOpenProfile', { defaultValue: 'Open agent profile' })}
-        </Button>
-        <Button
-          tone="secondary"
-          size="sm"
-          fullWidth
-          disabled={!worldId}
-          onClick={() => {
-            if (worldId) {
-              navigateToWorld(worldId);
-            }
-          }}
-        >
-          {t('Chat.agentOpenWorld', { defaultValue: 'Open world' })}
-        </Button>
-      </CanonicalDrawerSection>
-    </div>
-  );
-}
-
 export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
+  const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
+  const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
+  const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
+    Record<string, {
+      footerState: AgentHostFlowFooterState;
+      lifecycle: AgentTurnLifecycleState;
+    }>
+  >({});
   const currentDraftTextRef = useRef('');
   const creatingThreadForAgentIdRef = useRef<string | null>(null);
+  const registry = useMemo(() => {
+    const nextRegistry = new ConversationOrchestrationRegistry();
+    nextRegistry.register(createAgentLocalChatConversationProvider());
+    return nextRegistry;
+  }, []);
+  const agentProvider = useMemo(
+    () => registry.require('agent-local-chat-v1'),
+    [registry],
+  );
   const reportHostError = useCallback((error: unknown) => {
-    setStatusBanner({
+    setHostFeedback({
       kind: 'error',
       message: toErrorMessage(error),
     });
-  }, [setStatusBanner]);
+  }, []);
+  const thinkingSupport = useMemo(
+    () => resolveAgentChatThinkingSupport(),
+    [],
+  );
+  const thinkingUnsupportedReason = useMemo(() => {
+    if (thinkingSupport.supported || !thinkingSupport.reason) {
+      return null;
+    }
+    const copy = getChatThinkingUnsupportedCopy(thinkingSupport.reason);
+    return t(copy.key, { defaultValue: copy.defaultValue });
+  }, [t, thinkingSupport]);
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
@@ -353,35 +260,18 @@ export function useAgentConversationModeHost(
     && !isBundleLoading
     && !bundleQuery.error;
 
-  const setThreadsCache = useCallback((updater: (current: AgentLocalThreadSummary[]) => AgentLocalThreadSummary[]) => {
-    queryClient.setQueryData<AgentLocalThreadSummary[]>(THREADS_QUERY_KEY, (current) => {
-      const safeCurrent = Array.isArray(current) ? current : [];
-      return updater(safeCurrent);
-    });
-  }, [queryClient]);
-
-  const setBundleCache = useCallback((
-    threadId: string,
-    updater: (current: AgentLocalThreadBundle | null | undefined) => AgentLocalThreadBundle | null | undefined,
-  ) => {
-    queryClient.setQueryData<AgentLocalThreadBundle | null>(bundleQueryKey(threadId), (current) => updater(current));
-  }, [queryClient]);
-
-  const syncSelectionToThread = useCallback((thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => {
-    if (!thread) {
-      setSelection({
-        threadId: null,
-        agentId: null,
-        targetId: null,
-      });
-      return;
-    }
-    setSelection({
-      threadId: thread.id,
-      agentId: thread.agentId,
-      targetId: thread.agentId,
-    });
-  }, [setSelection]);
+  const {
+    applyDriverEffects,
+    setBundleCache,
+    setFooterHostState,
+    setThreadsCache,
+    syncSelectionToThread,
+  } = useAgentConversationEffects({
+    currentDraftTextRef,
+    queryClient,
+    setFooterHostStateByThreadId,
+    setSelection,
+  });
 
   useEffect(() => {
     currentDraftTextRef.current = bundle?.draft?.text || '';
@@ -431,7 +321,7 @@ export function useAgentConversationModeHost(
         targetSnapshot: target,
       });
       setThreadsCache((current) => upsertThreadSummary(current, thread));
-      queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyBundle(thread));
+      queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyAgentThreadBundle(thread));
       currentDraftTextRef.current = '';
       syncSelectionToThread(thread);
       return thread;
@@ -570,8 +460,10 @@ export function useAgentConversationModeHost(
     if (!submittedText) {
       return;
     }
+    const userTurnId = randomIdV11('agent-turn-user');
     const userMessageId = randomIdV11('agent-message-user');
-    const assistantMessageId = randomIdV11('agent-message-assistant');
+    const assistantTurnId = randomIdV11('agent-turn');
+    const assistantMessageId = `${assistantTurnId}:message:0`;
     const createdAtMs = Date.now();
     const userMessage: AgentLocalMessageRecord = {
       id: userMessageId,
@@ -602,170 +494,239 @@ export function useAgentConversationModeHost(
 
     currentDraftTextRef.current = submittedText;
     setSubmittingThreadId(activeThreadId);
-    let streamedText = '';
-    let streamedReasoningText = '';
-    let runtimeTraceId: string | null = null;
-    let promptTraceId = '';
+    setFooterHostState(activeThreadId, null);
+    let projectionRefreshPromise: Promise<void> | null = null;
+    let projectionRefreshError: unknown = null;
+    let submitSession = createInitialAgentSubmitDriverState({
+      fallbackThread: {
+        ...selectedThreadRecord,
+        createdAtMs,
+      },
+      assistantMessageId,
+      assistantPlaceholder,
+      submittedText,
+      workingBundle: bundle,
+    });
 
     try {
       await chatAgentStoreClient.deleteDraft(activeThreadId);
       setBundleCache(activeThreadId, (current) => upsertBundleDraft(current, null) || current);
 
-      await chatAgentStoreClient.createMessage(userMessage);
-      await chatAgentStoreClient.createMessage(assistantPlaceholder);
-      setBundleCache(activeThreadId, (current) => {
-        const base = current || createEmptyBundle({
+      const userCommitted = await chatAgentStoreClient.commitTurnResult({
+        threadId: activeThreadId,
+        turn: {
+          id: userTurnId,
+          threadId: activeThreadId,
+          role: 'user',
+          status: 'completed',
+          providerMode: 'agent-local-chat-v1',
+          traceId: null,
+          promptTraceId: null,
+          startedAtMs: createdAtMs,
+          completedAtMs: createdAtMs,
+          abortedAtMs: null,
+        },
+        beats: [{
+          id: `${userTurnId}:beat:0`,
+          turnId: userTurnId,
+          beatIndex: 0,
+          modality: 'text',
+          status: 'delivered',
+          textShadow: submittedText,
+          artifactId: null,
+          mimeType: 'text/plain',
+          projectionMessageId: userMessageId,
+          createdAtMs,
+          deliveredAtMs: createdAtMs,
+        }],
+        interactionSnapshot: null,
+        relationMemorySlots: [],
+        recallEntries: [],
+        projection: {
+          thread: {
+            id: selectedThreadRecord.id,
+            title: selectedThreadRecord.title,
+            updatedAtMs: createdAtMs,
+            lastMessageAtMs: createdAtMs,
+            archivedAtMs: selectedThreadRecord.archivedAtMs,
+            targetSnapshot: activeTarget,
+          },
+          messages: [userMessage],
+          draft: null,
+          clearDraft: true,
+        },
+      });
+      const userBundle = resolveAuthoritativeAgentThreadBundle({
+        optimisticBundle: userCommitted.bundle,
+        refreshedBundle: null,
+        clearDraft: true,
+      });
+      if (!userBundle) {
+        throw new Error('agent-local-chat-v1 user commit did not return a projection bundle');
+      }
+      setThreadsCache((current) => upsertThreadSummary(current, userBundle.thread));
+      queryClient.setQueryData(bundleQueryKey(activeThreadId), userBundle);
+      syncSelectionToThread(userBundle.thread);
+      submitSession = createInitialAgentSubmitDriverState({
+        fallbackThread: {
           ...selectedThreadRecord,
           createdAtMs,
-        });
-        return {
-          ...base,
-          messages: replaceMessage(
-            replaceMessage(base.messages, userMessage),
-            assistantPlaceholder,
-          ),
-          draft: null,
-        };
+        },
+        assistantMessageId,
+        assistantPlaceholder,
+        submittedText,
+        workingBundle: userBundle,
       });
 
+      const routeResult = await resolveAgentLocalRoute(activeTarget.agentId);
       const abortController = startStream(activeThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
-      const runtimeResult = await streamChatAgentRuntime({
-        agentId: activeTarget.agentId,
-        prompt: submittedText,
+      const history = toConversationHistoryMessages(userBundle.messages);
+      for await (const event of agentProvider.runTurn({
+        modeId: 'agent-local-chat-v1',
         threadId: activeThreadId,
-        routeResult: null,
-        runtimeConfigState: input.runtimeConfigState,
-        runtimeFields: input.runtimeFields,
+        turnId: assistantTurnId,
+        userMessage: {
+          id: userMessageId,
+          text: submittedText,
+          attachments: [],
+        },
+        history,
         signal: abortController.signal,
-      });
-      promptTraceId = runtimeResult.promptTraceId;
-      for await (const part of runtimeResult.stream) {
-        if (part.type === 'reasoning-delta') {
-          streamedReasoningText += part.text;
-          feedStreamEvent(activeThreadId, {
-            type: 'reasoning_delta',
-            textDelta: part.text,
-          });
-          continue;
-        }
-        if (part.type === 'delta') {
-          streamedText += part.text;
-          feedStreamEvent(activeThreadId, {
-            type: 'text_delta',
-            textDelta: part.text,
-          });
-          continue;
-        }
-        if (part.type === 'finish') {
-          runtimeTraceId = String(part.trace.traceId || promptTraceId || '').trim() || null;
-          feedStreamEvent(activeThreadId, { type: 'done', usage: part.usage });
-          continue;
-        }
-        if (part.type === 'error') {
-          runtimeTraceId = String(part.error.traceId || runtimeTraceId || promptTraceId || '').trim() || null;
-          feedStreamEvent(activeThreadId, {
-            type: 'error',
-            message: part.error.message,
-            reasonCode: part.error.reasonCode,
-            traceId: runtimeTraceId || undefined,
-          });
-          throw part.error;
-        }
+        metadata: {
+          agentLocalChat: {
+            agentId: activeTarget.agentId,
+            targetSnapshot: activeTarget,
+            routeResult,
+            runtimeConfigState: input.runtimeConfigState,
+            runtimeFields: input.runtimeFields,
+            reasoningPreference: chatThinkingPreference,
+          },
+        },
+        })) {
+        matchConversationTurnEvent(event, {
+          'turn-started': () => undefined,
+          'reasoning-delta': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+          'text-delta': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+          'first-beat-sealed': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+          'beat-planned': () => undefined,
+          'beat-delivery-started': () => undefined,
+          'beat-delivered': () => undefined,
+          'artifact-ready': () => undefined,
+          'projection-rebuilt': (nextEvent) => {
+            const projectionEffects = reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            });
+            submitSession = applyDriverEffects(activeThreadId, projectionEffects);
+            if (!projectionEffects.awaitRefresh) {
+              return;
+            }
+            const requestedProjectionVersion = projectionEffects.awaitRefresh.requestedProjectionVersion;
+            projectionRefreshPromise = chatAgentStoreClient.getThreadBundle(activeThreadId)
+              .then((refreshedBundle) => {
+                submitSession = applyDriverEffects(activeThreadId, resolveAgentSubmitDriverProjectionRefresh({
+                  state: submitSession,
+                  requestedProjectionVersion,
+                  streamSnapshot: getStreamState(activeThreadId),
+                  refreshedBundle,
+                  draftText: currentDraftTextRef.current,
+                }));
+              })
+              .catch((refreshError) => {
+                projectionRefreshError = refreshError;
+              });
+          },
+          'turn-completed': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+          'turn-failed': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+          'turn-canceled': (nextEvent) => {
+            submitSession = applyDriverEffects(activeThreadId, reduceAgentSubmitDriverEvent({
+              state: submitSession,
+              event: nextEvent,
+              updatedAtMs: Date.now(),
+            }));
+          },
+        });
       }
-      const completedState = getStreamState(activeThreadId);
-      const finalText = completedState.partialText || streamedText;
-      const finalReasoningText = completedState.partialReasoningText || streamedReasoningText;
-      const assistantMessage = await chatAgentStoreClient.updateMessage({
-        id: assistantMessageId,
-        status: 'complete',
-        contentText: finalText,
-        reasoningText: finalReasoningText || null,
-        error: null,
-        traceId: runtimeTraceId || promptTraceId || null,
-        updatedAtMs: Date.now(),
-      });
-      const updatedThread = await chatAgentStoreClient.updateThreadMetadata({
-        id: selectedThreadRecord.id,
-        title: selectedThreadRecord.title,
-        updatedAtMs: Date.now(),
-        lastMessageAtMs: assistantMessage.updatedAtMs,
-        archivedAtMs: selectedThreadRecord.archivedAtMs,
-        targetSnapshot: activeTarget,
-      });
-      setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
-      setBundleCache(activeThreadId, (current) => {
-        const base = current || createEmptyBundle(updatedThread);
-        return {
-          ...base,
-          thread: updatedThread,
-          messages: replaceMessage(base.messages, assistantMessage),
-          draft: null,
-        };
-      });
-      currentDraftTextRef.current = '';
-      syncSelectionToThread(updatedThread);
+      if (projectionRefreshPromise) {
+        await projectionRefreshPromise;
+      }
+      if (projectionRefreshError) {
+        throw projectionRefreshError;
+      }
+
+      const refreshedBundle = submitSession.lifecycle.projectionVersion
+        ? await chatAgentStoreClient.getThreadBundle(activeThreadId)
+        : null;
+      submitSession = applyDriverEffects(activeThreadId, resolveCompletedAgentSubmitDriverCheckpoint({
+        state: submitSession,
+        refreshedBundle,
+        streamSnapshot: getStreamState(activeThreadId),
+      }));
+
+      if (submitSession.lifecycle.terminal === 'failed' && submitSession.lifecycle.error) {
+        throw toStructuredProviderError(submitSession.lifecycle.error);
+      }
+      if (submitSession.lifecycle.terminal === 'canceled') {
+        throw toAbortError(t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }));
+      }
+      assertAgentTurnLifecycleCompleted(submitSession.lifecycle);
     } catch (error) {
       const streamSnapshot = getStreamState(activeThreadId);
-      const partialText = streamSnapshot.partialText || streamedText;
-      const partialReasoningText = streamSnapshot.partialReasoningText || streamedReasoningText;
       const runtimeError = streamSnapshot.cancelSource === 'user'
         ? {
           code: 'OPERATION_ABORTED',
           message: t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
         }
         : toChatAgentRuntimeError(error);
-      if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {
-        feedStreamEvent(activeThreadId, {
-          type: 'error',
-          message: runtimeError.message,
-          reasonCode: runtimeError.code,
-          traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || undefined,
-        });
-      }
+      const draftUpdatedAtMs = Date.now();
       const draft = await chatAgentStoreClient.putDraft({
         threadId: activeThreadId,
         text: submittedText,
-        updatedAtMs: Date.now(),
+        updatedAtMs: draftUpdatedAtMs,
       });
-      setBundleCache(activeThreadId, (current) => upsertBundleDraft(current, draft) || current);
-      try {
-        const assistantError = await chatAgentStoreClient.updateMessage({
-          id: assistantMessageId,
-          status: 'error',
-          contentText: partialText,
-          reasoningText: partialReasoningText || null,
-          error: runtimeError,
-          traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || null,
-          updatedAtMs: Date.now(),
-        });
-        setBundleCache(activeThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...selectedThreadRecord,
-            createdAtMs,
-          });
-          return {
-            ...base,
-            messages: replaceMessage(
-              replaceMessage(base.messages, userMessage),
-              assistantError,
-            ),
-            draft,
-          };
-        });
-      } catch {
-        setBundleCache(activeThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...selectedThreadRecord,
-            createdAtMs,
-          });
-          return {
-            ...base,
-            messages: replaceMessage(base.messages, userMessage),
-            draft,
-          };
-        });
+      let refreshedBundle: AgentLocalThreadBundle | null = null;
+      if (submitSession.lifecycle.projectionVersion) {
+        refreshedBundle = await chatAgentStoreClient.getThreadBundle(activeThreadId);
       }
-      currentDraftTextRef.current = submittedText;
+      submitSession = applyDriverEffects(activeThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
+        state: submitSession,
+        refreshedBundle,
+        runtimeError,
+        draft,
+        updatedAtMs: draftUpdatedAtMs,
+        streamSnapshot,
+      }));
       throw new Error(runtimeError.message, {
         cause: error,
       });
@@ -775,268 +736,60 @@ export function useAgentConversationModeHost(
   }, [
     activeTarget,
     activeThreadId,
+    agentProvider,
+    chatThinkingPreference,
     agentRouteReady,
+    applyDriverEffects,
     input.runtimeConfigState,
     input.runtimeFields,
+    queryClient,
     selectedThreadRecord,
     setBundleCache,
+    setFooterHostState,
     setThreadsCache,
     syncSelectionToThread,
     t,
   ]);
 
-  const adapter = useMemo(() => ({
-    mode: 'agent' as const,
-    setupState,
-    threadAdapter: {
-      listThreads: () => threads.map((thread) => toConversationThreadSummary(thread)),
-      listMessages: (threadId: string) => (
-        bundle && bundle.thread.id === threadId
-          ? messages
-          : []
-      ),
-    },
-    composerAdapter: composerReady
-      ? {
-        submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
-          await handleSubmit(composerInput.text);
-        },
-        disabled: Boolean(submittingThreadId),
-        disabledReason: submittingThreadId
-          ? t('Chat.agentSending', { defaultValue: 'Waiting for agent response…' })
-          : null,
-        placeholder: t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' }),
-      }
-      : null,
-  }), [bundle, composerReady, handleSubmit, messages, setupState, submittingThreadId, t, threads]);
-
-  const characterData = useMemo(() => {
-    if (!activeTarget) {
-      return { name: t('Chat.agentTitle', { defaultValue: 'Agent Chat' }), avatarFallback: 'A' };
-    }
-    return {
-      avatarUrl: null,
-      avatarFallback: (activeTarget.displayName || 'A').charAt(0).toUpperCase(),
-      name: activeTarget.displayName || 'Agent',
-      handle: activeTarget.handle ? `@${activeTarget.handle}` : null,
-      bio: activeTarget.bio || null,
-      presenceLabel: activeTarget.worldName || t('Chat.mode.agent', { defaultValue: 'Agent' }),
-      presenceBusy: false,
-      theme: {
-        roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
-        roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(236,253,245,0.78))',
-        accentSoft: 'rgba(16,185,129,0.20)',
-        accentStrong: '#10b981',
-        border: 'rgba(16,185,129,0.34)',
-        text: '#065f46',
-      },
-      badges: [
-        ...(activeTarget.worldName ? [{ label: activeTarget.worldName, variant: 'default' as const }] : []),
-        ...(activeTarget.ownershipType ? [{ label: activeTarget.ownershipType, variant: 'new' as const }] : []),
-      ],
-    };
-  }, [activeTarget, t]);
-  const targetSummaries = useMemo(
-    () => targets.map((target) => ({
-      id: target.agentId,
-      source: 'agent' as const,
-      canonicalSessionId: findAgentConversationThreadByAgentId(threads, target.agentId)?.id || target.agentId,
-      title: target.displayName,
-      handle: target.handle ? `@${target.handle}` : null,
-      bio: target.bio || null,
-      avatarUrl: target.avatarUrl || null,
-      avatarFallback: target.displayName.charAt(0).toUpperCase() || 'A',
-      previewText: null,
-      updatedAt: null,
-      unreadCount: 0,
-      status: 'active' as const,
-      isOnline: null,
-      metadata: {
-        worldName: target.worldName,
-        ownershipType: target.ownershipType,
-      },
-    })),
-    [targets, threads],
-  );
-  const canonicalMessages = useMemo(
-    () => messages.map((message) => ({
-      id: message.id,
-      sessionId: activeThreadId || activeTarget?.agentId || 'agent',
-      targetId: activeTarget?.agentId || '',
-      source: 'agent' as const,
-      role: message.role,
-      text: message.text,
-      createdAt: message.createdAt,
-      updatedAt: message.updatedAt,
-      status: message.status,
-      error: message.error,
-      kind: 'text' as const,
-      metadata: message.metadata,
-    })),
-    [activeTarget?.agentId, activeThreadId, messages],
-  );
   const reasoningLabel = t('Chat.reasoningLabel', { defaultValue: 'Thought process' });
   const renderMessageContent = useMemo(
     () => createReasoningMessageContentRenderer(reasoningLabel),
     [reasoningLabel],
   );
-  const footerContent = useMemo<ReactNode>(() => {
-    if (!activeThreadId) {
-      return null;
-    }
-    return (
-      <RuntimeStreamFooter
-        chatId={activeThreadId}
-        assistantName={characterData.name}
-        assistantAvatarUrl={characterData.avatarUrl || null}
-        assistantKind="agent"
-        streamState={streamState}
-        stopLabel={t('ChatTimeline.stopGenerating', 'Stop generating')}
-        interruptedLabel={t('ChatTimeline.streamInterrupted', 'Response interrupted')}
-        reasoningLabel={reasoningLabel}
-      />
-    );
-  }, [activeThreadId, characterData.avatarUrl, characterData.name, reasoningLabel, streamState, t]);
-  const pendingFirstBeat = Boolean(
-    streamState
-    && streamState.phase === 'waiting'
-    && !streamState.partialText
-    && !streamState.partialReasoningText,
-  );
-
-  return useMemo<DesktopConversationModeHost>(() => ({
-    mode: 'agent',
-    availability: {
-      mode: 'agent',
-      label: 'Agent',
-      enabled: true,
-      badge: threads.length > 0 ? threads.length : null,
-      disabledReason: null,
-    },
-    adapter,
-    activeThreadId,
-    targets: targetSummaries,
-    selectedTargetId: input.selection.agentId || activeTarget?.agentId || null,
-    onSelectTarget: handleSelectAgent,
-    messages: canonicalMessages,
-    characterData,
-    settingsContent: (
-      <ChatSettingsPanel
-        headerSlot={(
-          <CanonicalDrawerSection title={t('Chat.agentSelectLabel', { defaultValue: 'Agent friend' })}>
-            <ChatTargetSelector
-              options={targets.map((target) => ({
-                id: target.agentId,
-                label: target.displayName,
-                handle: target.handle,
-              }))}
-              value={input.selection.agentId || null}
-              onChange={handleSelectAgent}
-              placeholder={t('Chat.agentSelectPlaceholder', { defaultValue: 'Select an agent friend' })}
-              disabled={targetsQuery.isPending || Boolean(submittingThreadId)}
-            />
-          </CanonicalDrawerSection>
-        )}
-      />
-    ),
-    settingsDrawerTitle: t('Chat.settingsTitle', { defaultValue: 'Settings' }),
-    settingsDrawerSubtitle: t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),
-    transcriptProps: {
-      loading: isBundleLoading,
-      error: bundleQuery.error ? toErrorMessage(bundleQuery.error) : null,
-      emptyEyebrow: 'Agent',
-      emptyTitle: t('Chat.agentTranscriptEmptyTitle', { defaultValue: 'Start the local agent conversation' }),
-      emptyDescription: t('Chat.agentTranscriptEmpty', { defaultValue: 'Send a message to start the local agent conversation.' }),
-      loadingLabel: t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
-      footerContent,
-      renderMessageContent,
-      pendingFirstBeat,
-    },
-    stagePanelProps: {
-      footerContent,
-      renderMessageContent,
-      pendingFirstBeat,
-    },
-    composerContent: (
-      adapter.composerAdapter ? (
-        <CanonicalComposer
-          key={`${activeThreadId || 'none'}:${bundle?.draft?.updatedAtMs || 0}`}
-          adapter={adapter.composerAdapter}
-          initialText={bundle?.draft?.text || ''}
-          disabled={Boolean(submittingThreadId)}
-          placeholder={t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
-          onInputCaptureText={(text) => {
-            currentDraftTextRef.current = text;
-          }}
-        />
-      ) : null
-    ),
-    profileContent: activeTarget ? <ChatAgentTargetRail target={activeTarget} /> : null,
-    profileDrawerTitle: t('Chat.profileTitle', { defaultValue: 'Profile' }),
-    profileDrawerSubtitle: t('Chat.agentProfileSubtitle', { defaultValue: 'Relationship, memory, and target details.' }),
-    onSelectThread: handleSelectThread,
-    renderEmptyState: () => {
-      if (targetsQuery.error) {
-        return (
-          <div className="flex min-h-[320px] items-center justify-center text-sm text-[var(--nimi-status-danger)]">
-            {toErrorMessage(targetsQuery.error)}
-          </div>
-        );
-      }
-      return (
-        <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-          <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
-            {targets.length > 0
-              ? t('Chat.agentEmptyTitle', { defaultValue: 'Choose an agent friend' })
-              : t('Chat.agentNoTargetsTitle', { defaultValue: 'No agent friends yet' })}
-          </h2>
-          <p className="max-w-[420px] text-sm text-[var(--nimi-text-muted)]">
-            {targets.length > 0
-              ? t('Chat.agentEmptyDescription', {
-                defaultValue: 'Pick one of your agent friends from the left. Each agent keeps a single desktop-owned local conversation.',
-              })
-              : t('Chat.agentNoTargetsDescription', {
-                defaultValue: 'Agent mode only uses your current agent friends as local chat targets.',
-              })}
-          </p>
-        </div>
-      );
-    },
-    renderSetupDescription: () => {
-      return t('Chat.agentRouteRequired', {
-        defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-      });
-    },
-    renderThreadMeta: (thread) => {
-      const sourceThread = threads.find((item) => item.id === thread.id) || null;
-      return (
-        <span className="truncate text-[11px] text-[var(--nimi-text-muted)]">
-          {sourceThread ? getAgentTargetDisplaySummary(sourceThread.targetSnapshot) : ''}
-        </span>
-      );
-    },
-  }), [
+  const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
+  const presentation = useAgentConversationPresentation({
     activeTarget,
     activeThreadId,
-    adapter,
-    bundle?.draft?.text,
-    bundle?.draft?.updatedAtMs,
-    bundleQuery.error,
-    canonicalMessages,
-    handleSelectAgent,
-    handleSelectThread,
+    bundle,
+    bundleError: bundleQuery.error,
+    composerReady,
+    currentDraftTextRef,
+    currentFooterHostState,
     handleSubmit,
-    input.selection.agentId,
+    hostFeedback,
+    inputSelectionAgentId: input.selection.agentId,
     isBundleLoading,
-    footerContent,
-    pendingFirstBeat,
+    messages,
+    onDismissHostFeedback: () => setHostFeedback(null),
+    reasoningLabel,
     renderMessageContent,
+    selectedTargetId: activeTarget?.agentId || null,
+    setChatThinkingPreference,
+    setupState,
+    streamState,
     submittingThreadId,
     t,
-    targetSummaries,
-    targets,
-    targetsQuery.error,
-    targetsQuery.isPending,
-    threads,
-  ]);
+    targetSummariesInput: { targets, threads },
+    targetsPending: targetsQuery.isPending,
+    thinkingPreference: chatThinkingPreference,
+    thinkingSupported: thinkingSupport.supported,
+    thinkingUnsupportedReason,
+    agentRouteReady,
+  });
+
+  return useMemo<DesktopConversationModeHost>(() => ({
+    ...presentation,
+    onSelectTarget: handleSelectAgent,
+    onSelectThread: handleSelectThread,
+  }), [handleSelectAgent, handleSelectThread, presentation]);
 }

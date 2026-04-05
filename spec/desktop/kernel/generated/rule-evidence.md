@@ -17,7 +17,6 @@
 | `desktop_macos_manual_smoke_policy` | `manual_policy` | `spec-only` | `spec/desktop/testing-gates.md` | Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior. |
 | `desktop_e2e_failure_artifacts_gate` | `ci_artifact_policy` | `upload apps/desktop/reports/e2e/**` | `.github/workflows/ci.yml` | CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure. |
 | `desktop_e2e_ci_evidence_report` | `ci_evidence_report` | `pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence` | `apps/desktop/scripts/generate-desktop-e2e-evidence.mjs` | Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts. |
-| `desktop_0315_e2e_audit_report` | `audit_report` | `report-only` | `dev/report/0315-e2e-audit.md` | Audit record for 0315 desktop E2E hard-cut completion, residual blockers, and non-blocking clippy policy. |
 | `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory. |
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
 | `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
@@ -231,12 +230,12 @@
 | `D-OFFLINE-005` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-GATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate` |
 | `D-GATE-010` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
-| `D-GATE-020` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate`, `desktop_rust_clippy_gate`, `desktop_0315_e2e_audit_report` |
+| `D-GATE-020` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate`, `desktop_rust_clippy_gate` |
 | `D-GATE-030` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate` |
 | `D-GATE-040` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate` |
 | `D-GATE-050` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_e2e_smoke_gate` |
 | `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy` |
-| `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate`, `desktop_e2e_ci_evidence_report`, `desktop_0315_e2e_audit_report` |
+| `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate`, `desktop_e2e_ci_evidence_report` |
 | `D-GATE-080` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-090` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
 | `D-GATE-091` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |

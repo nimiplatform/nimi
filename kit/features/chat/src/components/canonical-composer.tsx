@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { AttachmentAdapter, ChatComposerAdapter, ChatComposerAttachmentsSlot } from '../types.js';
 import { ChatComposer } from './chat-composer.js';
+import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 import { ConversationComposerShell } from './conversation-composer-shell.js';
 
 export type CanonicalComposerProps<TAttachment = never> = {
@@ -39,11 +40,11 @@ export function CanonicalComposer<TAttachment = never>({
   onAttachmentsChange,
   attachmentsSlot,
   attachLabel,
-  widthClassName = 'max-w-3xl',
+  widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
 }: CanonicalComposerProps<TAttachment>) {
   return (
-    <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)}>
-      <div className={cn('mx-auto', widthClassName)}>
+    <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)} data-canonical-composer-root="true">
+      <div className={cn('mx-auto', widthClassName)} data-canonical-composer-width={widthClassName}>
         {runtimeHint ? (
           <div className="mb-3 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-2 text-sm text-amber-800 shadow-[0_12px_24px_rgba(217,119,6,0.08)]">
             {runtimeHint}

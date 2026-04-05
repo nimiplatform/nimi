@@ -40,6 +40,73 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           updated_at_ms INTEGER NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS agent_turns (
+          id TEXT PRIMARY KEY,
+          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
+          role TEXT NOT NULL,
+          status TEXT NOT NULL,
+          provider_mode TEXT NOT NULL,
+          trace_id TEXT,
+          prompt_trace_id TEXT,
+          started_at_ms INTEGER NOT NULL,
+          completed_at_ms INTEGER,
+          aborted_at_ms INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_agent_turns_thread_started ON agent_turns(thread_id, started_at_ms ASC, id ASC);
+
+        CREATE TABLE IF NOT EXISTS agent_turn_beats (
+          id TEXT PRIMARY KEY,
+          turn_id TEXT NOT NULL REFERENCES agent_turns(id) ON DELETE CASCADE,
+          beat_index INTEGER NOT NULL,
+          modality TEXT NOT NULL,
+          status TEXT NOT NULL,
+          text_shadow TEXT,
+          artifact_id TEXT,
+          mime_type TEXT,
+          projection_message_id TEXT,
+          created_at_ms INTEGER NOT NULL,
+          delivered_at_ms INTEGER
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_turn_beats_turn_index ON agent_turn_beats(turn_id, beat_index);
+
+        CREATE TABLE IF NOT EXISTS agent_interaction_snapshots (
+          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
+          version INTEGER NOT NULL,
+          relationship_state TEXT NOT NULL,
+          emotional_temperature REAL NOT NULL,
+          assistant_commitments_json TEXT NOT NULL,
+          user_prefs_json TEXT NOT NULL,
+          open_loops_json TEXT NOT NULL,
+          updated_at_ms INTEGER NOT NULL,
+          PRIMARY KEY(thread_id, version)
+        );
+        CREATE INDEX IF NOT EXISTS idx_agent_interaction_snapshots_thread_version ON agent_interaction_snapshots(thread_id, version DESC);
+
+        CREATE TABLE IF NOT EXISTS agent_relation_memory_slots (
+          id TEXT PRIMARY KEY,
+          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
+          slot_type TEXT NOT NULL,
+          summary TEXT NOT NULL,
+          source_turn_id TEXT REFERENCES agent_turns(id) ON DELETE SET NULL,
+          source_beat_id TEXT REFERENCES agent_turn_beats(id) ON DELETE SET NULL,
+          score REAL NOT NULL,
+          updated_at_ms INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_agent_relation_memory_slots_thread_slot_type_updated
+          ON agent_relation_memory_slots(thread_id, slot_type, updated_at_ms DESC, id DESC);
+
+        CREATE TABLE IF NOT EXISTS agent_recall_index (
+          id TEXT PRIMARY KEY,
+          thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
+          source_turn_id TEXT REFERENCES agent_turns(id) ON DELETE SET NULL,
+          source_beat_id TEXT REFERENCES agent_turn_beats(id) ON DELETE SET NULL,
+          summary TEXT NOT NULL,
+          search_text TEXT NOT NULL,
+          updated_at_ms INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_agent_recall_index_thread_updated
+          ON agent_recall_index(thread_id, updated_at_ms DESC, id DESC);
+
         CREATE TABLE IF NOT EXISTS agent_store_meta (
           key TEXT PRIMARY KEY,
           value_json TEXT NOT NULL,
@@ -86,6 +153,80 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         conn,
         "agent_thread_drafts",
         &["thread_id", "draft_text", "updated_at_ms"],
+    )?;
+    ensure_required_columns(
+        conn,
+        "agent_turns",
+        &[
+            "id",
+            "thread_id",
+            "role",
+            "status",
+            "provider_mode",
+            "trace_id",
+            "prompt_trace_id",
+            "started_at_ms",
+            "completed_at_ms",
+            "aborted_at_ms",
+        ],
+    )?;
+    ensure_required_columns(
+        conn,
+        "agent_turn_beats",
+        &[
+            "id",
+            "turn_id",
+            "beat_index",
+            "modality",
+            "status",
+            "text_shadow",
+            "artifact_id",
+            "mime_type",
+            "projection_message_id",
+            "created_at_ms",
+            "delivered_at_ms",
+        ],
+    )?;
+    ensure_required_columns(
+        conn,
+        "agent_interaction_snapshots",
+        &[
+            "thread_id",
+            "version",
+            "relationship_state",
+            "emotional_temperature",
+            "assistant_commitments_json",
+            "user_prefs_json",
+            "open_loops_json",
+            "updated_at_ms",
+        ],
+    )?;
+    ensure_required_columns(
+        conn,
+        "agent_relation_memory_slots",
+        &[
+            "id",
+            "thread_id",
+            "slot_type",
+            "summary",
+            "source_turn_id",
+            "source_beat_id",
+            "score",
+            "updated_at_ms",
+        ],
+    )?;
+    ensure_required_columns(
+        conn,
+        "agent_recall_index",
+        &[
+            "id",
+            "thread_id",
+            "source_turn_id",
+            "source_beat_id",
+            "summary",
+            "search_text",
+            "updated_at_ms",
+        ],
     )?;
     ensure_required_columns(
         conn,

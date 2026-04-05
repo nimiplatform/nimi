@@ -18,6 +18,7 @@ import { PerformancePage } from '../settings/settings-performance-page';
 import { DeveloperPage } from '../settings/settings-developer-page';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
+import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[var(--nimi-surface-card)] ${className}`} />;
@@ -184,6 +185,15 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         </div>
 
         <ScrollArea className="flex-1 bg-white" viewportClassName="bg-white">
+          {model.pageFeedback ? (
+            <div className="mx-auto max-w-5xl px-6 pt-3">
+              <InlineFeedback
+                feedback={model.pageFeedback}
+                title={t('runtimeConfig.panel.statusTitle', { defaultValue: 'Runtime status' })}
+                onDismiss={() => model.setPageFeedback(null)}
+              />
+            </div>
+          ) : null}
           {activePage === 'local' ? (
             <div data-testid={E2E_IDS.runtimePageRoot('local')}>
               <LocalPage model={model} state={state} />
@@ -219,7 +229,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               )}
               {activePage === 'catalog' && (
                 <div data-testid={E2E_IDS.runtimePageRoot('catalog')}>
-                  <CatalogPage state={state} />
+                  <CatalogPage model={model} state={state} />
                 </div>
               )}
               {activePage === 'runtime' && (

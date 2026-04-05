@@ -53,11 +53,6 @@ desktop_e2e_ci_evidence_report:
   command: pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence
   path: apps/desktop/scripts/generate-desktop-e2e-evidence.mjs
   description: Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts.
-desktop_0315_e2e_audit_report:
-  type: audit_report
-  command: report-only
-  path: dev/report/0315-e2e-audit.md
-  description: Audit record for 0315 desktop E2E hard-cut completion, residual blockers, and non-blocking clippy policy.
 desktop_mods_smoke_gate:
   type: smoke_gate
   command: pnpm check:desktop-mods-smoke --all

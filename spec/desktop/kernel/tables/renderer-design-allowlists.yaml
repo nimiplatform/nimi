@@ -12,6 +12,12 @@ patterns:
     scope: apps/desktop/src/shell/renderer/features/contacts/contacts-blocked-users.tsx
     reason: agent semantic palette accent is content-derived and not a baseline shell token.
     source_rule: D-SHELL-021
+  - id: contacts.blocked_agent_radius
+    pattern_type: class_pattern
+    pattern: rounded-\\[(?:10|8)px\\]
+    scope: apps/desktop/src/shell/renderer/features/contacts/contacts-blocked-users.tsx
+    reason: blocked agent avatars preserve compact square rounding while shared avatar radius tokens are still being migrated.
+    source_rule: D-SHELL-021
   - id: explore.rounded_2rem
     pattern_type: class_pattern
     pattern: rounded-\\[2rem\\]

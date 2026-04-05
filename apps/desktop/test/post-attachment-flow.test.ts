@@ -42,8 +42,9 @@ test('create post modal closes and resets preview state before background upload
 });
 
 test('post card fails closed when editing non-resource card attachments through the legacy editor', () => {
-  assert.match(postCardSource, /if \(!canEditPostAttachment\) \{\s*setStatusBanner\(\{\s*kind:\s*'error',/s);
+  assert.match(postCardSource, /if \(!canEditPostAttachment\) \{\s*setFeedback\(\{\s*kind:\s*'error',/s);
   assert.match(postCardSource, /Home\.editUnsupportedAttachment/);
   assert.match(postCardSource, /resource-backed image and video posts right now/);
+  assert.match(postCardSource, /<InlineFeedback feedback=\{feedback\}/);
   assert.match(postCardSource, /canEditPost=\{canEditPostAttachment\}/);
 });

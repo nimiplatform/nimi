@@ -1,9 +1,10 @@
 import {
   asNimiError,
   createNimiError,
-  type NimiReasoningConfig,
+  type TextMessage,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
+import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -20,12 +21,20 @@ import {
   pickChatCapableConnectorModel,
   pickPreferredChatLocalModel,
 } from './chat-ai-thread-model';
+import {
+  resolveAiChatThinkingSupport,
+  resolveChatThinkingConfig,
+  type ChatThinkingPreference,
+} from './chat-thinking';
 import type { AiConversationRouteSnapshot } from './chat-shell-types';
 
 export type ChatAiRuntimeInvokeInput = {
   routeSnapshot: AiConversationRouteSnapshot;
   prompt: string;
+  messages?: readonly ConversationRuntimeTextMessage[];
+  systemPrompt?: string | null;
   threadId: string;
+  reasoningPreference: ChatThinkingPreference;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
@@ -51,10 +60,6 @@ export type ChatAiRuntimeStreamDeps = {
 };
 
 export const CORE_CHAT_AI_MOD_ID = 'core.chat-ai';
-const DEFAULT_REASONING_CONFIG: NimiReasoningConfig = {
-  mode: 'off',
-  traceMode: 'hide',
-};
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -80,6 +85,21 @@ function requireValue(value: unknown, reasonCode: string, actionHint: string, me
     });
   }
   return normalized;
+}
+
+function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
+  return {
+    role: message.role,
+    content: message.text,
+    name: normalizeText(message.name) || undefined,
+  };
+}
+
+function resolveRuntimeTextInput(input: ChatAiRuntimeInvokeInput): string | TextMessage[] {
+  if (Array.isArray(input.messages) && input.messages.length > 0) {
+    return input.messages.map((message) => toSdkTextMessage(message));
+  }
+  return input.prompt;
 }
 
 async function resolveInvokeInput(
@@ -241,8 +261,12 @@ export async function streamChatAiRuntime(
     model: resolved.modelId,
     route: resolved.source,
     connectorId: invokeInput.connectorId,
-    input: invokeInput.prompt,
-    reasoning: DEFAULT_REASONING_CONFIG,
+    input: resolveRuntimeTextInput(input),
+    system: normalizeText(input.systemPrompt) || undefined,
+    reasoning: resolveChatThinkingConfig(
+      input.reasoningPreference,
+      resolveAiChatThinkingSupport(input.routeSnapshot),
+    ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,
     metadata: callOptions.metadata,

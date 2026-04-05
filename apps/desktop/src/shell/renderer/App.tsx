@@ -6,7 +6,7 @@ import { AppRoutes } from '@renderer/app-shell/routes/app-routes';
 import { AppErrorBoundary } from '@renderer/infra/error-boundary/app-error-boundary';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { getCurrentLocale, i18n, onI18nIssue } from '@renderer/i18n';
+import { onI18nIssue } from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
 import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-updates';
@@ -145,16 +145,6 @@ function AppBoot() {
 
   useEffect(() => {
     const unsubscribe = onI18nIssue((issue) => {
-      const chainText = issue.chain.join(' -> ');
-      setStatusBanner({
-        kind: issue.severity === 'error' ? 'error' : 'warning',
-        message: i18n.t('I18n.issueDetected', {
-          lng: getCurrentLocale(),
-          keyName: issue.key || 'unknown',
-          chain: chainText,
-          defaultValue: 'Translation issue detected: {{keyName}} ({{chain}})',
-        }),
-      });
       logRendererEvent({
         level: issue.severity === 'error' ? 'error' : 'warn',
         area: 'i18n',
@@ -169,7 +159,7 @@ function AppBoot() {
       });
     });
     return unsubscribe;
-  }, [setStatusBanner]);
+  }, []);
 
   return <AppRoutes />;
 }

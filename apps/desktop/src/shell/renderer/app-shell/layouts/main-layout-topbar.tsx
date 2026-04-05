@@ -18,7 +18,10 @@ type MainLayoutTopBarProps = {
   onOpenWallet: () => void;
   onOpenNotifications: () => void;
   onToggleSettingsMenu: () => void;
+  activeTab: string;
   onLogin: () => void;
+  onOpenChat: () => void;
+  onOpenRuntimeConfig: () => void;
   onMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
@@ -59,17 +62,59 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
       ) : null}
       <div className="ml-auto flex h-full items-stretch">
         {anonymousMode ? (
-          <div className="flex h-full items-center px-3">
-            <button
-              type="button"
-              data-testid={E2E_IDS.topbarLoginButton}
-              data-mod-tab-interactive="true"
-              onClick={props.onLogin}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-white/40 bg-white/12 px-4 text-sm font-semibold text-white transition hover:bg-white/18"
-              aria-label={t('Auth.login', { defaultValue: 'Login' })}
-            >
-              {t('Auth.login', { defaultValue: 'Login' })}
-            </button>
+          <div className="flex h-full items-stretch">
+            {/* Chat icon — hidden when already on chat */}
+            {props.activeTab !== 'chat' ? (
+              <Tooltip content={t('Navigation.chat', { defaultValue: 'Chat' })} className="h-full">
+                <button
+                  type="button"
+                  data-mod-tab-interactive="true"
+                  onClick={props.onOpenChat}
+                  className={actionCellClass}
+                  aria-label={t('Navigation.chat', { defaultValue: 'Chat' })}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </button>
+              </Tooltip>
+            ) : null}
+            {/* Runtime icon — hidden when already on runtime */}
+            {props.activeTab !== 'runtime' ? (
+              <Tooltip content={t('Navigation.runtime', { defaultValue: 'Runtime' })} className="h-full">
+                <button
+                  type="button"
+                  data-mod-tab-interactive="true"
+                  onClick={props.onOpenRuntimeConfig}
+                  className={actionCellClass}
+                  aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                    <line x1="6" y1="6" x2="6.01" y2="6" />
+                    <line x1="6" y1="18" x2="6.01" y2="18" />
+                  </svg>
+                </button>
+              </Tooltip>
+            ) : null}
+            {/* Login icon */}
+            <Tooltip content={t('Auth.login', { defaultValue: 'Login' })} className="h-full">
+              <button
+                type="button"
+                data-testid={E2E_IDS.topbarLoginButton}
+                data-mod-tab-interactive="true"
+                onClick={props.onLogin}
+                className={actionCellClass}
+                aria-label={t('Auth.login', { defaultValue: 'Login' })}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         ) : (
           <>

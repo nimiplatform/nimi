@@ -41,6 +41,10 @@ function collectScenarioArtifacts(artifactRoot) {
         backend_log: artifactManifest?.backend_log || null,
         driver_log: artifactManifest?.driver_log || null,
         artifact_policy: artifactManifest?.artifact_policy || {},
+        parity_capture_count: Array.isArray(artifactManifest?.parity_captures) ? artifactManifest.parity_captures.length : 0,
+        parity_diff_failures: Array.isArray(artifactManifest?.parity_captures)
+          ? artifactManifest.parity_captures.filter((capture) => Number(capture?.diff_ratio || 0) > 0.001).length
+          : 0,
         screenshot_count: files.filter((file) => file.endsWith('.png')).length,
         html_dump_count: files.filter((file) => file.endsWith('.html')).length,
         browser_log_count: files.filter((file) => file.endsWith('.browser.log')).length,
@@ -171,6 +175,7 @@ export function renderDesktopE2EEvidenceMarkdown(evidence) {
       lines.push(`  - Backend log: ${scenario.backend_log || '-'}`);
       lines.push(`  - Driver log: ${scenario.driver_log || '-'}`);
       lines.push(`  - Screenshots: ${scenario.screenshot_count}, HTML dumps: ${scenario.html_dump_count}, Browser logs: ${scenario.browser_log_count}`);
+      lines.push(`  - Parity captures: ${scenario.parity_capture_count}, parity diff failures: ${scenario.parity_diff_failures}`);
     }
   }
 

@@ -208,7 +208,7 @@ function syncRuntimeUiExtensions(options: {
                         tabId,
                       });
                       const chainText = failureSummary.chain.join(' -> ');
-                      useAppStore.getState().setStatusBanner({
+                      useAppStore.getState().setModsFeedback({
                         kind: 'error',
                         message: i18n.t('ModUI.openModFailedWithChain', {
                           modId: entry.modId,
@@ -216,6 +216,7 @@ function syncRuntimeUiExtensions(options: {
                           defaultValue: `Mod ${entry.modId} failed to open. Error chain: ${chainText}`,
                         }),
                       });
+                      context.setActiveTab('mods');
                       logRendererEvent({
                         level: 'error',
                         area: 'mod-ui',

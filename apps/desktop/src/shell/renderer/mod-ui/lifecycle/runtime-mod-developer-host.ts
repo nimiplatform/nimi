@@ -26,14 +26,6 @@ function safeErrorMessage(error: unknown): string {
 
 function reportDeveloperHostSubscriptionError(stage: string, error: unknown): void {
   const message = safeErrorMessage(error);
-  useAppStore.getState().setStatusBanner({
-    kind: 'error',
-    message: i18n.t('ModUI.developerHostSubscriptionError', {
-      stage,
-      error: message,
-      defaultValue: `Runtime mod developer host failed during ${stage}: ${message}`,
-    }),
-  });
   logRendererEvent({
     level: 'error',
     area: 'mod-ui',
@@ -41,6 +33,12 @@ function reportDeveloperHostSubscriptionError(stage: string, error: unknown): vo
     details: {
       stage,
       error: message,
+      userVisible: false,
+      description: i18n.t('ModUI.developerHostSubscriptionError', {
+        stage,
+        error: message,
+        defaultValue: `Runtime mod developer host failed during ${stage}: ${message}`,
+      }),
     },
   });
 }

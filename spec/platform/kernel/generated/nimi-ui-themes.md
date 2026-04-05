@@ -10,3 +10,4 @@
 | `forge-accent` | `accent` | 9 | `forge` | `P-DESIGN-002` |
 | `relay-accent` | `accent` | 9 | `relay` | `P-DESIGN-002` |
 | `overtone-accent` | `accent` | 9 | `overtone` | `P-DESIGN-002` |
+| `video-food-map-accent` | `accent` | 9 | `video-food-map` | `P-DESIGN-002` |

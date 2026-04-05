@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { FormFeedback, PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 
 export function SecurityPage() {
   const { t } = useTranslation();
@@ -11,7 +12,6 @@ export function SecurityPage() {
   const refreshToken = useAppStore((state) => state.auth.refreshToken);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const initialTwoFactorEnabled = authUser?.isTwoFactorEnabled === true;
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -24,6 +24,7 @@ export function SecurityPage() {
   const [revealTwoFactorSecret, setRevealTwoFactorSecret] = useState(false);
   const [preparingTwoFactor, setPreparingTwoFactor] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const passwordsMatch = newPw === confirmPw;
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function SecurityPage() {
         setTwoFactorUri(String(payload.otpauthUri || ''));
       })
       .catch((error) => {
-        setStatusBanner({
+        setFeedback({
           kind: 'error',
           message: error instanceof Error ? error.message : t('SecuritySettings.prepareTwoFactorFailed'),
         });
@@ -59,7 +60,6 @@ export function SecurityPage() {
   }, [
     initialTwoFactorEnabled,
     preparingTwoFactor,
-    setStatusBanner,
     t,
     twoFactor,
     twoFactorSecret,
@@ -77,12 +77,12 @@ export function SecurityPage() {
     }
     try {
       await navigator.clipboard.writeText(value);
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: t(successKey, { defaultValue: successDefaultValue }),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('SecuritySettings.copySecretFailed', { defaultValue: 'Failed to copy secret' }),
       });
@@ -94,14 +94,14 @@ export function SecurityPage() {
       return;
     }
     if (newPw && !passwordsMatch) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('SecuritySettings.passwordMismatch'),
       });
       return;
     }
     if (twoFactor !== initialTwoFactorEnabled && twoFactorCode.trim().length !== 6) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('SecuritySettings.twoFactorCodeRequired'),
       });
@@ -141,12 +141,12 @@ export function SecurityPage() {
         setRevealTwoFactorSecret(false);
       }
 
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: t('SecuritySettings.updateSuccess'),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('SecuritySettings.updateError'),
       });
@@ -167,6 +167,9 @@ export function SecurityPage() {
       title={t('SecuritySettings.pageTitle')}
       description={t('SecuritySettings.pageDescription')}
     >
+      {feedback ? (
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+      ) : null}
       {/* Change Password */}
       <section>
         <SectionTitle>{t('SecuritySettings.changePasswordTitle')}</SectionTitle>

@@ -1,0 +1,130 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  resolveAgentCanonicalMessages,
+  resolveAgentSelectedTargetId,
+  resolveAgentTargetSummaries,
+} from '../src/shell/renderer/features/chat/chat-agent-shell-view-model.js';
+import type {
+  AgentLocalTargetSnapshot,
+  AgentLocalThreadSummary,
+} from '../src/shell/renderer/bridge/runtime-bridge/types.js';
+
+function sampleTargets(): AgentLocalTargetSnapshot[] {
+  return [{
+    agentId: 'agent-1',
+    displayName: 'Companion',
+    handle: 'companion',
+    avatarUrl: null,
+    worldId: 'world-1',
+    worldName: 'World One',
+    bio: 'friend agent',
+    ownershipType: 'MASTER_OWNED',
+  }, {
+    agentId: 'agent-2',
+    displayName: 'Scout',
+    handle: 'scout',
+    avatarUrl: 'https://example.com/scout.png',
+    worldId: null,
+    worldName: null,
+    bio: null,
+    ownershipType: null,
+  }];
+}
+
+function sampleThreads(): AgentLocalThreadSummary[] {
+  return [{
+    id: 'thread-agent-1',
+    agentId: 'agent-1',
+    title: 'Companion',
+    updatedAtMs: 100,
+    lastMessageAtMs: 90,
+    archivedAtMs: null,
+    targetSnapshot: sampleTargets()[0]!,
+  }];
+}
+
+test('agent shell view model resolves target summaries from agent targets and thread ownership', () => {
+  const summaries = resolveAgentTargetSummaries({
+    targets: sampleTargets(),
+    threads: sampleThreads(),
+  });
+
+  assert.deepEqual(summaries.map((summary) => ({
+    id: summary.id,
+    canonicalSessionId: summary.canonicalSessionId,
+    title: summary.title,
+    handle: summary.handle,
+    avatarUrl: summary.avatarUrl,
+  })), [{
+    id: 'agent-1',
+    canonicalSessionId: 'thread-agent-1',
+    title: 'Companion',
+    handle: '@companion',
+    avatarUrl: null,
+  }, {
+    id: 'agent-2',
+    canonicalSessionId: 'agent-2',
+    title: 'Scout',
+    handle: '@scout',
+    avatarUrl: 'https://example.com/scout.png',
+  }]);
+});
+
+test('agent shell view model resolves canonical messages with user/agent sender metadata', () => {
+  const messages = resolveAgentCanonicalMessages({
+    messages: [{
+      id: 'user-1',
+      threadId: 'thread-agent-1',
+      role: 'user',
+      text: 'hello',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      updatedAt: '2026-04-05T00:00:00.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {},
+    }, {
+      id: 'assistant-1',
+      threadId: 'thread-agent-1',
+      role: 'assistant',
+      text: 'hi there',
+      createdAt: '2026-04-05T00:00:01.000Z',
+      updatedAt: '2026-04-05T00:00:02.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {
+        reasoningText: 'thinking',
+      },
+    }],
+    activeThreadId: 'thread-agent-1',
+    activeTargetId: 'agent-1',
+    character: {
+      name: 'Companion',
+      avatarUrl: null,
+      handle: '@companion',
+    },
+  });
+
+  assert.equal(messages[0]?.senderName, 'You');
+  assert.equal(messages[0]?.senderKind, 'human');
+  assert.equal(messages[1]?.senderName, 'Companion');
+  assert.equal(messages[1]?.senderKind, 'agent');
+  assert.equal(messages[1]?.sessionId, 'thread-agent-1');
+  assert.equal(messages[1]?.targetId, 'agent-1');
+});
+
+test('agent shell view model resolves selected target id fail-close', () => {
+  assert.equal(resolveAgentSelectedTargetId({
+    selectionAgentId: 'agent-1',
+    activeTargetId: 'agent-2',
+  }), 'agent-1');
+  assert.equal(resolveAgentSelectedTargetId({
+    selectionAgentId: null,
+    activeTargetId: 'agent-2',
+  }), 'agent-2');
+  assert.equal(resolveAgentSelectedTargetId({
+    selectionAgentId: null,
+    activeTargetId: null,
+  }), null);
+});

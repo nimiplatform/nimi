@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export interface GiftMessagePayload {
   giftTransactionId: string;
@@ -34,9 +35,9 @@ interface GiftMessageBubbleProps {
 export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageBubbleProps) {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const txQuery = useQuery({
     queryKey: ['gift-transaction', payload.giftTransactionId],
@@ -57,8 +58,9 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     try {
       await dataSync.acceptGift(payload.giftTransactionId);
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error
           ? error.message
@@ -79,8 +81,9 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     try {
       await dataSync.rejectGift(payload.giftTransactionId, {});
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error
           ? error.message
@@ -161,6 +164,9 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
           ) : null}
         </div>
       )}
+      {feedback ? (
+        <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+      ) : null}
     </div>
   );
 }

@@ -19,6 +19,8 @@ Reusable chat capability module for unified conversation shell work, target-firs
 | Right sidebar | Prewarm, fixed width, boundary, overlay menu | Same shell and failure behavior |
 | Voice menu | Overlay transcript toggle/context menu | Same overlay position contract and canonical hook path |
 
+Authoritative parity fixtures live in `kit/features/chat/test/conversation-shell-ui.test.tsx`. Any shell change must update that fixture set or prove it does not affect the matrix above.
+
 ## Public Surfaces
 - `@nimiplatform/nimi-kit/features/chat`
 - `@nimiplatform/nimi-kit/features/chat/headless`
@@ -28,7 +30,8 @@ Reusable chat capability module for unified conversation shell work, target-firs
 - Current surfaces:
   - `headless`: active for unified `AI / Human / Agent` conversation contracts, target-first shell adapters, and shared composer helpers
   - `ui`: active
-  - `runtime`: active for local AI/runtime engine text generation and streaming
+- `runtime`: active for local AI/runtime engine text generation and streaming
+- `runtime`: active for orchestration provider runtime integration, including `simple-ai`, provider registry wiring, history budgeting, and runtime stream normalization
 - `realm`: active for typed human chat send/list/read/sync-window integration, realtime event normalization/cache helpers, timeline composition/display modeling, and a socket-agnostic realtime controller; socket construction remains app-local
   - SDK-backed default realm bindings live only under `src/realm/**`; the feature root stays adapter-driven
 
@@ -37,6 +40,8 @@ Reusable chat capability module for unified conversation shell work, target-firs
 - Reuse `CanonicalTargetPane`, `CanonicalCharacterRail`, `CanonicalConversationPane`, `CanonicalStagePanel`, `CanonicalTranscriptView`, `CanonicalMessageBubble`, `CanonicalTypingBubble`, `CanonicalRightSidebar`, `CanonicalDrawerShell`, `CanonicalDrawerSection`, and `CanonicalComposer` when the surrounding app needs extracted `local-chat`-equivalent layout primitives without taking the full shell.
 - Reuse `ChatComposer` and session state for AI conversation.
 - Bind runtime text generation through `chat/runtime`.
+- Reuse the orchestration contracts/registry from `chat/headless` before adding app-local mode-specific submit loops.
+- Reuse the `simple-ai` provider core from `chat/runtime` before rebuilding history-aware text-chat orchestration in app code.
 - Bind human chat send/list/read flows through `chat/realm`.
 - Reuse realm chat realtime event parsing and cache merge helpers without copying desktop logic.
 - Reuse `useRealmChatRealtimeController(...)` when an app already owns socket creation but should not reimplement session open/ack/sync orchestration.
@@ -49,11 +54,12 @@ Reusable chat capability module for unified conversation shell work, target-firs
 ## Before Building Locally
 - Check `chat/ui` before creating a new composer shell, runtime chat panel, human chat timeline, or shared stream status block.
 - Check `chat/headless` before writing local input-state orchestration, submit wiring, cancel handling, or shared session state.
-- Check `chat/runtime` for AI generate/stream/session flows before wrapping runtime text APIs directly in app code.
+- Check `chat/runtime` for AI generate/stream/session flows and orchestration providers before wrapping runtime text APIs directly in app code.
 - Check `chat/realm` for human chat send/list/read/realtime/timeline helpers before rebuilding human chat cache and transport logic.
 
 ## What Stays Outside
 - App-local system prompt policy.
+- App-local `agent-local-chat-v1` product orchestration semantics.
 - Concrete socket client creation and app-owned notification/query side effects.
 - App-owned transport and source data orchestration that feeds canonical drawer sections, message/content slots, and capability hooks.
 - App-specific navigation, persistence, and moderation shells.

@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCharacterData, ConversationTargetSummary } from '../types.js';
-import { CANONICAL_SOURCE_LABELS } from './canonical-target-pane.js';
+export const CANONICAL_NO_BIO_FALLBACK = 'This Agent has no public bio.';
 
 export const CANONICAL_HEADER_ICON_CLASS = cn(
   'inline-flex h-10 w-10 items-center justify-center rounded-full',
@@ -16,7 +16,43 @@ export type CanonicalCharacterRailProps = {
   avatarAnchorRef?: RefObject<HTMLButtonElement | null>;
   onBackToTargets: () => void;
   onOpenProfile?: () => void;
+  /** When true, the back button is hidden (e.g. when navigation is handled by an external sidebar). */
+  hideBackButton?: boolean;
 };
+
+function resolvePresenceState(characterData: ConversationCharacterData | null | undefined, target: ConversationTargetSummary): { label: string; busy: boolean } {
+  const interactionState = characterData?.interactionState;
+  const explicitLabel = String(interactionState?.label || characterData?.presenceLabel || '').trim();
+  const phase = interactionState?.phase || null;
+  if (explicitLabel) {
+    return {
+      label: explicitLabel,
+      busy: Boolean(interactionState?.busy ?? characterData?.presenceBusy),
+    };
+  }
+  if (phase === 'loading') {
+    return { label: 'Moving closer...', busy: false };
+  }
+  if (phase === 'speaking') {
+    return { label: 'Speaking...', busy: true };
+  }
+  if (phase === 'painting') {
+    return { label: 'Drawing something...', busy: true };
+  }
+  if (phase === 'filming') {
+    return { label: 'Cutting together a scene...', busy: true };
+  }
+  if (phase === 'thinking') {
+    return { label: 'Thinking...', busy: true };
+  }
+  if (phase === 'listening') {
+    return { label: 'Listening to you...', busy: false };
+  }
+  return {
+    label: target.isOnline === false ? 'Offline' : 'Quietly here with you',
+    busy: Boolean(interactionState?.busy ?? characterData?.presenceBusy),
+  };
+}
 
 function relationshipBadgeClass(value: ConversationCharacterData['relationshipState']): string {
   if (value === 'friendly') {
@@ -46,34 +82,39 @@ function relationshipStateLabel(value: ConversationCharacterData['relationshipSt
 
 export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
   const theme = props.characterData?.theme;
-  const supportingCopy = String(props.characterData?.bio || props.selectedTarget.bio || '').trim();
-  const presenceLabel = String(props.characterData?.presenceLabel || '').trim()
-    || CANONICAL_SOURCE_LABELS[props.selectedTarget.source];
-  const presenceBusy = Boolean(props.characterData?.presenceBusy);
+  const supportingCopy = String(props.characterData?.bio || props.selectedTarget.bio || '').trim() || CANONICAL_NO_BIO_FALLBACK;
+  const presenceState = resolvePresenceState(props.characterData, props.selectedTarget);
   const presenceTextColor = theme?.text || '#1f2937';
   const presenceBorder = theme?.border || 'rgba(16, 185, 129, 0.28)';
   const presenceBackground = 'rgba(255,255,255,0.86)';
   const presenceDot = theme?.accentStrong || '#34d399';
+  const relationshipState = props.characterData?.relationshipState || 'new';
 
   return (
-    <aside className="relative hidden min-h-0 w-[clamp(360px,30vw,600px)] shrink-0 overflow-hidden border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))] lg:flex lg:flex-col">
+    <aside
+      className="relative flex min-h-0 w-[clamp(360px,30vw,600px)] shrink-0 flex-col overflow-hidden border-r border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
+      data-canonical-character-rail="true"
+    >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-[-64px] top-[-52px] h-48 w-48 rounded-full bg-mint-100/70 blur-3xl" />
         <div className="absolute bottom-16 right-[-56px] h-56 w-56 rounded-full bg-sky-100/70 blur-3xl" />
       </div>
       <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <div className="shrink-0 border-b border-white/70 px-6 py-3">
-          <button
-            type="button"
-            onClick={props.onBackToTargets}
-            className={CANONICAL_HEADER_ICON_CLASS}
-            aria-label="Back to targets"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-        </div>
+        {props.hideBackButton ? null : (
+          <div className="shrink-0 border-b border-white/70 px-6 py-3" data-canonical-rail-header="true">
+            <button
+              type="button"
+              onClick={props.onBackToTargets}
+              className={CANONICAL_HEADER_ICON_CLASS}
+              aria-label="Back to character space"
+              title="Back to character space"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
         <div className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-4">
           <div className="flex min-h-0 flex-1 items-center justify-center pb-8">
             <button
@@ -87,6 +128,7 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
               className="group relative rounded-full outline-none transition-transform duration-300 hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-white/85"
               aria-label="Open profile"
               title="Open profile"
+              data-canonical-rail-avatar-anchor="true"
             >
               <span
                 className="absolute inset-[-28px] rounded-full opacity-75 blur-3xl"
@@ -117,14 +159,13 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                   {props.characterData?.handle || props.selectedTarget.handle}
                 </p>
               ) : null}
-              {supportingCopy ? (
-                <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-500">
-                  {supportingCopy}
-                </p>
-              ) : null}
+              <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-slate-500">
+                {supportingCopy}
+              </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <span
+                data-canonical-presence-badge="true"
                 className="inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
                 style={{
                   borderColor: presenceBorder,
@@ -133,17 +174,18 @@ export function CanonicalCharacterRail(props: CanonicalCharacterRailProps) {
                 }}
               >
                 <span
-                  className={cn('inline-block h-2.5 w-2.5 rounded-full', presenceBusy ? 'animate-pulse' : '')}
+                  className={cn('inline-block h-2.5 w-2.5 rounded-full', presenceState.busy ? 'animate-pulse' : '')}
                   style={{ background: props.selectedTarget.isOnline === false ? '#cbd5e1' : presenceDot }}
                 />
-                <span>{presenceLabel}</span>
+                <span>{presenceState.label}</span>
               </span>
-              {props.characterData?.relationshipState ? (
-                <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.05)] ${relationshipBadgeClass(props.characterData.relationshipState)}`}>
-                  <span className="inline-block h-2 w-2 rounded-full bg-current opacity-70" />
-                  <span>{relationshipStateLabel(props.characterData.relationshipState)}</span>
-                </span>
-              ) : null}
+              <span
+                data-canonical-relationship-badge="true"
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_10px_24px_rgba(15,23,42,0.05)] ${relationshipBadgeClass(relationshipState)}`}
+              >
+                <span className="inline-block h-2 w-2 rounded-full bg-current opacity-70" />
+                <span>{relationshipStateLabel(relationshipState)}</span>
+              </span>
               {props.characterData?.badges?.map((badge) => (
                 <span
                   key={`${badge.label}-${badge.variant}`}

@@ -1,7 +1,7 @@
 version: 1
 surfaces:
-  - id: chat.list.root
-    module: features/chats/chat-list.tsx
+  - id: chat.page.root
+    module: features/chat/chat-page.tsx
     role: chat_root
     surface_profile: baseline
     exception_policy: none

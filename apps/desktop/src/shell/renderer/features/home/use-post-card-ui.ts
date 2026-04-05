@@ -3,12 +3,12 @@ import type { RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
 import type { StatusBanner } from '@renderer/app-shell/providers/store-types';
 
-type SetStatusBanner = (banner: StatusBanner | null) => void;
+type SetFeedback = (banner: StatusBanner | null) => void;
 
 export type UsePostCardUiInput = {
   authorId: string;
   initialLiked?: boolean;
-  setStatusBanner: SetStatusBanner;
+  setFeedback: SetFeedback;
 };
 
 export type UsePostCardUiResult = {
@@ -45,7 +45,7 @@ export type UsePostCardUiResult = {
 };
 
 export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
-  const { authorId, initialLiked, setStatusBanner } = input;
+  const { authorId, initialLiked, setFeedback } = input;
 
   const [isLiked, setIsLiked] = useState(Boolean(initialLiked));
   const [isSendGiftOpen, setIsSendGiftOpen] = useState(false);
@@ -86,7 +86,7 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
 
   const openAddFriendModal = useCallback(() => {
     if (!authorId) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }),
       });
@@ -94,11 +94,11 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     }
     setShowAddFriendModal(true);
     return true;
-  }, [authorId, setStatusBanner]);
+  }, [authorId, setFeedback]);
 
   const openGiftModal = useCallback(() => {
     if (!authorId) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: i18n.t('Home.missingAuthorForGift', { defaultValue: 'Cannot send gift: user ID not found' }),
       });
@@ -106,7 +106,7 @@ export function usePostCardUi(input: UsePostCardUiInput): UsePostCardUiResult {
     }
     setIsSendGiftOpen(true);
     return true;
-  }, [authorId, setStatusBanner]);
+  }, [authorId, setFeedback]);
 
   const openEditPost = useCallback(() => {
     setShowPostMenu(false);

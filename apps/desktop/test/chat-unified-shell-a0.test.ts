@@ -46,7 +46,7 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
     agent: null,
   });
   assert.deepEqual(state.selectedTargetBySource, {
-    ai: null,
+    ai: 'ai:assistant',
     human: null,
     agent: null,
   });

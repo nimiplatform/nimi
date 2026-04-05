@@ -31,6 +31,7 @@ import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } f
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {
@@ -243,7 +244,6 @@ function Input({
 export function CloudPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const { selectedConnector, orderedConnectors, updateState } = model;
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const authStatus = useAppStore((s) => s.auth.status);
 
   const [tokenDraft, setTokenDraft] = useState('');
@@ -269,11 +269,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
   );
 
   const reportError = useCallback((label: string, error: unknown) => {
-    setStatusBanner({
+    model.setPageFeedback({
       kind: 'error',
       message: formatRuntimeConfigErrorBanner(label, error),
     });
-  }, [setStatusBanner]);
+  }, [model]);
+
+  useEffect(() => {
+    model.setConnectorTestFeedback(null);
+  }, [model, selectedConnectorId]);
 
   const refreshConnectorsFromSdk = useCallback(async () => {
     const connectors = await sdkListConnectors();
@@ -449,7 +453,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
             title={t('runtimeConfig.cloud.availableConnectors', { defaultValue: 'Available Connectors' })}
             description={t('runtimeConfig.cloud.selectConnectorToConfigure', { defaultValue: 'Select a connector to configure' })}
             action={
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
                 <Button
                   variant="primary"
                   size="sm"
@@ -469,6 +474,15 @@ export function CloudPage({ model, state }: CloudPageProps) {
                     ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
                     : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
                 </button>
+                </div>
+                {model.connectorTestFeedback ? (
+                  <InlineFeedback
+                    feedback={model.connectorTestFeedback}
+                    className="w-full max-w-md"
+                    title={t('runtimeConfig.cloud.testResult', { defaultValue: 'Connector test' })}
+                    onDismiss={() => model.setConnectorTestFeedback(null)}
+                  />
+                ) : null}
               </div>
             }
           />

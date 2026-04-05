@@ -19,7 +19,6 @@ export function MainLayout() {
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const authStatus = useAppStore((state) => state.auth.status);
   const user = useAppStore((state) => state.auth.user);
   const context = useUiExtensionContext({
@@ -61,7 +60,6 @@ export function MainLayout() {
   const onLogout = async () => {
     await logoutAndClearSession({
       clearAuthSession,
-      setStatusBanner,
     });
   };
 

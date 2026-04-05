@@ -10,6 +10,7 @@ import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { createRealmChatComposerAdapter } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { MessageType } from '@nimiplatform/sdk/realm';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   addChatUploadPlaceholder,
   createChatUploadPlaceholder,
@@ -78,7 +79,6 @@ export function TurnInput(props: TurnInputProps = {}) {
   const flags = getShellFeatureFlags();
   const selectedChatId = useAppStore((state) => state.selectedChatId);
   const offlineTier = useAppStore((state) => state.offlineTier);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
   const [isFocused, setIsFocused] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -87,6 +87,7 @@ export function TurnInput(props: TurnInputProps = {}) {
   const [showUploadPickerActive, setShowUploadPickerActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,7 +177,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     });
 
     if (!nextAttachments) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: t('TurnInput.unsupportedFileType'),
       });
@@ -295,7 +296,7 @@ export function TurnInput(props: TurnInputProps = {}) {
 
   const handleUploadClick = () => {
     if (offlineTier === 'L2') {
-      setStatusBanner({
+      setFeedback({
         kind: 'warning',
         message: uploadBlockedMessage,
       });
@@ -321,7 +322,7 @@ export function TurnInput(props: TurnInputProps = {}) {
 
   const handleSend = async (payload: { text: string; attachments: readonly PendingAttachment[] }) => {
     if (offlineTier === 'L2') {
-      setStatusBanner({
+      setFeedback({
         kind: 'warning',
         message: readOnlyMessage,
       });
@@ -356,7 +357,7 @@ export function TurnInput(props: TurnInputProps = {}) {
           }
         }
       } catch (error) {
-        setStatusBanner({
+        setFeedback({
           kind: 'error',
           message: error instanceof Error ? error.message : t('TurnInput.uploadFailed'),
         });
@@ -402,7 +403,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     },
     disabled: !selectedChatId || isUploading || offlineTier === 'L2',
     onError: (error) => {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('TurnInput.sendFailed'),
       });
@@ -423,6 +424,11 @@ export function TurnInput(props: TurnInputProps = {}) {
     <section
       className={`${props.showTopBorder === false ? '' : 'border-t border-gray-100 '}relative flex h-full flex-col bg-white px-4 pb-4 pt-3 ${props.className || ''}`}
     >
+      {feedback ? (
+        <div className="mb-3">
+          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+        </div>
+      ) : null}
       {/* Emoji Picker Popup */}
       {showEmojiPicker && (
         <div

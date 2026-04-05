@@ -1,9 +1,12 @@
 use super::{
-    create_message, create_thread, delete_draft, get_draft, get_thread_bundle, list_threads,
-    open_db, put_draft, update_message, update_thread_metadata, ChatAgentCreateMessageInput,
+    cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, get_draft,
+    get_thread_bundle, list_threads, load_turn_context, open_db, put_draft, rebuild_projection,
+    update_message, update_thread_metadata, ChatAgentCancelTurnInput,
+    ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput,
     ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput, ChatAgentDraftRecord,
-    ChatAgentMessageRecord, ChatAgentPutDraftInput, ChatAgentThreadBundle,
-    ChatAgentThreadLookupPayload, ChatAgentThreadRecord, ChatAgentThreadSummary,
+    ChatAgentLoadTurnContextInput, ChatAgentMessageRecord, ChatAgentProjectionRebuildResult,
+    ChatAgentPutDraftInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
+    ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentTurnContext, ChatAgentTurnRecord,
     ChatAgentUpdateMessageInput, ChatAgentUpdateThreadMetadataInput,
 };
 
@@ -73,4 +76,36 @@ pub(crate) fn chat_agent_put_draft(
 pub(crate) fn chat_agent_delete_draft(payload: ChatAgentDeleteDraftInput) -> Result<(), String> {
     let conn = open_db()?;
     delete_draft(&conn, &payload.thread_id)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_load_turn_context(
+    payload: ChatAgentLoadTurnContextInput,
+) -> Result<ChatAgentTurnContext, String> {
+    let conn = open_db()?;
+    load_turn_context(&conn, &payload)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_commit_turn_result(
+    payload: ChatAgentCommitTurnResultInput,
+) -> Result<ChatAgentCommitTurnResult, String> {
+    let mut conn = open_db()?;
+    commit_turn_result(&mut conn, &payload)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_cancel_turn(
+    payload: ChatAgentCancelTurnInput,
+) -> Result<ChatAgentTurnRecord, String> {
+    let mut conn = open_db()?;
+    cancel_turn(&mut conn, &payload)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_rebuild_projection(
+    payload: ChatAgentThreadLookupPayload,
+) -> Result<ChatAgentProjectionRebuildResult, String> {
+    let mut conn = open_db()?;
+    rebuild_projection(&mut conn, &payload.thread_id)
 }

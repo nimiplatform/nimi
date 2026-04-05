@@ -13,7 +13,6 @@ export async function runDiscoverLocalModelsCommand(input: {
 }) {
   const {
     endpoint,
-    discovered,
     models,
     nodeMatrix,
     rawModels,
@@ -29,13 +28,6 @@ export async function runDiscoverLocalModelsCommand(input: {
         nodeMatrix,
       },
     };
-  });
-
-  input.setStatusBanner({
-    kind: 'success',
-    message: discovered.length > 0
-      ? `Discovered ${discovered.length} Local Runtime models`
-      : 'Local Runtime model list is up to date',
   });
 
   // Discovery no longer reconciles a second Desktop-local asset inventory into runtime.

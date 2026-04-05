@@ -9,6 +9,7 @@ import type {
 } from '../types.js';
 import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
+import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 
 const STAGE_SWITCH_DELTA_THRESHOLD = 120;
 const STAGE_SWITCH_WINDOW_MS = 400;
@@ -124,7 +125,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
   }), [props.messages, props.pendingFirstBeat]);
   const theme = props.characterData?.theme;
   const showEmptyState = !props.content && !slice.userMessage && slice.assistantMessages.length === 0 && !slice.pendingFirstBeat;
-  const widthClassName = props.widthClassName || 'max-w-3xl';
+  const widthClassName = props.widthClassName || CANONICAL_STAGE_SURFACE_WIDTH_CLASS;
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     if (!props.onIntentOpenHistory) {
@@ -152,6 +153,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
     <div
       ref={props.anchorViewportRef}
       className="relative min-h-0 flex-1 overflow-hidden px-5 pb-4 pt-5"
+      data-canonical-stage-root="true"
       onWheelCapture={handleWheelCapture}
     >
       <div
@@ -159,10 +161,10 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
         style={{ background: theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 62%)', opacity: 0.9 }}
       />
 
-      <div className="relative z-10 h-full min-h-0">
+      <div className="relative z-10 flex h-full min-h-0 items-start justify-center pt-4">
         <div
-          className={`absolute left-1/2 w-full -translate-x-1/2 -translate-y-1/2 ${widthClassName}`}
-          style={{ top: props.cardAnchorOffsetPx === null || props.cardAnchorOffsetPx === undefined ? STAGE_CARD_VISUAL_ANCHOR_TOP : `${props.cardAnchorOffsetPx}px` }}
+          className={`w-full ${widthClassName}`}
+          data-canonical-stage-width={widthClassName}
         >
           <div className="w-full rounded-[30px] border border-emerald-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,250,252,0.92))] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3 px-2">

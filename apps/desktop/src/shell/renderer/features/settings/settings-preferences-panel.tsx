@@ -3,8 +3,8 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
+  FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
@@ -133,10 +133,13 @@ function toErrorMessage(error: unknown, fallback: string): string {
 
 export function NotificationsPage() {
   const { t } = useTranslation();
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const [form, setForm] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [baseline, setBaseline] = useState<NotificationForm>({ ...DEFAULT_NOTIFICATION_FORM });
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+  } | null>(null);
   const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const settingsQuery = useQuery({
@@ -164,7 +167,7 @@ export function NotificationsPage() {
   const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
-        setStatusBanner({
+        setFeedback({
           kind: 'info',
           message: t('Notifications.noChanges'),
         });
@@ -176,13 +179,13 @@ export function NotificationsPage() {
       await dataSync.updateMyNotificationSettings(toNotificationPayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
-        setStatusBanner({
+        setFeedback({
           kind: 'success',
           message: t('Notifications.updateSuccess'),
         });
       }
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('Notifications.updateError')),
       });
@@ -244,6 +247,7 @@ export function NotificationsPage() {
       title={t('Notifications.pageTitle')}
       description={t('Notifications.pageDescription')}
     >
+      <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Notifications.pageTitle')} />
       {/* Activity Notifications */}
       <section>
         <SectionTitle description={t('Notifications.sectionActivityDescription')}>

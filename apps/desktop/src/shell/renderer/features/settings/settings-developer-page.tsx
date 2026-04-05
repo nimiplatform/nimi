@@ -5,7 +5,8 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { refreshRuntimeModDeveloperHostState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { reconcileRuntimeLocalMods } from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
-import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
+import { Button, Card, FormFeedback, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 function sourceStatusTone(status: 'resolved' | 'conflict' | 'invalid'): 'success' | 'warning' | 'error' {
   switch (status) {
@@ -32,13 +33,13 @@ export function DeveloperPage() {
   const runtimeModDeveloperMode = useAppStore((state) => state.runtimeModDeveloperMode);
   const runtimeModDiagnostics = useAppStore((state) => state.runtimeModDiagnostics);
   const runtimeModRecentReloads = useAppStore((state) => state.runtimeModRecentReloads);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [sourceDirInput, setSourceDirInput] = useState('');
   const [nimiDataDirInput, setNimiDataDirInput] = useState('');
   const [resolvedNimiDir, setResolvedNimiDir] = useState('');
   const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
   const [resolvedInstalledModsDir, setResolvedInstalledModsDir] = useState('');
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   useEffect(() => {
     void refreshRuntimeModDeveloperHostState();
@@ -78,12 +79,12 @@ export function DeveloperPage() {
     try {
       const state = await desktopBridge.setRuntimeModDeveloperMode(next);
       useAppStore.getState().setRuntimeModDeveloperMode(state);
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: t('DeveloperSettings.settingsUpdated'),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.settingsUpdateFailed'),
       });
@@ -95,7 +96,7 @@ export function DeveloperPage() {
   const addSource = async () => {
     const sourceDir = sourceDirInput.trim();
     if (!sourceDir) {
-      setStatusBanner({ kind: 'warning', message: t('DeveloperSettings.enterSourceDirFirst') });
+      setFeedback({ kind: 'warning', message: t('DeveloperSettings.enterSourceDirFirst') });
       return;
     }
     setSaving(true);
@@ -107,9 +108,9 @@ export function DeveloperPage() {
       });
       await refreshRuntimeModDeveloperHostState();
       setSourceDirInput('');
-      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.sourceAdded') });
+      setFeedback({ kind: 'success', message: t('DeveloperSettings.sourceAdded') });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.sourceAddFailed'),
       });
@@ -121,7 +122,7 @@ export function DeveloperPage() {
   const saveNimiDataDir = async () => {
     const normalized = nimiDataDirInput.trim();
     if (!normalized) {
-      setStatusBanner({ kind: 'warning', message: t('DeveloperSettings.enterDataDirFirst') });
+      setFeedback({ kind: 'warning', message: t('DeveloperSettings.enterDataDirFirst') });
       return;
     }
     setSaving(true);
@@ -132,12 +133,12 @@ export function DeveloperPage() {
       setResolvedInstalledModsDir(dirs.installedModsDir);
       setNimiDataDirInput(dirs.nimiDataDir);
       await refreshRuntimeModDeveloperHostState();
-      setStatusBanner({
+      setFeedback({
         kind: 'warning',
         message: t('DeveloperSettings.dataDirUpdated'),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.dataDirUpdateFailed'),
       });
@@ -160,8 +161,9 @@ export function DeveloperPage() {
         enabled,
       });
       await refreshRuntimeModDeveloperHostState();
+      setFeedback(null);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.sourceUpdateFailed'),
       });
@@ -175,9 +177,9 @@ export function DeveloperPage() {
     try {
       await desktopBridge.removeRuntimeModSource(sourceId);
       await refreshRuntimeModDeveloperHostState();
-      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.sourceRemoved') });
+      setFeedback({ kind: 'success', message: t('DeveloperSettings.sourceRemoved') });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.sourceRemoveFailed'),
       });
@@ -192,9 +194,9 @@ export function DeveloperPage() {
       await desktopBridge.reloadAllRuntimeMods();
       await refreshRuntimeModDeveloperHostState();
       await reconcileRuntimeLocalMods();
-      setStatusBanner({ kind: 'success', message: t('DeveloperSettings.reloadSuccess') });
+      setFeedback({ kind: 'success', message: t('DeveloperSettings.reloadSuccess') });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.reloadFailed'),
       });
@@ -211,7 +213,7 @@ export function DeveloperPage() {
     try {
       await desktopBridge.openRuntimeModDir(normalized);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.openModDirFailed'),
       });
@@ -224,6 +226,9 @@ export function DeveloperPage() {
       description={t('DeveloperSettings.pageDescription')}
       contentClassName="max-w-4xl"
     >
+      {feedback ? (
+        <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} className="mb-6" />
+      ) : null}
       <section>
         <SectionTitle>{t('DeveloperSettings.modeTitle')}</SectionTitle>
         <Card className="p-5">

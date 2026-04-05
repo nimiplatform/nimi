@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import type { ConversationCharacterData, ConversationTargetSummary, ConversationViewMode } from '../types.js';
 import { CANONICAL_HEADER_ICON_CLASS } from './canonical-character-rail.js';
-import { CANONICAL_SOURCE_LABELS } from './canonical-target-pane.js';
+
+export const CANONICAL_STAGE_SURFACE_WIDTH_CLASS = 'max-w-[min(1240px,calc(100vw-520px))]';
 
 export type CanonicalConversationPaneProps = {
   selectedTarget: ConversationTargetSummary;
@@ -20,41 +21,18 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
   return (
     <section
       className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-      style={theme?.roomSurface ? { background: theme.roomSurface } : undefined}
+      data-canonical-conversation-pane="true"
     >
-      <div className="relative overflow-hidden border-b border-white/70 px-6 py-3">
-        <div
-          className="absolute inset-0 opacity-80"
-          style={{ background: theme?.roomAura || 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(232,245,245,0.78))' }}
-        />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/70" />
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 lg:hidden">
-            <button
-              type="button"
-              onClick={props.onBackToTargets}
-              className={CANONICAL_HEADER_ICON_CLASS}
-              aria-label="Back to targets"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-slate-900">
-                {props.characterData?.name || props.selectedTarget.title}
-              </div>
-              <div className="truncate text-xs text-slate-500">
-                {props.characterData?.handle || props.selectedTarget.handle || CANONICAL_SOURCE_LABELS[props.selectedTarget.source]}
-              </div>
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+      <div className="relative shrink-0 px-6 py-3" data-canonical-pane-header="true">
+        <div className="relative z-10 flex items-center justify-end gap-4" data-canonical-pane-controls="true">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               className={CANONICAL_HEADER_ICON_CLASS}
-              aria-label={props.viewMode === 'stage' ? 'Open chat history' : 'Return to stage'}
+              aria-label={props.viewMode === 'stage' ? 'Show history' : 'Return to stage'}
+              title={props.viewMode === 'stage' ? 'Show history' : 'Return to stage'}
               onClick={() => props.onViewModeChange(props.viewMode === 'stage' ? 'chat' : 'stage')}
+              data-canonical-view-toggle="true"
             >
               {props.viewMode === 'stage' ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -75,7 +53,9 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
                 type="button"
                 className={CANONICAL_HEADER_ICON_CLASS}
                 aria-label="Open settings"
+                title="Open settings"
                 onClick={props.onOpenSettings}
+                data-canonical-settings-toggle="true"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="3" />

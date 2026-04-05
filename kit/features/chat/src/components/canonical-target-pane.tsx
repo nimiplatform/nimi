@@ -53,7 +53,10 @@ function SourceFilterPills(props: {
 }) {
   const filters: ConversationSourceFilter[] = ['all', ...props.availableSources];
   return (
-    <div className="inline-flex flex-wrap gap-2 rounded-full border border-white/80 bg-white/80 p-1 shadow-[0_14px_32px_rgba(15,23,42,0.08)]">
+    <div
+      className="inline-flex flex-wrap gap-2 rounded-full border border-white/80 bg-white/80 p-1 shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
+      data-canonical-source-pills="true"
+    >
       {filters.map((filter) => (
         <button
           key={filter}

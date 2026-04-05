@@ -1,5 +1,3 @@
-import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import type { HumanChatViewDto } from '@renderer/features/chat/chat-human-thread-model';
 
@@ -14,8 +12,6 @@ export function HumanConversationGiftModal({
   selectedChat,
   onClose,
 }: HumanConversationGiftModalProps) {
-  const { t } = useTranslation();
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const otherUser = selectedChat?.otherUser;
   const otherUserId = String(otherUser?.id || '').trim();
   const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
@@ -30,15 +26,7 @@ export function HumanConversationGiftModal({
       receiverIsAgent={otherUser?.isAgent === true}
       receiverAvatarUrl={contactAvatarUrl}
       onClose={onClose}
-      onSent={() => {
-        setStatusBanner({
-          kind: 'success',
-          message: t('Contacts.giftSentTo', {
-            name: contactName,
-            defaultValue: 'Gift sent to {{name}}',
-          }),
-        });
-      }}
+      onSent={onClose}
     />
   );
 }

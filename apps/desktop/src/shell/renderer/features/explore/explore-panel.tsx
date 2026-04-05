@@ -241,7 +241,6 @@ export function ExplorePanel() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const navigateToWorld = useAppStore((state) => state.navigateToWorld);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProfileTarget, setSelectedProfileTarget] = useState<PostCardAuthorProfileTarget | null>(null);
@@ -479,13 +478,6 @@ export function ExplorePanel() {
           setSelectedAgentForGift(null);
         }}
         onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: t('Contacts.giftSentTo', {
-              name: selectedAgentForGift?.name || t('Contacts.agent', { defaultValue: 'Agent' }).toLowerCase(),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
           setGiftModalOpen(false);
           setSelectedAgentForGift(null);
         }}

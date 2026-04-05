@@ -9,7 +9,7 @@ export async function runSelectedConnectorTestCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setControlFeedback: (banner: StatusBanner | null) => void;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');
   const {
@@ -52,7 +52,7 @@ export async function runSelectedConnectorTestCommand(input: {
     },
   });
 
-  input.setStatusBanner({
+  input.setControlFeedback({
     kind: 'success',
     message: `${input.selectedConnector.label} test passed (${discovered.length} models)`,
   });
@@ -62,7 +62,7 @@ export function markSelectedConnectorTestFailedCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   updateState: RuntimeConfigStateUpdater;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setControlFeedback: (banner: StatusBanner | null) => void;
   error: unknown;
 }) {
   const flowId = createRendererFlowId('runtime-config-connector');
@@ -94,7 +94,7 @@ export function markSelectedConnectorTestFailedCommand(input: {
     },
   });
 
-  input.setStatusBanner({
+  input.setControlFeedback({
     kind: 'error',
     message: formatRuntimeConfigErrorBanner('Connector test failed', input.error),
   });

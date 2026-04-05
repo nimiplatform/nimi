@@ -39,6 +39,7 @@ import {
   type ModHubPendingActionType,
   type ModHubSection,
 } from './mod-hub-model';
+import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 
 function normalizeModId(modId: string): string {
   return String(modId || '').trim();
@@ -156,6 +157,13 @@ export type ModHubPageModel = {
   visibleModCount: number;
   installedModsCount: number;
   isSearchFocused: boolean;
+  feedback: StatusBanner | null;
+  issueSummary: {
+    failureCount: number;
+    fusedCount: number;
+    message: string;
+  } | null;
+  dismissFeedback: () => void;
   onSearchQueryChange: (value: string) => void;
   onSearchFocus: () => void;
   onSearchBlur: () => void;
@@ -201,6 +209,8 @@ export function useModHubPageModel(): ModHubPageModel {
   const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
   const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
   const runtimeModDiagnostics = useAppStore((state) => state.runtimeModDiagnostics);
+  const modsFeedback = useAppStore((state) => state.modsFeedback);
+  const setModsFeedback = useAppStore((state) => state.setModsFeedback);
 
   useEffect(() => {
     let cancelled = false;
@@ -380,6 +390,25 @@ export function useModHubPageModel(): ModHubPageModel {
 
   const dockMods = useMemo(() => buildDockMods(mergedMods), [mergedMods]);
   const loading = !storageReady || !catalogReady;
+  const issueSummary = useMemo(() => {
+    const fusedCount = Object.keys(fusedRuntimeMods).length;
+    const failureCount = runtimeModFailures.length;
+    if (fusedCount === 0 && failureCount === 0) {
+      return null;
+    }
+    const parts: string[] = [];
+    if (failureCount > 0) {
+      parts.push(`${failureCount} load failure${failureCount > 1 ? 's' : ''}`);
+    }
+    if (fusedCount > 0) {
+      parts.push(`${fusedCount} fused runtime mod${fusedCount > 1 ? 's' : ''}`);
+    }
+    return {
+      failureCount,
+      fusedCount,
+      message: `Startup/runtime issues detected: ${parts.join(' · ')}. Open the affected mod row for the error chain and retry actions.`,
+    };
+  }, [fusedRuntimeMods, runtimeModFailures]);
 
   const onSearchFocus = useCallback(() => {
     setIsSearchFocused(true);
@@ -402,7 +431,6 @@ export function useModHubPageModel(): ModHubPageModel {
     const result = openModWorkspaceTab(tabId, title, normalized);
     if (result === 'rejected-limit') {
       showModTabLimitBanner({
-        setStatusBanner: useAppStore.getState().setStatusBanner,
         setActiveTab: (tab) => {
           setActiveTab(tab);
         },
@@ -447,7 +475,7 @@ export function useModHubPageModel(): ModHubPageModel {
       });
     } catch (error) {
       const message = safeErrorMessage(error);
-      useAppStore.getState().setStatusBanner({
+      setModsFeedback({
         kind: 'error',
         message: tModHub('ModHub.runtimeActionFailed', {
           modId: normalizedModId,
@@ -472,7 +500,7 @@ export function useModHubPageModel(): ModHubPageModel {
           : current
       ));
     }
-  }, []);
+  }, [setModsFeedback]);
 
   const finalizeInstalledManifest = useCallback(async (input: {
     result: CatalogInstallResult;
@@ -510,7 +538,7 @@ export function useModHubPageModel(): ModHubPageModel {
       consentReasons: input.result.consentReasons,
       addedCapabilities: input.result.addedCapabilities,
     });
-    appStore.setStatusBanner({
+    appStore.setModsFeedback({
       kind: input.result.requiresUserConsent || input.result.advisoryIds.length > 0 ? 'warning' : 'success',
       message: input.result.requiresUserConsent
         ? tModHub('ModHub.installRequiresConsent', {
@@ -588,7 +616,7 @@ export function useModHubPageModel(): ModHubPageModel {
       );
       appStore.clearRuntimeModFuse(normalizedModId);
       await syncSingleRuntimeModShellState(normalizedModId);
-      appStore.setStatusBanner({
+      appStore.setModsFeedback({
         kind: 'success',
         message: tModHub('ModHub.enableSuccess', {
           modId: normalizedModId,
@@ -611,7 +639,7 @@ export function useModHubPageModel(): ModHubPageModel {
         appStore.setActiveTab('mods');
       }
       appStore.closeModWorkspaceTab(modTabId);
-      appStore.setStatusBanner({
+      appStore.setModsFeedback({
         kind: 'info',
         message: tModHub('ModHub.disableSuccess', {
           modId: normalizedModId,
@@ -640,7 +668,7 @@ export function useModHubPageModel(): ModHubPageModel {
         appStore.setActiveTab('mods');
       }
       closeModWorkspaceTab(modTabId);
-      appStore.setStatusBanner({
+      appStore.setModsFeedback({
         kind: 'info',
         message: tModHub('ModHub.uninstallSuccess', {
           modId: normalizedModId,
@@ -661,9 +689,7 @@ export function useModHubPageModel(): ModHubPageModel {
         runtimeModDisabledIds: appStore.runtimeModDisabledIds,
         runtimeModUninstalledIds: appStore.runtimeModUninstalledIds,
         setRuntimeModFailures: appStore.setRuntimeModFailures,
-        setStatusBanner: (banner) => {
-          appStore.setStatusBanner(banner);
-        },
+        setStatusBanner: appStore.setModsFeedback,
       });
       setSelectedModId(normalizedModId);
     });
@@ -679,7 +705,7 @@ export function useModHubPageModel(): ModHubPageModel {
     });
     if (!path) return;
     void desktopBridge.openRuntimeModDir(path).catch((error) => {
-      useAppStore.getState().setStatusBanner({
+      useAppStore.getState().setModsFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : 'Failed to open mod folder',
       });
@@ -690,7 +716,7 @@ export function useModHubPageModel(): ModHubPageModel {
     const normalized = String(installedModsDir || '').trim();
     if (!normalized) return;
     void desktopBridge.openRuntimeModDir(normalized).catch((error) => {
-      useAppStore.getState().setStatusBanner({
+      useAppStore.getState().setModsFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : 'Failed to open mods folder',
       });
@@ -717,6 +743,9 @@ export function useModHubPageModel(): ModHubPageModel {
     visibleModCount: filteredMods.length,
     installedModsCount: dockMods.length,
     isSearchFocused,
+    feedback: modsFeedback,
+    issueSummary,
+    dismissFeedback: () => setModsFeedback(null),
     onSearchQueryChange: setSearchQuery,
     onSearchFocus,
     onSearchBlur,

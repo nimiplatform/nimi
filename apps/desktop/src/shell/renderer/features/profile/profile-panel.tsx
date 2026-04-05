@@ -20,6 +20,7 @@ import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-frien
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -42,9 +43,9 @@ export function ProfilePanel() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const queryClient = useQueryClient();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const isOwnProfile = !selectedProfileId;
 
@@ -159,7 +160,7 @@ export function ProfilePanel() {
       });
       setActiveTab('chat');
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Contacts.openChatFailed', { defaultValue: 'Failed to open chat' })),
       });
@@ -178,16 +179,10 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Contacts.friendRequestSentOrAccepted', {
-          name: profile?.displayName || profile?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: 'Friend request sent or accepted for {{name}}.',
-        }),
-      });
+      setFeedback(null);
       void agentLimitQuery.refetch();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Contacts.addContactFailed', { defaultValue: 'Failed to add contact' })),
       });
@@ -212,16 +207,10 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Contacts.blockUserSuccess', {
-          name: profile.displayName || profile.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: 'Blocked {{name}}',
-        }),
-      });
+      setFeedback(null);
       navigateBack();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' })),
       });
@@ -240,16 +229,10 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['contact-profile'], exact: false }),
       ]);
-      setStatusBanner({
-        kind: 'success',
-        message: i18n.t('Contacts.removeFriendSuccess', {
-          name: profile.displayName || profile.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: 'Removed {{name}} from friends',
-        }),
-      });
+      setFeedback(null);
       navigateBack();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
@@ -290,12 +273,12 @@ export function ProfilePanel() {
         queryClient.invalidateQueries({ queryKey: ['contact-profile'] }),
         queryClient.invalidateQueries({ queryKey: ['contacts'] }),
       ]);
-      setStatusBanner({
+      setFeedback({
         kind: 'success',
         message: i18n.t('Profile.updateSuccess', { defaultValue: 'Profile updated' }),
       });
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, i18n.t('Profile.updateError', { defaultValue: 'Failed to update profile' })),
       });
@@ -335,6 +318,11 @@ export function ProfilePanel() {
 
   return (
     <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+      {feedback ? (
+        <div className="px-6 pt-4">
+          <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+        </div>
+      ) : null}
       <ContactDetailView
         profile={profile}
         isOwnProfile={isOwnProfile}
@@ -369,13 +357,7 @@ export function ProfilePanel() {
         receiverAvatarUrl={profile?.avatarUrl}
         onClose={() => setGiftModalOpen(false)}
         onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: i18n.t('Contacts.giftSentTo', {
-              name: profile?.displayName || profile?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
+          setFeedback(null);
         }}
       />
     </Surface>

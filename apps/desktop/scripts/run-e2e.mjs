@@ -264,6 +264,7 @@ async function runScenario(scenarioId, runIndex) {
     backend_log: path.relative(repoRoot, backendLogPath),
     driver_log: path.relative(repoRoot, path.join(artifactsDir, 'tauri-driver.log')),
     artifact_policy: scenarioManifest.artifactPolicy || {},
+    parity_captures: [],
   });
 
   try {

@@ -1122,7 +1122,6 @@
     - desktop_kernel_consistency
     - desktop_rust_test_gate
     - desktop_rust_clippy_gate
-    - desktop_0315_e2e_audit_report
 - rule_id: D-GATE-030
   status: covered
   evidence_refs:
@@ -1153,7 +1152,6 @@
     - desktop_e2e_journey_gate
     - desktop_e2e_failure_artifacts_gate
     - desktop_e2e_ci_evidence_report
-    - desktop_0315_e2e_audit_report
 - rule_id: D-GATE-080
   status: covered
   evidence_refs:

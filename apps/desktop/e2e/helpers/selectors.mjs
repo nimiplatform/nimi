@@ -19,6 +19,7 @@ export const E2E_IDS = {
   panel: (name) => `panel:${name}`,
   navTab: (tabId) => `nav-tab:${tabId}`,
   runtimeConnectorScopeBadge: (connectorId) => `runtime-connector-scope-badge:${connectorId}`,
+  chatPage: 'chat-page',
   chatList: 'chat-list',
   chatRow: (chatId) => `chat-row:${chatId}`,
   chatHeaderProfileToggle: 'chat-header-profile-toggle',

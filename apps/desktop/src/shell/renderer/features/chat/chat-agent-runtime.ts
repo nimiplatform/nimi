@@ -1,7 +1,6 @@
 import {
   asNimiError,
   createNimiError,
-  type NimiReasoningConfig,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -18,6 +17,11 @@ import {
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { pickPreferredChatLocalModel } from './chat-ai-thread-model';
+import {
+  resolveAgentChatThinkingSupport,
+  resolveChatThinkingConfig,
+  type ChatThinkingPreference,
+} from './chat-thinking';
 
 export type AgentChatRouteResult = {
   channel: 'CLOUD' | 'LOCAL';
@@ -30,6 +34,7 @@ export type ChatAgentRuntimeInvokeInput = {
   agentId: string;
   prompt: string;
   threadId: string;
+  reasoningPreference: ChatThinkingPreference;
   routeResult: AgentChatRouteResult | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
@@ -61,10 +66,6 @@ export type ResolveAgentLocalRouteDeps = {
 };
 
 export const CORE_CHAT_AGENT_MOD_ID = 'core.chat-agent';
-const DEFAULT_REASONING_CONFIG: NimiReasoningConfig = {
-  mode: 'off',
-  traceMode: 'hide',
-};
 
 const agentCapabilityHandlers = createAgentCoreDataCapabilityHandlers();
 
@@ -248,7 +249,10 @@ export async function streamChatAgentRuntime(
     route: resolved.source,
     connectorId: invokeInput.connectorId,
     input: invokeInput.prompt,
-    reasoning: DEFAULT_REASONING_CONFIG,
+    reasoning: resolveChatThinkingConfig(
+      input.reasoningPreference,
+      resolveAgentChatThinkingSupport(),
+    ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,
     metadata: callOptions.metadata,

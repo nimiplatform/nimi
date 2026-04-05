@@ -20,6 +20,17 @@ test('D-BOOT: bootstrap runtime mods does not re-sync shell state after reconcil
   );
 });
 
+test('D-BOOT: bootstrap runtime mods surfaces failures in-context instead of global banner noise', () => {
+  assert.doesNotMatch(
+    runtimeModsSource,
+    /bootstrapPartialFailure/,
+  );
+  assert.doesNotMatch(
+    runtimeModsSource,
+    /setStatusBanner\(/,
+  );
+});
+
 test('D-BOOT: App watchdog uses distinct completion/failure event names', () => {
   const appSource = readFileSync(resolve(import.meta.dirname, '../src/shell/renderer/App.tsx'), 'utf-8');
   assert.ok(

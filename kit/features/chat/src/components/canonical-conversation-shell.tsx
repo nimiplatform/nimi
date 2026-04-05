@@ -5,6 +5,8 @@ import type {
   ConversationCharacterData,
   ConversationSourceFilter,
   ConversationSourceKind,
+  ConversationSetupAction,
+  ConversationSetupState,
   ConversationTargetSummary,
   ConversationViewMode,
 } from '../types.js';
@@ -16,6 +18,7 @@ import { CanonicalRightSidebar } from './canonical-right-sidebar.js';
 import { CanonicalStagePanel, type CanonicalStagePanelProps } from './canonical-stage-panel.js';
 import { CanonicalTargetPane } from './canonical-target-pane.js';
 import { CanonicalTranscriptView, type CanonicalTranscriptViewProps } from './canonical-transcript-view.js';
+import { ConversationSetupPanel } from './conversation-setup-panel.js';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -52,6 +55,9 @@ export type CanonicalConversationShellProps = {
   onSourceFilterChange?: (filter: ConversationSourceFilter) => void;
   viewMode: ConversationViewMode;
   onViewModeChange: (mode: ConversationViewMode) => void;
+  setupState?: ConversationSetupState | null;
+  setupDescription?: ReactNode;
+  onSetupAction?: (action: ConversationSetupAction) => void;
   characterData?: ConversationCharacterData | null;
   messages?: readonly ConversationCanonicalMessage[];
   pendingFirstBeat?: boolean;
@@ -60,8 +66,6 @@ export type CanonicalConversationShellProps = {
     CanonicalStagePanelProps,
     'messages' | 'characterData' | 'anchorViewportRef' | 'cardAnchorOffsetPx' | 'onIntentOpenHistory'
   >;
-  renderChatTranscript?: (context: CanonicalConversationShellRenderContext) => ReactNode;
-  renderStagePanel?: (context: CanonicalConversationShellRenderContext) => ReactNode;
   composer?: ReactNode;
   settingsDrawer?: ReactNode;
   settingsDrawerTitle?: string;
@@ -80,6 +84,8 @@ export type CanonicalConversationShellProps = {
   rightSidebarResetKey?: string;
   renderTargetMeta?: (target: ConversationTargetSummary) => ReactNode;
   auxiliaryOverlayContent?: ReactNode;
+  /** When true, skip the built-in target pane and show an empty placeholder instead. */
+  hideTargetPane?: boolean;
 };
 
 export function CanonicalConversationShell(props: CanonicalConversationShellProps) {
@@ -106,6 +112,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
     stageCardAnchorOffsetPx,
     onIntentOpenHistory: () => props.onViewModeChange('chat'),
   }), [props.onViewModeChange, stageCardAnchorOffsetPx]);
+  const setupBlocking = props.setupState && props.setupState.status !== 'ready';
 
   const setSettingsOpen = useCallback((open: boolean) => {
     setInternalSettingsOpen(open);
@@ -182,25 +189,6 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
     };
   }, [props.selectedTarget, props.viewMode, syncStageCardAnchor]);
 
-  const transcript = props.renderChatTranscript || (() => (
-    <CanonicalTranscriptView
-      messages={messages}
-      pendingFirstBeat={props.pendingFirstBeat}
-      {...props.transcriptProps}
-    />
-  ));
-  const stagePanel = props.renderStagePanel || (() => (
-    <CanonicalStagePanel
-      {...props.stagePanelProps}
-      characterData={props.characterData}
-      messages={messages}
-      pendingFirstBeat={props.pendingFirstBeat}
-      anchorViewportRef={stageAnchorViewportRef}
-      cardAnchorOffsetPx={stageCardAnchorOffsetPx}
-      onIntentOpenHistory={shellRenderContext.onIntentOpenHistory}
-    />
-  ));
-
   return (
     <div
       className={cn(
@@ -213,22 +201,38 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
     >
       <ConversationAnimationStyles />
       <div className="flex min-h-0 w-full min-w-0 flex-1">
-        {!props.selectedTarget ? (
-          <CanonicalTargetPane
-            targets={props.targets}
-            loadingTargets={props.loadingTargets}
-            sourceFilter={props.sourceFilter}
-            availableSources={availableSources}
-            onSourceFilterChange={props.onSourceFilterChange}
-            onSelectTarget={props.onSelectTarget}
-            renderTargetMeta={props.renderTargetMeta}
-          />
+        {setupBlocking ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-6">
+            <ConversationSetupPanel
+              state={props.setupState!}
+              description={props.setupDescription}
+              onAction={props.onSetupAction}
+              className="w-full"
+            />
+          </div>
+        ) : !props.selectedTarget ? (
+          props.hideTargetPane ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">
+              Select a conversation from the sidebar
+            </div>
+          ) : (
+            <CanonicalTargetPane
+              targets={props.targets}
+              loadingTargets={props.loadingTargets}
+              sourceFilter={props.sourceFilter}
+              availableSources={availableSources}
+              onSourceFilterChange={props.onSourceFilterChange}
+              onSelectTarget={props.onSelectTarget}
+              renderTargetMeta={props.renderTargetMeta}
+            />
+          )
         ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-row">
             <CanonicalCharacterRail
               selectedTarget={props.selectedTarget}
               characterData={props.characterData}
               avatarAnchorRef={avatarAnchorRef}
+              hideBackButton={props.hideTargetPane}
               onBackToTargets={() => {
                 props.onSelectTarget(null);
                 closeTransientPanels();
@@ -251,8 +255,24 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 setSettingsOpen(true);
                 setProfileOpen(false);
               } : undefined}
-              stagePanel={stagePanel(shellRenderContext)}
-              transcript={transcript(shellRenderContext)}
+              stagePanel={(
+                <CanonicalStagePanel
+                  {...props.stagePanelProps}
+                  characterData={props.characterData}
+                  messages={messages}
+                  pendingFirstBeat={props.pendingFirstBeat}
+                  anchorViewportRef={stageAnchorViewportRef}
+                  cardAnchorOffsetPx={stageCardAnchorOffsetPx}
+                  onIntentOpenHistory={shellRenderContext.onIntentOpenHistory}
+                />
+              )}
+              transcript={(
+                <CanonicalTranscriptView
+                  messages={messages}
+                  pendingFirstBeat={props.pendingFirstBeat}
+                  {...props.transcriptProps}
+                />
+              )}
               composer={props.composer}
             />
           </div>

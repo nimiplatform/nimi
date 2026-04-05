@@ -5,7 +5,6 @@ import {
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { i18n } from '@renderer/i18n';
 import {
   attachRuntimeModDeveloperHostSubscriptions,
   reconcileRuntimeLocalMods,
@@ -64,10 +63,6 @@ export async function registerBootstrapRuntimeMods(input: {
   await attachRuntimeModDeveloperHostSubscriptions();
 
   if (runtimeModFailures.length > 0) {
-    const failurePreview = runtimeModFailures
-      .slice(0, 3)
-      .map((failure) => `${failure.modId}@${failure.stage}:${failure.error}`)
-      .join(' | ');
     logRendererEvent({
       level: 'warn',
       area: 'renderer-bootstrap',
@@ -77,14 +72,6 @@ export async function registerBootstrapRuntimeMods(input: {
         failureCount: runtimeModFailures.length,
         failures: runtimeModFailures,
       },
-    });
-    appStore.setStatusBanner({
-      kind: 'warning',
-      message: i18n.t('ModUI.bootstrapPartialFailure', {
-        count: runtimeModFailures.length,
-        chain: failurePreview,
-        defaultValue: `${runtimeModFailures.length} mods failed to load. Error chain: ${failurePreview}`,
-      }),
     });
   }
 

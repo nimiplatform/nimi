@@ -3,8 +3,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { PageShell, SectionTitle } from './settings-layout-components.js';
+import { FormFeedback, PageShell, SectionTitle } from './settings-layout-components.js';
 
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 type UserSettingsDto = RealmModel<'UserSettingsDto'>;
@@ -128,10 +127,13 @@ function getCurrentMode(form: PrivacyForm): VisibilityMode | 'CUSTOM' {
 
 export function PrivacyPage() {
   const { t } = useTranslation();
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [form, setForm] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [baseline, setBaseline] = useState<PrivacyForm>({ ...DEFAULT_FORM });
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+  } | null>(null);
   const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibilitySelectOptions = useMemo(() => ([
     { value: 'PUBLIC', label: t('PrivacySettings.visibilityPublic') },
@@ -179,7 +181,7 @@ export function PrivacyPage() {
   const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
-        setStatusBanner({
+        setFeedback({
           kind: 'info',
           message: t('PrivacySettings.noChanges'),
         });
@@ -191,13 +193,13 @@ export function PrivacyPage() {
       await dataSync.updateMySettings(toUpdatePayload(form));
       await settingsQuery.refetch();
       if (!silentSuccess) {
-        setStatusBanner({
+        setFeedback({
           kind: 'success',
           message: t('PrivacySettings.updateSuccess'),
         });
       }
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toErrorMessage(error, t('PrivacySettings.updateError')),
       });
@@ -265,6 +267,7 @@ export function PrivacyPage() {
       title={t('PrivacySettings.pageTitle')}
       description={t('PrivacySettings.pageDescription')}
     >
+      <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('PrivacySettings.pageTitle')} />
       {/* Visibility Section */}
       <section>
         <SectionTitle description={t('PrivacySettings.visibilitySectionDescription')}>

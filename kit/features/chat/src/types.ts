@@ -148,6 +148,34 @@ export interface AttachmentAdapter<TAttachment = unknown> {
   getKind?: (attachment: TAttachment, index: number) => 'image' | 'video' | 'file' | string | undefined;
 }
 
+// ---------------------------------------------------------------------------
+// Composer voice / media extensibility
+// ---------------------------------------------------------------------------
+
+/**
+ * Voice input state machine for the composer.
+ * When provided, the voice button becomes interactive instead of a disabled placeholder.
+ */
+export type ChatComposerVoiceState = {
+  status: 'idle' | 'recording' | 'transcribing' | 'failed';
+  onToggle: () => void;
+  onCancel?: () => void;
+};
+
+/**
+ * A quick-action entry for media prompt injection or generation triggers.
+ * Rendered as pill buttons above (or beside) the composer input row.
+ */
+export type ChatComposerMediaAction = {
+  kind: string;
+  label: string;
+  onAction: () => void;
+};
+
+// ---------------------------------------------------------------------------
+// Composer attachment slots
+// ---------------------------------------------------------------------------
+
 export type ChatComposerAttachmentsSlotProps<TAttachment = never> = {
   attachments: readonly TAttachment[];
   removeAttachment: (index: number) => void;
@@ -167,8 +195,24 @@ export type ConversationCharacterData = {
   theme?: ConversationPresenceTheme | null;
   presenceLabel?: string | null;
   presenceBusy?: boolean;
+  interactionState?: ConversationInteractionStateSummary | null;
   relationshipState?: ConversationRelationshipState | null;
   badges?: readonly ConversationCharacterBadge[];
+};
+
+export type ConversationInteractionPhase =
+  | 'idle'
+  | 'listening'
+  | 'thinking'
+  | 'painting'
+  | 'filming'
+  | 'speaking'
+  | 'loading';
+
+export type ConversationInteractionStateSummary = {
+  phase?: ConversationInteractionPhase | null;
+  busy?: boolean;
+  label?: string | null;
 };
 
 export type ConversationPresenceTheme = {
@@ -283,6 +327,43 @@ export type CanonicalTranscriptGroup = {
   role: ConversationCanonicalMessage['role'];
   focused: boolean;
   messages: readonly ConversationCanonicalMessage[];
+};
+
+export type CanonicalRuntimeInspectPanelKey =
+  | 'chat'
+  | 'voice'
+  | 'media'
+  | 'diagnostics';
+
+export type CanonicalRuntimeInspectStatusChip = {
+  label: string;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger';
+};
+
+export type CanonicalRuntimeInspectSectionData = {
+  key: CanonicalRuntimeInspectPanelKey;
+  title: string;
+  hint?: string | null;
+  summary?: ReactNode;
+  content?: ReactNode;
+  disabledReason?: string | null;
+};
+
+export type CanonicalRuntimeInspectPanelState = {
+  openPanel: CanonicalRuntimeInspectPanelKey | null;
+};
+
+export type CanonicalRuntimeInspectProps = {
+  title?: string;
+  subtitle?: string | null;
+  statusTitle?: string;
+  statusHint?: string | null;
+  statusSummary?: ReactNode;
+  statusChips?: readonly CanonicalRuntimeInspectStatusChip[];
+  openPanel: CanonicalRuntimeInspectPanelKey | null;
+  onOpenPanel: (panel: CanonicalRuntimeInspectPanelKey) => void;
+  onClosePanel: () => void;
+  sections: readonly CanonicalRuntimeInspectSectionData[];
 };
 
 export interface ConversationSourceAdapter<TAttachment = never> {

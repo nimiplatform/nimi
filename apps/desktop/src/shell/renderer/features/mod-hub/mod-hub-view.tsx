@@ -3,6 +3,7 @@ import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { ModHubRow } from './mod-hub-row';
 import type { ModHubPageModel } from './mod-hub-controller';
+import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 
 const ICON_SEARCH = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -251,6 +252,21 @@ export function ModHubView(model: ModHubPageModel) {
       </div>
 
       <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+          {model.feedback ? (
+            <InlineFeedback
+              feedback={model.feedback}
+              title={t('ModHub.statusTitle', { defaultValue: 'Mods status' })}
+              onDismiss={model.dismissFeedback}
+            />
+          ) : null}
+          {model.issueSummary ? (
+            <section className="rounded-[28px] border border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,white)] p-6 shadow-sm">
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                {t('ModHub.issueSummaryTitle', { defaultValue: 'Mods need attention' })}
+              </p>
+              <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{model.issueSummary.message}</p>
+            </section>
+          ) : null}
           <div
             className={`transition-all duration-300 ease-in-out ${
               showDock ? 'opacity-100' : 'pointer-events-none h-0 overflow-hidden opacity-0'

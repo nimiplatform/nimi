@@ -47,6 +47,12 @@ test('desktop E2E evidence summarizes smoke and journey scenario artifacts', () 
       spec_path: 'apps/desktop/e2e/specs/chat.open-thread.e2e.mjs',
       backend_log: 'apps/desktop/reports/e2e/08-chat.open-thread/backend.log',
       driver_log: 'apps/desktop/reports/e2e/08-chat.open-thread/tauri-driver.log',
+      parity_captures: [
+        {
+          surface_id: 'character-rail',
+          diff_ratio: 0,
+        },
+      ],
     },
     { scenarioId: 'chat.open-thread' },
     ['chat.browser.log', 'chat.html'],
@@ -71,9 +77,12 @@ test('desktop E2E evidence summarizes smoke and journey scenario artifacts', () 
     assert.equal(evidence.scenarioCounts.smoke, 1);
     assert.equal(evidence.scenarioCounts.journeys, 1);
     assert.equal(evidence.residualRisks.length, 0);
+    assert.equal(evidence.scenarios[1]?.parity_capture_count, 1);
+    assert.equal(evidence.scenarios[1]?.parity_diff_failures, 0);
     assert.match(renderDesktopE2EEvidenceMarkdown(evidence), /Verdict: PASS/);
     assert.match(renderDesktopE2EEvidenceMarkdown(evidence), /boot\.anonymous\.login-screen/);
     assert.match(renderDesktopE2EEvidenceMarkdown(evidence), /chat\.open-thread/);
+    assert.match(renderDesktopE2EEvidenceMarkdown(evidence), /Parity captures: 1, parity diff failures: 0/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

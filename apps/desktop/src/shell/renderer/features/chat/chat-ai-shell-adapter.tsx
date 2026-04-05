@@ -8,29 +8,24 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CanonicalDrawerSection,
-  CanonicalComposer,
-  type ChatComposerSubmitInput,
-} from '@nimiplatform/nimi-kit/features/chat';
+  ConversationOrchestrationRegistry,
+  matchConversationTurnEvent,
+  type ConversationTurnError,
+  type ConversationTurnEvent,
+} from '@nimiplatform/nimi-kit/features/chat/headless';
+import { createSimpleAiConversationProvider } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import {
-  type ChatAiDraftRecord,
   type ChatAiMessageRecord,
   type ChatAiThreadBundle,
-  type ChatAiThreadRecord,
-  type ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import { randomIdV11, type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useTranslation } from 'react-i18next';
-import {
-  streamChatAiRuntime,
-  toChatAiRuntimeError,
-} from './chat-ai-runtime';
+import { toChatAiRuntimeError } from './chat-ai-runtime';
 import { resolveAiConversationRouteReadiness, type AiConversationRouteReadiness } from './chat-ai-route-readiness';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
-import { ChatSettingsPanel } from './chat-settings-panel';
 import {
   AI_NEW_CONVERSATION_TITLE,
   createAssistantMessageContent,
@@ -42,7 +37,6 @@ import {
   resolveThreadTitleAfterFirstSend,
   toAiRouteSnapshotFromResolvedRoute,
   toConversationMessageViewModel,
-  toConversationThreadSummary,
 } from './chat-ai-thread-model';
 import type { AiConversationRouteSnapshot, AiConversationSelection } from './chat-shell-types';
 import {
@@ -51,11 +45,35 @@ import {
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
 import {
+  getChatThinkingUnsupportedCopy,
+  resolveAiChatThinkingSupport,
+} from './chat-thinking';
+import {
   feedStreamEvent,
   getStreamState,
   startStream,
   STREAM_TEXT_TOTAL_TIMEOUT_MS,
 } from '../turns/stream-controller';
+import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import {
+  bundleQueryKey,
+  createEmptyBundle,
+  isEmptyPendingAssistantMessage,
+  normalizeText,
+  normalizeReasoningText,
+  replaceMessage,
+  sortThreadSummaries,
+  THREADS_QUERY_KEY,
+  toAbortError,
+  toConversationHistoryMessages,
+  toErrorMessage,
+  toStructuredProviderError,
+  upsertBundleDraft,
+  upsertThreadSummary,
+} from './chat-ai-shell-core';
+import { useAiConversationPresentation } from './chat-ai-shell-presentation';
+import { createChatAiConversationRuntimeAdapter } from './chat-ai-shell-runtime-adapter';
+import { useAiConversationEffects } from './chat-ai-shell-effects';
 
 type UseAiConversationModeHostInput = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
@@ -65,159 +83,23 @@ type UseAiConversationModeHostInput = {
   setSelection: (selection: AiConversationSelection) => void;
 };
 
-const THREADS_QUERY_KEY = ['chat-ai-threads'];
-
-function bundleQueryKey(threadId: string): readonly ['chat-ai-thread-bundle', string] {
-  return ['chat-ai-thread-bundle', threadId];
-}
-
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function sortThreadSummaries(threads: readonly ChatAiThreadSummary[]): ChatAiThreadSummary[] {
-  return [...threads].sort((left, right) => {
-    const timeDelta = right.updatedAtMs - left.updatedAtMs;
-    if (timeDelta !== 0) {
-      return timeDelta;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
-
-function upsertThreadSummary(
-  threads: readonly ChatAiThreadSummary[],
-  nextThread: ChatAiThreadSummary,
-): ChatAiThreadSummary[] {
-  const filtered = threads.filter((thread) => thread.id !== nextThread.id);
-  filtered.push(nextThread);
-  return sortThreadSummaries(filtered);
-}
-
-function replaceMessage(
-  messages: readonly ChatAiMessageRecord[],
-  nextMessage: ChatAiMessageRecord,
-): ChatAiMessageRecord[] {
-  const filtered = messages.filter((message) => message.id !== nextMessage.id);
-  filtered.push(nextMessage);
-  return [...filtered].sort((left, right) => {
-    const timeDelta = left.createdAtMs - right.createdAtMs;
-    if (timeDelta !== 0) {
-      return timeDelta;
-    }
-    return left.id.localeCompare(right.id);
-  });
-}
-
-function upsertBundleDraft(
-  bundle: ChatAiThreadBundle | null | undefined,
-  draft: ChatAiDraftRecord | null,
-): ChatAiThreadBundle | null | undefined {
-  if (!bundle) {
-    return bundle;
-  }
-  return {
-    ...bundle,
-    draft,
-  };
-}
-
-function createEmptyBundle(thread: ChatAiThreadRecord): ChatAiThreadBundle {
-  return {
-    thread,
-    messages: [],
-    draft: null,
-  };
-}
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error || 'Unknown error');
-}
-
-function normalizeReasoningText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function isEmptyPendingAssistantMessage(message: ReturnType<typeof toConversationMessageViewModel>): boolean {
-  if (message.role !== 'assistant' || message.status !== 'pending') {
-    return false;
-  }
-  return !message.text.trim() && !normalizeReasoningText(message.metadata?.reasoningText) && !message.error;
-}
-
-function ChatAiRouteRail(input: {
-  currentRoute: AiConversationRouteSnapshot | null;
-  availableRoutes: readonly AiConversationRouteSnapshot[];
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-  disabled: boolean;
-  onSelectRoute: (route: AiConversationRouteSnapshot) => void;
-  currentRouteLabel: string;
-  availableRoutesLabel: string;
-}) {
-  const currentSummary = getAiRouteDisplaySummary(input.currentRoute, input.runtimeConfigState);
-
-  return (
-    <div className="space-y-4">
-      <CanonicalDrawerSection title={input.currentRouteLabel}>
-        <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {currentSummary.label}
-        </div>
-        <div className="text-xs text-[var(--nimi-text-muted)]">
-          {currentSummary.detail}
-        </div>
-      </CanonicalDrawerSection>
-      <CanonicalDrawerSection title={input.availableRoutesLabel}>
-        <div className="space-y-2">
-          {input.availableRoutes.map((route) => {
-            const routeSummary = getAiRouteDisplaySummary(route, input.runtimeConfigState);
-            const active = isAiRouteSnapshotEqual(route, input.currentRoute);
-            const routeKey = route.routeKind === 'local'
-              ? 'local'
-              : `${route.connectorId}:${route.modelId || 'missing-model'}`;
-            return (
-              <button
-                key={routeKey}
-                type="button"
-                disabled={input.disabled}
-                onClick={() => input.onSelectRoute(route)}
-                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                  active
-                    ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]'
-                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] hover:border-[var(--nimi-border-strong)]'
-                }`}
-              >
-                <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                  {routeSummary.label}
-                </div>
-                <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                  {routeSummary.detail}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </CanonicalDrawerSection>
-    </div>
-  );
-}
 
 export function useAiConversationModeHost(
   input: UseAiConversationModeHostInput,
 ): { host: DesktopConversationModeHost; readiness: AiConversationRouteReadiness } {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
+  const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
+  const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const currentDraftTextRef = useRef('');
   const reportHostError = useCallback((error: unknown) => {
-    setStatusBanner({
+    setHostFeedback({
       kind: 'error',
       message: toErrorMessage(error),
     });
-  }, [setStatusBanner]);
+  }, []);
 
   const setSelection = useCallback((selection: AiConversationSelection) => {
     if (
@@ -287,6 +169,17 @@ export function useAiConversationModeHost(
   const currentRouteSnapshot = selectedThreadRecord?.routeSnapshot
     || input.selection.routeSnapshot
     || defaultRouteSnapshot;
+  const thinkingSupport = useMemo(
+    () => resolveAiChatThinkingSupport(currentRouteSnapshot),
+    [currentRouteSnapshot],
+  );
+  const thinkingUnsupportedReason = useMemo(() => {
+    if (thinkingSupport.supported || !thinkingSupport.reason) {
+      return null;
+    }
+    const copy = getChatThinkingUnsupportedCopy(thinkingSupport.reason);
+    return t(copy.key, { defaultValue: copy.defaultValue });
+  }, [t, thinkingSupport]);
 
   const bundleQuery = useQuery({
     queryKey: activeThreadId ? bundleQueryKey(activeThreadId) : ['chat-ai-thread-bundle', 'inactive'],
@@ -302,6 +195,29 @@ export function useAiConversationModeHost(
     [bundle?.messages],
   );
   const streamState = useConversationStreamState(activeThreadId);
+  const aiProvider = useMemo(() => {
+    if (!currentRouteSnapshot || !activeThreadId) {
+      return null;
+    }
+    const registry = new ConversationOrchestrationRegistry();
+    registry.register(createSimpleAiConversationProvider({
+      runtimeAdapter: createChatAiConversationRuntimeAdapter({
+        routeSnapshot: currentRouteSnapshot,
+        threadId: activeThreadId,
+        reasoningPreference: chatThinkingPreference,
+        runtimeConfigState: input.runtimeConfigState,
+        runtimeFields: input.runtimeFields,
+      }),
+      resolveSystemPrompt: () => null,
+    }));
+    return registry.require('simple-ai');
+  }, [
+    activeThreadId,
+    chatThinkingPreference,
+    currentRouteSnapshot,
+    input.runtimeConfigState,
+    input.runtimeFields,
+  ]);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
   // Composer is available whenever setup is ready — don't gate on activeThreadId
@@ -310,23 +226,14 @@ export function useAiConversationModeHost(
     && !isBundleLoading
     && !bundleQuery.error;
 
-  const setThreadsCache = useCallback((updater: (current: ChatAiThreadSummary[]) => ChatAiThreadSummary[]) => {
-    queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, (current) => {
-      const safeCurrent = Array.isArray(current) ? current : [];
-      return updater(safeCurrent);
-    });
-  }, [queryClient]);
-
-  const setBundleCache = useCallback((
-    threadId: string,
-    updater: (current: ChatAiThreadBundle | null | undefined) => ChatAiThreadBundle | null | undefined,
-  ) => {
-    queryClient.setQueryData<ChatAiThreadBundle | null>(bundleQueryKey(threadId), (current) => updater(current));
-  }, [queryClient]);
-
-  const syncSelectionToThread = useCallback((threadId: string | null, routeSnapshot: AiConversationRouteSnapshot | null) => {
-    setSelection({ threadId, routeSnapshot });
-  }, [setSelection]);
+  const {
+    setBundleCache,
+    setThreadsCache,
+    syncSelectionToThread,
+  } = useAiConversationEffects({
+    queryClient,
+    setSelection,
+  });
 
   useEffect(() => {
     if (!threadsQuery.isSuccess) {
@@ -465,7 +372,7 @@ export function useAiConversationModeHost(
   }, [reportHostError, selectedThreadRecord, setBundleCache, setThreadsCache, submittingThreadId, syncSelectionToThread]);
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!activeThreadId || !selectedThreadRecord || !currentRouteSnapshot) {
+    if (!activeThreadId || !selectedThreadRecord || !currentRouteSnapshot || !aiProvider) {
       throw new Error(t('Chat.aiSubmitMissingThread', { defaultValue: 'Select a conversation before sending a message.' }));
     }
     if (readiness.setupState.status !== 'ready') {
@@ -513,6 +420,8 @@ export function useAiConversationModeHost(
     let streamedReasoningText = '';
     let runtimeTraceId: string | null = null;
     let promptTraceId = '';
+    let terminalError: ConversationTurnError | null = null;
+    let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
 
     try {
       await chatAiStoreClient.deleteDraft(activeThreadId);
@@ -536,47 +445,83 @@ export function useAiConversationModeHost(
       });
 
       const abortController = startStream(activeThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
-      const runtimeResult = await streamChatAiRuntime({
-        routeSnapshot: currentRouteSnapshot,
-        prompt: submittedText,
+      const history = toConversationHistoryMessages(bundle?.messages || []);
+      for await (const event of aiProvider.runTurn({
+        modeId: 'simple-ai',
         threadId: activeThreadId,
-        runtimeConfigState: input.runtimeConfigState,
-        runtimeFields: input.runtimeFields,
+        turnId: assistantMessageId,
+        userMessage: {
+          id: userMessageId,
+          text: submittedText,
+          attachments: [],
+        },
+        history,
         signal: abortController.signal,
-      });
-      promptTraceId = runtimeResult.promptTraceId;
-      for await (const part of runtimeResult.stream) {
-        if (part.type === 'reasoning-delta') {
-          streamedReasoningText += part.text;
-          feedStreamEvent(activeThreadId, {
-            type: 'reasoning_delta',
-            textDelta: part.text,
-          });
-          continue;
-        }
-        if (part.type === 'delta') {
-          streamedText += part.text;
-          feedStreamEvent(activeThreadId, {
-            type: 'text_delta',
-            textDelta: part.text,
-          });
-          continue;
-        }
-        if (part.type === 'finish') {
-          runtimeTraceId = String(part.trace.traceId || promptTraceId || '').trim() || null;
-          feedStreamEvent(activeThreadId, { type: 'done', usage: part.usage });
-          continue;
-        }
-        if (part.type === 'error') {
-          runtimeTraceId = String(part.error.traceId || runtimeTraceId || promptTraceId || '').trim() || null;
-          feedStreamEvent(activeThreadId, {
-            type: 'error',
-            message: part.error.message,
-            reasonCode: part.error.reasonCode,
-            traceId: runtimeTraceId || undefined,
-          });
-          throw part.error;
-        }
+      })) {
+        matchConversationTurnEvent(event, {
+          'turn-started': () => undefined,
+          'reasoning-delta': (nextEvent) => {
+            streamedReasoningText += nextEvent.textDelta;
+            feedStreamEvent(activeThreadId, {
+              type: 'reasoning_delta',
+              textDelta: nextEvent.textDelta,
+            });
+          },
+          'text-delta': (nextEvent) => {
+            streamedText += nextEvent.textDelta;
+            feedStreamEvent(activeThreadId, {
+              type: 'text_delta',
+              textDelta: nextEvent.textDelta,
+            });
+          },
+          'turn-completed': (nextEvent) => {
+            completionEvent = nextEvent;
+            streamedText = nextEvent.outputText;
+            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
+            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
+            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
+            feedStreamEvent(activeThreadId, {
+              type: 'done',
+              usage: nextEvent.usage,
+            });
+          },
+          'turn-failed': (nextEvent) => {
+            terminalError = nextEvent.error;
+            streamedText = normalizeText(nextEvent.outputText) || streamedText;
+            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
+            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
+            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
+          },
+          'turn-canceled': (nextEvent) => {
+            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
+            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
+            throw toAbortError(t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }));
+          },
+          'first-beat-sealed': () => {
+            throw new Error('simple-ai provider emitted unsupported first-beat event');
+          },
+          'beat-planned': () => {
+            throw new Error('simple-ai provider emitted unsupported beat-planned event');
+          },
+          'beat-delivery-started': () => {
+            throw new Error('simple-ai provider emitted unsupported beat-delivery-started event');
+          },
+          'beat-delivered': () => {
+            throw new Error('simple-ai provider emitted unsupported beat-delivered event');
+          },
+          'artifact-ready': () => {
+            throw new Error('simple-ai provider emitted unsupported artifact-ready event');
+          },
+          'projection-rebuilt': () => {
+            throw new Error('simple-ai provider emitted unsupported projection-rebuilt event');
+          },
+        });
+      }
+      if (terminalError) {
+        throw toStructuredProviderError(terminalError);
+      }
+      if (!completionEvent) {
+        throw new Error('simple-ai provider completed without a terminal event');
       }
 
       const completedState = getStreamState(activeThreadId);
@@ -683,7 +628,10 @@ export function useAiConversationModeHost(
     }
   }, [
     activeThreadId,
+    aiProvider,
+    bundle?.messages,
     currentRouteSnapshot,
+    chatThinkingPreference,
     input.runtimeConfigState,
     input.runtimeFields,
     readiness.setupState.status,
@@ -695,42 +643,16 @@ export function useAiConversationModeHost(
   ]);
 
   const routeSummary = getAiRouteDisplaySummary(currentRouteSnapshot, input.runtimeConfigState);
-  const adapter = useMemo(() => ({
-    mode: 'ai' as const,
-    setupState: readiness.setupState,
-    threadAdapter: {
-      listThreads: () => threads.map((thread) => toConversationThreadSummary(thread)),
-      listMessages: (threadId: string) => (
-        bundle && bundle.thread.id === threadId
-          ? messages
-          : []
-      ),
-    },
-    composerAdapter: composerReady
-      ? {
-        submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
-          await handleSubmit(composerInput.text);
-        },
-        disabled: Boolean(submittingThreadId),
-        disabledReason: submittingThreadId
-          ? t('Chat.aiSending', { defaultValue: 'Generating response…' })
-          : null,
-        placeholder: t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' }),
-      }
-      : null,
-  }), [bundle, composerReady, handleSubmit, messages, readiness.setupState, submittingThreadId, t, threads]);
-
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.aiAssistantName', { defaultValue: 'AI Assistant' }),
     avatarUrl: null,
     avatarFallback: 'AI',
-    bio: routeSummary.detail || t('Chat.aiNoBio', { defaultValue: 'Configure a model to start chatting.' }),
-    presenceLabel: readiness.localReady
-      ? 'Local Ready'
-      : readiness.cloudReady
-        ? 'Cloud Ready'
-        : 'No Route',
-    presenceBusy: false,
+    handle: routeSummary.detail || null,
+    bio: null,
+    interactionState: {
+      phase: submittingThreadId ? 'thinking' as const : 'idle' as const,
+      busy: Boolean(submittingThreadId),
+    },
     theme: {
       roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
       roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(232,245,245,0.78))',
@@ -739,12 +661,7 @@ export function useAiConversationModeHost(
       border: 'rgba(56,189,248,0.34)',
       text: '#0c4a6e',
     },
-    badges: readiness.localReady
-      ? [{ label: 'Local Ready', variant: 'online' as const, pulse: true }]
-      : readiness.cloudReady
-        ? [{ label: 'Cloud Ready', variant: 'online' as const, pulse: true }]
-        : [{ label: 'No Route', variant: 'default' as const }],
-  }), [readiness.cloudReady, readiness.localReady, routeSummary.detail, t]);
+  }), [routeSummary.detail, submittingThreadId, t]);
   const syntheticTarget = useMemo(() => ({
     id: 'ai:assistant',
     source: 'ai' as const,
@@ -774,22 +691,28 @@ export function useAiConversationModeHost(
     routeSummary.label,
     selectedThreadRecord,
   ]);
+  const aiAssistantName = aiCharacterData.name;
   const canonicalMessages = useMemo(
-    () => messages.map((message) => ({
-      id: message.id,
-      sessionId: activeThreadId || 'ai:assistant',
-      targetId: 'ai:assistant',
-      source: 'ai' as const,
-      role: message.role,
-      text: message.text,
-      createdAt: message.createdAt,
-      updatedAt: message.updatedAt,
-      status: message.status,
-      error: message.error,
-      kind: 'text' as const,
-      metadata: message.metadata,
-    })),
-    [activeThreadId, messages],
+    () => messages.map((message) => {
+      const isUser = message.role === 'user' || message.role === 'human';
+      return {
+        id: message.id,
+        sessionId: activeThreadId || 'ai:assistant',
+        targetId: 'ai:assistant',
+        source: 'ai' as const,
+        role: message.role,
+        text: message.text,
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+        status: message.status,
+        error: message.error,
+        kind: 'text' as const,
+        senderName: isUser ? 'You' : aiAssistantName,
+        senderKind: isUser ? ('human' as const) : ('ai' as const),
+        metadata: message.metadata,
+      };
+    }),
+    [activeThreadId, aiAssistantName, messages],
   );
   const reasoningLabel = t('Chat.reasoningLabel', { defaultValue: 'Thought process' });
   const renderMessageContent = useMemo(
@@ -819,127 +742,42 @@ export function useAiConversationModeHost(
     && !streamState.partialText
     && !streamState.partialReasoningText,
   );
-
-  const host = useMemo<DesktopConversationModeHost>(() => ({
-    mode: 'ai',
-    availability: {
-      mode: 'ai',
-      label: 'AI',
-      enabled: true,
-      badge: threads.length > 0 ? threads.length : null,
-      disabledReason: null,
-    },
-    adapter,
+  const host = useAiConversationPresentation({
     activeThreadId,
-    targets: [syntheticTarget],
-    selectedTargetId: 'ai:assistant',
-    onSelectTarget: () => undefined,
-    messages: canonicalMessages,
-    characterData: aiCharacterData,
-    settingsContent: <ChatSettingsPanel />,
-    settingsDrawerTitle: t('Chat.settingsTitle', { defaultValue: 'Settings' }),
-    settingsDrawerSubtitle: t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),
-    transcriptProps: {
-      loading: isBundleLoading,
-      error: bundleQuery.error ? toErrorMessage(bundleQuery.error) : null,
-      emptyEyebrow: 'AI',
-      emptyTitle: t('Chat.aiTranscriptEmptyTitle', { defaultValue: 'Start the AI conversation' }),
-      emptyDescription: t('Chat.aiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' }),
-      loadingLabel: t('Chat.aiTranscriptLoading', { defaultValue: 'Loading conversation…' }),
-      footerContent,
-      renderMessageContent,
-      pendingFirstBeat,
-    },
-    stagePanelProps: {
-      footerContent,
-      renderMessageContent,
-      pendingFirstBeat,
-    },
-    composerContent: (
-      adapter.composerAdapter ? (
-        <CanonicalComposer
-          key={`${activeThreadId || 'none'}:${bundle?.draft?.updatedAtMs || 0}`}
-          adapter={adapter.composerAdapter}
-          initialText={bundle?.draft?.text || ''}
-          disabled={Boolean(submittingThreadId)}
-          placeholder={t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })}
-          onInputCaptureText={(text) => {
-            currentDraftTextRef.current = text;
-          }}
-        />
-      ) : null
-    ),
-    profileContent: (
-      <ChatAiRouteRail
-        currentRoute={currentRouteSnapshot}
-        availableRoutes={availableRouteSnapshots}
-        runtimeConfigState={input.runtimeConfigState}
-        disabled={Boolean(submittingThreadId)}
-        onSelectRoute={handleRouteSelection}
-        currentRouteLabel={t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-        availableRoutesLabel={t('Chat.aiAvailableRoutes', { defaultValue: 'Available routes' })}
-      />
-    ),
-    profileDrawerTitle: t('Chat.aiProfileTitle', { defaultValue: 'Profile' }),
-    profileDrawerSubtitle: t('Chat.aiProfileSubtitle', { defaultValue: 'Route, target, and conversation details.' }),
-    onSelectThread: handleSelectThread,
-    renderEmptyState: () => (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-600/70">
-          AI
-        </div>
-        <p className="max-w-[420px] text-sm text-slate-500">
-          {t('Chat.aiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' })}
-        </p>
-      </div>
-    ),
-    renderSetupDescription: () => (
-      readiness.localReady || readiness.cloudReady
-        ? t('Chat.aiRouteUnavailable', {
-          defaultValue: 'The saved AI route is no longer ready. Pick one of the ready routes on the right to continue.',
-        })
-        : t('Chat.aiRouteRequired', {
-          defaultValue: 'Configure a local chat route or a healthy cloud connector before AI mode can open a conversation.',
-        })
-    ),
-    renderThreadMeta: (thread) => {
-      const sourceThread = threads.find((item) => item.id === thread.id) || null;
-      const summary = getAiRouteDisplaySummary(sourceThread?.routeSnapshot || null, input.runtimeConfigState);
-      return (
-        <span className="truncate text-[11px] text-[var(--nimi-text-muted)]">
-          {summary.label}
-        </span>
-      );
-    },
-  }), [
-    activeThreadId,
-    adapter,
+    aiCharacterData,
     availableRouteSnapshots,
-    bundle?.draft?.text,
-    bundle?.draft?.updatedAtMs,
-    bundleQuery.error,
+    bundle,
+    bundleError: bundleQuery.error,
     canonicalMessages,
+    composerReady,
+    currentDraftTextRef,
     currentRouteSnapshot,
     footerContent,
-    handleCreateThread,
     handleRouteSelection,
     handleSelectThread,
     handleSubmit,
-    input.runtimeConfigState,
+    hostFeedback,
     isBundleLoading,
+    messages,
+    onDismissHostFeedback: () => setHostFeedback(null),
     pendingFirstBeat,
-    readiness.cloudReady,
-    readiness.localReady,
-    readiness.setupState.status,
+    readiness: {
+      cloudReady: readiness.cloudReady,
+      localReady: readiness.localReady,
+      setupState: readiness.setupState,
+    },
     renderMessageContent,
-    routeSummary.detail,
-    routeSummary.label,
-    reportHostError,
+    routeSummary,
+    runtimeConfigState: input.runtimeConfigState,
+    setChatThinkingPreference,
     submittingThreadId,
     syntheticTarget,
     t,
+    thinkingPreference: chatThinkingPreference,
+    thinkingSupported: thinkingSupport.supported,
+    thinkingUnsupportedReason,
     threads,
-  ]);
+  });
 
   return { host, readiness };
 }

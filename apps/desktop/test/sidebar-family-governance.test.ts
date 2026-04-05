@@ -11,25 +11,30 @@ function readRepo(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, '..', '..', '..', relativePath), 'utf8');
 }
 
-const chatListSource = readWorkspace('src/shell/renderer/features/chats/chat-list.tsx');
+const chatPageSource = readWorkspace('src/shell/renderer/features/chat/chat-page.tsx');
+const chatContactsSidebarSource = readWorkspace('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
 const contactsViewSource = readWorkspace('src/shell/renderer/features/contacts/contacts-view.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
 const adoptionTable = readRepo('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const compositionsTable = readRepo('spec/platform/kernel/tables/nimi-ui-compositions.yaml');
 const designContractSource = readRepo('spec/platform/kernel/design-pattern-contract.md');
 const designOverviewSource = readRepo('spec/platform/design-pattern.md');
 
-test('platform design adoption table registers the four governed desktop sidebar modules', () => {
-  assert.match(adoptionTable, /id: desktop\.chat\.sidebar/);
-  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chats\/chat-list\.tsx/);
+test('platform design registries align with the desktop chat contact rail refactor', () => {
+  assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);
   assert.match(adoptionTable, /id: desktop\.contacts\.sidebar/);
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/contacts\/contacts-view\.tsx/);
   assert.match(adoptionTable, /id: desktop\.runtime\.sidebar/);
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/runtime-config\/runtime-config-panel-view\.tsx/);
   assert.match(adoptionTable, /id: desktop\.settings\.sidebar/);
   assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/settings\/settings-panel-body\.tsx/);
+  assert.match(compositionsTable, /id: desktop\.chat\.contact_rail/);
+  assert.match(compositionsTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chat\/chat-contacts-sidebar\.tsx/);
+  assert.match(compositionsTable, /component: ChatContactsSidebar/);
+  assert.match(compositionsTable, /classification: app_owned_composition/);
 });
 
 test('sidebar family contract is anchored in platform design authority', () => {
@@ -42,14 +47,12 @@ test('sidebar family contract is anchored in platform design authority', () => {
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {
-  for (const source of [chatListSource, contactsViewSource, runtimePanelSource, settingsPanelSource]) {
+  for (const source of [contactsViewSource, runtimePanelSource, settingsPanelSource]) {
     assert.match(source, /@nimiplatform\/nimi-kit\/ui/);
     assert.match(source, /SidebarShell/);
     assert.match(source, /SidebarHeader/);
   }
 
-  assert.match(chatListSource, /SidebarSearch/);
-  assert.match(chatListSource, /kind="entity-row"/);
   assert.match(contactsViewSource, /SidebarSearch/);
   assert.match(contactsViewSource, /primaryAction=/);
   assert.match(contactsViewSource, /'category-row', 'entity-row'/);
@@ -60,6 +63,15 @@ test('governed sidebar modules import and use the shared sidebar primitive', () 
   assert.match(contactsViewSource, /SidebarResizeHandle/);
   assert.match(runtimePanelSource, /SidebarResizeHandle/);
   assert.match(settingsPanelSource, /SidebarResizeHandle/);
+});
+
+test('chat surface composes the canonical shell with an app-owned contact rail', () => {
+  assert.match(chatPageSource, /CanonicalConversationShell/);
+  assert.match(chatPageSource, /ChatContactsSidebar/);
+  assert.match(chatPageSource, /E2E_IDS\.chatPage/);
+  assert.match(chatContactsSidebarSource, /E2E_IDS\.chatList/);
+  assert.match(chatContactsSidebarSource, /E2E_IDS\.chatRow/);
+  assert.doesNotMatch(chatContactsSidebarSource, /components\/sidebar\.js/);
 });
 
 test('shared sidebar primitive exports the required public surface', () => {

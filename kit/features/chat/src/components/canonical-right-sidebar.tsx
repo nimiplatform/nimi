@@ -118,8 +118,9 @@ export function CanonicalRightSidebar({
           willChange: 'width, opacity, transform',
         }}
         aria-hidden={!open}
+        data-canonical-right-sidebar="true"
       >
-        <div className="h-full border-l border-white/70 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)]" style={{ width: `${widthPx}px` }}>
+        <div className="h-full border-l border-white/70 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)]" style={{ width: `${widthPx}px` }} data-canonical-right-sidebar-shell="true">
           {shouldRenderSidebar ? (
             <div className={`h-full transition-opacity duration-300 ${open ? 'opacity-100 delay-75' : 'opacity-0'}`}>
               <CanonicalRightSidebarBoundary

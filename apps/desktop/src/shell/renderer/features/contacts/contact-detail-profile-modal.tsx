@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { OverlayShell } from '@renderer/components/overlay.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -12,6 +12,7 @@ import {
   ContactDetailErrorState,
   ContactDetailLoadingState,
 } from './contact-detail-view-content-shell.js';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type ContactDetailProfileSeed = {
   id: string;
@@ -58,8 +59,8 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setProfileDetailOverlayOpen = useAppStore((state) => state.setProfileDetailOverlayOpen);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   useEffect(() => {
     if (!props.open) {
@@ -125,7 +126,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         setSelectedChatId(String(result.chatId));
       }, 100);
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: toChatErrorMessage(error),
       });
@@ -137,7 +138,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     queryClient,
     setRuntimeFields,
     setSelectedChatId,
-    setStatusBanner,
     t,
     toChatErrorMessage,
   ]);
@@ -158,23 +158,17 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['contact-detail-modal-profile'], exact: false }),
       ]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.blockUserSuccess', {
-          name: profile.displayName || profile.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: 'Blocked {{name}}',
-        }),
-      });
+      setFeedback(null);
       props.onClose();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error && error.message.trim()
           ? error.message
           : t('Contacts.blockUserFailed', { defaultValue: 'Failed to block user' }),
       });
     }
-  }, [profile, props, queryClient, setStatusBanner, t]);
+  }, [profile, props, queryClient, t]);
 
   const handleRemove = useCallback(async () => {
     if (!profile) {
@@ -187,23 +181,17 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['contact-detail-modal-profile'], exact: false }),
       ]);
-      setStatusBanner({
-        kind: 'success',
-        message: t('Contacts.removeFriendSuccess', {
-          name: profile.displayName || profile.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
-          defaultValue: 'Removed {{name}} from friends',
-        }),
-      });
+      setFeedback(null);
       props.onClose();
     } catch (error) {
-      setStatusBanner({
+      setFeedback({
         kind: 'error',
         message: error instanceof Error && error.message.trim()
           ? error.message
           : t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' }),
       });
     }
-  }, [profile, props, queryClient, setStatusBanner, t]);
+  }, [profile, props, queryClient, t]);
 
   if (!props.open) {
     return null;
@@ -221,6 +209,11 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         contentClassName="h-full p-0"
       >
         <div className="h-full min-h-0 flex-1 overflow-hidden">
+          {feedback ? (
+            <div className="px-6 pt-4">
+              <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />
+            </div>
+          ) : null}
           {profile ? (
             <ContactDetailView
               profile={profile}
@@ -266,13 +259,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
           receiverAvatarUrl={profile.avatarUrl}
           onClose={() => setGiftModalOpen(false)}
           onSent={() => {
-            setStatusBanner({
-              kind: 'success',
-              message: t('Contacts.giftSentTo', {
-                name: profile.displayName || profile.handle || t('Contacts.human', { defaultValue: 'Human' }).toLowerCase(),
-                defaultValue: 'Gift sent to {{name}}',
-              }),
-            });
+            setFeedback(null);
             setGiftModalOpen(false);
           }}
         />

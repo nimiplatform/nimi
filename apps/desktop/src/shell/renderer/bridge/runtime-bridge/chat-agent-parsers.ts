@@ -4,18 +4,40 @@ import {
   parseRequiredString,
 } from './shared.js';
 import type {
+  AgentLocalBeatModality,
+  AgentLocalBeatStatus,
+  AgentLocalCancelTurnInput,
+  AgentLocalCommitTurnResult,
+  AgentLocalCommitTurnResultInput,
   AgentLocalCreateMessageInput,
   AgentLocalCreateThreadInput,
   AgentLocalDraftRecord,
+  AgentLocalInteractionSnapshotInput,
+  AgentLocalInteractionSnapshotRecord,
+  AgentLocalLoadTurnContextInput,
   AgentLocalMessageError,
   AgentLocalMessageRecord,
   AgentLocalMessageRole,
   AgentLocalMessageStatus,
   AgentLocalPutDraftInput,
+  AgentLocalProjectionCommitInput,
+  AgentLocalProjectionMessageInput,
+  AgentLocalProjectionRebuildResult,
+  AgentLocalRecallEntryInput,
+  AgentLocalRecallEntryRecord,
+  AgentLocalRelationMemorySlotInput,
+  AgentLocalRelationMemorySlotRecord,
   AgentLocalTargetSnapshot,
+  AgentLocalTurnBeatInput,
+  AgentLocalTurnBeatRecord,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
+  AgentLocalTurnContext,
+  AgentLocalTurnRecord,
+  AgentLocalTurnRecordInput,
+  AgentLocalTurnRole,
+  AgentLocalTurnStatus,
   AgentLocalUpdateMessageInput,
   AgentLocalUpdateThreadMetadataInput,
 } from './chat-agent-types.js';
@@ -49,6 +71,58 @@ function parseMessageStatus(value: unknown, errorPrefix: string): AgentLocalMess
     return normalized;
   }
   throw new Error(`${errorPrefix}: status is invalid`);
+}
+
+function parseTurnRole(value: unknown, errorPrefix: string): AgentLocalTurnRole {
+  const normalized = String(value || '').trim();
+  if (normalized === 'system' || normalized === 'user' || normalized === 'assistant') {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: role is invalid`);
+}
+
+function parseTurnStatus(value: unknown, errorPrefix: string): AgentLocalTurnStatus {
+  const normalized = String(value || '').trim();
+  if (normalized === 'pending' || normalized === 'completed' || normalized === 'failed' || normalized === 'canceled') {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: status is invalid`);
+}
+
+function parseBeatModality(value: unknown, errorPrefix: string): AgentLocalBeatModality {
+  const normalized = String(value || '').trim();
+  if (normalized === 'text' || normalized === 'voice' || normalized === 'image' || normalized === 'video') {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: modality is invalid`);
+}
+
+function parseBeatStatus(value: unknown, errorPrefix: string): AgentLocalBeatStatus {
+  const normalized = String(value || '').trim();
+  if (
+    normalized === 'planned'
+    || normalized === 'sealed'
+    || normalized === 'delivered'
+    || normalized === 'failed'
+    || normalized === 'canceled'
+  ) {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: status is invalid`);
+}
+
+function parseStructuredJson(
+  value: unknown,
+  fieldName: string,
+  errorPrefix: string,
+): Record<string, unknown> | unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  throw new Error(`${errorPrefix}: ${fieldName} must be an array or object`);
 }
 
 function parseOwnershipType(
@@ -146,6 +220,80 @@ export function parseAgentLocalDraftRecord(value: unknown): AgentLocalDraftRecor
   };
 }
 
+export function parseAgentLocalTurnRecord(value: unknown): AgentLocalTurnRecord {
+  const record = assertRecord(value, 'chat_agent turn record is invalid');
+  return {
+    id: parseRequiredString(record.id, 'id', 'chat_agent turn record'),
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent turn record'),
+    role: parseTurnRole(record.role, 'chat_agent turn record'),
+    status: parseTurnStatus(record.status, 'chat_agent turn record'),
+    providerMode: parseRequiredString(record.providerMode, 'providerMode', 'chat_agent turn record'),
+    traceId: parseOptionalString(record.traceId) || null,
+    promptTraceId: parseOptionalString(record.promptTraceId) || null,
+    startedAtMs: parseFiniteInteger(record.startedAtMs, 'startedAtMs', 'chat_agent turn record'),
+    completedAtMs: parseNullableFiniteInteger(record.completedAtMs, 'completedAtMs', 'chat_agent turn record'),
+    abortedAtMs: parseNullableFiniteInteger(record.abortedAtMs, 'abortedAtMs', 'chat_agent turn record'),
+  };
+}
+
+export function parseAgentLocalTurnBeatRecord(value: unknown): AgentLocalTurnBeatRecord {
+  const record = assertRecord(value, 'chat_agent turn beat record is invalid');
+  return {
+    id: parseRequiredString(record.id, 'id', 'chat_agent turn beat record'),
+    turnId: parseRequiredString(record.turnId, 'turnId', 'chat_agent turn beat record'),
+    beatIndex: parseFiniteInteger(record.beatIndex, 'beatIndex', 'chat_agent turn beat record'),
+    modality: parseBeatModality(record.modality, 'chat_agent turn beat record'),
+    status: parseBeatStatus(record.status, 'chat_agent turn beat record'),
+    textShadow: parseOptionalString(record.textShadow) || null,
+    artifactId: parseOptionalString(record.artifactId) || null,
+    mimeType: parseOptionalString(record.mimeType) || null,
+    projectionMessageId: parseOptionalString(record.projectionMessageId) || null,
+    createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent turn beat record'),
+    deliveredAtMs: parseNullableFiniteInteger(record.deliveredAtMs, 'deliveredAtMs', 'chat_agent turn beat record'),
+  };
+}
+
+export function parseAgentLocalInteractionSnapshotRecord(value: unknown): AgentLocalInteractionSnapshotRecord {
+  const record = assertRecord(value, 'chat_agent interaction snapshot record is invalid');
+  return {
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent interaction snapshot record'),
+    version: parseFiniteInteger(record.version, 'version', 'chat_agent interaction snapshot record'),
+    relationshipState: parseRequiredString(record.relationshipState, 'relationshipState', 'chat_agent interaction snapshot record'),
+    emotionalTemperature: Number(record.emotionalTemperature),
+    assistantCommitmentsJson: parseStructuredJson(record.assistantCommitmentsJson, 'assistantCommitmentsJson', 'chat_agent interaction snapshot record'),
+    userPrefsJson: parseStructuredJson(record.userPrefsJson, 'userPrefsJson', 'chat_agent interaction snapshot record'),
+    openLoopsJson: parseStructuredJson(record.openLoopsJson, 'openLoopsJson', 'chat_agent interaction snapshot record'),
+    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent interaction snapshot record'),
+  };
+}
+
+export function parseAgentLocalRelationMemorySlotRecord(value: unknown): AgentLocalRelationMemorySlotRecord {
+  const record = assertRecord(value, 'chat_agent relation memory slot record is invalid');
+  return {
+    id: parseRequiredString(record.id, 'id', 'chat_agent relation memory slot record'),
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent relation memory slot record'),
+    slotType: parseRequiredString(record.slotType, 'slotType', 'chat_agent relation memory slot record'),
+    summary: parseRequiredString(record.summary, 'summary', 'chat_agent relation memory slot record'),
+    sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
+    sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
+    score: Number(record.score),
+    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent relation memory slot record'),
+  };
+}
+
+export function parseAgentLocalRecallEntryRecord(value: unknown): AgentLocalRecallEntryRecord {
+  const record = assertRecord(value, 'chat_agent recall entry record is invalid');
+  return {
+    id: parseRequiredString(record.id, 'id', 'chat_agent recall entry record'),
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent recall entry record'),
+    sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
+    sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
+    summary: parseRequiredString(record.summary, 'summary', 'chat_agent recall entry record'),
+    searchText: parseRequiredString(record.searchText, 'searchText', 'chat_agent recall entry record'),
+    updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent recall entry record'),
+  };
+}
+
 export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBundle | null {
   if (value == null) {
     return null;
@@ -157,6 +305,59 @@ export function parseAgentLocalThreadBundle(value: unknown): AgentLocalThreadBun
       ? record.messages.map((item) => parseAgentLocalMessageRecord(item))
       : (() => { throw new Error('chat_agent thread bundle.messages must be an array'); })(),
     draft: record.draft == null ? null : parseAgentLocalDraftRecord(record.draft),
+  };
+}
+
+export function parseAgentLocalTurnContext(value: unknown): AgentLocalTurnContext {
+  const record = assertRecord(value, 'chat_agent turn context is invalid');
+  return {
+    thread: parseAgentLocalThreadRecord(record.thread),
+    recentTurns: Array.isArray(record.recentTurns)
+      ? record.recentTurns.map((item) => parseAgentLocalTurnRecord(item))
+      : (() => { throw new Error('chat_agent turn context.recentTurns must be an array'); })(),
+    recentBeats: Array.isArray(record.recentBeats)
+      ? record.recentBeats.map((item) => parseAgentLocalTurnBeatRecord(item))
+      : (() => { throw new Error('chat_agent turn context.recentBeats must be an array'); })(),
+    interactionSnapshot: record.interactionSnapshot == null
+      ? null
+      : parseAgentLocalInteractionSnapshotRecord(record.interactionSnapshot),
+    relationMemorySlots: Array.isArray(record.relationMemorySlots)
+      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotRecord(item))
+      : (() => { throw new Error('chat_agent turn context.relationMemorySlots must be an array'); })(),
+    recallEntries: Array.isArray(record.recallEntries)
+      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryRecord(item))
+      : (() => { throw new Error('chat_agent turn context.recallEntries must be an array'); })(),
+    draft: record.draft == null ? null : parseAgentLocalDraftRecord(record.draft),
+    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent turn context'),
+  };
+}
+
+export function parseAgentLocalProjectionRebuildResult(value: unknown): AgentLocalProjectionRebuildResult {
+  const record = assertRecord(value, 'chat_agent projection rebuild result is invalid');
+  return {
+    bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent projection rebuild result.bundle is invalid'); })(),
+    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent projection rebuild result'),
+  };
+}
+
+export function parseAgentLocalCommitTurnResult(value: unknown): AgentLocalCommitTurnResult {
+  const record = assertRecord(value, 'chat_agent commit turn result is invalid');
+  return {
+    turn: parseAgentLocalTurnRecord(record.turn),
+    beats: Array.isArray(record.beats)
+      ? record.beats.map((item) => parseAgentLocalTurnBeatRecord(item))
+      : (() => { throw new Error('chat_agent commit turn result.beats must be an array'); })(),
+    interactionSnapshot: record.interactionSnapshot == null
+      ? null
+      : parseAgentLocalInteractionSnapshotRecord(record.interactionSnapshot),
+    relationMemorySlots: Array.isArray(record.relationMemorySlots)
+      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotRecord(item))
+      : (() => { throw new Error('chat_agent commit turn result.relationMemorySlots must be an array'); })(),
+    recallEntries: Array.isArray(record.recallEntries)
+      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryRecord(item))
+      : (() => { throw new Error('chat_agent commit turn result.recallEntries must be an array'); })(),
+    bundle: parseAgentLocalThreadBundle(record.bundle) ?? (() => { throw new Error('chat_agent commit turn result.bundle is invalid'); })(),
+    projectionVersion: parseRequiredString(record.projectionVersion, 'projectionVersion', 'chat_agent commit turn result'),
   };
 }
 
@@ -222,5 +423,86 @@ export function parseAgentLocalPutDraftInput(value: unknown): AgentLocalPutDraft
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent put_draft payload'),
     text: String(record.text ?? ''),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent put_draft payload'),
+  };
+}
+
+export function parseAgentLocalLoadTurnContextInput(value: unknown): AgentLocalLoadTurnContextInput {
+  const record = assertRecord(value, 'chat_agent load_turn_context payload is invalid');
+  return {
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent load_turn_context payload'),
+    recentTurnLimit: record.recentTurnLimit == null ? undefined : parseFiniteInteger(record.recentTurnLimit, 'recentTurnLimit', 'chat_agent load_turn_context payload'),
+    relationMemoryLimit: record.relationMemoryLimit == null ? undefined : parseFiniteInteger(record.relationMemoryLimit, 'relationMemoryLimit', 'chat_agent load_turn_context payload'),
+    recallLimit: record.recallLimit == null ? undefined : parseFiniteInteger(record.recallLimit, 'recallLimit', 'chat_agent load_turn_context payload'),
+  };
+}
+
+export function parseAgentLocalTurnRecordInput(value: unknown): AgentLocalTurnRecordInput {
+  return parseAgentLocalTurnRecord(value);
+}
+
+export function parseAgentLocalTurnBeatInput(value: unknown): AgentLocalTurnBeatInput {
+  return parseAgentLocalTurnBeatRecord(value);
+}
+
+export function parseAgentLocalInteractionSnapshotInput(value: unknown): AgentLocalInteractionSnapshotInput {
+  return parseAgentLocalInteractionSnapshotRecord(value);
+}
+
+export function parseAgentLocalRelationMemorySlotInput(value: unknown): AgentLocalRelationMemorySlotInput {
+  return parseAgentLocalRelationMemorySlotRecord(value);
+}
+
+export function parseAgentLocalRecallEntryInput(value: unknown): AgentLocalRecallEntryInput {
+  return parseAgentLocalRecallEntryRecord(value);
+}
+
+export function parseAgentLocalProjectionMessageInput(value: unknown): AgentLocalProjectionMessageInput {
+  return parseAgentLocalMessageRecord(value);
+}
+
+export function parseAgentLocalProjectionCommitInput(value: unknown): AgentLocalProjectionCommitInput {
+  const record = assertRecord(value, 'chat_agent projection payload is invalid');
+  return {
+    thread: parseAgentLocalUpdateThreadMetadataInput(record.thread),
+    messages: Array.isArray(record.messages)
+      ? record.messages.map((item) => parseAgentLocalProjectionMessageInput(item))
+      : (() => { throw new Error('chat_agent projection payload.messages must be an array'); })(),
+    draft: record.draft == null ? null : parseAgentLocalPutDraftInput(record.draft),
+    clearDraft: Boolean(record.clearDraft),
+  };
+}
+
+export function parseAgentLocalCommitTurnResultInput(value: unknown): AgentLocalCommitTurnResultInput {
+  const record = assertRecord(value, 'chat_agent commit_turn_result payload is invalid');
+  return {
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent commit_turn_result payload'),
+    turn: parseAgentLocalTurnRecordInput(record.turn),
+    beats: Array.isArray(record.beats)
+      ? record.beats.map((item) => parseAgentLocalTurnBeatInput(item))
+      : (() => { throw new Error('chat_agent commit_turn_result payload.beats must be an array'); })(),
+    interactionSnapshot: record.interactionSnapshot == null
+      ? null
+      : parseAgentLocalInteractionSnapshotInput(record.interactionSnapshot),
+    relationMemorySlots: Array.isArray(record.relationMemorySlots)
+      ? record.relationMemorySlots.map((item) => parseAgentLocalRelationMemorySlotInput(item))
+      : (() => { throw new Error('chat_agent commit_turn_result payload.relationMemorySlots must be an array'); })(),
+    recallEntries: Array.isArray(record.recallEntries)
+      ? record.recallEntries.map((item) => parseAgentLocalRecallEntryInput(item))
+      : (() => { throw new Error('chat_agent commit_turn_result payload.recallEntries must be an array'); })(),
+    projection: parseAgentLocalProjectionCommitInput(record.projection),
+  };
+}
+
+export function parseAgentLocalCancelTurnInput(value: unknown): AgentLocalCancelTurnInput {
+  const record = assertRecord(value, 'chat_agent cancel_turn payload is invalid');
+  const scope = parseRequiredString(record.scope, 'scope', 'chat_agent cancel_turn payload');
+  if (scope !== 'turn' && scope !== 'tail' && scope !== 'projection') {
+    throw new Error('chat_agent cancel_turn payload: scope is invalid');
+  }
+  return {
+    threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent cancel_turn payload'),
+    turnId: parseRequiredString(record.turnId, 'turnId', 'chat_agent cancel_turn payload'),
+    scope,
+    abortedAtMs: parseFiniteInteger(record.abortedAtMs, 'abortedAtMs', 'chat_agent cancel_turn payload'),
   };
 }

@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CanonicalConversationShell,
-  CanonicalStagePanel,
-  CanonicalTranscriptView,
-  createConversationShellViewModel,
-  ConversationSetupPanel,
   type ConversationSetupAction,
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
 import { useRuntimeConfigPanelController } from '@renderer/features/runtime-config/runtime-config-panel-controller';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { createDesktopConversationModeRegistry, resolveDesktopConversationModeHost } from './chat-mode-registry';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { useAiConversationModeHost } from './chat-ai-shell-adapter';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
+import { ChatContactsSidebar } from './chat-contacts-sidebar';
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
   if (targetId === 'runtime-local') {
@@ -28,15 +25,12 @@ function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'ope
 }
 
 export function ChatPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = useAppStore((state) => state.chatMode);
-  const chatSourceFilter = useAppStore((state) => state.chatSourceFilter);
   const selectedTargetBySource = useAppStore((state) => state.selectedTargetBySource);
   const viewModeBySourceTarget = useAppStore((state) => state.viewModeBySourceTarget);
   const setChatMode = useAppStore((state) => state.setChatMode);
-  const setChatSourceFilter = useAppStore((state) => state.setChatSourceFilter);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
@@ -56,6 +50,10 @@ export function ChatPage() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   const runtimeConfigController = useRuntimeConfigPanelController();
+  const aiRouteReadinessPending = runtimeConfigController.hydrated
+    ? runtimeConfigController.discovering
+      || (!runtimeConfigController.runtimeDaemonUpdatedAt && !runtimeConfigController.runtimeDaemonError)
+    : true;
   const humanHost = useHumanConversationModeHost({
     authStatus,
     selectedChatId,
@@ -84,14 +82,6 @@ export function ChatPage() {
     humanHost,
     agentHost,
   }), [agentHost, aiHost, authStatus, humanHost]);
-  const localizedModes = useMemo(
-    () => registry.hosts.map((host) => ({
-      ...host.availability,
-      label: t(`Chat.mode.${host.mode}`, { defaultValue: host.availability.label }),
-    })),
-    [registry.hosts, t],
-  );
-
   const activeHost = useMemo(
     () => resolveDesktopConversationModeHost(registry, chatMode),
     [chatMode, registry],
@@ -126,28 +116,12 @@ export function ChatPage() {
     setChatSetupState(activeHost.mode, activeHost.adapter.setupState);
   }, [activeHost, chatSetupState, setChatSetupState]);
 
-  const viewModel = useMemo(() => {
-    if (!activeHost) {
-      return null;
-    }
-    return createConversationShellViewModel({
-      adapter: activeHost.adapter,
-      activeMode: activeHost.mode,
-      activeThreadId: activeHost.activeThreadId,
-      modes: localizedModes,
-    });
-  }, [activeHost, localizedModes]);
-
+  // Collect all targets from all hosts for the sidebar
   const allTargets = useMemo(
     () => registry.hosts.flatMap((host) => host.targets || []),
     [registry.hosts],
   );
-  const visibleTargets = useMemo(
-    () => chatSourceFilter === 'all'
-      ? allTargets
-      : allTargets.filter((target) => target.source === chatSourceFilter),
-    [allTargets, chatSourceFilter],
-  );
+
   const selectedTargetId = selectedTargetBySource[chatMode] || null;
   const selectedTarget = useMemo(
     () => selectedTargetId
@@ -156,18 +130,33 @@ export function ChatPage() {
     [allTargets, selectedTargetId],
   );
 
+  // If selected target disappeared (e.g. logout), clear it
   useEffect(() => {
     if (!selectedTargetId || selectedTarget) {
       return;
     }
-    setSelectedTargetForSource(chatMode, null);
-  }, [chatMode, selectedTarget, selectedTargetId, setSelectedTargetForSource]);
+    // Target not found — if not logged in, fall back to AI
+    if (authStatus !== 'authenticated') {
+      setChatMode('ai');
+      setSelectedTargetForSource('ai', 'ai:assistant');
+    } else {
+      setSelectedTargetForSource(chatMode, null);
+    }
+  }, [authStatus, chatMode, selectedTarget, selectedTargetId, setChatMode, setSelectedTargetForSource]);
 
+  // Close transient panels on target/mode change
   useEffect(() => {
     setSettingsOpen(false);
     setProfileOpen(false);
     setRightSidebarOpen(false);
   }, [chatMode, selectedTargetId]);
+
+  useEffect(() => {
+    if (!activeHost?.rightSidebarContent || !activeHost.rightSidebarAutoOpenKey) {
+      return;
+    }
+    setRightSidebarOpen(true);
+  }, [activeHost?.rightSidebarAutoOpenKey, activeHost?.rightSidebarContent]);
 
   const currentViewModeKey = selectedTarget
     ? `${selectedTarget.source}:${selectedTarget.id}`
@@ -190,17 +179,11 @@ export function ChatPage() {
     dispatchRuntimeConfigOpenPage(toRuntimePageId(action.targetId));
   };
 
-  const handleSelectTarget = useCallback((targetId: string | null) => {
-    const nextSource = targetId
-      ? registry.hosts.find((host) => (host.targets || []).some((target) => target.id === targetId))?.mode || null
-      : chatMode;
-    if (!targetId) {
-      setSelectedTargetForSource(chatMode, null);
-      return;
-    }
-    const ownerHost = nextSource
-      ? resolveDesktopConversationModeHost(registry, nextSource)
-      : null;
+  // Simplified target selection — sidebar drives this
+  const handleSelectTarget = useCallback((targetId: string) => {
+    const ownerHost = registry.hosts.find(
+      (host) => (host.targets || []).some((target) => target.id === targetId),
+    );
     if (!ownerHost) {
       return;
     }
@@ -212,75 +195,46 @@ export function ChatPage() {
     if (!ownerHost.onSelectTarget && ownerHost.onSelectThread) {
       ownerHost.onSelectThread(targetId);
     }
-  }, [chatMode, registry, setChatMode, setSelectedTargetForSource]);
+  }, [chatMode, registry.hosts, setChatMode, setSelectedTargetForSource]);
 
-  const chatSurface = useCallback(() => {
-    if (!activeHost || !viewModel) {
-      return null;
+  // Shell's onSelectTarget allows clearing (back button)
+  const handleShellSelectTarget = useCallback((targetId: string | null) => {
+    if (!targetId) {
+      // Back button pressed — don't clear, just ignore (sidebar controls navigation)
+      return;
     }
-    if (viewModel.setupState.status !== 'ready') {
-      return (
-        <div className="flex min-h-[320px] items-center justify-center px-6">
-          <ConversationSetupPanel
-            state={viewModel.setupState}
-            description={activeHost.renderSetupDescription?.(viewModel.setupState, viewModel)}
-            onAction={activeHost.onSetupAction || handleSetupAction}
-          />
-        </div>
-      );
-    }
-    if (!selectedTarget) {
-      return activeHost.renderEmptyState?.(viewModel) || null;
-    }
-    return (
-      <CanonicalTranscriptView
-        messages={canonicalMessages}
-        pendingFirstBeat={activeHost.stagePanelProps?.pendingFirstBeat}
-        {...activeHost.transcriptProps}
-      />
-    );
-  }, [activeHost, canonicalMessages, handleSetupAction, selectedTarget, viewModel]);
+    handleSelectTarget(targetId);
+  }, [handleSelectTarget]);
 
-  const stageSurface = useCallback(() => {
-    if (!activeHost || !viewModel) {
-      return null;
-    }
-    if (viewModel.setupState.status !== 'ready') {
-      return null;
-    }
-    if (!selectedTarget) {
-      return activeHost.renderEmptyState?.(viewModel) || null;
-    }
-    return (
-      <CanonicalStagePanel
-        characterData={activeHost.characterData}
-        messages={canonicalMessages}
-        pendingFirstBeat={activeHost.stagePanelProps?.pendingFirstBeat}
-        {...activeHost.stagePanelProps}
-      />
-    );
-  }, [activeHost, canonicalMessages, selectedTarget, viewModel]);
-
-  if (!activeHost || !viewModel) {
+  if (!activeHost) {
     return <div className="flex min-h-0 flex-1" />;
   }
 
+  if (activeHost.mode === 'ai' && aiRouteReadinessPending) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">
+        Loading AI routes...
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-0 flex-1 p-3">
+    <div data-testid={E2E_IDS.chatPage} className="flex min-h-0 flex-1">
+      {authStatus === 'authenticated' ? (
+        <ChatContactsSidebar
+          targets={allTargets}
+          selectedTargetId={selectedTargetId}
+          onSelectTarget={handleSelectTarget}
+        />
+      ) : null}
       <CanonicalConversationShell
         className="min-h-0 flex-1"
-        sourceFilter={chatSourceFilter}
-        availableSources={registry.visibleModes}
-        targets={visibleTargets}
+        hideTargetPane
+        sourceFilter="all"
+        targets={allTargets}
         selectedTargetId={selectedTargetId}
         selectedTarget={selectedTarget}
-        onSelectTarget={handleSelectTarget}
-        onSourceFilterChange={(filter) => {
-          setChatSourceFilter(filter);
-          if (filter !== 'all') {
-            setChatMode(filter);
-          }
-        }}
+        onSelectTarget={handleShellSelectTarget}
         viewMode={currentViewMode}
         onViewModeChange={(mode) => {
           if (!selectedTarget) {
@@ -288,10 +242,11 @@ export function ChatPage() {
           }
           setChatViewMode(chatMode, selectedTarget.id, mode);
         }}
+        setupState={activeHost.adapter.setupState}
+        setupDescription={activeHost.setupDescription}
+        onSetupAction={handleSetupAction}
         characterData={activeHost.characterData}
         messages={canonicalMessages}
-        renderChatTranscript={chatSurface}
-        renderStagePanel={stageSurface}
         transcriptProps={activeHost.transcriptProps}
         stagePanelProps={activeHost.stagePanelProps}
         composer={activeHost.composerContent}

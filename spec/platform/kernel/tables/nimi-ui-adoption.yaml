@@ -1,20 +1,5 @@
 version: 1
 modules:
-  - id: desktop.chat.sidebar
-    app: desktop
-    module: apps/desktop/src/shell/renderer/features/chats/chat-list.tsx
-    families:
-      - avatar
-      - surface
-      - sidebar
-    testid_required: true
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - light
-      - dark
-    default_scheme: light
-    accent_pack: desktop-accent
   - id: desktop.contacts.sidebar
     app: desktop
     module: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx
@@ -258,21 +243,6 @@ modules:
       - dark
     default_scheme: light
     accent_pack: forge-accent
-  - id: relay.conversation.sidebar
-    app: relay
-    module: apps/relay/src/renderer/features/sidebar/components/conversation-sidebar.tsx
-    families:
-      - sidebar
-      - action
-      - status
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - dark
-      - light
-    default_scheme: dark
-    accent_pack: relay-accent
   - id: relay.message.input
     app: relay
     module: apps/relay/src/renderer/features/chat/components/message-input.tsx

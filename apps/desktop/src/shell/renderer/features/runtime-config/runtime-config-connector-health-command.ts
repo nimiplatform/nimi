@@ -20,8 +20,10 @@ export async function runLocalHealthCheckCommand(input: {
     },
   }));
 
-  input.setStatusBanner({
-    kind: health.status === 'healthy' ? 'success' : 'warning',
-    message: `Local Runtime health: ${health.status}`,
-  });
+  if (health.status !== 'healthy') {
+    input.setStatusBanner({
+      kind: 'warning',
+      message: `Local Runtime health: ${health.status}`,
+    });
+  }
 }

@@ -9,6 +9,7 @@ import {
   runDesktopUpdateRestart,
 } from '@renderer/infra/bootstrap/desktop-updates';
 import {
+  FormFeedback,
   PageShell,
   SectionTitle,
 } from './settings-layout-components.js';
@@ -36,7 +37,6 @@ import {
 
 export function PerformancePage() {
   const { t } = useTranslation();
-  const setStatusBanner = useAppStore((s) => s.setStatusBanner);
   const runtimeFields = useAppStore((s) => s.runtimeFields);
   const desktopReleaseInfo = useAppStore((s) => s.desktopReleaseInfo);
   const desktopReleaseError = useAppStore((s) => s.desktopReleaseError);
@@ -46,6 +46,10 @@ export function PerformancePage() {
   const [baseline, setBaseline] = useState<PerformancePreferences>(() =>
     loadStoredPerformancePreferences());
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+  } | null>(null);
   const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const eligibilityQuery = useQuery({
@@ -64,7 +68,7 @@ export function PerformancePage() {
   const handleSave = async ({ silentSuccess = false }: { silentSuccess?: boolean } = {}) => {
     if (saving || !hasChanges) {
       if (!hasChanges) {
-        setStatusBanner({
+        setFeedback({
           kind: 'info',
           message: t('Performance.noChanges'),
         });
@@ -76,7 +80,7 @@ export function PerformancePage() {
       persistStoredPerformancePreferences(preferences);
       setBaseline(preferences);
       if (!silentSuccess) {
-        setStatusBanner({
+        setFeedback({
           kind: 'success',
           message: t('Performance.saveSuccess'),
         });
@@ -153,6 +157,7 @@ export function PerformancePage() {
       description={t('Performance.pageDescription')}
       contentClassName="max-w-4xl"
     >
+      <FormFeedback feedback={feedback} onDismiss={() => setFeedback(null)} title={t('Performance.pageTitle')} />
       <section className="mt-8">
         <SectionTitle description={t('Performance.sectionRenderingDescription')}>
           {t('Performance.sectionRendering')}

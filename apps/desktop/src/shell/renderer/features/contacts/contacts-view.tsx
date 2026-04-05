@@ -7,6 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
@@ -106,7 +107,6 @@ export function ContactsView(props: ContactsViewProps) {
   const MAX_CONTACTS_SIDEBAR_WIDTH = 460;
   const { t } = useTranslation();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const setSelectedProfileIsAgent = useAppStore((state) => state.setSelectedProfileIsAgent);
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -473,6 +473,14 @@ export function ContactsView(props: ContactsViewProps) {
           className="flex min-w-0 flex-1 flex-col bg-white"
           viewportClassName="bg-white"
         >
+        {props.feedback ? (
+          <div className="px-6 pt-4">
+            <InlineFeedback
+              feedback={props.feedback}
+              onDismiss={props.onDismissFeedback}
+            />
+          </div>
+        ) : null}
         {selectedRequest ? (
           // 单个好友请求详情
           <FriendRequestDetail
@@ -529,13 +537,6 @@ export function ContactsView(props: ContactsViewProps) {
               setSelectedContact(null);
               setSelectedProfileId(null);
               setSelectedProfileIsAgent(null);
-              setStatusBanner({
-                kind: 'success',
-                message: t('Contacts.friendRemoved', {
-                  name: removedContact.displayName || removedContact.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
-                  defaultValue: 'Removed {{name}} from your friends.',
-                }),
-              });
             } : undefined}
             showMessageButton={!selectedProfile?.isAgent}
           />
@@ -602,13 +603,6 @@ export function ContactsView(props: ContactsViewProps) {
           setGiftTargetContact(null);
         }}
         onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: t('Contacts.giftSentTo', {
-              name: giftTargetContact?.displayName || giftTargetContact?.handle || t('Common.unknown', { defaultValue: 'Unknown' }),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
           setGiftModalOpen(false);
           setGiftTargetContact(null);
         }}

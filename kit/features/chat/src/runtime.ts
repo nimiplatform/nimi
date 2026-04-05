@@ -15,6 +15,14 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import type { NimiError } from '@nimiplatform/sdk/types';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
+export type {
+  SimpleAiConversationProviderOptions,
+} from './runtime/orchestration.js';
+export {
+  createSdkConversationRuntimeAdapter,
+  createSimpleAiConversationProvider,
+  normalizeConversationRuntimeTextStreamPart,
+} from './runtime/orchestration.js';
 
 const DEFAULT_RUNTIME_CHAT_METADATA = {
   callerKind: 'third-party-app',

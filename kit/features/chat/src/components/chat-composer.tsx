@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
-import type { ChatComposerAttachmentsSlot } from '../types.js';
+import type { ChatComposerAttachmentsSlot, ChatComposerVoiceState, ChatComposerMediaAction } from '../types.js';
 
 const MIN_TEXTAREA_HEIGHT = 48;
 const MAX_TEXTAREA_HEIGHT = 128;
@@ -35,6 +35,10 @@ export type ChatComposerProps<TAttachment = never> = UseChatComposerOptions<TAtt
   sendLabel?: string;
   attachLabel?: string;
   attachmentsSlot?: ChatComposerAttachmentsSlot<TAttachment>;
+  /** When provided, the voice button becomes interactive with state-driven rendering. */
+  voiceState?: ChatComposerVoiceState;
+  /** Quick-action pill buttons for media prompt injection (image/video generation, etc.). */
+  mediaActions?: readonly ChatComposerMediaAction[];
 };
 
 export function ChatComposer<TAttachment = never>({
@@ -45,11 +49,14 @@ export function ChatComposer<TAttachment = never>({
   sendLabel = 'Send',
   attachLabel = 'Attach',
   attachmentsSlot,
+  voiceState,
+  mediaActions,
   ...options
 }: ChatComposerProps<TAttachment>) {
   const state = useChatComposer(options);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastHeightRef = useRef(MIN_TEXTAREA_HEIGHT);
+  const [showMediaActions, setShowMediaActions] = useState(false);
 
   const resizeTextarea = useCallback(() => {
     const el = textareaRef.current;
@@ -69,56 +76,141 @@ export function ChatComposer<TAttachment = never>({
     resizeTextarea();
   }, [state.handleTextChange, resizeTextarea]);
 
-  const handleSendClick = useCallback(() => {
-    void state.handleSubmit();
-  }, [state]);
+  const renderDefaultAttachments = useCallback(() => {
+    if (!options.attachmentAdapter || state.attachments.length === 0) {
+      return null;
+    }
+    return (
+      <div className="flex flex-wrap gap-2.5">
+        {state.attachments.map((attachment, index) => {
+          const key = options.attachmentAdapter?.getKey?.(attachment, index) || `${index}`;
+          const label = options.attachmentAdapter?.getLabel?.(attachment, index) || '';
+          const secondaryLabel = options.attachmentAdapter?.getSecondaryLabel?.(attachment, index);
+          const previewUrl = options.attachmentAdapter?.getPreviewUrl?.(attachment, index);
+          const kind = options.attachmentAdapter?.getKind?.(attachment, index);
+          return (
+            <div
+              key={key}
+              className="flex min-w-[152px] max-w-[220px] items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-3 py-3 shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
+            >
+              {previewUrl && kind === 'image' ? (
+                <img
+                  src={previewUrl}
+                  alt={label || `attachment-${index + 1}`}
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  {kind === 'video' ? 'VID' : 'FILE'}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                {label ? (
+                  <div className="truncate text-sm font-medium text-slate-800">{label}</div>
+                ) : null}
+                {secondaryLabel ? (
+                  <div className="truncate text-xs text-slate-500">{secondaryLabel}</div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => state.removeAttachment(index)}
+                className="rounded-full p-1 text-slate-400 transition-colors hover:text-slate-700"
+                aria-label={`remove-attachment-${index + 1}`}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [options.attachmentAdapter, state.attachments, state.removeAttachment]);
+
+  // Close media actions on successful submit
+  const originalHandleSubmit = state.handleSubmit;
+  const wrappedHandleSubmit = useCallback(async () => {
+    setShowMediaActions(false);
+    await originalHandleSubmit();
+  }, [originalHandleSubmit]);
 
   return (
     <div className={className}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void state.handleSubmit();
+          void wrappedHandleSubmit();
         }}
       >
-        {attachmentsSlot && state.attachments.length > 0 ? (
+        {state.attachments.length > 0 ? (
           <div className="mb-3">
-            {typeof attachmentsSlot === 'function'
-              ? attachmentsSlot({
-                attachments: state.attachments,
-                removeAttachment: state.removeAttachment,
-                openAttachmentPicker: state.openAttachmentPicker,
-              })
-              : attachmentsSlot}
+            {attachmentsSlot
+              ? (typeof attachmentsSlot === 'function'
+                ? attachmentsSlot({
+                  attachments: state.attachments,
+                  removeAttachment: state.removeAttachment,
+                  openAttachmentPicker: state.openAttachmentPicker,
+                })
+                : attachmentsSlot)
+              : renderDefaultAttachments()}
+          </div>
+        ) : null}
+
+        {/* media quick-action pills */}
+        {showMediaActions && mediaActions && mediaActions.length > 0 ? (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {mediaActions.map((action) => (
+              <button
+                key={action.kind}
+                type="button"
+                onClick={() => {
+                  action.onAction();
+                  setShowMediaActions(false);
+                }}
+                className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+              >
+                {action.label}
+              </button>
+            ))}
           </div>
         ) : null}
 
         {/* input controls row */}
         <div className="flex items-end gap-2.5">
-          {/* voice button (placeholder — disabled) */}
-          <button
-            type="button"
-            disabled
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-              'border border-slate-200 bg-slate-100 text-slate-400',
-            )}
-            title="Voice input"
-          >
-            {ICON_MIC}
-          </button>
+          {/* voice button — interactive when voiceState provided, disabled placeholder otherwise */}
+          {voiceState ? (
+            <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} />
+          ) : (
+            <button
+              type="button"
+              disabled
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
+                'border border-slate-200 bg-slate-100 text-slate-400',
+              )}
+              title="Voice input"
+            >
+              {ICON_MIC}
+            </button>
+          )}
 
-          {/* media button (placeholder — disabled) */}
+          {/* media / attachment button */}
           <button
             type="button"
-            disabled={!options.attachmentAdapter || options.disabled || state.isSubmitting}
+            disabled={!options.attachmentAdapter && (!mediaActions || mediaActions.length === 0) || options.disabled || state.isSubmitting}
             onClick={() => {
-              void state.openAttachmentPicker();
+              if (options.attachmentAdapter) {
+                void state.openAttachmentPicker();
+              } else if (mediaActions && mediaActions.length > 0) {
+                setShowMediaActions((v) => !v);
+              }
             }}
             className={cn(
               'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
-              options.attachmentAdapter
-                ? 'border border-slate-200/80 bg-white/90 text-slate-600 transition-colors hover:border-emerald-300 hover:text-teal-700'
+              (options.attachmentAdapter || (mediaActions && mediaActions.length > 0))
+                ? showMediaActions
+                  ? 'border border-sky-200 bg-sky-50 text-sky-700 transition-colors'
+                  : 'border border-slate-200/80 bg-white/90 text-slate-600 transition-colors hover:border-emerald-300 hover:text-teal-700'
                 : 'border border-slate-200 bg-slate-100 text-slate-400',
             )}
             title={attachLabel}
@@ -136,7 +228,7 @@ export function ChatComposer<TAttachment = never>({
             }}
             rows={1}
             className={cn(
-              'min-h-[48px] max-h-32 min-w-0 flex-1 resize-none',
+              'min-h-[48px] max-h-32 min-w-0 flex-1 resize-none overflow-y-hidden',
               'rounded-[20px] border border-slate-200 bg-white px-4 py-3',
               'text-sm text-slate-900 outline-none',
               'transition-colors duration-200',
@@ -154,9 +246,9 @@ export function ChatComposer<TAttachment = never>({
 
           {/* send button */}
           <button
-            type="button"
-            onClick={handleSendClick}
+            type="submit"
             disabled={!state.canSubmit}
+            aria-label={sendLabel}
             className={cn(
               'flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px]',
               'bg-gradient-to-br from-emerald-400 via-teal-400 to-emerald-500',
@@ -187,6 +279,55 @@ export function ChatComposer<TAttachment = never>({
           </div>
         ) : null}
       </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Voice button — state-driven sub-component
+// ---------------------------------------------------------------------------
+
+const ICON_SPINNER = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
+function VoiceButton({ voiceState, disabled }: { voiceState: ChatComposerVoiceState; disabled?: boolean }) {
+  const { status, onToggle, onCancel } = voiceState;
+  const isRecording = status === 'recording';
+  const isTranscribing = status === 'transcribing';
+  const isFailed = status === 'failed';
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        disabled={disabled || isTranscribing}
+        onClick={onToggle}
+        className={cn(
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors',
+          isRecording
+            ? 'border border-rose-200/80 bg-gradient-to-b from-rose-50 to-white text-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.12)]'
+            : isTranscribing
+              ? 'border border-amber-200 bg-amber-50 text-amber-600'
+              : isFailed
+                ? 'border border-amber-200 bg-amber-50 text-amber-600'
+                : 'border border-slate-200/80 bg-white/90 text-slate-600 hover:border-emerald-300 hover:text-teal-700',
+        )}
+        title={isRecording ? 'Stop recording' : isTranscribing ? 'Transcribing…' : 'Voice input'}
+      >
+        {isTranscribing ? ICON_SPINNER : ICON_MIC}
+      </button>
+      {isRecording && onCancel ? (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+      ) : null}
     </div>
   );
 }

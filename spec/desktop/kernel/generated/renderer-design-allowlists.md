@@ -6,6 +6,7 @@
 |---|---|---|---|---|---|
 | `contacts.sidebar_width` | `inline_style` | `sidebarWidth` | `apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx` | resizable contacts sidebar width depends on pointer drag state. | `D-SHELL-021` |
 | `contacts.blocked_world_accent` | `inline_style` | `palette.accent` | `apps/desktop/src/shell/renderer/features/contacts/contacts-blocked-users.tsx` | agent semantic palette accent is content-derived and not a baseline shell token. | `D-SHELL-021` |
+| `contacts.blocked_agent_radius` | `class_pattern` | `rounded-\\[(?:10|8)px\\]` | `apps/desktop/src/shell/renderer/features/contacts/contacts-blocked-users.tsx` | blocked agent avatars preserve compact square rounding while shared avatar radius tokens are still being migrated. | `D-SHELL-021` |
 | `explore.rounded_2rem` | `class_pattern` | `rounded-\\[2rem\\]` | `apps/desktop/src/shell/renderer/features/explore/explore-view.tsx` | pilot keeps large banner/card rounding while surface tokens are introduced. | `D-SHELL-021` |
 | `explore.rounded_1_5rem` | `class_pattern` | `rounded-\\[1\\.5rem\\]` | `apps/desktop/src/shell/renderer/features/explore/explore-view.tsx` | pilot keeps media skeleton rounding while surface tokens are introduced. | `D-SHELL-021` |
 | `explore.display_font` | `inline_style` | `var\\(--font-display\\)` | `apps/desktop/src/shell/renderer/features/explore/explore-view.tsx` | display font still relies on explicit typography handoff during pilot. | `D-SHELL-021` |

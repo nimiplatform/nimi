@@ -14,7 +14,8 @@ const connectorDiscoverySource = readSource('../src/shell/renderer/features/runt
 const createPostModalSource = readSource('../src/shell/renderer/features/profile/create-post-modal.tsx');
 
 test('gift message bubble surfaces accept/reject failures instead of silently swallowing them', () => {
-  assert.match(giftBubbleSource, /const setStatusBanner = useAppStore\(\(state\) => state\.setStatusBanner\)/);
+  assert.match(giftBubbleSource, /const \[feedback, setFeedback\] = useState<InlineFeedbackState \| null>\(null\)/);
+  assert.match(giftBubbleSource, /<InlineFeedback feedback=\{feedback\} onDismiss=\{\(\) => setFeedback\(null\)\} \/>/);
   assert.match(giftBubbleSource, /t\('GiftBubble\.acceptFailed', \{ defaultValue: 'Failed to accept gift' \}\)/);
   assert.match(giftBubbleSource, /t\('GiftBubble\.rejectFailed', \{ defaultValue: 'Failed to reject gift' \}\)/);
   assert.doesNotMatch(giftBubbleSource, /silently ignore/);

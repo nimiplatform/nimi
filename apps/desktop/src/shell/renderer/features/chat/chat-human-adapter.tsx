@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { getRealmChatTimelineDisplayModel, useRealmMessageTimeline, type RealmChatOutboxEntryLike } from '@nimiplatform/nimi-kit/features/chat/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
-import { useChatUploadPlaceholders } from '@renderer/features/turns/chat-upload-placeholder-store';
 import {
   compareHumanChatsByRecency,
   collapseHumanChatsToTargets,
@@ -25,7 +22,10 @@ import {
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 
-type MessageViewDto = RealmModel<'MessageViewDto'>;
+import {
+  ChatRuntimeInspectContent,
+  RuntimeInspectCard,
+} from './chat-runtime-inspect-content';
 
 type UseHumanConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -46,7 +46,6 @@ export function useHumanConversationModeHost(
   const { t } = useTranslation();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
-  const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => dataSync.loadChats(),
@@ -72,49 +71,6 @@ export function useHumanConversationModeHost(
   );
   const selectedChat = selectedChatId ? chatById.get(String(selectedChatId)) || null : null;
   const selectedChatTitle = selectedChat ? getHumanChatTitle(selectedChat) : t('Chat.humanTitle', { defaultValue: 'Human Chat' });
-  const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
-  const messagesQuery = useQuery({
-    queryKey: ['messages', selectedChatId],
-    queryFn: async () => selectedChatId ? dataSync.loadMessages(selectedChatId) : null,
-    enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
-  });
-  const timelineMessages = useRealmMessageTimeline({
-    messagesData: messagesQuery.data as { items?: readonly MessageViewDto[]; offlineOutbox?: readonly RealmChatOutboxEntryLike[] } | null | undefined,
-    currentUserId,
-    uploadPlaceholders,
-  });
-  const canonicalMessages = useMemo(
-    () => timelineMessages.map((message) => {
-      const display = getRealmChatTimelineDisplayModel(message, currentUserId);
-      return {
-        id: String(message.id || message.clientMessageId || ''),
-        sessionId: String(selectedChatId || ''),
-        targetId: selectedChat ? getHumanTargetId(selectedChat) : String(selectedChatId || ''),
-        source: 'human' as const,
-        role: display.isMe ? 'human' as const : 'assistant' as const,
-        text: display.resolvedText || '',
-        createdAt: String(message.createdAt || ''),
-        updatedAt: String(message.editedAt || message.createdAt || ''),
-        status: display.deliveryState === 'pending'
-          ? 'pending' as const
-          : display.deliveryState === 'failed'
-            ? 'error' as const
-            : 'complete' as const,
-        error: display.deliveryError,
-        kind: display.isGiftMessage
-          ? 'system' as const
-          : display.isImageMessage
-            ? 'image' as const
-            : display.isVideoMessage
-              ? 'video' as const
-              : 'text' as const,
-        metadata: {
-          realmMessage: message,
-        },
-      };
-    }),
-    [currentUserId, selectedChat, selectedChatId, timelineMessages],
-  );
   const targets = useMemo(
     () => collapsedChats.map((chat) => ({
       id: getHumanTargetId(chat),
@@ -148,7 +104,7 @@ export function useHumanConversationModeHost(
       bio: null,
     },
   });
-  const { messages: _humanTranscriptMessages, ...transcriptProps } = canonicalSurface.transcriptProps;
+  const { messages: canonicalMessages, ...transcriptProps } = canonicalSurface.transcriptProps;
   const {
     messages: _humanStageMessages,
     characterData: _humanStageCharacterData,
@@ -229,10 +185,10 @@ export function useHumanConversationModeHost(
       bio: selectedChat
         ? null
         : t('Chat.humanBio', { defaultValue: 'Chat with your friends on Nimi.' }),
-      presenceLabel: authStatus === 'authenticated'
-        ? t('Chat.mode.human', { defaultValue: 'Human' })
-        : t('Chat.humanOffline', { defaultValue: 'Offline' }),
-      presenceBusy: false,
+      interactionState: {
+        phase: canonicalSurface.rightSidebarAutoOpenKey ? 'speaking' as const : 'idle' as const,
+        busy: Boolean(canonicalSurface.rightSidebarAutoOpenKey),
+      },
       theme: {
         roomSurface: 'linear-gradient(180deg, rgba(250,252,252,0.98), rgba(244,247,248,0.96))',
         roomAura: 'linear-gradient(135deg,rgba(255,255,255,0.9),rgba(250,245,230,0.82))',
@@ -241,9 +197,6 @@ export function useHumanConversationModeHost(
         border: 'rgba(251,191,36,0.28)',
         text: '#92400e',
       },
-      badges: authStatus === 'authenticated'
-        ? [{ label: 'Online', variant: 'online' as const, pulse: true }]
-        : [],
     },
     onSelectThread: (threadId: string) => {
       setSelectedChatId(threadId);
@@ -251,6 +204,9 @@ export function useHumanConversationModeHost(
     },
     transcriptProps: selectedChatId ? transcriptProps : undefined,
     stagePanelProps: selectedChatId ? stagePanelProps : undefined,
+    settingsContent: null,
+    settingsDrawerTitle: undefined,
+    settingsDrawerSubtitle: undefined,
     composerContent: selectedChatId ? <HumanCanonicalComposer selectedChatId={selectedChatId} /> : null,
     profileContent: profilePanelTarget && selectedChat ? (
       <HumanCanonicalProfileDrawer
@@ -260,7 +216,73 @@ export function useHumanConversationModeHost(
     ) : null,
     profileDrawerTitle: t('Chat.profileTitle', { defaultValue: 'Profile' }),
     profileDrawerSubtitle: t('Chat.profileSubtitle', { defaultValue: 'Relationship, memory, and target details.' }),
+    rightSidebarContent: selectedChat ? (
+      <ChatRuntimeInspectContent
+        title={t('Chat.runtimeInspectTitle', { defaultValue: 'Runtime Inspect' })}
+        subtitle={t('Chat.runtimeInspectSubtitle', { defaultValue: 'Route, voice, media, and diagnostics for this conversation.' })}
+        statusTitle={getHumanChatTitle(selectedChat)}
+        statusHint={String(selectedChat.otherUser?.handle || '').trim()
+          ? `@${String(selectedChat.otherUser?.handle || '').trim()}`
+          : t('Chat.humanBio', { defaultValue: 'Chat with your friends on Nimi.' })}
+        statusSummary={t('Chat.mode.human', { defaultValue: 'Human' })}
+        statusChips={[
+          {
+            label: authStatus === 'authenticated'
+              ? t('Chat.mode.human', { defaultValue: 'Human' })
+              : t('Chat.humanOffline', { defaultValue: 'Offline' }),
+            tone: authStatus === 'authenticated' ? 'success' : 'warning',
+          },
+        ]}
+        sections={[
+          {
+            key: 'chat',
+            title: t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
+            hint: t('Chat.settingsChatModelHint', { defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.' }),
+            summary: getHumanChatPreview(selectedChat),
+            content: (
+              <RuntimeInspectCard
+                label={t('Chat.mode.human', { defaultValue: 'Human' })}
+                value={getHumanChatTitle(selectedChat)}
+                detail={canonicalSurface.diagnosticsSummary.isStreaming
+                  ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
+                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+              />
+            ),
+          },
+          {
+            key: 'voice',
+            title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
+            hint: t('Chat.settingsVoiceHint', { defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.' }),
+            content: canonicalSurface.rightSidebarContent,
+            disabledReason: t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' }),
+          },
+          {
+            key: 'media',
+            title: t('Chat.settingsVisuals', { defaultValue: 'Visuals' }),
+            hint: t('Chat.settingsVisualsHint', { defaultValue: 'Control whether images and videos appear in conversation, and their content style.' }),
+            disabledReason: t('Chat.settingsUnavailableReason', { defaultValue: 'This source does not expose runtime inspect yet.' }),
+          },
+          {
+            key: 'diagnostics',
+            title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
+            hint: t('Chat.profileSubtitle', { defaultValue: 'Relationship, memory, and target details.' }),
+            content: (
+              <RuntimeInspectCard
+                label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+                value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
+                detail={canonicalSurface.diagnosticsSummary.isStreaming
+                  ? t('ChatTimeline.stopGenerating', 'Stop generating')
+                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+              />
+            ),
+          },
+        ]}
+        initialOpenPanel={canonicalSurface.rightSidebarAutoOpenKey ? 'voice' : 'chat'}
+      />
+    ) : null,
     rightSidebarOverlayMenu: canonicalSurface.rightSidebarOverlayMenu,
+    rightSidebarResetKey: `${selectedChatId || 'landing'}:${canonicalSurface.rightSidebarAutoOpenKey || 'none'}`,
+    rightSidebarAutoOpenKey: canonicalSurface.rightSidebarAutoOpenKey,
     auxiliaryOverlayContent: (
       <HumanConversationGiftModal
         open={giftModalOpen}
@@ -268,20 +290,14 @@ export function useHumanConversationModeHost(
         onClose={() => setGiftModalOpen(false)}
       />
     ),
-    renderEmptyState: () => (
-      <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-[var(--nimi-text-muted)]">
-        {threads.length > 0
-          ? t('Chat.selectConversation', { defaultValue: 'Select a conversation to start chatting.' })
-          : t('Chat.noChats', { defaultValue: 'No chats' })}
-      </div>
-    ),
-    renderSetupDescription: () => t('Chat.humanSetupRequired', {
+    setupDescription: t('Chat.humanSetupRequired', {
       defaultValue: 'Sign in to continue with human conversations.',
     }),
   }), [
     adapter,
+    authStatus,
     canonicalMessages,
-    chatById,
+    canonicalSurface.diagnosticsSummary,
     giftModalOpen,
     profilePanelTarget,
     selectedChat,
@@ -293,9 +309,10 @@ export function useHumanConversationModeHost(
     t,
     allChats,
     allChatsSorted,
+    canonicalSurface.rightSidebarAutoOpenKey,
+    canonicalSurface.rightSidebarContent,
     canonicalSurface.rightSidebarOverlayMenu,
     transcriptProps,
     targets,
-    threads.length,
   ]);
 }

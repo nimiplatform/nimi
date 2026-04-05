@@ -4,6 +4,11 @@ export type {
   CanonicalMessageAvatarSlot,
   CanonicalMessageContentSlot,
   CanonicalMessageRenderContext,
+  CanonicalRuntimeInspectPanelKey,
+  CanonicalRuntimeInspectPanelState,
+  CanonicalRuntimeInspectProps,
+  CanonicalRuntimeInspectSectionData,
+  CanonicalRuntimeInspectStatusChip,
   CanonicalTranscriptGroup,
   ConversationCanonicalMessage,
   ConversationCanonicalMessageKind,
@@ -14,6 +19,7 @@ export type {
   ChatComposerSubmitInput,
   ConversationCharacterBadge,
   ConversationCharacterData,
+  ConversationInteractionStateSummary,
   ConversationComposerAdapter,
   ConversationModeAvailability,
   ConversationMessageRole,
@@ -38,9 +44,64 @@ export type {
 export { normalizeRealmMessagePayload } from './realm/codec.js';
 export { useChatComposer } from './hooks/use-chat-composer.js';
 export type {
+  ConversationBeatModality,
+  ConversationContinuityAdapter,
+  ConversationContinuityCancelInput,
+  ConversationContinuityCommitInput,
+  ConversationContinuityLoadInput,
+  ConversationGenerationAdapter,
+  ConversationOrchestrationModeId,
+  ConversationOrchestrationProvider,
+  ConversationProjectionRebuildResult,
+  ConversationProviderCapabilities,
+  ConversationRuntimeAdapter,
+  ConversationRuntimeTextMessage,
+  ConversationRuntimeTextRequest,
+  ConversationRuntimeTextStreamPart,
+  ConversationRuntimeTrace,
+  ConversationRuntimeUsage,
+  ConversationTurnError,
+  ConversationTurnEvent,
+  ConversationTurnEventByType,
+  ConversationTurnHistoryMessage,
+  ConversationTurnInput,
+  ConversationTurnRole,
+  ConversationVoiceAdapter,
+  KnownConversationOrchestrationModeId,
+} from './orchestration/contracts.js';
+export {
+  CONVERSATION_ORCHESTRATION_MODE_IDS,
+  matchConversationTurnEvent,
+} from './orchestration/contracts.js';
+export type {
+  ConversationCapabilityGuardKey,
+} from './orchestration/capability-guards.js';
+export type {
+  ConversationHistoryBudget,
+  ConversationHistoryWindowResult,
+  ConversationTokenCounter,
+} from './orchestration/history-window.js';
+export type {
   UseChatComposerOptions,
   UseChatComposerResult,
 } from './hooks/use-chat-composer.js';
+export {
+  buildConversationHistoryWindow,
+  estimateConversationMessageChars,
+  estimateConversationTokenCountFromChars,
+  measureConversationHistoryBudget,
+  SIMPLE_AI_COMPLETION_RESERVE,
+  SIMPLE_AI_HISTORY_BUDGET,
+} from './orchestration/history-window.js';
+export {
+  hasConversationCapability,
+  requireConversationGenerationAdapter,
+  requireConversationVoiceAdapter,
+} from './orchestration/capability-guards.js';
+export {
+  ConversationOrchestrationRegistry,
+  ConversationProviderNotRegisteredError,
+} from './orchestration/registry.js';
 export { CONVERSATION_MODES } from './types.js';
 import type {
   ConversationComposerAdapter,

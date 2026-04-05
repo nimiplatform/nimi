@@ -1,4 +1,5 @@
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
+import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type ContactsViewProps = {
   searchText: string;
@@ -20,6 +21,8 @@ export type ContactsViewProps = {
   filteredRequests: ContactRequestRecord[];
   loading: boolean;
   error: boolean;
+  feedback: InlineFeedbackState | null;
+  onDismissFeedback: () => void;
   onSearchTextChange: (value: string) => void;
   onFilterChange: (filter: TabFilter) => void;
   onMessage: (contact: ContactRecord) => void;
