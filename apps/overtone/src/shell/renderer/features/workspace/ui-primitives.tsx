@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useCallback, useRef, useEffect } from 'react';
-import { Button, IconButton, TextField, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, TextField, TextareaField, Toggle, cn } from '@nimiplatform/nimi-kit/ui';
 
 const cx = cn;
 
@@ -170,16 +170,7 @@ interface OtToggleProps {
 export function OtToggle({ checked, onChange, label, disabled }: OtToggleProps) {
   return (
     <label className="flex items-center gap-2 cursor-pointer select-none">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        className={`ot-toggle${checked ? ' ot-toggle--on' : ''}`}
-        onClick={() => onChange(!checked)}
-      >
-        <span className="ot-toggle__thumb" />
-      </button>
+      <Toggle checked={checked} onChange={onChange} disabled={disabled} />
       {label && <span className="text-xs text-[var(--nimi-text-secondary)]">{label}</span>}
     </label>
   );

@@ -48,7 +48,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         : activeHumanChatState?.friendUserId || 'friend',
       type: 'TEXT',
       text: message.content,
-      payload: { content: message.content } as unknown as Record<string, never>,
+      payload: { content: message.content },
       createdAt: new Date(message.timestamp).toISOString(),
       isRead: true,
       deliveryState: 'sent',
@@ -89,7 +89,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
           type: 'TEXT',
           text: trimmedText,
           clientMessageId,
-          payload: { content: trimmedText } as unknown as Record<string, never>,
+          payload: { content: trimmedText },
         });
       },
     },
