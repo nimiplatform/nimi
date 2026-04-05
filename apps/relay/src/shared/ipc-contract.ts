@@ -1,271 +1,135 @@
-import type { Runtime } from '@nimiplatform/sdk/runtime';
 import type {
-  Realm,
-  RealmServiceArgs,
-  RealmServiceResult,
-} from '@nimiplatform/sdk/realm';
-import type { IpcAiGenerateInput, IpcAiStreamInput } from '../main/input-transform.js';
-import type {
-  ChatMessage as MainChatMessage,
-  LocalChatPromptTrace,
-  LocalChatSession,
-  LocalChatTurnAudit,
-  LocalChatTurnSendPhase,
-} from '../main/chat-pipeline/types.js';
-import type {
-  RelayRouteBinding,
-  RelayRouteOptions,
-  ResolvedRelayRoute,
-} from '../main/route/types.js';
-import type { LocalChatSettings } from '../main/settings/types.js';
-import type { AuthState } from '../renderer/app-shell/providers/app-store.js';
-import type { performOauthTokenExchange } from '../main/auth/index.js';
-
-type RuntimeMethodInput<T extends (...args: any[]) => any> =
-  Parameters<T> extends [] ? undefined : Parameters<T>[0];
-type RuntimeMethodOutput<T extends (...args: any[]) => any> = Awaited<ReturnType<T>>;
-type AsyncIterableItem<T> = T extends AsyncIterable<infer Item> ? Item : never;
-
-type HealthResponse = RuntimeMethodOutput<Runtime['health']>;
-type AiGenerateResponse = RuntimeMethodOutput<Runtime['ai']['text']['generate']>;
-type AiStreamOpenResponse = { streamId: string };
-type AiStreamEvent = AsyncIterableItem<Awaited<ReturnType<Runtime['ai']['text']['stream']>>['stream']>;
-
-type TtsSynthesizeInput = RuntimeMethodInput<Runtime['media']['tts']['synthesize']>;
-type TtsSynthesizeResponse = RuntimeMethodOutput<Runtime['media']['tts']['synthesize']>;
-type TtsListVoicesInput = RuntimeMethodInput<Runtime['media']['tts']['listVoices']>;
-type TtsListVoicesResponse = RuntimeMethodOutput<Runtime['media']['tts']['listVoices']>;
-type SttTranscribeInput = RuntimeMethodInput<Runtime['media']['stt']['transcribe']>;
-type SttTranscribeResponse = RuntimeMethodOutput<Runtime['media']['stt']['transcribe']>;
-type ImageGenerateInput = RuntimeMethodInput<Runtime['media']['image']['generate']>;
-type ImageGenerateResponse = RuntimeMethodOutput<Runtime['media']['image']['generate']>;
-type VideoGenerateInput = RuntimeMethodInput<Runtime['media']['video']['generate']>;
-type VideoGenerateResponse = RuntimeMethodOutput<Runtime['media']['video']['generate']>;
-type VideoJobGetResponse = RuntimeMethodOutput<Runtime['media']['jobs']['get']>;
-type VideoJobArtifactsResponse = RuntimeMethodOutput<Runtime['media']['jobs']['getArtifacts']>;
-type VideoJobEvent = AsyncIterableItem<RuntimeMethodOutput<Runtime['media']['jobs']['subscribe']>>;
-
-type ModelListInput = RuntimeMethodInput<Runtime['model']['list']>;
-type ModelListResponse = RuntimeMethodOutput<Runtime['model']['list']>;
-type ModelPullInput = RuntimeMethodInput<Runtime['model']['pull']>;
-type ModelPullResponse = RuntimeMethodOutput<Runtime['model']['pull']>;
-type ModelRemoveInput = RuntimeMethodInput<Runtime['model']['remove']>;
-type ModelRemoveResponse = RuntimeMethodOutput<Runtime['model']['remove']>;
-type ModelHealthInput = RuntimeMethodInput<Runtime['model']['checkHealth']>;
-type ModelHealthResponse = RuntimeMethodOutput<Runtime['model']['checkHealth']>;
-
-type LocalListAssetsInput = RuntimeMethodInput<Runtime['local']['listLocalAssets']>;
-type LocalListAssetsResponse = RuntimeMethodOutput<Runtime['local']['listLocalAssets']>;
-type LocalListVerifiedAssetsInput = RuntimeMethodInput<Runtime['local']['listVerifiedAssets']>;
-type LocalListVerifiedAssetsResponse = RuntimeMethodOutput<Runtime['local']['listVerifiedAssets']>;
-type LocalSearchCatalogInput = RuntimeMethodInput<Runtime['local']['searchCatalogModels']>;
-type LocalSearchCatalogResponse = RuntimeMethodOutput<Runtime['local']['searchCatalogModels']>;
-type LocalResolveInstallPlanInput = RuntimeMethodInput<Runtime['local']['resolveModelInstallPlan']>;
-type LocalResolveInstallPlanResponse = RuntimeMethodOutput<Runtime['local']['resolveModelInstallPlan']>;
-type LocalInstallVerifiedAssetInput = RuntimeMethodInput<Runtime['local']['installVerifiedAsset']>;
-type LocalInstallVerifiedAssetResponse = RuntimeMethodOutput<Runtime['local']['installVerifiedAsset']>;
-type LocalImportAssetInput = RuntimeMethodInput<Runtime['local']['importLocalAsset']>;
-type LocalImportAssetResponse = RuntimeMethodOutput<Runtime['local']['importLocalAsset']>;
-type LocalRemoveAssetInput = RuntimeMethodInput<Runtime['local']['removeLocalAsset']>;
-type LocalRemoveAssetResponse = RuntimeMethodOutput<Runtime['local']['removeLocalAsset']>;
-type LocalStartAssetInput = RuntimeMethodInput<Runtime['local']['startLocalAsset']>;
-type LocalStartAssetResponse = RuntimeMethodOutput<Runtime['local']['startLocalAsset']>;
-type LocalStopAssetInput = RuntimeMethodInput<Runtime['local']['stopLocalAsset']>;
-type LocalStopAssetResponse = RuntimeMethodOutput<Runtime['local']['stopLocalAsset']>;
-type LocalCheckHealthInput = RuntimeMethodInput<Runtime['local']['checkLocalAssetHealth']>;
-type LocalCheckHealthResponse = RuntimeMethodOutput<Runtime['local']['checkLocalAssetHealth']>;
-type LocalWarmAssetInput = RuntimeMethodInput<Runtime['local']['warmLocalAsset']>;
-type LocalWarmAssetResponse = RuntimeMethodOutput<Runtime['local']['warmLocalAsset']>;
-type LocalCollectDeviceProfileInput = RuntimeMethodInput<Runtime['local']['collectDeviceProfile']>;
-type LocalCollectDeviceProfileResponse = RuntimeMethodOutput<Runtime['local']['collectDeviceProfile']>;
-type LocalResolveProfileInput = RuntimeMethodInput<Runtime['local']['resolveProfile']>;
-type LocalResolveProfileResponse = RuntimeMethodOutput<Runtime['local']['resolveProfile']>;
-type LocalListNodeCatalogInput = RuntimeMethodInput<Runtime['local']['listNodeCatalog']>;
-type LocalListNodeCatalogResponse = RuntimeMethodOutput<Runtime['local']['listNodeCatalog']>;
-
-type ConnectorCreateInput = RuntimeMethodInput<Runtime['connector']['createConnector']>;
-type ConnectorCreateResponse = RuntimeMethodOutput<Runtime['connector']['createConnector']>;
-type ConnectorGetInput = RuntimeMethodInput<Runtime['connector']['getConnector']>;
-type ConnectorGetResponse = RuntimeMethodOutput<Runtime['connector']['getConnector']>;
-type ConnectorListInput = RuntimeMethodInput<Runtime['connector']['listConnectors']>;
-type ConnectorListResponse = RuntimeMethodOutput<Runtime['connector']['listConnectors']>;
-type ConnectorUpdateInput = RuntimeMethodInput<Runtime['connector']['updateConnector']>;
-type ConnectorUpdateResponse = RuntimeMethodOutput<Runtime['connector']['updateConnector']>;
-type ConnectorDeleteInput = RuntimeMethodInput<Runtime['connector']['deleteConnector']>;
-type ConnectorDeleteResponse = RuntimeMethodOutput<Runtime['connector']['deleteConnector']>;
-type ConnectorTestInput = RuntimeMethodInput<Runtime['connector']['testConnector']>;
-type ConnectorTestResponse = RuntimeMethodOutput<Runtime['connector']['testConnector']>;
-type ConnectorListModelsInput = RuntimeMethodInput<Runtime['connector']['listConnectorModels']>;
-type ConnectorListModelsResponse = RuntimeMethodOutput<Runtime['connector']['listConnectorModels']>;
-type ConnectorProviderCatalogInput = RuntimeMethodInput<Runtime['connector']['listProviderCatalog']>;
-type ConnectorProviderCatalogResponse = RuntimeMethodOutput<Runtime['connector']['listProviderCatalog']>;
-type ConnectorCatalogProvidersInput = RuntimeMethodInput<Runtime['connector']['listModelCatalogProviders']>;
-type ConnectorCatalogProvidersResponse = RuntimeMethodOutput<Runtime['connector']['listModelCatalogProviders']>;
-type ConnectorCatalogProviderModelsInput = RuntimeMethodInput<Runtime['connector']['listCatalogProviderModels']>;
-type ConnectorCatalogProviderModelsResponse = RuntimeMethodOutput<Runtime['connector']['listCatalogProviderModels']>;
-type ConnectorCatalogModelDetailInput = RuntimeMethodInput<Runtime['connector']['getCatalogModelDetail']>;
-type ConnectorCatalogModelDetailResponse = RuntimeMethodOutput<Runtime['connector']['getCatalogModelDetail']>;
-type ConnectorUpsertCatalogProviderInput = RuntimeMethodInput<Runtime['connector']['upsertModelCatalogProvider']>;
-type ConnectorUpsertCatalogProviderResponse = RuntimeMethodOutput<Runtime['connector']['upsertModelCatalogProvider']>;
-type ConnectorDeleteCatalogProviderInput = RuntimeMethodInput<Runtime['connector']['deleteModelCatalogProvider']>;
-type ConnectorDeleteCatalogProviderResponse = RuntimeMethodOutput<Runtime['connector']['deleteModelCatalogProvider']>;
-type ConnectorUpsertCatalogOverlayInput = RuntimeMethodInput<Runtime['connector']['upsertCatalogModelOverlay']>;
-type ConnectorUpsertCatalogOverlayResponse = RuntimeMethodOutput<Runtime['connector']['upsertCatalogModelOverlay']>;
-type ConnectorDeleteCatalogOverlayInput = RuntimeMethodInput<Runtime['connector']['deleteCatalogModelOverlay']>;
-type ConnectorDeleteCatalogOverlayResponse = RuntimeMethodOutput<Runtime['connector']['deleteCatalogModelOverlay']>;
-
-type AuthCheckEmailInput = RealmServiceArgs<'AuthService', 'checkEmail'>[0];
-type AuthCheckEmailResponse = RealmServiceResult<'AuthService', 'checkEmail'>;
-type AuthPasswordLoginInput = RealmServiceArgs<'AuthService', 'passwordLogin'>[0];
-type AuthPasswordLoginResponse = RealmServiceResult<'AuthService', 'passwordLogin'>;
-type AuthOauthLoginResponse = RealmServiceResult<'AuthService', 'oauthLogin'>;
-type AuthRequestEmailOtpInput = RealmServiceArgs<'AuthService', 'requestEmailOtp'>[0];
-type AuthRequestEmailOtpResponse = RealmServiceResult<'AuthService', 'requestEmailOtp'>;
-type AuthVerifyEmailOtpInput = RealmServiceArgs<'AuthService', 'verifyEmailOtp'>[0];
-type AuthVerifyEmailOtpResponse = RealmServiceResult<'AuthService', 'verifyEmailOtp'>;
-type AuthVerifyTwoFactorInput = RealmServiceArgs<'AuthService', 'verifyTwoFactor'>[0];
-type AuthVerifyTwoFactorResponse = RealmServiceResult<'AuthService', 'verifyTwoFactor'>;
-type AuthWalletChallengeInput = RealmServiceArgs<'AuthService', 'walletChallenge'>[0];
-type AuthWalletChallengeResponse = RealmServiceResult<'AuthService', 'walletChallenge'>;
-type AuthWalletLoginInput = RealmServiceArgs<'AuthService', 'walletLogin'>[0];
-type AuthWalletLoginResponse = RealmServiceResult<'AuthService', 'walletLogin'>;
-type AuthUpdatePasswordInput = {
-  newPassword: RealmServiceArgs<'AuthService', 'updatePassword'>[0]['newPassword'];
-  accessToken?: string;
-};
-type AuthCurrentUserInput = { accessToken?: string };
-type AuthCurrentUserResponse = RealmServiceResult<'MeService', 'getMe'>;
-type AgentGetResponse = Awaited<ReturnType<Realm['services']['AgentsService']['getAgent']>>;
-type RelayAuthOauthLoginInput = {
-  provider: string;
-  accessToken: string;
-};
-type RelayTtsSynthesizeRequest = {
-  agentId: string;
-  model: string;
-  text: string;
-  voiceId?: string;
-  language?: string;
-  audioFormat?: string;
-  sampleRateHz?: number;
-  speed?: number;
-  pitch?: number;
-  volume?: number;
-  emotion?: string;
-};
-type RelayTtsSynthesizeResponse = Pick<TtsSynthesizeResponse, 'job' | 'trace'> & {
-  artifact?: TtsSynthesizeResponse['artifacts'][number];
-  audio?: string;
-};
-type RelaySttTranscribeRequest = {
-  model?: string;
-  audio: string;
-  format: string;
-  mimeType?: string;
-};
-type RelayVideoGenerateRequest = {
-  agentId: string;
-  prompt: string;
-  model?: string;
-};
-
-type RelayAuthStatus = {
-  state: AuthState;
-  error: string | null;
-};
-
-export type RelayStatusBanner = {
-  kind: 'warning' | 'error' | 'success' | 'info';
-  message: string;
-};
-
-export type RelayAgentListItem = {
-  agentId: string;
-  displayName: string;
-  handle: string;
-  state: string;
-  avatarUrl: string | null;
-};
-
-export type RelayAgentListResponse = {
-  items: RelayAgentListItem[];
-};
-
-export type RelayOAuthListenForCodeResponse = {
-  callbackUrl: string;
-  code?: string;
-  state?: string;
-  error?: string;
-};
-
-export type RelayDesktopOpenConfigResponse = {
-  success: boolean;
-};
-
-export type RelayChatMessage = Omit<MainChatMessage, 'timestamp'> & {
-  timestamp: MainChatMessage['timestamp'] | string;
-};
-
-export type RelayChatSettingsPatch = {
-  product?: Partial<LocalChatSettings['product']>;
-  inspect?: Partial<LocalChatSettings['inspect']>;
-};
-
-export type RelayRealtimeMessage = {
-  id: string;
-  senderId: string;
-  senderName?: string;
-  text: string;
-  timestamp: string;
-};
-
-export type RelayRealtimePresence = {
-  channel?: string;
-  userId?: string;
-  status?: string;
-  online?: boolean;
-};
-
-export type RelayStreamChunk = {
-  streamId: string;
-  data: AiStreamEvent | VideoJobEvent;
-};
-
-export type RelayStreamEnd = {
-  streamId: string;
-};
-
-export type RelayStreamError = {
-  streamId: string;
-  error: {
-    message?: string;
-    reasonCode?: string;
-    actionHint?: string;
-  };
-};
-
-export type {
-  AuthState,
+  AgentGetResponse,
+  AiGenerateResponse,
+  AiStreamEvent,
+  AiStreamOpenResponse,
+  AuthCheckEmailInput,
+  AuthCheckEmailResponse,
+  AuthCurrentUserInput,
+  AuthCurrentUserResponse,
+  AuthOauthLoginResponse,
+  AuthPasswordLoginInput,
+  AuthPasswordLoginResponse,
+  AuthRequestEmailOtpInput,
+  AuthRequestEmailOtpResponse,
+  AuthUpdatePasswordInput,
+  AuthVerifyEmailOtpInput,
+  AuthVerifyEmailOtpResponse,
+  AuthVerifyTwoFactorInput,
+  AuthVerifyTwoFactorResponse,
+  AuthWalletChallengeInput,
+  AuthWalletChallengeResponse,
+  AuthWalletLoginInput,
+  AuthWalletLoginResponse,
+  ConnectorCatalogModelDetailInput,
+  ConnectorCatalogModelDetailResponse,
+  ConnectorCatalogProviderModelsInput,
+  ConnectorCatalogProviderModelsResponse,
+  ConnectorCatalogProvidersInput,
+  ConnectorCatalogProvidersResponse,
+  ConnectorCreateInput,
+  ConnectorCreateResponse,
+  ConnectorDeleteCatalogOverlayInput,
+  ConnectorDeleteCatalogOverlayResponse,
+  ConnectorDeleteCatalogProviderInput,
+  ConnectorDeleteCatalogProviderResponse,
+  ConnectorDeleteInput,
+  ConnectorDeleteResponse,
+  ConnectorGetInput,
+  ConnectorGetResponse,
+  ConnectorListInput,
+  ConnectorListModelsInput,
+  ConnectorListModelsResponse,
+  ConnectorListResponse,
+  ConnectorProviderCatalogInput,
+  ConnectorProviderCatalogResponse,
+  ConnectorTestInput,
+  ConnectorTestResponse,
+  ConnectorUpdateInput,
+  ConnectorUpdateResponse,
+  ConnectorUpsertCatalogOverlayInput,
+  ConnectorUpsertCatalogOverlayResponse,
+  ConnectorUpsertCatalogProviderInput,
+  ConnectorUpsertCatalogProviderResponse,
+  HealthResponse,
+  IpcAiGenerateInput,
+  IpcAiStreamInput,
   LocalChatPromptTrace,
   LocalChatSession,
   LocalChatSettings,
   LocalChatTurnAudit,
   LocalChatTurnSendPhase,
+  LocalCheckHealthInput,
+  LocalCheckHealthResponse,
+  LocalCollectDeviceProfileInput,
+  LocalCollectDeviceProfileResponse,
+  LocalImportAssetInput,
+  LocalImportAssetResponse,
+  LocalInstallVerifiedAssetInput,
+  LocalInstallVerifiedAssetResponse,
+  LocalListAssetsInput,
+  LocalListAssetsResponse,
+  LocalListNodeCatalogInput,
+  LocalListNodeCatalogResponse,
+  LocalListVerifiedAssetsInput,
+  LocalListVerifiedAssetsResponse,
+  LocalRemoveAssetInput,
+  LocalRemoveAssetResponse,
+  LocalResolveInstallPlanInput,
+  LocalResolveInstallPlanResponse,
+  LocalResolveProfileInput,
+  LocalResolveProfileResponse,
+  LocalSearchCatalogInput,
+  LocalSearchCatalogResponse,
+  LocalStartAssetInput,
+  LocalStartAssetResponse,
+  LocalStopAssetInput,
+  LocalStopAssetResponse,
+  LocalWarmAssetInput,
+  LocalWarmAssetResponse,
+  ModelHealthInput,
+  ModelHealthResponse,
+  ModelListInput,
+  ModelListResponse,
+  ModelPullInput,
+  ModelPullResponse,
+  ModelRemoveInput,
+  ModelRemoveResponse,
+  RelayAgentListResponse,
+  RelayAgentListItem,
+  RelayAuthOauthLoginInput,
+  RelayAuthStatus,
+  RelayChatMessage,
+  RelayChatSettingsPatch,
+  RelayDesktopOpenConfigResponse,
+  RelayMediaRouteOptionsRequest,
+  RelayMediaRouteOptionsResponse,
+  RelayOAuthListenForCodeResponse,
+  RelayOauthTokenExchangeRequest,
+  RelayOauthTokenExchangeResponse,
+  RelayRealtimeMessage,
+  RelayRealtimePresence,
   RelayRouteBinding,
   RelayRouteOptions,
+  RelaySttTranscribeRequest,
+  RelayStatusBanner,
+  RelayStreamChunk,
+  RelayStreamEnd,
+  RelayStreamError,
+  RelayTtsSynthesizeRequest,
+  RelayTtsSynthesizeResponse,
+  RelayVideoGenerateRequest,
   ResolvedRelayRoute,
-};
-
-export type RelayMediaRouteOptionsRequest = {
-  capability: string;
-};
-
-export type RelayMediaRouteOptionsResponse = {
-  local: RelayRouteOptions['local'];
-  connectors: RelayRouteOptions['connectors'];
-  loadStatus: RelayRouteOptions['loadStatus'];
-  issues: RelayRouteOptions['issues'];
-};
+  SttTranscribeResponse,
+  TtsListVoicesInput,
+  TtsListVoicesResponse,
+  ImageGenerateInput,
+  ImageGenerateResponse,
+  VideoGenerateResponse,
+  VideoJobArtifactsResponse,
+  VideoJobEvent,
+  VideoJobGetResponse,
+} from './ipc-contract-types.js';
 
 export type RelayInvokeMap = {
   'relay:config': {
@@ -405,8 +269,8 @@ export type RelayInvokeMap = {
     response: void;
   };
   'relay:oauth:token-exchange': {
-    request: Parameters<typeof performOauthTokenExchange>[0];
-    response: Awaited<ReturnType<typeof performOauthTokenExchange>>;
+    request: RelayOauthTokenExchangeRequest;
+    response: RelayOauthTokenExchangeResponse;
   };
   'relay:model:list': {
     request: ModelListInput | undefined;
@@ -653,6 +517,7 @@ type MaybeOptionalArg<T> = [T] extends [undefined]
 export type RelayInvokeArgs<K extends RelayInvokeChannel> = MaybeOptionalArg<RelayInvokeMap[K]['request']>;
 export type RelayInvokeResponse<K extends RelayInvokeChannel> = RelayInvokeMap[K]['response'];
 export type RelayEventPayload<K extends RelayEventChannel> = RelayEventMap[K];
+export type { RelayAgentListItem };
 
 export interface NimiRelayBridge {
   config: (...args: RelayInvokeArgs<'relay:config'>) => Promise<RelayInvokeResponse<'relay:config'>>;

@@ -508,9 +508,17 @@ describe('RL-IPC-008 — Typed Realm data IPC', () => {
     assert.ok(!source.includes('realm as never'), 'must not erase realm types in relay IPC');
   });
 
-  it('agent list uses typed UserLiteDto array directly instead of legacy unknown union recovery', () => {
+  it('agent list merges typed creator agents and friend agents without legacy unknown union recovery', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
-    assert.ok(source.includes('items: payload.map((item) => ({'), 'must project typed list items directly');
+    assert.ok(
+      source.includes('realm.services.CreatorService.creatorControllerListAgents()'),
+      'must keep creator-owned agents in the relay selection list',
+    );
+    assert.ok(
+      source.includes('fetchTargetList(realm)'),
+      'must include agent friends in the relay selection list',
+    );
+    assert.ok(source.includes('const itemsById = new Map<string, RelayAgentListItem>()'), 'must merge the two typed sources by agent id');
     assert.ok(!source.includes('payload as { items?: unknown[] } | unknown[]'), 'must not restore legacy array/object union');
   });
 });

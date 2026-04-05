@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { TurnSendPhase } from '../../../app-shell/providers/chat-store.js';
 
 const SEND_ICON = (
@@ -46,6 +47,12 @@ export function MessageInput({
 
   const showPhaseBar = isSending || (sendPhase && sendPhase !== 'idle');
   const canSend = state.canSubmit && !disabled;
+  const submitButtonClassName = cn(
+    'flex h-8 w-8 items-center justify-center rounded-full text-white shadow-sm transition-all',
+    canSend
+      ? 'bg-[var(--nimi-action-primary-bg)] hover:brightness-110 active:scale-95'
+      : 'cursor-not-allowed bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,var(--nimi-surface-card))]',
+  );
 
   return (
     <section className="relative flex h-full flex-col px-5 pb-4 pt-2">
@@ -99,11 +106,7 @@ export function MessageInput({
             <button
               type="submit"
               disabled={!canSend}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-white shadow-sm transition-all ${
-                canSend
-                  ? 'bg-[var(--nimi-action-primary-bg)] hover:brightness-110 active:scale-95'
-                  : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,var(--nimi-surface-card))] cursor-not-allowed'
-              }`}
+              className={submitButtonClassName}
               aria-label={t('chat.send', { defaultValue: 'Send' })}
             >
               {SEND_ICON}

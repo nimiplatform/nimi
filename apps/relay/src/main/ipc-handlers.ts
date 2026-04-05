@@ -9,7 +9,6 @@
 
 import { ipcMain, type WebContents } from 'electron';
 import type { PlatformClient } from '@nimiplatform/sdk';
-import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   SpeechListVoicesInput,
@@ -22,13 +21,12 @@ import { safeHandle } from './ipc-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
 import type { RelayEnv } from './env.js';
 import type { RouteState } from './route/route-state.js';
-import type { RelayInvokeMap } from '../shared/ipc-contract.js';
+import type { RelayAgentListItem, RelayInvokeMap } from '../shared/ipc-contract.js';
 import type { TurnDeliveryScheduleHandle } from './chat-pipeline/session-persist.js';
 import { resolveRelayTtsConfig } from './tts-config.js';
 import { mergeLocalChatSettings } from './settings/settings-store.js';
 export { registerAuthIpcHandlers } from './ipc-auth-handlers.js';
 
-type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
 type TtsSynthesizeRequest = RelayInvokeMap['relay:media:tts:synthesize']['request'];
 type SttTranscribeRequest = RelayInvokeMap['relay:media:stt:transcribe']['request'];
 type VideoGenerateRequest = RelayInvokeMap['relay:media:video:generate']['request'];
@@ -275,15 +273,56 @@ export function registerIpcHandlers(
 
   safeHandle('relay:agent:list', async () => {
     try {
-      const payload: ListCreatorAgentsResult = await realm.services.CreatorService.creatorControllerListAgents();
-      return {
-        items: payload.map((item) => ({
-          agentId: item.id,
-          displayName: item.displayName,
-          handle: item.handle,
-          state: String(item.status || ''),
+      const { fetchTargetList } = await import('./data/realm-queries.js');
+      const [creatorAgents, friendAgents] = await Promise.all([
+        realm.services.CreatorService.creatorControllerListAgents(),
+        fetchTargetList(realm),
+      ]);
+
+      const itemsById = new Map<string, RelayAgentListItem>();
+
+      for (const item of creatorAgents) {
+        const agentId = String(item.id || '').trim();
+        if (!agentId) {
+          continue;
+        }
+        itemsById.set(agentId, {
+          agentId,
+          displayName: String(item.displayName || item.handle || agentId).trim() || agentId,
+          handle: String(item.handle || agentId).trim() || agentId,
+          state: String(item.status || 'ACTIVE'),
           avatarUrl: item.avatarUrl ?? null,
-        })),
+        });
+      }
+
+      for (const friend of friendAgents) {
+        const agentId = String(friend.id || '').trim();
+        if (!agentId) {
+          continue;
+        }
+        const existing = itemsById.get(agentId);
+        const friendDisplayName = String(friend.displayName || friend.handle || agentId).trim() || agentId;
+        const friendHandle = String(friend.handle || agentId).trim() || agentId;
+        if (existing) {
+          itemsById.set(agentId, {
+            ...existing,
+            displayName: existing.displayName || friendDisplayName,
+            handle: existing.handle || friendHandle,
+            avatarUrl: existing.avatarUrl ?? friend.avatarUrl ?? null,
+          });
+          continue;
+        }
+        itemsById.set(agentId, {
+          agentId,
+          displayName: friendDisplayName,
+          handle: friendHandle,
+          state: 'ACTIVE',
+          avatarUrl: friend.avatarUrl ?? null,
+        });
+      }
+
+      return {
+        items: Array.from(itemsById.values()),
       };
     } catch (error) {
       throw toIpcError(error);

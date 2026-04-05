@@ -46,7 +46,7 @@ void prepareRelayRenderer().then((shouldRender) => {
 
   createRoot(root).render(
     <StrictMode>
-      <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
+      <NimiThemeProvider accentPack="relay-accent" defaultScheme="light">
         <App />
       </NimiThemeProvider>
     </StrictMode>,

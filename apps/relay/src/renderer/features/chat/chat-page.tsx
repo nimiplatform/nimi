@@ -2,7 +2,7 @@
 // Direct mode: agent-less chat via relay:direct-chat:* IPC
 // Agent mode: beat-first pipeline via relay:chat:* IPC (RL-PIPE-001)
 
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Settings, Check, X, User } from 'lucide-react';
 import {
@@ -23,14 +23,6 @@ import { VoiceControls } from '../voice/components/voice-controls.js';
 import { useAppStore, type Agent } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import { useAgentProfile } from '../agent/hooks/use-agent-profile.js';
-import { createBridgeRouteDataProvider } from '../model-config/bridge-route-provider.js';
-import { useRelayRoute } from '../model-config/use-relay-route.js';
-import {
-  useRouteModelPickerData,
-  type RouteModelPickerDataProvider,
-  type RouteModelPickerSelection,
-} from '@nimiplatform/nimi-kit/features/model-picker/headless';
-import { CompactRouteModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/ui';
 
 export function ChatPage() {
   const { t } = useTranslation();
@@ -95,9 +87,7 @@ export function ChatPage() {
     <div ref={chatLayoutRef} className="flex flex-col h-full">
       {/* Header — model picker (primary) + agent pill + settings */}
       <div className="flex items-center justify-between px-5 py-2.5">
-        <div className="flex items-center gap-2 min-w-0">
-          <ChatModelPicker />
-        </div>
+        <div className="flex items-center gap-2 min-w-0" />
         <div className="flex items-center gap-1">
           <AgentPill agent={currentAgent} />
           <button
@@ -296,141 +286,6 @@ function AgentAvatar({ agent, size }: { agent: Agent; size: number }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// ChatModelPicker — inline compact model picker using kit component
-// ---------------------------------------------------------------------------
-
-/**
- * Extracts a clean display name from a model ID.
- * "local/local-import/Qwen3-4B-Q4_K_M" -> "Qwen3-4B-Q4_K_M"
- */
-function formatModelDisplayName(raw: string): string {
-  const parts = raw.split('/');
-  return parts.length > 1 ? parts[parts.length - 1]! : raw;
-}
-
-function ChatModelPicker() {
-  const { t } = useTranslation();
-  const {
-    binding,
-    snapshot,
-    display,
-    options,
-    loading: routeLoading,
-  } = useRelayRoute();
-
-  const provider = useMemo<RouteModelPickerDataProvider>(() => createBridgeRouteDataProvider(), []);
-
-  const initialSelection = useMemo<RouteModelPickerSelection>(() => {
-    const source = display?.source ?? binding?.source ?? 'local';
-    if (source === 'cloud') {
-      return {
-        source,
-        connectorId: display?.connectorId ?? binding?.connectorId ?? snapshot?.connectorId ?? '',
-        model: display?.model ?? binding?.model ?? '',
-      };
-    }
-
-    const selectedLocalModelId = snapshot?.localModelId
-      ?? binding?.localModelId
-      ?? options?.local.models.find((item) => (
-        item.modelId === display?.model || item.localModelId === display?.model
-      ))?.localModelId
-      ?? '';
-
-    return {
-      source,
-      connectorId: '',
-      model: selectedLocalModelId,
-    };
-  }, [binding, display, options?.local.models, snapshot]);
-
-  const handleSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
-    const bridge = getBridge();
-    if (selection.source === 'local') {
-      void bridge.route.setBinding({
-        source: 'local',
-        model: selection.model || undefined,
-        localModelId: selection.model || undefined,
-      });
-      return;
-    }
-    void bridge.route.setBinding({
-      source: 'cloud',
-      connectorId: selection.connectorId || undefined,
-      model: selection.model || undefined,
-    });
-  }, []);
-
-  const labels = useMemo(() => ({
-    source: t('route.source', 'Source'),
-    local: t('route.local', 'Local'),
-    cloud: t('route.cloud', 'Cloud'),
-    connector: t('route.connector', 'Connector'),
-    model: t('route.model', 'Model'),
-    active: t('route.active', 'Active'),
-    reset: t('route.reset', 'Reset'),
-    loading: t('route.loading', 'Loading models...'),
-    unavailable: t('route.unavailable', 'Route options unavailable'),
-    localUnavailable: t('route.localLoadFailed', 'Local model discovery failed. Runtime may be unavailable.'),
-    noLocalModels: t('route.noLocalModels', 'No local models available. Install a model via Desktop.'),
-    selectConnector: t('route.selectConnector', 'Select a connector to see available models.'),
-    noCloudModels: t('route.noCloudModels', 'No models available for this connector.'),
-    savedRouteUnavailable: t('route.fallbackWarning', 'Saved route is no longer available.'),
-  }), [t]);
-
-  const {
-    selection,
-    connectors,
-    loading,
-    pickerState,
-    changeSource,
-    changeConnector,
-  } = useRouteModelPickerData({
-    provider,
-    capability: 'text.generate',
-    initialSelection,
-    onSelectionChange: handleSelectionChange,
-    labels,
-  });
-
-  if (routeLoading || loading) {
-    return null;
-  }
-
-  const hasConnectors = connectors.length > 0;
-  const connectorOptions = connectors.map((c) => ({
-    value: c.connectorId,
-    label: `${c.label} (${c.provider})`,
-  }));
-
-  // Format the selected model name for the trigger
-  const selectedTitle = pickerState.selectedModel
-    ? formatModelDisplayName(pickerState.adapter.getTitle(pickerState.selectedModel))
-    : undefined;
-
-  return (
-    <CompactRouteModelPicker
-      state={pickerState}
-      triggerLabel={selectedTitle}
-      sourceValue={selection.source}
-      sourceOptions={[
-        { value: 'local' as const, label: labels.local },
-        { value: 'cloud' as const, label: labels.cloud, disabled: !hasConnectors },
-      ]}
-      onSourceChange={changeSource}
-      showConnector={selection.source === 'cloud' && hasConnectors}
-      connectorValue={selection.connectorId}
-      connectorOptions={connectorOptions}
-      onConnectorChange={changeConnector}
-      loading={loading}
-      loadingMessage={labels.loading}
-      emptyMessage={selection.source === 'local' ? labels.noLocalModels : labels.noCloudModels}
-      side="bottom"
-      align="start"
-    />
-  );
-}
 
 // RL-BOOT-004: Runtime unavailable with retry affordance
 function RuntimeUnavailable({ onRetry, feature }: { onRetry: () => void; feature: string }) {
