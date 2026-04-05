@@ -9,6 +9,21 @@ commands:
     description: Get realm and runtime execution defaults
     source_rule: D-IPC-001
 
+  - command: auth_session_load
+    module: auth-session
+    description: Load the shared encrypted desktop auth session from ~/.nimi/auth/session.v1.json
+    source_rule: D-IPC-001
+
+  - command: auth_session_save
+    module: auth-session
+    description: Atomically overwrite the shared encrypted desktop auth session
+    source_rule: D-IPC-001
+
+  - command: auth_session_clear
+    module: auth-session
+    description: Delete the shared desktop auth session file
+    source_rule: D-IPC-001
+
   - command: desktop_release_info_get
     module: desktop-release
     description: Read validated desktop release metadata for the packaged shell + bundled runtime unit

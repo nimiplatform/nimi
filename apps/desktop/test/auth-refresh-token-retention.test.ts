@@ -39,6 +39,10 @@ const loginPageSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/login-page.tsx'),
   'utf8',
 );
+const authStateWatcherSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/auth-state-watcher.ts'),
+  'utf8',
+);
 
 test('setAuthSession keeps existing refresh token when refreshToken is undefined', () => {
   let state: Record<string, unknown> = {
@@ -79,11 +83,11 @@ test('auth menu storage sync forwards persisted refresh token when available', (
   assert.match(authFlowSource, /void adapter\.applyToken\(''\)/);
 });
 
-test('web auth session storage persists session metadata with access token', () => {
-  assert.match(authSessionStorageSource, /accessToken: z\.string\(\)\.optional\(\)/);
+test('web auth session storage persists metadata only and never restores raw access tokens', () => {
+  assert.doesNotMatch(authSessionStorageSource, /accessToken: z\.string\(\)\.optional\(\)/);
   assert.match(
     authSessionStorageSource,
-    /export function loadPersistedAccessToken\(\): string \{\s*const session = loadPersistedAuthSession\(\);\s*return String\(session\?\.accessToken \|\| ''\)\.trim\(\);\s*\}/s,
+    /export function loadPersistedAccessToken\(\): string \{\s*return '';\s*\}/s,
   );
 
   const repoRoot = path.join(import.meta.dirname, '../../..');
@@ -116,20 +120,24 @@ test('web auth session storage persists session metadata with access token', () 
     encoding: 'utf8',
   });
   const parsed = JSON.parse(output) as {
-    session?: { accessToken?: string; user?: { id?: string } };
+    session?: { user?: { id?: string }; expiresAt?: string };
     token?: string;
     raw?: string;
   };
 
-  assert.equal(parsed.token, 'access-123');
-  assert.equal(parsed.session?.accessToken, 'access-123');
+  assert.equal(parsed.token, '');
   assert.equal(parsed.session?.user?.id, 'u1');
-  assert.match(String(parsed.raw || ''), /"accessToken"/);
+  assert.equal(typeof parsed.session?.expiresAt, 'string');
+  assert.doesNotMatch(String(parsed.raw || ''), /"accessToken"/);
+  assert.doesNotMatch(String(parsed.raw || ''), /"refreshToken"/);
   assert.match(String(parsed.raw || ''), /"user":\{"id":"u1"\}/);
 });
 
 test('desktop callback auth flow upgrades main view after async session restore', () => {
-  assert.match(authFlowSource, /const hasDesktopCallbackSession = authStatus === 'authenticated' \|\| Boolean\(desktopCallbackToken\);/);
+  assert.match(
+    authFlowSource,
+    /const hasDesktopCallbackSession =\s*authStatus === 'authenticated'\s*\|\|\s*Boolean\(desktopCallbackToken\)\s*\|\|\s*Boolean\(desktopCallbackUser\);/s,
+  );
   assert.match(
     authFlowSource,
     /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*\n\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\n\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession\]\);/s,
@@ -144,8 +152,56 @@ test('login page detects desktop callback from shared hash-aware helper', () => 
 test('desktop authorization preserves refresh token by leaving it undefined in auth store update', () => {
   assert.match(
     authMenuHandlersExtSource,
-    /setAuthSession\(\s*normalizedUser,\s*accessToken,\s*undefined,\s*\)/,
+    /setAuthSession\(\s*normalizedUser,\s*accessToken,\s*refreshToken \|\| undefined,\s*\)/,
   );
+});
+
+test('desktop authorization can restore a same-origin session before submitting desktop callback', () => {
+  assert.match(authMenuHandlersExtSource, /const restored = await adapter\.restoreSession\?\.\(\);/);
+  assert.match(authMenuHandlersExtSource, /throw new Error\(AUTH_COPY\.desktopSessionMissing\);/);
+  assert.match(authMenuHandlersExtSource, /await adapter\.applyToken\(accessToken, refreshToken \|\| undefined\);/);
+  assert.match(
+    authMenuHandlersExtSource,
+    /await adapter\.persistSession\?\.\(\{\s*accessToken,\s*refreshToken,\s*user: normalizedUser \?\? desktopCtx\.desktopCallbackUser,\s*\}\);/s,
+  );
+});
+
+test('desktop-browser auth persists the restored session immediately after browser authorization', () => {
+  const shellAuthPageSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../../../kit/auth/src/components/shell-auth-page.tsx'),
+    'utf8',
+  );
+  assert.match(
+    shellAuthPageSource,
+    /await adapter\.persistSession\?\.\(\{\s*accessToken: result\.accessToken,\s*user,\s*\}\);/s,
+  );
+});
+
+test('auth state watcher persists shared desktop session after desktop auth becomes authenticated', () => {
+  assert.match(authStateWatcherSource, /import \{ persistSharedDesktopSession \} from '@renderer\/features\/auth\/shared-auth-session';/);
+  assert.match(
+    authStateWatcherSource,
+    /void persistSharedDesktopSession\(\{\s*realmBaseUrl,\s*accessToken: auth\.token,\s*refreshToken: auth\.refreshToken,\s*user: state\.auth\.user,\s*\}\)/s,
+  );
+  assert.match(authStateWatcherSource, /message: 'phase:auth-persist:done'/);
+  assert.match(authStateWatcherSource, /message: 'phase:auth-persist:failed'/);
+});
+
+test('web auth adapter stores browser metadata instead of calling shared desktop session persistence in web mode', () => {
+  const desktopAuthAdapterSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
+    'utf8',
+  );
+  assert.match(
+    desktopAuthAdapterSource,
+    /if \(isWebShellMode\(\)\) \{\s*persistAuthSession\(\{\s*accessToken,\s*refreshToken,\s*user,\s*\}\);\s*return;\s*\}/s,
+  );
+  assert.match(
+    desktopAuthAdapterSource,
+    /if \(isWebShellMode\(\)\) \{\s*clearPersistedAccessToken\(\);\s*return;\s*\}/s,
+  );
+  assert.match(desktopAuthAdapterSource, /restoreSession: async \(\) => \{/);
+  assert.match(desktopAuthAdapterSource, /realm\.services\.AuthService\.refreshToken\(\)/);
 });
 
 test('auth view types include email_set_password', () => {

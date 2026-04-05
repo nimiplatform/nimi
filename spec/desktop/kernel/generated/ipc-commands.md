@@ -5,6 +5,9 @@
 | Command | Module | Description | Source Rule |
 |---|---|---|---|
 | `runtime_defaults` | `runtime-defaults` | Get realm and runtime execution defaults | `D-IPC-001` |
+| `auth_session_load` | `auth-session` | Load the shared encrypted desktop auth session from ~/.nimi/auth/session.v1.json | `D-IPC-001` |
+| `auth_session_save` | `auth-session` | Atomically overwrite the shared encrypted desktop auth session | `D-IPC-001` |
+| `auth_session_clear` | `auth-session` | Delete the shared desktop auth session file | `D-IPC-001` |
 | `desktop_release_info_get` | `desktop-release` | Read validated desktop release metadata for the packaged shell + bundled runtime unit | `D-IPC-015` |
 | `desktop_update_state_get` | `desktop-update` | Read current desktop updater state machine snapshot | `D-IPC-015` |
 | `desktop_update_check` | `desktop-update` | Check GitHub release metadata for a newer packaged desktop update | `D-IPC-015` |

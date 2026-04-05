@@ -2,6 +2,7 @@ import {
   Suspense,
   lazy,
   useMemo,
+  useState,
   type MouseEvent,
 } from 'react';
 import { desktopBridge } from '@renderer/bridge';
@@ -15,7 +16,7 @@ import { desktopOAuthBridge } from './desktop-auth-adapter.js';
 import { createDesktopAuthAdapter } from './desktop-auth-adapter.js';
 import { toAuthUserRecord } from './auth-session-utils.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import type { StatusBanner } from '@renderer/app-shell/providers/store-types.js';
+import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 export type { WebAuthMenuMode } from '@nimiplatform/nimi-kit/auth';
 
@@ -33,20 +34,31 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const authToken = useAppStore((state) => state.auth.token);
   const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
-  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const [authFeedback, setAuthFeedback] = useState<InlineFeedbackState | null>(null);
   const normalizedAuthUser = toAuthUserRecord(authUser);
   const handleStatusBanner = (banner: { kind: string; message: string } | null) => {
     if (!banner) {
-      setStatusBanner(null);
+      setAuthFeedback(null);
       return;
     }
-    setStatusBanner(banner as StatusBanner);
+    if (banner.kind === 'error' || banner.kind === 'warning') {
+      setAuthFeedback(banner as InlineFeedbackState);
+      return;
+    }
+    setAuthFeedback(null);
   };
-  const footer = flags.enableModUi && mode === 'embedded' ? (
-    <Suspense fallback={null}>
-      <SlotHost slot="auth.login.form.footer" base={null} context={context} />
-    </Suspense>
-  ) : null;
+  const footer = (
+    <div className="space-y-3">
+      {authFeedback ? (
+        <InlineFeedback feedback={authFeedback} onDismiss={() => setAuthFeedback(null)} />
+      ) : null}
+      {flags.enableModUi && mode === 'embedded' ? (
+        <Suspense fallback={null}>
+          <SlotHost slot="auth.login.form.footer" base={null} context={context} />
+        </Suspense>
+      ) : null}
+    </div>
+  );
 
   const handleRootMouseDown = (event: MouseEvent<HTMLElement>) => {
     if (mode !== 'desktop-browser') {

@@ -151,6 +151,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         })
         .invoke_handler(tauri::generate_handler![
             super::defaults_and_commands::runtime_defaults,
+            crate::auth_session_commands::auth_session_load,
+            crate::auth_session_commands::auth_session_save,
+            crate::auth_session_commands::auth_session_clear,
             desktop_release::desktop_release_info_get,
             desktop_updates::desktop_update_state_get,
             desktop_updates::desktop_update_check,
@@ -236,6 +239,10 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_get_draft,
             chat_agent_store::chat_agent_put_draft,
             chat_agent_store::chat_agent_delete_draft,
+            chat_agent_store::chat_agent_load_turn_context,
+            chat_agent_store::chat_agent_commit_turn_result,
+            chat_agent_store::chat_agent_cancel_turn,
+            chat_agent_store::chat_agent_rebuild_projection,
             external_agent_gateway::external_agent_issue_token,
             external_agent_gateway::external_agent_revoke_token,
             external_agent_gateway::external_agent_list_tokens,

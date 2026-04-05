@@ -13,6 +13,17 @@ const mockRealm = {
 
 import { bootstrapAuthSession } from './drift-bootstrap-auth.js';
 
+function makeBootstrapInput(
+  overrides: Partial<Omit<Parameters<typeof bootstrapAuthSession>[0], 'realm' | 'accessToken'>> = {},
+) {
+  return {
+    source: 'env' as const,
+    realmBaseUrl: 'https://realm.example.test',
+    clearPersistedSession: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
 describe('bootstrapAuthSession', () => {
   beforeEach(() => {
     mockGetMe.mockReset();
@@ -36,6 +47,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'valid-token',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -59,6 +71,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'token-2',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -72,6 +85,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: '',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -86,6 +100,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'bad-token',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -99,6 +114,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'valid-token',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -112,6 +128,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'valid-token',
+      ...makeBootstrapInput(),
     });
 
     const state = useAppStore.getState();
@@ -125,6 +142,7 @@ describe('bootstrapAuthSession', () => {
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'token',
+      ...makeBootstrapInput(),
     });
 
     expect(mockGetMe).toHaveBeenCalledWith();

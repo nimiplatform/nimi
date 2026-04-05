@@ -27,6 +27,17 @@ export type AuthPlatformAdapter = {
 
   // Token management
   applyToken: (accessToken: string, refreshToken?: string) => Promise<void>;
+  persistSession?: (input: {
+    accessToken: string;
+    refreshToken?: string | null;
+    user?: Record<string, unknown> | null;
+  }) => Promise<void>;
+  clearPersistedSession?: () => Promise<void>;
+  restoreSession?: () => Promise<{
+    accessToken: string;
+    refreshToken?: string | null;
+    user?: Record<string, unknown> | null;
+  }>;
 
   // OAuth bridge (reuses shell-core TauriOAuthBridge)
   oauthBridge: TauriOAuthBridge;

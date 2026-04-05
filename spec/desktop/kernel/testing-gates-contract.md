@@ -103,7 +103,7 @@ Desktop baseline design consistency 必须有独立 hard gate：
 - `chat`、`explore`、`contacts` 的试点 baseline surface 必须阻止 raw brand hex、token bypass、未登记 arbitrary radius/z、以及未走 shared overlay shell 的本地 dialog/popover family。
 - baseline visual hard gate 只针对 `renderer-design-surfaces.yaml` 中声明为 `baseline` 的试点 surface；secondary/admin 与 exception surface 不在首批 raw token/arbitrary-value hard gate 范围内。
 - 同一个 hard gate 还必须验证 design registry 完整性：已登记的 governed surface/overlay 必须满足 module 可解析、required testability 可验证、overlay consumer 走 shared overlay primitive。
-- 同一个 hard gate 还必须验证 governed sidebar family 完整性：`renderer-design-sidebars.yaml` 中登记的 `chat`、`contacts`、`runtime-config`、`settings` sidebar 必须导入 shared sidebar primitive，并满足 search/primaryAction/sections/resizeHandle 与 item kind 声明。
+- 同一个 hard gate 还必须验证 governed sidebar family 完整性：`renderer-design-sidebars.yaml` 中登记的 `contacts`、`runtime-config`、`settings` sidebar 必须导入 shared sidebar primitive，并满足 search/primaryAction/sections/resizeHandle 与 item kind 声明。
 - 任何 hard gate 例外必须进入 `renderer-design-allowlists.yaml`，不得只靠 reviewer 口头记忆放行。
 
 执行命令：
@@ -115,7 +115,7 @@ Desktop baseline design consistency 必须有独立 hard gate：
 Desktop design primitive adoption 以 advisory/soft gate 方式跟踪：
 
 - 同一个 `check:desktop-design-contract` 命令必须输出 remaining local `Button` / `IconButton` 族与 baseline / governed secondary file adoption 覆盖率。
-- `chat`、`contacts`、`runtime-config`、`settings` 的 sidebar family 不再停留在 adoption advisory；这四个内部左侧栏必须直接满足 `D-GATE-090` 的 hard compliance。
+- `contacts`、`runtime-config`、`settings` 的 sidebar family 不再停留在 adoption advisory；这三个内部左侧栏必须直接满足 `D-GATE-090` 的 hard compliance。
 - Phase 1 允许 adoption debt 继续存在，但必须可观测、可计数，并以 baseline pilot 的完成情况决定是否升级为 hard gate。
 - adoption gate 不得削弱 `D-GATE-090` 的 hard gate 条件。
 

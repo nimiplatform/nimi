@@ -20,6 +20,7 @@ import {
 import { getSystemResourceSnapshot } from './runtime-bridge/system-resources';
 import { proxyHttp } from './runtime-bridge/http';
 import { getRuntimeDefaults } from './runtime-bridge/runtime-defaults';
+import { clearAuthSession, loadAuthSession, saveAuthSession } from './runtime-bridge/auth-session';
 import { oauthListenForCode, oauthTokenExchange } from './runtime-bridge/oauth';
 import {
   checkModUpdates,
@@ -176,6 +177,9 @@ export {
   setRuntimeBridgeConfig,
   proxyHttp,
   getRuntimeDefaults,
+  loadAuthSession,
+  saveAuthSession,
+  clearAuthSession,
   oauthListenForCode,
   oauthTokenExchange,
   listRuntimeLocalModManifests,

@@ -4,6 +4,8 @@ use serde::Serialize;
 
 mod defaults;
 mod desktop_paths;
+#[path = "../../../shared-tauri/auth_session_commands.rs"]
+mod auth_session_commands;
 mod runtime_bridge;
 
 #[derive(Debug, Serialize)]
@@ -28,6 +30,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             defaults::runtime_defaults,
+            auth_session_commands::auth_session_load,
+            auth_session_commands::auth_session_save,
+            auth_session_commands::auth_session_clear,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,

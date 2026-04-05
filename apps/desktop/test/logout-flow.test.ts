@@ -27,7 +27,7 @@ test('logout flow clears local state and emits success banner after successful l
       logout: async () => {
         effects.push('server-logout');
       },
-      clearPersistedAccessToken: () => {
+      clearPersistedSession: () => {
         effects.push('clear-token');
       },
       clearAllStreams: () => {
@@ -71,7 +71,7 @@ test('logout flow distinguishes transient server logout failures while still cle
         effects.push('server-logout');
         throw new Error('network timeout');
       },
-      clearPersistedAccessToken: () => {
+      clearPersistedSession: () => {
         effects.push('clear-token');
       },
       clearAllStreams: () => {

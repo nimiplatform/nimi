@@ -192,7 +192,7 @@ test('loadPersistedAuthSession clears expired web auth session metadata from loc
   }
 });
 
-test('persistAuthSession stores session expiry metadata and access token', () => {
+test('persistAuthSession stores session expiry metadata without raw access token', () => {
   const restoreWindow = installWindowForTest();
   const restoreEnv = installImportMetaEnvForTest({
     VITE_NIMI_SHELL_MODE: 'web',
@@ -208,12 +208,11 @@ test('persistAuthSession stores session expiry metadata and access token', () =>
       user: { id: 'u1' },
     });
     const stored = JSON.parse(String(globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY) || '{}')) as {
-      accessToken?: string;
       expiresAt?: string;
       user?: { id?: string };
     };
     assert.equal(typeof stored.expiresAt, 'string');
-    assert.equal(stored.accessToken, token);
+    assert.equal('accessToken' in stored, false);
     assert.equal(stored.user?.id, 'u1');
   } finally {
     restoreEnv();

@@ -5,6 +5,17 @@ vi.mock('@nimiplatform/sdk', () => ({}));
 const { useAppStore } = await import('@renderer/app-shell/providers/app-store.js');
 const { bootstrapAuthSession } = await import('./forge-bootstrap-auth.js');
 
+function makeBootstrapInput(
+  overrides: Partial<Omit<Parameters<typeof bootstrapAuthSession>[0], 'realm' | 'accessToken'>> = {},
+) {
+  return {
+    source: 'env' as const,
+    realmBaseUrl: 'https://realm.example.test',
+    clearPersistedSession: vi.fn(async () => {}),
+    ...overrides,
+  };
+}
+
 function makeMockRealm(response: Record<string, unknown> | Error) {
   return {
     services: {
@@ -28,7 +39,7 @@ describe('bootstrapAuthSession', () => {
 
   it('clears session when no accessToken provided', async () => {
     const realm = makeMockRealm({ user: { id: 'u1' } });
-    await bootstrapAuthSession({ realm, accessToken: '' });
+    await bootstrapAuthSession({ realm, accessToken: '', ...makeBootstrapInput() });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
     expect(realm.services.MeService.getMe).not.toHaveBeenCalled();
   });
@@ -44,7 +55,7 @@ describe('bootstrapAuthSession', () => {
       avatarUrl: 'https://img.example.com/avatar.png',
     });
 
-    await bootstrapAuthSession({ realm, accessToken: 'access-token-xyz' });
+    await bootstrapAuthSession({ realm, accessToken: 'access-token-xyz', ...makeBootstrapInput() });
 
     expect(realm.services.MeService.getMe).toHaveBeenCalledWith();
 
@@ -59,26 +70,26 @@ describe('bootstrapAuthSession', () => {
 
   it('clears session when /api/auth/me returns no user', async () => {
     const realm = makeMockRealm(null as unknown as Record<string, unknown>);
-    await bootstrapAuthSession({ realm, accessToken: 'token' });
+    await bootstrapAuthSession({ realm, accessToken: 'token', ...makeBootstrapInput() });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
   });
 
   it('clears session when /api/auth/me returns user without id', async () => {
     const realm = makeMockRealm({ displayName: 'No ID' });
-    await bootstrapAuthSession({ realm, accessToken: 'token' });
+    await bootstrapAuthSession({ realm, accessToken: 'token', ...makeBootstrapInput() });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
   });
 
   it('clears session on request error', async () => {
     const realm = makeMockRealm(new Error('Network error'));
-    await bootstrapAuthSession({ realm, accessToken: 'token' });
+    await bootstrapAuthSession({ realm, accessToken: 'token', ...makeBootstrapInput() });
     expect(useAppStore.getState().auth.status).toBe('unauthenticated');
   });
 
   it('handles missing optional fields gracefully', async () => {
     const realm = makeMockRealm({ id: 'u1', name: 'Fallback Name' });
 
-    await bootstrapAuthSession({ realm, accessToken: 'token' });
+    await bootstrapAuthSession({ realm, accessToken: 'token', ...makeBootstrapInput() });
 
     const state = useAppStore.getState();
     expect(state.auth.user?.displayName).toBe('Fallback Name');

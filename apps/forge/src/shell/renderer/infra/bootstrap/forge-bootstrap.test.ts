@@ -93,10 +93,15 @@ describe('runForgeBootstrap', () => {
     );
 
     // Step 3: Auth session bootstrapped
-    expect(mockBootstrapAuthSession).toHaveBeenCalledWith({
-      realm: mockRealm,
-      accessToken: defaults.realm.accessToken,
-    });
+    expect(mockBootstrapAuthSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        realm: mockRealm,
+        accessToken: defaults.realm.accessToken,
+        refreshToken: '',
+        source: 'env',
+        realmBaseUrl: defaults.realm.realmBaseUrl,
+      }),
+    );
 
     // Step 4: Runtime readiness checked
     expect(mockRuntime.ready).toHaveBeenCalledOnce();
@@ -174,8 +179,8 @@ describe('runForgeBootstrap', () => {
 
     await runForgeBootstrap();
 
-    // Initially returns store token (empty)
-    expect(capturedProvider?.()).toBe('');
+    // During bootstrapping it exposes the resolved startup session token.
+    expect(capturedProvider?.()).toBe(defaults.realm.accessToken);
 
     // After setting auth session, returns updated token
     useAppStore.getState().setAuthSession(

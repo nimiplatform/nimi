@@ -4,6 +4,8 @@ use serde::Serialize;
 
 mod defaults;
 mod desktop_paths;
+#[path = "../../../shared-tauri/auth_session_commands.rs"]
+mod auth_session_commands;
 #[path = "../../../shared-tauri/oauth_commands.rs"]
 mod oauth_commands;
 mod runtime_bridge;
@@ -34,6 +36,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             defaults::runtime_defaults,
+            auth_session_commands::auth_session_load,
+            auth_session_commands::auth_session_save,
+            auth_session_commands::auth_session_clear,
             oauth_commands::open_external_url,
             oauth_commands::oauth_token_exchange,
             oauth_commands::oauth_listen_for_code,

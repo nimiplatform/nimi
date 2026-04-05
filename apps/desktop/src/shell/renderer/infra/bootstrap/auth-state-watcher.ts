@@ -2,6 +2,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { AppStoreState } from '@renderer/app-shell/providers/app-store';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { persistSharedDesktopSession } from '@renderer/features/auth/shared-auth-session';
 
 type AuthSnapshot = { status: string; token: string; refreshToken: string };
 
@@ -38,6 +39,44 @@ export function startAuthStateWatcher() {
       if (auth.token !== prev.token) {
         dataSync.scheduleProactiveRefresh(auth.token);
       }
+      const realmBaseUrl = String(state.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
+      if (!realmBaseUrl) {
+        logRendererEvent({
+          level: 'warn',
+          area: 'auth-state-watcher',
+          message: 'phase:auth-persist:skipped',
+          details: {
+            reason: 'missing-realm-base-url',
+          },
+        });
+        return;
+      }
+      void persistSharedDesktopSession({
+        realmBaseUrl,
+        accessToken: auth.token,
+        refreshToken: auth.refreshToken,
+        user: state.auth.user,
+      }).then(() => {
+        logRendererEvent({
+          level: 'info',
+          area: 'auth-state-watcher',
+          message: 'phase:auth-persist:done',
+          details: {
+            hasRefreshToken: Boolean(auth.refreshToken),
+            hasUser: Boolean(state.auth.user),
+          },
+        });
+      }).catch((error) => {
+        logRendererEvent({
+          level: 'warn',
+          area: 'auth-state-watcher',
+          message: 'phase:auth-persist:failed',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+            hasRefreshToken: Boolean(auth.refreshToken),
+          },
+        });
+      });
       // Contacts prewarm is handled by runtime-bootstrap-auth + React Query.
       // Duplicate prewarm call removed to avoid startup request storm.
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {

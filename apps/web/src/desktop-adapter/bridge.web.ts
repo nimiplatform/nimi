@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import { logRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
+import type { SharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '@renderer/bridge/runtime-bridge/menu-bar';
 import { proxyHttp } from '@renderer/bridge/runtime-bridge/http';
 import {
@@ -112,6 +113,18 @@ export {
 
 function unsupportedDesktopRuntime(message: string): never {
   throw new Error(message);
+}
+
+export async function loadAuthSession(): Promise<SharedDesktopAuthSession | null> {
+  return null;
+}
+
+export async function saveAuthSession(_session: SharedDesktopAuthSession): Promise<void> {
+  unsupportedDesktopRuntime('Shared desktop auth session persistence is only available in desktop runtime');
+}
+
+export async function clearAuthSession(): Promise<void> {
+  // Web shell does not persist the shared desktop auth session.
 }
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
@@ -331,10 +344,13 @@ export const desktopBridge = {
   restartRuntimeBridge,
   setRuntimeBridgeConfig,
   getRuntimeDefaults,
+  loadAuthSession,
   proxyHttp,
   openExternalUrl,
   oauthTokenExchange,
   oauthListenForCode,
+  saveAuthSession,
+  clearAuthSession,
   confirmPrivateSync,
   focusMainWindow,
   syncMenuBarRuntimeHealth,

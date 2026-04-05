@@ -1,7 +1,15 @@
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
-import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
-import { shijiTauriOAuthBridge } from '@renderer/bridge/oauth.js';
+import {
+  persistSharedDesktopAuthSession,
+  type AuthPlatformAdapter,
+} from '@nimiplatform/nimi-kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  clearAuthSession as clearPersistedAuthSession,
+  saveAuthSession,
+  shijiTauriOAuthBridge,
+} from '@renderer/bridge';
+import { useAppStore } from '@renderer/app-shell/app-store.js';
 
 const SHIJI_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in ShiJi desktop-browser mode.';
@@ -65,6 +73,20 @@ export function createShiJiDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',
       });
+    },
+    persistSession: async ({ accessToken, refreshToken, user }) => {
+      const realmBaseUrl = String(useAppStore.getState().runtimeDefaults?.realm?.realmBaseUrl || '').trim();
+      await persistSharedDesktopAuthSession({
+        realmBaseUrl,
+        accessToken,
+        refreshToken,
+        user,
+        saveSession: (session) => saveAuthSession(session),
+        clearSession: () => clearPersistedAuthSession(),
+      });
+    },
+    clearPersistedSession: async () => {
+      await clearPersistedAuthSession();
     },
     oauthBridge: shijiTauriOAuthBridge,
     syncAfterLogin: async () => {},

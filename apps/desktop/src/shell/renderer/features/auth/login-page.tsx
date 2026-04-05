@@ -31,8 +31,8 @@ export function LoginPage() {
     return <Navigate to="/" replace />;
   }
 
-  const onReturnToChat = () => {
-    setActiveTab('chat');
+  const navigateToTab = (tab: string) => {
+    setActiveTab(tab as Parameters<typeof setActiveTab>[0]);
     if ((location.state as { returnToChat?: boolean } | null)?.returnToChat && window.history.length > 1) {
       navigate(-1);
       return;
@@ -40,21 +40,38 @@ export function LoginPage() {
     navigate('/', { replace: true });
   };
 
+  const navButtonClass = 'pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm backdrop-blur transition hover:bg-white hover:text-[#1f2937]';
+
   return (
     <div className="relative min-h-screen">
       {flags.mode === 'desktop' ? (
-        <div className="pointer-events-none absolute right-4 top-4 z-20">
+        <div className="pointer-events-none absolute right-4 top-4 z-20 flex items-center gap-2">
+          {/* Chat icon */}
           <button
             type="button"
             data-testid={E2E_IDS.loginBackButton}
-            onClick={onReturnToChat}
-            className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm backdrop-blur transition hover:bg-white hover:text-[#1f2937]"
-            aria-label={t('Auth.backToChat', { defaultValue: 'Back to Chat' })}
-            title={t('Auth.backToChat', { defaultValue: 'Back to Chat' })}
+            onClick={() => navigateToTab('chat')}
+            className={navButtonClass}
+            aria-label={t('Navigation.chat', { defaultValue: 'Chat' })}
+            title={t('Navigation.chat', { defaultValue: 'Chat' })}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </button>
+          {/* Runtime icon */}
+          <button
+            type="button"
+            onClick={() => navigateToTab('runtime')}
+            className={navButtonClass}
+            aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
+            title={t('Navigation.runtime', { defaultValue: 'Runtime' })}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+              <line x1="6" y1="6" x2="6.01" y2="6" />
+              <line x1="6" y1="18" x2="6.01" y2="18" />
             </svg>
           </button>
         </div>

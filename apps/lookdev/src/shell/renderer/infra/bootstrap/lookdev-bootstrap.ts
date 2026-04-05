@@ -1,7 +1,16 @@
 import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
+import {
+  clearAuthSession as clearPersistedAuthSession,
+  loadAuthSession,
+  saveAuthSession,
+} from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
+import {
+  persistSharedDesktopAuthSession,
+  resolveDesktopBootstrapAuthSession,
+} from '@nimiplatform/nimi-kit/auth';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './lookdev-bootstrap-auth.js';
 
@@ -34,33 +43,83 @@ export async function runLookdevBootstrap(): Promise<void> {
     // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
-    const initialAccessToken = runtimeDefaults.realm.accessToken || '';
+    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      envAccessToken: runtimeDefaults.realm.accessToken,
+      loadPersistedSession: () => loadAuthSession(),
+    });
+    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
+      await clearPersistedAuthSession();
+    }
+    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
+    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
+    const resolveCurrentAccessToken = () => {
+      const authToken = String(useAppStore.getState().auth.token || '').trim();
+      if (authToken) {
+        return authToken;
+      }
+      return useAppStore.getState().auth.status === 'bootstrapping'
+        ? bootstrapAccessToken
+        : '';
+    };
+    const resolveCurrentRefreshToken = () => {
+      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
+      if (refreshToken) {
+        return refreshToken;
+      }
+      return useAppStore.getState().auth.status === 'bootstrapping'
+        ? bootstrapRefreshToken
+        : '';
+    };
+    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
+      void persistSharedDesktopAuthSession({
+        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+        accessToken,
+        refreshToken,
+        user,
+        saveSession: (session) => saveAuthSession(session),
+        clearSession: () => clearPersistedAuthSession(),
+      });
+    };
+    const clearDesktopSession = () => {
+      bootstrapAccessToken = '';
+      bootstrapRefreshToken = '';
+      void clearPersistedAuthSession();
+    };
 
     // Step 3: Platform Client
     const { runtime, realm } = await createPlatformClient({
       appId: 'nimi.lookdev',
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: initialAccessToken,
-      accessTokenProvider: () => useAppStore.getState().auth.token ?? '',
+      accessToken: bootstrapAccessToken,
+      accessTokenProvider: resolveCurrentAccessToken,
+      refreshTokenProvider: resolveCurrentRefreshToken,
       runtimeTransport: {
         type: 'tauri-ipc',
         commandNamespace: 'runtime_bridge',
         eventNamespace: 'runtime_bridge',
       },
       sessionStore: {
-        getAccessToken: () => useAppStore.getState().auth.token,
-        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getAccessToken: resolveCurrentAccessToken,
+        getRefreshToken: resolveCurrentRefreshToken,
         getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
         getCurrentUser: () => useAppStore.getState().auth.user,
         setAuthSession: (user, accessToken, refreshToken) => {
-          const normalizedUser = toLookdevAuthUser(user as Record<string, unknown> | null);
+          bootstrapAccessToken = String(accessToken || '').trim();
+          if (refreshToken !== undefined) {
+            bootstrapRefreshToken = String(refreshToken || '').trim();
+          }
+          const normalizedUser = toLookdevAuthUser(user as Record<string, unknown> | null)
+            ?? useAppStore.getState().auth.user;
           if (!normalizedUser) {
             return;
           }
           useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
+          persistDesktopSession(normalizedUser, accessToken, refreshToken);
         },
         clearAuthSession: () => {
           useAppStore.getState().clearAuthSession();
+          clearDesktopSession();
         },
       },
     });
@@ -68,7 +127,13 @@ export async function runLookdevBootstrap(): Promise<void> {
     // Step 4: Auth Session
     await bootstrapAuthSession({
       realm,
-      accessToken: initialAccessToken,
+      accessToken: bootstrapAccessToken,
+      refreshToken: bootstrapRefreshToken,
+      source: resolvedBootstrapAuthSession.source,
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      clearPersistedSession: async () => {
+        clearDesktopSession();
+      },
     });
 
     // Step 5: Runtime SDK Readiness

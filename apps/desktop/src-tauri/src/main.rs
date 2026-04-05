@@ -7,6 +7,8 @@ mod desktop_paths;
 mod desktop_release;
 mod desktop_updates;
 mod external_agent_gateway;
+#[path = "../../../shared-tauri/auth_session_commands.rs"]
+mod auth_session_commands;
 mod local_runtime;
 mod main_parts;
 mod menu_bar_shell;

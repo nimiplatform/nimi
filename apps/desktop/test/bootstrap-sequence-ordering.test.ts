@@ -154,8 +154,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'bootstrap must skip runtime config sync when runtime is unavailable',
     );
     assert.ok(
-      bootstrapSource.includes("message: daemonStatus.lastError || 'Runtime unavailable'"),
-      'bootstrap must surface runtime unavailable as a warning banner',
+      bootstrapSource.includes("message: 'phase:runtime-unavailable:strip-only'"),
+      'bootstrap must log runtime unavailable and rely on strip-only UI',
     );
     const successTail = bootstrapSource.slice(bootstrapSource.indexOf('if (runtimeUnavailable) {'));
     assert.ok(
@@ -165,6 +165,11 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(
       successTail.includes('setBootstrapError(null)'),
       'runtime unavailable path must clear bootstrapError instead of failing startup',
+    );
+    assert.doesNotMatch(
+      successTail,
+      /setStatusBanner\(\{\s*kind:\s*'warning'/,
+      'runtime unavailable path must not emit a duplicate warning banner',
     );
   });
 });

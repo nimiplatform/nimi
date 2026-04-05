@@ -1,10 +1,20 @@
 import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { useAppStore } from './app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
+import {
+  persistSharedDesktopAuthSession,
+  resolveDesktopBootstrapAuthSession,
+} from '@nimiplatform/nimi-kit/auth';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
 import { invoke } from '@renderer/bridge/invoke.js';
-import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-daemon.js';
+import {
+  clearAuthSession as clearPersistedAuthSession,
+  getDaemonStatus,
+  loadAuthSession,
+  saveAuthSession,
+  startDaemon,
+} from '@renderer/bridge';
 
 /**
  * runShiJiBootstrap — Phase 0 bootstrap sequence (SJ-SHELL-001)
@@ -32,41 +42,91 @@ export async function runShiJiBootstrap(): Promise<void> {
     if (!store.aiModel && runtimeDefaults.runtime.localProviderModel) {
       store.setAiModel(runtimeDefaults.runtime.localProviderModel);
     }
+    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      envAccessToken: runtimeDefaults.realm.accessToken,
+      loadPersistedSession: () => loadAuthSession(),
+    });
+    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
+      await clearPersistedAuthSession();
+    }
+    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
+    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
+    const resolveCurrentAccessToken = () => {
+      const authToken = String(useAppStore.getState().auth.token || '').trim();
+      if (authToken) {
+        return authToken;
+      }
+      return useAppStore.getState().auth.status === 'bootstrapping'
+        ? bootstrapAccessToken
+        : '';
+    };
+    const resolveCurrentRefreshToken = () => {
+      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
+      if (refreshToken) {
+        return refreshToken;
+      }
+      return useAppStore.getState().auth.status === 'bootstrapping'
+        ? bootstrapRefreshToken
+        : '';
+    };
+    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
+      void persistSharedDesktopAuthSession({
+        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+        accessToken,
+        refreshToken,
+        user,
+        saveSession: (session) => saveAuthSession(session),
+        clearSession: () => clearPersistedAuthSession(),
+      });
+    };
+    const clearDesktopSession = () => {
+      bootstrapAccessToken = '';
+      bootstrapRefreshToken = '';
+      void clearPersistedAuthSession();
+    };
 
     // Step 2: Platform client
     const { runtime, realm } = await createPlatformClient({
       appId: 'nimi.shiji',
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: runtimeDefaults.realm.accessToken,
-      accessTokenProvider: () => useAppStore.getState().auth.token ?? '',
+      accessToken: bootstrapAccessToken,
+      accessTokenProvider: resolveCurrentAccessToken,
+      refreshTokenProvider: resolveCurrentRefreshToken,
       runtimeTransport: {
         type: 'tauri-ipc',
         commandNamespace: 'runtime_bridge',
         eventNamespace: 'runtime_bridge',
       },
       sessionStore: {
-        getAccessToken: () => useAppStore.getState().auth.token,
-        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getAccessToken: resolveCurrentAccessToken,
+        getRefreshToken: resolveCurrentRefreshToken,
         getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
         getCurrentUser: () => useAppStore.getState().auth.user,
         setAuthSession: (user, accessToken, refreshToken) => {
+          bootstrapAccessToken = String(accessToken || '').trim();
+          if (refreshToken !== undefined) {
+            bootstrapRefreshToken = String(refreshToken || '').trim();
+          }
           const u = user as Record<string, unknown> | null;
-          if (!u || typeof u['id'] !== 'string' || !String(u['id']).trim()) {
+          const existingUser = useAppStore.getState().auth.user;
+          const normalizedUser = !u || typeof u['id'] !== 'string' || !String(u['id']).trim()
+            ? existingUser
+            : {
+                id: String(u['id']),
+                displayName: typeof u['displayName'] === 'string' ? u['displayName'] : '',
+                email: u['email'] ? String(u['email']) : undefined,
+                avatarUrl: u['avatarUrl'] ? String(u['avatarUrl']) : undefined,
+              };
+          if (!normalizedUser) {
             throw new Error('platform auth session is missing a valid user.id');
           }
-          useAppStore.getState().setAuthSession(
-            {
-              id: String(u['id']),
-              displayName: typeof u['displayName'] === 'string' ? u['displayName'] : '',
-              email: u['email'] ? String(u['email']) : undefined,
-              avatarUrl: u['avatarUrl'] ? String(u['avatarUrl']) : undefined,
-            },
-            accessToken,
-            refreshToken ?? '',
-          );
+          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken ?? '');
+          persistDesktopSession(normalizedUser, accessToken, refreshToken);
         },
         clearAuthSession: () => {
           useAppStore.getState().clearAuthSession();
+          clearDesktopSession();
         },
       },
     });
@@ -74,7 +134,13 @@ export async function runShiJiBootstrap(): Promise<void> {
     // Step 3: Auth session
     await bootstrapAuthSession({
       realm,
-      accessToken: runtimeDefaults.realm.accessToken,
+      accessToken: bootstrapAccessToken,
+      refreshToken: bootstrapRefreshToken,
+      source: resolvedBootstrapAuthSession.source,
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      clearPersistedSession: async () => {
+        clearDesktopSession();
+      },
     });
 
     // Step 4: SQLite init (blocking — local data is required for all stable paths)

@@ -26,6 +26,11 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getOfflineCoordinator } from '@runtime/offline';
+import {
+  clearSharedDesktopSession,
+  loadResolvedSharedDesktopBootstrapAuthSession,
+  persistSharedDesktopSession,
+} from '@renderer/features/auth/shared-auth-session';
 import { bootstrapAuthSession } from './runtime-bootstrap-auth';
 import {
   ensureCoreWorldDataCapabilitiesRegistered,
@@ -193,10 +198,6 @@ export function bootstrapRuntime(): Promise<void> {
         const message = safeErrorMessage(error);
         useAppStore.getState().setDesktopReleaseInfo(null);
         useAppStore.getState().setDesktopReleaseError(message);
-        useAppStore.getState().setStatusBanner({
-          kind: 'warning',
-          message,
-        });
         logRendererEvent({
           level: 'warn',
           area: 'renderer-bootstrap',
@@ -207,6 +208,7 @@ export function bootstrapRuntime(): Promise<void> {
       }
     }
     const defaults = await desktopBridge.getRuntimeDefaults();
+    useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
     const runtimeUnavailable = runtimeDaemonUnavailable(daemonStatus);
     if (desktopBridge.hasTauriInvoke() && !runtimeUnavailable) {
@@ -231,6 +233,31 @@ export function bootstrapRuntime(): Promise<void> {
       throw new Error(versionResult.message);
     }
     registerExitHandler({ managed: daemonStatus.managed });
+    const resolvedBootstrapAuthSession = await loadResolvedSharedDesktopBootstrapAuthSession({
+      realmBaseUrl: defaults.realm.realmBaseUrl,
+      envAccessToken: defaults.realm.accessToken,
+    });
+    logRendererEvent({
+      level: 'info',
+      area: 'renderer-bootstrap',
+      message: 'phase:bootstrap-auth-session:resolved',
+      flowId,
+      details: {
+        source: resolvedBootstrapAuthSession.source,
+        resolution: resolvedBootstrapAuthSession.resolution,
+        hasSession: Boolean(resolvedBootstrapAuthSession.session),
+        hasAccessToken: Boolean(String(resolvedBootstrapAuthSession.session?.accessToken || '').trim()),
+        hasRefreshToken: Boolean(String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim()),
+        shouldClearPersistedSession: resolvedBootstrapAuthSession.shouldClearPersistedSession,
+      },
+    });
+    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
+    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
+    const clearPersistedDesktopSession = async () => {
+      bootstrapAccessToken = '';
+      bootstrapRefreshToken = '';
+      await clearSharedDesktopSession();
+    };
 
     const resolveCurrentAccessToken = () => {
       const store = useAppStore.getState();
@@ -238,11 +265,18 @@ export function bootstrapRuntime(): Promise<void> {
       if (authToken) {
         return authToken;
       }
-
-      // During initial auth bootstrapping we may still rely on env-provided token defaults.
       if (store.auth.status === 'bootstrapping') {
-        const runtimeDefaultsAccessToken = String(store.runtimeDefaults?.realm?.accessToken || '').trim();
-        return runtimeDefaultsAccessToken || defaults.realm.accessToken;
+        return bootstrapAccessToken;
+      }
+      return '';
+    };
+    const resolveCurrentRefreshToken = () => {
+      const storeRefreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
+      if (storeRefreshToken) {
+        return storeRefreshToken;
+      }
+      if (useAppStore.getState().auth.status === 'bootstrapping') {
+        return bootstrapRefreshToken;
       }
       return '';
     };
@@ -269,7 +303,8 @@ export function bootstrapRuntime(): Promise<void> {
     await createPlatformClient({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken: defaults.realm.accessToken,
+      accessToken: bootstrapAccessToken,
+      refreshTokenProvider: resolveCurrentRefreshToken,
       realmFetchImpl: proxyFetch,
       runtimeTransport: {
         type: 'tauri-ipc',
@@ -278,32 +313,58 @@ export function bootstrapRuntime(): Promise<void> {
       },
       sessionStore: {
         getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getRefreshToken: resolveCurrentRefreshToken,
         getSubjectUserId: resolveCurrentSubjectUserId,
         getCurrentUser: () => useAppStore.getState().auth.user,
         setAuthSession: (user, accessToken, refreshToken) => {
+          bootstrapAccessToken = String(accessToken || '').trim();
+          if (refreshToken !== undefined) {
+            bootstrapRefreshToken = String(refreshToken || '').trim();
+          }
           useAppStore.getState().setAuthSession(user, accessToken, refreshToken);
+          void persistSharedDesktopSession({
+            realmBaseUrl: defaults.realm.realmBaseUrl,
+            accessToken,
+            refreshToken,
+            user: (user as Record<string, unknown> | null | undefined) ?? null,
+          });
         },
         clearAuthSession: () => {
+          bootstrapAccessToken = '';
+          bootstrapRefreshToken = '';
           useAppStore.getState().clearAuthSession();
+          void clearPersistedDesktopSession();
         },
       },
     });
     await reconcileLocalRuntimeBootstrapState({ flowId });
-    useAppStore.getState().setRuntimeDefaults(defaults);
 
     dataSync.initApi({
       realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken: defaults.realm.accessToken,
+      accessToken: bootstrapAccessToken,
+      refreshToken: bootstrapRefreshToken,
       fetchImpl: proxyFetch,
     });
 
     dataSync.setAuthCallbacks({
       setAuth: (user, token, refreshToken) => {
+        bootstrapAccessToken = String(token || '').trim();
+        if (refreshToken !== undefined) {
+          bootstrapRefreshToken = String(refreshToken || '').trim();
+        }
         useAppStore.getState().setAuthSession(user ?? null, token, refreshToken);
+        void persistSharedDesktopSession({
+          realmBaseUrl: defaults.realm.realmBaseUrl,
+          accessToken: token,
+          refreshToken,
+          user: user ?? null,
+        });
       },
       clearAuth: () => {
+        bootstrapAccessToken = '';
+        bootstrapRefreshToken = '';
         useAppStore.getState().clearAuthSession();
+        void clearPersistedDesktopSession();
       },
       getCurrentUser: () => {
         return useAppStore.getState().auth.user;
@@ -368,15 +429,24 @@ export function bootstrapRuntime(): Promise<void> {
 
     await bootstrapAuthSession({
       flowId,
-      accessToken: defaults.realm.accessToken,
+      accessToken: bootstrapAccessToken,
+      refreshToken: bootstrapRefreshToken,
+      source: resolvedBootstrapAuthSession.source,
+      resolution: resolvedBootstrapAuthSession.resolution,
+      clearPersistedSession: clearPersistedDesktopSession,
     });
 
     getOfflineCoordinator().markRuntimeReachable(daemonStatus.running);
 
     if (runtimeUnavailable) {
-      appStore.setStatusBanner({
-        kind: 'warning',
-        message: daemonStatus.lastError || 'Runtime unavailable',
+      logRendererEvent({
+        level: 'warn',
+        area: 'renderer-bootstrap',
+        message: 'phase:runtime-unavailable:strip-only',
+        flowId,
+        details: {
+          error: daemonStatus.lastError || 'Runtime unavailable',
+        },
       });
     }
 

@@ -1,13 +1,16 @@
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { clearPersistedAccessToken } from '@nimiplatform/nimi-kit/auth';
 import { i18n } from '@renderer/i18n';
 import { clearAllStreams } from '@renderer/features/turns/stream-controller';
+import { clearSharedDesktopSession } from './shared-auth-session';
 
 type LogoutAndClearSessionInput = {
   clearAuthSession: AppStoreState['clearAuthSession'];
-  setStatusBanner: AppStoreState['setStatusBanner'];
+  setStatusBanner?: AppStoreState['setStatusBanner'];
+  onFeedback?: (banner: { kind: 'info' | 'warning'; message: string }) => void;
 };
 
 type LogoutTranslate = (
@@ -20,7 +23,7 @@ type LogoutTranslate = (
 
 type LogoutDependencies = {
   logout: () => Promise<void>;
-  clearPersistedAccessToken: () => void;
+  clearPersistedSession: () => Promise<void> | void;
   clearAllStreams: () => void;
   clearQueryClient: () => void;
   translate: LogoutTranslate;
@@ -28,7 +31,10 @@ type LogoutDependencies = {
 
 const defaultLogoutDependencies: LogoutDependencies = {
   logout: () => dataSync.logout(),
-  clearPersistedAccessToken,
+  clearPersistedSession: async () => {
+    await clearSharedDesktopSession();
+    clearPersistedAccessToken();
+  },
   clearAllStreams,
   clearQueryClient: () => queryClient.clear(),
   translate: i18n.t.bind(i18n),
@@ -65,13 +71,25 @@ export async function logoutAndClearSession(
     logoutError = error;
   }
 
-  deps.clearPersistedAccessToken();
+  await deps.clearPersistedSession();
   deps.clearAllStreams();
   input.clearAuthSession();
   deps.clearQueryClient();
 
+  const emitFeedback = (banner: { kind: 'info' | 'warning'; message: string }) => {
+    if (input.onFeedback) {
+      input.onFeedback(banner);
+      return;
+    }
+    if (input.setStatusBanner) {
+      input.setStatusBanner(banner);
+      return;
+    }
+    useAppStore.getState().setStatusBanner(banner);
+  };
+
   if (logoutError) {
-    input.setStatusBanner({
+    emitFeedback({
       kind: 'warning',
       message: isTransientLogoutError(logoutError)
         ? deps.translate('Auth.logoutServerTransientFailure', {
@@ -86,7 +104,7 @@ export async function logoutAndClearSession(
     return;
   }
 
-  input.setStatusBanner({
+  emitFeedback({
     kind: 'info',
     message: deps.translate('Auth.logoutSuccess', { defaultValue: 'Signed out' }),
   });

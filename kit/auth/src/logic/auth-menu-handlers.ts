@@ -70,6 +70,11 @@ export async function applyTokens(
 
   await adapter.applyToken(accessToken, refreshToken || undefined);
   setters.setAuthSession(user, accessToken, refreshToken || undefined);
+  await adapter.persistSession?.({
+    accessToken,
+    refreshToken,
+    user,
+  });
   persistAuthSession({
     accessToken,
     refreshToken,

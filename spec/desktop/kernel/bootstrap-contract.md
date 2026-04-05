@@ -18,6 +18,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 只有 source development 的 runtime 模式才允许 `go run ./cmd/nimi` / `PATH` 解析流程。
 - 只有 shell 级致命错误才进入 `D-BOOT-008` 错误路径。
 - 后续依赖：DataSync 初始化、Platform Client 初始化。
+- `runtime_defaults.realm.accessToken` 仅是 operator/debug override 输入，不是 canonical persisted login source。
 
 ### Runtime JWT Config Sync
 
@@ -41,9 +42,10 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 ## D-BOOT-002 — Platform Client 初始化
 
-使用 `D-BOOT-001` 获取的 realmBaseUrl 和 accessToken 初始化 SDK 根导出的 `createPlatformClient()`。
+使用 `D-BOOT-001` 获取的 realmBaseUrl 与 resolved bootstrap auth session 初始化 SDK 根导出的 `createPlatformClient()`。
 
 - 必须在 DataSync 初始化之前完成。
+- resolved bootstrap auth session 的优先级：env override → `auth_session_load` 读取的共享持久会话 → anonymous。
 
 ## D-BOOT-003 — DataSync Facade 初始化
 
@@ -86,6 +88,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 - 成功时设置 `auth.status = 'authenticated'`。
 - 失败时设置 `auth.status = 'anonymous'`。
+- source=`persisted` 且 bootstrap 期间发生 unauthorized / decrypt / schema 失败时，必须清空共享 auth session 文件。
 - `auth.status = 'anonymous'` 时，desktop shell 仍进入主壳并默认落到 `AI Runtime`；外层主导航隐藏，右上角提供显式 `Login` 入口，登录页可返回当前 Runtime 子页。
 
 ## D-BOOT-008 — Bootstrap 完成 / 错误处理

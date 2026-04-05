@@ -119,6 +119,10 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
         await adapter.applyToken(result.accessToken);
         const user = await adapter.loadCurrentUser();
         session.setAuthSession?.(user, result.accessToken);
+        await adapter.persistSession?.({
+          accessToken: result.accessToken,
+          user,
+        });
         await adapter.syncAfterLogin?.();
         await adapter.onLoginComplete?.();
 

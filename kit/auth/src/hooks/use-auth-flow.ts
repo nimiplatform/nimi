@@ -166,7 +166,10 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     () => getUserDisplayLabel(desktopCallbackUser, 'Current Account'),
     [desktopCallbackUser],
   );
-  const hasDesktopCallbackSession = authStatus === 'authenticated' || Boolean(desktopCallbackToken);
+  const hasDesktopCallbackSession =
+    authStatus === 'authenticated'
+    || Boolean(desktopCallbackToken)
+    || Boolean(desktopCallbackUser);
 
   const initialView: AuthView =
     config.initialView

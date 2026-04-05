@@ -57,6 +57,21 @@ export {
 } from './logic/auth-session-storage.js';
 
 export {
+  createSharedDesktopAuthSession,
+  decodeJwtExpiry,
+  normalizeSharedDesktopAuthUser,
+  parseSharedDesktopAuthSession,
+  persistSharedDesktopAuthSession,
+  resolveDesktopBootstrapAuthSession,
+  resolveSessionExpiry,
+  type DesktopBootstrapAuthResolution,
+  type PersistSharedDesktopAuthSessionInput,
+  type ResolvedDesktopBootstrapAuthSession,
+  type SharedDesktopAuthSession,
+  type SharedDesktopAuthUser,
+} from './logic/shared-desktop-auth-session.js';
+
+export {
   useAuthFormState,
   getAuthErrorMessage,
   type AuthMode,

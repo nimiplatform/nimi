@@ -82,7 +82,25 @@ export function ParticleBackgroundLight(
       [1, 1],
       [0, 1],
     ] as const;
-    const spatialBuckets = new Map<string, number[]>();
+    const spatialBuckets = new Map<number, number[]>();
+    const cellCoords = new Int32Array(CONFIG.particleCount * 2);
+    // Pre-allocate bucket arrays to reduce GC pressure
+    const bucketPool: number[][] = [];
+    let bucketPoolIndex = 0;
+    function acquireBucket(): number[] {
+      if (bucketPoolIndex < bucketPool.length) {
+        const b = bucketPool[bucketPoolIndex++]!;
+        b.length = 0;
+        return b;
+      }
+      const b: number[] = [];
+      bucketPool.push(b);
+      bucketPoolIndex++;
+      return b;
+    }
+    function hashCell(cx: number, cy: number): number {
+      return ((cx + 4096) << 13) | (cy + 4096);
+    }
 
     function computeCurl(x: number, y: number, z: number) {
       const eps = 0.1;
@@ -168,7 +186,7 @@ export function ParticleBackgroundLight(
                 float dist = distance(position, uMouse);
                 float baseOpacity = opacity * 0.15;
                 float boost = smoothstep(uRadius, 0.0, dist);
-                vOpacity = baseOpacity + (opacity * boost * 0.9);
+                vOpacity = baseOpacity + (opacity * boost * 0.4);
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         `,
@@ -176,7 +194,7 @@ export function ParticleBackgroundLight(
             uniform vec3 color;
             varying float vOpacity;
             void main() {
-                gl_FragColor = vec4(color, vOpacity);
+                gl_FragColor = vec4(color, min(vOpacity, 0.3));
             }
         `,
       transparent: true,
@@ -207,7 +225,7 @@ export function ParticleBackgroundLight(
     const animate = () => {
       frameId = requestAnimationFrame(animate);
       timer.update();
-      const delta = timer.getDelta();
+      const delta = Math.min(timer.getDelta(), 0.05);
       const time = timer.getElapsed() * CONFIG.timeScale;
 
       lineMaterial.uniforms['uMouse']?.value.copy(mouse3D);
@@ -272,25 +290,29 @@ export function ParticleBackgroundLight(
       };
 
       spatialBuckets.clear();
+      bucketPoolIndex = 0;
       for (let i = 0; i < CONFIG.particleCount; i++) {
         const i3 = i * 3;
-        const cellX = Math.floor(positions[i3]! / CONFIG.connectDistance);
-        const cellY = Math.floor(positions[i3 + 1]! / CONFIG.connectDistance);
-        const bucketKey = `${cellX},${cellY}`;
-        const bucket = spatialBuckets.get(bucketKey);
+        const cx = Math.floor(positions[i3]! / CONFIG.connectDistance);
+        const cy = Math.floor(positions[i3 + 1]! / CONFIG.connectDistance);
+        cellCoords[i * 2] = cx;
+        cellCoords[i * 2 + 1] = cy;
+        const key = hashCell(cx, cy);
+        const bucket = spatialBuckets.get(key);
         if (bucket) {
           bucket.push(i);
         } else {
-          spatialBuckets.set(bucketKey, [i]);
+          const b = acquireBucket();
+          b.push(i);
+          spatialBuckets.set(key, b);
         }
       }
 
-      for (const [bucketKey, bucket] of spatialBuckets.entries()) {
-        const [cellXText, cellYText] = bucketKey.split(',');
-        const cellX = Number(cellXText);
-        const cellY = Number(cellYText);
+      for (const [, bucket] of spatialBuckets) {
+        const cellX = cellCoords[bucket[0]! * 2]!;
+        const cellY = cellCoords[bucket[0]! * 2 + 1]!;
         for (const [offsetX, offsetY] of neighborOffsets) {
-          const neighborBucket = spatialBuckets.get(`${cellX + offsetX},${cellY + offsetY}`);
+          const neighborBucket = spatialBuckets.get(hashCell(cellX + offsetX, cellY + offsetY));
           if (!neighborBucket) {
             continue;
           }

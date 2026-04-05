@@ -1,7 +1,15 @@
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
-import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
+import {
+  persistSharedDesktopAuthSession,
+  type AuthPlatformAdapter,
+} from '@nimiplatform/nimi-kit/auth';
+import {
+  clearAuthSession as clearPersistedAuthSession,
+  saveAuthSession,
+} from '@renderer/bridge';
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 const FORGE_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Forge desktop-browser mode.';
@@ -65,6 +73,20 @@ export function createForgeDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',
       });
+    },
+    persistSession: async ({ accessToken, refreshToken, user }) => {
+      const realmBaseUrl = String(useAppStore.getState().runtimeDefaults?.realm?.realmBaseUrl || '').trim();
+      await persistSharedDesktopAuthSession({
+        realmBaseUrl,
+        accessToken,
+        refreshToken,
+        user,
+        saveSession: (session) => saveAuthSession(session),
+        clearSession: () => clearPersistedAuthSession(),
+      });
+    },
+    clearPersistedSession: async () => {
+      await clearPersistedAuthSession();
     },
     oauthBridge: forgeTauriOAuthBridge,
     syncAfterLogin: async () => {},

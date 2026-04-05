@@ -21,10 +21,12 @@ tonic-prost = "0.14"
 prost = "0.14"
 prost-types = "0.14"
 base64 = "0.22"
+aes-gcm = "0.10"
 futures-util = "0.3"
 url = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 webbrowser = "1"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
+keyring = "3"
 
 [dev-dependencies]

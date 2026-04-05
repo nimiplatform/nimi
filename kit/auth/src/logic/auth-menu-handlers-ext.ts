@@ -212,33 +212,72 @@ export async function handleConfirmDesktopAuthorization(
     return;
   }
 
-  const accessToken = String(
+  let accessToken = String(
     desktopCtx.authToken
     || desktopCtx.desktopCallbackToken
     || '',
   ).trim();
-  if (!accessToken) {
-    setters.setLoginError(AUTH_COPY.desktopSessionMissing);
-    setters.setView('main');
-    return;
-  }
+  let refreshToken = '';
 
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    await adapter.applyToken(accessToken);
-    const user = await adapter.loadCurrentUser();
-    const normalizedUser = user && typeof user === 'object'
-      ? (user as Record<string, unknown>)
-      : null;
+    let normalizedUser: Record<string, unknown> | null =
+      desktopCtx.desktopCallbackUser && typeof desktopCtx.desktopCallbackUser === 'object'
+        ? desktopCtx.desktopCallbackUser
+        : null;
+
+    const resolveActiveDesktopSession = async (): Promise<void> => {
+      if (!accessToken) {
+        const restored = await adapter.restoreSession?.();
+        accessToken = String(restored?.accessToken || '').trim();
+        refreshToken = String(restored?.refreshToken || '').trim();
+        if (restored?.user && typeof restored.user === 'object') {
+          normalizedUser = restored.user;
+        }
+      }
+      if (!accessToken) {
+        throw new Error(AUTH_COPY.desktopSessionMissing);
+      }
+
+      await adapter.applyToken(accessToken, refreshToken || undefined);
+      const user = await adapter.loadCurrentUser();
+      if (user && typeof user === 'object') {
+        normalizedUser = user as Record<string, unknown>;
+        return;
+      }
+
+      const restored = await adapter.restoreSession?.();
+      accessToken = String(restored?.accessToken || '').trim();
+      refreshToken = String(restored?.refreshToken || '').trim();
+      if (restored?.user && typeof restored.user === 'object') {
+        normalizedUser = restored.user;
+      }
+      if (!accessToken) {
+        throw new Error(AUTH_COPY.desktopSessionInvalid);
+      }
+      await adapter.applyToken(accessToken, refreshToken || undefined);
+      const recoveredUser = await adapter.loadCurrentUser();
+      normalizedUser = recoveredUser && typeof recoveredUser === 'object'
+        ? (recoveredUser as Record<string, unknown>)
+        : normalizedUser;
+    };
+
+    await resolveActiveDesktopSession();
 
     setters.setAuthSession(
       normalizedUser,
       accessToken,
-      undefined,
+      refreshToken || undefined,
     );
+    await adapter.persistSession?.({
+      accessToken,
+      refreshToken,
+      user: normalizedUser ?? desktopCtx.desktopCallbackUser,
+    });
     persistAuthSession({
       accessToken,
+      refreshToken,
       user: normalizedUser ?? desktopCtx.desktopCallbackUser,
     });
 

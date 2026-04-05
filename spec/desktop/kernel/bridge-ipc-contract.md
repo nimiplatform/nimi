@@ -6,13 +6,18 @@
 
 Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/core` / `@tauri-apps/api/event` 的显式桥接与 Tauri backend 通信的命令集、类型解析、错误归一化。
 
-## D-IPC-001 — Runtime Defaults 命令
+## D-IPC-001 — Bootstrap / Auth Session 命令
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
 - `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
+
+共享 auth session 命令集：
+- `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
+- `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
+- `auth_session_clear`：删除共享 auth session 文件。
 
 ## D-IPC-002 — Daemon 生命周期命令
 

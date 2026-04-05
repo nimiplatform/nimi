@@ -1,4 +1,8 @@
-import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
+import {
+  clearPersistedAccessToken,
+  persistAuthSession,
+  type AuthPlatformAdapter,
+} from '@nimiplatform/nimi-kit/auth';
 import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
@@ -8,6 +12,10 @@ import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
 import { i18n } from '@renderer/i18n';
+import {
+  clearSharedDesktopSession,
+  persistSharedDesktopSession,
+} from './shared-auth-session.js';
 import {
   isExpectedAnonymousSessionError,
   toAuthTokensDto,
@@ -152,6 +160,51 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       if (refreshToken) {
         dataSync.setRefreshToken(refreshToken);
       }
+    },
+    restoreSession: async () => {
+      await ensureAuthApiReady();
+      const restored = await dataSync.callApi(
+        (realm) => realm.services.AuthService.refreshToken(),
+        i18n.t('Auth.desktopSessionExpired', { defaultValue: 'Current login session has expired' }),
+      );
+      const record = restored && typeof restored === 'object'
+        ? (restored as Record<string, unknown>)
+        : {};
+      const accessToken = String(record.accessToken || '').trim();
+      if (!accessToken) {
+        throw new Error('restored session missing access token');
+      }
+      const refreshToken = String(record.refreshToken || '').trim();
+      const user = record.user && typeof record.user === 'object'
+        ? toAuthUserRecord(record.user)
+        : null;
+      return {
+        accessToken,
+        refreshToken,
+        user,
+      };
+    },
+    persistSession: async ({ accessToken, refreshToken, user }) => {
+      if (isWebShellMode()) {
+        persistAuthSession({
+          accessToken,
+          refreshToken,
+          user,
+        });
+        return;
+      }
+      await persistSharedDesktopSession({
+        accessToken,
+        refreshToken,
+        user,
+      });
+    },
+    clearPersistedSession: async () => {
+      if (isWebShellMode()) {
+        clearPersistedAccessToken();
+        return;
+      }
+      await clearSharedDesktopSession();
     },
 
     oauthBridge: desktopOAuthBridge,

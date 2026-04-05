@@ -1895,6 +1895,15 @@ pub struct IgnoredScenarioExtension {
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningConfig {
+    #[prost(enumeration = "ReasoningMode", tag = "1")]
+    pub mode: i32,
+    #[prost(enumeration = "ReasoningTraceMode", tag = "2")]
+    pub trace_mode: i32,
+    #[prost(int32, tag = "3")]
+    pub budget_tokens: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TextGenerateScenarioSpec {
     #[prost(message, repeated, tag = "1")]
@@ -1909,6 +1918,8 @@ pub struct TextGenerateScenarioSpec {
     pub top_p: f32,
     #[prost(int32, tag = "6")]
     pub max_tokens: i32,
+    #[prost(message, optional, tag = "7")]
+    pub reasoning: ::core::option::Option<ReasoningConfig>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TextEmbedScenarioSpec {
@@ -2180,6 +2191,11 @@ pub struct TextStreamDelta {
     pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningStreamDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ArtifactStreamDelta {
     #[prost(bytes = "vec", tag = "1")]
     pub chunk: ::prost::alloc::vec::Vec<u8>,
@@ -2188,7 +2204,7 @@ pub struct ArtifactStreamDelta {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScenarioStreamDelta {
-    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2")]
+    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2, 3")]
     pub delta: ::core::option::Option<scenario_stream_delta::Delta>,
 }
 /// Nested message and enum types in `ScenarioStreamDelta`.
@@ -2199,6 +2215,8 @@ pub mod scenario_stream_delta {
         Text(super::TextStreamDelta),
         #[prost(message, tag = "2")]
         Artifact(super::ArtifactStreamDelta),
+        #[prost(message, tag = "3")]
+        Reasoning(super::ReasoningStreamDelta),
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2274,6 +2292,8 @@ pub struct ScenarioArtifact {
     pub channels: i32,
     #[prost(message, optional, tag = "13")]
     pub speech_alignment: ::core::option::Option<SpeechAlignment>,
+    #[prost(message, optional, tag = "14")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioJob {
@@ -2313,6 +2333,8 @@ pub struct ScenarioJob {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "18")]
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
+    #[prost(message, optional, tag = "19")]
+    pub reason_metadata: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -2424,6 +2446,16 @@ pub struct VideoContentImageUrl {
     pub url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoContentVideoUrl {
+    #[prost(string, tag = "1")]
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VideoContentAudioUrl {
+    #[prost(string, tag = "1")]
+    pub url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoContentItem {
     #[prost(enumeration = "VideoContentType", tag = "1")]
     pub r#type: i32,
@@ -2433,6 +2465,10 @@ pub struct VideoContentItem {
     pub text: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub image_url: ::core::option::Option<VideoContentImageUrl>,
+    #[prost(message, optional, tag = "5")]
+    pub video_url: ::core::option::Option<VideoContentVideoUrl>,
+    #[prost(message, optional, tag = "6")]
+    pub audio_url: ::core::option::Option<VideoContentAudioUrl>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct VideoGenerationOptions {
@@ -2960,6 +2996,64 @@ impl FinishReason {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum ReasoningMode {
+    Default = 0,
+    Off = 1,
+    On = 2,
+}
+impl ReasoningMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Default => "REASONING_MODE_DEFAULT",
+            Self::Off => "REASONING_MODE_OFF",
+            Self::On => "REASONING_MODE_ON",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REASONING_MODE_DEFAULT" => Some(Self::Default),
+            "REASONING_MODE_OFF" => Some(Self::Off),
+            "REASONING_MODE_ON" => Some(Self::On),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ReasoningTraceMode {
+    Unspecified = 0,
+    Hide = 1,
+    Separate = 2,
+}
+impl ReasoningTraceMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REASONING_TRACE_MODE_UNSPECIFIED",
+            Self::Hide => "REASONING_TRACE_MODE_HIDE",
+            Self::Separate => "REASONING_TRACE_MODE_SEPARATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REASONING_TRACE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "REASONING_TRACE_MODE_HIDE" => Some(Self::Hide),
+            "REASONING_TRACE_MODE_SEPARATE" => Some(Self::Separate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum TokenProviderHealthStatus {
     Unspecified = 0,
     Healthy = 1,
@@ -3119,6 +3213,8 @@ pub enum VideoContentType {
     Unspecified = 0,
     Text = 1,
     ImageUrl = 2,
+    VideoUrl = 3,
+    AudioUrl = 4,
 }
 impl VideoContentType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3130,6 +3226,8 @@ impl VideoContentType {
             Self::Unspecified => "VIDEO_CONTENT_TYPE_UNSPECIFIED",
             Self::Text => "VIDEO_CONTENT_TYPE_TEXT",
             Self::ImageUrl => "VIDEO_CONTENT_TYPE_IMAGE_URL",
+            Self::VideoUrl => "VIDEO_CONTENT_TYPE_VIDEO_URL",
+            Self::AudioUrl => "VIDEO_CONTENT_TYPE_AUDIO_URL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3138,6 +3236,8 @@ impl VideoContentType {
             "VIDEO_CONTENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "VIDEO_CONTENT_TYPE_TEXT" => Some(Self::Text),
             "VIDEO_CONTENT_TYPE_IMAGE_URL" => Some(Self::ImageUrl),
+            "VIDEO_CONTENT_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
+            "VIDEO_CONTENT_TYPE_AUDIO_URL" => Some(Self::AudioUrl),
             _ => None,
         }
     }
@@ -3150,6 +3250,8 @@ pub enum VideoContentRole {
     FirstFrame = 2,
     LastFrame = 3,
     ReferenceImage = 4,
+    ReferenceVideo = 5,
+    ReferenceAudio = 6,
 }
 impl VideoContentRole {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3163,6 +3265,8 @@ impl VideoContentRole {
             Self::FirstFrame => "VIDEO_CONTENT_ROLE_FIRST_FRAME",
             Self::LastFrame => "VIDEO_CONTENT_ROLE_LAST_FRAME",
             Self::ReferenceImage => "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE",
+            Self::ReferenceVideo => "VIDEO_CONTENT_ROLE_REFERENCE_VIDEO",
+            Self::ReferenceAudio => "VIDEO_CONTENT_ROLE_REFERENCE_AUDIO",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3173,6 +3277,8 @@ impl VideoContentRole {
             "VIDEO_CONTENT_ROLE_FIRST_FRAME" => Some(Self::FirstFrame),
             "VIDEO_CONTENT_ROLE_LAST_FRAME" => Some(Self::LastFrame),
             "VIDEO_CONTENT_ROLE_REFERENCE_IMAGE" => Some(Self::ReferenceImage),
+            "VIDEO_CONTENT_ROLE_REFERENCE_VIDEO" => Some(Self::ReferenceVideo),
+            "VIDEO_CONTENT_ROLE_REFERENCE_AUDIO" => Some(Self::ReferenceAudio),
             _ => None,
         }
     }

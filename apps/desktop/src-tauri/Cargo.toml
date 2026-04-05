@@ -35,6 +35,7 @@ tonic-prost = "0.14"
 prost = "0.14"
 prost-types = "0.14"
 base64 = "0.22"
+aes-gcm = "0.10"
 zip = { version = "8.2", default-features = false, features = ["deflate"] }
 tempfile = "3"
 notify = "8"
@@ -42,8 +43,10 @@ ed25519-dalek = { version = "2", features = ["pem", "pkcs8"] }
 tauri-plugin-updater = "2"
 tauri-plugin-deep-link = "2"
 llmfit-core = "0.7.4"
+keyring = "3"
 
 [dev-dependencies]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-app-kit = "0.3.2"
+keyring = { version = "3", features = ["apple-native"] }
