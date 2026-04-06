@@ -152,8 +152,8 @@ function formatDateLabel(input: string): string {
   return date.toLocaleDateString();
 }
 
-const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 120;
-const TRANSCRIPT_SWITCH_WINDOW_MS = 400;
+const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 300;
+const TRANSCRIPT_SWITCH_WINDOW_MS = 600;
 
 function isNearBottom(element: HTMLElement): boolean {
   return element.scrollTop + element.clientHeight >= element.scrollHeight - 80;

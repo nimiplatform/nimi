@@ -11,8 +11,8 @@ import { CanonicalMessageBubble } from './canonical-message-bubble.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 
-const STAGE_SWITCH_DELTA_THRESHOLD = 120;
-const STAGE_SWITCH_WINDOW_MS = 400;
+const STAGE_SWITCH_DELTA_THRESHOLD = 300;
+const STAGE_SWITCH_WINDOW_MS = 600;
 const STAGE_CARD_VISUAL_ANCHOR_TOP = '44%';
 
 type StageConversationSlice = {
@@ -212,7 +212,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
 
             <div
               data-canonical-stage-scroll-root="true"
-              className="max-h-[44vh] overflow-y-auto overscroll-contain rounded-[24px] border border-slate-200/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] px-4 py-4 backdrop-blur-sm"
+              className="max-h-[72vh] overflow-y-auto overscroll-contain rounded-[24px] border border-slate-200/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] px-4 py-4 backdrop-blur-sm"
             >
               {props.content ? (
                 props.content
