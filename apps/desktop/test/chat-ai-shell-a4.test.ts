@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { invokeChatAiRuntime } from '../src/shell/renderer/features/chat/chat-ai-runtime.js';
+import {
+  invokeChatAiRuntime,
+  resolvePreferredChatLocalModel,
+} from '../src/shell/renderer/features/chat/chat-ai-runtime.js';
 import {
   AI_NEW_CONVERSATION_TITLE,
   resolveAiConversationActiveThreadId,
@@ -191,6 +194,45 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
   assert.equal(localInput.provider, 'llama');
   assert.equal(localInput.localProviderModel, 'qwen3');
   assert.equal(localInput.localProviderEndpoint, 'http://127.0.0.1:11434');
+});
+
+test('chat ai a4: local route prefers runtime-healthy chat model over stale configured selection', async () => {
+  const state = createRuntimeConfigState();
+  state.local.models = [{
+    localModelId: 'local-chat-gemma',
+    engine: 'llama',
+    model: 'gemma-26b',
+    endpoint: 'http://127.0.0.1:11434',
+    capabilities: ['chat'],
+    status: 'active',
+  }, {
+    localModelId: 'local-chat-qwen',
+    engine: 'llama',
+    model: 'qwen3',
+    endpoint: 'http://127.0.0.1:11434',
+    capabilities: ['chat'],
+    status: 'active',
+  }];
+
+  const resolved = await resolvePreferredChatLocalModel(state, 'gemma-26b', {
+    healthLocalRuntimeAssetsImpl: async () => ([
+      {
+        localAssetId: 'local-chat-gemma',
+        status: 'unhealthy',
+        detail: 'probe mismatch',
+        endpoint: 'http://127.0.0.1:11434',
+      },
+      {
+        localAssetId: 'local-chat-qwen',
+        status: 'active',
+        detail: 'ready',
+        endpoint: 'http://127.0.0.1:11434',
+      },
+    ]),
+  });
+
+  assert.equal(resolved?.localModelId, 'local-chat-qwen');
+  assert.equal(resolved?.model, 'qwen3');
 });
 
 test('chat ai a4: invoke runtime hydrates cloud model ids from connector state when snapshot omits model', async () => {

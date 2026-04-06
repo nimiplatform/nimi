@@ -32,9 +32,8 @@ test('chat unified shell a2: AI host setup state is sourced from route readiness
   assert.match(chatAiAdapterSource, /resolveAiConversationRouteReadiness/);
   assert.match(chatPageSource, /useRuntimeConfigPanelController/);
   assert.match(chatPageSource, /setChatSetupState/);
-  assert.match(chatPageSource, /const aiRouteReadinessPending = runtimeConfigController\.hydrated/);
-  assert.match(chatPageSource, /runtimeConfigController\.discovering/);
-  assert.match(chatPageSource, /runtimeConfigController\.runtimeDaemonUpdatedAt/);
+  assert.match(chatPageSource, /const aiRouteReadinessPending = !runtimeConfigController\.hydrated \|\| runtimeConfigController\.discovering/);
+  assert.doesNotMatch(chatPageSource, /runtimeConfigController\.runtimeDaemonUpdatedAt/);
   assert.match(chatPageSource, /Loading AI routes\.\.\./);
 });
 
@@ -44,6 +43,8 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatPageSource, /hideCharacterRail/);
   assert.match(chatPageSource, /rightPanel=\{rightPanelNode\}/);
   assert.match(chatPageSource, /sourceFilter="all"/);
+  assert.match(chatPageSource, /const selectedTargetId = storeSelectedTargetId \|\| activeHost\?\.selectedTargetId \|\| null/);
+  assert.match(chatPageSource, /setSelectedTargetForSource\(activeHost\.mode, activeHost\.selectedTargetId\)/);
   // Contact rail is rendered after the shell (right side)
   assert.match(chatPageSource, /ChatContactsSidebar/);
   assert.match(chatPageSource, /selectedTargetBySource/);
@@ -55,11 +56,9 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.match(chatPageSource, /transcriptProps=\{activeHost\.transcriptProps\}/);
   assert.match(chatPageSource, /stagePanelProps=\{activeHost\.stagePanelProps\}/);
   assert.match(chatPageSource, /composer=\{activeHost\.composerContent\}/);
-  assert.match(chatPageSource, /rightSidebar=\{activeHost\.rightSidebarContent\}/);
-  assert.match(chatPageSource, /rightSidebarOverlayMenu=\{activeHost\.rightSidebarOverlayMenu\}/);
-  assert.match(chatPageSource, /settingsOpen=\{settingsOpen\}/);
-  assert.match(chatPageSource, /profileOpen=\{profileOpen\}/);
-  assert.match(chatPageSource, /rightSidebarOpen=\{rightSidebarOpen\}/);
+  assert.doesNotMatch(chatPageSource, /settingsDrawer=\{/);
+  assert.doesNotMatch(chatPageSource, /profileDrawer=\{/);
+  assert.doesNotMatch(chatPageSource, /rightSidebar=\{/);
   assert.match(chatPageSource, /onSelectTarget/);
   assert.doesNotMatch(chatPageSource, /resolveAgentConversationSurfaceState/);
   assert.doesNotMatch(chatPageSource, /resolveAgentConversationHostView/);
@@ -106,12 +105,11 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAiAdapterSource, /useAiConversationEffects/);
   assert.match(chatAiPresentationSource, /CanonicalComposer/);
   assert.match(chatAiPresentationSource, /CanonicalDrawerSection/);
-  assert.match(chatAiPresentationSource, /ChatRuntimeInspectContent/);
   assert.match(chatAiPresentationSource, /transcriptProps:/);
   assert.match(chatAiPresentationSource, /composerContent:/);
-  assert.match(chatAiPresentationSource, /profileContent:/);
-  assert.match(chatAiPresentationSource, /rightSidebarContent:/);
-  assert.match(chatAiPresentationSource, /rightSidebarAutoOpenKey:/);
+  assert.match(chatAiPresentationSource, /settingsContent:/);
+  assert.match(chatAiPresentationSource, /diagnosticsContent=/);
+  assert.doesNotMatch(chatAiPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderComposer:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderTargetRail:/);
@@ -119,13 +117,11 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentAdapterSource, /useAgentConversationPresentation/);
   assert.match(chatAgentAdapterSource, /useAgentConversationEffects/);
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
-  assert.match(chatAgentPresentationSource, /CanonicalDrawerSection/);
-  assert.match(chatAgentPresentationSource, /ChatRuntimeInspectContent/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
+  assert.match(chatAgentPresentationSource, /settingsContent:/);
+  assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);
-  assert.match(chatAgentPresentationSource, /profileContent:/);
-  assert.match(chatAgentPresentationSource, /rightSidebarContent:/);
-  assert.match(chatAgentPresentationSource, /rightSidebarAutoOpenKey:/);
+  assert.doesNotMatch(chatAgentPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderComposer:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTargetRail:/);
@@ -135,14 +131,14 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatSettingsPanelSource, /CanonicalSettingsToggleRow/);
   assert.match(chatSettingsPanelSource, /chatRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /voiceRouteConfigContent\?:/);
+  assert.match(chatSettingsPanelSource, /diagnosticsContent\?:/);
   assert.doesNotMatch(chatSettingsPanelSource, /Coming soon/);
 
   assert.match(chatHumanAdapterSource, /useHumanCanonicalConversationSurface/);
   assert.match(chatHumanAdapterSource, /HumanCanonicalComposer/);
-  assert.match(chatHumanAdapterSource, /profileContent:/);
-  assert.match(chatHumanAdapterSource, /rightSidebarContent:/);
-  assert.match(chatHumanAdapterSource, /rightSidebarOverlayMenu:/);
-  assert.match(chatHumanAdapterSource, /rightSidebarAutoOpenKey:/);
+  assert.match(chatHumanAdapterSource, /settingsContent:/);
+  assert.match(chatHumanAdapterSource, /ChatSettingsPanel/);
+  assert.doesNotMatch(chatHumanAdapterSource, /settingsContent: null/);
   assert.match(chatHumanAdapterSource, /auxiliaryOverlayContent:/);
   assert.doesNotMatch(chatHumanAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatHumanAdapterSource, /renderStagePanel:/);

@@ -227,6 +227,8 @@ export function reduceAgentSubmitSessionEvent(
         streamEvent: {
           type: 'done',
           usage: input.event.usage,
+          finalText: input.event.outputText,
+          finalReasoningText: input.event.reasoningText || undefined,
         },
       };
     }

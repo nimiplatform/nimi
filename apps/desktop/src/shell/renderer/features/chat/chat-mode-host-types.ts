@@ -45,4 +45,6 @@ export type DesktopConversationModeHost = {
   rightPanelContent?: ReactNode;
   /** Create a new AI thread/session. Only meaningful for AI mode. */
   onCreateThread?: () => Promise<void>;
+  /** Archive a thread by ID. Only meaningful for AI mode. */
+  onArchiveThread?: (threadId: string) => Promise<void>;
 };

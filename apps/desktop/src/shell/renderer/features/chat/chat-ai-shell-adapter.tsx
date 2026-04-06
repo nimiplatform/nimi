@@ -44,6 +44,7 @@ import {
   RuntimeStreamFooter,
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
+import { composeDesktopChatSystemPrompt } from './chat-output-contract';
 import {
   getChatThinkingUnsupportedCopy,
   resolveAiChatThinkingSupport,
@@ -208,7 +209,7 @@ export function useAiConversationModeHost(
         runtimeConfigState: input.runtimeConfigState,
         runtimeFields: input.runtimeFields,
       }),
-      resolveSystemPrompt: () => null,
+      resolveSystemPrompt: (turnInput) => composeDesktopChatSystemPrompt(turnInput.systemPrompt),
     }));
     return registry.require('simple-ai');
   }, [
@@ -310,6 +311,33 @@ export function useAiConversationModeHost(
     syncSelectionToThread(thread.id, thread.routeSnapshot);
   }, [currentRouteSnapshot, queryClient, readiness.setupState.status, setThreadsCache, syncSelectionToThread]);
 
+  const handleArchiveThread = useCallback(async (threadId: string) => {
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) {
+      return;
+    }
+    const archivedAtMs = Date.now();
+    await chatAiStoreClient.updateThreadMetadata({
+      id: thread.id,
+      title: thread.title,
+      updatedAtMs: archivedAtMs,
+      lastMessageAtMs: thread.lastMessageAtMs,
+      archivedAtMs,
+      routeSnapshot: thread.routeSnapshot,
+    });
+    setThreadsCache((current) => current.filter((t) => t.id !== threadId));
+    // If the archived thread was active, switch to the next available thread
+    if (activeThreadId === threadId) {
+      const remaining = threads.filter((t) => t.id !== threadId);
+      const next = remaining[0] || null;
+      if (next) {
+        syncSelectionToThread(next.id, next.routeSnapshot);
+      } else {
+        setSelection({ threadId: null, routeSnapshot: null });
+      }
+    }
+  }, [activeThreadId, setSelection, setThreadsCache, syncSelectionToThread, threads]);
+
   // Auto-create the first AI thread when route is ready and no thread exists.
   // Subsequent threads are created by the user via the session list panel.
   const autoCreatingRef = useRef(false);
@@ -373,7 +401,7 @@ export function useAiConversationModeHost(
   }, [reportHostError, selectedThreadRecord, setBundleCache, setThreadsCache, submittingThreadId, syncSelectionToThread]);
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!activeThreadId || !selectedThreadRecord || !currentRouteSnapshot || !aiProvider) {
+    if (!currentRouteSnapshot || !aiProvider) {
       throw new Error(t('Chat.aiSubmitMissingThread', { defaultValue: 'Select a conversation before sending a message.' }));
     }
     if (readiness.setupState.status !== 'ready') {
@@ -385,12 +413,33 @@ export function useAiConversationModeHost(
       return;
     }
 
+    // Lazy thread creation: if no active thread, create one before sending
+    let effectiveThreadId = activeThreadId;
+    let effectiveThreadRecord = selectedThreadRecord;
+    if (!effectiveThreadId || !effectiveThreadRecord) {
+      const timestampMs = Date.now();
+      const newThread = await chatAiStoreClient.createThread({
+        id: randomIdV11('ai-thread'),
+        title: AI_NEW_CONVERSATION_TITLE,
+        createdAtMs: timestampMs,
+        updatedAtMs: timestampMs,
+        lastMessageAtMs: null,
+        archivedAtMs: null,
+        routeSnapshot: currentRouteSnapshot,
+      });
+      setThreadsCache((current) => upsertThreadSummary(current, newThread));
+      queryClient.setQueryData(bundleQueryKey(newThread.id), createEmptyBundle(newThread));
+      syncSelectionToThread(newThread.id, newThread.routeSnapshot);
+      effectiveThreadId = newThread.id;
+      effectiveThreadRecord = newThread;
+    }
+
     const userMessageId = randomIdV11('ai-message-user');
     const assistantMessageId = randomIdV11('ai-message-assistant');
     const createdAtMs = Date.now();
     const userMessage: ChatAiMessageRecord = {
       id: userMessageId,
-      threadId: activeThreadId,
+      threadId: effectiveThreadId,
       role: 'user',
       status: 'complete',
       contentText: submittedText,
@@ -403,7 +452,7 @@ export function useAiConversationModeHost(
     };
     const assistantPlaceholder: ChatAiMessageRecord = {
       id: assistantMessageId,
-      threadId: activeThreadId,
+      threadId: effectiveThreadId,
       role: 'assistant',
       status: 'pending',
       contentText: '',
@@ -416,7 +465,7 @@ export function useAiConversationModeHost(
     };
 
     currentDraftTextRef.current = submittedText;
-    setSubmittingThreadId(activeThreadId);
+    setSubmittingThreadId(effectiveThreadId);
     let streamedText = '';
     let streamedReasoningText = '';
     let runtimeTraceId: string | null = null;
@@ -425,14 +474,14 @@ export function useAiConversationModeHost(
     let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
 
     try {
-      await chatAiStoreClient.deleteDraft(activeThreadId);
-      setBundleCache(activeThreadId, (current) => upsertBundleDraft(current, null) || current);
+      await chatAiStoreClient.deleteDraft(effectiveThreadId);
+      setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
 
       await chatAiStoreClient.createMessage(userMessage);
       await chatAiStoreClient.createMessage(assistantPlaceholder);
-      setBundleCache(activeThreadId, (current) => {
+      setBundleCache(effectiveThreadId, (current) => {
         const base = current || createEmptyBundle({
-          ...selectedThreadRecord,
+          ...effectiveThreadRecord,
           createdAtMs,
         });
         return {
@@ -445,11 +494,11 @@ export function useAiConversationModeHost(
         };
       });
 
-      const abortController = startStream(activeThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
+      const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
       const history = toConversationHistoryMessages(bundle?.messages || []);
       for await (const event of aiProvider.runTurn({
         modeId: 'simple-ai',
-        threadId: activeThreadId,
+        threadId: effectiveThreadId,
         turnId: assistantMessageId,
         userMessage: {
           id: userMessageId,
@@ -463,14 +512,14 @@ export function useAiConversationModeHost(
           'turn-started': () => undefined,
           'reasoning-delta': (nextEvent) => {
             streamedReasoningText += nextEvent.textDelta;
-            feedStreamEvent(activeThreadId, {
+            feedStreamEvent(effectiveThreadId, {
               type: 'reasoning_delta',
               textDelta: nextEvent.textDelta,
             });
           },
           'text-delta': (nextEvent) => {
             streamedText += nextEvent.textDelta;
-            feedStreamEvent(activeThreadId, {
+            feedStreamEvent(effectiveThreadId, {
               type: 'text_delta',
               textDelta: nextEvent.textDelta,
             });
@@ -481,9 +530,11 @@ export function useAiConversationModeHost(
             streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
             runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
             promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
-            feedStreamEvent(activeThreadId, {
+            feedStreamEvent(effectiveThreadId, {
               type: 'done',
               usage: nextEvent.usage,
+              finalText: nextEvent.outputText,
+              finalReasoningText: normalizeReasoningText(nextEvent.reasoningText) || undefined,
             });
           },
           'turn-failed': (nextEvent) => {
@@ -525,7 +576,7 @@ export function useAiConversationModeHost(
         throw new Error('simple-ai provider completed without a terminal event');
       }
 
-      const completedState = getStreamState(activeThreadId);
+      const completedState = getStreamState(effectiveThreadId);
       const finalText = completedState.partialText || streamedText;
       const finalReasoningText = completedState.partialReasoningText || streamedReasoningText;
 
@@ -539,15 +590,15 @@ export function useAiConversationModeHost(
         updatedAtMs: Date.now(),
       });
       const updatedThread = await chatAiStoreClient.updateThreadMetadata({
-        id: selectedThreadRecord.id,
-        title: resolveThreadTitleAfterFirstSend(selectedThreadRecord.title, submittedText),
+        id: effectiveThreadRecord.id,
+        title: resolveThreadTitleAfterFirstSend(effectiveThreadRecord.title, submittedText),
         updatedAtMs: Date.now(),
         lastMessageAtMs: assistantMessage.updatedAtMs,
-        archivedAtMs: selectedThreadRecord.archivedAtMs,
+        archivedAtMs: effectiveThreadRecord.archivedAtMs,
         routeSnapshot: currentRouteSnapshot,
       });
       setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
-      setBundleCache(activeThreadId, (current) => {
+      setBundleCache(effectiveThreadId, (current) => {
         const base = current || createEmptyBundle(updatedThread);
         return {
           ...base,
@@ -557,9 +608,9 @@ export function useAiConversationModeHost(
         };
       });
       currentDraftTextRef.current = '';
-      syncSelectionToThread(activeThreadId, updatedThread.routeSnapshot);
+      syncSelectionToThread(effectiveThreadId, updatedThread.routeSnapshot);
     } catch (error) {
-      const streamSnapshot = getStreamState(activeThreadId);
+      const streamSnapshot = getStreamState(effectiveThreadId);
       const partialText = streamSnapshot.partialText || streamedText;
       const partialReasoningText = streamSnapshot.partialReasoningText || streamedReasoningText;
       const runtimeError = streamSnapshot.cancelSource === 'user'
@@ -569,7 +620,7 @@ export function useAiConversationModeHost(
         }
         : toChatAiRuntimeError(error);
       if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {
-        feedStreamEvent(activeThreadId, {
+        feedStreamEvent(effectiveThreadId, {
           type: 'error',
           message: runtimeError.message,
           reasonCode: runtimeError.code,
@@ -577,12 +628,12 @@ export function useAiConversationModeHost(
         });
       }
       const draft = await chatAiStoreClient.putDraft({
-        threadId: activeThreadId,
+        threadId: effectiveThreadId,
         text: submittedText,
         attachments: [],
         updatedAtMs: Date.now(),
       });
-      setBundleCache(activeThreadId, (current) => upsertBundleDraft(current, draft) || current);
+      setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, draft) || current);
       try {
         const assistantError = await chatAiStoreClient.updateMessage({
           id: assistantMessageId,
@@ -593,9 +644,9 @@ export function useAiConversationModeHost(
           traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || null,
           updatedAtMs: Date.now(),
         });
-        setBundleCache(activeThreadId, (current) => {
+        setBundleCache(effectiveThreadId, (current) => {
           const base = current || createEmptyBundle({
-            ...selectedThreadRecord,
+            ...effectiveThreadRecord,
             createdAtMs,
           });
           return {
@@ -608,9 +659,9 @@ export function useAiConversationModeHost(
           };
         });
       } catch {
-        setBundleCache(activeThreadId, (current) => {
+        setBundleCache(effectiveThreadId, (current) => {
           const base = current || createEmptyBundle({
-            ...selectedThreadRecord,
+            ...effectiveThreadRecord,
             createdAtMs,
           });
           return {
@@ -635,6 +686,7 @@ export function useAiConversationModeHost(
     chatThinkingPreference,
     input.runtimeConfigState,
     input.runtimeFields,
+    queryClient,
     readiness.setupState.status,
     selectedThreadRecord,
     setBundleCache,
@@ -754,6 +806,7 @@ export function useAiConversationModeHost(
     currentDraftTextRef,
     currentRouteSnapshot,
     footerContent,
+    handleArchiveThread,
     handleCreateThread,
     handleRouteSelection,
     handleSelectThread,

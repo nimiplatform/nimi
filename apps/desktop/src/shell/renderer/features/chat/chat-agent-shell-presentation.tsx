@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   CanonicalComposer,
-  CanonicalDrawerSection,
   type CanonicalRuntimeInspectSectionData,
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -11,10 +9,7 @@ import type {
   ConversationMessageViewModel,
   ConversationSetupState,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
-import { Button } from '@nimiplatform/nimi-kit/ui';
-import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadBundle,
@@ -23,7 +18,6 @@ import type {
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
-  ChatRuntimeInspectContent,
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
@@ -45,8 +39,6 @@ import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback'
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ChatThinkingPreference } from './chat-thinking';
 import type { StreamState } from '../turns/stream-controller';
-
-type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -95,16 +87,8 @@ export function useAgentConversationPresentation(
   | 'composerContent'
   | 'messages'
   | 'mode'
-  | 'profileContent'
-  | 'profileDrawerSubtitle'
-  | 'profileDrawerTitle'
-  | 'rightSidebarAutoOpenKey'
-  | 'rightSidebarContent'
-  | 'rightSidebarResetKey'
   | 'selectedTargetId'
   | 'settingsContent'
-  | 'settingsDrawerSubtitle'
-  | 'settingsDrawerTitle'
   | 'setupDescription'
   | 'stagePanelProps'
   | 'targets'
@@ -323,13 +307,12 @@ export function useAgentConversationPresentation(
         chatRouteConfigContent={agentInspectSections[0]?.content}
         voiceRouteConfigContent={<RuntimeInspectUnsupportedNote label={agentInspectSections[1]?.disabledReason || ''} />}
         mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={agentInspectSections[2]?.disabledReason || ''} />}
+        diagnosticsContent={agentInspectSections[3]?.content}
         presenceContent={<RuntimeInspectUnsupportedNote label={input.t('Chat.settingsAllowProactiveContactHint', {
           defaultValue: 'Unavailable until runtime inspect is connected for this source.',
         })} />}
       />
     ),
-    settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
-    settingsDrawerSubtitle: input.t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
@@ -347,39 +330,6 @@ export function useAgentConversationPresentation(
         </div>
       ) : null
     ),
-    profileContent: input.activeTarget ? (
-      <div className="space-y-3">
-        {hostFeedbackNode}
-        <ChatAgentTargetRail target={input.activeTarget} />
-      </div>
-    ) : hostFeedbackNode,
-    rightSidebarContent: (
-      <ChatRuntimeInspectContent
-        title={input.t('Chat.runtimeInspectTitle', { defaultValue: 'Runtime Inspect' })}
-        subtitle={input.t('Chat.runtimeInspectSubtitle', {
-          defaultValue: 'Route, voice, media, and diagnostics for this conversation.',
-        })}
-        statusTitle={input.activeTarget?.displayName || input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
-        statusHint={input.activeTarget?.worldName || null}
-        statusSummary={input.activeTarget?.ownershipType || input.t('Chat.mode.agent', { defaultValue: 'Agent' })}
-        statusChips={[
-          {
-            label: input.agentRouteReady
-              ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-              : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-            tone: input.agentRouteReady ? 'success' : 'warning',
-          },
-        ]}
-        sections={agentInspectSections}
-        initialOpenPanel="chat"
-      />
-    ),
-    rightSidebarAutoOpenKey: null,
-    rightSidebarResetKey: `agent:${input.activeTarget?.agentId || 'landing'}`,
-    profileDrawerTitle: input.t('Chat.profileTitle', { defaultValue: 'Profile' }),
-    profileDrawerSubtitle: input.t('Chat.agentProfileSubtitle', {
-      defaultValue: 'Relationship, memory, and target details.',
-    }),
     setupDescription: input.t('Chat.agentRouteRequired', {
       defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
     }),

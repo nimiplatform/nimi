@@ -17,6 +17,7 @@ import {
   createAgentLocalChatConversationProvider,
   type AgentLocalChatRuntimeAdapter,
 } from '../src/shell/renderer/features/chat/chat-agent-orchestration.js';
+import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
 
 function sampleTarget(): AgentLocalTargetSnapshot {
   return {
@@ -197,6 +198,10 @@ test('agent local chat prompt includes continuity and transcript context', () =>
   assert.match(prompt, /Transcript:/);
   assert.match(prompt, /We should summarize the plan/);
   assert.match(prompt, /What should we do next/);
+  assert.match(prompt, /Output Contract:/);
+  assert.match(prompt, /fall back to plain text instead of partial Markdown/);
+  assert.match(prompt, /do not proactively use fenced code blocks, tables, or HTML/);
+  assert.match(prompt, new RegExp(buildDesktopChatOutputContractSection().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 test('agent local chat provider emits first-beat before terminal and commits completed turn', async () => {

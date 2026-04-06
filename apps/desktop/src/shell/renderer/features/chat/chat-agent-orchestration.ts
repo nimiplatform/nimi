@@ -22,6 +22,7 @@ import {
   toChatAgentRuntimeError,
   type AgentChatRouteResult,
 } from './chat-agent-runtime';
+import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type { ChatThinkingPreference } from './chat-thinking';
 
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
@@ -206,6 +207,7 @@ export function buildAgentLocalChatPrompt(input: {
     `Continuity:\n${buildContinuitySummary(input.context)}`,
     transcript ? `Transcript:\n${transcript}` : null,
     `UserMessage:\nUser: ${input.userText}`,
+    buildDesktopChatOutputContractSection(),
     'Instruction:\nReply as the target agent. Use continuity as background truth. Keep internal planning private.',
   ].filter(Boolean);
   return sections.join('\n\n');

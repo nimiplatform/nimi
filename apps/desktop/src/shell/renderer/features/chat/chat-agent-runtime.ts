@@ -16,7 +16,7 @@ import {
   getRuntimeClient,
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import { pickPreferredChatLocalModel } from './chat-ai-thread-model';
+import { resolvePreferredChatLocalModel } from './chat-ai-runtime';
 import {
   resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
@@ -151,18 +151,27 @@ async function resolveInvokeInput(
     });
   }
 
-  const localModel = pickPreferredChatLocalModel(input.runtimeConfigState);
+  const configuredLocalModel = normalizeText(input.runtimeFields.localProviderModel);
+  const localModel = await resolvePreferredChatLocalModel(
+    input.runtimeConfigState,
+    configuredLocalModel,
+  );
   const fallbackProvider = localModel?.engine || 'llama';
   const fallbackModel = localModel?.model || '';
   const fallbackEndpoint = normalizeText(localModel?.endpoint)
     || normalizeText(input.runtimeConfigState?.local.endpoint);
+  const shouldUseConfiguredLocalModel = Boolean(
+    localModel
+    && (normalizeText(localModel.model) === configuredLocalModel
+      || normalizeText(localModel.localModelId) === configuredLocalModel),
+  );
   const runtimeFields = {
     provider: isLocalProvider(input.runtimeFields.provider)
       ? input.runtimeFields.provider
       : fallbackProvider,
     runtimeModelType: 'chat',
     localProviderEndpoint: normalizeText(input.runtimeFields.localProviderEndpoint) || fallbackEndpoint,
-    localProviderModel: normalizeText(input.runtimeFields.localProviderModel) || fallbackModel,
+    localProviderModel: shouldUseConfiguredLocalModel ? configuredLocalModel : fallbackModel,
     localOpenAiEndpoint: normalizeText(input.runtimeFields.localOpenAiEndpoint)
       || normalizeText(input.runtimeFields.localProviderEndpoint)
       || fallbackEndpoint,

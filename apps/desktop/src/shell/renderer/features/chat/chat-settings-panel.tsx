@@ -25,6 +25,7 @@ type ChatSettingsPanelProps = {
   chatRouteConfigContent?: ReactNode;
   voiceRouteConfigContent?: ReactNode;
   mediaRouteConfigContent?: ReactNode;
+  diagnosticsContent?: ReactNode;
   presenceContent?: ReactNode;
   thinkingPreference?: ChatThinkingPreference;
   thinkingSupported?: boolean;
@@ -48,6 +49,7 @@ export function ChatSettingsPanel({
   chatRouteConfigContent,
   voiceRouteConfigContent,
   mediaRouteConfigContent,
+  diagnosticsContent,
   presenceContent,
   thinkingPreference = 'off',
   thinkingSupported = false,
@@ -240,6 +242,15 @@ export function ChatSettingsPanel({
             checked={false}
             disabled
           />
+        )}
+      </CanonicalDrawerSection>
+
+      <CanonicalDrawerSection
+        title={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+        hint={t('Chat.settingsDiagnosticsHint', { defaultValue: 'Inspect route, runtime, and conversation health details for the current chat.' })}
+      >
+        {diagnosticsContent || (
+          <DisabledSettingsNote label={resolvedUnavailableReason} />
         )}
       </CanonicalDrawerSection>
     </div>

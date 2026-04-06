@@ -48,16 +48,10 @@ export function ChatPage() {
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
   const chatSetupState = useAppStore((state) => state.chatSetupState);
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
 
   const runtimeConfigController = useRuntimeConfigPanelController();
-  const aiRouteReadinessPending = runtimeConfigController.hydrated
-    ? runtimeConfigController.discovering
-      || (!runtimeConfigController.runtimeDaemonUpdatedAt && !runtimeConfigController.runtimeDaemonError)
-    : true;
+  const aiRouteReadinessPending = !runtimeConfigController.hydrated || runtimeConfigController.discovering;
   const humanHost = useHumanConversationModeHost({
     authStatus,
     selectedChatId,
@@ -126,13 +120,21 @@ export function ChatPage() {
     [registry.hosts],
   );
 
-  const selectedTargetId = selectedTargetBySource[chatMode] || null;
+  const storeSelectedTargetId = selectedTargetBySource[chatMode] || null;
+  const selectedTargetId = storeSelectedTargetId || activeHost?.selectedTargetId || null;
   const selectedTarget = useMemo(
     () => selectedTargetId
       ? allTargets.find((target) => target.id === selectedTargetId) || null
       : null,
     [allTargets, selectedTargetId],
   );
+
+  useEffect(() => {
+    if (!activeHost?.selectedTargetId || storeSelectedTargetId) {
+      return;
+    }
+    setSelectedTargetForSource(activeHost.mode, activeHost.selectedTargetId);
+  }, [activeHost, setSelectedTargetForSource, storeSelectedTargetId]);
 
   // If selected target disappeared (e.g. logout), clear it
   useEffect(() => {
@@ -150,18 +152,8 @@ export function ChatPage() {
 
   // Close transient panels on target/mode change
   useEffect(() => {
-    setSettingsOpen(false);
-    setProfileOpen(false);
-    setRightSidebarOpen(false);
     setRightPanelMode('auto');
   }, [chatMode, selectedTargetId]);
-
-  useEffect(() => {
-    if (!activeHost?.rightSidebarContent || !activeHost.rightSidebarAutoOpenKey) {
-      return;
-    }
-    setRightSidebarOpen(true);
-  }, [activeHost?.rightSidebarAutoOpenKey, activeHost?.rightSidebarContent]);
 
   const currentViewModeKey = selectedTarget
     ? `${selectedTarget.source}:${selectedTarget.id}`
@@ -238,6 +230,7 @@ export function ChatPage() {
           activeThreadId={activeHost.activeThreadId}
           onSelectThread={(threadId) => activeHost.onSelectThread?.(threadId)}
           onCreateThread={activeHost.onCreateThread ? () => void activeHost.onCreateThread!() : undefined}
+          onArchiveThread={activeHost.onArchiveThread ? (id) => void activeHost.onArchiveThread!(id) : undefined}
           routeLabel={selectedTarget?.metadata?.routeLabel as string | null ?? null}
           onToggleSettings={toggleRightPanelSettings}
           settingsActive={false}
@@ -297,21 +290,6 @@ export function ChatPage() {
         transcriptProps={activeHost.transcriptProps}
         stagePanelProps={activeHost.stagePanelProps}
         composer={activeHost.composerContent}
-        settingsDrawer={activeHost.settingsContent}
-        settingsDrawerTitle={activeHost.settingsDrawerTitle}
-        settingsDrawerSubtitle={activeHost.settingsDrawerSubtitle}
-        profileDrawer={activeHost.profileContent}
-        profileDrawerTitle={activeHost.profileDrawerTitle}
-        profileDrawerSubtitle={activeHost.profileDrawerSubtitle}
-        rightSidebar={activeHost.rightSidebarContent}
-        rightSidebarOverlayMenu={activeHost.rightSidebarOverlayMenu}
-        rightSidebarResetKey={activeHost.rightSidebarResetKey}
-        settingsOpen={settingsOpen}
-        onSettingsOpenChange={setSettingsOpen}
-        profileOpen={profileOpen}
-        onProfileOpenChange={setProfileOpen}
-        rightSidebarOpen={rightSidebarOpen}
-        onRightSidebarOpenChange={setRightSidebarOpen}
         auxiliaryOverlayContent={activeHost.auxiliaryOverlayContent}
       />
       {authStatus === 'authenticated' ? (

@@ -19,7 +19,6 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
-  ChatRuntimeInspectContent,
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
@@ -43,6 +42,7 @@ type UseAiConversationPresentationInput = {
   currentDraftTextRef: { current: string };
   currentRouteSnapshot: AiConversationRouteSnapshot | null;
   footerContent: ReactNode;
+  handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
   handleRouteSelection: (route: AiConversationRouteSnapshot) => void;
   handleSelectThread: (threadId: string) => void;
@@ -72,62 +72,6 @@ type UseAiConversationPresentationInput = {
   thinkingUnsupportedReason: string | null;
   threads: readonly ChatAiThreadSummary[];
 };
-
-function ChatAiRouteRail(input: {
-  availableRoutes: readonly AiConversationRouteSnapshot[];
-  currentRoute: AiConversationRouteSnapshot | null;
-  currentRouteLabel: string;
-  availableRoutesLabel: string;
-  disabled: boolean;
-  onSelectRoute: (route: AiConversationRouteSnapshot) => void;
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-}) {
-  const currentSummary = getAiRouteDisplaySummary(input.currentRoute, input.runtimeConfigState);
-
-  return (
-    <div className="space-y-4">
-      <CanonicalDrawerSection title={input.currentRouteLabel}>
-        <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {currentSummary.label}
-        </div>
-        <div className="text-xs text-[var(--nimi-text-muted)]">
-          {currentSummary.detail}
-        </div>
-      </CanonicalDrawerSection>
-      <CanonicalDrawerSection title={input.availableRoutesLabel}>
-        <div className="space-y-2">
-          {input.availableRoutes.map((route) => {
-            const routeSummary = getAiRouteDisplaySummary(route, input.runtimeConfigState);
-            const active = isAiRouteSnapshotEqual(route, input.currentRoute);
-            const routeKey = route.routeKind === 'local'
-              ? 'local'
-              : `${route.connectorId}:${route.modelId || 'missing-model'}`;
-            return (
-              <button
-                key={routeKey}
-                type="button"
-                disabled={input.disabled}
-                onClick={() => input.onSelectRoute(route)}
-                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                  active
-                    ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]'
-                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] hover:border-[var(--nimi-border-strong)]'
-                }`}
-              >
-                <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                  {routeSummary.label}
-                </div>
-                <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                  {routeSummary.detail}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </CanonicalDrawerSection>
-    </div>
-  );
-}
 
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
@@ -279,6 +223,7 @@ export function useAiConversationPresentation(
         chatRouteConfigContent={aiInspectSections[0]?.content}
         voiceRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[1]?.disabledReason || ''} />}
         mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[2]?.disabledReason || ''} />}
+        diagnosticsContent={aiInspectSections[3]?.content}
         presenceContent={<RuntimeInspectUnsupportedNote label={input.t('Chat.settingsAllowProactiveContactHint', {
           defaultValue: 'Unavailable until runtime inspect is connected for this source.',
         })} />}
@@ -319,47 +264,6 @@ export function useAiConversationPresentation(
         </div>
       ) : null
     ),
-    profileContent: (
-      <div className="space-y-3">
-        {hostFeedbackNode}
-        <ChatAiRouteRail
-          currentRoute={input.currentRouteSnapshot}
-          availableRoutes={input.availableRouteSnapshots}
-          runtimeConfigState={input.runtimeConfigState}
-          disabled={Boolean(input.submittingThreadId)}
-          onSelectRoute={input.handleRouteSelection}
-          currentRouteLabel={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-          availableRoutesLabel={input.t('Chat.aiAvailableRoutes', { defaultValue: 'Available routes' })}
-        />
-      </div>
-    ),
-    rightSidebarContent: (
-      <ChatRuntimeInspectContent
-        title={input.t('Chat.runtimeInspectTitle', { defaultValue: 'Runtime Inspect' })}
-        subtitle={input.t('Chat.runtimeInspectSubtitle', {
-          defaultValue: 'Route, voice, media, and diagnostics for this conversation.',
-        })}
-        statusTitle={input.t('Chat.aiAssistantName', { defaultValue: 'AI Assistant' })}
-        statusHint={input.routeSummary.detail}
-        statusSummary={input.routeSummary.label}
-        statusChips={[
-          {
-            label: input.readiness.localReady
-              ? input.t('Chat.settingsLocal', { defaultValue: 'Local' })
-              : input.readiness.cloudReady
-                ? input.t('Chat.settingsCloud', { defaultValue: 'Cloud' })
-                : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-            tone: input.readiness.localReady || input.readiness.cloudReady ? 'success' : 'warning',
-          },
-        ]}
-        sections={aiInspectSections}
-        initialOpenPanel="chat"
-      />
-    ),
-    rightSidebarAutoOpenKey: input.activeThreadId || null,
-    rightSidebarResetKey: `ai:${input.activeThreadId || 'landing'}`,
-    profileDrawerTitle: input.t('Chat.aiProfileTitle', { defaultValue: 'Profile' }),
-    profileDrawerSubtitle: input.t('Chat.aiProfileSubtitle', { defaultValue: 'Route, target, and conversation details.' }),
     setupDescription: (
       input.readiness.localReady || input.readiness.cloudReady
         ? input.t('Chat.aiRouteUnavailable', {
@@ -371,6 +275,7 @@ export function useAiConversationPresentation(
     ),
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
+    onArchiveThread: input.handleArchiveThread,
   }), [
     adapter,
     aiInspectSections,
@@ -385,6 +290,7 @@ export function useAiConversationPresentation(
     input.currentDraftTextRef,
     input.currentRouteSnapshot,
     input.footerContent,
+    input.handleArchiveThread,
     input.handleCreateThread,
     input.handleRouteSelection,
     input.handleSelectThread,
@@ -396,7 +302,6 @@ export function useAiConversationPresentation(
     input.readiness.localReady,
     input.readiness.setupState,
     input.renderMessageContent,
-    input.runtimeConfigState,
     input.setChatThinkingPreference,
     input.submittingThreadId,
     input.syntheticTarget,

@@ -16,18 +16,30 @@ const HEADER_ICON_CLASS = cn(
 // Right-panel header with settings toggle
 // ---------------------------------------------------------------------------
 
-function RightPanelHeader({ onToggleSettings, settingsActive }: { onToggleSettings: () => void; settingsActive: boolean }) {
+function RightPanelHeader({ onToggleSettings, settingsActive, routeLabel }: { onToggleSettings: () => void; settingsActive: boolean; routeLabel?: string | null }) {
   const { t } = useTranslation();
   return (
-    <div className="flex shrink-0 items-center justify-end border-b border-white/70 px-4 py-2.5">
+    <div className="flex shrink-0 items-center gap-2 border-t border-slate-200/60 px-3 py-2">
+      {routeLabel ? (
+        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-400" title={routeLabel}>
+          {routeLabel}
+        </p>
+      ) : (
+        <div className="flex-1" />
+      )}
       <button
         type="button"
-        className={cn(HEADER_ICON_CLASS, settingsActive && 'border-emerald-300 text-teal-700')}
+        className={cn(
+          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+          'border border-slate-200/80 bg-white/90 text-slate-500 transition-all duration-150',
+          'hover:border-emerald-300 hover:text-teal-700',
+          settingsActive && 'border-emerald-300 text-teal-700',
+        )}
         aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
         title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
         onClick={onToggleSettings}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10.91 3H11a2 2 0 1 1 4 0h.09a1.65 1.65 0 0 0 1.51 1 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
@@ -64,7 +76,6 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
         <div className="absolute bottom-12 right-[-36px] h-36 w-36 rounded-full bg-sky-100/50 blur-3xl" />
       </div>
       <div className="relative z-10 flex h-full min-h-0 flex-col">
-        <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} />
         <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3">
           {/* Compact avatar */}
           <div className="flex min-h-0 flex-1 items-center justify-center pb-4">
@@ -105,6 +116,7 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
           {/* Extra slot for mode-specific content */}
           {props.children}
         </div>
+        <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} />
       </div>
     </aside>
   );

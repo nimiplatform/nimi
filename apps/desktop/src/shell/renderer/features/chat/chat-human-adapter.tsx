@@ -17,15 +17,15 @@ import {
 } from './chat-human-thread-model';
 import {
   HumanCanonicalComposer,
-  HumanCanonicalProfileDrawer,
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 
 import {
-  ChatRuntimeInspectContent,
   RuntimeInspectCard,
+  RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
+import { ChatSettingsPanel } from './chat-settings-panel';
 
 type UseHumanConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -45,7 +45,6 @@ export function useHumanConversationModeHost(
   } = input;
   const { t } = useTranslation();
   const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const chatsQuery = useQuery({
     queryKey: ['chats', authStatus],
     queryFn: async () => dataSync.loadChats(),
@@ -204,85 +203,42 @@ export function useHumanConversationModeHost(
     },
     transcriptProps: selectedChatId ? transcriptProps : undefined,
     stagePanelProps: selectedChatId ? stagePanelProps : undefined,
-    settingsContent: null,
-    settingsDrawerTitle: undefined,
-    settingsDrawerSubtitle: undefined,
+    settingsContent: selectedChat ? (
+      <ChatSettingsPanel
+        chatRouteConfigContent={(
+          <RuntimeInspectCard
+            label={t('Chat.mode.human', { defaultValue: 'Human' })}
+            value={getHumanChatTitle(selectedChat)}
+            detail={canonicalSurface.diagnosticsSummary.isStreaming
+              ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
+              : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+          />
+        )}
+        voiceRouteConfigContent={canonicalSurface.rightSidebarContent || (
+          <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
+        )}
+        mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={t('Chat.settingsUnavailableReason', { defaultValue: 'This source does not expose runtime inspect yet.' })} />}
+        diagnosticsContent={(
+          <RuntimeInspectCard
+            label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+            value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
+            detail={canonicalSurface.diagnosticsSummary.isStreaming
+              ? t('ChatTimeline.stopGenerating', 'Stop generating')
+              : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+          />
+        )}
+        presenceContent={<RuntimeInspectUnsupportedNote label={t('Chat.settingsAllowProactiveContactHint', {
+          defaultValue: 'Unavailable until runtime inspect is connected for this source.',
+        })} />}
+      />
+    ) : (
+      <ChatSettingsPanel
+        unavailableReason={t('Chat.humanSetupRequired', {
+          defaultValue: 'Sign in to continue with human conversations.',
+        })}
+      />
+    ),
     composerContent: selectedChatId ? <HumanCanonicalComposer selectedChatId={selectedChatId} /> : null,
-    profileContent: profilePanelTarget && selectedChat ? (
-      <HumanCanonicalProfileDrawer
-        selectedChat={selectedChat}
-        onOpenGift={selectedChat.otherUser?.id ? () => setGiftModalOpen(true) : undefined}
-      />
-    ) : null,
-    profileDrawerTitle: t('Chat.profileTitle', { defaultValue: 'Profile' }),
-    profileDrawerSubtitle: t('Chat.profileSubtitle', { defaultValue: 'Relationship, memory, and target details.' }),
-    rightSidebarContent: selectedChat ? (
-      <ChatRuntimeInspectContent
-        title={t('Chat.runtimeInspectTitle', { defaultValue: 'Runtime Inspect' })}
-        subtitle={t('Chat.runtimeInspectSubtitle', { defaultValue: 'Route, voice, media, and diagnostics for this conversation.' })}
-        statusTitle={getHumanChatTitle(selectedChat)}
-        statusHint={String(selectedChat.otherUser?.handle || '').trim()
-          ? `@${String(selectedChat.otherUser?.handle || '').trim()}`
-          : t('Chat.humanBio', { defaultValue: 'Chat with your friends on Nimi.' })}
-        statusSummary={t('Chat.mode.human', { defaultValue: 'Human' })}
-        statusChips={[
-          {
-            label: authStatus === 'authenticated'
-              ? t('Chat.mode.human', { defaultValue: 'Human' })
-              : t('Chat.humanOffline', { defaultValue: 'Offline' }),
-            tone: authStatus === 'authenticated' ? 'success' : 'warning',
-          },
-        ]}
-        sections={[
-          {
-            key: 'chat',
-            title: t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
-            hint: t('Chat.settingsChatModelHint', { defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.' }),
-            summary: getHumanChatPreview(selectedChat),
-            content: (
-              <RuntimeInspectCard
-                label={t('Chat.mode.human', { defaultValue: 'Human' })}
-                value={getHumanChatTitle(selectedChat)}
-                detail={canonicalSurface.diagnosticsSummary.isStreaming
-                  ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
-                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-              />
-            ),
-          },
-          {
-            key: 'voice',
-            title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
-            hint: t('Chat.settingsVoiceHint', { defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.' }),
-            content: canonicalSurface.rightSidebarContent,
-            disabledReason: t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' }),
-          },
-          {
-            key: 'media',
-            title: t('Chat.settingsVisuals', { defaultValue: 'Visuals' }),
-            hint: t('Chat.settingsVisualsHint', { defaultValue: 'Control whether images and videos appear in conversation, and their content style.' }),
-            disabledReason: t('Chat.settingsUnavailableReason', { defaultValue: 'This source does not expose runtime inspect yet.' }),
-          },
-          {
-            key: 'diagnostics',
-            title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-            hint: t('Chat.profileSubtitle', { defaultValue: 'Relationship, memory, and target details.' }),
-            content: (
-              <RuntimeInspectCard
-                label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-                value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
-                detail={canonicalSurface.diagnosticsSummary.isStreaming
-                  ? t('ChatTimeline.stopGenerating', 'Stop generating')
-                  : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-              />
-            ),
-          },
-        ]}
-        initialOpenPanel={canonicalSurface.rightSidebarAutoOpenKey ? 'voice' : 'chat'}
-      />
-    ) : null,
-    rightSidebarOverlayMenu: canonicalSurface.rightSidebarOverlayMenu,
-    rightSidebarResetKey: `${selectedChatId || 'landing'}:${canonicalSurface.rightSidebarAutoOpenKey || 'none'}`,
-    rightSidebarAutoOpenKey: canonicalSurface.rightSidebarAutoOpenKey,
     auxiliaryOverlayContent: (
       <HumanConversationGiftModal
         open={giftModalOpen}
@@ -298,8 +254,8 @@ export function useHumanConversationModeHost(
     authStatus,
     canonicalMessages,
     canonicalSurface.diagnosticsSummary,
+    canonicalSurface.rightSidebarContent,
     giftModalOpen,
-    profilePanelTarget,
     selectedChat,
     selectedChatTitle,
     selectedChatId,
@@ -309,9 +265,6 @@ export function useHumanConversationModeHost(
     t,
     allChats,
     allChatsSorted,
-    canonicalSurface.rightSidebarAutoOpenKey,
-    canonicalSurface.rightSidebarContent,
-    canonicalSurface.rightSidebarOverlayMenu,
     transcriptProps,
     targets,
   ]);
