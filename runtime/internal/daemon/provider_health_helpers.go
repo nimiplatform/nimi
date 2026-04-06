@@ -66,6 +66,8 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 		return engine.EngineMedia, true
 	case string(engine.EngineSpeech):
 		return engine.EngineSpeech, true
+	case "media-diffusers-backend":
+		return engineManagedImageBackend, true
 	case string(engineManagedImageBackend):
 		return engineManagedImageBackend, true
 	case string(engineSidecar):

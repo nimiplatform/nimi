@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultLocalModelKeepAlive    = 5 * time.Minute
-	managedImageBackendEngineName = "media-diffusers-backend"
+	managedImageBackendEngineName = "managed-image-backend"
 )
 
 type localAssetResidencyState struct {
@@ -136,7 +136,7 @@ func (s *Service) MarkManagedEngineUsed(engineName string, reason string) {
 	if s == nil {
 		return
 	}
-	trimmedEngine := strings.TrimSpace(engineName)
+	trimmedEngine := normalizeManagedEngineName(engineName)
 	if trimmedEngine == "" {
 		return
 	}
@@ -293,11 +293,11 @@ func (s *Service) stopManagedEngineIfIdle(engineName string) error {
 	if mgr == nil {
 		return nil
 	}
-	return mgr.StopEngine(strings.TrimSpace(engineName))
+	return mgr.StopEngine(normalizeManagedEngineName(engineName))
 }
 
 func (s *Service) markAssetsIdleForEngine(engineName string) {
-	trimmed := strings.ToLower(strings.TrimSpace(engineName))
+	trimmed := strings.ToLower(normalizeManagedEngineName(engineName))
 	if s == nil || trimmed == "" {
 		return
 	}
@@ -330,6 +330,16 @@ func (s *Service) markAssetsIdleForEngine(engineName string) {
 		}
 		_, _ = s.ensureModelInstalled(localAssetID, managedLocalModelIdleDetail())
 		s.clearWarmCacheForAsset(localAssetID)
+	}
+}
+
+func normalizeManagedEngineName(engineName string) string {
+	trimmed := strings.ToLower(strings.TrimSpace(engineName))
+	switch trimmed {
+	case "media-diffusers-backend":
+		return managedImageBackendEngineName
+	default:
+		return trimmed
 	}
 }
 

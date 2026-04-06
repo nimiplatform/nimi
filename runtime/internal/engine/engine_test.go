@@ -811,9 +811,11 @@ func TestParseEngineKind(t *testing.T) {
 	}{
 		{"llama", EngineLlama, false},
 		{"media", EngineMedia, false},
+		{"managed-image-backend", engineManagedImageBackend, false},
+		{"media-diffusers-backend", engineManagedImageBackend, false},
 		{"speech", EngineSpeech, false},
-		{"media.diffusers", "", true},
 		{"sidecar", EngineKind("sidecar"), false},
+		{"media.diffusers", "", true},
 		{"unknown", "", true},
 		{"", "", true},
 	}
