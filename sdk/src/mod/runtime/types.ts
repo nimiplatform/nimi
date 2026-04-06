@@ -36,13 +36,16 @@ import type { JsonObject } from '../../internal/utils.js';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
+  RuntimeRouteDescribeResult,
   RuntimeRouteOptionsSnapshot,
+  RuntimeRouteResolvedBindingRef,
   RuntimeRouteSource,
 } from '../runtime-route.js';
 import type { RuntimeRouteHealthResult } from '../types/llm.js';
 
 export type ModRuntimeResolvedBinding = {
   capability: RuntimeCanonicalCapability;
+  resolvedBindingRef?: RuntimeRouteResolvedBindingRef;
   source: RuntimeRouteSource;
   provider: string;
   model: string;
@@ -68,6 +71,11 @@ export type ModRuntimeRouteResolveInput = {
 };
 
 export type ModRuntimeRouteCheckHealthInput = ModRuntimeRouteResolveInput;
+
+export type ModRuntimeRouteDescribeInput = {
+  capability: RuntimeCanonicalCapability;
+  resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+};
 
 export type ModRuntimeBoundTextGenerateInput =
   Omit<TextGenerateInput, 'model' | 'route' | 'fallback' | 'connectorId'>
@@ -250,6 +258,7 @@ export type ModRuntimeClient = {
     listOptions(input: ModRuntimeRouteListOptionsInput): Promise<RuntimeRouteOptionsSnapshot>;
     resolve(input: ModRuntimeRouteResolveInput): Promise<ModRuntimeResolvedBinding>;
     checkHealth(input: ModRuntimeRouteCheckHealthInput): Promise<RuntimeRouteHealthResult>;
+    describe(input: ModRuntimeRouteDescribeInput): Promise<RuntimeRouteDescribeResult>;
   };
   local: {
     listAssets(input?: ModRuntimeListLocalAssetsInput): Promise<ModRuntimeLocalAssetRecord[]>;

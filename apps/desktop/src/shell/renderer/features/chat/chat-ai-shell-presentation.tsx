@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import {
-  CanonicalComposer,
   CanonicalDrawerSection,
+  CanonicalComposer,
   type CanonicalRuntimeInspectSectionData,
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -23,29 +23,29 @@ import {
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
 import {
-  getAiRouteDisplaySummary,
-  isAiRouteSnapshotEqual,
+  getResolvedRouteDisplaySummary,
+  isResolvedRouteEqual,
   toConversationThreadSummary,
 } from './chat-ai-thread-model';
-import type { AiConversationRouteSnapshot } from './chat-shell-types';
+import type { AiConversationResolvedRoute } from './chat-ai-route-readiness';
 import type { ChatThinkingPreference } from './chat-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 
 type UseAiConversationPresentationInput = {
   activeThreadId: string | null;
   aiCharacterData: DesktopConversationModeHost['characterData'];
-  availableRouteSnapshots: readonly AiConversationRouteSnapshot[];
+  availableResolvedRoutes: readonly AiConversationResolvedRoute[];
   bundle: ChatAiThreadBundle | null;
   bundleError: unknown;
   canonicalMessages: NonNullable<DesktopConversationModeHost['messages']>;
   composerReady: boolean;
   currentDraftTextRef: { current: string };
-  currentRouteSnapshot: AiConversationRouteSnapshot | null;
+  currentResolvedRoute: AiConversationResolvedRoute | null;
   footerContent: ReactNode;
   handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
   handleRenameThread: (threadId: string, title: string) => void;
-  handleRouteSelection: (route: AiConversationRouteSnapshot) => void;
+  handleRouteSelection: (route: AiConversationResolvedRoute) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
@@ -93,9 +93,9 @@ export function useAiConversationPresentation(
             detail={input.routeSummary.detail}
           />
           <div className="space-y-2">
-            {input.availableRouteSnapshots.map((route) => {
-              const routeDisplay = getAiRouteDisplaySummary(route, input.runtimeConfigState);
-              const active = isAiRouteSnapshotEqual(route, input.currentRouteSnapshot);
+            {input.availableResolvedRoutes.map((route) => {
+              const routeDisplay = getResolvedRouteDisplaySummary(route, input.runtimeConfigState);
+              const active = isResolvedRouteEqual(route, input.currentResolvedRoute);
               const routeKey = route.routeKind === 'local'
                 ? 'local'
                 : `${route.connectorId}:${route.modelId || 'missing-model'}`;
@@ -159,8 +159,8 @@ export function useAiConversationPresentation(
       ),
     },
   ], [
-    input.availableRouteSnapshots,
-    input.currentRouteSnapshot,
+    input.availableResolvedRoutes,
+    input.currentResolvedRoute,
     input.handleRouteSelection,
     input.readiness.setupState.status,
     input.routeSummary.detail,
@@ -169,6 +169,18 @@ export function useAiConversationPresentation(
     input.submittingThreadId,
     input.t,
   ]);
+  const chatRouteConfigContent = useMemo(() => (
+    aiInspectSections[0]?.content ? (
+      <CanonicalDrawerSection
+        title={input.t('Chat.settingsChatRouteConfig', { defaultValue: 'Model route config' })}
+        hint={input.t('Chat.settingsChatRouteConfigHint', {
+          defaultValue: 'Inspect and switch the runtime-backed route selection used for this conversation.',
+        })}
+      >
+        {aiInspectSections[0].content}
+      </CanonicalDrawerSection>
+    ) : null
+  ), [aiInspectSections, input.t]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -221,7 +233,7 @@ export function useAiConversationPresentation(
         thinkingSupported={input.thinkingSupported}
         thinkingUnsupportedReason={input.thinkingUnsupportedReason}
         onThinkingPreferenceChange={input.setChatThinkingPreference}
-        chatRouteConfigContent={aiInspectSections[0]?.content}
+        chatRouteConfigContent={chatRouteConfigContent}
         voiceRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[1]?.disabledReason || ''} />}
         mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[2]?.disabledReason || ''} />}
         diagnosticsContent={aiInspectSections[3]?.content}
@@ -281,16 +293,17 @@ export function useAiConversationPresentation(
   }), [
     adapter,
     aiInspectSections,
+    chatRouteConfigContent,
     hostFeedbackNode,
     input.activeThreadId,
     input.aiCharacterData,
-    input.availableRouteSnapshots,
+    input.availableResolvedRoutes,
     input.bundle?.draft?.text,
     input.bundle?.draft?.updatedAtMs,
     input.bundleError,
     input.canonicalMessages,
     input.currentDraftTextRef,
-    input.currentRouteSnapshot,
+    input.currentResolvedRoute,
     input.footerContent,
     input.handleArchiveThread,
     input.handleCreateThread,

@@ -32,6 +32,7 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 - Desktop core product 不拥有 Agent chat route API，也不得在 DataSync / launcher / fallback policy 中内建 Agent 聊天路由。
 - mods 如需 Agent 聊天路由，必须通过 desktop host 的 data capability `data-api.core.agent.chat.route.resolve` 查询目标 agent 和 provider。
 - `data-api.core.agent.chat.route.resolve` 必须 fail-close：缺少 `agentId`、控制面请求失败、或返回 payload 非法时直接报错；Desktop host 不得合成本地 `LOCAL/AGENT_LOCAL` 成功路由。
+- `AgentEffectiveCapabilityResolution` 的唯一 authority home 是 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）定义的 shared builder；setup / submit / runtime 不得各自重算一份 agent route truth。
 - `ExecuteLocalTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
 - `mode: 'STORY' | 'SCENE_TURN'` 确定对话模式。
 
@@ -78,8 +79,9 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 选路规则固定为：
 - `audio.synthesize`：先走 `runtime.route.listOptions({ capability: 'audio.synthesize' })` 选 binding，再调用 `runtime.media.tts.listVoices/synthesize/stream`
-- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：先走对应 workflow capability 的 `runtime.route.listOptions` 选 connector/workflow model，再提交 runtime media job
+- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
+- AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 
 ## D-LLM-006 — 本地 AI 推理审计
 

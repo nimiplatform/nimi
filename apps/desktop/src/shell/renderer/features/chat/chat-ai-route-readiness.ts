@@ -9,7 +9,7 @@ import type {
   ProviderStatusV11,
   RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { AiConversationRouteSnapshot } from './chat-shell-types';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 export type AiConversationResolvedRoute = {
   routeKind: 'local' | 'cloud';
@@ -72,6 +72,37 @@ function hasChatCapableConnectorModels(connector: ApiConnector): boolean {
   });
 }
 
+function pickChatCapableConnectorModel(
+  connector: ApiConnector,
+  preferredModelId?: string | null,
+): string | null {
+  const preferred = normalizeText(preferredModelId);
+  const models = connector.models
+    .map((modelId) => normalizeText(modelId))
+    .filter(Boolean);
+  if (models.length === 0) {
+    return null;
+  }
+  const capabilityMap = connector.modelCapabilities || {};
+  const capabilityKeys = Object.keys(capabilityMap);
+  if (capabilityKeys.length === 0) {
+    if (preferred && models.includes(preferred)) {
+      return preferred;
+    }
+    return models[0] || null;
+  }
+  if (preferred) {
+    const preferredCapabilities = capabilityMap[preferred];
+    if (Array.isArray(preferredCapabilities) && preferredCapabilities.includes('chat')) {
+      return preferred;
+    }
+  }
+  return models.find((modelId) => {
+    const capabilities = capabilityMap[modelId];
+    return Array.isArray(capabilities) && capabilities.includes('chat');
+  }) || null;
+}
+
 function isConfiguredCloudConnector(connector: ApiConnector): boolean {
   return Boolean(
     connector.hasCredential
@@ -91,7 +122,7 @@ function toCloudRoute(connector: ApiConnector, modelId?: string | null): AiConve
     routeKind: 'cloud',
     connectorId: connector.id,
     provider: normalizeText(connector.provider) || null,
-    modelId: normalizeText(modelId) || null,
+    modelId: pickChatCapableConnectorModel(connector, modelId),
   };
 }
 
@@ -105,13 +136,13 @@ function buildSettingsAction(
   };
 }
 
-function resolvePreferredCloudRoute(
+function resolvePreferredCloudRouteFromBinding(
   readyConnectors: readonly ApiConnector[],
-  routeSnapshot: AiConversationRouteSnapshot,
+  binding: RuntimeRouteBinding,
 ): AiConversationResolvedRoute | null {
-  const connectorId = normalizeText(routeSnapshot.connectorId);
-  const provider = normalizeText(routeSnapshot.provider);
-  const modelId = normalizeText(routeSnapshot.modelId);
+  const connectorId = normalizeText(binding.connectorId);
+  const provider = normalizeText(binding.provider);
+  const model = normalizeText(binding.model) || normalizeText(binding.modelId);
   const connector = readyConnectors.find((candidate) => {
     if (connectorId && candidate.id !== connectorId) {
       return false;
@@ -119,7 +150,7 @@ function resolvePreferredCloudRoute(
     if (provider && normalizeText(candidate.provider) !== provider) {
       return false;
     }
-    if (modelId && !candidate.models.includes(modelId)) {
+    if (model && !candidate.models.includes(model)) {
       return false;
     }
     return true;
@@ -127,7 +158,7 @@ function resolvePreferredCloudRoute(
   if (!connector) {
     return null;
   }
-  return toCloudRoute(connector, modelId || null);
+  return toCloudRoute(connector, model || null);
 }
 
 function buildUnavailableState(): AiConversationRouteReadiness {
@@ -178,9 +209,26 @@ function buildSetupRequiredState(input: {
   };
 }
 
+function resolvePreferredLocalRoute(
+  state: RuntimeConfigStateV11,
+): AiConversationResolvedRoute | null {
+  if (!hasLocalChatCapability(state) || !isReadyProviderStatus(state.local.status)) {
+    return null;
+  }
+  const preferredModel = state.local.models.find(
+    (model) => model.status === 'active' && model.capabilities.includes('chat'),
+  ) || null;
+  return {
+    routeKind: 'local',
+    connectorId: null,
+    provider: null,
+    modelId: normalizeText(preferredModel?.model) || null,
+  };
+}
+
 export function resolveAiConversationRouteReadiness(input: {
   runtimeConfigState: RuntimeConfigStateV11 | null;
-  routeSnapshot?: AiConversationRouteSnapshot | null;
+  selectedBinding?: RuntimeRouteBinding | null;
 }): AiConversationRouteReadiness {
   const state = input.runtimeConfigState;
   if (!state) {
@@ -190,29 +238,30 @@ export function resolveAiConversationRouteReadiness(input: {
   const localReady = hasLocalChatCapability(state) && isReadyProviderStatus(state.local.status);
   const readyConnectors = state.connectors.filter((connector) => isReadyCloudConnector(connector));
   const configuredCloudConnectors = state.connectors.filter((connector) => isConfiguredCloudConnector(connector));
-  const localRoute: AiConversationResolvedRoute | null = localReady
-    ? { routeKind: 'local', connectorId: null, provider: null, modelId: null }
-    : null;
+  const localRoute = localReady ? resolvePreferredLocalRoute(state) : null;
   const cloudRoutes = readyConnectors.map((connector) => toCloudRoute(connector));
   const readyRoutes = [...(localRoute ? [localRoute] : []), ...cloudRoutes];
   const defaultRoute = localRoute ?? cloudRoutes[0] ?? null;
-  const routeSnapshot = input.routeSnapshot ?? null;
 
-  if (routeSnapshot) {
-    const preferredRoute = routeSnapshot.routeKind === 'local'
+  // Primary: resolve preferred route from selectedBinding (SelectionStore owner)
+  const selectedBinding = input.selectedBinding ?? null;
+  if (selectedBinding) {
+    const bindingSource = normalizeText(selectedBinding.source).toLowerCase();
+    const preferredRoute = bindingSource === 'local'
       ? localRoute
-      : resolvePreferredCloudRoute(readyConnectors, routeSnapshot);
+      : resolvePreferredCloudRouteFromBinding(readyConnectors, selectedBinding);
     if (!preferredRoute) {
+      const routeKind = bindingSource === 'local' ? 'local' as const : 'cloud' as const;
       return buildSetupRequiredState({
         issues: [{
           code: 'ai-thread-route-unavailable',
-          routeKind: routeSnapshot.routeKind,
-          detail: routeSnapshot.routeKind === 'local'
+          routeKind,
+          detail: routeKind === 'local'
             ? normalizeText(state.local.lastDetail) || 'saved local route is not ready'
             : 'saved cloud route is not ready',
         }],
         action: buildSettingsAction(
-          routeSnapshot.routeKind === 'local' ? 'runtime-local' : 'runtime-cloud',
+          routeKind === 'local' ? 'runtime-local' : 'runtime-cloud',
         ),
         readyRoutes,
         configuredCloudConnectorCount: configuredCloudConnectors.length,

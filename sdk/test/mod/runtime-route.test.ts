@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  decodeRuntimeRouteDescribeResultFromMetadata,
   parseRuntimeRouteBinding,
+  parseRuntimeRouteDescribeResult,
   parseRuntimeRouteOptions,
+  RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY,
 } from '../../src/mod/runtime-route.js';
 
 test('parseRuntimeRouteBinding keeps cloud provider metadata', () => {
@@ -148,4 +151,115 @@ test('parseRuntimeRouteBinding drops unknown adapters instead of widening to arb
   });
 
   assert.equal(parsed?.adapter, undefined);
+});
+
+test('parseRuntimeRouteDescribeResult accepts text.generate typed metadata', () => {
+  const parsed = parseRuntimeRouteDescribeResult({
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-001',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: false,
+      traceModeSupport: 'none',
+      supportsImageInput: true,
+      supportsAudioInput: false,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: true,
+    },
+  });
+
+  assert.deepEqual(parsed, {
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-001',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: false,
+      traceModeSupport: 'none',
+      supportsImageInput: true,
+      supportsAudioInput: false,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: true,
+    },
+  });
+});
+
+test('decodeRuntimeRouteDescribeResultFromMetadata decodes typed payload from response metadata', () => {
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-002',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: true,
+      traceModeSupport: 'separate',
+      supportsImageInput: true,
+      supportsAudioInput: true,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: true,
+    },
+  }), 'utf8').toString('base64');
+
+  const parsed = decodeRuntimeRouteDescribeResultFromMetadata({
+    metadata: {
+      [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
+    },
+    expectedCapability: 'text.generate',
+    expectedResolvedBindingRef: 'binding-002',
+  });
+
+  assert.equal(parsed.metadataKind, 'text.generate');
+  assert.equal(parsed.metadata.supportsThinking, true);
+  assert.equal(parsed.metadata.traceModeSupport, 'separate');
+});
+
+test('decodeRuntimeRouteDescribeResultFromMetadata fails closed on mismatched binding ref', () => {
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-actual',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: false,
+      traceModeSupport: 'none',
+      supportsImageInput: false,
+      supportsAudioInput: false,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: false,
+    },
+  }), 'utf8').toString('base64');
+
+  assert.throws(() => decodeRuntimeRouteDescribeResultFromMetadata({
+    metadata: {
+      [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
+    },
+    expectedCapability: 'text.generate',
+    expectedResolvedBindingRef: 'binding-expected',
+  }), /RUNTIME_ROUTE_DESCRIBE_METADATA_BINDING_REF_MISMATCH/);
+});
+
+test('decodeRuntimeRouteDescribeResultFromMetadata fails closed on invalid schema', () => {
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'text.generate',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-003',
+    metadataKind: 'text.generate',
+    metadata: {
+      supportsThinking: false,
+      traceModeSupport: 'invalid',
+      supportsImageInput: false,
+      supportsAudioInput: false,
+      supportsVideoInput: false,
+      supportsArtifactRefInput: false,
+    },
+  }), 'utf8').toString('base64');
+
+  assert.throws(() => decodeRuntimeRouteDescribeResultFromMetadata({
+    metadata: {
+      [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
+    },
+    expectedCapability: 'text.generate',
+    expectedResolvedBindingRef: 'binding-003',
+  }), /RUNTIME_ROUTE_DESCRIBE_METADATA_SCHEMA_INVALID/);
 });

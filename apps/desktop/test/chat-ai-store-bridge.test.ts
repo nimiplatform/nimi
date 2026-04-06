@@ -6,11 +6,9 @@ import {
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-store.js';
 import {
   parseChatAiThreadBundle,
-  parseChatAiThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-parsers.js';
 import type {
   ChatAiMessageContent,
-  ChatAiRouteSnapshot,
 } from '../src/shell/renderer/bridge/runtime-bridge/chat-ai-types.js';
 
 type TauriInvokeCall = {
@@ -65,18 +63,6 @@ function installTauriInvokeMock(
   };
 }
 
-function sampleRouteSnapshot(): ChatAiRouteSnapshot {
-  return {
-    routeKind: 'cloud',
-    connectorId: 'connector-openai',
-    provider: 'openai',
-    modelId: 'gpt-5.4-mini',
-    routeBinding: {
-      temperature: 0.3,
-    },
-  };
-}
-
 function sampleMessageContent(text: string): ChatAiMessageContent {
   return {
     parts: [{ type: 'text', text }],
@@ -86,24 +72,7 @@ function sampleMessageContent(text: string): ChatAiMessageContent {
   };
 }
 
-test('chat ai bridge parser rejects invalid route kind and timestamps', () => {
-  assert.throws(() => {
-    parseChatAiThreadSummary({
-      id: 'thread-1',
-      title: 'alpha',
-      updatedAtMs: 100,
-      lastMessageAtMs: null,
-      archivedAtMs: null,
-      routeSnapshot: {
-        routeKind: 'edge',
-        connectorId: null,
-        provider: null,
-        modelId: null,
-        routeBinding: null,
-      },
-    });
-  }, /routeKind is invalid/);
-
+test('chat ai bridge parser rejects invalid timestamps', () => {
   assert.throws(() => {
     parseChatAiThreadBundle({
       thread: {
@@ -113,7 +82,6 @@ test('chat ai bridge parser rejects invalid route kind and timestamps', () => {
         updatedAtMs: 'not-a-number',
         lastMessageAtMs: null,
         archivedAtMs: null,
-        routeSnapshot: sampleRouteSnapshot(),
       },
       messages: [],
       draft: null,
@@ -133,7 +101,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
           updatedAtMs: 100,
           lastMessageAtMs: 90,
           archivedAtMs: null,
-          routeSnapshot: sampleRouteSnapshot(),
         }];
       case 'chat_ai_get_thread_bundle':
         return {
@@ -144,7 +111,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
             updatedAtMs: 100,
             lastMessageAtMs: 90,
             archivedAtMs: null,
-            routeSnapshot: sampleRouteSnapshot(),
           },
           messages: [{
             id: 'message-1',
@@ -205,7 +171,7 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
 
   try {
     const threads = await chatAiStoreClient.listThreads();
-    assert.equal(threads[0]?.routeSnapshot.provider, 'openai');
+    assert.equal(threads[0]?.title, 'alpha');
 
     const bundle = await chatAiStoreClient.getThreadBundle('thread-1');
     assert.equal(bundle?.messages[0]?.status, 'complete');
@@ -217,7 +183,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
       updatedAtMs: 100,
       lastMessageAtMs: 90,
       archivedAtMs: null,
-      routeSnapshot: sampleRouteSnapshot(),
     });
     await chatAiStoreClient.updateThreadMetadata({
       id: 'thread-1',
@@ -225,7 +190,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
       updatedAtMs: 120,
       lastMessageAtMs: 115,
       archivedAtMs: null,
-      routeSnapshot: sampleRouteSnapshot(),
     });
     await chatAiStoreClient.createMessage({
       id: 'message-1',
@@ -296,7 +260,6 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
         updatedAtMs: 100,
         lastMessageAtMs: 90,
         archivedAtMs: null,
-        routeSnapshot: sampleRouteSnapshot(),
       },
     });
     assert.deepEqual(calls[5]?.payload, {

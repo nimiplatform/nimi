@@ -126,14 +126,6 @@ test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metada
 test('buildSelectedBinding falls back to cloud embedding connector when no local embedding model exists', () => {
   const selected = buildSelectedBinding({
     capability: 'text.embed',
-    runtimeFields: {
-      provider: 'localai',
-      runtimeModelType: 'chat',
-      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-      localProviderModel: 'qwen2.5-7b-instruct',
-      localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-      connectorId: '',
-    },
     localModels: [],
     connectors: [{
       id: 'openai-main',
@@ -156,13 +148,13 @@ test('buildSelectedBinding falls back to cloud embedding connector when no local
 test('buildSelectedBinding preserves local selection when local metadata is degraded', () => {
   const selected = buildSelectedBinding({
     capability: 'text.generate',
-    runtimeFields: {
-      provider: 'localai',
-      runtimeModelType: 'chat',
-      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-      localProviderModel: 'qwen2.5-7b-instruct',
-      localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+    selectedBinding: {
+      source: 'local',
       connectorId: '',
+      model: 'qwen2.5-7b-instruct',
+      modelId: 'qwen2.5-7b-instruct',
+      provider: 'llama',
+      engine: 'llama',
     },
     localModels: [],
     connectors: [{
@@ -192,14 +184,6 @@ test('buildSelectedBinding falls back to llama for text when runtime metadata is
   try {
     const selected = buildSelectedBinding({
       capability: 'text.generate',
-      runtimeFields: {
-        provider: 'local',
-        runtimeModelType: 'chat',
-        localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-        localProviderModel: 'qwen3-chat',
-        localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-        connectorId: '',
-      },
       localModels: [],
       connectors: [],
       localMetadataDegraded: true,

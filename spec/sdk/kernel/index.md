@@ -27,6 +27,7 @@
 | `error-projection.md` | `S-ERROR-*` | 错误投影、重试语义、合成码治理 |
 | `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界与禁止路径 |
 | `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线 |
+| `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
 | `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配与投影约束 |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |

@@ -90,13 +90,6 @@ function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | 
         return 'audio.transcribe';
     return null;
 }
-function inferSource(provider: string): 'local' | 'cloud' {
-    const lower = String(provider || '').trim().toLowerCase();
-    if (lower.startsWith('local') || lower === 'llama' || lower === 'media' || lower === 'speech' || lower === 'sidecar') {
-        return 'local';
-    }
-    return 'cloud';
-}
 function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
     const platform = resolveLocalRoutePlatform();
     if (capability === 'image.generate' || capability === 'video.generate') {
@@ -404,70 +397,69 @@ function firstAvailableBinding(localModels: RuntimeRouteLocalOption[], connector
 
 export function buildSelectedBinding(input: {
     capability: RuntimeCanonicalCapability;
-    runtimeFields: RuntimeFields;
+    selectedBinding?: RuntimeRouteBinding | null;
     localModels: RuntimeRouteLocalOption[];
     connectors: RuntimeRouteConnectorOption[];
     localMetadataDegraded?: boolean;
     runtimeDefaultEngine?: string;
 }): RuntimeRouteBinding {
-    const { runtimeFields, localModels, connectors, localMetadataDegraded } = input;
-    const preferredSource = inferSource(runtimeFields.provider);
-    if (preferredSource === 'local') {
-        const preferredBinding: RuntimeRouteBinding = {
-            source: 'local',
-            connectorId: '',
-            model: String(runtimeFields.localProviderModel || '').trim(),
-            modelId: normalizeLocalModelRoot(String(runtimeFields.localProviderModel || '').trim()) || undefined,
-            engine: inferLocalEngine(runtimeFields.provider, input.capability, input.runtimeDefaultEngine),
-            provider: inferLocalEngine(runtimeFields.provider, input.capability, input.runtimeDefaultEngine),
-        };
-        const matchedLocalModel = pickMatchingLocalOption(localModels, preferredBinding);
+    const { selectedBinding, localModels, connectors, localMetadataDegraded } = input;
+    if (selectedBinding?.source === 'local') {
+        const matchedLocalModel = pickMatchingLocalOption(localModels, selectedBinding);
         if (matchedLocalModel) {
             return toLocalBinding(matchedLocalModel);
         }
-        if (!String(preferredBinding.model || preferredBinding.modelId || '').trim() && localModels.length > 0) {
-            return toLocalBinding(localModels[0]!);
-        }
-        if (input.capability === 'text.embed') {
-            return firstAvailableBinding(localModels, connectors) || {
-                ...preferredBinding,
-                model: '',
-                modelId: undefined,
-                goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
-            };
-        }
         return {
-            ...preferredBinding,
-            endpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
-            goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
+            ...selectedBinding,
+            model: String(selectedBinding.model || selectedBinding.modelId || '').trim(),
+            modelId: normalizeLocalModelRoot(String(selectedBinding.modelId || selectedBinding.model || '').trim()) || undefined,
+            engine: inferLocalEngine(
+                String(selectedBinding.engine || selectedBinding.provider || '').trim(),
+                input.capability,
+                input.runtimeDefaultEngine,
+            ),
+            provider: String(selectedBinding.provider || selectedBinding.engine || '').trim() || undefined,
+            goRuntimeStatus: String(selectedBinding.goRuntimeStatus || '').trim() || (localMetadataDegraded ? 'degraded' : 'unavailable'),
         };
     }
-    const preferredBinding: RuntimeRouteBinding = {
-        source: 'cloud',
-        connectorId: String(runtimeFields.connectorId || '').trim(),
-        model: String(runtimeFields.localProviderModel || '').trim(),
-        provider: String(runtimeFields.provider || '').trim() || undefined,
-    };
-    const availableBindings: RuntimeRouteBinding[] = [
-        ...localModels.map((item) => toLocalBinding(item)),
-        ...connectors.flatMap((connector) => connector.models.map((model) => ({
-            source: 'cloud' as const,
-            connectorId: connector.id,
-            model,
-            provider: String(connector.provider || '').trim() || undefined,
-        }))),
-    ];
-    const matchedBinding = availableBindings.find((item) => bindingKey(item) === bindingKey(preferredBinding)) || null;
-    if (matchedBinding) {
-        return matchedBinding;
+    if (selectedBinding?.source === 'cloud') {
+        const matchedBinding = connectors
+            .flatMap((connector) => connector.models.map((model) => ({
+                source: 'cloud' as const,
+                connectorId: connector.id,
+                model,
+                provider: String(connector.provider || '').trim() || undefined,
+            })))
+            .find((item) => bindingKey(item) === bindingKey(selectedBinding)) || null;
+        if (matchedBinding) {
+            return matchedBinding;
+        }
+        return mergeCloudBindingProvider({
+            ...selectedBinding,
+            connectorId: String(selectedBinding.connectorId || '').trim(),
+            model: String(selectedBinding.model || selectedBinding.modelId || '').trim(),
+        }, connectors);
     }
-    return firstAvailableBinding(localModels, connectors) || mergeCloudBindingProvider(preferredBinding, connectors);
+    return firstAvailableBinding(localModels, connectors) || {
+        source: 'local',
+        connectorId: '',
+        model: '',
+        modelId: undefined,
+        engine: inferLocalEngine('', input.capability, input.runtimeDefaultEngine),
+        provider: inferLocalEngine('', input.capability, input.runtimeDefaultEngine),
+        goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
+    };
 }
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
     modId?: string;
 }, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<RuntimeRouteOptionsSnapshot> {
-    const runtimeFields = useAppStore.getState().runtimeFields as RuntimeFields;
+    const appStore = useAppStore.getState();
+    const runtimeFields = appStore.runtimeFields as RuntimeFields;
+    const selectedBindings = appStore.conversationCapabilitySelectionStore.selectedBindings;
+    const selectedBinding = input.capability === 'text.embed'
+        ? undefined
+        : selectedBindings[input.capability] ?? undefined;
     const connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
     const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
         sdkListConnectors: connectorService.sdkListConnectors,
@@ -583,7 +575,7 @@ export async function loadRuntimeRouteOptions(input: {
         .sort((left, right) => left.defaultRank - right.defaultRank)[0]?.provider;
     const selected = buildSelectedBinding({
         capability: input.capability,
-        runtimeFields,
+        selectedBinding,
         localModels: localModels,
         connectors,
         localMetadataDegraded,

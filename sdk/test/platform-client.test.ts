@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { clearPlatformClient, createPlatformClient, getPlatformClient } from '../src/index.js';
+import { GetRuntimeHealthResponse, setNodeGrpcBridge } from '../src/runtime/index.js';
 import { ReasonCode } from '../src/types/index.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,23 @@ function readAuthorizationHeader(input: RequestInfo | URL, init?: RequestInit): 
     return input.headers.get('authorization') || '';
   }
   return new Headers(init?.headers as HeadersInit | undefined).get('authorization') || '';
+}
+
+function toBase64Url(input: string): string {
+  return Buffer.from(input, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function createJwt(expSecondsFromNow: number): string {
+  const header = toBase64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = toBase64Url(JSON.stringify({
+    sub: 'user-1',
+    exp: Math.floor(Date.now() / 1000) + expSecondsFromNow,
+  }));
+  return `${header}.${payload}.signature`;
 }
 
 test('createPlatformClient initializes runtime, realm, and grouped domains', async () => {
@@ -174,6 +192,42 @@ test('createPlatformClient allows anonymous realm access without authorization h
 
   await client.realm.ready();
   assert.equal(authorizationHeader, null);
+});
+
+test('createPlatformClient runtime auth provider does not forward expired bearer tokens', async () => {
+  clearPlatformClient();
+  const previousBridge = null;
+  let authorizationHeader: string | undefined;
+
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      authorizationHeader = input.authorization;
+      return GetRuntimeHealthResponse.toBinary(GetRuntimeHealthResponse.create({}));
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = await createPlatformClient({
+      appId: 'nimi.sdk.platform.runtime.expired-token',
+      realmBaseUrl: 'https://realm.example',
+      accessToken: createJwt(-60),
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+    });
+
+    await client.domains.runtimeAdmin.getRuntimeHealth({});
+    assert.equal(authorizationHeader, undefined);
+  } finally {
+    setNodeGrpcBridge(previousBridge);
+  }
 });
 
 test('createPlatformClient detects tauri transport from global runtime', async () => {

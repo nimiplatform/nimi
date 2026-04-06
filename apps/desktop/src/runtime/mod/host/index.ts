@@ -87,6 +87,7 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                     reasonCode: ReasonCode.RUNTIME_ROUTE_UNAVAILABLE,
                     actionHint: 'verify-connector',
                 }),
+                describe: async () => { throw notReady(); },
             },
             local: {
                 listAssets: async () => { throw notReady(); },

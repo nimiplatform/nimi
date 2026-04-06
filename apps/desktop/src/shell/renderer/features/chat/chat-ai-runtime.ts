@@ -11,7 +11,6 @@ import type {
   LocalModelOptionV11,
   RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import { createResolveRuntimeBinding } from '@renderer/infra/bootstrap/runtime-bootstrap-route-resolvers';
 import { localRuntime, type LocalRuntimeAssetHealth } from '@runtime/local-runtime';
 import { invokeModLlm } from '@runtime/llm-adapter/execution';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from '@runtime/llm-adapter/execution';
@@ -21,24 +20,21 @@ import {
   getRuntimeClient,
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
+import { pickPreferredChatLocalModel } from './chat-ai-thread-model';
 import {
-  pickChatCapableConnectorModel,
-  pickPreferredChatLocalModel,
-} from './chat-ai-thread-model';
-import {
-  resolveAiChatThinkingSupport,
   resolveChatThinkingConfig,
+  resolveTextExecutionSnapshotThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
-import type { AiConversationRouteSnapshot } from './chat-shell-types';
+import type { ConversationExecutionSnapshot } from './conversation-capability';
 
 export type ChatAiRuntimeInvokeInput = {
-  routeSnapshot: AiConversationRouteSnapshot;
   prompt: string;
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
+  executionSnapshot: ConversationExecutionSnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
@@ -67,15 +63,6 @@ export const CORE_CHAT_AI_MOD_ID = 'core.chat-ai';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function isLocalProvider(value: string): boolean {
-  const normalized = normalizeText(value).toLowerCase();
-  return normalized === 'llama'
-    || normalized === 'media'
-    || normalized === 'speech'
-    || normalized === 'sidecar'
-    || normalized.startsWith('local');
 }
 
 function requireValue(value: unknown, reasonCode: string, actionHint: string, message: string): string {
@@ -176,48 +163,26 @@ export async function resolvePreferredChatLocalModel(
 async function resolveInvokeInput(
   input: ChatAiRuntimeInvokeInput,
 ): Promise<InvokeModLlmInput> {
-  if (input.routeSnapshot.routeKind === 'local') {
-    const configuredLocalModel = normalizeText(input.runtimeFields.localProviderModel);
-    const localModel = await resolvePreferredChatLocalModel(
-      input.runtimeConfigState,
-      configuredLocalModel,
-    );
-    const fallbackProvider = localModel?.engine || 'llama';
-    const fallbackModel = localModel?.model || '';
-    const fallbackEndpoint = normalizeText(localModel?.endpoint)
-      || normalizeText(input.runtimeConfigState?.local.endpoint);
-    const shouldUseConfiguredLocalModel = Boolean(
-      localModel && matchesConfiguredLocalModel(localModel, configuredLocalModel),
-    );
-    const runtimeFields = {
-      provider: isLocalProvider(input.runtimeFields.provider)
-        ? input.runtimeFields.provider
-        : fallbackProvider,
-      runtimeModelType: 'chat',
-      localProviderEndpoint: normalizeText(input.runtimeFields.localProviderEndpoint) || fallbackEndpoint,
-      localProviderModel: shouldUseConfiguredLocalModel ? configuredLocalModel : fallbackModel,
-      localOpenAiEndpoint: normalizeText(input.runtimeFields.localOpenAiEndpoint)
-        || normalizeText(input.runtimeFields.localProviderEndpoint)
-        || fallbackEndpoint,
-      connectorId: '',
-    };
-    const resolveRuntimeBinding = createResolveRuntimeBinding(() => runtimeFields);
-    const resolved = await resolveRuntimeBinding({
-      modId: CORE_CHAT_AI_MOD_ID,
-      binding: {
-        source: 'local',
-        connectorId: '',
-        model: runtimeFields.localProviderModel,
-      },
+  const snapshot = input.executionSnapshot;
+  if (!snapshot || snapshot.capability !== 'text.generate') {
+    throw createNimiError({
+      message: 'text.generate execution snapshot is not available',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
     });
-    if (resolved.source !== 'local') {
-      throw createNimiError({
-        message: 'local AI route resolved to an invalid source',
-        reasonCode: ReasonCode.AI_INPUT_INVALID,
-        actionHint: 'select_runtime_route_binding',
-        source: 'runtime',
-      });
-    }
+  }
+  const resolved = snapshot.resolvedBinding;
+  if (!resolved) {
+    throw createNimiError({
+      message: 'text.generate execution snapshot resolved binding is missing',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+
+  if (resolved.source === 'local') {
     return {
       modId: CORE_CHAT_AI_MOD_ID,
       provider: requireValue(
@@ -227,57 +192,17 @@ async function resolveInvokeInput(
         'local AI route provider is missing',
       ),
       prompt: input.prompt,
-      localProviderEndpoint: normalizeText(resolved.localProviderEndpoint) || undefined,
+      localProviderEndpoint: normalizeText(resolved.localProviderEndpoint) || normalizeText(resolved.endpoint) || undefined,
       localProviderModel: requireValue(
-        resolved.localProviderModel || resolved.modelId || resolved.model,
+        resolved.modelId || resolved.model || resolved.localModelId,
         ReasonCode.AI_INPUT_INVALID,
         'select_runtime_route_binding',
         'local AI route model is missing',
       ),
-      localOpenAiEndpoint: normalizeText(resolved.localOpenAiEndpoint) || undefined,
+      localOpenAiEndpoint: normalizeText(resolved.localOpenAiEndpoint) || normalizeText(resolved.endpoint) || undefined,
     };
   }
 
-  const connectorId = requireValue(
-    input.routeSnapshot.connectorId,
-    ReasonCode.AI_INPUT_INVALID,
-    'select_runtime_route_binding',
-    'cloud AI route connector is missing',
-  );
-  const provider = requireValue(
-    input.routeSnapshot.provider,
-    ReasonCode.AI_INPUT_INVALID,
-    'select_runtime_route_binding',
-    'cloud AI route provider is missing',
-  );
-  const connector = input.runtimeConfigState?.connectors.find((item) => item.id === connectorId) || null;
-  const modelId = normalizeText(input.routeSnapshot.modelId)
-    || (connector ? pickChatCapableConnectorModel(connector, null) : null)
-    || '';
-  const resolvedModelId = requireValue(
-    modelId,
-    ReasonCode.AI_INPUT_INVALID,
-    'select_runtime_route_binding',
-    'cloud AI route model is missing',
-  );
-  const resolveRuntimeBinding = createResolveRuntimeBinding(() => ({
-    provider,
-    runtimeModelType: 'chat',
-    localProviderEndpoint: '',
-    localProviderModel: resolvedModelId,
-    localOpenAiEndpoint: '',
-    connectorId,
-  }));
-  const resolved = await resolveRuntimeBinding({
-    modId: CORE_CHAT_AI_MOD_ID,
-    binding: {
-      source: 'cloud',
-      connectorId,
-      provider,
-      model: resolvedModelId,
-      modelId: resolvedModelId,
-    },
-  });
   return {
     modId: CORE_CHAT_AI_MOD_ID,
     provider: requireValue(
@@ -288,13 +213,13 @@ async function resolveInvokeInput(
     ),
     prompt: input.prompt,
     connectorId: requireValue(
-      resolved.connectorId || connectorId,
+      resolved.connectorId,
       ReasonCode.AI_INPUT_INVALID,
       'select_runtime_route_binding',
       'cloud AI route connector is missing',
     ),
     localProviderModel: requireValue(
-      resolved.modelId || resolved.model || resolvedModelId,
+      resolved.modelId || resolved.model,
       ReasonCode.AI_INPUT_INVALID,
       'select_runtime_route_binding',
       'cloud AI route model is missing',
@@ -343,7 +268,7 @@ export async function streamChatAiRuntime(
     system: normalizeText(input.systemPrompt) || undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
-      resolveAiChatThinkingSupport(input.routeSnapshot),
+      resolveTextExecutionSnapshotThinkingSupport(input.executionSnapshot),
     ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,

@@ -3,7 +3,6 @@ import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/featur
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { HumanConversationGiftModal } from '@renderer/features/turns/human-conversation-gift-modal';
 import {
   compareHumanChatsByRecency,
@@ -17,11 +16,13 @@ import {
 } from './chat-human-thread-model';
 import {
   HumanCanonicalComposer,
+  HumanCanonicalProfileDrawer,
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 
 import {
+  ChatRuntimeInspectContent,
   RuntimeInspectCard,
   RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
@@ -112,6 +113,83 @@ export function useHumanConversationModeHost(
     onIntentOpenHistory: _humanStageOnIntentOpenHistory,
     ...stagePanelProps
   } = canonicalSurface.stagePanelProps;
+  const humanRuntimeInspectContent = selectedChat ? (
+    <ChatRuntimeInspectContent
+      title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
+      subtitle={t('Chat.humanTitle', { defaultValue: 'Human Chat' })}
+      statusTitle={t('Chat.mode.human', { defaultValue: 'Human' })}
+      statusHint={t('Chat.aiProfileSubtitle', {
+        defaultValue: 'Route, target, and conversation details.',
+      })}
+      statusSummary={(
+        <RuntimeInspectCard
+          label={t('Chat.mode.human', { defaultValue: 'Human' })}
+          value={getHumanChatTitle(selectedChat)}
+          detail={canonicalSurface.diagnosticsSummary.isStreaming
+            ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
+            : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+        />
+      )}
+      sections={[
+        {
+          key: 'chat',
+          title: t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
+          hint: t('Chat.settingsChatModelHint', {
+            defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.',
+          }),
+          summary: getHumanChatTitle(selectedChat),
+          content: (
+            <RuntimeInspectCard
+              label={t('Chat.mode.human', { defaultValue: 'Human' })}
+              value={getHumanChatTitle(selectedChat)}
+              detail={canonicalSurface.diagnosticsSummary.isStreaming
+                ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
+                : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+            />
+          ),
+        },
+        {
+          key: 'voice',
+          title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
+          hint: t('Chat.settingsVoiceHint', {
+            defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.',
+          }),
+          content: canonicalSurface.rightSidebarContent || (
+            <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
+          ),
+        },
+        {
+          key: 'diagnostics',
+          title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
+          hint: t('Chat.settingsDiagnosticsHint', {
+            defaultValue: 'Inspect route, runtime, and conversation health details for the current chat.',
+          }),
+          content: (
+            <RuntimeInspectCard
+              label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+              value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
+              detail={canonicalSurface.diagnosticsSummary.isStreaming
+                ? t('ChatTimeline.stopGenerating', 'Stop generating')
+                : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
+            />
+          ),
+        },
+      ]}
+      initialOpenPanel={canonicalSurface.rightSidebarAutoOpenKey ? 'voice' : 'chat'}
+    />
+  ) : null;
+  const profileContent = selectedChat ? (
+    <div className="contents">
+      <HumanCanonicalProfileDrawer
+        selectedChat={selectedChat}
+        onOpenGift={() => setGiftModalOpen(true)}
+      />
+      {humanRuntimeInspectContent}
+    </div>
+  ) : null;
+  const rightSidebarContent = canonicalSurface.rightSidebarContent;
+  const rightSidebarOverlayMenu = canonicalSurface.rightSidebarOverlayMenu;
+  const rightSidebarAutoOpenKey = canonicalSurface.rightSidebarAutoOpenKey;
 
   useEffect(() => {
     if (!selectedChatId) {
@@ -203,6 +281,10 @@ export function useHumanConversationModeHost(
     },
     transcriptProps: selectedChatId ? transcriptProps : undefined,
     stagePanelProps: selectedChatId ? stagePanelProps : undefined,
+    profileContent: profileContent,
+    rightSidebarContent: rightSidebarContent,
+    rightSidebarOverlayMenu: rightSidebarOverlayMenu,
+    rightSidebarAutoOpenKey: rightSidebarAutoOpenKey,
     settingsContent: selectedChat ? (
       <ChatSettingsPanel
         chatRouteConfigContent={(
@@ -214,7 +296,7 @@ export function useHumanConversationModeHost(
               : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
           />
         )}
-        voiceRouteConfigContent={canonicalSurface.rightSidebarContent || (
+        voiceRouteConfigContent={rightSidebarContent || (
           <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
         )}
         mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={t('Chat.settingsUnavailableReason', { defaultValue: 'This source does not expose runtime inspect yet.' })} />}
@@ -254,8 +336,12 @@ export function useHumanConversationModeHost(
     authStatus,
     canonicalMessages,
     canonicalSurface.diagnosticsSummary,
-    canonicalSurface.rightSidebarContent,
+    profileContent,
+    rightSidebarAutoOpenKey,
+    rightSidebarContent,
+    rightSidebarOverlayMenu,
     giftModalOpen,
+    humanRuntimeInspectContent,
     selectedChat,
     selectedChatTitle,
     selectedChatId,

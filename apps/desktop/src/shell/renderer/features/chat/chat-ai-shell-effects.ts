@@ -4,7 +4,7 @@ import type {
   ChatAiThreadBundle,
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { AiConversationRouteSnapshot, AiConversationSelection } from './chat-shell-types';
+import type { AiConversationSelection } from './chat-shell-types';
 import { bundleQueryKey, THREADS_QUERY_KEY } from './chat-ai-shell-core';
 
 type UseAiConversationEffectsInput = {
@@ -30,8 +30,8 @@ export function useAiConversationEffects(input: UseAiConversationEffectsInput) {
     );
   }, [input.queryClient]);
 
-  const syncSelectionToThread = useCallback((threadId: string | null, routeSnapshot: AiConversationRouteSnapshot | null) => {
-    input.setSelection({ threadId, routeSnapshot });
+  const syncSelectionToThread = useCallback((threadId: string | null) => {
+    input.setSelection({ threadId });
   }, [input]);
 
   return {

@@ -15,9 +15,14 @@ export function getRuntimeFieldsFromStore() {
         connectorId: runtime.connectorId,
     };
 }
-export function toResolvedBinding(capability: RuntimeCanonicalCapability, resolved: Awaited<ReturnType<ReturnType<typeof createResolveRuntimeBinding>>>): ModRuntimeResolvedBinding {
+export function toResolvedBinding(
+    capability: RuntimeCanonicalCapability,
+    resolved: Awaited<ReturnType<ReturnType<typeof createResolveRuntimeBinding>>>,
+    resolvedBindingRef?: string,
+): ModRuntimeResolvedBinding {
     return {
         capability,
+        resolvedBindingRef: String(resolvedBindingRef || '').trim() || undefined,
         source: resolved.source,
         provider: String(resolved.provider || '').trim(),
         model: String(resolved.model || '').trim(),

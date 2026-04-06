@@ -19,6 +19,13 @@ type BuildMetadataInput = {
   endpoint?: string;
 };
 
+type ResolveRuntimeRoutePayload = {
+  modId: string;
+  capability: RuntimeCanonicalCapability;
+  binding?: RuntimeRouteBinding;
+  conversationExecution?: boolean;
+};
+
 type BuildRuntimeMediaCapabilitiesInput = {
   authorizeRuntimeCapability: (payload: {
     modId: string;
@@ -33,11 +40,7 @@ type BuildRuntimeMediaCapabilitiesInput = {
   }) => JobControllerDeps;
   feedControllerJobSnapshot: (jobId: string, value: unknown) => void;
   getRuntimeClient: () => RuntimeClient;
-  resolveRuntimeRoute: (payload: {
-    modId: string;
-    capability: RuntimeCanonicalCapability;
-    binding?: RuntimeRouteBinding;
-  }) => Promise<ModRuntimeResolvedBinding>;
+  resolveRuntimeRoute: (payload: ResolveRuntimeRoutePayload) => Promise<ModRuntimeResolvedBinding>;
   toControllerJobSnapshot: (value: unknown) => JobPollResult | null;
 };
 

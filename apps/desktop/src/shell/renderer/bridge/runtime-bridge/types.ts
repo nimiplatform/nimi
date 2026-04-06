@@ -130,10 +130,8 @@ export {
 } from './local-ai-parsers.js';
 
 export type {
-  ChatAiRouteKind,
   ChatAiMessageRole,
   ChatAiMessageStatus,
-  ChatAiRouteSnapshot,
   ChatAiThreadSummary,
   ChatAiThreadRecord,
   ChatAiMessagePart,
@@ -153,7 +151,6 @@ export type {
 } from './chat-ai-types.js';
 
 export {
-  parseChatAiRouteSnapshot,
   parseChatAiAttachment,
   parseChatAiMessageContent,
   parseChatAiMessageError,

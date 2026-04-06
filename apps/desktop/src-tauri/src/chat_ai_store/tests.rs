@@ -1,7 +1,7 @@
 use super::*;
 use crate::test_support::with_env;
 use rusqlite::{params, Connection};
-use serde_json::{Map as JsonMap, Value as JsonValue};
+use serde_json::Map as JsonMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -16,19 +16,6 @@ fn temp_home(prefix: &str) -> PathBuf {
     dir
 }
 
-fn sample_route_snapshot() -> ChatAiRouteSnapshot {
-    ChatAiRouteSnapshot {
-        route_kind: ChatAiRouteKind::Cloud,
-        connector_id: Some("connector-openai".to_string()),
-        provider: Some("openai".to_string()),
-        model_id: Some("gpt-5.4-mini".to_string()),
-        route_binding: Some(JsonMap::from_iter([(
-            "temperature".to_string(),
-            JsonValue::from(0.3),
-        )])),
-    }
-}
-
 fn sample_content(text: &str) -> ChatAiMessageContent {
     ChatAiMessageContent {
         parts: vec![ChatAiMessagePart::Text(ChatAiMessagePartText {
@@ -38,6 +25,16 @@ fn sample_content(text: &str) -> ChatAiMessageContent {
         attachments: Vec::new(),
         metadata: JsonMap::new(),
     }
+}
+
+fn ai_thread_columns(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare("PRAGMA table_info(ai_threads)")
+        .expect("prepare table_info");
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .expect("query table_info");
+    rows.map(|row| row.expect("column name")).collect()
 }
 
 #[test]
@@ -72,6 +69,112 @@ fn chat_ai_open_db_initializes_schema_idempotently() {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .expect("user_version");
         assert_eq!(version, CHAT_AI_DB_SCHEMA_VERSION);
+        assert_eq!(
+            ai_thread_columns(&conn),
+            vec![
+                "id",
+                "title",
+                "created_at_ms",
+                "updated_at_ms",
+                "last_message_at_ms",
+                "archived_at_ms",
+            ]
+        );
+
+        let schema_version_json: String = conn
+            .query_row(
+                "SELECT value_json FROM ai_store_meta WHERE key = 'schemaVersion'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("schema version meta");
+        assert_eq!(
+            schema_version_json,
+            format!(r#"{{"version":{CHAT_AI_DB_SCHEMA_VERSION}}}"#)
+        );
+    });
+}
+
+#[test]
+fn chat_ai_schema_migrates_legacy_thread_route_columns_and_preserves_data() {
+    let home = temp_home("legacy-route-columns");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-ai")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let conn = Connection::open(&path).expect("open");
+
+        conn.execute_batch(
+            r#"
+            PRAGMA user_version = 1;
+            CREATE TABLE ai_threads (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              created_at_ms INTEGER NOT NULL,
+              updated_at_ms INTEGER NOT NULL,
+              last_message_at_ms INTEGER,
+              archived_at_ms INTEGER,
+              route_kind TEXT NOT NULL,
+              connector_id TEXT,
+              provider TEXT,
+              model_id TEXT,
+              route_binding_json TEXT
+            );
+            INSERT INTO ai_threads (
+              id,
+              title,
+              created_at_ms,
+              updated_at_ms,
+              last_message_at_ms,
+              archived_at_ms,
+              route_kind,
+              connector_id,
+              provider,
+              model_id,
+              route_binding_json
+            ) VALUES (
+              'thread-legacy-001',
+              'Legacy AI thread',
+              100,
+              120,
+              120,
+              NULL,
+              'local',
+              'connector-legacy',
+              'provider-legacy',
+              'model-legacy',
+              '{\"binding\":\"legacy\"}'
+            );
+            "#,
+        )
+        .expect("seed legacy schema");
+
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let columns = ai_thread_columns(&conn);
+        assert_eq!(
+            columns,
+            vec![
+                "id",
+                "title",
+                "created_at_ms",
+                "updated_at_ms",
+                "last_message_at_ms",
+                "archived_at_ms",
+            ]
+        );
+        let thread = get_thread_bundle(&conn, "thread-legacy-001")
+            .expect("bundle")
+            .expect("thread");
+        assert_eq!(thread.thread.title, "Legacy AI thread");
+        assert_eq!(thread.thread.last_message_at_ms, Some(120));
+
+        let version: i64 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("user_version");
+        assert_eq!(version, CHAT_AI_DB_SCHEMA_VERSION);
     });
 }
 
@@ -96,7 +199,6 @@ fn chat_ai_store_round_trip_thread_message_and_draft() {
                 updated_at_ms: 120,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                route_snapshot: sample_route_snapshot(),
             },
         )
         .expect("create thread");
@@ -140,7 +242,6 @@ fn chat_ai_store_round_trip_thread_message_and_draft() {
 
         let threads = list_threads(&conn).expect("list threads");
         assert_eq!(threads.len(), 1);
-        assert_eq!(threads[0].route_snapshot.provider.as_deref(), Some("openai"));
 
         let bundle = get_thread_bundle(&conn, &thread.id)
             .expect("bundle")
@@ -172,7 +273,6 @@ fn chat_ai_store_allows_empty_pending_assistant_placeholder_content() {
                 updated_at_ms: 120,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                route_snapshot: sample_route_snapshot(),
             },
         )
         .expect("create thread");
@@ -279,7 +379,6 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
                 updated_at_ms: 120,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                route_snapshot: sample_route_snapshot(),
             },
         )
         .expect("create thread");
@@ -292,7 +391,6 @@ fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
                 updated_at_ms: 121,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                route_snapshot: sample_route_snapshot(),
             },
         )
         .expect_err("duplicate thread");
@@ -344,7 +442,6 @@ fn chat_ai_draft_put_overwrites_and_delete_clears() {
                 updated_at_ms: 120,
                 last_message_at_ms: None,
                 archived_at_ms: None,
-                route_snapshot: sample_route_snapshot(),
             },
         )
         .expect("create thread");

@@ -17,9 +17,38 @@ import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import { createModLocalProfileSnapshotResolver, readManifestProfiles, } from './runtime-bootstrap-host-capabilities-profiles';
 import { createScenarioJobControllerDeps, feedControllerJobSnapshot, toControllerJobSnapshot } from './runtime-bootstrap-host-capabilities-jobs';
 import { buildRuntimeMediaCapabilities } from './runtime-bootstrap-host-capabilities-media';
+import { describeRuntimeRouteMetadata } from './runtime-bootstrap-host-capabilities-route-describe';
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
+import { setConversationCapabilityRouteRuntime, toRuntimeCanonicalCapability, type ConversationCapability } from '@renderer/features/chat/conversation-capability';
 import { type ModSdkHost, type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 import { ReasonCode } from '@nimiplatform/sdk/types';
+
+const DESKTOP_CONVERSATION_ROUTE_RUNTIME_MOD_ID = 'core:runtime';
+
+function encodeResolvedBindingPayload(value: string): string {
+    if (typeof globalThis.btoa === 'function') {
+        return globalThis.btoa(value);
+    }
+    return Buffer.from(value, 'utf8').toString('base64');
+}
+
+function createResolvedBindingRef(capability: RuntimeCanonicalCapability, resolved: Omit<ModRuntimeResolvedBinding, 'capability'>): string {
+    const payload = {
+        capability,
+        source: String(resolved.source || '').trim(),
+        provider: String(resolved.provider || '').trim(),
+        model: String(resolved.model || '').trim(),
+        modelId: String(resolved.modelId || '').trim(),
+        connectorId: String(resolved.connectorId || '').trim(),
+        localModelId: String(resolved.localModelId || '').trim(),
+        engine: String(resolved.engine || '').trim(),
+        endpoint: String(resolved.endpoint || '').trim(),
+        localProviderEndpoint: String(resolved.localProviderEndpoint || '').trim(),
+        localOpenAiEndpoint: String(resolved.localOpenAiEndpoint || '').trim(),
+        goRuntimeLocalModelId: String(resolved.goRuntimeLocalModelId || '').trim(),
+    };
+    return encodeResolvedBindingPayload(JSON.stringify(payload));
+}
 type HostCapabilityInput = {
     checkLocalLlmHealth: (input: CheckLlmHealthInput) => Promise<ProviderHealth>;
     executeLocalKernelTurn: (input: ExecuteLocalKernelTurnInput) => Promise<ExecuteLocalKernelTurnResult>;
@@ -31,6 +60,10 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
     const hookRuntime = input.getRuntimeHookRuntime();
     hookRuntime.setModLocalProfileSnapshotResolver(createModLocalProfileSnapshotResolver());
     const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
+    const resolvedBindingRegistry = new Map<string, {
+        capability: RuntimeCanonicalCapability;
+        resolvedBinding: ModRuntimeResolvedBinding;
+    }>();
     const authorizeRuntimeCapability = (payload: {
         modId: string;
         capabilityKey: string;
@@ -56,12 +89,31 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             connectorId: payload.connectorId || runtime.connectorId,
         };
     };
+    const registerResolvedBinding = (capability: RuntimeCanonicalCapability, resolvedBinding: ModRuntimeResolvedBinding): ModRuntimeResolvedBinding => {
+        const resolvedBindingRef = createResolvedBindingRef(capability, resolvedBinding);
+        const registeredBinding = {
+            ...resolvedBinding,
+            resolvedBindingRef,
+        };
+        resolvedBindingRegistry.set(resolvedBindingRef, {
+            capability,
+            resolvedBinding: registeredBinding,
+        });
+        return registeredBinding;
+    };
     const resolveRuntimeRoute = async (payload: {
         modId: string;
         capability: RuntimeCanonicalCapability;
         binding?: RuntimeRouteBinding;
     }): Promise<ModRuntimeResolvedBinding> => {
-        let effectiveBinding = payload.binding;
+        const selectedBindings = useAppStore.getState().conversationCapabilitySelectionStore.selectedBindings;
+        const selectedBinding = payload.capability === 'text.embed'
+            ? undefined
+            : selectedBindings[payload.capability] ?? undefined;
+        let effectiveBinding = payload.binding ?? (selectedBinding === null ? undefined : selectedBinding);
+        if (!effectiveBinding) {
+            throw new Error('RUNTIME_ROUTE_SELECTION_REQUIRED');
+        }
         const hasModel = Boolean(String(effectiveBinding?.model || effectiveBinding?.localModelId || '').trim());
         const needsLocalHydration = effectiveBinding?.source === 'local';
         const needsCloudHydration = effectiveBinding?.source === 'cloud'
@@ -74,10 +126,10 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 modId: payload.modId,
             });
         }
-        if (!effectiveBinding || !hasModel) {
-            effectiveBinding = options?.selected;
+        if (!hasModel) {
+            throw new Error('RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
         }
-        else if (options && effectiveBinding.source === 'local') {
+        if (options && effectiveBinding.source === 'local') {
             effectiveBinding = hydrateLocalRouteBindingFromOptions(effectiveBinding, options);
         }
         else if (options && effectiveBinding.source === 'cloud') {
@@ -87,7 +139,52 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             modId: payload.modId,
             binding: effectiveBinding,
         });
-        return toResolvedBinding(payload.capability, resolved);
+        return registerResolvedBinding(
+            payload.capability,
+            toResolvedBinding(payload.capability, resolved),
+        );
+    };
+    const checkRuntimeRouteHealth = async (payload: {
+        modId: string;
+        capability: RuntimeCanonicalCapability;
+        binding?: RuntimeRouteBinding;
+    }): Promise<RuntimeLlmHealthResult> => {
+        const resolved = await resolveRuntimeRoute(payload);
+        const result = await input.checkLocalLlmHealth({
+            provider: resolved.provider,
+            localProviderEndpoint: resolved.localProviderEndpoint || resolved.endpoint,
+            localProviderModel: resolved.model,
+            localOpenAiEndpoint: resolved.localOpenAiEndpoint || resolved.endpoint,
+            localModelId: resolved.localModelId,
+            goRuntimeLocalModelId: resolved.goRuntimeLocalModelId,
+            goRuntimeStatus: resolved.goRuntimeStatus,
+            connectorId: resolved.connectorId,
+        });
+        return toRouteHealthResult(result, resolved.provider, resolved.source);
+    };
+    const describeRuntimeRoute = async (payload: {
+        modId: string;
+        capability: RuntimeCanonicalCapability;
+        resolvedBindingRef: string;
+    }) => {
+        const resolvedBindingRef = String(payload.resolvedBindingRef || '').trim();
+        const registered = resolvedBindingRegistry.get(resolvedBindingRef) || null;
+        if (!registered || registered.capability !== payload.capability) {
+            throw new Error('RUNTIME_ROUTE_DESCRIBE_BINDING_REF_INVALID');
+        }
+        if (
+            payload.capability !== 'text.generate'
+            && payload.capability !== 'voice_workflow.tts_v2v'
+            && payload.capability !== 'voice_workflow.tts_t2v'
+        ) {
+            throw new Error('RUNTIME_ROUTE_DESCRIBE_CAPABILITY_UNSUPPORTED');
+        }
+        return describeRuntimeRouteMetadata({
+            modId: payload.modId,
+            capability: payload.capability,
+            resolvedBinding: registered.resolvedBinding,
+            resolvedBindingRef,
+        });
     };
     const buildMetadata = async (inputValue: {
         source: 'local' | 'cloud';
@@ -120,6 +217,23 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             connectorId: payload.connectorId || runtime.connectorId,
         };
     };
+    setConversationCapabilityRouteRuntime({
+        resolve: async ({ capability, binding }) => resolveRuntimeRoute({
+            modId: DESKTOP_CONVERSATION_ROUTE_RUNTIME_MOD_ID,
+            capability: toRuntimeCanonicalCapability(capability),
+            binding,
+        }),
+        checkHealth: async ({ capability, binding }) => checkRuntimeRouteHealth({
+            modId: DESKTOP_CONVERSATION_ROUTE_RUNTIME_MOD_ID,
+            capability: toRuntimeCanonicalCapability(capability),
+            binding,
+        }),
+        describe: async ({ capability, resolvedBindingRef }) => describeRuntimeRoute({
+            modId: DESKTOP_CONVERSATION_ROUTE_RUNTIME_MOD_ID,
+            capability: toRuntimeCanonicalCapability(capability),
+            resolvedBindingRef,
+        }),
+    });
     return {
         runtime: {
             checkLocalLlmHealth: async (payload: RuntimeLlmHealthInput): Promise<RuntimeLlmHealthResult> => {
@@ -170,18 +284,18 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         modId,
                         capabilityKey: 'runtime.route.check.health',
                     });
-                    const resolved = await resolveRuntimeRoute({ capability, modId, binding });
-                    const result = await input.checkLocalLlmHealth({
-                        provider: resolved.provider,
-                        localProviderEndpoint: resolved.localProviderEndpoint || resolved.endpoint,
-                        localProviderModel: resolved.model,
-                        localOpenAiEndpoint: resolved.localOpenAiEndpoint || resolved.endpoint,
-                        localModelId: resolved.localModelId,
-                        goRuntimeLocalModelId: resolved.goRuntimeLocalModelId,
-                        goRuntimeStatus: resolved.goRuntimeStatus,
-                        connectorId: resolved.connectorId,
+                    return checkRuntimeRouteHealth({ capability, modId, binding });
+                },
+                describe: async ({ capability, modId, resolvedBindingRef }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.route.describe',
                     });
-                    return toRouteHealthResult(result, resolved.provider, resolved.source);
+                    return describeRuntimeRoute({
+                        modId,
+                        capability,
+                        resolvedBindingRef,
+                    });
                 },
             },
             local: {
@@ -380,7 +494,21 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             },
             media: buildRuntimeMediaCapabilities({
                 authorizeRuntimeCapability,
-                resolveRuntimeRoute,
+                resolveRuntimeRoute: async (payload) => {
+                    if (payload.conversationExecution && !payload.binding) {
+                        const projections = useAppStore.getState().conversationCapabilityProjectionByCapability;
+                        const projection = projections[payload.capability as ConversationCapability] || null;
+                        if (projection && projection.supported && projection.resolvedBinding) {
+                            return registerResolvedBinding(payload.capability, projection.resolvedBinding);
+                        }
+                        if (projection && !projection.supported && projection.reasonCode) {
+                            throw new Error(
+                                `CONVERSATION_CAPABILITY_PROJECTION_UNAVAILABLE: ${payload.capability} — ${projection.reasonCode}`,
+                            );
+                        }
+                    }
+                    return resolveRuntimeRoute(payload);
+                },
                 buildMetadata,
                 getRuntimeClient,
                 feedControllerJobSnapshot,

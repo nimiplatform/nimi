@@ -22,11 +22,8 @@ pub(crate) fn load_turn_context(
     let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
     let recent_turn_limit =
         normalize_positive_limit(input.recent_turn_limit, "recentTurnLimit", 32)?;
-    let relation_memory_limit = normalize_positive_limit(
-        input.relation_memory_limit,
-        "relationMemoryLimit",
-        16,
-    )?;
+    let relation_memory_limit =
+        normalize_positive_limit(input.relation_memory_limit, "relationMemoryLimit", 16)?;
     let recall_limit = normalize_positive_limit(input.recall_limit, "recallLimit", 32)?;
 
     let thread = get_thread_bundle(conn, &thread_id)?
@@ -59,7 +56,8 @@ pub(crate) fn load_turn_context(
         .map_err(|error| format!("query chat_agent recent turns failed: {error}"))?;
     let mut recent_turns = Vec::new();
     for row in turn_rows {
-        recent_turns.push(row.map_err(|error| format!("decode chat_agent recent turn failed: {error}"))?);
+        recent_turns
+            .push(row.map_err(|error| format!("decode chat_agent recent turn failed: {error}"))?);
     }
     recent_turns.reverse();
 
@@ -104,7 +102,9 @@ pub(crate) fn load_turn_context(
             .map_err(|error| format!("query chat_agent recent beats failed: {error}"))?;
         let mut beats = Vec::new();
         for row in beat_rows {
-            beats.push(row.map_err(|error| format!("decode chat_agent recent beat failed: {error}"))?);
+            beats.push(
+                row.map_err(|error| format!("decode chat_agent recent beat failed: {error}"))?,
+            );
         }
         beats
     };
@@ -152,11 +152,16 @@ pub(crate) fn load_turn_context(
         )
         .map_err(|error| format!("prepare chat_agent relation memory failed: {error}"))?;
     let memory_rows = memory_statement
-        .query_map(params![&thread_id, relation_memory_limit], relation_memory_slot_record_from_row)
+        .query_map(
+            params![&thread_id, relation_memory_limit],
+            relation_memory_slot_record_from_row,
+        )
         .map_err(|error| format!("query chat_agent relation memory failed: {error}"))?;
     let mut relation_memory_slots = Vec::new();
     for row in memory_rows {
-        relation_memory_slots.push(row.map_err(|error| format!("decode chat_agent relation memory failed: {error}"))?);
+        relation_memory_slots.push(
+            row.map_err(|error| format!("decode chat_agent relation memory failed: {error}"))?,
+        );
     }
 
     let mut recall_statement = conn
@@ -178,11 +183,15 @@ pub(crate) fn load_turn_context(
         )
         .map_err(|error| format!("prepare chat_agent recall index failed: {error}"))?;
     let recall_rows = recall_statement
-        .query_map(params![&thread_id, recall_limit], recall_entry_record_from_row)
+        .query_map(
+            params![&thread_id, recall_limit],
+            recall_entry_record_from_row,
+        )
         .map_err(|error| format!("query chat_agent recall index failed: {error}"))?;
     let mut recall_entries = Vec::new();
     for row in recall_rows {
-        recall_entries.push(row.map_err(|error| format!("decode chat_agent recall entry failed: {error}"))?);
+        recall_entries
+            .push(row.map_err(|error| format!("decode chat_agent recall entry failed: {error}"))?);
     }
 
     let draft = get_draft(conn, &thread_id)?;
@@ -211,7 +220,9 @@ pub(crate) fn commit_turn_result(
         return Err("turn.threadId must match threadId".to_string());
     }
     if input.projection.clear_draft && input.projection.draft.is_some() {
-        return Err("projection.clearDraft and projection.draft are mutually exclusive".to_string());
+        return Err(
+            "projection.clearDraft and projection.draft are mutually exclusive".to_string(),
+        );
     }
 
     let tx = conn
@@ -382,7 +393,9 @@ pub(crate) fn commit_turn_result(
                 params![&thread_id, snapshot.version],
                 interaction_snapshot_record_from_row,
             )
-            .map_err(|error| format!("query chat_agent inserted interaction snapshot failed: {error}"))?,
+            .map_err(|error| {
+                format!("query chat_agent inserted interaction snapshot failed: {error}")
+            })?,
         )
     } else {
         None
@@ -533,8 +546,9 @@ pub(crate) fn commit_turn_result(
         }
     }
 
-    let bundle = get_thread_bundle(&tx, &thread_id)?
-        .ok_or_else(|| "commit chat_agent turn failed: missing thread bundle after commit".to_string())?;
+    let bundle = get_thread_bundle(&tx, &thread_id)?.ok_or_else(|| {
+        "commit chat_agent turn failed: missing thread bundle after commit".to_string()
+    })?;
 
     let mut relation_memory_slots = Vec::new();
     if !input.relation_memory_slots.is_empty() {
@@ -560,9 +574,9 @@ pub(crate) fn commit_turn_result(
             .query_map(params![&thread_id], relation_memory_slot_record_from_row)
             .map_err(|error| format!("query committed relation memory slots failed: {error}"))?;
         for row in rows {
-            relation_memory_slots.push(
-                row.map_err(|error| format!("decode committed relation memory slot failed: {error}"))?,
-            );
+            relation_memory_slots.push(row.map_err(|error| {
+                format!("decode committed relation memory slot failed: {error}")
+            })?);
         }
     }
 
@@ -670,11 +684,12 @@ pub(crate) fn rebuild_projection(
     conn: &mut Connection,
     thread_id: &str,
 ) -> Result<ChatAgentProjectionRebuildResult, String> {
-    let tx = conn
-        .transaction()
-        .map_err(|error| format!("begin chat_agent rebuild projection transaction failed: {error}"))?;
+    let tx = conn.transaction().map_err(|error| {
+        format!("begin chat_agent rebuild projection transaction failed: {error}")
+    })?;
     let result = rebuild_projection_internal(&tx, thread_id)?;
-    tx.commit()
-        .map_err(|error| format!("commit chat_agent rebuild projection transaction failed: {error}"))?;
+    tx.commit().map_err(|error| {
+        format!("commit chat_agent rebuild projection transaction failed: {error}")
+    })?;
     Ok(result)
 }

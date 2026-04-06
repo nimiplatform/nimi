@@ -25,6 +25,7 @@ fn extract_response_metadata(
         "x-nimi-voice-catalog-source",
         "x-nimi-voice-catalog-version",
         "x-nimi-voice-count",
+        "x-nimi-route-describe-result",
     ];
     let mut out: HashMap<String, String> = HashMap::new();
     for key in keys {
@@ -151,6 +152,22 @@ mod tests {
             .err()
             .unwrap_or_default()
             .contains("RUNTIME_BRIDGE_REQUEST_DECODE_FAILED"));
+    }
+
+    #[test]
+    fn extract_response_metadata_keeps_route_describe_header() {
+        let mut response = tonic::Response::new(Vec::<u8>::new());
+        response.metadata_mut().insert(
+            "x-nimi-route-describe-result",
+            tonic::metadata::MetadataValue::try_from("route-payload").expect("metadata value"),
+        );
+        let extracted = super::extract_response_metadata(&response).expect("response metadata");
+        assert_eq!(
+            extracted
+                .get("x-nimi-route-describe-result")
+                .map(String::as_str),
+            Some("route-payload")
+        );
     }
 
     #[tokio::test]

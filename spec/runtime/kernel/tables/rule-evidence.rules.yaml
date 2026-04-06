@@ -962,6 +962,27 @@
 - rule_id: K-RPC-014
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_proto_linkage]
+- rule_id: K-RPC-015
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-016
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-017
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-018
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-019
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-020
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-021
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
 - rule_id: K-SEC-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

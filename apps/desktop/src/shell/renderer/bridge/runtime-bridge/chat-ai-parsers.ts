@@ -15,8 +15,6 @@ import type {
   ChatAiMessageRole,
   ChatAiMessageStatus,
   ChatAiPutDraftInput,
-  ChatAiRouteKind,
-  ChatAiRouteSnapshot,
   ChatAiThreadBundle,
   ChatAiThreadRecord,
   ChatAiThreadSummary,
@@ -68,14 +66,6 @@ function parseJsonObject(value: unknown, fieldName: string, errorPrefix: string)
   );
 }
 
-function parseRouteKind(value: unknown, errorPrefix: string): ChatAiRouteKind {
-  const normalized = String(value || '').trim();
-  if (normalized === 'local' || normalized === 'cloud') {
-    return normalized;
-  }
-  throw new Error(`${errorPrefix}: routeKind is invalid`);
-}
-
 function parseMessageRole(value: unknown, errorPrefix: string): ChatAiMessageRole {
   const normalized = String(value || '').trim();
   if (normalized === 'system' || normalized === 'user' || normalized === 'assistant' || normalized === 'tool') {
@@ -96,30 +86,6 @@ function parseMessageStatus(value: unknown, errorPrefix: string): ChatAiMessageS
     return normalized;
   }
   throw new Error(`${errorPrefix}: status is invalid`);
-}
-
-export function parseChatAiRouteSnapshot(value: unknown): ChatAiRouteSnapshot {
-  const record = assertRecord(value, 'chat_ai routeSnapshot is invalid');
-  const routeKind = parseRouteKind(record.routeKind, 'chat_ai routeSnapshot');
-  const connectorId = parseOptionalString(record.connectorId) || null;
-  const provider = parseOptionalString(record.provider) || null;
-  const modelId = parseOptionalString(record.modelId) || null;
-  const routeBinding = record.routeBinding == null
-    ? null
-    : parseJsonObject(record.routeBinding, 'routeBinding', 'chat_ai routeSnapshot');
-  if (routeKind === 'local' && (connectorId || provider || modelId)) {
-    throw new Error('chat_ai routeSnapshot.local must not include connectorId/provider/modelId');
-  }
-  if (routeKind === 'cloud' && (!connectorId || !provider)) {
-    throw new Error('chat_ai routeSnapshot.cloud requires connectorId and provider');
-  }
-  return {
-    routeKind,
-    connectorId,
-    provider,
-    modelId,
-    routeBinding,
-  };
 }
 
 export function parseChatAiAttachment(value: unknown, errorPrefix = 'chat_ai attachment'): ChatAiAttachment {
@@ -201,7 +167,6 @@ export function parseChatAiThreadSummary(value: unknown): ChatAiThreadSummary {
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai thread summary'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai thread summary'),
     archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai thread summary'),
-    routeSnapshot: parseChatAiRouteSnapshot(record.routeSnapshot),
   };
 }
 
@@ -267,16 +232,6 @@ function parseNullableStringValue(value: unknown): string | null {
   return parseOptionalString(value) || null;
 }
 
-function parseRouteSnapshotInput(value: unknown, errorPrefix: string): ChatAiRouteSnapshot {
-  try {
-    return parseChatAiRouteSnapshot(value);
-  } catch (error) {
-    throw new Error(`${errorPrefix}: ${(error as Error).message}`, {
-      cause: error,
-    });
-  }
-}
-
 export function parseChatAiCreateThreadInput(value: unknown): ChatAiCreateThreadInput {
   const record = assertRecord(value, 'chat_ai create_thread payload is invalid');
   return {
@@ -286,7 +241,6 @@ export function parseChatAiCreateThreadInput(value: unknown): ChatAiCreateThread
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai create_thread payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai create_thread payload'),
     archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai create_thread payload'),
-    routeSnapshot: parseRouteSnapshotInput(record.routeSnapshot, 'chat_ai create_thread payload'),
   };
 }
 
@@ -298,7 +252,6 @@ export function parseChatAiUpdateThreadMetadataInput(value: unknown): ChatAiUpda
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_ai update_thread_metadata payload'),
     lastMessageAtMs: parseNullableFiniteInteger(record.lastMessageAtMs, 'lastMessageAtMs', 'chat_ai update_thread_metadata payload'),
     archivedAtMs: parseNullableFiniteInteger(record.archivedAtMs, 'archivedAtMs', 'chat_ai update_thread_metadata payload'),
-    routeSnapshot: parseRouteSnapshotInput(record.routeSnapshot, 'chat_ai update_thread_metadata payload'),
   };
 }
 

@@ -24,6 +24,10 @@ import {
 } from './chat-agent-runtime';
 import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type { ChatThinkingPreference } from './chat-thinking';
+import type {
+  AgentEffectiveCapabilityResolution,
+  ConversationExecutionSnapshot,
+} from './conversation-capability';
 
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
@@ -45,6 +49,8 @@ export type AgentLocalChatRuntimeRequest = {
   prompt: string;
   threadId: string;
   routeResult: AgentChatRouteResult | null;
+  agentResolution: AgentEffectiveCapabilityResolution | null;
+  executionSnapshot: ConversationExecutionSnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
@@ -61,6 +67,8 @@ export type AgentLocalChatProviderMetadata = {
   agentId: string;
   targetSnapshot: AgentLocalTargetSnapshot;
   routeResult: AgentChatRouteResult | null;
+  agentResolution: AgentEffectiveCapabilityResolution | null;
+  executionSnapshot: ConversationExecutionSnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
@@ -108,6 +116,8 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
     agentId,
     targetSnapshot: targetSnapshot as AgentLocalTargetSnapshot,
     routeResult: (nextRecord.routeResult ?? null) as AgentChatRouteResult | null,
+    agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,
+    executionSnapshot: (nextRecord.executionSnapshot ?? null) as ConversationExecutionSnapshot | null,
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,
@@ -222,6 +232,8 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
         routeResult: request.routeResult,
+        agentResolution: request.agentResolution,
+        executionSnapshot: request.executionSnapshot,
         runtimeConfigState: request.runtimeConfigState,
         runtimeFields: request.runtimeFields,
         signal: request.signal,
@@ -603,6 +615,8 @@ export function createAgentLocalChatConversationProvider(
           prompt,
           threadId: input.threadId,
           routeResult: metadata.routeResult,
+          agentResolution: metadata.agentResolution,
+          executionSnapshot: metadata.executionSnapshot,
           runtimeConfigState: metadata.runtimeConfigState,
           runtimeFields: metadata.runtimeFields,
           reasoningPreference: metadata.reasoningPreference,

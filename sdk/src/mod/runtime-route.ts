@@ -3,6 +3,8 @@ import { asRecord } from './json-utils';
 
 export type RuntimeRouteSource = 'local' | 'cloud';
 export type RuntimeRouteModelProfileContextSource = 'provider-api' | 'template' | 'default' | 'unknown';
+export type RuntimeRouteResolvedBindingRef = string;
+export type RuntimeRouteMetadataVersion = 'v1';
 export type RuntimeCanonicalCapability =
   | 'text.generate'
   | 'text.embed'
@@ -27,6 +29,59 @@ export type RuntimeRouteBinding = {
   goRuntimeLocalModelId?: string;
   goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;
 };
+
+export type RuntimeRouteMetadataKind =
+  | 'text.generate'
+  | 'voice_workflow.tts_v2v'
+  | 'voice_workflow.tts_t2v';
+
+export type TextGenerateRouteMetadata = {
+  supportsThinking: boolean;
+  traceModeSupport: 'none' | 'hide' | 'separate';
+  supportsImageInput: boolean;
+  supportsAudioInput: boolean;
+  supportsVideoInput: boolean;
+  supportsArtifactRefInput: boolean;
+};
+
+export type VoiceWorkflowTtsV2vRouteMetadata = {
+  workflowType: 'tts_v2v';
+  supportsReferenceAudioInput: true;
+  supportsTextPromptInput: boolean;
+  requiresTargetSynthesisBinding: boolean;
+};
+
+export type VoiceWorkflowTtsT2vRouteMetadata = {
+  workflowType: 'tts_t2v';
+  supportsReferenceAudioInput: false;
+  supportsTextPromptInput: true;
+  requiresTargetSynthesisBinding: boolean;
+};
+
+export type RuntimeRouteDescribeResult =
+  | {
+    capability: 'text.generate';
+    metadataVersion: RuntimeRouteMetadataVersion;
+    resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    metadataKind: 'text.generate';
+    metadata: TextGenerateRouteMetadata;
+  }
+  | {
+    capability: 'voice_workflow.tts_v2v';
+    metadataVersion: RuntimeRouteMetadataVersion;
+    resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    metadataKind: 'voice_workflow.tts_v2v';
+    metadata: VoiceWorkflowTtsV2vRouteMetadata;
+  }
+  | {
+    capability: 'voice_workflow.tts_t2v';
+    metadataVersion: RuntimeRouteMetadataVersion;
+    resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    metadataKind: 'voice_workflow.tts_t2v';
+    metadata: VoiceWorkflowTtsT2vRouteMetadata;
+  };
+
+export const RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY = 'x-nimi-route-describe-result';
 
 export type RuntimeRouteModelProfile = {
   model: string;
@@ -89,6 +144,18 @@ export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonica
     || normalized === 'voice_workflow.tts_t2v'
   ) {
     return normalized;
+  }
+  return null;
+}
+
+export function parseRuntimeRouteMetadataKind(value: unknown): RuntimeRouteMetadataKind | null {
+  const capability = parseRuntimeCanonicalCapability(value);
+  if (
+    capability === 'text.generate'
+    || capability === 'voice_workflow.tts_v2v'
+    || capability === 'voice_workflow.tts_t2v'
+  ) {
+    return capability;
   }
   return null;
 }
@@ -226,6 +293,69 @@ function parseLocalModels(value: unknown): RuntimeRouteLocalOption[] {
   return models;
 }
 
+function parseTextGenerateRouteMetadata(value: unknown): TextGenerateRouteMetadata | null {
+  const record = asRecord(value);
+  const traceModeSupport = String(record.traceModeSupport || '').trim();
+  if (
+    typeof record.supportsThinking !== 'boolean'
+    || typeof record.supportsImageInput !== 'boolean'
+    || typeof record.supportsAudioInput !== 'boolean'
+    || typeof record.supportsVideoInput !== 'boolean'
+    || typeof record.supportsArtifactRefInput !== 'boolean'
+    || (
+      traceModeSupport !== 'none'
+      && traceModeSupport !== 'hide'
+      && traceModeSupport !== 'separate'
+    )
+  ) {
+    return null;
+  }
+  return {
+    supportsThinking: record.supportsThinking,
+    traceModeSupport,
+    supportsImageInput: record.supportsImageInput,
+    supportsAudioInput: record.supportsAudioInput,
+    supportsVideoInput: record.supportsVideoInput,
+    supportsArtifactRefInput: record.supportsArtifactRefInput,
+  };
+}
+
+function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTtsV2vRouteMetadata | null {
+  const record = asRecord(value);
+  if (
+    record.workflowType !== 'tts_v2v'
+    || record.supportsReferenceAudioInput !== true
+    || typeof record.supportsTextPromptInput !== 'boolean'
+    || typeof record.requiresTargetSynthesisBinding !== 'boolean'
+  ) {
+    return null;
+  }
+  return {
+    workflowType: 'tts_v2v',
+    supportsReferenceAudioInput: true,
+    supportsTextPromptInput: record.supportsTextPromptInput,
+    requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
+  };
+}
+
+function parseVoiceWorkflowTtsT2vRouteMetadata(value: unknown): VoiceWorkflowTtsT2vRouteMetadata | null {
+  const record = asRecord(value);
+  if (
+    record.workflowType !== 'tts_t2v'
+    || record.supportsReferenceAudioInput !== false
+    || record.supportsTextPromptInput !== true
+    || typeof record.requiresTargetSynthesisBinding !== 'boolean'
+  ) {
+    return null;
+  }
+  return {
+    workflowType: 'tts_t2v',
+    supportsReferenceAudioInput: false,
+    supportsTextPromptInput: true,
+    requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
+  };
+}
+
 export function parseRuntimeRouteOptions(
   value: unknown,
   options?: { includeResolvedDefault?: boolean },
@@ -268,4 +398,107 @@ export function parseRuntimeRouteOptions(
     },
     connectors,
   };
+}
+
+export function parseRuntimeRouteDescribeResult(value: unknown): RuntimeRouteDescribeResult | null {
+  const record = asRecord(value);
+  const capability = parseRuntimeCanonicalCapability(record.capability);
+  const metadataVersion = String(record.metadataVersion || '').trim();
+  const resolvedBindingRef = String(record.resolvedBindingRef || '').trim();
+  const metadataKind = parseRuntimeRouteMetadataKind(record.metadataKind);
+  if (!capability || metadataVersion !== 'v1' || !resolvedBindingRef || !metadataKind) {
+    return null;
+  }
+
+  if (capability !== metadataKind) {
+    return null;
+  }
+
+  if (capability === 'text.generate') {
+    const metadata = parseTextGenerateRouteMetadata(record.metadata);
+    if (!metadata) return null;
+    return {
+      capability: 'text.generate',
+      metadataVersion: 'v1',
+      resolvedBindingRef,
+      metadataKind: 'text.generate',
+      metadata,
+    };
+  }
+
+  if (capability === 'voice_workflow.tts_v2v') {
+    const metadata = parseVoiceWorkflowTtsV2vRouteMetadata(record.metadata);
+    if (!metadata) return null;
+    return {
+      capability: 'voice_workflow.tts_v2v',
+      metadataVersion: 'v1',
+      resolvedBindingRef,
+      metadataKind: 'voice_workflow.tts_v2v',
+      metadata,
+    };
+  }
+
+  const metadata = parseVoiceWorkflowTtsT2vRouteMetadata(record.metadata);
+  if (!metadata) return null;
+  return {
+    capability: 'voice_workflow.tts_t2v',
+    metadataVersion: 'v1',
+    resolvedBindingRef,
+    metadataKind: 'voice_workflow.tts_t2v',
+    metadata,
+  };
+}
+
+function createRouteDescribeDecodeError(code: string): Error {
+  const error = new Error(code);
+  error.name = code;
+  return error;
+}
+
+function decodeBase64Text(value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_HEADER_MISSING');
+  }
+  const globalBuffer = globalThis as { Buffer?: { from(input: string, encoding: string): { toString(encoding: string): string } } };
+  if (globalBuffer.Buffer) {
+    return globalBuffer.Buffer.from(normalized, 'base64').toString('utf8');
+  }
+  if (typeof globalThis.atob === 'function') {
+    return globalThis.atob(normalized);
+  }
+  throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_BASE64_UNAVAILABLE');
+}
+
+export function decodeRuntimeRouteDescribeResultFromMetadata(input: {
+  metadata: Record<string, string> | null | undefined;
+  expectedCapability?: RuntimeCanonicalCapability;
+  expectedResolvedBindingRef?: RuntimeRouteResolvedBindingRef;
+}): RuntimeRouteDescribeResult {
+  const encoded = String(input.metadata?.[RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY] || '').trim();
+  if (!encoded) {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_HEADER_MISSING');
+  }
+
+  let parsedValue: unknown;
+  try {
+    parsedValue = JSON.parse(decodeBase64Text(encoded)) as unknown;
+  } catch {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_DECODE_FAILED');
+  }
+
+  const parsed = parseRuntimeRouteDescribeResult(parsedValue);
+  if (!parsed) {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_SCHEMA_INVALID');
+  }
+  if (input.expectedCapability && parsed.capability !== input.expectedCapability) {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_CAPABILITY_MISMATCH');
+  }
+  if (
+    input.expectedResolvedBindingRef
+    && parsed.resolvedBindingRef !== input.expectedResolvedBindingRef
+  ) {
+    throw createRouteDescribeDecodeError('RUNTIME_ROUTE_DESCRIBE_METADATA_BINDING_REF_MISMATCH');
+  }
+  return parsed;
 }

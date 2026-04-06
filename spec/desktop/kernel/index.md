@@ -31,6 +31,7 @@
 | `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
+| `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |

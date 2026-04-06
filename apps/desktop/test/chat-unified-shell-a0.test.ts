@@ -66,7 +66,6 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
 
   state.setAiConversationSelection({
     threadId: 'ai-thread-1',
-    routeSnapshot: null,
   });
   assert.equal(harness.getState().aiConversationSelection.threadId, 'ai-thread-1');
   assert.equal(harness.getState().lastSelectedThreadByMode.ai, 'ai-thread-1');
@@ -121,7 +120,63 @@ test('A0 AI route readiness accepts a healthy local chat route without cloud sta
     routeKind: 'local',
     connectorId: null,
     provider: null,
-    modelId: null,
+    modelId: 'qwen3',
+  });
+});
+
+test('A0 AI route readiness publishes executable cloud and local ready routes with concrete model ids', () => {
+  const state = createDefaultStateV11({});
+  state.local.status = 'healthy';
+  state.local.models = [{
+    localModelId: 'local-qwen',
+    engine: 'llama',
+    model: 'qwen3-local',
+    endpoint: 'http://127.0.0.1:11434/v1',
+    capabilities: ['chat'],
+    status: 'active',
+  }];
+  state.connectors = [{
+    id: 'connector-openai',
+    label: 'OpenAI',
+    vendor: 'gpt',
+    provider: 'openai',
+    endpoint: 'https://api.openai.com/v1',
+    scope: 'user',
+    hasCredential: true,
+    isSystemOwned: false,
+    models: ['gpt-4.1', 'gpt-4o-mini'],
+    modelCapabilities: {
+      'gpt-4.1': ['chat'],
+      'gpt-4o-mini': ['image.generate'],
+    },
+    status: 'healthy',
+    lastCheckedAt: null,
+    lastDetail: '',
+  }];
+
+  const result = resolveAiConversationRouteReadiness({
+    runtimeConfigState: state,
+  });
+
+  assert.deepEqual(result.readyRoutes, [
+    {
+      routeKind: 'local',
+      connectorId: null,
+      provider: null,
+      modelId: 'qwen3-local',
+    },
+    {
+      routeKind: 'cloud',
+      connectorId: 'connector-openai',
+      provider: 'openai',
+      modelId: 'gpt-4.1',
+    },
+  ]);
+  assert.deepEqual(result.defaultRoute, {
+    routeKind: 'local',
+    connectorId: null,
+    provider: null,
+    modelId: 'qwen3-local',
   });
 });
 
@@ -156,12 +211,11 @@ test('A0 AI route readiness does not silently fall back when a saved cloud route
 
   const result = resolveAiConversationRouteReadiness({
     runtimeConfigState: state,
-    routeSnapshot: {
-      routeKind: 'cloud',
+    selectedBinding: {
+      source: 'cloud',
       connectorId: 'connector-missing',
       provider: 'openai',
-      modelId: 'gpt-4.1',
-      routeBinding: null,
+      model: 'gpt-4.1',
     },
   });
 

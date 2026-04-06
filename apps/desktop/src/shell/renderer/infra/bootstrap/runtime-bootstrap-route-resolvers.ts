@@ -27,21 +27,30 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
         binding?: RuntimeRouteBinding;
     }): Promise<ResolvedRuntimeRouteBinding> => {
         const fields = getRuntimeFields();
-        const source = binding?.source === 'cloud' || binding?.source === 'local'
+        if (!binding) {
+            throw new Error('RUNTIME_ROUTE_BINDING_REQUIRED');
+        }
+        const source = binding.source === 'cloud' || binding.source === 'local'
             ? binding.source
-            : inferSource(fields.provider);
+            : inferSource(String(binding.provider || binding.engine || '').trim());
         const boundModel = String(binding?.model || '').trim();
         const boundModelId = String(binding?.modelId || '').trim();
-        const modelId = normalizeLocalModelRoot(boundModelId || boundModel || fields.localProviderModel || '');
+        const modelId = normalizeLocalModelRoot(boundModelId || boundModel || binding.localModelId || '');
         const model = binding?.source === 'local'
             ? modelId
-            : (boundModel || fields.localProviderModel || '');
-        const connectorId = binding?.connectorId || fields.connectorId || '';
-        const provider = String(binding?.provider || fields.provider || '').trim();
+            : (boundModel || boundModelId);
+        const connectorId = String(binding?.connectorId || '').trim();
+        const provider = String(binding?.provider || binding?.engine || '').trim();
         if (source === 'local') {
-            const engine = normalizeLocalEngine(binding?.engine || binding?.provider || fields.provider);
+            if (!modelId) {
+                throw new Error('RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
+            }
+            const engine = normalizeLocalEngine(binding?.engine || binding?.provider || '');
             const selector = buildLocalSelector(modelId, engine);
-            const endpoint = String(binding?.endpoint || fields.localProviderEndpoint || fields.localOpenAiEndpoint || '').trim();
+            if (!engine) {
+                throw new Error('RUNTIME_ROUTE_BINDING_ENGINE_REQUIRED');
+            }
+            const endpoint = String(binding?.endpoint || '').trim();
             return {
                 source: 'local',
                 runtimeModelType: fields.runtimeModelType as RuntimeModality,
@@ -55,11 +64,20 @@ export function createResolveRuntimeBinding(getRuntimeFields: () => RuntimeField
                 endpoint,
                 localProviderEndpoint: endpoint,
                 localProviderModel: modelId,
-                localOpenAiEndpoint: fields.localOpenAiEndpoint,
+                localOpenAiEndpoint: endpoint,
                 goRuntimeLocalModelId: String(binding?.goRuntimeLocalModelId || '').trim() || undefined,
                 goRuntimeStatus: String(binding?.goRuntimeStatus || '').trim() || undefined,
                 connectorId: '' as const,
             };
+        }
+        if (!connectorId) {
+            throw new Error('RUNTIME_ROUTE_BINDING_CONNECTOR_REQUIRED');
+        }
+        if (!model) {
+            throw new Error('RUNTIME_ROUTE_BINDING_MODEL_REQUIRED');
+        }
+        if (!provider) {
+            throw new Error('RUNTIME_ROUTE_BINDING_PROVIDER_REQUIRED');
         }
         return {
             source: 'cloud',

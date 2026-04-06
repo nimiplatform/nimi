@@ -5,17 +5,8 @@ import type {
   ConversationViewMode,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 
-export type AiConversationRouteSnapshot = {
-  routeKind: 'local' | 'cloud';
-  connectorId: string | null;
-  provider: string | null;
-  modelId: string | null;
-  routeBinding: Record<string, unknown> | null;
-};
-
 export type AiConversationSelection = {
   threadId: string | null;
-  routeSnapshot: AiConversationRouteSnapshot | null;
 };
 
 export type AgentConversationSelection = {
@@ -46,7 +37,6 @@ export const DEFAULT_VIEW_MODE_BY_SOURCE_TARGET: ViewModeBySourceTarget = {};
 
 export const EMPTY_AI_CONVERSATION_SELECTION: AiConversationSelection = {
   threadId: null,
-  routeSnapshot: null,
 };
 
 export const EMPTY_AGENT_CONVERSATION_SELECTION: AgentConversationSelection = {

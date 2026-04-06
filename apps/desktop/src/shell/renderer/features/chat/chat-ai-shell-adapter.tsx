@@ -9,36 +9,23 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ConversationOrchestrationRegistry,
-  matchConversationTurnEvent,
-  type ConversationTurnError,
-  type ConversationTurnEvent,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import {
-  type ChatAiMessageRecord,
-  type ChatAiThreadBundle,
-} from '@renderer/bridge/runtime-bridge/types';
+import type { ChatAiMessageRecord } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
-import { randomIdV11, type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useTranslation } from 'react-i18next';
-import { toChatAiRuntimeError } from './chat-ai-runtime';
-import { resolveAiConversationRouteReadiness, type AiConversationRouteReadiness } from './chat-ai-route-readiness';
+import { resolveAiConversationRouteReadiness, type AiConversationResolvedRoute, type AiConversationRouteReadiness } from './chat-ai-route-readiness';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import {
-  AI_NEW_CONVERSATION_TITLE,
-  createAssistantMessageContent,
-  createPlainTextMessageContent,
-  getAiRouteDisplaySummary,
+  getResolvedRouteDisplaySummary,
   hasAiConversationThread,
-  isAiRouteSnapshotEqual,
   resolveAiConversationActiveThreadId,
-  resolveThreadTitleAfterFirstSend,
-  toAiRouteSnapshotFromResolvedRoute,
   toConversationMessageViewModel,
 } from './chat-ai-thread-model';
-import type { AiConversationRouteSnapshot, AiConversationSelection } from './chat-shell-types';
+import type { AiConversationSelection } from './chat-shell-types';
 import {
   createReasoningMessageContentRenderer,
   RuntimeStreamFooter,
@@ -47,34 +34,22 @@ import {
 import { composeDesktopChatSystemPrompt } from './chat-output-contract';
 import {
   getChatThinkingUnsupportedCopy,
-  resolveAiChatThinkingSupport,
+  resolveAiThinkingSupportFromProjection,
 } from './chat-thinking';
-import {
-  feedStreamEvent,
-  getStreamState,
-  startStream,
-  STREAM_TEXT_TOTAL_TIMEOUT_MS,
-} from '../turns/stream-controller';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
-  createEmptyBundle,
   isEmptyPendingAssistantMessage,
-  normalizeText,
-  normalizeReasoningText,
-  replaceMessage,
   sortThreadSummaries,
   THREADS_QUERY_KEY,
-  toAbortError,
-  toConversationHistoryMessages,
   toErrorMessage,
-  toStructuredProviderError,
-  upsertBundleDraft,
-  upsertThreadSummary,
 } from './chat-ai-shell-core';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import { useAiConversationPresentation } from './chat-ai-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-ai-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-ai-shell-effects';
+import { useAiConversationCapabilityEffects } from './chat-ai-shell-capability-effects';
+import { useAiConversationHostActions } from './chat-ai-shell-host-actions';
 
 type UseAiConversationModeHostInput = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
@@ -90,8 +65,14 @@ export function useAiConversationModeHost(
 ): { host: DesktopConversationModeHost; readiness: AiConversationRouteReadiness } {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
+  const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
+  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
+  const textCapabilityProjection = useAppStore(
+    (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
+  );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const currentDraftTextRef = useRef('');
@@ -103,10 +84,7 @@ export function useAiConversationModeHost(
   }, []);
 
   const setSelection = useCallback((selection: AiConversationSelection) => {
-    if (
-      input.selection.threadId === selection.threadId
-      && isAiRouteSnapshotEqual(input.selection.routeSnapshot, selection.routeSnapshot)
-    ) {
+    if (input.selection.threadId === selection.threadId) {
       return;
     }
     input.setSelection(selection);
@@ -136,43 +114,26 @@ export function useAiConversationModeHost(
     [activeThreadId, threads],
   );
 
-  const readinessPreference = selectedThreadRecord?.routeSnapshot || input.selection.routeSnapshot || null;
+  const textGenerateBinding: RuntimeRouteBinding | null | undefined =
+    conversationCapabilitySelectionStore.selectedBindings['text.generate'];
   const readiness = useMemo(
     () => resolveAiConversationRouteReadiness({
       runtimeConfigState: input.runtimeConfigState,
-      routeSnapshot: readinessPreference,
+      selectedBinding: textGenerateBinding ?? undefined,
     }),
-    [input.runtimeConfigState, readinessPreference],
+    [input.runtimeConfigState, textGenerateBinding],
   );
 
-  const availableRouteSnapshots = useMemo(() => (
-    readiness.readyRoutes
-      .map((route) => toAiRouteSnapshotFromResolvedRoute(
-        route,
-        input.runtimeConfigState,
-        readinessPreference,
-      ))
-      .filter((route): route is AiConversationRouteSnapshot => Boolean(route))
-      .filter((route, index, routes) => routes.findIndex((candidate) => (
-        isAiRouteSnapshotEqual(candidate, route)
-      )) === index)
-  ), [input.runtimeConfigState, readiness.readyRoutes, readinessPreference]);
-
-  const defaultRouteSnapshot = useMemo(
-    () => toAiRouteSnapshotFromResolvedRoute(
-      readiness.preferredRoute || readiness.defaultRoute,
-      input.runtimeConfigState,
-      readinessPreference,
-    ),
-    [input.runtimeConfigState, readiness.defaultRoute, readiness.preferredRoute, readinessPreference],
+  const availableResolvedRoutes = useMemo(
+    () => readiness.readyRoutes,
+    [readiness.readyRoutes],
   );
 
-  const currentRouteSnapshot = selectedThreadRecord?.routeSnapshot
-    || input.selection.routeSnapshot
-    || defaultRouteSnapshot;
+  const currentResolvedRoute: AiConversationResolvedRoute | null =
+    readiness.preferredRoute || readiness.defaultRoute || null;
   const thinkingSupport = useMemo(
-    () => resolveAiChatThinkingSupport(currentRouteSnapshot),
-    [currentRouteSnapshot],
+    () => resolveAiThinkingSupportFromProjection(textCapabilityProjection),
+    [textCapabilityProjection],
   );
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
@@ -196,16 +157,17 @@ export function useAiConversationModeHost(
     [bundle?.messages],
   );
   const streamState = useConversationStreamState(activeThreadId);
+  const projectionSupported = textCapabilityProjection?.supported === true;
   const aiProvider = useMemo(() => {
-    if (!currentRouteSnapshot || !activeThreadId) {
+    if (!projectionSupported || !activeThreadId) {
       return null;
     }
     const registry = new ConversationOrchestrationRegistry();
     registry.register(createSimpleAiConversationProvider({
       runtimeAdapter: createChatAiConversationRuntimeAdapter({
-        routeSnapshot: currentRouteSnapshot,
         threadId: activeThreadId,
         reasoningPreference: chatThinkingPreference,
+        textProjection: textCapabilityProjection,
         runtimeConfigState: input.runtimeConfigState,
         runtimeFields: input.runtimeFields,
       }),
@@ -215,7 +177,8 @@ export function useAiConversationModeHost(
   }, [
     activeThreadId,
     chatThinkingPreference,
-    currentRouteSnapshot,
+    projectionSupported,
+    textCapabilityProjection,
     input.runtimeConfigState,
     input.runtimeFields,
   ]);
@@ -236,23 +199,27 @@ export function useAiConversationModeHost(
     setSelection,
   });
 
+  useAiConversationCapabilityEffects({
+    bootstrapReady,
+    conversationCapabilitySelectionStore,
+    currentDraftTextRef,
+    draftText: bundle?.draft?.text,
+    draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
+  });
+
   useEffect(() => {
     if (!threadsQuery.isSuccess) {
       return;
     }
     if (input.selection.threadId && !hasAiConversationThread(threads, input.selection.threadId)) {
-      setSelection({
-        threadId: null,
-        routeSnapshot: input.selection.routeSnapshot,
-      });
+      setSelection({ threadId: null });
       return;
     }
     if (!input.selection.threadId && activeThreadId && selectedThreadRecord) {
-      syncSelectionToThread(activeThreadId, selectedThreadRecord.routeSnapshot);
+      syncSelectionToThread(activeThreadId);
     }
   }, [
     activeThreadId,
-    input.selection.routeSnapshot,
     input.selection.threadId,
     selectedThreadRecord,
     setSelection,
@@ -261,459 +228,38 @@ export function useAiConversationModeHost(
     threadsQuery.isSuccess,
   ]);
 
-  useEffect(() => {
-    currentDraftTextRef.current = bundle?.draft?.text || '';
-  }, [activeThreadId, bundle?.draft?.text, bundle?.draft?.updatedAtMs]);
-
-  const persistDraftForThread = useCallback(async (threadId: string | null) => {
-    const normalizedThreadId = normalizeText(threadId);
-    if (!normalizedThreadId) {
-      return;
-    }
-    const nextText = currentDraftTextRef.current;
-    if (nextText.trim()) {
-      const draft = await chatAiStoreClient.putDraft({
-        threadId: normalizedThreadId,
-        text: nextText,
-        attachments: [],
-        updatedAtMs: Date.now(),
-      });
-      setBundleCache(
-        normalizedThreadId,
-        (current: ChatAiThreadBundle | null | undefined) => upsertBundleDraft(current, draft) || current,
-      );
-      return;
-    }
-    await chatAiStoreClient.deleteDraft(normalizedThreadId);
-    setBundleCache(
-      normalizedThreadId,
-      (current: ChatAiThreadBundle | null | undefined) => upsertBundleDraft(current, null) || current,
-    );
-  }, [setBundleCache]);
-
-  const handleCreateThread = useCallback(async () => {
-    if (readiness.setupState.status !== 'ready' || !currentRouteSnapshot) {
-      return;
-    }
-    const timestampMs = Date.now();
-    const thread = await chatAiStoreClient.createThread({
-      id: randomIdV11('ai-thread'),
-      title: AI_NEW_CONVERSATION_TITLE,
-      createdAtMs: timestampMs,
-      updatedAtMs: timestampMs,
-      lastMessageAtMs: null,
-      archivedAtMs: null,
-      routeSnapshot: currentRouteSnapshot,
-    });
-    setThreadsCache((current) => upsertThreadSummary(current, thread));
-    queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyBundle(thread));
-    currentDraftTextRef.current = '';
-    syncSelectionToThread(thread.id, thread.routeSnapshot);
-  }, [currentRouteSnapshot, queryClient, readiness.setupState.status, setThreadsCache, syncSelectionToThread]);
-
-  const handleArchiveThread = useCallback(async (threadId: string) => {
-    const thread = threads.find((t) => t.id === threadId);
-    if (!thread) {
-      return;
-    }
-    const archivedAtMs = Date.now();
-    await chatAiStoreClient.updateThreadMetadata({
-      id: thread.id,
-      title: thread.title,
-      updatedAtMs: archivedAtMs,
-      lastMessageAtMs: thread.lastMessageAtMs,
-      archivedAtMs,
-      routeSnapshot: thread.routeSnapshot,
-    });
-    setThreadsCache((current) => current.filter((t) => t.id !== threadId));
-    // If the archived thread was active, switch to the next available thread
-    if (activeThreadId === threadId) {
-      const remaining = threads.filter((t) => t.id !== threadId);
-      const next = remaining[0] || null;
-      if (next) {
-        syncSelectionToThread(next.id, next.routeSnapshot);
-      } else {
-        setSelection({ threadId: null, routeSnapshot: null });
-      }
-    }
-  }, [activeThreadId, setSelection, setThreadsCache, syncSelectionToThread, threads]);
-
-  const handleRenameThread = useCallback((threadId: string, title: string) => {
-    const thread = threads.find((t) => t.id === threadId);
-    if (!thread) {
-      return;
-    }
-    void (async () => {
-      const updated = await chatAiStoreClient.updateThreadMetadata({
-        id: thread.id,
-        title,
-        updatedAtMs: Date.now(),
-        lastMessageAtMs: thread.lastMessageAtMs,
-        archivedAtMs: thread.archivedAtMs,
-        routeSnapshot: thread.routeSnapshot,
-      });
-      setThreadsCache((current) => upsertThreadSummary(current, updated));
-    })().catch(reportHostError);
-  }, [reportHostError, setThreadsCache, threads]);
-
-  // Auto-create the first AI thread when route is ready and no thread exists.
-  // Subsequent threads are created by the user via the session list panel.
-  const autoCreatingRef = useRef(false);
-  useEffect(() => {
-    if (readiness.setupState.status !== 'ready' || !currentRouteSnapshot) {
-      return;
-    }
-    if (threads.length > 0 || autoCreatingRef.current) {
-      return;
-    }
-    autoCreatingRef.current = true;
-    void handleCreateThread()
-      .catch(reportHostError)
-      .finally(() => { autoCreatingRef.current = false; });
-  }, [currentRouteSnapshot, handleCreateThread, readiness.setupState.status, reportHostError, threads.length]);
-
-  const handleSelectThread = useCallback((threadId: string) => {
-    if (!threadId || threadId === activeThreadId || submittingThreadId) {
-      return;
-    }
-    const nextThread = threads.find((thread) => thread.id === threadId) || null;
-    if (!nextThread) {
-      return;
-    }
-    void (async () => {
-      await persistDraftForThread(activeThreadId);
-      currentDraftTextRef.current = '';
-      syncSelectionToThread(threadId, nextThread.routeSnapshot);
-    })().catch(reportHostError);
-  }, [activeThreadId, persistDraftForThread, reportHostError, submittingThreadId, syncSelectionToThread, threads]);
-
-  const handleRouteSelection = useCallback((routeSnapshot: AiConversationRouteSnapshot) => {
-    if (submittingThreadId) {
-      return;
-    }
-    void (async () => {
-      if (!selectedThreadRecord) {
-        syncSelectionToThread(null, routeSnapshot);
-        return;
-      }
-      const updatedThread = await chatAiStoreClient.updateThreadMetadata({
-        id: selectedThreadRecord.id,
-        title: selectedThreadRecord.title,
-        updatedAtMs: Date.now(),
-        lastMessageAtMs: selectedThreadRecord.lastMessageAtMs,
-        archivedAtMs: selectedThreadRecord.archivedAtMs,
-        routeSnapshot,
-      });
-      setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
-      setBundleCache(updatedThread.id, (current) => {
-        if (!current) {
-          return current;
-        }
-        return {
-          ...current,
-          thread: updatedThread,
-        };
-      });
-      syncSelectionToThread(updatedThread.id, updatedThread.routeSnapshot);
-    })().catch(reportHostError);
-  }, [reportHostError, selectedThreadRecord, setBundleCache, setThreadsCache, submittingThreadId, syncSelectionToThread]);
-
-  const handleSubmit = useCallback(async (text: string) => {
-    if (!currentRouteSnapshot || !aiProvider) {
-      throw new Error(t('Chat.aiSubmitMissingThread', { defaultValue: 'Select a conversation before sending a message.' }));
-    }
-    if (readiness.setupState.status !== 'ready') {
-      throw new Error(t('Chat.aiSubmitRouteUnavailable', { defaultValue: 'Choose a ready AI route before sending a message.' }));
-    }
-
-    const submittedText = text.trim();
-    if (!submittedText) {
-      return;
-    }
-
-    // Lazy thread creation: if no active thread, create one before sending
-    let effectiveThreadId = activeThreadId;
-    let effectiveThreadRecord = selectedThreadRecord;
-    if (!effectiveThreadId || !effectiveThreadRecord) {
-      const timestampMs = Date.now();
-      const newThread = await chatAiStoreClient.createThread({
-        id: randomIdV11('ai-thread'),
-        title: AI_NEW_CONVERSATION_TITLE,
-        createdAtMs: timestampMs,
-        updatedAtMs: timestampMs,
-        lastMessageAtMs: null,
-        archivedAtMs: null,
-        routeSnapshot: currentRouteSnapshot,
-      });
-      setThreadsCache((current) => upsertThreadSummary(current, newThread));
-      queryClient.setQueryData(bundleQueryKey(newThread.id), createEmptyBundle(newThread));
-      syncSelectionToThread(newThread.id, newThread.routeSnapshot);
-      effectiveThreadId = newThread.id;
-      effectiveThreadRecord = newThread;
-    }
-
-    const userMessageId = randomIdV11('ai-message-user');
-    const assistantMessageId = randomIdV11('ai-message-assistant');
-    const createdAtMs = Date.now();
-    const userMessage: ChatAiMessageRecord = {
-      id: userMessageId,
-      threadId: effectiveThreadId,
-      role: 'user',
-      status: 'complete',
-      contentText: submittedText,
-      content: createPlainTextMessageContent(submittedText),
-      error: null,
-      traceId: null,
-      parentMessageId: null,
-      createdAtMs,
-      updatedAtMs: createdAtMs,
-    };
-    const assistantPlaceholder: ChatAiMessageRecord = {
-      id: assistantMessageId,
-      threadId: effectiveThreadId,
-      role: 'assistant',
-      status: 'pending',
-      contentText: '',
-      content: createPlainTextMessageContent(''),
-      error: null,
-      traceId: null,
-      parentMessageId: userMessageId,
-      createdAtMs: createdAtMs + 1,
-      updatedAtMs: createdAtMs + 1,
-    };
-
-    currentDraftTextRef.current = submittedText;
-    setSubmittingThreadId(effectiveThreadId);
-    let streamedText = '';
-    let streamedReasoningText = '';
-    let runtimeTraceId: string | null = null;
-    let promptTraceId = '';
-    let terminalError: ConversationTurnError | null = null;
-    let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
-
-    try {
-      await chatAiStoreClient.deleteDraft(effectiveThreadId);
-      setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
-
-      await chatAiStoreClient.createMessage(userMessage);
-      await chatAiStoreClient.createMessage(assistantPlaceholder);
-      setBundleCache(effectiveThreadId, (current) => {
-        const base = current || createEmptyBundle({
-          ...effectiveThreadRecord,
-          createdAtMs,
-        });
-        return {
-          ...base,
-          messages: replaceMessage(
-            replaceMessage(base.messages, userMessage),
-            assistantPlaceholder,
-          ),
-          draft: null,
-        };
-      });
-
-      const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
-      const history = toConversationHistoryMessages(bundle?.messages || []);
-      for await (const event of aiProvider.runTurn({
-        modeId: 'simple-ai',
-        threadId: effectiveThreadId,
-        turnId: assistantMessageId,
-        userMessage: {
-          id: userMessageId,
-          text: submittedText,
-          attachments: [],
-        },
-        history,
-        signal: abortController.signal,
-      })) {
-        matchConversationTurnEvent(event, {
-          'turn-started': () => undefined,
-          'reasoning-delta': (nextEvent) => {
-            streamedReasoningText += nextEvent.textDelta;
-            feedStreamEvent(effectiveThreadId, {
-              type: 'reasoning_delta',
-              textDelta: nextEvent.textDelta,
-            });
-          },
-          'text-delta': (nextEvent) => {
-            streamedText += nextEvent.textDelta;
-            feedStreamEvent(effectiveThreadId, {
-              type: 'text_delta',
-              textDelta: nextEvent.textDelta,
-            });
-          },
-          'turn-completed': (nextEvent) => {
-            completionEvent = nextEvent;
-            streamedText = nextEvent.outputText;
-            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
-            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
-            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
-            feedStreamEvent(effectiveThreadId, {
-              type: 'done',
-              usage: nextEvent.usage,
-              finalText: nextEvent.outputText,
-              finalReasoningText: normalizeReasoningText(nextEvent.reasoningText) || undefined,
-            });
-          },
-          'turn-failed': (nextEvent) => {
-            terminalError = nextEvent.error;
-            streamedText = normalizeText(nextEvent.outputText) || streamedText;
-            streamedReasoningText = normalizeReasoningText(nextEvent.reasoningText) || streamedReasoningText;
-            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
-            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
-          },
-          'turn-canceled': (nextEvent) => {
-            runtimeTraceId = normalizeText(nextEvent.trace?.traceId) || runtimeTraceId;
-            promptTraceId = normalizeText(nextEvent.trace?.promptTraceId) || promptTraceId;
-            throw toAbortError(t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }));
-          },
-          'first-beat-sealed': () => {
-            throw new Error('simple-ai provider emitted unsupported first-beat event');
-          },
-          'beat-planned': () => {
-            throw new Error('simple-ai provider emitted unsupported beat-planned event');
-          },
-          'beat-delivery-started': () => {
-            throw new Error('simple-ai provider emitted unsupported beat-delivery-started event');
-          },
-          'beat-delivered': () => {
-            throw new Error('simple-ai provider emitted unsupported beat-delivered event');
-          },
-          'artifact-ready': () => {
-            throw new Error('simple-ai provider emitted unsupported artifact-ready event');
-          },
-          'projection-rebuilt': () => {
-            throw new Error('simple-ai provider emitted unsupported projection-rebuilt event');
-          },
-        });
-      }
-      if (terminalError) {
-        throw toStructuredProviderError(terminalError);
-      }
-      if (!completionEvent) {
-        throw new Error('simple-ai provider completed without a terminal event');
-      }
-
-      const completedState = getStreamState(effectiveThreadId);
-      const finalText = completedState.partialText || streamedText;
-      const finalReasoningText = completedState.partialReasoningText || streamedReasoningText;
-
-      const assistantMessage = await chatAiStoreClient.updateMessage({
-        id: assistantMessageId,
-        status: 'complete',
-        contentText: finalText,
-        content: createAssistantMessageContent(finalText, finalReasoningText),
-        error: null,
-        traceId: runtimeTraceId || promptTraceId || null,
-        updatedAtMs: Date.now(),
-      });
-      const updatedThread = await chatAiStoreClient.updateThreadMetadata({
-        id: effectiveThreadRecord.id,
-        title: resolveThreadTitleAfterFirstSend(effectiveThreadRecord.title, submittedText),
-        updatedAtMs: Date.now(),
-        lastMessageAtMs: assistantMessage.updatedAtMs,
-        archivedAtMs: effectiveThreadRecord.archivedAtMs,
-        routeSnapshot: currentRouteSnapshot,
-      });
-      setThreadsCache((current) => upsertThreadSummary(current, updatedThread));
-      setBundleCache(effectiveThreadId, (current) => {
-        const base = current || createEmptyBundle(updatedThread);
-        return {
-          ...base,
-          thread: updatedThread,
-          messages: replaceMessage(base.messages, assistantMessage),
-          draft: null,
-        };
-      });
-      currentDraftTextRef.current = '';
-      syncSelectionToThread(effectiveThreadId, updatedThread.routeSnapshot);
-    } catch (error) {
-      const streamSnapshot = getStreamState(effectiveThreadId);
-      const partialText = streamSnapshot.partialText || streamedText;
-      const partialReasoningText = streamSnapshot.partialReasoningText || streamedReasoningText;
-      const runtimeError = streamSnapshot.cancelSource === 'user'
-        ? {
-          code: 'OPERATION_ABORTED',
-          message: t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }),
-        }
-        : toChatAiRuntimeError(error);
-      if (streamSnapshot.phase === 'waiting' || streamSnapshot.phase === 'streaming') {
-        feedStreamEvent(effectiveThreadId, {
-          type: 'error',
-          message: runtimeError.message,
-          reasonCode: runtimeError.code,
-          traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || undefined,
-        });
-      }
-      const draft = await chatAiStoreClient.putDraft({
-        threadId: effectiveThreadId,
-        text: submittedText,
-        attachments: [],
-        updatedAtMs: Date.now(),
-      });
-      setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, draft) || current);
-      try {
-        const assistantError = await chatAiStoreClient.updateMessage({
-          id: assistantMessageId,
-          status: 'error',
-          contentText: partialText,
-          content: createAssistantMessageContent(partialText, partialReasoningText),
-          error: runtimeError,
-          traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || null,
-          updatedAtMs: Date.now(),
-        });
-        setBundleCache(effectiveThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...effectiveThreadRecord,
-            createdAtMs,
-          });
-          return {
-            ...base,
-            messages: replaceMessage(
-              replaceMessage(base.messages, userMessage),
-              assistantError,
-            ),
-            draft,
-          };
-        });
-      } catch {
-        setBundleCache(effectiveThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...effectiveThreadRecord,
-            createdAtMs,
-          });
-          return {
-            ...base,
-            messages: replaceMessage(base.messages, userMessage),
-            draft,
-          };
-        });
-      }
-      currentDraftTextRef.current = submittedText;
-      throw new Error(runtimeError.message, {
-        cause: error,
-      });
-    } finally {
-      setSubmittingThreadId(null);
-    }
-  }, [
+  const {
+    handleArchiveThread,
+    handleCreateThread,
+    handleRenameThread,
+    handleRouteSelection,
+    handleSelectThread,
+    handleSubmit,
+  } = useAiConversationHostActions({
     activeThreadId,
-    aiProvider,
-    bundle?.messages,
-    currentRouteSnapshot,
-    chatThinkingPreference,
-    input.runtimeConfigState,
-    input.runtimeFields,
+    bundleMessages: bundle?.messages,
+    currentDraftTextRef,
     queryClient,
-    readiness.setupState.status,
+    reportHostError,
+    runAiTurn: aiProvider
+      ? (turnInput) => aiProvider.runTurn({
+        modeId: 'simple-ai',
+        ...turnInput,
+      })
+      : null,
     selectedThreadRecord,
     setBundleCache,
+    setConversationCapabilityBinding,
+    setSubmittingThreadId,
     setThreadsCache,
+    setupReady: readiness.setupState.status === 'ready',
+    submittingThreadId,
     syncSelectionToThread,
     t,
-  ]);
+    threads,
+  });
 
-  const routeSummary = getAiRouteDisplaySummary(currentRouteSnapshot, input.runtimeConfigState);
+  const routeSummary = getResolvedRouteDisplaySummary(currentResolvedRoute, input.runtimeConfigState);
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.aiAssistantName', { defaultValue: 'AI Assistant' }),
     avatarUrl: null,
@@ -816,13 +362,13 @@ export function useAiConversationModeHost(
   const host = useAiConversationPresentation({
     activeThreadId,
     aiCharacterData,
-    availableRouteSnapshots,
+    availableResolvedRoutes,
     bundle,
     bundleError: bundleQuery.error,
     canonicalMessages,
     composerReady,
     currentDraftTextRef,
-    currentRouteSnapshot,
+    currentResolvedRoute,
     footerContent,
     handleArchiveThread,
     handleCreateThread,

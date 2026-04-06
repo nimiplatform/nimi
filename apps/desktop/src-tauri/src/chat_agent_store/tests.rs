@@ -430,7 +430,10 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         assert!(committed.bundle.draft.is_none());
         assert_eq!(committed.bundle.messages[1].content_text, "tail beat");
         assert_eq!(
-            committed.interaction_snapshot.as_ref().map(|item| item.version),
+            committed
+                .interaction_snapshot
+                .as_ref()
+                .map(|item| item.version),
             Some(1)
         );
         assert_eq!(committed.relation_memory_slots.len(), 1);
@@ -450,7 +453,10 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
         assert_eq!(context.recent_turns.len(), 1);
         assert_eq!(context.recent_turns[0].provider_mode, "agent-local-chat-v1");
         assert_eq!(context.recent_beats.len(), 2);
-        assert_eq!(context.recent_beats[0].projection_message_id.as_deref(), Some("message-001"));
+        assert_eq!(
+            context.recent_beats[0].projection_message_id.as_deref(),
+            Some("message-001")
+        );
         assert_eq!(context.relation_memory_slots.len(), 1);
         assert_eq!(context.recall_entries.len(), 1);
         assert!(context.draft.is_none());
@@ -468,8 +474,14 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
 
         let rebuilt = rebuild_projection(&mut conn, &thread.id).expect("rebuild projection");
         assert_eq!(rebuilt.bundle.messages.len(), 2);
-        assert_eq!(rebuilt.bundle.messages[0].status, ChatAgentMessageStatus::Pending);
-        assert_eq!(rebuilt.bundle.messages[1].status, ChatAgentMessageStatus::Complete);
+        assert_eq!(
+            rebuilt.bundle.messages[0].status,
+            ChatAgentMessageStatus::Pending
+        );
+        assert_eq!(
+            rebuilt.bundle.messages[1].status,
+            ChatAgentMessageStatus::Complete
+        );
         assert_eq!(rebuilt.bundle.messages[1].content_text, "tail beat");
 
         let canceled = cancel_turn(
@@ -495,6 +507,9 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
             },
         )
         .expect("load context after cancel");
-        assert_eq!(post_cancel_context.recent_turns[0].status, ChatAgentTurnStatus::Canceled);
+        assert_eq!(
+            post_cancel_context.recent_turns[0].status,
+            ChatAgentTurnStatus::Canceled
+        );
     });
 }

@@ -713,6 +713,7 @@
     "settingsTitle": "设置",
     "settingsSubtitle": "全局交互偏好",
     "toggleSettings": "切换设置",
+    "settingsChatRouteConfigHint": "查看并切换当前会话使用的 runtime 路由选择。",
     "newConversation": "新建对话",
     "noConversationsYet": "暂无对话",
     "startNewConversation": "点击上方按钮开始新对话",

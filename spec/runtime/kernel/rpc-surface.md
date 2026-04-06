@@ -46,6 +46,7 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - `TEXT_GENERATE` 的多模态 uplift 继续复用 `ExecuteScenario` / `StreamScenario`
 - 大媒体 upload-first ingress 通过 `UploadArtifact` 暴露，供 `artifact_ref.artifact_id` 在 `TEXT_GENERATE` 与 realtime 中复用
 - duplex realtime session 不属于 `AIService`，统一走独立 `RuntimeAiRealtimeService`
+- app-facing `runtime.route.describe(...)` metadata projection 由 `K-RPC-015` ~ `K-RPC-021` 约束；Phase 1 不得为其新增 daemon 顶层 RPC method
 
 ## RuntimeAiRealtimeService 方法集合
 
@@ -282,3 +283,107 @@ Voice 相关资产生命周期收敛到 `AIService`：
 2. `ListVoiceAssets`
 3. `DeleteVoiceAsset`
 4. `ListPresetVoices`
+
+## K-RPC-015 Route Describe Logical Operation And Single Authority
+
+`runtime.route.describe(...)` 是 runtime-owned 的逻辑操作，用于为单个 canonical capability route 生成 app-facing typed metadata projection。
+
+- metadata authority 固定属于 Runtime；SDK、Desktop、host capability 只允许投影和消费，不得生成第二份 metadata 真相。
+- `runtime.route.describe(...)` 的对象是“已解析 capability route 的 metadata”，不是新的 provider 探测面，也不是 Desktop heuristic。
+- `describe` 返回的 metadata 只描述 capability policy / input / reasoning / workflow 语义；不得承载 health 成功语义、fallback 决策或 Desktop local cache truth。
+
+## K-RPC-016 Route Capability Responsibility Split
+
+route capability surface 的职责固定拆分如下：
+
+- `runtime.route.listOptions(...)`：只返回可选择 binding/options；不产生 resolved binding、health 或 metadata truth。
+- `runtime.route.resolve(...)`：只执行 selection -> resolved binding resolution；不得输出 health verdict 或 metadata policy truth。
+- `runtime.route.checkHealth(...)`：只返回 resolved binding 的 health/readiness truth；不得补写 resolution 或 metadata。
+- `runtime.route.describe(...)`：只返回 resolved route 的 typed metadata；不得承担 selection resolution、health 探测、provider fallback、或 Desktop-owned projection 组装。
+
+实现层允许共享底层 resolver/cached lookup，但 public contract 上述四者的语义边界不得合并。
+
+## K-RPC-017 Route Describe Typed Result Schema
+
+`runtime.route.describe(...)` 的 Phase 1 typed result 固定为 discriminated result：
+
+- `capability`：canonical capability token（必须来自 `K-MCAT-024`）
+- `metadataVersion`：固定为 `v1`
+- `resolvedBindingRef`：由 `runtime.route.resolve(...)` 产生并可复核的 resolved binding reference；`describe` 不接受 Desktop heuristically assembled route
+- `metadataKind`：`text.generate | voice_workflow.tts_v2v | voice_workflow.tts_t2v`
+- `metadata`：与 `metadataKind` 对应的 typed object
+
+`metadataKind=text.generate` 时，`metadata` 最小必填字段固定为：
+
+- `supportsThinking: boolean`
+- `traceModeSupport: 'none' | 'hide' | 'separate'`
+- `supportsImageInput: boolean`
+- `supportsAudioInput: boolean`
+- `supportsVideoInput: boolean`
+- `supportsArtifactRefInput: boolean`
+
+`metadataKind=voice_workflow.tts_v2v` 时，`metadata` 最小必填字段固定为：
+
+- `workflowType: 'tts_v2v'`
+- `supportsReferenceAudioInput: true`
+- `supportsTextPromptInput: boolean`
+- `requiresTargetSynthesisBinding: boolean`
+
+`metadataKind=voice_workflow.tts_t2v` 时，`metadata` 最小必填字段固定为：
+
+- `workflowType: 'tts_t2v'`
+- `supportsReferenceAudioInput: false`
+- `supportsTextPromptInput: true`
+- `requiresTargetSynthesisBinding: boolean`
+
+Phase 1 未在本规则列出的 capability，不得借由自由对象、provider raw payload 或 Desktop 本地推导补充稳定 metadata contract。
+
+## K-RPC-018 Route Describe Producer Derivation Rules
+
+`describe(...)` metadata 必须单向派生自 runtime 既有 capability truth：
+
+- `text.generate.supportsImageInput | supportsAudioInput | supportsVideoInput`
+  - 单向派生自 `K-MMPROV-030` 的 multimodal preflight capability truth。
+- `text.generate.supportsArtifactRefInput`
+  - 单向派生自 runtime 对 `artifact_ref` 可解析后目标模态的 capability truth；Desktop 不得维护第二份 artifact modality matrix。
+- `text.generate.supportsThinking | traceModeSupport`
+  - 单向派生自 `K-MMPROV-037` 的 typed reasoning capability truth。
+- `voice_workflow.tts_v2v | voice_workflow.tts_t2v`
+  - 单向派生自 `K-MMPROV-019`、`K-MMPROV-020`、`K-MCAT-013`、`K-MCAT-014`、`K-MCAT-021` 以及 local `speech` capability truth（含 `K-LOCAL-017`）。
+
+若 producer 需要读取 catalog projection、本地 capability resolver、或 workflow binding matrix，该读取仍属于 Runtime 内部单向投影，不得形成 Desktop-owned metadata cache truth。
+
+## K-RPC-019 Route Describe Fail-Close Semantics
+
+以下任一条件成立时，`runtime.route.describe(...)` 必须 fail-close：
+
+- `capability` 不是 canonical capability token
+- 输入缺失 `resolvedBindingRef`，或该 binding 不是 runtime-owned resolve truth
+- `metadataKind` 与 `capability` 不匹配
+- 缺失本规则要求的 typed field、discriminator、枚举值，或字段类型非法
+- producer 无法从 runtime truth 导出 Phase 1 要求的 metadata 最小集
+- workflow binding / synthesis binding compatibility 需要显式证明但未能解析
+
+fail-close 时不得：
+
+- 伪造默认 `supportsThinking=false` / `supports*Input=false`
+- 以 provider 名称、route kind、local/cloud 假设补猜 metadata
+- 把 `audio.synthesize` metadata 冒充 `voice_workflow.*` metadata
+
+## K-RPC-020 Route Describe Transport Boundary
+
+`runtime.route.describe(...)` 在 Phase 1 只定义 logical operation 与 metadata authority，不定义新的 daemon 顶层 RPC method。
+
+- `spec/runtime/kernel/tables/rpc-methods.yaml` 在本轮不得新增 `DescribeRoute`、`GetRouteMetadata` 或等价顶层 RPC。
+- app-facing transport 可以与 `resolve / checkHealth` 形态不完全对称，但该不对称只允许存在于 host/SDK typed projection 面。
+- 若 host capability、SDK typed surface、或 runtime-private transport adapter 内部复用 runtime catalog/local resolver truth，它们仍必须保持单向投影，不得升级为第二份 authority。
+
+## K-RPC-021 Voice Workflow Capability Independence
+
+`voice_workflow.tts_v2v` 与 `voice_workflow.tts_t2v` 在 selection / resolve / checkHealth / describe 上必须被视为独立 capability，而不是 `audio.synthesize` 的隐式附属面。
+
+- selection truth 必须按 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 各自 capability key 记录；不得复用 `audio.synthesize` 的 selected binding。
+- `resolve(...)` 对 workflow capability 必须解析 workflow model binding；当 binding matrix 要求目标 synthesis model 时，还必须显式解析 compatibility，而不是继承 `audio.synthesize` 的任意 route。
+- `checkHealth(...)` 对 workflow capability 必须检查 workflow driver/readiness；当 `requiresTargetSynthesisBinding=true` 时，还必须把目标 synthesis binding readiness 作为同一路径的组成条件。
+- `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
+- 任一 workflow capability 缺失独立 selection、resolution、health、或 metadata truth 时必须 fail-close，不得降级到 `audio.synthesize` 成功路径。

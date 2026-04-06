@@ -38,6 +38,21 @@ func TestClassifyScenarioExtensionsStrictAllowed(t *testing.T) {
 	}
 }
 
+func TestClassifyScenarioExtensionsAllowsTextGenerateRouteDescribeProbe(t *testing.T) {
+	ignored, err := classifyScenarioExtensions(
+		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		[]*runtimev1.ScenarioExtension{
+			{Namespace: textGenerateRouteDescribeExtensionNamespace},
+		},
+	)
+	if err != nil {
+		t.Fatalf("classify scenario extensions: %v", err)
+	}
+	if len(ignored) != 0 {
+		t.Fatalf("strict extension should not be ignored, got=%d", len(ignored))
+	}
+}
+
 func TestClassifyScenarioExtensionsRejectsUnknownMediaNamespace(t *testing.T) {
 	_, err := classifyScenarioExtensions(
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,

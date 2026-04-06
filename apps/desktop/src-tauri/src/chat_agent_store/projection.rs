@@ -7,7 +7,10 @@ use super::crud::get_thread_bundle;
 use super::types::*;
 use rusqlite::{params, Connection};
 
-pub(super) fn compute_projection_version(conn: &Connection, thread_id: &str) -> Result<String, String> {
+pub(super) fn compute_projection_version(
+    conn: &Connection,
+    thread_id: &str,
+) -> Result<String, String> {
     let (turn_count, beat_count, snapshot_count, memory_count, recall_count): (i64, i64, i64, i64, i64) = conn
         .query_row(
             r#"
@@ -63,8 +66,10 @@ pub(super) fn upsert_projection_message(
     let thread_id = normalize_required_string(&input.thread_id, "projection.messages[].threadId")?;
     let content_text = input.content_text.trim().to_string();
     let error = normalize_message_error(input.error.as_ref())?;
-    let created_at_ms = require_non_negative_ms(input.created_at_ms, "projection.messages[].createdAtMs")?;
-    let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "projection.messages[].updatedAtMs")?;
+    let created_at_ms =
+        require_non_negative_ms(input.created_at_ms, "projection.messages[].createdAtMs")?;
+    let updated_at_ms =
+        require_non_negative_ms(input.updated_at_ms, "projection.messages[].updatedAtMs")?;
     conn.execute(
         r#"
         INSERT INTO agent_messages (
@@ -168,9 +173,12 @@ pub(super) fn rebuild_projection_internal(
             trace_id,
             created_at_ms,
             updated_at_ms,
-        ) = row.map_err(|error| format!("decode rebuild chat_agent projection row failed: {error}"))?;
+        ) = row
+            .map_err(|error| format!("decode rebuild chat_agent projection row failed: {error}"))?;
         if !seen_message_ids.insert(message_id.clone()) {
-            return Err("rebuild chat_agent projection failed: duplicate projection_message_id".to_string());
+            return Err(
+                "rebuild chat_agent projection failed: duplicate projection_message_id".to_string(),
+            );
         }
         let role = parse_message_role(&role_raw)?;
         let beat_status = parse_beat_status(&beat_status_raw)?;
@@ -217,7 +225,10 @@ pub(super) fn rebuild_projection_internal(
     for message in &projection_messages {
         upsert_projection_message(conn, message)?;
     }
-    let rebuilt_last_message_at_ms = projection_messages.iter().map(|item| item.updated_at_ms).max();
+    let rebuilt_last_message_at_ms = projection_messages
+        .iter()
+        .map(|item| item.updated_at_ms)
+        .max();
     conn.execute(
         r#"
         UPDATE agent_threads
@@ -233,8 +244,9 @@ pub(super) fn rebuild_projection_internal(
     )
     .map_err(|error| map_sql_error("update chat_agent rebuilt thread metadata failed", error))?;
 
-    let bundle = get_thread_bundle(conn, &thread_id)?
-        .ok_or_else(|| "rebuild chat_agent projection failed: missing thread after rebuild".to_string())?;
+    let bundle = get_thread_bundle(conn, &thread_id)?.ok_or_else(|| {
+        "rebuild chat_agent projection failed: missing thread after rebuild".to_string()
+    })?;
     let projection_version = compute_projection_version(conn, &thread_id)?;
     let _ = existing_bundle;
     Ok(ChatAgentProjectionRebuildResult {

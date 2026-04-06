@@ -12,6 +12,7 @@ import { useRuntimeConfigDaemonController } from './runtime-config-panel-control
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
 import { useRuntimeConfigBridgeSync } from './runtime-config-panel-controller-bridge-sync';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -22,6 +23,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const offlineTier = useAppStore((state) => state.offlineTier);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
+  const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
   const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
@@ -129,11 +132,16 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     setState: panelState.setState,
     runtimeFields,
     setRuntimeFields,
+    setConversationCapabilityBinding,
     setStatusBanner: setPageFeedback,
     setVaultEntryCount: panelState.setVaultEntryCount,
     vaultVersion: panelState.vaultVersion,
     discoverLocalModels: commands.discoverLocalModels,
   });
+
+  useEffect(() => {
+    void refreshConversationCapabilityProjections();
+  }, [bootstrapReady, conversationCapabilitySelectionStore]);
 
   useEffect(() => {
     if (!panelState.hydrated) return;

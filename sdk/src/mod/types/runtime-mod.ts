@@ -53,7 +53,9 @@ import type {
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
+  RuntimeRouteDescribeResult,
   RuntimeRouteOptionsSnapshot,
+  RuntimeRouteResolvedBindingRef,
 } from '../runtime-route.js';
 
 export type ModRuntimeHost = {
@@ -79,6 +81,11 @@ export type ModRuntimeHost = {
       capability: RuntimeCanonicalCapability;
       binding?: RuntimeRouteBinding;
     }) => Promise<RuntimeRouteHealthResult>;
+    describe: (input: {
+      modId: string;
+      capability: RuntimeCanonicalCapability;
+      resolvedBindingRef: RuntimeRouteResolvedBindingRef;
+    }) => Promise<RuntimeRouteDescribeResult>;
   };
   local: {
     listAssets: (input: ModRuntimeListLocalAssetsInput & {

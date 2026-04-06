@@ -713,6 +713,7 @@
     "settingsTitle": "Settings",
     "settingsSubtitle": "Global interaction preferences",
     "toggleSettings": "Toggle settings",
+    "settingsChatRouteConfigHint": "Inspect and switch the runtime-backed route selection used for this conversation.",
     "newConversation": "New conversation",
     "noConversationsYet": "No conversations yet",
     "startNewConversation": "Start a new conversation above",

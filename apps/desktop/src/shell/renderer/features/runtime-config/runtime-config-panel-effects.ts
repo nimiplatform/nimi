@@ -3,6 +3,8 @@ import { startLocalRuntimePolling, type LocalRuntimeSnapshot } from '@runtime/lo
 import type { Dispatch, SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import type { ConversationCapability } from '@renderer/features/chat/conversation-capability';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import { useRuntimeConfigHydrationEffect } from './runtime-config-effect-hydration';
 import { useRuntimeConfigVaultSyncEffect } from './runtime-config-effect-vault-sync';
 import { useRuntimeConfigRouteInitEffect } from './runtime-config-effect-route-init';
@@ -20,6 +22,10 @@ type RuntimeConfigPanelEffectsInput = {
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
   runtimeFields: RuntimeFieldMap;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
+  setConversationCapabilityBinding: (
+    capability: ConversationCapability,
+    binding: RuntimeRouteBinding | null | undefined,
+  ) => void;
   setStatusBanner: (banner: StatusBanner | null) => void;
   setVaultEntryCount: (count: number) => void;
   vaultVersion: number;
@@ -88,7 +94,7 @@ export function useRuntimeConfigPanelEffects(input: RuntimeConfigPanelEffectsInp
   useRuntimeConfigRouteInitEffect({
     state: input.state,
     setState: input.setState,
-    setRuntimeFields: input.setRuntimeFields,
+    setConversationCapabilityBinding: input.setConversationCapabilityBinding,
   });
 
   useRuntimeConfigSetupAutodiscoverEffect({

@@ -1,12 +1,16 @@
 import type { NimiReasoningConfig } from '@nimiplatform/sdk/runtime';
-import type { AiConversationRouteSnapshot } from './chat-shell-types';
+import type {
+  ConversationCapabilityProjection,
+  ConversationExecutionSnapshot,
+} from './conversation-capability';
 
 export type ChatThinkingPreference = 'off' | 'on';
 
 export type ChatThinkingSupportReason =
   | 'missing_route'
-  | 'local_managed_unsupported'
-  | 'provider_unsupported'
+  | 'metadata_missing'
+  | 'trace_mode_unsupported'
+  | 'thinking_unsupported'
   | 'agent_route_unsupported';
 
 export type ChatThinkingSupport = {
@@ -24,39 +28,92 @@ const THINKING_ON_CONFIG: NimiReasoningConfig = {
   traceMode: 'separate',
 };
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 export function normalizeChatThinkingPreference(value: unknown): ChatThinkingPreference {
   return value === 'on' ? 'on' : 'off';
 }
 
-export function resolveAiChatThinkingSupport(
-  routeSnapshot: AiConversationRouteSnapshot | null | undefined,
+export function resolveTextProjectionThinkingSupport(
+  projection: ConversationCapabilityProjection | null | undefined,
 ): ChatThinkingSupport {
-  if (!routeSnapshot) {
+  if (!projection?.resolvedBinding) {
     return {
       supported: false,
       reason: 'missing_route',
     };
   }
-  if (routeSnapshot.routeKind === 'local') {
+  if (projection.metadata?.metadataKind !== 'text.generate') {
     return {
       supported: false,
-      reason: 'local_managed_unsupported',
+      reason: 'metadata_missing',
     };
   }
-  if (normalizeText(routeSnapshot.provider).toLowerCase() === 'ollama') {
+  if (!projection.metadata.metadata.supportsThinking) {
     return {
-      supported: true,
-      reason: null,
+      supported: false,
+      reason: 'thinking_unsupported',
+    };
+  }
+  if (projection.metadata.metadata.traceModeSupport !== 'separate') {
+    return {
+      supported: false,
+      reason: 'trace_mode_unsupported',
     };
   }
   return {
-    supported: false,
-    reason: 'provider_unsupported',
+    supported: true,
+    reason: null,
   };
+}
+
+export function resolveAiThinkingSupportFromProjection(
+  projection: ConversationCapabilityProjection | null | undefined,
+): ChatThinkingSupport {
+  return resolveTextProjectionThinkingSupport(projection);
+}
+
+export function resolveTextExecutionSnapshotThinkingSupport(
+  snapshot: Pick<ConversationExecutionSnapshot, 'resolvedBinding' | 'metadata'> | null | undefined,
+): ChatThinkingSupport {
+  if (!snapshot?.resolvedBinding) {
+    return {
+      supported: false,
+      reason: 'missing_route',
+    };
+  }
+  if (snapshot.metadata?.metadataKind !== 'text.generate') {
+    return {
+      supported: false,
+      reason: 'metadata_missing',
+    };
+  }
+  if (!snapshot.metadata.metadata.supportsThinking) {
+    return {
+      supported: false,
+      reason: 'thinking_unsupported',
+    };
+  }
+  if (snapshot.metadata.metadata.traceModeSupport !== 'separate') {
+    return {
+      supported: false,
+      reason: 'trace_mode_unsupported',
+    };
+  }
+  return {
+    supported: true,
+    reason: null,
+  };
+}
+
+export function resolveAgentThinkingSupportFromProjection(
+  projection: ConversationCapabilityProjection | null | undefined,
+): ChatThinkingSupport {
+  if (!projection?.resolvedBinding) {
+    return resolveAgentChatThinkingSupport();
+  }
+  if (projection.metadata?.metadataKind !== 'text.generate') {
+    return resolveAgentChatThinkingSupport();
+  }
+  return resolveTextProjectionThinkingSupport(projection);
 }
 
 export function resolveAgentChatThinkingSupport(): ChatThinkingSupport {
@@ -85,21 +142,30 @@ export function getChatThinkingUnsupportedCopy(
       key: 'Chat.settingsThinkingUnsupportedNoRoute',
       defaultValue: 'Choose a ready route before enabling thinking.',
     };
-  case 'local_managed_unsupported':
+  case 'metadata_missing':
     return {
-      key: 'Chat.settingsThinkingUnsupportedLocalRoute',
-      defaultValue: 'Managed local llama routes do not support thinking yet.',
+      key: 'Chat.settingsThinkingUnsupportedMetadata',
+      defaultValue: 'Route policy metadata is unavailable, so thinking stays off.',
+    };
+  case 'trace_mode_unsupported':
+    return {
+      key: 'Chat.settingsThinkingUnsupportedTraceMode',
+      defaultValue: 'This route does not expose separate thinking traces.',
+    };
+  case 'thinking_unsupported':
+    return {
+      key: 'Chat.settingsThinkingUnsupportedCapability',
+      defaultValue: 'This route does not support thinking output.',
     };
   case 'agent_route_unsupported':
     return {
       key: 'Chat.settingsThinkingUnsupportedAgentRoute',
       defaultValue: 'Agent chat uses the managed local runtime, which does not support thinking yet.',
     };
-  case 'provider_unsupported':
   default:
     return {
-      key: 'Chat.settingsThinkingUnsupportedProvider',
-      defaultValue: 'Only Ollama routes support thinking right now.',
+      key: 'Chat.settingsThinkingUnsupportedCapability',
+      defaultValue: 'Thinking is unavailable for the current route.',
     };
   }
 }

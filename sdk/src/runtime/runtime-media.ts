@@ -207,7 +207,7 @@ export async function runtimeSubmitScenarioJobForMedia(
 function normalizeScenarioJobReasonCode(value: unknown): string {
   const numeric = Number(value);
   if (Number.isFinite(numeric)) {
-    const enumName = (RuntimeReasonCode as unknown as Record<number, string>)[numeric];
+    const enumName = RuntimeReasonCode[numeric as RuntimeReasonCode];
     if (enumName && enumName !== 'REASON_CODE_UNSPECIFIED') {
       return String(enumName).trim();
     }

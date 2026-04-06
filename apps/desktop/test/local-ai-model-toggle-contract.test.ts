@@ -155,7 +155,7 @@ test('local route hydration prefers fresh local model adapter over stale binding
 
 test('runtime route resolve always rehydrates local bindings before resolving adapter and status', () => {
   assert.match(runtimeBootstrapHostCapabilitiesSource, /const needsLocalHydration = effectiveBinding\?\.source === 'local';/);
-  assert.match(runtimeBootstrapHostCapabilitiesSource, /else if \(options && effectiveBinding\.source === 'local'\) \{/);
+  assert.match(runtimeBootstrapHostCapabilitiesSource, /if \(options && effectiveBinding\.source === 'local'\) \{/);
   assert.doesNotMatch(runtimeBootstrapHostCapabilitiesSource, /localGoRuntimeStatus === 'removed'/);
 });
 

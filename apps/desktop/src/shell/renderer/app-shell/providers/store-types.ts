@@ -26,6 +26,14 @@ import type {
   ViewModeBySourceTarget,
 } from '@renderer/features/chat/chat-shell-types';
 import type { ChatThinkingPreference } from '@renderer/features/chat/chat-thinking';
+import type {
+  AgentEffectiveCapabilityResolution,
+  ConversationCapability,
+  ConversationCapabilityProjection,
+  ConversationCapabilitySelectionStore,
+  RuntimeLocalProfileRef,
+} from '@renderer/features/chat/conversation-capability';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -95,6 +103,9 @@ export type AppStoreState = {
     refreshToken: string;
   };
   runtimeFields: RuntimeFieldMap;
+  conversationCapabilitySelectionStore: ConversationCapabilitySelectionStore;
+  conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
+  agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
   previousTab: AppTab | null;
   chatMode: ConversationMode;
@@ -140,6 +151,19 @@ export type AppStoreState = {
   clearAuthSession: () => void;
   setRuntimeField: (key: string, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
+  setRuntimeRouteProjection: (updates: Partial<RuntimeFieldMap>) => void;
+  setConversationCapabilitySelectionStore: (store: ConversationCapabilitySelectionStore) => void;
+  setConversationCapabilityBinding: (
+    capability: ConversationCapability,
+    binding: RuntimeRouteBinding | null | undefined,
+  ) => void;
+  setConversationCapabilityDefaultRefs: (updates: {
+    imageProfileRef?: RuntimeLocalProfileRef | null;
+  }) => void;
+  setConversationCapabilityProjections: (
+    projections: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>,
+  ) => void;
+  setAgentEffectiveCapabilityResolution: (resolution: AgentEffectiveCapabilityResolution | null) => void;
   setActiveTab: (tab: AppTab) => void;
   setChatMode: (mode: ConversationMode) => void;
   setChatThinkingPreference: (preference: ChatThinkingPreference) => void;

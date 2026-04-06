@@ -26,6 +26,8 @@ SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatfo
 
 Runtime SDK 对外方法投影按服务分组，方法集合必须与 `spec/runtime/kernel/tables/rpc-methods.yaml` 对应服务对齐，采用 design 名称。服务完整列表与方法集合以 `tables/runtime-method-groups.yaml` 为唯一事实源（S-SURFACE-009），每个 group 独立追踪对齐状态与 phase。
 
+app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
+
 ## S-SURFACE-003 Runtime SDK 禁用旧接口名
 
 SDK 对外契约层禁止出现以下旧接口名：

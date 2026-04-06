@@ -119,7 +119,7 @@ Capability 检查流程：
 - `runtime.media.stt.transcribe`
 - `runtime.media.jobs.submit|get|cancel|subscribe|get.artifacts`
 - `runtime.voice.get.asset|list.assets|delete.asset|list.preset.voices`
-- `runtime.route.list.options|resolve|check.health`
+- `runtime.route.list.options|resolve|check.health|describe`
 - `runtime.local.assets.list`
 - `runtime.local.profiles.list`
 - `runtime.local.profiles.install.request`

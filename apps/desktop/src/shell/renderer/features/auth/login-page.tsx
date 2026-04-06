@@ -39,6 +39,14 @@ export function LoginPage() {
     }
     navigate('/', { replace: true });
   };
+  const handleBackToChat = () => {
+    setActiveTab('chat');
+    if ((location.state as { returnToChat?: boolean } | null)?.returnToChat && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/', { replace: true });
+  };
 
   const navButtonClass = 'pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/70 bg-white/80 text-[#667085] shadow-sm backdrop-blur transition hover:bg-white hover:text-[#1f2937]';
 
@@ -50,10 +58,10 @@ export function LoginPage() {
           <button
             type="button"
             data-testid={E2E_IDS.loginBackButton}
-            onClick={() => navigateToTab('chat')}
+            onClick={handleBackToChat}
             className={navButtonClass}
-            aria-label={t('Navigation.chat', { defaultValue: 'Chat' })}
-            title={t('Navigation.chat', { defaultValue: 'Chat' })}
+            aria-label={t('Auth.backToChat', { defaultValue: 'Back to chat' })}
+            title={t('Auth.backToChat', { defaultValue: 'Back to chat' })}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

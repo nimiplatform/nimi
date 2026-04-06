@@ -80,7 +80,7 @@ test('listVoices cloud sends cloud-prefixed model and token route', async () => 
   assert.equal(capture.length, 1);
   assert.equal(capture[0]?.model, 'cloud/qwen3-tts-instruct-flash-2026-01-26');
   assert.equal(capture[0]?.route, 'cloud');
-  assert.equal(capture[0]?.fallback, 'deny');
+  assert.equal(capture[0]?.fallback, undefined);
   assert.equal(capture[0]?.subjectUserId, undefined);
   assert.equal(voices.length, 1);
   assert.equal(voices[0]?.id, 'Cherry');
@@ -97,7 +97,7 @@ test('listVoices local keeps model id and local route', async () => {
   assert.equal(capture.length, 1);
   assert.equal(capture[0]?.model, 'local/tts-qwen');
   assert.equal(capture[0]?.route, 'local');
-  assert.equal(capture[0]?.fallback, 'deny');
+  assert.equal(capture[0]?.fallback, undefined);
 });
 
 test('openStream throws when no publisher configured', async () => {

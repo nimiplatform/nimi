@@ -52,6 +52,29 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
+	describeProbe, hasDescribeProbe, err := textGenerateRouteDescribeProbeFromExtensions(req.GetExtensions())
+	if err != nil {
+		return nil, err
+	}
+	if hasDescribeProbe {
+		if err := s.writeTextGenerateRouteDescribeHeader(ctx, describeProbe, modelResolved, remoteTarget, selectedProvider); err != nil {
+			return nil, err
+		}
+		return &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: "",
+					},
+				},
+			},
+			FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
+			RouteDecision:     routeDecision,
+			ModelResolved:     modelResolved,
+			TraceId:           ulid.Make().String(),
+			IgnoredExtensions: ignored,
+		}, nil
+	}
 	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_SYNC); err != nil {
 		return nil, err
 	}

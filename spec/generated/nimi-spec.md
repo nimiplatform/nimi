@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-05
+> 生成时间: 2026-04-06
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -108,6 +108,7 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - `TEXT_GENERATE` 的多模态 uplift 继续复用 `ExecuteScenario` / `StreamScenario`
 - 大媒体 upload-first ingress 通过 `UploadArtifact` 暴露，供 `artifact_ref.artifact_id` 在 `TEXT_GENERATE` 与 realtime 中复用
 - duplex realtime session 不属于 `AIService`，统一走独立 `RuntimeAiRealtimeService`
+- app-facing `runtime.route.describe(...)` metadata projection 由 `K-RPC-015` ~ `K-RPC-021` 约束；Phase 1 不得为其新增 daemon 顶层 RPC method
 
 **K-RPC-003 — ConnectorService 方法集合（design 权威）**
 
@@ -1372,6 +1373,8 @@ SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatfo
 
 Runtime SDK 对外方法投影按服务分组，方法集合必须与 `spec/runtime/kernel/tables/rpc-methods.yaml` 对应服务对齐，采用 design 名称。服务完整列表与方法集合以 `tables/runtime-method-groups.yaml` 为唯一事实源（S-SURFACE-009），每个 group 独立追踪对齐状态与 phase。
 
+app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
+
 **S-SURFACE-009 — Runtime 方法投影表治理**
 
 `tables/runtime-method-groups.yaml` 是 SDK 对外方法投影的结构化事实源，采用”显式维护 + 一致性校验”模式：
@@ -2065,6 +2068,8 @@ Desktop 的应用状态采用 Zustand slice 架构。为什么不用 Redux 或 C
 
 `RuntimeFieldMap` 必须保持 string-keyed extensible map 语义；Desktop 可以预置核心字段，但不得将额外 runtime field key 视为非法。Desktop core 不得预置 Agent chat launcher 语义；Agent chat 相关字段仅允许作为 mod-owned runtime context 透传。
 
+`runtimeFields` 的 route-related 字段在 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
+
 **D-STATE-003 — Mod Workspace Slice**
 
 `createModWorkspaceSlice` 管理 mod 工作区：
@@ -2452,7 +2457,7 @@ Capability 检查流程：
 - `runtime.media.stt.transcribe`
 - `runtime.media.jobs.submit|get|cancel|subscribe|get.artifacts`
 - `runtime.voice.get.asset|list.assets|delete.asset|list.preset.voices`
-- `runtime.route.list.options|resolve|check.health`
+- `runtime.route.list.options|resolve|check.health|describe`
 - `runtime.local.assets.list`
 - `runtime.local.profiles.list`
 - `runtime.local.profiles.install.request`
@@ -2627,6 +2632,7 @@ cloud connector 路径必须保持 runtime-only：Desktop 不得恢复 legacy pr
 - Desktop core product 不拥有 Agent chat route API，也不得在 DataSync / launcher / fallback policy 中内建 Agent 聊天路由。
 - mods 如需 Agent 聊天路由，必须通过 desktop host 的 data capability `data-api.core.agent.chat.route.resolve` 查询目标 agent 和 provider。
 - `data-api.core.agent.chat.route.resolve` 必须 fail-close：缺少 `agentId`、控制面请求失败、或返回 payload 非法时直接报错；Desktop host 不得合成本地 `LOCAL/AGENT_LOCAL` 成功路由。
+- `AgentEffectiveCapabilityResolution` 的唯一 authority home 是 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）定义的 shared builder；setup / submit / runtime 不得各自重算一份 agent route truth。
 - `ExecuteLocalTurnInput` 封装完整请求（sessionId、turnIndex、mode、provider、model 参数）。
 - `mode: 'STORY' | 'SCENE_TURN'` 确定对话模式。
 
@@ -2675,8 +2681,9 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 选路规则固定为：
 - `audio.synthesize`：先走 `runtime.route.listOptions({ capability: 'audio.synthesize' })` 选 binding，再调用 `runtime.media.tts.listVoices/synthesize/stream`
-- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：先走对应 workflow capability 的 `runtime.route.listOptions` 选 connector/workflow model，再提交 runtime media job
+- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
+- AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 
 **D-LLM-006 — 本地 AI 推理审计**
 
@@ -4231,9 +4238,9 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | Source Type | 能力模式 | 描述 |
 |---|---|---|
 | core | * | Full unrestricted access for core platform code |
-| builtin | event.publish.*, event.subscribe.*, data.query.*, data.register.*, turn.register.*, ui.register.*, inter-mod.request.*, inter-mod.provide.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self, meta.read.all | Platform-bundled desktop mods shipped with the product; trust level is below core and above injected/sideload sources |
-| injected | event.publish.*, event.subscribe.*, data.query.*, data.register.*, turn.register.pre-model, turn.register.post-state, ui.register.*, inter-mod.request.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self | Third-party injected mods with restricted turn hook access |
-| sideload | event.publish.*, data.query.*, ui.register.*, inter-mod.request.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self | Locally installed mods and catalog-installed mods share the sideload capability envelope; catalog provenance does not elevate permissions |
+| builtin | event.publish.*, event.subscribe.*, data.query.*, data.register.*, turn.register.*, ui.register.*, inter-mod.request.*, inter-mod.provide.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.route.describe, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self, meta.read.all | Platform-bundled desktop mods shipped with the product; trust level is below core and above injected/sideload sources |
+| injected | event.publish.*, event.subscribe.*, data.query.*, data.register.*, turn.register.pre-model, turn.register.post-state, ui.register.*, inter-mod.request.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.route.describe, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self | Third-party injected mods with restricted turn hook access |
+| sideload | event.publish.*, data.query.*, ui.register.*, inter-mod.request.*, storage.files.read, storage.files.write, storage.files.delete, storage.files.list, storage.sqlite.query, storage.sqlite.execute, storage.sqlite.transaction, runtime.ai.text.generate, runtime.ai.text.stream, runtime.ai.embedding.generate, runtime.media.image.generate, runtime.media.image.stream, runtime.media.video.generate, runtime.media.video.stream, runtime.media.tts.list.voices, runtime.media.tts.synthesize, runtime.media.tts.stream, runtime.media.stt.transcribe, runtime.media.jobs.submit, runtime.media.jobs.get, runtime.media.jobs.cancel, runtime.media.jobs.subscribe, runtime.media.jobs.get.artifacts, runtime.voice.get.asset, runtime.voice.list.assets, runtime.voice.delete.asset, runtime.voice.list.preset.voices, runtime.route.list.options, runtime.route.resolve, runtime.route.check.health, runtime.route.describe, runtime.local.assets.list, runtime.local.profiles.list, runtime.local.profiles.install.request, runtime.profile.read.agent, action.discover.*, action.dry-run.*, action.verify.*, action.commit.*, audit.read.self, meta.read.self | Locally installed mods and catalog-installed mods share the sideload capability envelope; catalog provenance does not elevate permissions |
 | codegen | runtime.ai.text.generate, runtime.ai.text.stream, ui.register.ui-extension.app.*, data.register.data-api.user-*.*.*, data.query.data-api.user-*.*.*, audit.read.self, meta.read.self | AI-generated mods with minimal capabilities |
 
 ### 12.19 Desktop — Mod 生命周期状态

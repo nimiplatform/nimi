@@ -1,14 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 
-pub(crate) const CHAT_AI_DB_SCHEMA_VERSION: i64 = 1;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ChatAiRouteKind {
-    Local,
-    Cloud,
-}
+pub(crate) const CHAT_AI_DB_SCHEMA_VERSION: i64 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -31,23 +24,12 @@ pub enum ChatAiMessageStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatAiRouteSnapshot {
-    pub route_kind: ChatAiRouteKind,
-    pub connector_id: Option<String>,
-    pub provider: Option<String>,
-    pub model_id: Option<String>,
-    pub route_binding: Option<JsonMap<String, JsonValue>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct ChatAiThreadSummary {
     pub id: String,
     pub title: String,
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
     pub archived_at_ms: Option<i64>,
-    pub route_snapshot: ChatAiRouteSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -59,7 +41,6 @@ pub struct ChatAiThreadRecord {
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
     pub archived_at_ms: Option<i64>,
-    pub route_snapshot: ChatAiRouteSnapshot,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -159,7 +140,6 @@ pub struct ChatAiCreateThreadInput {
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
     pub archived_at_ms: Option<i64>,
-    pub route_snapshot: ChatAiRouteSnapshot,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -170,7 +150,6 @@ pub struct ChatAiUpdateThreadMetadataInput {
     pub updated_at_ms: i64,
     pub last_message_at_ms: Option<i64>,
     pub archived_at_ms: Option<i64>,
-    pub route_snapshot: ChatAiRouteSnapshot,
 }
 
 #[derive(Debug, Clone, Deserialize)]

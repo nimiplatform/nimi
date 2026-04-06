@@ -14,7 +14,6 @@ import type {
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { AiConversationResolvedRoute } from './chat-ai-route-readiness';
-import type { AiConversationRouteSnapshot } from './chat-shell-types';
 
 export const AI_NEW_CONVERSATION_TITLE = 'New conversation';
 const AI_THREAD_TITLE_MAX_LENGTH = 80;
@@ -45,9 +44,9 @@ function compareLocalModels(left: LocalModelOptionV11, right: LocalModelOptionV1
   return left.model.localeCompare(right.model);
 }
 
-export function isAiRouteSnapshotEqual(
-  left: AiConversationRouteSnapshot | null | undefined,
-  right: AiConversationRouteSnapshot | null | undefined,
+export function isResolvedRouteEqual(
+  left: AiConversationResolvedRoute | null | undefined,
+  right: AiConversationResolvedRoute | null | undefined,
 ): boolean {
   if (!left && !right) {
     return true;
@@ -58,8 +57,7 @@ export function isAiRouteSnapshotEqual(
   return left.routeKind === right.routeKind
     && left.connectorId === right.connectorId
     && left.provider === right.provider
-    && left.modelId === right.modelId
-    && JSON.stringify(left.routeBinding || null) === JSON.stringify(right.routeBinding || null);
+    && left.modelId === right.modelId;
 }
 
 export function hasAiConversationThread(
@@ -127,61 +125,18 @@ export function pickChatCapableConnectorModel(
   return models.find((modelId) => modelSupportsChat(modelId)) || null;
 }
 
-export function toAiRouteSnapshotFromResolvedRoute(
-  route: AiConversationResolvedRoute | null | undefined,
-  state: RuntimeConfigStateV11 | null,
-  preferredSnapshot?: AiConversationRouteSnapshot | null,
-): AiConversationRouteSnapshot | null {
-  if (!route) {
-    return null;
-  }
-  if (route.routeKind === 'local') {
-    return {
-      routeKind: 'local',
-      connectorId: null,
-      provider: null,
-      modelId: null,
-      routeBinding: null,
-    };
-  }
-
-  const connectorId = normalizeText(route.connectorId);
-  const provider = normalizeText(route.provider);
-  if (!connectorId || !provider || !state) {
-    return null;
-  }
-  const connector = state.connectors.find((candidate) => candidate.id === connectorId) || null;
-  if (!connector) {
-    return null;
-  }
-  const modelId = pickChatCapableConnectorModel(
-    connector,
-    route.modelId || preferredSnapshot?.modelId || null,
-  );
-  if (!modelId) {
-    return null;
-  }
-  return {
-    routeKind: 'cloud',
-    connectorId,
-    provider,
-    modelId,
-    routeBinding: preferredSnapshot?.routeBinding || null,
-  };
-}
-
-export function getAiRouteDisplaySummary(
-  snapshot: AiConversationRouteSnapshot | null,
+export function getResolvedRouteDisplaySummary(
+  route: AiConversationResolvedRoute | null,
   state: RuntimeConfigStateV11 | null,
 ): { label: string; detail: string } {
-  if (!snapshot) {
+  if (!route) {
     return {
       label: 'Route unavailable',
       detail: 'Select a local or cloud route before starting a conversation.',
     };
   }
 
-  if (snapshot.routeKind === 'local') {
+  if (route.routeKind === 'local') {
     const localModel = pickPreferredChatLocalModel(state);
     return {
       label: 'Local runtime',
@@ -192,8 +147,8 @@ export function getAiRouteDisplaySummary(
   }
 
   return {
-    label: snapshot.provider || 'Cloud route',
-    detail: snapshot.modelId || snapshot.connectorId || 'Missing model selection',
+    label: route.provider || 'Cloud route',
+    detail: route.modelId || route.connectorId || 'Missing model selection',
   };
 }
 
@@ -210,8 +165,8 @@ export function toConversationThreadSummary(
     unreadCount: 0,
     status: thread.archivedAtMs == null ? 'active' : 'archived',
     pinned: false,
-    targetId: thread.routeSnapshot.routeKind,
-    targetLabel: getAiRouteDisplaySummary(thread.routeSnapshot, null).label,
+    targetId: 'ai',
+    targetLabel: 'AI',
   };
 }
 

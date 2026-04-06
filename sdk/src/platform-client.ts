@@ -276,6 +276,46 @@ function decodeJwtSubject(accessToken: string): string {
   }
 }
 
+function decodeJwtExpiry(accessToken: string): number | null {
+  const normalizedToken = normalizeText(accessToken);
+  if (!normalizedToken) {
+    return null;
+  }
+  const rawToken = normalizedToken.toLowerCase().startsWith('bearer ')
+    ? normalizeText(normalizedToken.slice(7))
+    : normalizedToken;
+  const parts = rawToken.split('.');
+  if (parts.length < 2) {
+    return null;
+  }
+  try {
+    const payloadText = decodeBase64UrlUtf8(parts[1] || '');
+    if (!payloadText) {
+      return null;
+    }
+    const payload = asRecord(JSON.parse(payloadText));
+    const expSeconds = Number(payload.exp);
+    if (!Number.isFinite(expSeconds) || expSeconds <= 0) {
+      return null;
+    }
+    return expSeconds * 1000;
+  } catch {
+    return null;
+  }
+}
+
+function discardExpiredRuntimeAccessToken(accessToken: string): string {
+  const normalizedToken = normalizeText(accessToken);
+  if (!normalizedToken) {
+    return '';
+  }
+  const expiryMs = decodeJwtExpiry(normalizedToken);
+  if (expiryMs !== null && expiryMs <= Date.now()) {
+    return '';
+  }
+  return normalizedToken;
+}
+
 function createDisabledRuntime(appId: string): Runtime {
   const target = { appId } as Runtime;
   return new Proxy(target, {
@@ -400,11 +440,11 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   const sessionStore = input.sessionStore ?? null;
   const realmBaseUrl = resolvePlatformRealmBaseUrl(input.realmBaseUrl);
 
-  const runtimeAccessTokenProvider = async () => resolveToken(
+  const runtimeAccessTokenProvider = async () => discardExpiredRuntimeAccessToken(await resolveToken(
     tokenValue,
     input.accessTokenProvider,
     sessionStore?.getAccessToken,
-  );
+  ));
 
   const runtimeSubjectUserIdProvider = async () => {
     if (sessionStore?.getSubjectUserId) {

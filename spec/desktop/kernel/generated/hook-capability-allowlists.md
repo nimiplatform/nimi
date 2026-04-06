@@ -54,6 +54,7 @@ Platform-bundled desktop mods shipped with the product; trust level is below cor
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.route.describe` |
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |
@@ -110,6 +111,7 @@ Third-party injected mods with restricted turn hook access
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.route.describe` |
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |
@@ -161,6 +163,7 @@ Locally installed mods and catalog-installed mods share the sideload capability 
 | `runtime.route.list.options` |
 | `runtime.route.resolve` |
 | `runtime.route.check.health` |
+| `runtime.route.describe` |
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |

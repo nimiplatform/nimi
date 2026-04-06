@@ -1,16 +1,7 @@
 import type { JsonObject, JsonValue } from './shared.js';
 
-export type ChatAiRouteKind = 'local' | 'cloud';
 export type ChatAiMessageRole = 'system' | 'user' | 'assistant' | 'tool';
 export type ChatAiMessageStatus = 'pending' | 'streaming' | 'complete' | 'error' | 'canceled';
-
-export type ChatAiRouteSnapshot = {
-  routeKind: ChatAiRouteKind;
-  connectorId: string | null;
-  provider: string | null;
-  modelId: string | null;
-  routeBinding: JsonObject | null;
-};
 
 export type ChatAiThreadSummary = {
   id: string;
@@ -18,7 +9,6 @@ export type ChatAiThreadSummary = {
   updatedAtMs: number;
   lastMessageAtMs: number | null;
   archivedAtMs: number | null;
-  routeSnapshot: ChatAiRouteSnapshot;
 };
 
 export type ChatAiThreadRecord = ChatAiThreadSummary & {
@@ -97,7 +87,6 @@ export type ChatAiCreateThreadInput = {
   updatedAtMs: number;
   lastMessageAtMs: number | null;
   archivedAtMs: number | null;
-  routeSnapshot: ChatAiRouteSnapshot;
 };
 
 export type ChatAiUpdateThreadMetadataInput = {
@@ -106,7 +95,6 @@ export type ChatAiUpdateThreadMetadataInput = {
   updatedAtMs: number;
   lastMessageAtMs: number | null;
   archivedAtMs: number | null;
-  routeSnapshot: ChatAiRouteSnapshot;
 };
 
 export type ChatAiCreateMessageInput = {

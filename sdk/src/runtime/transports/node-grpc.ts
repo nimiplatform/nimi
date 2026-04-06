@@ -428,6 +428,10 @@ export function createNodeGrpcTransport(
           if (voiceCount.length > 0) {
             collected['x-nimi-voice-count'] = String(voiceCount[0]);
           }
+          const routeDescribeResult = md.get('x-nimi-route-describe-result');
+          if (routeDescribeResult.length > 0) {
+            collected['x-nimi-route-describe-result'] = String(routeDescribeResult[0]);
+          }
           if (Object.keys(collected).length > 0) {
             observer(collected);
           }

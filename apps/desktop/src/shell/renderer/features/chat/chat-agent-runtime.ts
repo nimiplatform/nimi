@@ -5,7 +5,6 @@ import {
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import { createResolveRuntimeBinding } from '@renderer/infra/bootstrap/runtime-bootstrap-route-resolvers';
 import { createAgentCoreDataCapabilityHandlers } from '@renderer/infra/bootstrap/core-capabilities';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { invokeModLlm } from '@runtime/llm-adapter/execution';
@@ -16,12 +15,15 @@ import {
   getRuntimeClient,
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import { resolvePreferredChatLocalModel } from './chat-ai-runtime';
 import {
-  resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
+  resolveAgentChatThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
+import type {
+  AgentEffectiveCapabilityResolution,
+  ConversationExecutionSnapshot,
+} from './conversation-capability';
 
 export type AgentChatRouteResult = {
   channel: 'CLOUD' | 'LOCAL';
@@ -36,6 +38,8 @@ export type ChatAgentRuntimeInvokeInput = {
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
   routeResult: AgentChatRouteResult | null;
+  agentResolution: AgentEffectiveCapabilityResolution | null;
+  executionSnapshot: ConversationExecutionSnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
@@ -71,15 +75,6 @@ const agentCapabilityHandlers = createAgentCoreDataCapabilityHandlers();
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
-}
-
-function isLocalProvider(value: string): boolean {
-  const normalized = normalizeText(value).toLowerCase();
-  return normalized === 'llama'
-    || normalized === 'media'
-    || normalized === 'speech'
-    || normalized === 'sidecar'
-    || normalized.startsWith('local');
 }
 
 function requireValue(value: unknown, reasonCode: string, actionHint: string, message: string): string {
@@ -140,55 +135,36 @@ export function isAgentLocalRouteReady(routeResult: AgentChatRouteResult | null 
 async function resolveInvokeInput(
   input: ChatAgentRuntimeInvokeInput,
 ): Promise<InvokeModLlmInput> {
-  // When routeResult is provided, validate it; when null, skip (route readiness
-  // is checked at the adapter layer via runtimeConfigState before submit).
-  if (input.routeResult && !isAgentLocalRouteReady(input.routeResult)) {
+  if (!input.agentResolution || !input.agentResolution.ready) {
     throw createNimiError({
-      message: 'local agent route is not ready',
+      message: `agent capability resolution not ready: ${input.agentResolution?.reason || 'projection_unavailable'}`,
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint: 'select_runtime_route_binding',
       source: 'runtime',
     });
   }
-
-  const configuredLocalModel = normalizeText(input.runtimeFields.localProviderModel);
-  const localModel = await resolvePreferredChatLocalModel(
-    input.runtimeConfigState,
-    configuredLocalModel,
-  );
-  const fallbackProvider = localModel?.engine || 'llama';
-  const fallbackModel = localModel?.model || '';
-  const fallbackEndpoint = normalizeText(localModel?.endpoint)
-    || normalizeText(input.runtimeConfigState?.local.endpoint);
-  const shouldUseConfiguredLocalModel = Boolean(
-    localModel
-    && (normalizeText(localModel.model) === configuredLocalModel
-      || normalizeText(localModel.localModelId) === configuredLocalModel),
-  );
-  const runtimeFields = {
-    provider: isLocalProvider(input.runtimeFields.provider)
-      ? input.runtimeFields.provider
-      : fallbackProvider,
-    runtimeModelType: 'chat',
-    localProviderEndpoint: normalizeText(input.runtimeFields.localProviderEndpoint) || fallbackEndpoint,
-    localProviderModel: shouldUseConfiguredLocalModel ? configuredLocalModel : fallbackModel,
-    localOpenAiEndpoint: normalizeText(input.runtimeFields.localOpenAiEndpoint)
-      || normalizeText(input.runtimeFields.localProviderEndpoint)
-      || fallbackEndpoint,
-    connectorId: '',
-  };
-  const resolveRuntimeBinding = createResolveRuntimeBinding(() => runtimeFields);
-  const resolved = await resolveRuntimeBinding({
-    modId: CORE_CHAT_AGENT_MOD_ID,
-    binding: {
-      source: 'local',
-      connectorId: '',
-      model: runtimeFields.localProviderModel,
-    },
-  });
+  const eligibility = input.agentResolution.eligibility;
+  if (!isAgentLocalRouteReady(eligibility as AgentChatRouteResult | null)) {
+    throw createNimiError({
+      message: 'agent capability eligibility is not ready for local execution',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  const snapshot = input.executionSnapshot;
+  if (!snapshot || snapshot.capability !== 'text.generate' || !snapshot.resolvedBinding) {
+    throw createNimiError({
+      message: 'agent execution snapshot is not available',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'select_runtime_route_binding',
+      source: 'runtime',
+    });
+  }
+  const resolved = snapshot.resolvedBinding;
   if (resolved.source !== 'local') {
     throw createNimiError({
-      message: 'agent local route resolved to an invalid source',
+      message: 'agent execution snapshot resolved to an invalid source',
       reasonCode: ReasonCode.AI_INPUT_INVALID,
       actionHint: 'select_runtime_route_binding',
       source: 'runtime',
@@ -211,7 +187,7 @@ async function resolveInvokeInput(
     ),
     localProviderEndpoint: normalizeText(resolved.localProviderEndpoint) || undefined,
     localProviderModel: requireValue(
-      resolved.localProviderModel || resolved.modelId || resolved.model,
+      resolved.modelId || resolved.model || resolved.localModelId,
       ReasonCode.AI_INPUT_INVALID,
       'select_runtime_route_binding',
       'agent local route model is missing',

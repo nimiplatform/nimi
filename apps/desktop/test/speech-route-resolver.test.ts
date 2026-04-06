@@ -27,11 +27,7 @@ test('createResolveRuntimeBinding reads source/model/connectorId from RuntimeFie
         connectorId: 'conn-123',
     });
     const resolve = createResolveRuntimeBinding(() => fields);
-    const result = await resolve({ modId: 'test-mod' });
-    assert.equal(result.source, 'cloud');
-    assert.equal(result.model, 'tts-1');
-    assert.equal(result.connectorId, 'conn-123');
-    assert.equal(result.adapter, undefined);
+    await assert.rejects(() => resolve({ modId: 'test-mod' }), /RUNTIME_ROUTE_BINDING_REQUIRED/);
 });
 test('createResolveRuntimeBinding binding source takes priority over inferred source', async () => {
     const fields = createMockFields({ provider: 'localai' });
@@ -40,8 +36,9 @@ test('createResolveRuntimeBinding binding source takes priority over inferred so
         modId: 'test-mod',
         binding: {
             source: 'cloud',
-            connectorId: '',
-            model: '',
+            connectorId: 'cloud-1',
+            model: 'gpt-5.4-mini',
+            provider: 'openai',
         },
     });
     assert.equal(result.source, 'cloud');
@@ -52,40 +49,55 @@ test('createResolveRuntimeBinding connector binding takes priority over fields.c
     const binding: RuntimeRouteBinding = {
         source: 'cloud',
         connectorId: 'override-conn',
-        model: '',
+        model: 'tts-1',
+        provider: 'openai',
     };
     const result = await resolve({ modId: 'test-mod', binding });
     assert.equal(result.connectorId, 'override-conn');
 });
-test('createResolveRuntimeBinding model binding takes priority over fields.localProviderModel', async () => {
+test('createResolveRuntimeBinding no longer falls back to fields.localProviderModel', async () => {
     const fields = createMockFields({ localProviderModel: 'default-model' });
     const resolve = createResolveRuntimeBinding(() => fields);
     const binding: RuntimeRouteBinding = {
         source: 'cloud',
         connectorId: 'override-conn',
-        model: 'custom-model',
+        model: '',
         provider: 'dashscope',
     };
-    const result = await resolve({ modId: 'test-mod', binding });
-    assert.equal(result.model, 'custom-model');
-    assert.equal(result.provider, 'dashscope');
+    await assert.rejects(() => resolve({ modId: 'test-mod', binding }), /RUNTIME_ROUTE_BINDING_MODEL_REQUIRED/);
 });
-test('createResolveRuntimeBinding infers local source for llama provider', async () => {
+test('createResolveRuntimeBinding local binding uses explicit local route data instead of runtimeFields fallback', async () => {
     const fields = createMockFields({ provider: 'llama' });
     const resolve = createResolveRuntimeBinding(() => fields);
-    const result = await resolve({ modId: 'test-mod' });
+    const result = await resolve({
+        modId: 'test-mod',
+        binding: {
+            source: 'local',
+            connectorId: '',
+            model: 'tts-1',
+            modelId: 'tts-1',
+            engine: 'llama',
+            provider: 'llama',
+            endpoint: 'http://127.0.0.1:8080/v1',
+        },
+    });
     assert.equal(result.source, 'local');
     assert.equal(result.engine, 'llama');
     assert.equal(result.model, 'llama/tts-1');
     assert.equal(result.modelId, 'tts-1');
     assert.equal(result.localProviderModel, 'tts-1');
 });
-test('createResolveRuntimeBinding infers cloud source for cloud provider', async () => {
+test('createResolveRuntimeBinding cloud binding requires explicit provider and connector', async () => {
     const fields = createMockFields({ provider: 'openai' });
     const resolve = createResolveRuntimeBinding(() => fields);
-    const result = await resolve({ modId: 'test-mod' });
-    assert.equal(result.source, 'cloud');
-    assert.equal('engine' in result ? (result as { engine?: string }).engine : undefined, undefined);
+    await assert.rejects(() => resolve({
+        modId: 'test-mod',
+        binding: {
+            source: 'cloud',
+            connectorId: '',
+            model: 'gpt-5.4-mini',
+        },
+    }), /RUNTIME_ROUTE_BINDING_CONNECTOR_REQUIRED/);
 });
 test('createResolveRuntimeBinding preserves localModelId and adapter for local binding', async () => {
     const fields = createMockFields({

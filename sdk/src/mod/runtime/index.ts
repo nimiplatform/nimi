@@ -46,6 +46,11 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         capability: input.capability,
         binding: input.binding,
       }),
+      describe: async (input) => runtimeHost.route.describe({
+        modId: normalizedModId,
+        capability: input.capability,
+        resolvedBindingRef: input.resolvedBindingRef,
+      }),
     },
     local: {
       listAssets: async (input) => runtimeHost.local.listAssets({

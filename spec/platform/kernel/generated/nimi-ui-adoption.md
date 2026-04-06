@@ -19,7 +19,6 @@
 | `desktop.settings.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar`, `action`, `field`, `toggle`, `status`, `scroll_area` | `true` | `none` | `P-DESIGN-020` |
 | `forge.app.sidebar` | `forge` | `light` | `forge-accent` | `light`, `dark` | `surface`, `sidebar`, `action` | `true` | `none` | `P-DESIGN-020` |
 | `forge.settings.page` | `forge` | `light` | `forge-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
-| `relay.message.input` | `relay` | `dark` | `relay-accent` | `dark`, `light` | `field`, `action`, `surface` | `false` | `none` | `P-DESIGN-020` |
 | `overtone.studio.layout` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `surface`, `status` | `false` | `none` | `P-DESIGN-020` |
 | `overtone.publish.modal` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `overlay`, `action`, `field`, `status`, `surface` | `false` | `none` | `P-DESIGN-020` |
 | `overtone.ui.primitives` | `overtone` | `dark` | `overtone-accent` | `dark`, `light` | `action`, `field` | `false` | `none` | `P-DESIGN-020` |

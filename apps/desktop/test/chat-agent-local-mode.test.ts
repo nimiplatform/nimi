@@ -19,6 +19,10 @@ import {
   resolveChatThinkingConfig,
 } from '../src/shell/renderer/features/chat/chat-thinking.js';
 import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
+import {
+  buildAgentEffectiveCapabilityResolution,
+  createConversationExecutionSnapshot,
+} from '../src/shell/renderer/features/chat/conversation-capability.js';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -153,6 +157,61 @@ test('agent local runtime route readiness stays fail-close for non-local routes'
 });
 
 test('agent local runtime invoke passes core mod id and agentId to the runtime call', async () => {
+  const projection = {
+    capability: 'text.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'llama3',
+    },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'llama3',
+      modelId: 'llama3',
+      localModelId: 'local-chat-1',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:11434/v1',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'local:llama3',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: false,
+        traceModeSupport: 'none' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: projection,
+    eligibility: {
+      channel: 'LOCAL',
+      providerSelectable: false,
+      reason: 'ok',
+      sessionClass: 'AGENT_LOCAL',
+    },
+  });
+  const executionSnapshot = createConversationExecutionSnapshot({
+    capability: 'text.generate',
+    projection,
+    agentResolution,
+  });
+
   const result = await invokeChatAgentRuntime({
     agentId: 'agent-1',
     prompt: 'hello',
@@ -164,6 +223,8 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
       reason: 'ok',
       sessionClass: 'AGENT_LOCAL',
     },
+    agentResolution,
+    executionSnapshot,
     runtimeConfigState: null,
     runtimeFields: {
       targetType: '',
@@ -196,6 +257,66 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
   assert.equal(result.text, 'hi');
 });
 
+test('agent submit derives routeResult from AgentEffectiveCapabilityResolution eligibility', () => {
+  // Verify the host-actions file uses agentResolution.eligibility, not resolveAgentLocalRoute
+  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
+  // Must derive routeResult from eligibility
+  assert.match(
+    hostActionsSource,
+    /eligibility = input\.agentResolution/,
+    'host actions must derive route from agentResolution eligibility',
+  );
+  // Must not call resolveAgentLocalRoute
+  assert.doesNotMatch(
+    hostActionsSource,
+    /await resolveAgentLocalRoute\(/,
+    'host actions must not call resolveAgentLocalRoute',
+  );
+});
+
+test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is false', () => {
+  const supportedProjection = {
+    capability: 'text.generate' as const,
+    selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
+    resolvedBinding: { capability: 'text.generate' as const, resolvedBindingRef: 'local:llama:qwen3', source: 'local' as const, provider: 'llama', model: 'qwen3', modelId: 'qwen3', connectorId: '' },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: { capability: 'text.generate' as const, metadataVersion: 'v1' as const, resolvedBindingRef: 'local:llama:qwen3', metadataKind: 'text.generate' as const, metadata: { supportsThinking: false, traceModeSupport: 'none' as const, supportsImageInput: false, supportsAudioInput: false, supportsVideoInput: false, supportsArtifactRefInput: false } },
+    supported: true,
+    reasonCode: null,
+  };
+
+  // projection_unavailable
+  const res1 = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    eligibility: { channel: 'LOCAL', sessionClass: 'AGENT_LOCAL', providerSelectable: false, reason: 'ok' },
+  });
+  assert.equal(res1.ready, false);
+  assert.equal(res1.reason, 'projection_unavailable');
+
+  // eligibility_denied
+  const res2 = buildAgentEffectiveCapabilityResolution({
+    textProjection: supportedProjection,
+    eligibility: null,
+  });
+  assert.equal(res2.ready, false);
+  assert.equal(res2.reason, 'eligibility_denied');
+
+  // HUMAN_DIRECT passes through unchanged — Desktop must not rewrite to AGENT_LOCAL
+  const res3 = buildAgentEffectiveCapabilityResolution({
+    textProjection: supportedProjection,
+    eligibility: { channel: 'LOCAL', sessionClass: 'HUMAN_DIRECT', providerSelectable: false, reason: 'human' },
+  });
+  assert.equal(res3.eligibility?.sessionClass, 'HUMAN_DIRECT');
+
+  // ok
+  const res4 = buildAgentEffectiveCapabilityResolution({
+    textProjection: supportedProjection,
+    eligibility: { channel: 'LOCAL', sessionClass: 'AGENT_LOCAL', providerSelectable: false, reason: 'ok' },
+  });
+  assert.equal(res4.ready, true);
+  assert.equal(res4.reason, 'ok');
+});
+
 test('agent local mode keeps thinking unsupported and forces effective off config', () => {
   assert.deepEqual(resolveAgentChatThinkingSupport(), {
     supported: false,
@@ -212,28 +333,29 @@ test('agent local mode keeps thinking unsupported and forces effective off confi
 
 test('agent shell stays desktop-owned and uses social snapshot plus local agent store', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
   const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
   const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
   assert.match(adapterSource, /dataSync\.loadSocialSnapshot\(\)/);
-  assert.match(adapterSource, /chatAgentStoreClient\.createThread/);
-  assert.match(adapterSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
-  assert.match(adapterSource, /matchConversationTurnEvent/);
-  assert.match(adapterSource, /createInitialAgentSubmitDriverState/);
-  assert.match(adapterSource, /reduceAgentSubmitDriverEvent/);
-  assert.match(adapterSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
-  assert.match(adapterSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
-  assert.match(adapterSource, /resolveAgentSubmitDriverProjectionRefresh/);
   assert.match(adapterSource, /useAgentConversationEffects/);
   assert.match(adapterSource, /useAgentConversationPresentation/);
-  assert.match(adapterSource, /resolveAuthoritativeAgentThreadBundle/);
-  assert.match(adapterSource, /assertAgentTurnLifecycleCompleted/);
-  assert.match(adapterSource, /setSubmittingThreadId\(activeThreadId\)/);
-  assert.match(adapterSource, /setFooterHostState\(activeThreadId,\s*null\)/);
-  assert.match(adapterSource, /finally\s*\{\s*setSubmittingThreadId\(null\);/);
-  assert.match(adapterSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
-  assert.match(adapterSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
-  assert.match(adapterSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(activeThreadId\)/);
+  assert.match(hostActionsSource, /chatAgentStoreClient\.createThread/);
+  assert.match(hostActionsSource, /chatAgentStoreClient\.commitTurnResult/);
+  assert.match(hostActionsSource, /matchConversationTurnEvent/);
+  assert.match(hostActionsSource, /createInitialAgentSubmitDriverState/);
+  assert.match(hostActionsSource, /reduceAgentSubmitDriverEvent/);
+  assert.match(hostActionsSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
+  assert.match(hostActionsSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
+  assert.match(hostActionsSource, /resolveAgentSubmitDriverProjectionRefresh/);
+  assert.match(hostActionsSource, /resolveAuthoritativeAgentThreadBundle/);
+  assert.match(hostActionsSource, /assertAgentTurnLifecycleCompleted/);
+  assert.match(hostActionsSource, /setSubmittingThreadId\(input\.activeThreadId\)/);
+  assert.match(hostActionsSource, /setFooterHostState\(input\.activeThreadId,\s*null\)/);
+  assert.match(hostActionsSource, /finally\s*\{\s*input\.setSubmittingThreadId\(null\);/);
+  assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId\)/);
+  assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId\)/);
+  assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId!\)/);
   assert.match(presentationSource, /resolveAgentFooterViewState/);
   assert.match(presentationSource, /resolveAgentConversationSurfaceState/);
   assert.match(presentationSource, /resolveAgentConversationHostView/);
@@ -243,6 +365,16 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(presentationSource, /resolveAgentSelectedTargetId/);
   assert.match(effectsSource, /applyDriverEffects/);
   assert.match(effectsSource, /applyHostInteractionPatch/);
+  assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createThread/);
+  assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.commitTurnResult/);
+  assert.doesNotMatch(adapterSource, /matchConversationTurnEvent/);
+  assert.doesNotMatch(adapterSource, /createInitialAgentSubmitDriverState/);
+  assert.doesNotMatch(adapterSource, /reduceAgentSubmitDriverEvent/);
+  assert.doesNotMatch(adapterSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
+  assert.doesNotMatch(adapterSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
+  assert.doesNotMatch(adapterSource, /resolveAgentSubmitDriverProjectionRefresh/);
+  assert.doesNotMatch(adapterSource, /resolveAuthoritativeAgentThreadBundle/);
+  assert.doesNotMatch(adapterSource, /assertAgentTurnLifecycleCompleted/);
   assert.doesNotMatch(adapterSource, /streamState\s*&&\s*streamState\.phase === 'waiting'/);
   assert.doesNotMatch(adapterSource, /streamState\s*&&\s*\(streamState\.phase === 'waiting' \|\| streamState\.phase === 'streaming'\)/);
   assert.doesNotMatch(adapterSource, /overlayAgentAssistantVisibleState/);

@@ -1,18 +1,20 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import type { RuntimeFieldMap } from '@renderer/app-shell/providers/app-store';
 import {
-  DEFAULT_LOCAL_ENDPOINT_V11,
-  normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { setInitializedByV11 } from '@renderer/features/runtime-config/runtime-config-storage-persist';
 import { getRecommendedChatModelV11 } from '@renderer/features/runtime-config/runtime-config-storage-summary';
+import type { ConversationCapability } from '@renderer/features/chat/conversation-capability';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 type RouteInitEffectInput = {
   state: RuntimeConfigStateV11 | null;
   setState: Dispatch<SetStateAction<RuntimeConfigStateV11 | null>>;
-  setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
+  setConversationCapabilityBinding: (
+    capability: ConversationCapability,
+    binding: RuntimeRouteBinding | null | undefined,
+  ) => void;
 };
 
 export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
@@ -23,14 +25,10 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
 
     const model = getRecommendedChatModelV11(input.state);
     if (!model) return;
-    const matchedModel = input.state.local.models.find((item) => item.model === model) || null;
-    const provider = String(matchedModel?.engine || 'llama').trim() || 'llama';
-
-    input.setRuntimeFields({
-      provider,
-      runtimeModelType: 'chat',
-      localProviderEndpoint: normalizeEndpointV11(input.state.local.endpoint, DEFAULT_LOCAL_ENDPOINT_V11),
-      localProviderModel: model,
+    input.setConversationCapabilityBinding('text.generate', {
+      source: 'local',
+      connectorId: '',
+      model,
     });
 
     input.setState((prev) => (prev ? setInitializedByV11(prev) : prev));
@@ -47,5 +45,5 @@ export function useRuntimeConfigRouteInitEffect(input: RouteInitEffectInput) {
         reason: 'auto-init',
       },
     });
-  }, [input.setRuntimeFields, input.setState, input.state]);
+  }, [input.setConversationCapabilityBinding, input.setState, input.state]);
 }

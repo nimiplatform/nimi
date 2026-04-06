@@ -5,13 +5,6 @@ import type { ConversationCharacterData, ConversationTargetSummary } from '@nimi
 
 const NO_BIO_FALLBACK = 'This Agent has no public bio.';
 
-const HEADER_ICON_CLASS = cn(
-  'inline-flex h-10 w-10 items-center justify-center rounded-full',
-  'border border-slate-200/80 bg-white/90 text-slate-700',
-  'shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all duration-150',
-  'hover:-translate-y-px hover:border-emerald-300 hover:text-teal-700',
-);
-
 // ---------------------------------------------------------------------------
 // Right-panel header with settings toggle
 // ---------------------------------------------------------------------------

@@ -515,8 +515,21 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 		if err != nil {
 			t.Fatalf("list local services: %v", err)
 		}
-		if len(listed.GetServices()) != 0 {
-			t.Fatalf("expected no managed image backend service when backend bootstrap cannot complete, got %d", len(listed.GetServices()))
+		if len(listed.GetServices()) != 1 {
+			t.Fatalf("expected synthetic managed image backend service when backend bootstrap is configured, got %d", len(listed.GetServices()))
+		}
+		service := listed.GetServices()[0]
+		if service.GetServiceId() != "svc_managed_image_backend" {
+			t.Fatalf("expected managed image backend synthetic service id, got %q", service.GetServiceId())
+		}
+		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_INSTALLED {
+			t.Fatalf("expected managed image backend synthetic service to remain installed before health activation, got %s", service.GetStatus())
+		}
+		if service.GetEngine() != "media" {
+			t.Fatalf("expected managed image backend synthetic service engine=media, got %q", service.GetEngine())
+		}
+		if service.GetEndpoint() != "grpc://127.0.0.1:50052" {
+			t.Fatalf("expected managed image backend synthetic service endpoint, got %q", service.GetEndpoint())
 		}
 	}
 }

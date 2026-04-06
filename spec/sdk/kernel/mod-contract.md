@@ -52,6 +52,7 @@ hook 注册/注销语义必须与 desktop 执行内核对齐。
 其中：
 
 - `mod/shell` 只允许暴露 shell-owned 的 auth、bootstrap、navigation、runtimeFields、statusBanner facade。
+- `mod/shell` 如暴露 conversation capability selection/projection，只允许遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`）与 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）的 host-owned typed surface；不得让 mod 获得 route truth owner 身份。
 - `mod/lifecycle` 只允许暴露 route runtime lifecycle，不得暴露 package lifecycle。
 - route runtime lifecycle 的公开作用域固定为 `tabId`，不得退化为 `modId`。
 

@@ -1,9 +1,24 @@
 use super::types::CHAT_AI_DB_SCHEMA_VERSION;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{params, Connection};
+
+const AI_THREAD_REQUIRED_COLUMNS: &[&str] = &[
+    "id",
+    "title",
+    "created_at_ms",
+    "updated_at_ms",
+    "last_message_at_ms",
+    "archived_at_ms",
+];
+
+const AI_THREAD_LEGACY_ROUTE_COLUMNS: &[&str] = &[
+    "route_kind",
+    "connector_id",
+    "provider",
+    "model_id",
+    "route_binding_json",
+];
 
 pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
-    conn.pragma_update(None, "user_version", CHAT_AI_DB_SCHEMA_VERSION)
-        .map_err(|error| format!("初始化 chat_ai user_version 失败: {error}"))?;
     conn.execute_batch(
         r#"
         CREATE TABLE IF NOT EXISTS ai_threads (
@@ -12,12 +27,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           created_at_ms INTEGER NOT NULL,
           updated_at_ms INTEGER NOT NULL,
           last_message_at_ms INTEGER,
-          archived_at_ms INTEGER,
-          route_kind TEXT NOT NULL,
-          connector_id TEXT,
-          provider TEXT,
-          model_id TEXT,
-          route_binding_json TEXT
+          archived_at_ms INTEGER
         );
         CREATE INDEX IF NOT EXISTS idx_ai_threads_updated ON ai_threads(updated_at_ms DESC, id DESC);
         CREATE INDEX IF NOT EXISTS idx_ai_threads_last_message ON ai_threads(last_message_at_ms DESC, id DESC);
@@ -55,23 +65,9 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|error| format!("初始化 chat_ai schema 失败: {error}"))?;
 
-    ensure_required_columns(
-        conn,
-        "ai_threads",
-        &[
-            "id",
-            "title",
-            "created_at_ms",
-            "updated_at_ms",
-            "last_message_at_ms",
-            "archived_at_ms",
-            "route_kind",
-            "connector_id",
-            "provider",
-            "model_id",
-            "route_binding_json",
-        ],
-    )?;
+    drop_legacy_route_columns_from_ai_threads(conn)?;
+
+    ensure_required_columns(conn, "ai_threads", AI_THREAD_REQUIRED_COLUMNS)?;
     ensure_required_columns(
         conn,
         "ai_messages",
@@ -106,34 +102,59 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         &["key", "value_json", "updated_at_ms"],
     )?;
 
-    ensure_store_meta(
+    upsert_store_meta(
         conn,
         "schemaVersion",
         serde_json::json!({ "version": CHAT_AI_DB_SCHEMA_VERSION }),
         0,
     )?;
+    conn.pragma_update(None, "user_version", CHAT_AI_DB_SCHEMA_VERSION)
+        .map_err(|error| format!("初始化 chat_ai user_version 失败: {error}"))?;
     Ok(())
 }
 
-fn ensure_store_meta(
+fn drop_legacy_route_columns_from_ai_threads(conn: &Connection) -> Result<(), String> {
+    let mut legacy_columns_present = Vec::new();
+    for column_name in AI_THREAD_LEGACY_ROUTE_COLUMNS {
+        if has_column(conn, "ai_threads", column_name)? {
+            legacy_columns_present.push(*column_name);
+        }
+    }
+    if legacy_columns_present.is_empty() {
+        return Ok(());
+    }
+
+    let mut migration_sql = String::from("BEGIN IMMEDIATE;");
+    for column_name in &legacy_columns_present {
+        migration_sql
+            .push_str(format!("ALTER TABLE ai_threads DROP COLUMN {column_name};").as_str());
+    }
+    migration_sql.push_str("COMMIT;");
+
+    if let Err(error) = conn.execute_batch(&migration_sql) {
+        let _ = conn.execute_batch("ROLLBACK;");
+        return Err(format!(
+            "迁移 chat_ai ai_threads 删除兼容列失败: columns={} error={error}",
+            legacy_columns_present.join(",")
+        ));
+    }
+    Ok(())
+}
+
+fn upsert_store_meta(
     conn: &Connection,
     key: &str,
     value_json: serde_json::Value,
     updated_at_ms: i64,
 ) -> Result<(), String> {
-    let existing = conn
-        .query_row(
-            "SELECT key FROM ai_store_meta WHERE key = ?1",
-            params![key],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(|error| format!("查询 chat_ai store meta 失败: {error}"))?;
-    if existing.is_some() {
-        return Ok(());
-    }
     conn.execute(
-        "INSERT INTO ai_store_meta (key, value_json, updated_at_ms) VALUES (?1, ?2, ?3)",
+        r#"
+        INSERT INTO ai_store_meta (key, value_json, updated_at_ms)
+        VALUES (?1, ?2, ?3)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          updated_at_ms = excluded.updated_at_ms
+        "#,
         params![
             key,
             serde_json::to_string(&value_json)

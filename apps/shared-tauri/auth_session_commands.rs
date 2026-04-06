@@ -1,5 +1,5 @@
-use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::aead::rand_core::RngCore;
+use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{Aes256Gcm, Nonce};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use serde::{Deserialize, Serialize};
@@ -77,8 +77,12 @@ fn keyring_entry() -> Result<keyring::Entry, String> {
 
 fn auth_session_dir() -> Result<PathBuf, String> {
     let auth_dir = crate::desktop_paths::resolve_nimi_dir()?.join(AUTH_SESSION_DIR_NAME);
-    fs::create_dir_all(&auth_dir)
-        .map_err(|error| format!("创建 ~/.nimi/auth 目录失败 ({}): {error}", auth_dir.display()))?;
+    fs::create_dir_all(&auth_dir).map_err(|error| {
+        format!(
+            "创建 ~/.nimi/auth 目录失败 ({}): {error}",
+            auth_dir.display()
+        )
+    })?;
     Ok(auth_dir)
 }
 
@@ -114,11 +118,16 @@ fn should_use_keyring_session_storage_from_env(
 fn should_use_keyring_session_storage() -> bool {
     should_use_keyring_session_storage_from_env(
         cfg!(debug_assertions),
-        std::env::var(AUTH_SESSION_DEV_USE_KEYCHAIN_ENV).ok().as_deref(),
+        std::env::var(AUTH_SESSION_DEV_USE_KEYCHAIN_ENV)
+            .ok()
+            .as_deref(),
     )
 }
 
-fn read_or_create_master_key<FR, FW>(read_password: FR, write_password: FW) -> Result<Vec<u8>, String>
+fn read_or_create_master_key<FR, FW>(
+    read_password: FR,
+    write_password: FW,
+) -> Result<Vec<u8>, String>
 where
     FR: FnOnce() -> Result<Option<String>, String>,
     FW: FnOnce(&str) -> Result<(), String>,
@@ -165,7 +174,8 @@ fn load_master_key() -> Result<Vec<u8>, String> {
     read_or_create_master_key(
         || normalize_master_key_read_result(entry.get_password()),
         |value| {
-            entry.set_password(value)
+            entry
+                .set_password(value)
                 .map_err(|error| format!("写入 auth session master key 失败: {error}"))
         },
     )
@@ -207,7 +217,8 @@ fn decrypt_secret(key: &[u8], value: &str) -> Result<String, String> {
     let plaintext = cipher
         .decrypt(Nonce::from_slice(nonce_bytes), ciphertext)
         .map_err(|error| format!("解密 auth session 字段失败: {error}"))?;
-    String::from_utf8(plaintext).map_err(|error| format!("auth session 解密结果不是 UTF-8: {error}"))
+    String::from_utf8(plaintext)
+        .map_err(|error| format!("auth session 解密结果不是 UTF-8: {error}"))
 }
 
 fn write_restricted_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
@@ -225,9 +236,12 @@ fn write_restricted_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
         options
     };
 
-    let mut file = options
-        .open(path)
-        .map_err(|error| format!("写入 auth session 临时文件失败 ({}): {error}", path.display()))?;
+    let mut file = options.open(path).map_err(|error| {
+        format!(
+            "写入 auth session 临时文件失败 ({}): {error}",
+            path.display()
+        )
+    })?;
     use std::io::Write;
     file.write_all(bytes)
         .map_err(|error| format!("写入 auth session 内容失败 ({}): {error}", path.display()))?;
@@ -264,11 +278,18 @@ fn clear_session_file(path: &Path) -> Result<(), String> {
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(format!("删除 auth session 文件失败 ({}): {error}", path.display())),
+        Err(error) => Err(format!(
+            "删除 auth session 文件失败 ({}): {error}",
+            path.display()
+        )),
     }
 }
 
-fn save_auth_session_to_path(path: &Path, key: &[u8], payload: &AuthSessionSavePayload) -> Result<(), String> {
+fn save_auth_session_to_path(
+    path: &Path,
+    key: &[u8],
+    payload: &AuthSessionSavePayload,
+) -> Result<(), String> {
     let realm_base_url = payload.realm_base_url.trim().to_string();
     let access_token = payload.access_token.trim().to_string();
     let refresh_token = payload
@@ -364,7 +385,10 @@ fn save_plaintext_auth_session_to_path(
     write_restricted_file(path, &serialized)
 }
 
-fn load_auth_session_from_path(path: &Path, key: &[u8]) -> Result<Option<AuthSessionLoadResult>, String> {
+fn load_auth_session_from_path(
+    path: &Path,
+    key: &[u8],
+) -> Result<Option<AuthSessionLoadResult>, String> {
     let raw = match fs::read_to_string(path) {
         Ok(value) => value,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -433,7 +457,9 @@ fn load_auth_session_from_path(path: &Path, key: &[u8]) -> Result<Option<AuthSes
     }))
 }
 
-fn load_plaintext_auth_session_from_path(path: &Path) -> Result<Option<AuthSessionLoadResult>, String> {
+fn load_plaintext_auth_session_from_path(
+    path: &Path,
+) -> Result<Option<AuthSessionLoadResult>, String> {
     let raw = match fs::read_to_string(path) {
         Ok(value) => value,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -485,9 +511,7 @@ pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     }
 
     let path = auth_session_dev_path()?;
-    coerce_cleared_session_load_result(load_plaintext_auth_session_from_path(
-        path.as_path(),
-    ))
+    coerce_cleared_session_load_result(load_plaintext_auth_session_from_path(path.as_path()))
 }
 
 #[tauri::command]
@@ -516,11 +540,10 @@ pub fn auth_session_clear() -> Result<(), String> {
 mod tests {
     use super::{
         clear_session_file, coerce_cleared_session_load_result, load_auth_session_from_path,
-        load_plaintext_auth_session_from_path, save_plaintext_auth_session_to_path,
-        normalize_master_key_read_result, read_or_create_master_key, save_auth_session_to_path,
-        should_use_keyring_session_storage_from_env, AuthSessionLoadResult,
-        AuthSessionSavePayload, AuthSessionUser, AES_KEY_LEN,
-        AUTH_SESSION_DEV_USE_KEYCHAIN_ENV,
+        load_plaintext_auth_session_from_path, normalize_master_key_read_result,
+        read_or_create_master_key, save_auth_session_to_path, save_plaintext_auth_session_to_path,
+        should_use_keyring_session_storage_from_env, AuthSessionLoadResult, AuthSessionSavePayload,
+        AuthSessionUser, AES_KEY_LEN, AUTH_SESSION_DEV_USE_KEYCHAIN_ENV,
     };
     use crate::test_support::with_env;
     use std::cell::RefCell;
@@ -633,13 +656,11 @@ mod tests {
 
     #[test]
     fn inaccessible_master_key_is_not_treated_as_absent() {
-        let error = normalize_master_key_read_result(Err(keyring::Error::NoStorageAccess(
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::PermissionDenied,
-                "locked",
-            )),
-        )))
-        .expect_err("storage access errors must not be coerced to missing");
+        let error =
+            normalize_master_key_read_result(Err(keyring::Error::NoStorageAccess(Box::new(
+                std::io::Error::new(std::io::ErrorKind::PermissionDenied, "locked"),
+            ))))
+            .expect_err("storage access errors must not be coerced to missing");
         assert!(error.contains("读取 auth session master key 失败"));
     }
 

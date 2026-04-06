@@ -1,8 +1,7 @@
 use super::codec::{
     map_sql_error, message_role_to_db_value, message_status_to_db_value, normalize_attachments,
     normalize_message_content, normalize_message_error, normalize_optional_string,
-    normalize_required_string, normalize_route_snapshot, require_non_negative_ms,
-    route_kind_to_db_value, serialize_json_map, serialize_json_value,
+    normalize_required_string, require_non_negative_ms, serialize_json_value,
 };
 use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
 use super::types::*;
@@ -15,7 +14,6 @@ fn summarize_thread(record: ChatAiThreadRecord) -> ChatAiThreadSummary {
         updated_at_ms: record.updated_at_ms,
         last_message_at_ms: record.last_message_at_ms,
         archived_at_ms: record.archived_at_ms,
-        route_snapshot: record.route_snapshot,
     }
 }
 
@@ -29,12 +27,7 @@ pub(crate) fn list_threads(conn: &Connection) -> Result<Vec<ChatAiThreadSummary>
               created_at_ms,
               updated_at_ms,
               last_message_at_ms,
-              archived_at_ms,
-              route_kind,
-              connector_id,
-              provider,
-              model_id,
-              route_binding_json
+              archived_at_ms
             FROM ai_threads
             ORDER BY updated_at_ms DESC, id DESC
             "#,
@@ -65,12 +58,7 @@ pub(crate) fn get_thread_bundle(
               created_at_ms,
               updated_at_ms,
               last_message_at_ms,
-              archived_at_ms,
-              route_kind,
-              connector_id,
-              provider,
-              model_id,
-              route_binding_json
+              archived_at_ms
             FROM ai_threads
             WHERE id = ?1
             "#,
@@ -149,7 +137,6 @@ pub(crate) fn create_thread(
         .archived_at_ms
         .map(|value| require_non_negative_ms(value, "archivedAtMs"))
         .transpose()?;
-    let route_snapshot = normalize_route_snapshot(&input.route_snapshot)?;
     conn.execute(
         r#"
         INSERT INTO ai_threads (
@@ -158,13 +145,8 @@ pub(crate) fn create_thread(
           created_at_ms,
           updated_at_ms,
           last_message_at_ms,
-          archived_at_ms,
-          route_kind,
-          connector_id,
-          provider,
-          model_id,
-          route_binding_json
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+          archived_at_ms
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         "#,
         params![
             id,
@@ -172,12 +154,7 @@ pub(crate) fn create_thread(
             created_at_ms,
             updated_at_ms,
             last_message_at_ms,
-            archived_at_ms,
-            route_kind_to_db_value(route_snapshot.route_kind),
-            route_snapshot.connector_id.clone(),
-            route_snapshot.provider.clone(),
-            route_snapshot.model_id.clone(),
-            serialize_json_map(&route_snapshot.route_binding, "routeSnapshot.routeBinding")?
+            archived_at_ms
         ],
     )
     .map_err(|error| map_sql_error("create chat_ai thread failed", error))?;
@@ -188,7 +165,6 @@ pub(crate) fn create_thread(
         updated_at_ms,
         last_message_at_ms,
         archived_at_ms,
-        route_snapshot,
     })
 }
 
@@ -207,8 +183,6 @@ pub(crate) fn update_thread_metadata(
         .archived_at_ms
         .map(|value| require_non_negative_ms(value, "archivedAtMs"))
         .transpose()?;
-    let route_snapshot = normalize_route_snapshot(&input.route_snapshot)?;
-
     let created_at_ms = conn
         .query_row(
             "SELECT created_at_ms FROM ai_threads WHERE id = ?1",
@@ -227,12 +201,7 @@ pub(crate) fn update_thread_metadata(
               title = ?2,
               updated_at_ms = ?3,
               last_message_at_ms = ?4,
-              archived_at_ms = ?5,
-              route_kind = ?6,
-              connector_id = ?7,
-              provider = ?8,
-              model_id = ?9,
-              route_binding_json = ?10
+              archived_at_ms = ?5
             WHERE id = ?1
             "#,
             params![
@@ -240,12 +209,7 @@ pub(crate) fn update_thread_metadata(
                 &title,
                 updated_at_ms,
                 last_message_at_ms,
-                archived_at_ms,
-                route_kind_to_db_value(route_snapshot.route_kind),
-                route_snapshot.connector_id.clone(),
-                route_snapshot.provider.clone(),
-                route_snapshot.model_id.clone(),
-                serialize_json_map(&route_snapshot.route_binding, "routeSnapshot.routeBinding")?
+                archived_at_ms
             ],
         )
         .map_err(|error| map_sql_error("update chat_ai thread failed", error))?;
@@ -260,7 +224,6 @@ pub(crate) fn update_thread_metadata(
         updated_at_ms,
         last_message_at_ms,
         archived_at_ms,
-        route_snapshot,
     })
 }
 

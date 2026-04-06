@@ -1,6 +1,5 @@
 use super::types::*;
 use rusqlite::Error as SqlError;
-use serde_json::{Map as JsonMap, Value as JsonValue};
 
 pub(super) fn normalize_required_string(value: &str, field_name: &str) -> Result<String, String> {
     let normalized = value.trim();
@@ -24,46 +23,6 @@ pub(super) fn normalize_optional_string(value: Option<&str>) -> Option<String> {
         .map(|text| text.to_string())
 }
 
-pub(super) fn normalize_route_snapshot(
-    snapshot: &ChatAiRouteSnapshot,
-) -> Result<ChatAiRouteSnapshot, String> {
-    let connector_id = normalize_optional_string(snapshot.connector_id.as_deref());
-    let provider = normalize_optional_string(snapshot.provider.as_deref());
-    let model_id = normalize_optional_string(snapshot.model_id.as_deref());
-    let route_binding = snapshot.route_binding.clone();
-    match snapshot.route_kind {
-        ChatAiRouteKind::Local => {
-            if connector_id.is_some() || provider.is_some() || model_id.is_some() {
-                return Err(
-                    "routeSnapshot.local must not include connectorId/provider/modelId".to_string(),
-                );
-            }
-        }
-        ChatAiRouteKind::Cloud => {
-            if connector_id.is_none() {
-                return Err("routeSnapshot.cloud.connectorId is required".to_string());
-            }
-            if provider.is_none() {
-                return Err("routeSnapshot.cloud.provider is required".to_string());
-            }
-        }
-    }
-    Ok(ChatAiRouteSnapshot {
-        route_kind: snapshot.route_kind,
-        connector_id,
-        provider,
-        model_id,
-        route_binding,
-    })
-}
-
-pub(super) fn route_kind_to_db_value(value: ChatAiRouteKind) -> &'static str {
-    match value {
-        ChatAiRouteKind::Local => "local",
-        ChatAiRouteKind::Cloud => "cloud",
-    }
-}
-
 pub(super) fn message_role_to_db_value(value: ChatAiMessageRole) -> &'static str {
     match value {
         ChatAiMessageRole::System => "system",
@@ -80,14 +39,6 @@ pub(super) fn message_status_to_db_value(value: ChatAiMessageStatus) -> &'static
         ChatAiMessageStatus::Complete => "complete",
         ChatAiMessageStatus::Error => "error",
         ChatAiMessageStatus::Canceled => "canceled",
-    }
-}
-
-pub(super) fn parse_route_kind(value: &str) -> Result<ChatAiRouteKind, String> {
-    match value {
-        "local" => Ok(ChatAiRouteKind::Local),
-        "cloud" => Ok(ChatAiRouteKind::Cloud),
-        other => Err(format!("chat_ai route_kind is invalid: {other}")),
     }
 }
 
@@ -120,9 +71,11 @@ pub(super) fn normalize_message_content(
         .iter()
         .map(|part| -> Result<ChatAiMessagePart, String> {
             match part {
-                ChatAiMessagePart::Text(value) => Ok(ChatAiMessagePart::Text(ChatAiMessagePartText {
-                    text: value.text.clone(),
-                })),
+                ChatAiMessagePart::Text(value) => {
+                    Ok(ChatAiMessagePart::Text(ChatAiMessagePartText {
+                        text: value.text.clone(),
+                    }))
+                }
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -240,35 +193,11 @@ pub(super) fn map_sql_error(context: &str, error: SqlError) -> String {
     }
 }
 
-pub(super) fn serialize_json_map(
-    value: &Option<JsonMap<String, JsonValue>>,
-    field_name: &str,
-) -> Result<Option<String>, String> {
-    value
-        .as_ref()
-        .map(|item| {
-            serde_json::to_string(item)
-                .map_err(|error| format!("serialize {field_name} failed: {error}"))
-        })
-        .transpose()
-}
-
 pub(super) fn serialize_json_value<T: serde::Serialize>(
     value: &T,
     field_name: &str,
 ) -> Result<String, String> {
     serde_json::to_string(value).map_err(|error| format!("serialize {field_name} failed: {error}"))
-}
-
-pub(super) fn parse_json_map(
-    raw: Option<String>,
-    field_name: &str,
-) -> Result<Option<JsonMap<String, JsonValue>>, String> {
-    raw.map(|value| {
-        serde_json::from_str::<JsonMap<String, JsonValue>>(&value)
-            .map_err(|error| format!("{field_name} contains invalid JSON: {error}"))
-    })
-    .transpose()
 }
 
 pub(super) fn parse_json_required<T: serde::de::DeserializeOwned>(

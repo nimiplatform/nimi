@@ -1,35 +1,9 @@
-use super::codec::{
-    parse_json_map, parse_json_required, parse_message_role, parse_message_status,
-    parse_route_kind,
-};
+use super::codec::{parse_json_required, parse_message_role, parse_message_status};
 use super::types::*;
 
 pub(super) fn thread_record_from_row(
     row: &rusqlite::Row<'_>,
 ) -> Result<ChatAiThreadRecord, rusqlite::Error> {
-    let route_kind_raw: String = row.get(6)?;
-    let route_kind = parse_route_kind(&route_kind_raw).map_err(|error| {
-        rusqlite::Error::FromSqlConversionFailure(
-            6,
-            rusqlite::types::Type::Text,
-            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-        )
-    })?;
-    let route_snapshot = ChatAiRouteSnapshot {
-        route_kind,
-        connector_id: row.get(7)?,
-        provider: row.get(8)?,
-        model_id: row.get(9)?,
-        route_binding: parse_json_map(row.get(10)?, "ai_threads.route_binding_json").map_err(
-            |error| {
-                rusqlite::Error::FromSqlConversionFailure(
-                    10,
-                    rusqlite::types::Type::Text,
-                    Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
-                )
-            },
-        )?,
-    };
     Ok(ChatAiThreadRecord {
         id: row.get(0)?,
         title: row.get(1)?,
@@ -37,7 +11,6 @@ pub(super) fn thread_record_from_row(
         updated_at_ms: row.get(3)?,
         last_message_at_ms: row.get(4)?,
         archived_at_ms: row.get(5)?,
-        route_snapshot,
     })
 }
 
