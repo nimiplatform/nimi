@@ -49,7 +49,14 @@ Before any capability/evaluation/architecture question:
 1. Read `spec/INDEX.md` — match the question to a reading path.
 2. Read kernel YAML tables — these are structured facts.
 3. Read the relevant domain spec — normative rules with Rule IDs.
-4. Read source code ONLY to verify or fill gaps.
+4. Identify the current authority owner and classify the work as `alignment` or `redesign`.
+5. If the work is `redesign`, do not proceed to implementation planning before the relevant `spec/**` delta is defined.
+6. Read source code ONLY to verify or fill gaps.
+
+For high-risk design / refactor / implementation plans involving route, state, persistence, bridge, canonical model, or ownership:
+- The doc must include `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth`.
+- `alignment` work must not introduce parallel truth.
+- `redesign` work requires prior spec alignment.
 
 ## Nimi Coding Instantiation
 
@@ -90,7 +97,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 ## Repo-Wide Verification
 
-- Guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`.
+- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`.
 - Spec gates: run affected consistency + docs drift commands.
 
 ## Conflict Resolution

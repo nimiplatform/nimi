@@ -16,6 +16,6 @@
 - Skip generated outputs and unrelated reports when debugging a script.
 
 ## Verification Commands
-- Repo guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`.
+- Repo guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`.
 - Script-sensitive gates: `pnpm check:runtime-catalog-drift`, `pnpm check:spec-human-doc-drift`, `pnpm proto:drift-check`.
 - When changing script inputs, rerun the matching `generate:*` command and then the paired `check:*` command.

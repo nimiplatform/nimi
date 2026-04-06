@@ -10,6 +10,9 @@
 - Keep mod hosting inside the existing hook/runtime surfaces; mods never call runtime SDK directly.
 - Preserve established web reuse boundaries: changes under `apps/desktop/src/shell/renderer/**` may require matching adapter updates in `apps/web/src/desktop-adapter/**`.
 - Tauri generated code and bridge outputs are read-only unless the task is codegen.
+- High-risk desktop design/refactor work touching route, state ownership, persistence, bridge contracts, or capability ownership must complete authority preflight before implementation.
+- For desktop work, `alignment` means converging to current Desktop/runtime/spec authority; `redesign` means changing ownership/canonical model and requires prior `spec/**` alignment.
+- Desktop chat/UI must project runtime authority, not invent a parallel executable truth in renderer-local state.
 
 ## Retrieval Defaults
 - Start in `apps/desktop/src/shell/renderer`, `apps/desktop/src/runtime`, `apps/desktop/src-tauri/src`, and `apps/desktop/test`.
@@ -18,4 +21,4 @@
 ## Verification Commands
 - TypeScript/UI: `pnpm --filter @nimiplatform/desktop typecheck`, `pnpm --filter @nimiplatform/desktop test`.
 - Tauri/Rust: `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`, `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets`.
-- Desktop hard gates: `pnpm check:desktop-cloud-runtime-only`, `pnpm check:desktop-no-legacy-runtime-config-path`, `pnpm check:no-local-ai-private-calls`, `pnpm check:no-local-ai-tauri-commands`, `pnpm check:runtime-mod-hook-hardcut`.
+- Desktop hard gates: `pnpm check:desktop-cloud-runtime-only`, `pnpm check:desktop-chat-authority-anti-patterns`, `pnpm check:desktop-no-legacy-runtime-config-path`, `pnpm check:no-local-ai-private-calls`, `pnpm check:no-local-ai-tauri-commands`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:high-risk-doc-metadata`.

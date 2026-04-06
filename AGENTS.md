@@ -10,6 +10,8 @@
 
 ## Hard Boundaries
 - `spec/**` is the only normative contract source. Evidence → `dev/report/**`; plans → `dev/plan/**`.
+- High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
+- `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
 - Debug/fix by layer order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work; check `kit/README.md` and `spec/platform/kernel/tables/nimi-kit-registry.yaml`.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -26,7 +28,7 @@
 - Skip: `_external/**`, `dev/plan/**`, `dev/report/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Verification Commands
-- Guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
+- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
 - Spec: run affected consistency + docs drift commands. For `spec/**/kernel/**` changes, also run `pnpm check:spec-human-doc-drift`; if fail, `pnpm generate:spec-human-doc`.
 - Runtime: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`
 - SDK: `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`

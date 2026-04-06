@@ -1,10 +1,10 @@
 # Nimi Coding
 
 > Status: Active
-> Version: 1.0
+> Version: 1.1
 > Maintainer: @snowzane
 > Created: 2026-03-03
-> Last Updated: 2026-03-12
+> Last Updated: 2026-04-06
 > Scope: Nimi public methodology
 > Language: English
 > Legacy Alias: Oriented-AI Spec Coding
@@ -101,6 +101,19 @@ This methodology uses Gate semantics instead of MUST/SHOULD distinctions:
 1. **Hard Gate**: If it fails, merge is blocked.
 2. **Soft Gate**: If it fails, merge is allowed only with explicit risk and owner.
 3. **Advisory**: Recommendation only, tracked for trend and optimization.
+
+### B8. Authority-first For High-risk Changes
+
+For high-risk design, refactor, or implementation-planning work that touches route, state ownership, persistence, bridge contracts, canonical models, or capability ownership:
+
+1. Identify the current authority owner before proposing the solution.
+2. Classify the work as either:
+   - `alignment`: converge implementation to existing authority/spec
+   - `redesign`: change authority, canonical model, or ownership
+3. `alignment` must not introduce parallel truth.
+4. `redesign` must not proceed to implementation before the relevant contract/spec delta is defined.
+
+This is a lightweight preflight, not a new heavyweight lifecycle.
 
 ---
 
@@ -217,6 +230,11 @@ Classify each change as one or more of:
 3. `Projection Change`: Generator logic or projection outputs changed.
 4. `Guard Change`: Check scripts/rules changed.
 
+For high-risk design/planning artifacts, add two mandatory labels:
+
+5. `Work Type`: `alignment` / `redesign`
+6. `Authority Status`: current authority owner + whether the proposal remains spec-aligned
+
 ### E2. Mandatory Order
 
 The standard sequence is fixed:
@@ -253,6 +271,13 @@ Every change must include:
 4. Acceptance criteria (`Done`).
 5. Risk and rollback strategy (`Risk/Rollback`).
 
+High-risk design / refactor / implementation plans must also include:
+
+6. `Spec Status`
+7. `Authority Owner`
+8. `Work Type`
+9. `Parallel Truth`
+
 ---
 
 ## Part F — Two-Layer Quality Guard
@@ -286,6 +311,7 @@ Guard coverage should include:
 13. `check:spec-human-doc-drift`
 14. `check:scope-catalog-drift`
 15. `check:runtime-bridge-method-drift`
+16. `check:high-risk-doc-metadata`
 
 #### Minimal Hard Gate (Merge Admission)
 
@@ -338,6 +364,14 @@ Standard backflow:
 3. If yes: add guard rule and fix defect together.
 4. If no: record semantic audit item and re-review condition.
 5. Update templates/check catalog after retrospective.
+
+Authority/ownership defects should be treated as a distinct class in backflow:
+
+6. If the defect is an authority drift or parallel-truth defect, decide whether it can be blocked by:
+   - authority metadata gate
+   - authority drift guard
+   - review red line
+7. Add the minimal blocking mechanism rather than relying on memory.
 
 ---
 
@@ -468,6 +502,25 @@ Phase 5: Governance
 - Define semantic audit cadence and backflow rules.
 ```
 
+### G5. High-risk Authority Preflight Header
+
+For high-risk design / refactor / implementation-plan documents, add this header block near the top:
+
+```md
+> **Spec Status**: aligned | requires spec change
+> **Authority Owner**: ...
+> **Work Type**: alignment | redesign
+> **Parallel Truth**: yes | no
+```
+
+Interpretation:
+
+- `aligned`: the proposal stays within current spec/authority
+- `requires spec change`: the proposal changes ownership or canonical contract
+- `alignment`: converge implementation to existing authority
+- `redesign`: change ownership / canonical model / source of truth
+- `Parallel Truth=yes`: only valid with explicit redesign handling; otherwise this is a design defect
+
 ---
 
 ## Part H — Anti-Patterns & Red Lines
@@ -486,6 +539,9 @@ Phase 5: Governance
 2. Updating prose but not source facts and guard scripts.
 3. Changing rules without updating `source_rule` bindings.
 4. Explaining rules by personal memory instead of rule text.
+5. Designing before identifying the authority owner.
+6. Treating `alignment` work as if it were allowed to redefine ownership.
+7. Introducing projection-local state that silently becomes a second truth source.
 
 ### H3. Evolution Governance (Phase / Deferred / Deprecation)
 
