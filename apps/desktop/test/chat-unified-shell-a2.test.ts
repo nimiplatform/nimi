@@ -41,7 +41,11 @@ test('chat unified shell a2: AI host setup state is sourced from route readiness
 test('chat unified shell a2: chat page mounts the canonical target-first shell', () => {
   assert.match(chatPageSource, /CanonicalConversationShell/);
   assert.match(chatPageSource, /hideTargetPane/);
+  assert.match(chatPageSource, /hideCharacterRail/);
+  assert.match(chatPageSource, /rightPanel=\{rightPanelNode\}/);
   assert.match(chatPageSource, /sourceFilter="all"/);
+  // Contact rail is rendered after the shell (right side)
+  assert.match(chatPageSource, /ChatContactsSidebar/);
   assert.match(chatPageSource, /selectedTargetBySource/);
   assert.match(chatPageSource, /setChatViewMode/);
   assert.match(chatPageSource, /setupState=\{activeHost\.adapter\.setupState\}/);
@@ -70,7 +74,8 @@ test('chat unified shell a2: chat page mounts the canonical target-first shell',
   assert.doesNotMatch(chatPageSource, /ConversationSetupPanel/);
   assert.doesNotMatch(chatPageSource, /renderChatTranscript=/);
   assert.doesNotMatch(chatPageSource, /renderStagePanel=/);
-  assert.doesNotMatch(chatPageSource, /threadAdapter\.listThreads/);
+  // threadAdapter.listThreads is now used in ChatPage to feed the AI session list panel
+  assert.match(chatPageSource, /threadAdapter\.listThreads/);
   assert.doesNotMatch(chatPageSource, /fallbackMessages/);
   assert.doesNotMatch(chatPageSource, /<ConversationShell/);
 });
@@ -84,6 +89,8 @@ test('chat unified shell a2: host contract only exposes canonical data and secti
   assert.match(chatModeHostTypesSource, /rightSidebarContent\?:/);
   assert.match(chatModeHostTypesSource, /rightSidebarOverlayMenu\?:/);
   assert.match(chatModeHostTypesSource, /rightSidebarAutoOpenKey\?:/);
+  assert.match(chatModeHostTypesSource, /rightPanelContent\?:/);
+  assert.match(chatModeHostTypesSource, /onCreateThread\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderTranscript\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderStagePanel\?:/);
   assert.doesNotMatch(chatModeHostTypesSource, /renderComposer\?:/);

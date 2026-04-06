@@ -41,4 +41,8 @@ export type DesktopConversationModeHost = {
   setupDescription?: ReactNode;
   onSelectTarget?: (targetId: string | null) => void;
   onSelectThread?: (threadId: string) => void;
+  /** Content rendered in the new right panel (between conversation pane and contact rail). */
+  rightPanelContent?: ReactNode;
+  /** Create a new AI thread/session. Only meaningful for AI mode. */
+  onCreateThread?: () => Promise<void>;
 };

@@ -43,6 +43,7 @@ type UseAiConversationPresentationInput = {
   currentDraftTextRef: { current: string };
   currentRouteSnapshot: AiConversationRouteSnapshot | null;
   footerContent: ReactNode;
+  handleCreateThread: () => Promise<void>;
   handleRouteSelection: (route: AiConversationRouteSnapshot) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
@@ -369,6 +370,7 @@ export function useAiConversationPresentation(
         })
     ),
     onSelectThread: input.handleSelectThread,
+    onCreateThread: input.handleCreateThread,
   }), [
     adapter,
     aiInspectSections,
@@ -383,6 +385,7 @@ export function useAiConversationPresentation(
     input.currentDraftTextRef,
     input.currentRouteSnapshot,
     input.footerContent,
+    input.handleCreateThread,
     input.handleRouteSelection,
     input.handleSelectThread,
     input.isBundleLoading,

@@ -13,6 +13,9 @@ import { useHumanConversationModeHost } from './chat-human-adapter';
 import { useAiConversationModeHost } from './chat-ai-shell-adapter';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
+import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
+import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
+import { ChatRightPanelSettings } from './chat-right-panel-settings';
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
   if (targetId === 'runtime-local') {
@@ -48,6 +51,7 @@ export function ChatPage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+  const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
 
   const runtimeConfigController = useRuntimeConfigPanelController();
   const aiRouteReadinessPending = runtimeConfigController.hydrated
@@ -149,6 +153,7 @@ export function ChatPage() {
     setSettingsOpen(false);
     setProfileOpen(false);
     setRightSidebarOpen(false);
+    setRightPanelMode('auto');
   }, [chatMode, selectedTargetId]);
 
   useEffect(() => {
@@ -206,6 +211,53 @@ export function ChatPage() {
     handleSelectTarget(targetId);
   }, [handleSelectTarget]);
 
+  const toggleRightPanelSettings = useCallback(() => {
+    setRightPanelMode((prev) => (prev === 'settings' ? 'auto' : 'settings'));
+  }, []);
+
+  // Compute right panel content based on mode
+  const rightPanelNode = useMemo(() => {
+    if (!activeHost || !selectedTarget) {
+      return null;
+    }
+    const settingsActive = rightPanelMode === 'settings';
+    if (settingsActive) {
+      return (
+        <ChatRightPanelSettings onToggleSettings={toggleRightPanelSettings}>
+          {activeHost.settingsContent ?? null}
+        </ChatRightPanelSettings>
+      );
+    }
+    // Auto mode: AI shows session list, Human/Agent shows character rail
+    if (activeHost.mode === 'ai') {
+      const threadSummaries = activeHost.adapter.threadAdapter.listThreads();
+      const threads = Array.isArray(threadSummaries) ? threadSummaries : [];
+      return (
+        <ChatAiSessionListPanel
+          threads={threads}
+          activeThreadId={activeHost.activeThreadId}
+          onSelectThread={(threadId) => activeHost.onSelectThread?.(threadId)}
+          onCreateThread={activeHost.onCreateThread ? () => void activeHost.onCreateThread!() : undefined}
+          routeLabel={selectedTarget?.metadata?.routeLabel as string | null ?? null}
+          onToggleSettings={toggleRightPanelSettings}
+          settingsActive={false}
+        />
+      );
+    }
+    // Human/Agent: use host-provided rightPanelContent, or fall back to CharacterRail
+    if (activeHost.rightPanelContent) {
+      return activeHost.rightPanelContent;
+    }
+    return (
+      <ChatRightPanelCharacterRail
+        selectedTarget={selectedTarget}
+        characterData={activeHost.characterData}
+        onToggleSettings={toggleRightPanelSettings}
+        settingsActive={false}
+      />
+    );
+  }, [activeHost, selectedTarget, rightPanelMode, toggleRightPanelSettings]);
+
   if (!activeHost) {
     return <div className="flex min-h-0 flex-1" />;
   }
@@ -220,16 +272,11 @@ export function ChatPage() {
 
   return (
     <div data-testid={E2E_IDS.chatPage} className="flex min-h-0 flex-1">
-      {authStatus === 'authenticated' ? (
-        <ChatContactsSidebar
-          targets={allTargets}
-          selectedTargetId={selectedTargetId}
-          onSelectTarget={handleSelectTarget}
-        />
-      ) : null}
       <CanonicalConversationShell
         className="min-h-0 flex-1"
         hideTargetPane
+        hideCharacterRail
+        rightPanel={rightPanelNode}
         sourceFilter="all"
         targets={allTargets}
         selectedTargetId={selectedTargetId}
@@ -267,6 +314,13 @@ export function ChatPage() {
         onRightSidebarOpenChange={setRightSidebarOpen}
         auxiliaryOverlayContent={activeHost.auxiliaryOverlayContent}
       />
+      {authStatus === 'authenticated' ? (
+        <ChatContactsSidebar
+          targets={allTargets}
+          selectedTargetId={selectedTargetId}
+          onSelectTarget={handleSelectTarget}
+        />
+      ) : null}
     </div>
   );
 }

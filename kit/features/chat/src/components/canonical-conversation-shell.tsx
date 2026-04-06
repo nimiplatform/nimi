@@ -86,6 +86,10 @@ export type CanonicalConversationShellProps = {
   auxiliaryOverlayContent?: ReactNode;
   /** When true, skip the built-in target pane and show an empty placeholder instead. */
   hideTargetPane?: boolean;
+  /** When true, skip the built-in character rail on the left side. Use when the character rail is rendered elsewhere (e.g. in a right panel). */
+  hideCharacterRail?: boolean;
+  /** Optional right panel content rendered between the conversation pane and any external sidebar. */
+  rightPanel?: ReactNode;
 };
 
 export function CanonicalConversationShell(props: CanonicalConversationShellProps) {
@@ -228,20 +232,22 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
           )
         ) : (
           <div className="flex min-h-0 min-w-0 flex-1 flex-row">
-            <CanonicalCharacterRail
-              selectedTarget={props.selectedTarget}
-              characterData={props.characterData}
-              avatarAnchorRef={avatarAnchorRef}
-              hideBackButton={props.hideTargetPane}
-              onBackToTargets={() => {
-                props.onSelectTarget(null);
-                closeTransientPanels();
-              }}
-              onOpenProfile={props.profileDrawer ? () => {
-                setProfileOpen(true);
-                setSettingsOpen(false);
-              } : undefined}
-            />
+            {props.hideCharacterRail ? null : (
+              <CanonicalCharacterRail
+                selectedTarget={props.selectedTarget}
+                characterData={props.characterData}
+                avatarAnchorRef={avatarAnchorRef}
+                hideBackButton={props.hideTargetPane}
+                onBackToTargets={() => {
+                  props.onSelectTarget(null);
+                  closeTransientPanels();
+                }}
+                onOpenProfile={props.profileDrawer ? () => {
+                  setProfileOpen(true);
+                  setSettingsOpen(false);
+                } : undefined}
+              />
+            )}
             <CanonicalConversationPane
               selectedTarget={props.selectedTarget}
               characterData={props.characterData}
@@ -270,11 +276,13 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 <CanonicalTranscriptView
                   messages={messages}
                   pendingFirstBeat={props.pendingFirstBeat}
+                  onIntentReturnToStage={() => props.onViewModeChange('stage')}
                   {...props.transcriptProps}
                 />
               )}
               composer={props.composer}
             />
+            {props.rightPanel ?? null}
           </div>
         )}
       </div>

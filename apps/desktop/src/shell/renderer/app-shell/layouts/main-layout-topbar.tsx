@@ -186,7 +186,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
                   type="button"
                   data-mod-tab-interactive="true"
                   onClick={props.onToggleSettingsMenu}
-                  className={`${actionCellClass} min-w-[48px] overflow-hidden px-2`}
+                  className={`${actionCellClass} w-14 overflow-hidden px-2`}
                   aria-label={t('Common.openAccountMenu')}
                   aria-expanded={props.settingsMenuOpen}
                 >

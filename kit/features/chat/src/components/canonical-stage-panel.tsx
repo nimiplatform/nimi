@@ -16,58 +16,87 @@ const STAGE_SWITCH_WINDOW_MS = 400;
 const STAGE_CARD_VISUAL_ANCHOR_TOP = '44%';
 
 type StageConversationSlice = {
-  userMessage: ConversationCanonicalMessage | null;
+  /** User messages in this exchange (may be multiple consecutive). */
+  userMessages: ConversationCanonicalMessage[];
+  /** Assistant/agent messages in this exchange (may be multiple consecutive). */
   assistantMessages: ConversationCanonicalMessage[];
   pendingFirstBeat: boolean;
 };
 
+function isUserRole(role: string): boolean {
+  return role === 'user' || role === 'human';
+}
+
+function isAssistantRole(role: string): boolean {
+  return role === 'assistant' || role === 'agent';
+}
+
+/**
+ * Resolve the latest exchange for stage display.
+ *
+ * Strategy: walk backwards from the end of the message list to find
+ * the last contiguous block of same-role messages (the "tail block"),
+ * then include the preceding block of the opposite role (the "trigger block").
+ *
+ * Examples:
+ * - [U, A, U, U, U]       → userMessages=[U,U,U], assistantMessages=[]
+ * - [U, A, A]              → userMessages=[U], assistantMessages=[A,A]
+ * - [U, U, A]              → userMessages=[U,U], assistantMessages=[A]
+ * - [U, A, U, A, A, A]     → userMessages=[U], assistantMessages=[A,A,A]
+ * - [A, A]                 → userMessages=[], assistantMessages=[A,A]
+ */
 function resolveStageConversationSlice(input: {
   messages: readonly ConversationCanonicalMessage[];
   pendingFirstBeat: boolean;
 }): StageConversationSlice {
-  const latestUserMessage = [...input.messages].reverse().find((message) => message.role === 'user' || message.role === 'human') || null;
-  const lastMessage = input.messages[input.messages.length - 1] || null;
-  const shouldShowPendingUserTurn = input.pendingFirstBeat && (lastMessage?.role === 'user' || lastMessage?.role === 'human');
-  if (shouldShowPendingUserTurn) {
+  const { messages, pendingFirstBeat } = input;
+  if (messages.length === 0) {
+    return { userMessages: [], assistantMessages: [], pendingFirstBeat };
+  }
+
+  // Walk backwards to find the tail block (consecutive messages of the same role)
+  const lastMessage = messages[messages.length - 1]!;
+  const tailIsUser = isUserRole(lastMessage.role);
+  let tailStartIndex = messages.length - 1;
+  for (let i = messages.length - 2; i >= 0; i -= 1) {
+    const msg = messages[i]!;
+    const sameBlock = tailIsUser ? isUserRole(msg.role) : isAssistantRole(msg.role);
+    if (!sameBlock) {
+      break;
+    }
+    tailStartIndex = i;
+  }
+
+  // Find the preceding trigger block (opposite role)
+  let triggerStartIndex = tailStartIndex;
+  for (let i = tailStartIndex - 1; i >= 0; i -= 1) {
+    const msg = messages[i]!;
+    const isOpposite = tailIsUser ? isAssistantRole(msg.role) : isUserRole(msg.role);
+    if (!isOpposite) {
+      break;
+    }
+    triggerStartIndex = i;
+  }
+
+  const tailBlock = messages.slice(tailStartIndex);
+  const triggerBlock = triggerStartIndex < tailStartIndex
+    ? messages.slice(triggerStartIndex, tailStartIndex)
+    : [];
+
+  if (tailIsUser) {
+    // Tail is user messages — user sent message(s), waiting for reply.
+    // Don't include previous assistant messages (they belong to an earlier exchange).
     return {
-      userMessage: latestUserMessage,
+      userMessages: [...tailBlock],
       assistantMessages: [],
-      pendingFirstBeat: true,
+      pendingFirstBeat: pendingFirstBeat,
     };
   }
 
-  let lastAssistantIndex = -1;
-  for (let index = input.messages.length - 1; index >= 0; index -= 1) {
-    const message = input.messages[index];
-    if (message?.role === 'assistant' || message?.role === 'agent') {
-      lastAssistantIndex = index;
-      break;
-    }
-  }
-  if (lastAssistantIndex < 0) {
-    return {
-      userMessage: latestUserMessage,
-      assistantMessages: [],
-      pendingFirstBeat: input.pendingFirstBeat,
-    };
-  }
-
-  let userMessage: ConversationCanonicalMessage | null = null;
-  for (let index = lastAssistantIndex - 1; index >= 0; index -= 1) {
-    const message = input.messages[index];
-    if (message?.role === 'user' || message?.role === 'human') {
-      userMessage = message;
-      break;
-    }
-  }
-
-  const assistantMessages = input.messages
-    .slice(userMessage ? input.messages.indexOf(userMessage) + 1 : Math.max(0, lastAssistantIndex))
-    .filter((message) => message.role === 'assistant' || message.role === 'agent');
-
+  // Tail is assistant messages — include the preceding user messages that triggered this reply.
   return {
-    userMessage,
-    assistantMessages,
+    userMessages: [...triggerBlock].filter((m) => isUserRole(m.role)),
+    assistantMessages: [...tailBlock],
     pendingFirstBeat: false,
   };
 }
@@ -124,7 +153,8 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
     pendingFirstBeat: Boolean(props.pendingFirstBeat),
   }), [props.messages, props.pendingFirstBeat]);
   const theme = props.characterData?.theme;
-  const showEmptyState = !props.content && !slice.userMessage && slice.assistantMessages.length === 0 && !slice.pendingFirstBeat;
+  const showEmptyState = !props.content && slice.userMessages.length === 0 && slice.assistantMessages.length === 0 && !slice.pendingFirstBeat;
+  const totalBeats = slice.userMessages.length + slice.assistantMessages.length;
   const widthClassName = props.widthClassName || CANONICAL_STAGE_SURFACE_WIDTH_CLASS;
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
@@ -157,11 +187,11 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
       onWheelCapture={handleWheelCapture}
     >
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[58%]"
-        style={{ background: theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 62%)', opacity: 0.9 }}
+        className="pointer-events-none absolute inset-0"
+        style={{ background: theme?.roomAura || 'radial-gradient(circle at top, rgba(16,185,129,0.14), transparent 72%)', opacity: 0.9 }}
       />
 
-      <div className="relative z-10 flex h-full min-h-0 items-start justify-center pt-4">
+      <div className="relative z-10 flex h-full min-h-0 items-center justify-center">
         <div
           className={`w-full ${widthClassName}`}
           data-canonical-stage-width={widthClassName}
@@ -170,12 +200,12 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
             <div className="mb-3 flex items-center justify-between gap-3 px-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700/70">
-                  This Moment
+                  Moment
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {slice.assistantMessages.length > 0
-                    ? `${slice.assistantMessages.length} beat${slice.assistantMessages.length === 1 ? '' : 's'} in focus`
-                    : 'The current turn appears here first'}
+                  {totalBeats > 0
+                    ? `${totalBeats} beat${totalBeats === 1 ? '' : 's'} in focus`
+                    : 'Send a message to begin'}
                 </p>
               </div>
             </div>
@@ -200,31 +230,32 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {slice.userMessage ? (
+                  {slice.userMessages.map((message, index) => (
                     <CanonicalMessageBubble
-                      message={slice.userMessage}
+                      key={message.id}
+                      message={message}
                       avatar={props.renderMessageAvatar?.(
-                        slice.userMessage,
-                        toStageRenderContext(slice.userMessage, 0, 1),
+                        message,
+                        toStageRenderContext(message, index, slice.userMessages.length),
                       )}
                       content={props.renderMessageContent?.(
-                        slice.userMessage,
-                        toStageRenderContext(slice.userMessage, 0, 1),
+                        message,
+                        toStageRenderContext(message, index, slice.userMessages.length),
                       )}
                       accessory={props.renderMessageAccessory?.(
-                        slice.userMessage,
-                        toStageRenderContext(slice.userMessage, 0, 1),
+                        message,
+                        toStageRenderContext(message, index, slice.userMessages.length),
                       )}
-                      showAvatar
-                      showTimestamp
-                      position="single"
+                      showAvatar={index === 0 || index === slice.userMessages.length - 1}
+                      showTimestamp={index === slice.userMessages.length - 1}
+                      position={slice.userMessages.length <= 1 ? 'single' : index === 0 ? 'start' : index === slice.userMessages.length - 1 ? 'end' : 'middle'}
                       displayContext="stage"
                       voicePlayingMessageId={props.voicePlayingMessageId}
-                      isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(slice.userMessage)}
+                      isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
                       onPlayVoiceMessage={props.onPlayVoiceMessage}
                       onVoiceContextMenu={props.onVoiceContextMenu}
                     />
-                  ) : null}
+                  ))}
                   {slice.assistantMessages.map((message, index) => (
                     <CanonicalMessageBubble
                       key={message.id}

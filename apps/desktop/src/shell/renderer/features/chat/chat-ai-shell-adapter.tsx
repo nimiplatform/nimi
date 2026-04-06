@@ -310,7 +310,8 @@ export function useAiConversationModeHost(
     syncSelectionToThread(thread.id, thread.routeSnapshot);
   }, [currentRouteSnapshot, queryClient, readiness.setupState.status, setThreadsCache, syncSelectionToThread]);
 
-  // Auto-create the single AI thread when route is ready and no thread exists.
+  // Auto-create the first AI thread when route is ready and no thread exists.
+  // Subsequent threads are created by the user via the session list panel.
   const autoCreatingRef = useRef(false);
   useEffect(() => {
     if (readiness.setupState.status !== 'ready' || !currentRouteSnapshot) {
@@ -753,6 +754,7 @@ export function useAiConversationModeHost(
     currentDraftTextRef,
     currentRouteSnapshot,
     footerContent,
+    handleCreateThread,
     handleRouteSelection,
     handleSelectThread,
     handleSubmit,

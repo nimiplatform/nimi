@@ -16,11 +16,11 @@ export type ChatContactsSidebarProps = {
 // Tooltip (reuses pattern from SidebarTooltipButton)
 // ---------------------------------------------------------------------------
 
-function ContactTooltip({ label, pos }: { label: string; pos: { top: number; left: number } }) {
+function ContactTooltip({ label, pos }: { label: string; pos: { top: number; right: number } }) {
   return (
     <span
       className="pointer-events-none fixed z-[9999] whitespace-nowrap rounded-md bg-[#4ECCA3] px-2 py-1 text-xs text-white shadow-lg"
-      style={{ top: pos.top, left: pos.left, transform: 'translateY(-50%)' }}
+      style={{ top: pos.top, right: pos.right, transform: 'translateY(-50%)' }}
     >
       {label}
     </span>
@@ -41,7 +41,7 @@ function ContactAvatar({
   onSelect: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; right: number } | null>(null);
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
@@ -52,23 +52,23 @@ function ContactAvatar({
   const handleMouseEnter = () => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setTooltipPos({ top: rect.top + rect.height / 2, left: rect.right + 10 });
+      setTooltipPos({ top: rect.top + rect.height / 2, right: window.innerWidth - rect.left + 10 });
     }
   };
 
   return (
     <>
       <div className="group relative flex h-11 items-center">
-        {/* Selection indicator — Discord-style left pill, outside the avatar */}
+        {/* Selection indicator — Discord-style right pill, outside the avatar */}
         <div
-          className={`absolute left-0 w-[3px] rounded-r-full bg-emerald-500 transition-all duration-200 ${
+          className={`absolute right-0 w-[3px] rounded-l-full bg-emerald-500 transition-all duration-200 ${
             selected
               ? 'h-8'
               : 'h-0 group-hover:h-4'
           }`}
         />
 
-        {/* Avatar button — offset right to leave space for the pill */}
+        {/* Avatar button — offset left to leave space for the pill */}
         <button
           ref={ref}
           type="button"
@@ -76,7 +76,7 @@ function ContactAvatar({
           onClick={onSelect}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setTooltipPos(null)}
-          className={`relative ml-2 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
+          className={`relative mx-2 flex h-10 w-10 items-center justify-center overflow-hidden transition-all duration-200 ${
             selected ? 'rounded-2xl' : 'rounded-full hover:rounded-2xl'
           }`}
           aria-label={target.title}
@@ -133,7 +133,7 @@ export function ChatContactsSidebar({ targets, selectedTargetId, onSelectTarget 
   const agentTargets = targets.filter((t) => t.source === 'agent');
 
   return (
-    <aside data-testid={E2E_IDS.chatList} className="flex h-full w-14 shrink-0 flex-col items-center border-r border-slate-200/60 bg-[var(--nimi-app-background,#f3f1ee)] py-2">
+    <aside data-testid={E2E_IDS.chatList} className="flex h-full w-14 shrink-0 flex-col items-center border-l border-slate-200/60 bg-[var(--nimi-app-background,#f3f1ee)] py-2">
       <div className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto overflow-x-hidden px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {/* AI targets (always visible) */}
         {aiTargets.map((target) => (

@@ -152,6 +152,9 @@ function formatDateLabel(input: string): string {
   return date.toLocaleDateString();
 }
 
+const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 120;
+const TRANSCRIPT_SWITCH_WINDOW_MS = 400;
+
 function isNearBottom(element: HTMLElement): boolean {
   return element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
 }
@@ -279,6 +282,8 @@ export type CanonicalTranscriptViewProps = {
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
+  /** Called when the user scrolls down past the bottom of the transcript, signaling intent to return to stage view. */
+  onIntentReturnToStage?: () => void;
 };
 
 export function CanonicalTranscriptView({
@@ -305,19 +310,52 @@ export function CanonicalTranscriptView({
   isVoiceTranscriptVisible,
   onPlayVoiceMessage,
   onVoiceContextMenu,
+  onIntentReturnToStage,
 }: CanonicalTranscriptViewProps) {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
   const showEmptyState = !loading && !error && messages.length === 0 && !content;
 
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
     onNearBottomChange?.(isNearBottom(event.currentTarget));
   }, [onNearBottomChange]);
 
+  const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (!onIntentReturnToStage) {
+      return;
+    }
+    const now = performance.now();
+    const root = scrollRootRef.current;
+    const atBottom = root ? isNearBottom(root) : false;
+    if (event.deltaY <= 0 || !atBottom) {
+      downwardIntentRef.current = { distance: 0, lastAt: now };
+      return;
+    }
+    const previous = downwardIntentRef.current;
+    const nextDistance = now - previous.lastAt > TRANSCRIPT_SWITCH_WINDOW_MS
+      ? Math.abs(event.deltaY)
+      : previous.distance + Math.abs(event.deltaY);
+    downwardIntentRef.current = { distance: nextDistance, lastAt: now };
+    if (nextDistance >= TRANSCRIPT_SWITCH_DELTA_THRESHOLD) {
+      downwardIntentRef.current = { distance: 0, lastAt: now };
+      onIntentReturnToStage();
+    }
+  }, [onIntentReturnToStage]);
+
+  // Auto-scroll to bottom on initial mount (e.g. switching from stage to history)
+  const didInitialScrollRef = useRef(false);
+  useLayoutEffect(() => {
+    didInitialScrollRef.current = false;
+  }, []); // Reset on remount
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
     if (!root) {
       onNearBottomChange?.(true);
       return;
+    }
+    if (!didInitialScrollRef.current && messages.length > 0) {
+      didInitialScrollRef.current = true;
+      root.scrollTop = root.scrollHeight;
     }
     onNearBottomChange?.(isNearBottom(root));
   }, [loading, messages.length, onNearBottomChange]);
@@ -328,8 +366,8 @@ export function CanonicalTranscriptView({
       className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-5"
       data-canonical-transcript-root="true"
       onScroll={handleScroll}
+      onWheelCapture={handleWheelCapture}
       style={{
-        background: 'linear-gradient(180deg, rgba(250,252,252,0.88) 0%, rgba(243,247,248,0.92) 100%)',
         overflowAnchor: 'none',
       }}
     >
