@@ -15,6 +15,7 @@ import {
   CanonicalRuntimeInspectSidebar,
   CanonicalStagePanel,
   CanonicalTranscriptView,
+  ChatMarkdownRenderer,
   ConversationShell,
   ConversationModeSwitcher,
   ConversationSetupPanel,
@@ -390,17 +391,12 @@ describe('conversation shell ui', () => {
       await flush();
     });
 
-    const canonicalButtons = Array.from(container.querySelectorAll('button'))
-      .map((button) => button.getAttribute('aria-label'))
-      .filter(Boolean);
-
     expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.openHistory')}");
     expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.returnToStage')}");
     expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain("aria-label={t('Header.openSettings')}");
     expect(LOCAL_CHAT_CONVERSATION_PANE_SOURCE).toContain('LOCAL_CHAT_STAGE_SURFACE_WIDTH_CLASS');
-    expect(canonicalButtons.slice(0, 2)).toEqual(['Show history', 'Open settings']);
     expect(container.querySelector('[data-canonical-conversation-pane="true"]')).not.toBeNull();
-    expect(container.querySelector('[data-canonical-pane-controls="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-canonical-pane-controls="true"]')).toBeNull();
   });
 
   it('renders empty state when no thread is selected', async () => {
@@ -542,8 +538,7 @@ describe('conversation shell ui', () => {
     expect(onSelectTarget).toHaveBeenCalledWith('human:alice');
   });
 
-  it('renders controlled drawers and emits the stage/chat toggle action', async () => {
-    const onViewModeChange = vi.fn();
+  it('renders controlled drawers without canonical pane header controls', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -573,7 +568,7 @@ describe('conversation shell ui', () => {
           }}
           onSelectTarget={() => undefined}
           viewMode="stage"
-          onViewModeChange={onViewModeChange}
+          onViewModeChange={() => undefined}
           settingsDrawer={<div>Settings Drawer</div>}
           profileDrawer={<div>Profile Drawer</div>}
           rightSidebar={<div>Inspect Sidebar</div>}
@@ -590,17 +585,8 @@ describe('conversation shell ui', () => {
     expect(container.textContent).toContain('Settings Drawer');
     expect(container.textContent).toContain('Profile Drawer');
     expect(container.textContent).toContain('Inspect Sidebar');
-
-    const historyButton = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.getAttribute('aria-label') === 'Show history');
-    expect(historyButton).not.toBeUndefined();
-
-    await act(async () => {
-      historyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await flush();
-    });
-
-    expect(onViewModeChange).toHaveBeenCalledWith('chat');
+    expect(Array.from(container.querySelectorAll('button'))
+      .find((button) => button.getAttribute('aria-label') === 'Show history')).toBeUndefined();
   });
 
   it('renders canonical setup state before target landing', async () => {
@@ -729,5 +715,99 @@ describe('conversation shell ui', () => {
 
     expect(onPlayVoiceMessage).toHaveBeenCalled();
     expect(container.textContent).toContain('Inspect Payload');
+  });
+
+  it('renders shared markdown headings in canonical transcript and stage panels', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const messages = [{
+      id: 'md-1',
+      sessionId: 'session-ai',
+      targetId: 'ai:assistant',
+      source: 'ai' as const,
+      role: 'assistant' as const,
+      text: '开场说明。\n\n### 3. 浪漫主义与文学情怀\n\n- 第一项\n- 第二项',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      kind: 'text' as const,
+      senderName: 'Assistant',
+    }];
+
+    await act(async () => {
+      root?.render(
+        <div className="flex h-[720px] flex-col gap-6">
+          <CanonicalTranscriptView messages={messages} />
+          <div className="h-[320px]">
+            <CanonicalStagePanel messages={messages} />
+          </div>
+        </div>,
+      );
+      await flush();
+    });
+
+    const headings = Array.from(container.querySelectorAll('h3')).map((node) => node.textContent?.trim());
+    expect(headings).toContain('3. 浪漫主义与文学情怀');
+    expect(container.querySelectorAll('ul').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('normalizes inline markdown headings without rewriting fenced code blocks', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const markdown = [
+      '残忍。 ### 3. 浪漫主义与文学情怀',
+      '',
+      '```md',
+      '这是一段代码。 ### 不应变成标题',
+      '```',
+    ].join('\n');
+
+    await act(async () => {
+      root?.render(<ChatMarkdownRenderer content={markdown} appearance="canonical" />);
+      await flush();
+    });
+
+    const headings = container.querySelectorAll('h3');
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.textContent).toContain('3. 浪漫主义与文学情怀');
+    expect(container.textContent).toContain('这是一段代码。 ### 不应变成标题');
+  });
+
+  it('renders relay markdown appearance with code copy controls, collapse toggle, and tables', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const longCodeBlock = Array.from({ length: 24 }, (_, index) => `line ${index + 1}`).join('\n');
+    const markdown = [
+      '| 列 | 值 |',
+      '| --- | --- |',
+      '| a | b |',
+      '',
+      '```ts',
+      longCodeBlock,
+      '```',
+    ].join('\n');
+
+    await act(async () => {
+      root?.render(<ChatMarkdownRenderer content={markdown} appearance="relay" />);
+      await flush();
+    });
+
+    expect(container.querySelector('table')).not.toBeNull();
+    expect(container.textContent).toContain('Copy');
+    const toggleButton = Array.from(container.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Show more'));
+    expect(toggleButton).not.toBeUndefined();
+
+    await act(async () => {
+      toggleButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    expect(container.textContent).toContain('Show less');
+    expect(container.textContent).toContain('line 24');
   });
 });

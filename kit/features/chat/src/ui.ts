@@ -1,5 +1,7 @@
 export { ChatComposer } from './components/chat-composer.js';
 export type { ChatComposerProps } from './components/chat-composer.js';
+export { ChatMarkdownRenderer } from './components/chat-markdown-renderer.js';
+export type { ChatMarkdownRendererProps } from './components/chat-markdown-renderer.js';
 export { CanonicalConversationShell } from './components/canonical-conversation-shell.js';
 export type {
   CanonicalConversationShellProps,

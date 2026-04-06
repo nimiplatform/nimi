@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
+import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
 
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
 
@@ -21,155 +22,6 @@ function listDialogFocusableElements(root: HTMLElement | null): HTMLElement[] {
   }
   return Array.from(root.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR))
     .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
-}
-
-function sanitizeLinkHref(href: string): string | null {
-  const raw = String(href || '').trim();
-  if (!raw) {
-    return null;
-  }
-  const normalized = raw.replace(/\s+/g, '');
-  if (/^https?:\/\//i.test(normalized) || /^mailto:/i.test(normalized) || /^tel:/i.test(normalized)) {
-    return raw;
-  }
-  return null;
-}
-
-function parseInlineMarkdown(text: string): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`|\[(.+?)\]\((.+?)\))/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      nodes.push(text.slice(lastIndex, match.index));
-    }
-    if (match[2]) {
-      nodes.push(<strong key={`md-${key += 1}`}>{match[2]}</strong>);
-    } else if (match[3]) {
-      nodes.push(<em key={`md-${key += 1}`}>{match[3]}</em>);
-    } else if (match[4]) {
-      nodes.push(<code key={`md-${key += 1}`} className="rounded bg-gray-100 px-1 py-0.5 text-[0.85em] font-mono">{match[4]}</code>);
-    } else if (match[5] && match[6]) {
-      const safeHref = sanitizeLinkHref(match[6]);
-      if (safeHref) {
-        nodes.push(
-          <a key={`md-${key += 1}`} href={safeHref} target="_blank" rel="noopener noreferrer" className="underline">
-            {match[5]}
-          </a>,
-        );
-      } else {
-        nodes.push(match[5]);
-      }
-    }
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
-  }
-
-  return nodes.length > 0 ? nodes : [text];
-}
-
-function parseMarkdownBlocks(text: string): ReactNode[] {
-  const lines = String(text || '').replace(/\r/g, '').split('\n');
-  const blocks: ReactNode[] = [];
-  let i = 0;
-  let key = 0;
-
-  while (i < lines.length) {
-    const line = lines[i] || '';
-    if (!line.trim()) {
-      i += 1;
-      continue;
-    }
-    if (line.startsWith('```')) {
-      const language = line.slice(3).trim();
-      i += 1;
-      const codeLines: string[] = [];
-      while (i < lines.length && !lines[i]?.startsWith('```')) {
-        codeLines.push(lines[i] || '');
-        i += 1;
-      }
-      if (i < lines.length && lines[i]?.startsWith('```')) {
-        i += 1;
-      }
-      blocks.push(
-        <pre key={`block-${key += 1}`} className="my-1 overflow-x-auto rounded-xl bg-gray-900/95 px-3 py-2 text-[12px] text-gray-100">
-          {language ? <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">{language}</p> : null}
-          <code>{codeLines.join('\n')}</code>
-        </pre>,
-      );
-      continue;
-    }
-    if (line.startsWith('>')) {
-      const quoteLines: string[] = [];
-      while (i < lines.length && (lines[i] || '').startsWith('>')) {
-        quoteLines.push((lines[i] || '').replace(/^>\s?/, ''));
-        i += 1;
-      }
-      blocks.push(
-        <blockquote key={`block-${key += 1}`} className="my-1 border-l-2 border-emerald-300/80 pl-3 text-[13px] text-gray-700">
-          {quoteLines.join('\n')}
-        </blockquote>,
-      );
-      continue;
-    }
-    if (/^[-*]\s+/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i] || '')) {
-        items.push((lines[i] || '').replace(/^[-*]\s+/, ''));
-        i += 1;
-      }
-      blocks.push(
-        <ul key={`block-${key += 1}`} className="my-1 list-disc space-y-1 pl-4">
-          {items.map((item, itemIndex) => (
-            <li key={`li-${itemIndex}`}>{parseInlineMarkdown(item)}</li>
-          ))}
-        </ul>,
-      );
-      continue;
-    }
-    if (/^\d+\.\s+/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s+/.test(lines[i] || '')) {
-        items.push((lines[i] || '').replace(/^\d+\.\s+/, ''));
-        i += 1;
-      }
-      blocks.push(
-        <ol key={`block-${key += 1}`} className="my-1 list-decimal space-y-1 pl-4">
-          {items.map((item, itemIndex) => (
-            <li key={`li-${itemIndex}`}>{parseInlineMarkdown(item)}</li>
-          ))}
-        </ol>,
-      );
-      continue;
-    }
-
-    const paragraphLines: string[] = [];
-    while (
-      i < lines.length
-      && (lines[i] || '').trim()
-      && !lines[i]?.startsWith('```')
-      && !lines[i]?.startsWith('>')
-      && !/^[-*]\s+/.test(lines[i] || '')
-      && !/^\d+\.\s+/.test(lines[i] || '')
-    ) {
-      paragraphLines.push(lines[i] || '');
-      i += 1;
-    }
-    const paragraph = paragraphLines.join('\n');
-    blocks.push(
-      <p key={`block-${key += 1}`} className="whitespace-pre-wrap">
-        {parseInlineMarkdown(paragraph)}
-      </p>,
-    );
-  }
-
-  return blocks.length > 0 ? blocks : [text];
 }
 
 function bubbleShapeFor(role: ConversationCanonicalMessage['role'], position: CanonicalMessageBubbleProps['position']): string {
@@ -568,11 +420,11 @@ export function CanonicalMessageBubble({
         )
       ) : isStreaming ? (
         <div className={`space-y-1 ${message.text ? '' : 'italic opacity-70'}`}>
-          {message.text ? parseMarkdownBlocks(message.text) : 'Streaming…'}
+          {message.text ? <ChatMarkdownRenderer content={message.text} appearance="canonical" /> : 'Streaming…'}
           <span className="inline-block animate-pulse text-emerald-600">|</span>
         </div>
       ) : (
-        <div className="space-y-1">{parseMarkdownBlocks(message.text)}</div>
+        <ChatMarkdownRenderer content={message.text} appearance="canonical" />
       )}
       {isVoice && isVoiceTranscriptVisible && transcriptText ? (
         <div className="mt-2 border-t border-gray-200/30 pt-2 text-xs opacity-80">
@@ -598,8 +450,8 @@ export function CanonicalMessageBubble({
                 isMediaCard
                   ? 'rounded-[28px] border border-white/80 bg-white/92 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.1)]'
                   : isUser
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 px-4 py-2.5 text-white shadow-[0_2px_12px_-2px_rgb(78_204_163/0.45)]'
-                    : 'border border-gray-200 bg-white px-4 py-2.5 text-gray-900 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 px-4 py-2 text-white shadow-[0_2px_12px_-2px_rgb(78_204_163/0.45)]'
+                    : 'border border-gray-200 bg-white px-4 py-2 text-gray-900 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
               )}
             >
               {defaultContent}
@@ -607,7 +459,7 @@ export function CanonicalMessageBubble({
           ) : content}
           {accessory === undefined ? (
             showTimestamp ? (
-              <p className={cn('mt-1 text-[10px] text-gray-400', isUser ? 'text-right' : 'text-left')}>
+              <p className={cn('mt-1 text-[10px] text-gray-400', isUser ? 'text-right pr-2' : 'text-left pl-2')}>
                 {time} · {resolveBubbleLabel(message)}
               </p>
             ) : null

@@ -2,10 +2,10 @@
 // User bubbles right-aligned with accent background, AI messages left-aligned with markdown
 
 import { useEffect, useRef } from 'react';
+import { ChatMarkdownRenderer } from '@nimiplatform/nimi-kit/features/chat/ui';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { ChatMessage } from '../../../app-shell/providers/chat-store.js';
 import type { TurnSendPhase } from '../../../app-shell/providers/chat-store.js';
-import { MarkdownRenderer } from './markdown-renderer.js';
 import { MessageActionBar } from './message-action-bar.js';
 
 interface ChatViewProps {
@@ -84,12 +84,12 @@ function AssistantMessage({ message }: { message: ChatMessage }) {
           {message.content && (
             message.kind === 'streaming' ? (
               <div className="text-[15px] leading-relaxed text-[color:var(--nimi-text-primary)]">
-                <MarkdownRenderer content={message.content} />
+                <ChatMarkdownRenderer content={message.content} appearance="relay" />
                 <span className="ml-0.5 inline-block h-[18px] w-[2px] animate-pulse bg-[var(--nimi-action-primary-bg)] align-text-bottom" />
               </div>
             ) : (
               <div className="text-[15px] leading-relaxed text-[color:var(--nimi-text-primary)]">
-                <MarkdownRenderer content={message.content} />
+                <ChatMarkdownRenderer content={message.content} appearance="relay" />
               </div>
             )
           )}

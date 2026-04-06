@@ -707,15 +707,9 @@ importers:
       react-i18next:
         specifier: ^16.5.8
         version: 16.5.8(i18next@25.8.18(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
-      react-markdown:
-        specifier: ^10.1.0
-        version: 10.1.0(@types/react@19.2.14)(react@19.2.4)
       react-router-dom:
         specifier: ^7.13.1
         version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      remark-gfm:
-        specifier: ^4.0.1
-        version: 4.0.1
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -1096,6 +1090,12 @@ importers:
       react-i18next:
         specifier: ^16.0.0
         version: 16.5.8(i18next@25.8.18(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)
+      react-markdown:
+        specifier: ^10.1.0
+        version: 10.1.0(@types/react@19.2.14)(react@19.2.4)
+      remark-gfm:
+        specifier: ^4.0.1
+        version: 4.0.1
       simplex-noise:
         specifier: ^4.0.3
         version: 4.0.3
