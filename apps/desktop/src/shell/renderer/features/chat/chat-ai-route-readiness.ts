@@ -228,6 +228,7 @@ function resolvePreferredLocalRoute(
 
 export function resolveAiConversationRouteReadiness(input: {
   runtimeConfigState: RuntimeConfigStateV11 | null;
+  hasExplicitSelection?: boolean;
   selectedBinding?: RuntimeRouteBinding | null;
 }): AiConversationRouteReadiness {
   const state = input.runtimeConfigState;
@@ -241,10 +242,11 @@ export function resolveAiConversationRouteReadiness(input: {
   const localRoute = localReady ? resolvePreferredLocalRoute(state) : null;
   const cloudRoutes = readyConnectors.map((connector) => toCloudRoute(connector));
   const readyRoutes = [...(localRoute ? [localRoute] : []), ...cloudRoutes];
-  const defaultRoute = localRoute ?? cloudRoutes[0] ?? null;
 
   // Primary: resolve preferred route from selectedBinding (SelectionStore owner)
-  const selectedBinding = input.selectedBinding ?? null;
+  const selectedBinding = input.hasExplicitSelection
+    ? (input.selectedBinding ?? null)
+    : null;
   if (selectedBinding) {
     const bindingSource = normalizeText(selectedBinding.source).toLowerCase();
     const preferredRoute = bindingSource === 'local'
@@ -281,17 +283,49 @@ export function resolveAiConversationRouteReadiness(input: {
     };
   }
 
-  if (defaultRoute) {
-    return {
-      status: 'ready',
-      setupState: createReadyConversationSetupState('ai'),
+  if (input.hasExplicitSelection || readyRoutes.length > 0) {
+    const issues: ConversationSetupIssue[] = [];
+    if (!input.hasExplicitSelection || input.selectedBinding === null) {
+      issues.push({
+        code: 'ai-thread-route-selection-missing',
+        detail: 'select an AI chat route before sending',
+      });
+    }
+    if (readyRoutes.length === 0) {
+      if (!localReady) {
+        issues.push({
+          code: 'ai-local-route-unavailable',
+          routeKind: 'local',
+          detail: normalizeText(state.local.lastDetail) || 'local chat route is not ready',
+        });
+      }
+      issues.push({
+        code: 'ai-cloud-route-unavailable',
+        routeKind: 'cloud',
+        detail: configuredCloudConnectors.length > 0
+          ? 'configured cloud routes are not ready'
+          : 'no configured cloud route',
+      });
+      issues.push({
+        code: 'ai-no-chat-route',
+        detail: 'no ready AI chat route is available',
+      });
+    }
+
+    const action = readyRoutes.length > 0
+      ? buildSettingsAction('runtime-overview')
+      : configuredCloudConnectors.length > 0
+        ? buildSettingsAction('runtime-cloud')
+        : buildSettingsAction(localReady ? 'runtime-cloud' : 'runtime-overview');
+
+    return buildSetupRequiredState({
+      issues,
+      action,
       readyRoutes,
-      defaultRoute,
-      preferredRoute: defaultRoute,
+      configuredCloudConnectorCount: configuredCloudConnectors.length,
       localReady,
       cloudReady: cloudRoutes.length > 0,
-      configuredCloudConnectorCount: configuredCloudConnectors.length,
-    };
+    });
   }
 
   const issues: ConversationSetupIssue[] = [];

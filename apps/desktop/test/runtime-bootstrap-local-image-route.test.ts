@@ -123,7 +123,7 @@ test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metada
   assert.equal(hydrated.goRuntimeStatus, undefined);
 });
 
-test('buildSelectedBinding falls back to cloud embedding connector when no local embedding model exists', () => {
+test('buildSelectedBinding keeps selection missing when no explicit binding exists', () => {
   const selected = buildSelectedBinding({
     capability: 'text.embed',
     localModels: [],
@@ -140,9 +140,7 @@ test('buildSelectedBinding falls back to cloud embedding connector when no local
     localMetadataDegraded: false,
   });
 
-  assert.equal(selected.source, 'cloud');
-  assert.equal(selected.connectorId, 'openai-main');
-  assert.equal(selected.model, 'text-embedding-3-small');
+  assert.equal(selected, null);
 });
 
 test('buildSelectedBinding preserves local selection when local metadata is degraded', () => {
@@ -170,6 +168,7 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
     localMetadataDegraded: true,
   });
 
+  assert.ok(selected);
   assert.equal(selected.source, 'local');
   assert.equal(selected.connectorId, '');
   assert.equal(selected.model, 'qwen2.5-7b-instruct');
@@ -179,7 +178,7 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
   assert.equal(selected.goRuntimeStatus, 'degraded');
 });
 
-test('buildSelectedBinding falls back to llama for text when runtime metadata is unavailable', () => {
+test('buildSelectedBinding keeps selection missing instead of inventing a local fallback when runtime metadata is unavailable', () => {
   setLocalRoutePlatformForTests('windows');
   try {
     const selected = buildSelectedBinding({
@@ -189,9 +188,7 @@ test('buildSelectedBinding falls back to llama for text when runtime metadata is
       localMetadataDegraded: true,
     });
 
-    assert.equal(selected.source, 'local');
-    assert.equal(selected.provider, 'llama');
-    assert.equal(selected.engine, 'llama');
+    assert.equal(selected, null);
   } finally {
     setLocalRoutePlatformForTests(null);
   }
@@ -243,6 +240,6 @@ test('loadRuntimeRouteOptions preserves media routing for managed image workflow
 
   assert.equal(options.local.models[0]?.adapter, undefined);
   assert.equal(options.local.models[0]?.endpoint, 'http://127.0.0.1:8321/v1');
-  assert.equal(options.selected.adapter, undefined);
-  assert.equal(options.selected.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(options.selected, null);
+  assert.equal(options.resolvedDefault?.endpoint, 'http://127.0.0.1:8321/v1');
 });

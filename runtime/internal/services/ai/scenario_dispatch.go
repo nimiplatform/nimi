@@ -17,7 +17,14 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_SYNC
 	}
-	if err := validateScenarioExecutionMode(req.GetScenarioType(), mode); err != nil {
+	voiceDescribeProbe, hasVoiceDescribeProbe, err := voiceWorkflowRouteDescribeProbeFromExtensions(
+		req.GetScenarioType(),
+		req.GetExtensions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateExecuteScenarioMode(req.GetScenarioType(), mode, hasVoiceDescribeProbe); err != nil {
 		return nil, err
 	}
 	if mode != runtimev1.ExecutionMode_EXECUTION_MODE_SYNC {
@@ -32,6 +39,12 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 		return executeTextGenerateScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		return executeTextEmbedScenario(ctx, s, req, ignored)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		if !hasVoiceDescribeProbe {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		return executeVoiceWorkflowRouteDescribeScenario(ctx, s, req, ignored, voiceDescribeProbe)
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -87,14 +100,30 @@ var scenarioExtensionRegistry = map[runtimev1.ScenarioType]map[string]scenarioEx
 		"nimi.scenario.speech_transcribe.request": scenarioExtensionStrategyBestEffort,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE: {
-		"nimi.scenario.voice_clone.request": scenarioExtensionStrategyStrict,
+		"nimi.scenario.voice_clone.request":       scenarioExtensionStrategyStrict,
+		voiceCloneRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN: {
-		"nimi.scenario.voice_design.request": scenarioExtensionStrategyStrict,
+		"nimi.scenario.voice_design.request":       scenarioExtensionStrategyStrict,
+		voiceDesignRouteDescribeExtensionNamespace: scenarioExtensionStrategyStrict,
 	},
 	runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE: {
 		"nimi.scenario.music_generate.request": scenarioExtensionStrategyBestEffort,
 	},
+}
+
+func validateExecuteScenarioMode(
+	scenarioType runtimev1.ScenarioType,
+	mode runtimev1.ExecutionMode,
+	hasVoiceDescribeProbe bool,
+) error {
+	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_SYNC && hasVoiceDescribeProbe {
+		switch scenarioType {
+		case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+			return nil
+		}
+	}
+	return validateScenarioExecutionMode(scenarioType, mode)
 }
 
 func classifyScenarioExtensions(scenarioType runtimev1.ScenarioType, items []*runtimev1.ScenarioExtension) ([]*runtimev1.IgnoredScenarioExtension, error) {

@@ -156,6 +156,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.equal(options.local.models.length, 0);
   assert.equal(options.connectors.length, 1);
   assert.equal(options.connectors[0]?.id, 'connector-openai');
+  assert.ok(options.selected);
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.model, 'local-model');
   assert.equal(options.resolvedDefault?.source, 'local');
@@ -228,6 +229,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
   });
 
   assert.equal(options.local.models.length, 0);
+  assert.ok(options.selected);
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.modelId, 'local-import/Qwen3-4B-Q4_K_M');
   assert.equal(options.selected.goRuntimeStatus, 'unavailable');

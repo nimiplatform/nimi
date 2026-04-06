@@ -96,6 +96,7 @@ test('parseRuntimeRouteOptions keeps connector providers and models', () => {
   }, { includeResolvedDefault: true });
 
   assert.ok(parsed);
+  assert.ok(parsed?.selected);
   assert.equal(parsed?.selected.provider, 'dashscope');
   assert.equal(parsed?.resolvedDefault?.provider, 'dashscope');
   assert.equal(parsed?.connectors[0]?.provider, 'dashscope');
@@ -138,9 +139,33 @@ test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () 
   });
 
   assert.ok(parsed);
+  assert.ok(parsed?.selected);
   assert.equal(parsed?.selected.adapter, 'media_native_adapter');
   assert.equal(parsed?.selected.goRuntimeStatus, 'active');
   assert.equal(parsed?.local.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
+});
+
+test('parseRuntimeRouteOptions preserves missing explicit selection while keeping resolved default', () => {
+  const parsed = parseRuntimeRouteOptions({
+    capability: 'text.generate',
+    selected: null,
+    resolvedDefault: {
+      source: 'local',
+      connectorId: '',
+      model: 'qwen3',
+      modelId: 'qwen3',
+      provider: 'llama',
+      engine: 'llama',
+    },
+    local: {
+      models: [],
+    },
+    connectors: [],
+  }, { includeResolvedDefault: true });
+
+  assert.ok(parsed);
+  assert.equal(parsed?.selected, null);
+  assert.equal(parsed?.resolvedDefault?.modelId, 'qwen3');
 });
 
 test('parseRuntimeRouteBinding drops unknown adapters instead of widening to arbitrary strings', () => {
@@ -212,6 +237,36 @@ test('decodeRuntimeRouteDescribeResultFromMetadata decodes typed payload from re
   assert.equal(parsed.metadataKind, 'text.generate');
   assert.equal(parsed.metadata.supportsThinking, true);
   assert.equal(parsed.metadata.traceModeSupport, 'separate');
+});
+
+test('decodeRuntimeRouteDescribeResultFromMetadata decodes voice workflow typed payload from response metadata', () => {
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'voice_workflow.tts_v2v',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-voice-001',
+    metadataKind: 'voice_workflow.tts_v2v',
+    metadata: {
+      workflowType: 'tts_v2v',
+      supportsReferenceAudioInput: true,
+      supportsTextPromptInput: true,
+      requiresTargetSynthesisBinding: true,
+    },
+  }), 'utf8').toString('base64');
+
+  const parsed = decodeRuntimeRouteDescribeResultFromMetadata({
+    metadata: {
+      [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
+    },
+    expectedCapability: 'voice_workflow.tts_v2v',
+    expectedResolvedBindingRef: 'binding-voice-001',
+  });
+
+  assert.equal(parsed.metadataKind, 'voice_workflow.tts_v2v');
+  if (parsed.metadataKind !== 'voice_workflow.tts_v2v') {
+    assert.fail('expected voice workflow route metadata');
+  }
+  assert.equal(parsed.metadata.workflowType, 'tts_v2v');
+  assert.equal(parsed.metadata.requiresTargetSynthesisBinding, true);
 });
 
 test('decodeRuntimeRouteDescribeResultFromMetadata fails closed on mismatched binding ref', () => {

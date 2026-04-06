@@ -118,7 +118,7 @@ export type RuntimeRouteLocalOption = {
 
 export type RuntimeRouteOptionsSnapshot = {
   capability?: RuntimeCanonicalCapability;
-  selected: RuntimeRouteBinding;
+  selected: RuntimeRouteBinding | null;
   resolvedDefault?: RuntimeRouteBinding;
   local: {
     models: RuntimeRouteLocalOption[];
@@ -362,8 +362,9 @@ export function parseRuntimeRouteOptions(
 ): RuntimeRouteOptionsSnapshot | null {
   const record = asRecord(value);
   const capability = parseRuntimeCanonicalCapability(record.capability) || undefined;
-  const selected = parseRuntimeRouteBinding(record.selected);
-  if (!selected) return null;
+  const selected = record.selected === null
+    ? null
+    : (parseRuntimeRouteBinding(record.selected) || null);
 
   const resolvedDefault = parseRuntimeRouteBinding(record.resolvedDefault) || undefined;
   const local = asRecord(record.local);
@@ -391,7 +392,7 @@ export function parseRuntimeRouteOptions(
   return {
     ...(capability ? { capability } : {}),
     selected,
-    ...(options?.includeResolvedDefault ? { resolvedDefault: resolvedDefault || selected } : {}),
+    ...(options?.includeResolvedDefault ? { resolvedDefault: resolvedDefault || selected || undefined } : {}),
     local: {
       models: localModels,
       defaultEndpoint: String(local.defaultEndpoint || '').trim() || undefined,

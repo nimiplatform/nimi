@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 )
+
+var workflowTextPromptContractPattern = regexp.MustCompile(`(^|[._/-])(text|prompt)([._/-]|$)`)
 
 type indexedSnapshot struct {
 	catalogVersion   string
@@ -295,16 +298,27 @@ func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, provider
 			continue
 		}
 		return ResolveVoiceWorkflowResult{
-			Provider:          provider,
-			ModelID:           strings.TrimSpace(modelEntry.ModelID),
-			WorkflowType:      normalizedWorkflowType,
-			WorkflowModelID:   strings.TrimSpace(workflowModel.WorkflowModelID),
-			OutputPersistence: strings.TrimSpace(workflowModel.OutputPersistence),
-			CatalogVersion:    state.snapshot.catalogVersion,
-			Source:            state.source,
+			Provider:                       provider,
+			ModelID:                        strings.TrimSpace(modelEntry.ModelID),
+			WorkflowType:                   normalizedWorkflowType,
+			WorkflowModelID:                strings.TrimSpace(workflowModel.WorkflowModelID),
+			InputContractRef:               strings.TrimSpace(workflowModel.InputContractRef),
+			OutputPersistence:              strings.TrimSpace(workflowModel.OutputPersistence),
+			SupportsTextPromptInput:        workflowSupportsTextPromptInput(normalizedWorkflowType, workflowModel.InputContractRef),
+			RequiresTargetSynthesisBinding: len(binding.WorkflowModelRefs) > 0,
+			CatalogVersion:                 state.snapshot.catalogVersion,
+			Source:                         state.source,
 		}, nil
 	}
 	return ResolveVoiceWorkflowResult{}, ErrVoiceWorkflowUnsupported
+}
+
+func workflowSupportsTextPromptInput(workflowType string, inputContractRef string) bool {
+	normalizedWorkflowType := normalizeWorkflowType(workflowType)
+	if normalizedWorkflowType == "tts_t2v" {
+		return true
+	}
+	return workflowTextPromptContractPattern.MatchString(strings.ToLower(strings.TrimSpace(inputContractRef)))
 }
 
 func (r *Resolver) SupportsScenario(providerType string, modelID string, scenarioType runtimev1.ScenarioType) (bool, error) {

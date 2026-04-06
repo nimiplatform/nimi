@@ -146,13 +146,16 @@ type ResolveVoicesResult struct {
 }
 
 type ResolveVoiceWorkflowResult struct {
-	Provider          string
-	ModelID           string
-	WorkflowType      string
-	WorkflowModelID   string
-	OutputPersistence string
-	CatalogVersion    string
-	Source            CatalogSource
+	Provider                       string
+	ModelID                        string
+	WorkflowType                   string
+	WorkflowModelID                string
+	InputContractRef               string
+	OutputPersistence              string
+	SupportsTextPromptInput        bool
+	RequiresTargetSynthesisBinding bool
+	CatalogVersion                 string
+	Source                         CatalogSource
 }
 
 type CatalogProviderRecord struct {

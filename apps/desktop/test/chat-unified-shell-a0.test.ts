@@ -97,7 +97,7 @@ test('A0 AI route readiness fails closed while runtime config state is unavailab
   assert.deepEqual(result.readyRoutes, []);
 });
 
-test('A0 AI route readiness accepts a healthy local chat route without cloud state', () => {
+test('A0 AI route readiness fails closed when no explicit text.generate selection exists', () => {
   const state = createDefaultStateV11({});
   state.local.status = 'healthy';
   state.local.models = [{
@@ -113,18 +113,14 @@ test('A0 AI route readiness accepts a healthy local chat route without cloud sta
     runtimeConfigState: state,
   });
 
-  assert.equal(result.status, 'ready');
+  assert.equal(result.status, 'setup-required');
   assert.equal(result.localReady, true);
   assert.equal(result.cloudReady, false);
-  assert.deepEqual(result.defaultRoute, {
-    routeKind: 'local',
-    connectorId: null,
-    provider: null,
-    modelId: 'qwen3',
-  });
+  assert.equal(result.defaultRoute, null);
+  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
 });
 
-test('A0 AI route readiness publishes executable cloud and local ready routes with concrete model ids', () => {
+test('A0 AI route readiness publishes ready routes but still requires explicit selection when routes are available', () => {
   const state = createDefaultStateV11({});
   state.local.status = 'healthy';
   state.local.models = [{
@@ -158,6 +154,7 @@ test('A0 AI route readiness publishes executable cloud and local ready routes wi
     runtimeConfigState: state,
   });
 
+  assert.equal(result.status, 'setup-required');
   assert.deepEqual(result.readyRoutes, [
     {
       routeKind: 'local',
@@ -172,12 +169,31 @@ test('A0 AI route readiness publishes executable cloud and local ready routes wi
       modelId: 'gpt-4.1',
     },
   ]);
-  assert.deepEqual(result.defaultRoute, {
-    routeKind: 'local',
-    connectorId: null,
-    provider: null,
-    modelId: 'qwen3-local',
+  assert.equal(result.defaultRoute, null);
+  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
+});
+
+test('A0 AI route readiness treats explicit null selection as setup-required instead of inventing a fallback route', () => {
+  const state = createDefaultStateV11({});
+  state.local.status = 'healthy';
+  state.local.models = [{
+    localModelId: 'local-qwen',
+    engine: 'llama',
+    model: 'qwen3',
+    endpoint: 'http://127.0.0.1:11434/v1',
+    capabilities: ['chat'],
+    status: 'active',
+  }];
+
+  const result = resolveAiConversationRouteReadiness({
+    runtimeConfigState: state,
+    hasExplicitSelection: true,
+    selectedBinding: null,
   });
+
+  assert.equal(result.status, 'setup-required');
+  assert.equal(result.defaultRoute, null);
+  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
 });
 
 test('A0 AI route readiness does not silently fall back when a saved cloud route is gone', () => {
@@ -211,6 +227,7 @@ test('A0 AI route readiness does not silently fall back when a saved cloud route
 
   const result = resolveAiConversationRouteReadiness({
     runtimeConfigState: state,
+    hasExplicitSelection: true,
     selectedBinding: {
       source: 'cloud',
       connectorId: 'connector-missing',

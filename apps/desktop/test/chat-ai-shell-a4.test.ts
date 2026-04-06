@@ -152,6 +152,7 @@ test('chat ai a4: adapter reads text.generate binding from SelectionStore as pri
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
   // Readiness derives from selectedBinding, not routeSnapshot
   assert.match(adapterSource, /selectedBinding:\s*textGenerateBinding/);
+  assert.match(adapterSource, /hasExplicitSelection:\s*hasExplicitTextGenerateSelection/);
   assert.match(adapterSource, /conversationCapabilitySelectionStore\.selectedBindings\['text\.generate'\]/);
   // Adapter must NOT sync routeSnapshot → binding
   assert.equal(

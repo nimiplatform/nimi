@@ -402,7 +402,7 @@ export function buildSelectedBinding(input: {
     connectors: RuntimeRouteConnectorOption[];
     localMetadataDegraded?: boolean;
     runtimeDefaultEngine?: string;
-}): RuntimeRouteBinding {
+}): RuntimeRouteBinding | null {
     const { selectedBinding, localModels, connectors, localMetadataDegraded } = input;
     if (selectedBinding?.source === 'local') {
         const matchedLocalModel = pickMatchingLocalOption(localModels, selectedBinding);
@@ -440,15 +440,7 @@ export function buildSelectedBinding(input: {
             model: String(selectedBinding.model || selectedBinding.modelId || '').trim(),
         }, connectors);
     }
-    return firstAvailableBinding(localModels, connectors) || {
-        source: 'local',
-        connectorId: '',
-        model: '',
-        modelId: undefined,
-        engine: inferLocalEngine('', input.capability, input.runtimeDefaultEngine),
-        provider: inferLocalEngine('', input.capability, input.runtimeDefaultEngine),
-        goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
-    };
+    return null;
 }
 export async function loadRuntimeRouteOptions(input: {
     capability: RuntimeCanonicalCapability;
@@ -459,7 +451,7 @@ export async function loadRuntimeRouteOptions(input: {
     const selectedBindings = appStore.conversationCapabilitySelectionStore.selectedBindings;
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
-        : selectedBindings[input.capability] ?? undefined;
+        : selectedBindings[input.capability];
     const connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
     const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
         sdkListConnectors: connectorService.sdkListConnectors,
@@ -581,9 +573,9 @@ export async function loadRuntimeRouteOptions(input: {
         localMetadataDegraded,
         runtimeDefaultEngine,
     });
-    const resolvedDefault = (localMetadataDegraded && selected.source === 'local')
+    const resolvedDefault = (localMetadataDegraded && selected?.source === 'local')
         ? selected
-        : (firstAvailableBinding(localModels, connectors) || selected);
+        : (firstAvailableBinding(localModels, connectors) || selected || undefined);
     return {
         capability: input.capability,
         selected,

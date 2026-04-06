@@ -116,12 +116,17 @@ export function useAiConversationModeHost(
 
   const textGenerateBinding: RuntimeRouteBinding | null | undefined =
     conversationCapabilitySelectionStore.selectedBindings['text.generate'];
+  const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
+    conversationCapabilitySelectionStore.selectedBindings,
+    'text.generate',
+  );
   const readiness = useMemo(
     () => resolveAiConversationRouteReadiness({
       runtimeConfigState: input.runtimeConfigState,
-      selectedBinding: textGenerateBinding ?? undefined,
+      hasExplicitSelection: hasExplicitTextGenerateSelection,
+      selectedBinding: textGenerateBinding,
     }),
-    [input.runtimeConfigState, textGenerateBinding],
+    [hasExplicitTextGenerateSelection, input.runtimeConfigState, textGenerateBinding],
   );
 
   const availableResolvedRoutes = useMemo(

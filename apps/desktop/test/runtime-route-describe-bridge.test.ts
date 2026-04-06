@@ -100,6 +100,7 @@ test('describeRuntimeRouteMetadata decodes text.generate typed metadata from run
     clearPlatformClient();
     await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => 'subject-user-001',
     });
 
     const result = await describeRuntimeRouteMetadata({
@@ -146,6 +147,7 @@ test('describeRuntimeRouteMetadata keeps Desktop inline cloud route fail-closed'
     clearPlatformClient();
     await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => 'subject-user-001',
     });
 
     await assert.rejects(() => describeRuntimeRouteMetadata({
@@ -163,6 +165,65 @@ test('describeRuntimeRouteMetadata keeps Desktop inline cloud route fail-closed'
     }), /managed connector authority on Desktop/);
 
     assert.equal(calls.length, 0);
+  } finally {
+    clearPlatformClient();
+    restoreTauri();
+  }
+});
+
+test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from runtime response header', async () => {
+  const calls: TauriInvokeCall[] = [];
+  const encoded = Buffer.from(JSON.stringify({
+    capability: 'voice_workflow.tts_v2v',
+    metadataVersion: 'v1',
+    resolvedBindingRef: 'binding-voice-cloud-001',
+    metadataKind: 'voice_workflow.tts_v2v',
+    metadata: {
+      workflowType: 'tts_v2v',
+      supportsReferenceAudioInput: true,
+      supportsTextPromptInput: true,
+      requiresTargetSynthesisBinding: true,
+    },
+  }), 'utf8').toString('base64');
+  const restoreTauri = installTauriRuntime(calls, {
+    'x-nimi-route-describe-result': encoded,
+  });
+
+  try {
+    clearPlatformClient();
+    await createPlatformClient({
+      realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => 'subject-user-001',
+    });
+
+    const result = await describeRuntimeRouteMetadata({
+      modId: 'core:runtime',
+      capability: 'voice_workflow.tts_v2v',
+      resolvedBindingRef: 'binding-voice-cloud-001',
+      resolvedBinding: {
+        capability: 'voice_workflow.tts_v2v',
+        source: 'cloud',
+        provider: 'elevenlabs',
+        model: 'voice-clone-v1',
+        modelId: 'voice-clone-v1',
+        connectorId: 'connector-elevenlabs',
+      },
+    });
+
+    assert.equal(result.metadataKind, 'voice_workflow.tts_v2v');
+    if (result.metadataKind !== 'voice_workflow.tts_v2v') {
+      assert.fail('expected voice workflow route metadata');
+    }
+    assert.equal(result.metadata.workflowType, 'tts_v2v');
+    assert.equal(result.metadata.requiresTargetSynthesisBinding, true);
+
+    const unaryCall = findRuntimeBridgeUnary(calls);
+    assert.ok(unaryCall);
+    const requestBytesBase64 = String(unaryCall?.payload.requestBytesBase64 || '').trim();
+    const requestText = Buffer.from(requestBytesBase64, 'base64').toString('utf8');
+    assert.equal(requestText.includes('nimi.scenario.voice_clone.route_describe'), true);
+    assert.equal(requestText.includes('binding-voice-cloud-001'), true);
+    assert.equal(requestText.includes('voice-clone-v1'), true);
   } finally {
     clearPlatformClient();
     restoreTauri();

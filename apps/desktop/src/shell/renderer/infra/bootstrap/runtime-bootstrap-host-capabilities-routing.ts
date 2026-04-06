@@ -47,7 +47,7 @@ export function hydrateCloudRouteBindingFromOptions(binding: RuntimeRouteBinding
         return binding;
     }
     const connectorId = String(binding.connectorId || '').trim();
-    const selected = options.selected.source === 'cloud' ? options.selected : null;
+    const selected = options.selected?.source === 'cloud' ? options.selected : null;
     const connector = options.connectors.find((item) => item.id === connectorId) || null;
     if (!connectorId && selected) {
         return {
@@ -67,7 +67,7 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
     if (binding.source !== 'local') {
         return binding;
     }
-    const selected = options.selected.source === 'local' ? options.selected : null;
+    const selected = options.selected?.source === 'local' ? options.selected : null;
     const targetLocalModelId = String(binding.localModelId || '').trim();
     const targetModelId = String(binding.modelId || binding.model || '').trim().replace(/^(llama|media|speech|sidecar|local)\//i, '');
     const localModel = options.local.models.find((item) => ((targetLocalModelId && String(item.localModelId || '').trim() === targetLocalModelId)
