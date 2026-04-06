@@ -47,4 +47,6 @@ export type DesktopConversationModeHost = {
   onCreateThread?: () => Promise<void>;
   /** Archive a thread by ID. Only meaningful for AI mode. */
   onArchiveThread?: (threadId: string) => Promise<void>;
+  /** Rename a thread. Only meaningful for AI mode. */
+  onRenameThread?: (threadId: string, title: string) => void;
 };

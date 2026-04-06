@@ -231,6 +231,7 @@ export function ChatPage() {
           onSelectThread={(threadId) => activeHost.onSelectThread?.(threadId)}
           onCreateThread={activeHost.onCreateThread ? () => void activeHost.onCreateThread!() : undefined}
           onArchiveThread={activeHost.onArchiveThread ? (id) => void activeHost.onArchiveThread!(id) : undefined}
+          onRenameThread={activeHost.onRenameThread}
           routeLabel={selectedTarget?.metadata?.routeLabel as string | null ?? null}
           onToggleSettings={toggleRightPanelSettings}
           settingsActive={false}

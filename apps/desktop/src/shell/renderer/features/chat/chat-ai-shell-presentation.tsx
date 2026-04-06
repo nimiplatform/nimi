@@ -44,6 +44,7 @@ type UseAiConversationPresentationInput = {
   footerContent: ReactNode;
   handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
+  handleRenameThread: (threadId: string, title: string) => void;
   handleRouteSelection: (route: AiConversationRouteSnapshot) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
@@ -276,6 +277,7 @@ export function useAiConversationPresentation(
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
     onArchiveThread: input.handleArchiveThread,
+    onRenameThread: input.handleRenameThread,
   }), [
     adapter,
     aiInspectSections,
@@ -292,6 +294,7 @@ export function useAiConversationPresentation(
     input.footerContent,
     input.handleArchiveThread,
     input.handleCreateThread,
+    input.handleRenameThread,
     input.handleRouteSelection,
     input.handleSelectThread,
     input.isBundleLoading,

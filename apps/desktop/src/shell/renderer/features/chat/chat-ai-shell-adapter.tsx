@@ -338,6 +338,24 @@ export function useAiConversationModeHost(
     }
   }, [activeThreadId, setSelection, setThreadsCache, syncSelectionToThread, threads]);
 
+  const handleRenameThread = useCallback((threadId: string, title: string) => {
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) {
+      return;
+    }
+    void (async () => {
+      const updated = await chatAiStoreClient.updateThreadMetadata({
+        id: thread.id,
+        title,
+        updatedAtMs: Date.now(),
+        lastMessageAtMs: thread.lastMessageAtMs,
+        archivedAtMs: thread.archivedAtMs,
+        routeSnapshot: thread.routeSnapshot,
+      });
+      setThreadsCache((current) => upsertThreadSummary(current, updated));
+    })().catch(reportHostError);
+  }, [reportHostError, setThreadsCache, threads]);
+
   // Auto-create the first AI thread when route is ready and no thread exists.
   // Subsequent threads are created by the user via the session list panel.
   const autoCreatingRef = useRef(false);
@@ -808,6 +826,7 @@ export function useAiConversationModeHost(
     footerContent,
     handleArchiveThread,
     handleCreateThread,
+    handleRenameThread,
     handleRouteSelection,
     handleSelectThread,
     handleSubmit,
