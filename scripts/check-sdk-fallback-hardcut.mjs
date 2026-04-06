@@ -75,7 +75,6 @@ const checks = [
       'apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-media.ts',
       'apps/desktop/src/runtime/llm-adapter/speech/engine/index.ts',
       'apps/desktop/src/runtime/llm-adapter/speech/engine/open-stream.ts',
-      'apps/relay/src/main/input-transform.ts',
       'examples/sdk/providers/_common.ts',
     ],
   },

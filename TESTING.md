@@ -123,18 +123,6 @@ pnpm -C apps/<name> run test
 - Type checking: `pnpm -C apps/<name> run typecheck`
 - Linting: `pnpm -C apps/<name> run lint`
 
-## Relay (Electron)
-
-```bash
-pnpm -C apps/relay run test
-```
-
-Relay has dedicated test suites:
-- `test:unit` — unit tests
-- `test:transport` — transport layer tests
-- `test:interop` — interop tests
-- `test:all` — full test suite
-
 ## Cross-Component Contract Tests
 
 SDK ↔ Runtime gRPC contract tests verify:

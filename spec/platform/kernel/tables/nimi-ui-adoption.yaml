@@ -243,21 +243,6 @@ modules:
       - dark
     default_scheme: light
     accent_pack: forge-accent
-  - id: relay.message.input
-    app: relay
-    module: apps/relay/src/renderer/features/chat/components/message-input.tsx
-    families:
-      - field
-      - action
-      - surface
-    testid_required: false
-    exception_policy: none
-    source_rule: P-DESIGN-020
-    scheme_support:
-      - dark
-      - light
-    default_scheme: dark
-    accent_pack: relay-accent
   - id: overtone.studio.layout
     app: overtone
     module: apps/overtone/src/shell/renderer/app-shell/layouts/studio-layout.tsx

@@ -177,65 +177,6 @@ const checks = [
     ],
   },
   {
-    description: 'relay main bootstrap/IPC must not use never or record casts for runtime/realm handoff',
-    pattern: 'runtime as never|realm as never|as unknown as Record<string, unknown>',
-    paths: [
-      'apps/relay/src/main/index.ts',
-      'apps/relay/src/main/ipc-handlers.ts',
-      'apps/relay/src/main/model-handlers.ts',
-      'apps/relay/src/main/route',
-    ],
-  },
-  {
-    description: 'relay typed realm list adapters must not restore legacy array-or-object contracts from unknown unions',
-    pattern: 'payload as \\{ items\\?: unknown\\[] \\} \\| unknown\\[]',
-    paths: [
-      'apps/relay/src/main/ipc-handlers.ts',
-    ],
-  },
-  {
-    description: 'relay preload and bridge must not expose unknown or record app-facing contracts',
-    pattern: 'Promise<unknown>|Record<string, unknown>',
-    paths: [
-      'apps/relay/src/preload/index.ts',
-      'apps/relay/src/renderer/bridge/electron-bridge.ts',
-    ],
-  },
-  {
-    description: 'relay chat/media/proactive and renderer chat/auth surfaces must use named JsonObject boundaries instead of raw record contracts',
-    pattern: 'Record<string, unknown>|as unknown as|Promise<unknown>|as never',
-    paths: [
-      'apps/relay/src/renderer/app-shell/providers/chat-store.ts',
-      'apps/relay/src/renderer/features/chat/components/chat-view.tsx',
-      'apps/relay/src/renderer/features/auth/auth-login-page.tsx',
-      'apps/relay/src/main/session-store/normalizers.ts',
-      'apps/relay/src/main/chat-pipeline/types.ts',
-      'apps/relay/src/main/chat-pipeline/logging.ts',
-      'apps/relay/src/main/chat-pipeline/json-repair.ts',
-      'apps/relay/src/main/chat-pipeline/turn-composer.ts',
-      'apps/relay/src/main/chat-pipeline/turn-perception.ts',
-      'apps/relay/src/main/chat-pipeline/context-assembler.ts',
-      'apps/relay/src/main/chat-pipeline/interaction-profile.ts',
-      'apps/relay/src/main/chat-pipeline/first-beat-reactor.ts',
-      'apps/relay/src/main/proactive/policy.ts',
-      'apps/relay/src/main/proactive/policy-store.ts',
-      'apps/relay/src/main/proactive/decision.ts',
-      'apps/relay/src/main/proactive/types.ts',
-      'apps/relay/src/main/media/media-planner.ts',
-      'apps/relay/src/main/media/media-spec.ts',
-      'apps/relay/src/main/media/media-context-enricher.ts',
-    ],
-  },
-  {
-    description: 'relay stable AI object outputs must not be re-parsed through asRecord(result.object)',
-    pattern: 'asRecord\\(result\\.object\\)',
-    paths: [
-      'apps/relay/src/main/chat-pipeline/turn-composer.ts',
-      'apps/relay/src/main/chat-pipeline/turn-perception.ts',
-      'apps/relay/src/main/proactive/decision.ts',
-    ],
-  },
-  {
     description: 'web adapters must not expose unknown or record placeholder contracts',
     pattern: 'Promise<unknown>|Record<string, unknown>|as unknown as|: unknown\\b',
     paths: [

@@ -213,7 +213,7 @@ The same runtime surface also covers multimodal flows such as image generation a
 | [sdk](sdk/README.md) | Unified SDK for runtime and realm | TypeScript, ESM |
 | [kit](kit/README.md) | Cross-app toolkit and design system | React, Radix UI, Tailwind |
 | [desktop](apps/desktop/README.md) | Main desktop host and mod ecosystem | Tauri, React |
-| [relay](apps/relay/) | AI chat client with beat-first pipeline | Electron, React |
+| relay (archived) | Archived Electron AI chat client; functionality moved into desktop chat | Electron, React |
 | [forge](apps/forge/) | Creator studio for worlds and agents | Tauri, React |
 | [overtone](apps/overtone/) | Music creation and collaboration | Tauri, React, Web Audio |
 | [shiji](apps/shiji/) | K-12 historical education | Tauri, React, SQLite |

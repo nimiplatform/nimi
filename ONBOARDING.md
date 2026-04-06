@@ -27,7 +27,6 @@
 | 应用 | 目录 | 技术栈 | 说明 |
 |---|---|---|---|
 | desktop | `apps/desktop/` | Tauri + React | 主桌面 host、mod 生态、agent 交互 |
-| relay | `apps/relay/` | Electron + React | AI 聊天客户端，beat-first turn pipeline |
 | forge | `apps/forge/` | Tauri + React | 创作者工作台（世界/agent/内容管理） |
 | overtone | `apps/overtone/` | Tauri + React | 音乐创作与协作 |
 | shiji | `apps/shiji/` | Tauri + React | K-12 历史教育（时迹） |
@@ -241,13 +240,7 @@ pnpm -C apps/forge run dev:shell
 
 所有 Tauri 应用共享统一脚本接口：`dev:renderer`（仅前端）、`dev:shell`（含 Tauri）、`build`、`typecheck`、`lint`、`test`。
 
-### 6.3 Relay（Electron）
-
-```bash
-pnpm -C apps/relay run dev
-```
-
-### 6.4 Web
+### 6.3 Web
 
 ```bash
 pnpm --filter @nimiplatform/web dev

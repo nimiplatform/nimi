@@ -24,7 +24,7 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `apps/desktop/**` | `apps/desktop/AGENTS.md` |
 | `apps/web/**` | `apps/web/AGENTS.md` |
 | `apps/overtone/**` | `apps/overtone/AGENTS.md` |
-| `apps/relay/**` | `apps/relay/AGENTS.md` |
+| `archive/apps/relay/**` | `archive/apps/relay/AGENTS.md` |
 | `apps/forge/**` | `apps/forge/AGENTS.md` |
 | `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
 | `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |

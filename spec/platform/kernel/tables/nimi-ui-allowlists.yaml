@@ -15,12 +15,12 @@ items:
   - id: allow.measured_panel_width
     pattern_type: inline_style_property
     pattern: width
-    scope: apps/desktop/src/shell/renderer/features/contacts apps/desktop/src/shell/renderer/features/runtime-config apps/overtone/src/shell/renderer/features/workspace apps/relay/src/renderer/features/sidebar
+    scope: apps/desktop/src/shell/renderer/features/contacts apps/desktop/src/shell/renderer/features/runtime-config apps/overtone/src/shell/renderer/features/workspace
     reason: User-resizable panel widths are measured runtime layout state.
     source_rule: P-DESIGN-021
   - id: allow.measured_transform_and_position
     pattern_type: inline_style_property
     pattern: transform|animationDelay|left|top|maxHeight|minHeight|padding
-    scope: apps/relay/src/renderer apps/overtone/src/shell/renderer
+    scope: apps/overtone/src/shell/renderer
     reason: Runtime animation timing, measured overlay placement, and waveform positioning need bounded runtime values.
     source_rule: P-DESIGN-021

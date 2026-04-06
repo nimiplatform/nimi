@@ -93,11 +93,6 @@ const appEntries = [
     mainRel: 'apps/forge/src/shell/renderer/main.tsx',
   },
   {
-    app: 'relay',
-    styleRel: 'apps/relay/src/renderer/styles.css',
-    mainRel: 'apps/relay/src/renderer/main.tsx',
-  },
-  {
     app: 'overtone',
     styleRel: 'apps/overtone/src/shell/renderer/styles.css',
     mainRel: 'apps/overtone/src/shell/renderer/main.tsx',
@@ -341,7 +336,7 @@ for (const [relModule, rows] of compositionsByModule) {
   }
 }
 
-for (const docRel of ['apps/relay/design.md', 'apps/overtone/design.md']) {
+for (const docRel of ['apps/overtone/design.md']) {
   if (!fs.existsSync(path.join(repoRoot, docRel))) continue;
   const content = read(docRel);
   if (/\bdesign\b/i.test(content) && !content.includes('P-DESIGN-')) {

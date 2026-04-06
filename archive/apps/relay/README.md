@@ -1,6 +1,12 @@
 # Nimi Relay
 
-Electron AI chat client with beat-first turn pipeline.
+Archived Electron AI chat client with beat-first turn pipeline.
+
+## Archive Status
+
+This app is archived. Active chat functionality has been consolidated into `apps/desktop`.
+
+`relay` is no longer part of the active workspace, root build, or root verification flow. Keep this directory for source preservation and historical reference only.
 
 ## Overview
 
@@ -28,9 +34,7 @@ Main process owns the chat pipeline, session store, prompt compilation, media de
 
 ## Development
 
-```bash
-pnpm -C apps/relay run dev
-```
+This archived app is not part of the active root workspace. If you need to inspect or revive it, work from this archived directory explicitly.
 
 ## Scripts
 
