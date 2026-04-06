@@ -32,7 +32,7 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 |--------|---------|
 | Video Intake | accept Bilibili (stage 1), Douyin and user-submitted links (future) |
 | Runtime Route Settings | choose local or cloud routes for speech transcription and text extraction from current runtime options |
-| Creator Intake | future: pull a creator's full video list and feed new entries into the extraction pipeline |
+| Creator Intake | sync a Bilibili creator homepage's recent videos into the existing extraction pipeline; deeper history is future work |
 | Extraction Pipeline | platform subtitles or speech transcription, structured recommendation extraction |
 | Comment Supplement | store name and address completion from filtered public video comments |
 | Review Queue | unresolved store names, address conflicts, mixed-result cleanup |
@@ -60,7 +60,7 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 ### Stage 2
 
-- creator batch intake via platform space API with incremental diff
+- extend creator batch intake beyond the shipped recent-homepage sync
 - targeted visual clues from storefronts, signs, menus
 - stronger store/address confirmation
 - area search strengthened by confirmed coordinates

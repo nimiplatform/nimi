@@ -1,7 +1,7 @@
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, Transaction};
 use serde_json::Value;
 
-use crate::db::{now_iso, generate_id, to_json, CommentClueRecord, VenueRecord};
+use crate::db::{generate_id, now_iso, to_json, CommentClueRecord, VenueRecord};
 use crate::probe::{
     build_geocode_query, geocode_address, GeocodeOutcome, ProbeCommentClue, ProbeResult,
 };
@@ -23,6 +23,30 @@ pub(crate) struct VenueInput {
 struct VenueUserState {
     user_confirmed: bool,
     is_favorite: bool,
+}
+
+#[derive(Debug)]
+struct PreparedVenueRow {
+    ordinal: i64,
+    venue_name: String,
+    address_text: String,
+    recommended_dishes_json: String,
+    cuisine_tags_json: String,
+    flavor_tags_json: String,
+    evidence_json: String,
+    confidence: String,
+    recommendation_polarity: String,
+    needs_review: bool,
+    review_state: String,
+    geocode_status: String,
+    geocode_provider: String,
+    geocode_query: String,
+    latitude: Option<f64>,
+    longitude: Option<f64>,
+    user_confirmed: bool,
+    is_favorite: bool,
+    created_at: String,
+    updated_at: String,
 }
 
 fn read_string_field(value: Option<&Value>, key: &str) -> String {
@@ -310,19 +334,15 @@ pub(crate) fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome)
     "search_only".to_string()
 }
 
-pub(crate) fn replace_venues(
+fn prepare_venues(
     conn: &Connection,
     import_id: &str,
     probe: &ProbeResult,
     venues: &[VenueInput],
-) -> Result<(), String> {
+) -> Result<Vec<PreparedVenueRow>, String> {
     let existing_user_states = load_existing_venue_user_state(conn, import_id)?;
     let city_hint = infer_import_city_hint(probe, venues);
-    conn.execute(
-        "DELETE FROM venues WHERE import_id = ?1",
-        params![import_id],
-    )
-    .map_err(|error| format!("failed to clear existing venues: {error}"))?;
+    let mut prepared = Vec::with_capacity(venues.len());
 
     for (index, venue) in venues.iter().enumerate() {
         let user_state = existing_user_states
@@ -335,154 +355,199 @@ pub(crate) fn replace_venues(
         let geocode = if venue.address_text.trim().is_empty()
             || (!address_is_specific(&venue.address_text) && !can_try_name_search)
         {
-                GeocodeOutcome {
-                    provider: "amap".to_string(),
-                    status: "skipped".to_string(),
-                    query: if address_is_specific(&venue.address_text) {
-                        String::new()
-                    } else {
-                        geocode_query.clone()
-                    },
-                    latitude: None,
-                    longitude: None,
-                }
-            } else {
-                geocode_address(
-                    &geocode_query,
-                    &venue.venue_name,
-                    &venue.address_text,
-                    &city_hint,
-                )
-            };
+            GeocodeOutcome {
+                provider: "amap".to_string(),
+                status: "skipped".to_string(),
+                query: if address_is_specific(&venue.address_text) {
+                    String::new()
+                } else {
+                    geocode_query.clone()
+                },
+                latitude: None,
+                longitude: None,
+            }
+        } else {
+            geocode_address(
+                &geocode_query,
+                &venue.venue_name,
+                &venue.address_text,
+                &city_hint,
+            )
+        };
         let review_state = resolve_review_state(venue, &geocode);
         let now = now_iso();
-        conn.execute(
-            "
-            INSERT INTO venues (
-              id,
-              import_id,
-              ordinal,
-              venue_name,
-              address_text,
-              recommended_dishes_json,
-              cuisine_tags_json,
-              flavor_tags_json,
-              evidence_json,
-              confidence,
-              recommendation_polarity,
-              needs_review,
-              review_state,
-              geocode_status,
-              geocode_provider,
-              geocode_query,
-              latitude,
-              longitude,
-              user_confirmed,
-              is_favorite,
-              created_at,
-              updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
-            ",
-            params![
-                generate_id("venue"),
-                import_id,
-                index as i64,
-                venue.venue_name,
-                venue.address_text,
-                to_json(&venue.recommended_dishes),
-                to_json(&venue.cuisine_tags),
-                to_json(&venue.flavor_tags),
-                to_json(&venue.evidence),
-                venue.confidence,
-                venue.recommendation_polarity,
-                if venue.needs_review { 1 } else { 0 },
-                review_state,
-                geocode.status,
-                geocode.provider,
-                geocode.query,
-                geocode.latitude,
-                geocode.longitude,
-                if user_state.user_confirmed { 1 } else { 0 },
-                if user_state.is_favorite { 1 } else { 0 },
-                now,
-                now,
-            ],
+        prepared.push(PreparedVenueRow {
+            ordinal: index as i64,
+            venue_name: venue.venue_name.clone(),
+            address_text: venue.address_text.clone(),
+            recommended_dishes_json: to_json(&venue.recommended_dishes),
+            cuisine_tags_json: to_json(&venue.cuisine_tags),
+            flavor_tags_json: to_json(&venue.flavor_tags),
+            evidence_json: to_json(&venue.evidence),
+            confidence: venue.confidence.clone(),
+            recommendation_polarity: venue.recommendation_polarity.clone(),
+            needs_review: venue.needs_review,
+            review_state,
+            geocode_status: geocode.status,
+            geocode_provider: geocode.provider,
+            geocode_query: geocode.query,
+            latitude: geocode.latitude,
+            longitude: geocode.longitude,
+            user_confirmed: user_state.user_confirmed,
+            is_favorite: user_state.is_favorite,
+            created_at: now.clone(),
+            updated_at: now,
+        });
+    }
+
+    Ok(prepared)
+}
+
+fn replace_venues(
+    transaction: &Transaction<'_>,
+    import_id: &str,
+    venues: &[PreparedVenueRow],
+) -> Result<(), String> {
+    transaction
+        .execute(
+            "DELETE FROM venues WHERE import_id = ?1",
+            params![import_id],
         )
-        .map_err(|error| format!("failed to insert venue row: {error}"))?;
+        .map_err(|error| format!("failed to clear existing venues: {error}"))?;
+
+    for venue in venues {
+        transaction
+            .execute(
+                "
+                INSERT INTO venues (
+                  id,
+                  import_id,
+                  ordinal,
+                  venue_name,
+                  address_text,
+                  recommended_dishes_json,
+                  cuisine_tags_json,
+                  flavor_tags_json,
+                  evidence_json,
+                  confidence,
+                  recommendation_polarity,
+                  needs_review,
+                  review_state,
+                  geocode_status,
+                  geocode_provider,
+                  geocode_query,
+                  latitude,
+                  longitude,
+                  user_confirmed,
+                  is_favorite,
+                  created_at,
+                  updated_at
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22)
+                ",
+                params![
+                    generate_id("venue"),
+                    import_id,
+                    venue.ordinal,
+                    venue.venue_name,
+                    venue.address_text,
+                    venue.recommended_dishes_json,
+                    venue.cuisine_tags_json,
+                    venue.flavor_tags_json,
+                    venue.evidence_json,
+                    venue.confidence,
+                    venue.recommendation_polarity,
+                    if venue.needs_review { 1 } else { 0 },
+                    venue.review_state,
+                    venue.geocode_status,
+                    venue.geocode_provider,
+                    venue.geocode_query,
+                    venue.latitude,
+                    venue.longitude,
+                    if venue.user_confirmed { 1 } else { 0 },
+                    if venue.is_favorite { 1 } else { 0 },
+                    venue.created_at,
+                    venue.updated_at,
+                ],
+            )
+            .map_err(|error| format!("failed to insert venue row: {error}"))?;
     }
 
     Ok(())
 }
 
 pub(crate) fn complete_import_by_id(
-    conn: &Connection,
+    conn: &mut Connection,
     import_id: &str,
     url: &str,
     probe: &ProbeResult,
 ) -> Result<(), String> {
+    let venue_inputs = parse_venue_inputs(probe.extraction_json.as_ref());
+    let prepared_venues = prepare_venues(conn, import_id, probe, &venue_inputs)?;
     let updated_at = now_iso();
-    conn.execute(
-        "
-        UPDATE imports
-        SET
-          source_url = ?1,
-          canonical_url = ?2,
-          bvid = ?3,
-          title = ?4,
-          creator_name = ?5,
-          creator_mid = ?6,
-          description = ?7,
-          tags_json = ?8,
-          duration_sec = ?9,
-          status = 'succeeded',
-          transcript = ?10,
-          extraction_raw = ?11,
-          video_summary = ?12,
-          uncertain_points_json = ?13,
-          audio_source_url = ?14,
-          selected_stt_model = ?15,
-          selected_text_model = ?16,
-          extraction_coverage_json = ?17,
-          output_dir = ?18,
-          public_comment_count = ?19,
-          comment_clues_json = ?20,
-          error_message = '',
-          updated_at = ?21
-        WHERE id = ?22
-        ",
-        params![
-            url,
-            probe.metadata.canonical_url,
-            probe.metadata.bvid,
-            probe.metadata.title,
-            probe.metadata.owner_name,
-            probe.metadata.owner_mid,
-            probe.metadata.description,
-            to_json(&probe.metadata.tags),
-            probe.metadata.duration_sec,
-            probe.transcript,
-            probe.extraction_raw,
-            read_video_summary(probe.extraction_json.as_ref()),
-            to_json(&read_uncertain_points(probe.extraction_json.as_ref())),
-            probe.audio_source_url,
-            probe.selected_stt_model,
-            probe.selected_text_model,
-            serde_json::to_string(&probe.extraction_coverage).unwrap_or_default(),
-            probe.output_dir,
-            probe.raw_comment_count,
-            to_json(&to_comment_clue_records(&probe.comment_clues)),
-            updated_at,
-            import_id,
-        ],
-    )
-    .map_err(|error| format!("failed to update successful import row: {error}"))?;
+    let transaction = conn
+        .transaction()
+        .map_err(|error| format!("failed to open completion transaction: {error}"))?;
+    transaction
+        .execute(
+            "
+            UPDATE imports
+            SET
+              source_url = ?1,
+              canonical_url = ?2,
+              bvid = ?3,
+              title = ?4,
+              creator_name = ?5,
+              creator_mid = ?6,
+              description = ?7,
+              tags_json = ?8,
+              duration_sec = ?9,
+              status = 'succeeded',
+              transcript = ?10,
+              extraction_raw = ?11,
+              video_summary = ?12,
+              uncertain_points_json = ?13,
+              audio_source_url = ?14,
+              selected_stt_model = ?15,
+              selected_text_model = ?16,
+              extraction_coverage_json = ?17,
+              output_dir = ?18,
+              public_comment_count = ?19,
+              comment_clues_json = ?20,
+              error_message = '',
+              updated_at = ?21
+            WHERE id = ?22
+            ",
+            params![
+                url,
+                probe.metadata.canonical_url,
+                probe.metadata.bvid,
+                probe.metadata.title,
+                probe.metadata.owner_name,
+                probe.metadata.owner_mid,
+                probe.metadata.description,
+                to_json(&probe.metadata.tags),
+                probe.metadata.duration_sec,
+                probe.transcript,
+                probe.extraction_raw,
+                read_video_summary(probe.extraction_json.as_ref()),
+                to_json(&read_uncertain_points(probe.extraction_json.as_ref())),
+                probe.audio_source_url,
+                probe.selected_stt_model,
+                probe.selected_text_model,
+                serde_json::to_string(&probe.extraction_coverage).unwrap_or_default(),
+                probe.output_dir,
+                probe.raw_comment_count,
+                to_json(&to_comment_clue_records(&probe.comment_clues)),
+                updated_at,
+                import_id,
+            ],
+        )
+        .map_err(|error| format!("failed to update successful import row: {error}"))?;
 
-    replace_venues(
-        conn,
-        import_id,
-        probe,
-        &parse_venue_inputs(probe.extraction_json.as_ref()),
-    )?;
+    replace_venues(&transaction, import_id, &prepared_venues)?;
+    transaction
+        .commit()
+        .map_err(|error| format!("failed to commit completed import: {error}"))?;
     Ok(())
 }
 

@@ -1,10 +1,12 @@
 import { invoke } from '@renderer/bridge/invoke.js';
 import { hasTauriInvoke } from '@renderer/bridge/env.js';
 import {
+  parseCreatorSyncResult,
   parseImportRecordResult,
   parseSnapshot,
   parseVideoFoodMapRuntimeOptions,
   parseVideoFoodMapSettings,
+  type CreatorSyncResult,
   type ImportRecord,
   type VideoFoodMapRuntimeOptions,
   type VideoFoodMapSettings,
@@ -17,6 +19,14 @@ export async function loadSnapshot(): Promise<VideoFoodMapSnapshot> {
 
 export async function importVideo(url: string): Promise<ImportRecord> {
   return parseImportRecordResult(await invoke('video_food_map_import_video', { url }));
+}
+
+export async function importCreator(url: string): Promise<CreatorSyncResult> {
+  return parseCreatorSyncResult(await invoke('video_food_map_import_creator', { url }));
+}
+
+export async function retryImport(importId: string): Promise<ImportRecord> {
+  return parseImportRecordResult(await invoke('video_food_map_retry_import', { importId }));
 }
 
 export async function setVenueConfirmation(venueId: string, confirmed: boolean): Promise<ImportRecord> {

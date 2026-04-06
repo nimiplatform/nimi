@@ -8,6 +8,7 @@ mod runtime_daemon;
 mod script_runner;
 mod settings;
 
+use serde::Serialize;
 use std::env;
 use std::path::PathBuf;
 use std::thread;
@@ -78,6 +79,53 @@ fn validate_external_url(url: &Url) -> Result<(), String> {
     }
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreatorSyncItem {
+    bvid: String,
+    title: String,
+    canonical_url: String,
+    published_at: String,
+    status: String,
+    import_id: Option<String>,
+    message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreatorSyncResult {
+    creator_mid: String,
+    creator_name: String,
+    source_url: String,
+    scanned_count: usize,
+    queued_count: usize,
+    skipped_existing_count: usize,
+    saved_sync: db::CreatorSyncRecord,
+    items: Vec<CreatorSyncItem>,
+}
+
+fn is_active_import_status(status: &str) -> bool {
+    matches!(status, "running" | "queued" | "resolving" | "geocoding")
+}
+
+fn spawn_import_job(import_id: String, source_url: String) {
+    thread::spawn(move || {
+        let _ = db::set_import_stage(&import_id, "resolving");
+        match probe::run_probe(&source_url) {
+            Ok(result) => {
+                let _ = db::set_import_stage(&import_id, "geocoding");
+                if let Err(error) = db::complete_import_by_id(&import_id, &source_url, &result) {
+                    let _ = db::mark_import_failed_by_id(&import_id, &error);
+                }
+            }
+            Err(error) => {
+                let friendly = explain_import_error(&error);
+                let _ = db::mark_import_failed_by_id(&import_id, &friendly);
+            }
+        }
+    });
+}
+
 #[tauri::command]
 fn video_food_map_snapshot() -> Result<db::Snapshot, String> {
     db::load_snapshot()
@@ -109,23 +157,96 @@ fn video_food_map_import_video(url: String) -> Result<db::ImportRecord, String> 
 
     let bvid_hint = probe::extract_bvid_hint(&trimmed);
     let queued = db::queue_import(&trimmed, &bvid_hint)?;
-    let import_id = queued.id.clone();
-    thread::spawn(move || {
-        let _ = db::set_import_stage(&import_id, "resolving");
-        match probe::run_probe(&trimmed) {
-            Ok(result) => {
-                let _ = db::set_import_stage(&import_id, "geocoding");
-                if let Err(error) = db::complete_import_by_id(&import_id, &trimmed, &result) {
-                    let _ = db::mark_import_failed_by_id(&import_id, &error);
-                }
-            }
-            Err(error) => {
-                let friendly = explain_import_error(&error);
-                let _ = db::mark_import_failed_by_id(&import_id, &friendly);
-            }
+    let should_start = queued.should_start;
+    let import_id = queued.record.id.clone();
+    if should_start {
+        spawn_import_job(import_id, trimmed);
+    }
+    Ok(queued.record)
+}
+
+#[tauri::command]
+fn video_food_map_import_creator(url: String) -> Result<CreatorSyncResult, String> {
+    let trimmed = url.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("creator url is required".to_string());
+    }
+
+    let feed = probe::load_bilibili_creator_video_feed(&trimmed)?;
+    let mut items = Vec::with_capacity(feed.videos.len());
+    let mut queued_count = 0usize;
+    let mut skipped_existing_count = 0usize;
+
+    for video in &feed.videos {
+        if let Some(existing) = db::lookup_import_by_bvid(&video.bvid)? {
+            skipped_existing_count += 1;
+            items.push(CreatorSyncItem {
+                bvid: video.bvid.clone(),
+                title: video.title.clone(),
+                canonical_url: video.canonical_url.clone(),
+                published_at: video.published_at.clone(),
+                status: "skipped_existing".to_string(),
+                import_id: Some(existing.id),
+                message: if is_active_import_status(&existing.status) {
+                    "这条视频已经在处理中，本次同步先跳过。".to_string()
+                } else {
+                    "这条视频已经在库里了，本次同步不重复跑。".to_string()
+                },
+            });
+            continue;
         }
-    });
-    Ok(queued)
+
+        let queued = db::queue_import(&video.canonical_url, &video.bvid)?;
+        let import_id = queued.record.id.clone();
+        if queued.should_start {
+            spawn_import_job(import_id.clone(), video.canonical_url.clone());
+        }
+        queued_count += 1;
+        items.push(CreatorSyncItem {
+            bvid: video.bvid.clone(),
+            title: video.title.clone(),
+            canonical_url: video.canonical_url.clone(),
+            published_at: video.published_at.clone(),
+            status: "queued".to_string(),
+            import_id: Some(import_id),
+            message: "已经加入导入队列，会沿用单条视频的现有解析流程。".to_string(),
+        });
+    }
+
+    let saved_sync = db::save_creator_sync(
+        &feed.creator_mid,
+        &feed.creator_name,
+        &feed.source_url,
+        feed.videos.len(),
+        queued_count,
+        skipped_existing_count,
+    )?;
+
+    Ok(CreatorSyncResult {
+        creator_mid: feed.creator_mid,
+        creator_name: feed.creator_name,
+        source_url: feed.source_url,
+        scanned_count: feed.videos.len(),
+        queued_count,
+        skipped_existing_count,
+        saved_sync,
+        items,
+    })
+}
+
+#[tauri::command]
+fn video_food_map_retry_import(import_id: String) -> Result<db::ImportRecord, String> {
+    let trimmed = import_id.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("import id is required".to_string());
+    }
+    let queued = db::retry_import_by_id(&trimmed)?;
+    let queued_id = queued.record.id.clone();
+    let source_url = queued.record.source_url.clone();
+    if queued.should_start {
+        spawn_import_job(queued_id, source_url);
+    }
+    Ok(queued.record)
 }
 
 #[tauri::command]
@@ -170,6 +291,8 @@ fn main() {
             video_food_map_settings_set,
             video_food_map_runtime_options_get,
             video_food_map_import_video,
+            video_food_map_import_creator,
+            video_food_map_retry_import,
             video_food_map_set_venue_confirmation,
             video_food_map_toggle_venue_favorite,
             video_food_map_open_external_url,
@@ -180,7 +303,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{explain_import_error, validate_external_url};
+    use super::{explain_import_error, is_active_import_status, validate_external_url};
     use url::Url;
 
     #[test]
@@ -217,6 +340,15 @@ mod tests {
     fn accepts_http_and_https_external_urls() {
         assert!(validate_external_url(&Url::parse("https://uri.amap.com/marker").unwrap()).is_ok());
         assert!(validate_external_url(&Url::parse("http://example.com").unwrap()).is_ok());
+    }
+
+    #[test]
+    fn active_import_status_matches_batch_skip_logic() {
+        assert!(is_active_import_status("queued"));
+        assert!(is_active_import_status("resolving"));
+        assert!(is_active_import_status("geocoding"));
+        assert!(!is_active_import_status("succeeded"));
+        assert!(!is_active_import_status("failed"));
     }
 
     #[test]

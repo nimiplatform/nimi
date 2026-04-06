@@ -17,6 +17,7 @@ The current app baseline already includes:
 
 - a real standalone workspace package with renderer, Tauri shell, tests, theme pack, and adoption/composition registration
 - single-video Bilibili intake with persisted SQLite records keyed to the canonical video
+- creator-homepage sync for recent Bilibili videos, with incremental diff against already-known records
 - subtitle-first extraction with speech fallback and partial-coverage disclosure for long videos
 - public-comment clue screening plus store/address completion when comments strengthen the first-pass result
 - app-owned map rendering and geocoding using the current AMap-backed implementation
@@ -29,7 +30,7 @@ The current app baseline already includes:
 
 The biggest gaps relative to the intended product are:
 
-- creator-scoped batch intake is not shipped yet
+- creator intake still lacks deeper history sync, re-sync controls, and persistent sync management
 - targeted visual clues are not shipped yet
 - review tooling is still lightweight; there is no explicit reject / keep-in-review workflow yet
 - menu photo capture and dining advice are still future work
@@ -54,7 +55,7 @@ Phase 1 is done when:
 
 Goal: increase venue coverage without weakening record trust.
 
-- add creator-scoped batch intake via the platform space API with incremental diff
+- extend creator-scoped intake beyond the shipped recent-video homepage sync
 - expand review actions beyond confirm/favorite into explicit keep-in-review or reject flows
 - add better conflict presentation for comment clues and future visual clues
 - keep batch intake creator-scoped only; no site-wide crawling

@@ -6,6 +6,7 @@ import {
   Surface,
 } from '@nimiplatform/nimi-kit/ui';
 import {
+  retryImport,
   setVenueConfirmation,
   toggleVenueFavorite,
 } from '@renderer/data/api.js';
@@ -146,6 +147,11 @@ export function VenueDetailPanel(props: VenueDetailPanelProps) {
     onSettled: refreshSnapshot,
   });
 
+  const retryImportMutation = useMutation({
+    mutationFn: async (importId: string) => retryImport(importId),
+    onSettled: refreshSnapshot,
+  });
+
   return (
     <>
       <Surface tone="panel" elevation="base" className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -215,6 +221,21 @@ export function VenueDetailPanel(props: VenueDetailPanelProps) {
           {selectedImport.errorMessage ? (
             <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] p-3 text-sm text-[var(--nimi-status-danger)]">
               {selectedImport.errorMessage}
+            </div>
+          ) : null}
+          {selectedImport.status === 'failed' ? (
+            <Button
+              tone="primary"
+              size="sm"
+              disabled={retryImportMutation.isPending}
+              onClick={() => retryImportMutation.mutate(selectedImport.id)}
+            >
+              {retryImportMutation.isPending ? '正在重试...' : '重试这条视频'}
+            </Button>
+          ) : null}
+          {retryImportMutation.isError ? (
+            <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] p-3 text-sm text-[var(--nimi-status-danger)]">
+              {retryImportMutation.error instanceof Error ? retryImportMutation.error.message : '重试失败'}
             </div>
           ) : null}
         </Surface>

@@ -94,7 +94,41 @@ export type SnapshotStats = {
 export type VideoFoodMapSnapshot = {
   imports: ImportRecord[];
   mapPoints: MapPoint[];
+  creatorSyncs: CreatorSyncRecord[];
   stats: SnapshotStats;
+};
+
+export type CreatorSyncRecord = {
+  creatorMid: string;
+  creatorName: string;
+  sourceUrl: string;
+  lastSyncedAt: string;
+  lastScannedCount: number;
+  lastQueuedCount: number;
+  lastSkippedExistingCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreatorSyncItem = {
+  bvid: string;
+  title: string;
+  canonicalUrl: string;
+  publishedAt: string;
+  status: 'queued' | 'skipped_existing';
+  importId?: string;
+  message: string;
+};
+
+export type CreatorSyncResult = {
+  creatorMid: string;
+  creatorName: string;
+  sourceUrl: string;
+  scannedCount: number;
+  queuedCount: number;
+  skippedExistingCount: number;
+  savedSync?: CreatorSyncRecord;
+  items: CreatorSyncItem[];
 };
 
 export type VideoFoodMapRouteSource = 'local' | 'cloud';
@@ -295,6 +329,7 @@ export function parseSnapshot(value: unknown): VideoFoodMapSnapshot {
   return {
     imports: Array.isArray(record.imports) ? record.imports.map(parseImportRecord) : [],
     mapPoints: Array.isArray(record.mapPoints) ? record.mapPoints.map(parseMapPoint) : [],
+    creatorSyncs: Array.isArray(record.creatorSyncs) ? record.creatorSyncs.map(parseCreatorSyncRecord) : [],
     stats: {
       importCount: asNumber(stats.importCount),
       succeededCount: asNumber(stats.succeededCount),
@@ -310,6 +345,49 @@ export function parseSnapshot(value: unknown): VideoFoodMapSnapshot {
 
 export function parseImportRecordResult(value: unknown): ImportRecord {
   return parseImportRecord(value);
+}
+
+function parseCreatorSyncRecord(value: unknown): CreatorSyncRecord {
+  const record = asRecord(value, 'creatorSyncRecord');
+  return {
+    creatorMid: asString(record.creatorMid),
+    creatorName: asString(record.creatorName),
+    sourceUrl: asString(record.sourceUrl),
+    lastSyncedAt: asString(record.lastSyncedAt),
+    lastScannedCount: asNumber(record.lastScannedCount),
+    lastQueuedCount: asNumber(record.lastQueuedCount),
+    lastSkippedExistingCount: asNumber(record.lastSkippedExistingCount),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+  };
+}
+
+function parseCreatorSyncItem(value: unknown): CreatorSyncItem {
+  const record = asRecord(value, 'creatorSyncItem');
+  const status = asString(record.status);
+  return {
+    bvid: asString(record.bvid),
+    title: asString(record.title),
+    canonicalUrl: asString(record.canonicalUrl),
+    publishedAt: asString(record.publishedAt),
+    status: status === 'skipped_existing' ? 'skipped_existing' : 'queued',
+    importId: asString(record.importId) || undefined,
+    message: asString(record.message),
+  };
+}
+
+export function parseCreatorSyncResult(value: unknown): CreatorSyncResult {
+  const record = asRecord(value, 'creatorSyncResult');
+  return {
+    creatorMid: asString(record.creatorMid),
+    creatorName: asString(record.creatorName),
+    sourceUrl: asString(record.sourceUrl),
+    scannedCount: asNumber(record.scannedCount),
+    queuedCount: asNumber(record.queuedCount),
+    skippedExistingCount: asNumber(record.skippedExistingCount),
+    savedSync: record.savedSync ? parseCreatorSyncRecord(record.savedSync) : undefined,
+    items: Array.isArray(record.items) ? record.items.map(parseCreatorSyncItem) : [],
+  };
 }
 
 function parseRouteSource(value: unknown): VideoFoodMapRouteSource {

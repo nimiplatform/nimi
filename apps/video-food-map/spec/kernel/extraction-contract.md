@@ -77,9 +77,24 @@ For public videos, the pipeline must prefer direct platform APIs over HTML page 
 
 When selecting audio CDN URLs from the playurl response, the pipeline must prefer standard CDN hosts (`*.bilivideo.com`) over MCDN/P2P nodes (`*.mcdn.bilivideo.cn`), which are unreliable for cookieless access. Backup URLs in the playurl response provide standard CDN alternatives.
 
-## VFM-PIPE-011 — Future Creator Batch Intake Boundary
+## VFM-PIPE-011 — Creator Batch Intake Boundary
 
-Creator-scoped batch intake remains a later-stage extension. When this feature is exposed, it must: given a creator's platform id (e.g. Bilibili `mid`), enumerate the creator's published videos via the platform space API (e.g. `/x/space/wbi/arc/search`), diff against already-known intake records, and feed new video entries into the single-video extraction pipeline. Batch intake is creator-scoped only; site-wide crawling is a non-goal.
+Creator-scoped batch intake is limited to the same creator boundary as the single-video product truth.
+
+The shipped Bilibili-first slice must:
+
+- accept a creator homepage link that resolves to the platform's stable creator id (e.g. Bilibili `mid`)
+- enumerate the creator's recent published videos via the platform space API (e.g. `/x/space/wbi/arc/search`)
+- diff against already-known intake records before queueing work
+- feed only new video entries into the existing single-video extraction pipeline by default
+
+The shipped slice must not:
+
+- crawl site-wide
+- silently re-run already-known creator videos during a normal sync
+- require a separate creator-only extraction path that diverges from the canonical single-video pipeline
+
+Deeper history sync, explicit re-sync of already-known creator videos, and cross-platform creator identity remain later extensions.
 
 ## VFM-PIPE-012 — Audio Transcoding Portability
 

@@ -5,11 +5,9 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use url::Url;
 
-use crate::db_queries::{
-    complete_import_by_id as complete_import_query,
-    should_show_on_map,
-};
+use crate::db_queries::{complete_import_by_id as complete_import_query, should_show_on_map};
 use crate::desktop_paths;
 use crate::probe::{path_display, ProbeResult};
 
@@ -114,7 +112,34 @@ pub struct MapPoint {
 pub struct Snapshot {
     pub imports: Vec<ImportRecord>,
     pub map_points: Vec<MapPoint>,
+    pub creator_syncs: Vec<CreatorSyncRecord>,
     pub stats: SnapshotStats,
+}
+
+#[derive(Debug)]
+pub struct QueuedImport {
+    pub record: ImportRecord,
+    pub should_start: bool,
+}
+
+#[derive(Debug)]
+pub struct ImportLookup {
+    pub id: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatorSyncRecord {
+    pub creator_mid: String,
+    pub creator_name: String,
+    pub source_url: String,
+    pub last_synced_at: String,
+    pub last_scanned_count: i64,
+    pub last_queued_count: i64,
+    pub last_skipped_existing_count: i64,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone)]
@@ -237,6 +262,7 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         CREATE TABLE IF NOT EXISTS imports (
           id TEXT PRIMARY KEY,
           source_url TEXT NOT NULL,
+          source_key TEXT NOT NULL DEFAULT '',
           canonical_url TEXT NOT NULL DEFAULT '',
           bvid TEXT NOT NULL DEFAULT '',
           title TEXT NOT NULL DEFAULT '',
@@ -263,6 +289,7 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_imports_bvid ON imports(bvid) WHERE bvid <> '';
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_imports_source_key ON imports(source_key) WHERE source_key <> '';
 
         CREATE TABLE IF NOT EXISTS venues (
           id TEXT PRIMARY KEY,
@@ -291,9 +318,22 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         );
 
         CREATE INDEX IF NOT EXISTS idx_venues_import_id ON venues(import_id);
+
+        CREATE TABLE IF NOT EXISTS creator_syncs (
+          creator_mid TEXT PRIMARY KEY,
+          creator_name TEXT NOT NULL DEFAULT '',
+          source_url TEXT NOT NULL DEFAULT '',
+          last_synced_at TEXT NOT NULL DEFAULT '',
+          last_scanned_count INTEGER NOT NULL DEFAULT 0,
+          last_queued_count INTEGER NOT NULL DEFAULT 0,
+          last_skipped_existing_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
         ",
     )
     .map_err(|error| format!("failed to initialize sqlite schema: {error}"))?;
+    ensure_column(conn, "imports", "source_key", "TEXT NOT NULL DEFAULT ''")?;
     ensure_column(
         conn,
         "imports",
@@ -318,12 +358,7 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         "user_confirmed",
         "INTEGER NOT NULL DEFAULT 0",
     )?;
-    ensure_column(
-        conn,
-        "venues",
-        "is_favorite",
-        "INTEGER NOT NULL DEFAULT 0",
-    )?;
+    ensure_column(conn, "venues", "is_favorite", "INTEGER NOT NULL DEFAULT 0")?;
     Ok(())
 }
 
@@ -474,31 +509,260 @@ fn load_import_row(conn: &Connection, import_id: &str) -> Result<ImportRow, Stri
     .map_err(|error| format!("failed to load import {import_id}: {error}"))
 }
 
+pub fn lookup_import_by_bvid(bvid: &str) -> Result<Option<ImportLookup>, String> {
+    let normalized = bvid.trim().to_ascii_uppercase();
+    if normalized.is_empty() {
+        return Ok(None);
+    }
+    let conn = open_db()?;
+    conn.query_row(
+        "SELECT id, status FROM imports WHERE bvid = ?1 LIMIT 1",
+        params![normalized],
+        |row| {
+            Ok(ImportLookup {
+                id: row.get::<_, String>(0)?,
+                status: row.get::<_, String>(1)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(|error| format!("failed to query import by bvid: {error}"))
+}
+
+pub fn retry_import_by_id(import_id: &str) -> Result<QueuedImport, String> {
+    let conn = open_db()?;
+    let row = load_import_row(&conn, import_id)?;
+    let retry_url = if row.source_url.trim().is_empty() {
+        row.canonical_url.trim().to_string()
+    } else {
+        row.source_url.trim().to_string()
+    };
+    if retry_url.is_empty() {
+        return Err("this import does not have a retryable source url".to_string());
+    }
+    let queued = ensure_import_row(&conn, &retry_url, &row.bvid)?;
+    Ok(QueuedImport {
+        record: hydrate_import(&conn, load_import_row(&conn, &queued.id)?)?,
+        should_start: queued.should_start,
+    })
+}
+
+pub fn save_creator_sync(
+    creator_mid: &str,
+    creator_name: &str,
+    source_url: &str,
+    scanned_count: usize,
+    queued_count: usize,
+    skipped_existing_count: usize,
+) -> Result<CreatorSyncRecord, String> {
+    let normalized_mid = creator_mid.trim();
+    if normalized_mid.is_empty() {
+        return Err("creator mid is required".to_string());
+    }
+    let conn = open_db()?;
+    let now = now_iso();
+    conn.execute(
+        "
+        INSERT INTO creator_syncs (
+          creator_mid,
+          creator_name,
+          source_url,
+          last_synced_at,
+          last_scanned_count,
+          last_queued_count,
+          last_skipped_existing_count,
+          created_at,
+          updated_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+        ON CONFLICT(creator_mid) DO UPDATE SET
+          creator_name = excluded.creator_name,
+          source_url = excluded.source_url,
+          last_synced_at = excluded.last_synced_at,
+          last_scanned_count = excluded.last_scanned_count,
+          last_queued_count = excluded.last_queued_count,
+          last_skipped_existing_count = excluded.last_skipped_existing_count,
+          updated_at = excluded.updated_at
+        ",
+        params![
+            normalized_mid,
+            creator_name.trim(),
+            source_url.trim(),
+            now,
+            scanned_count as i64,
+            queued_count as i64,
+            skipped_existing_count as i64,
+            now,
+            now,
+        ],
+    )
+    .map_err(|error| format!("failed to save creator sync: {error}"))?;
+    load_creator_syncs(&conn)?
+        .into_iter()
+        .find(|record| record.creator_mid == normalized_mid)
+        .ok_or_else(|| "failed to load saved creator sync".to_string())
+}
+
+fn load_creator_syncs(conn: &Connection) -> Result<Vec<CreatorSyncRecord>, String> {
+    let mut statement = conn
+        .prepare(
+            "
+            SELECT
+              creator_mid,
+              creator_name,
+              source_url,
+              last_synced_at,
+              last_scanned_count,
+              last_queued_count,
+              last_skipped_existing_count,
+              created_at,
+              updated_at
+            FROM creator_syncs
+            ORDER BY last_synced_at DESC, updated_at DESC, created_at DESC
+            ",
+        )
+        .map_err(|error| format!("failed to prepare creator sync query: {error}"))?;
+
+    let rows = statement
+        .query_map([], |row| {
+            Ok(CreatorSyncRecord {
+                creator_mid: row.get("creator_mid")?,
+                creator_name: row.get("creator_name")?,
+                source_url: row.get("source_url")?,
+                last_synced_at: row.get("last_synced_at")?,
+                last_scanned_count: row.get("last_scanned_count")?,
+                last_queued_count: row.get("last_queued_count")?,
+                last_skipped_existing_count: row.get("last_skipped_existing_count")?,
+                created_at: row.get("created_at")?,
+                updated_at: row.get("updated_at")?,
+            })
+        })
+        .map_err(|error| format!("failed to query creator syncs: {error}"))?;
+
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to collect creator syncs: {error}"))
+}
+
+fn normalize_source_url(source_url: &str) -> String {
+    let trimmed = source_url.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let Ok(mut parsed) = Url::parse(trimmed) else {
+        return trimmed.to_string();
+    };
+    parsed.set_fragment(None);
+    let _ = parsed.set_username("");
+    let _ = parsed.set_password(None);
+
+    if matches!(parsed.scheme(), "http" | "https") {
+        let _ = parsed.set_scheme("https");
+    }
+
+    if let Some(host) = parsed.host_str().map(|value| value.to_lowercase()) {
+        let _ = parsed.set_host(Some(&host));
+    }
+
+    let normalized_path = {
+        let path = parsed.path().trim_end_matches('/');
+        if path.is_empty() {
+            "/".to_string()
+        } else {
+            path.to_string()
+        }
+    };
+    parsed.set_path(&normalized_path);
+
+    if parsed.query() == Some("") {
+        parsed.set_query(None);
+    }
+
+    parsed.to_string()
+}
+
+fn build_source_key(source_url: &str, bvid_hint: &str) -> String {
+    let normalized_bvid = bvid_hint.trim().to_ascii_uppercase();
+    if !normalized_bvid.is_empty() {
+        return format!("bvid:{normalized_bvid}");
+    }
+    let normalized_url = normalize_source_url(source_url);
+    if normalized_url.is_empty() {
+        return String::new();
+    }
+    format!("url:{normalized_url}")
+}
+
+fn is_active_import_status(status: &str) -> bool {
+    matches!(status, "running" | "queued" | "resolving" | "geocoding")
+}
+
+#[derive(Debug)]
+struct EnsuredImportRow {
+    id: String,
+    should_start: bool,
+}
+
 fn ensure_import_row(
     conn: &Connection,
     source_url: &str,
     bvid_hint: &str,
-) -> Result<String, String> {
-    let existing_id = if !bvid_hint.trim().is_empty() {
+) -> Result<EnsuredImportRow, String> {
+    let normalized_bvid = bvid_hint.trim().to_ascii_uppercase();
+    let source_key = build_source_key(source_url, &normalized_bvid);
+    let mut existing = if !normalized_bvid.is_empty() {
         conn.query_row(
-            "SELECT id FROM imports WHERE bvid = ?1 LIMIT 1",
-            params![bvid_hint],
-            |row| row.get::<_, String>(0),
+            "SELECT id, status FROM imports WHERE bvid = ?1 LIMIT 1",
+            params![normalized_bvid],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )
         .optional()
         .map_err(|error| format!("failed to query import by bvid: {error}"))?
     } else {
         None
     };
+    if existing.is_none() && !source_key.is_empty() {
+        existing = conn
+            .query_row(
+                "SELECT id, status FROM imports WHERE source_key = ?1 LIMIT 1",
+                params![source_key],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()
+            .map_err(|error| format!("failed to query import by source key: {error}"))?;
+    }
 
-    if let Some(id) = existing_id {
+    if let Some((id, status)) = existing {
         let now = now_iso();
         conn.execute(
-            "UPDATE imports SET status = 'running', source_url = ?1, error_message = '', updated_at = ?2 WHERE id = ?3",
-            params![source_url, now, id],
+            "
+            UPDATE imports
+            SET
+              source_url = ?1,
+              source_key = CASE WHEN source_key = '' AND ?2 <> '' THEN ?2 ELSE source_key END,
+              bvid = CASE WHEN bvid = '' AND ?3 <> '' THEN ?3 ELSE bvid END,
+              status = CASE WHEN ?4 = 1 THEN status ELSE 'queued' END,
+              error_message = CASE WHEN ?4 = 1 THEN error_message ELSE '' END,
+              updated_at = ?5
+            WHERE id = ?6
+            ",
+            params![
+                source_url,
+                source_key,
+                normalized_bvid,
+                if is_active_import_status(&status) {
+                    1
+                } else {
+                    0
+                },
+                now,
+                id,
+            ],
         )
-        .map_err(|error| format!("failed to mark import running: {error}"))?;
-        return Ok(id);
+        .map_err(|error| format!("failed to refresh existing import row: {error}"))?;
+        return Ok(EnsuredImportRow {
+            id,
+            should_start: !is_active_import_status(&status),
+        });
     }
 
     let id = generate_id("import");
@@ -508,15 +772,20 @@ fn ensure_import_row(
         INSERT INTO imports (
           id,
           source_url,
+          source_key,
+          bvid,
           status,
           created_at,
           updated_at
-        ) VALUES (?1, ?2, 'running', ?3, ?4)
+        ) VALUES (?1, ?2, ?3, ?4, 'queued', ?5, ?6)
         ",
-        params![id, source_url, now, now],
+        params![id, source_url, source_key, normalized_bvid, now, now],
     )
     .map_err(|error| format!("failed to insert import row: {error}"))?;
-    Ok(id)
+    Ok(EnsuredImportRow {
+        id,
+        should_start: true,
+    })
 }
 
 fn update_import_status_by_id(
@@ -547,16 +816,18 @@ pub fn complete_import_by_id(
     url: &str,
     probe: &ProbeResult,
 ) -> Result<ImportRecord, String> {
-    let conn = open_db()?;
-    complete_import_query(&conn, import_id, url, probe)?;
+    let mut conn = open_db()?;
+    complete_import_query(&mut conn, import_id, url, probe)?;
     hydrate_import(&conn, load_import_row(&conn, import_id)?)
 }
 
-pub fn queue_import(url: &str, bvid_hint: &str) -> Result<ImportRecord, String> {
+pub fn queue_import(url: &str, bvid_hint: &str) -> Result<QueuedImport, String> {
     let conn = open_db()?;
-    let import_id = ensure_import_row(&conn, url, bvid_hint)?;
-    update_import_status_by_id(&conn, &import_id, "queued", "")?;
-    hydrate_import(&conn, load_import_row(&conn, &import_id)?)
+    let queued = ensure_import_row(&conn, url, bvid_hint)?;
+    Ok(QueuedImport {
+        record: hydrate_import(&conn, load_import_row(&conn, &queued.id)?)?,
+        should_start: queued.should_start,
+    })
 }
 
 pub fn set_import_stage(import_id: &str, status: &str) -> Result<ImportRecord, String> {
@@ -574,10 +845,7 @@ pub fn mark_import_failed_by_id(
     hydrate_import(&conn, load_import_row(&conn, import_id)?)
 }
 
-pub fn set_venue_confirmation(
-    venue_id: &str,
-    confirmed: bool,
-) -> Result<ImportRecord, String> {
+pub fn set_venue_confirmation(venue_id: &str, confirmed: bool) -> Result<ImportRecord, String> {
     let conn = open_db()?;
     let import_id = load_import_id_for_venue(&conn, venue_id)?;
     conn.execute(
@@ -673,15 +941,133 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
     Ok(Snapshot {
         imports,
         map_points,
+        creator_syncs: load_creator_syncs(&conn)?,
         stats,
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{now_iso, VenueRecord};
-    use crate::db_queries::{address_is_specific, resolve_review_state, should_show_on_map, VenueInput};
-    use crate::probe::GeocodeOutcome;
+    use std::env;
+    use std::ffi::OsString;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use serde_json::json;
+
+    use super::{
+        load_snapshot, now_iso, open_db, queue_import, retry_import_by_id, save_creator_sync,
+        update_import_status_by_id, VenueRecord,
+    };
+    use crate::db_queries::{
+        address_is_specific, resolve_review_state, should_show_on_map, VenueInput,
+    };
+    use crate::probe::{
+        GeocodeOutcome, ProbeCommentClue, ProbeExtractionCoverage, ProbeMetadata, ProbeResult,
+        ProbeSavedFiles,
+    };
+
+    fn db_test_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    struct TestHomeGuard {
+        original_home: Option<OsString>,
+        root: PathBuf,
+    }
+
+    impl TestHomeGuard {
+        fn new(name: &str) -> Self {
+            let unique = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos();
+            let root = env::temp_dir().join(format!("video-food-map-db-{name}-{unique}"));
+            fs::create_dir_all(&root).expect("failed to create test home");
+            let original_home = env::var_os("HOME");
+            env::set_var("HOME", &root);
+            Self {
+                original_home,
+                root,
+            }
+        }
+    }
+
+    impl Drop for TestHomeGuard {
+        fn drop(&mut self) {
+            if let Some(value) = &self.original_home {
+                env::set_var("HOME", value);
+            } else {
+                env::remove_var("HOME");
+            }
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    fn sample_probe_result() -> ProbeResult {
+        ProbeResult {
+            metadata: ProbeMetadata {
+                bvid: "BV1xx411c7mD".to_string(),
+                aid: "123".to_string(),
+                cid: "456".to_string(),
+                title: "上海探店".to_string(),
+                owner_mid: "789".to_string(),
+                owner_name: "测试博主".to_string(),
+                duration_sec: 98.5,
+                description: "今天去吃了两家店".to_string(),
+                tags: vec!["上海".to_string(), "美食".to_string()],
+                canonical_url: "https://www.bilibili.com/video/BV1xx411c7mD/".to_string(),
+            },
+            audio_source_url: "https://example.com/audio.m4a".to_string(),
+            selected_stt_model: "stt-model".to_string(),
+            selected_text_model: "text-model".to_string(),
+            raw_comment_count: 5,
+            comment_clues: vec![ProbeCommentClue {
+                comment_id: "c1".to_string(),
+                author_name: "路人甲".to_string(),
+                message: "这家店我也去过".to_string(),
+                like_count: 8,
+                published_at: "2026-04-06T10:00:00.000Z".to_string(),
+                matched_venue_names: vec!["炭火小馆".to_string()],
+                address_hint: "静安区".to_string(),
+            }],
+            extraction_coverage: ProbeExtractionCoverage {
+                state: "complete".to_string(),
+                processed_segment_count: 4,
+                processed_duration_sec: 98.5,
+                total_duration_sec: 98.5,
+            },
+            transcript: "先去炭火小馆，再去面馆".to_string(),
+            extraction_raw: "原始提取文本".to_string(),
+            extraction_json: Some(json!({
+                "video_summary": "视频讲了两家店",
+                "uncertain_points": ["第二家门牌号没听清"],
+                "venues": [
+                    {
+                        "venue_name": "炭火小馆",
+                        "address_text": "",
+                        "recommended_dishes": ["鸡翅"],
+                        "cuisine_tags": ["烧烤"],
+                        "flavor_tags": ["香辣"],
+                        "evidence": ["鸡翅不错"],
+                        "confidence": "high",
+                        "recommendation_polarity": "positive",
+                        "needs_review": false
+                    }
+                ]
+            })),
+            output_dir: "/tmp/video-food-map-test".to_string(),
+            saved_files: ProbeSavedFiles {
+                metadata_json: "/tmp/video-food-map-test/metadata.json".to_string(),
+                transcript_text: "/tmp/video-food-map-test/transcript.txt".to_string(),
+                extraction_raw_text: "/tmp/video-food-map-test/extraction-raw.txt".to_string(),
+                extraction_json: "/tmp/video-food-map-test/extraction.json".to_string(),
+            },
+        }
+    }
 
     fn sample_input(address_text: &str) -> VenueInput {
         VenueInput {
@@ -761,5 +1147,143 @@ mod tests {
             updated_at: now_iso(),
         };
         assert!(should_show_on_map(&venue));
+    }
+
+    #[test]
+    fn queue_import_reuses_active_bvid_row_without_restart() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("reuse-active");
+
+        let first = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to queue first import");
+        let second = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/?share_source=copy_web",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to queue second import");
+
+        assert!(first.should_start);
+        assert!(!second.should_start);
+        assert_eq!(first.record.id, second.record.id);
+
+        let conn = open_db().expect("failed to reopen db");
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM imports", [], |row| row.get(0))
+            .expect("failed to count imports");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn queue_import_reuses_normalized_url_when_bvid_is_missing() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("reuse-url");
+
+        let first = queue_import("https://b23.tv/demo-short-link", "")
+            .expect("failed to queue first short url import");
+        let second = queue_import("https://b23.tv/demo-short-link#fragment", "")
+            .expect("failed to queue second short url import");
+
+        assert!(first.should_start);
+        assert!(!second.should_start);
+        assert_eq!(first.record.id, second.record.id);
+    }
+
+    #[test]
+    fn queue_import_can_restart_failed_row_without_creating_duplicate() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("restart-failed");
+
+        let first = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to queue import");
+        let conn = open_db().expect("failed to reopen db");
+        update_import_status_by_id(&conn, &first.record.id, "failed", "boom")
+            .expect("failed to mark import failed");
+
+        let retried = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to retry import");
+
+        assert!(retried.should_start);
+        assert_eq!(retried.record.id, first.record.id);
+        assert_eq!(retried.record.status, "queued");
+        assert!(retried.record.error_message.is_empty());
+    }
+
+    #[test]
+    fn complete_import_writes_summary_and_venues() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("complete-import");
+
+        let queued = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to queue import");
+        let completed = super::complete_import_by_id(
+            &queued.record.id,
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            &sample_probe_result(),
+        )
+        .expect("failed to complete import");
+
+        assert_eq!(completed.status, "succeeded");
+        assert_eq!(completed.bvid, "BV1xx411c7mD");
+        assert_eq!(completed.video_summary, "视频讲了两家店");
+        assert_eq!(completed.venues.len(), 1);
+        assert_eq!(completed.venues[0].venue_name, "炭火小馆");
+    }
+
+    #[test]
+    fn retry_import_reuses_failed_row_and_requeues_it() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("retry-import");
+
+        let first = queue_import(
+            "https://www.bilibili.com/video/BV1xx411c7mD/",
+            "BV1xx411c7mD",
+        )
+        .expect("failed to queue import");
+        let conn = open_db().expect("failed to reopen db");
+        update_import_status_by_id(&conn, &first.record.id, "failed", "boom")
+            .expect("failed to mark import failed");
+
+        let retried = retry_import_by_id(&first.record.id).expect("failed to retry import by id");
+        assert!(retried.should_start);
+        assert_eq!(retried.record.id, first.record.id);
+        assert_eq!(retried.record.status, "queued");
+        assert!(retried.record.error_message.is_empty());
+    }
+
+    #[test]
+    fn snapshot_includes_saved_creator_syncs() {
+        let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+        let _home = TestHomeGuard::new("creator-sync-history");
+
+        save_creator_sync(
+            "123456",
+            "测试博主",
+            "https://space.bilibili.com/123456",
+            12,
+            4,
+            8,
+        )
+        .expect("failed to save creator sync");
+
+        let snapshot = load_snapshot().expect("failed to load snapshot");
+        assert_eq!(snapshot.creator_syncs.len(), 1);
+        let sync = &snapshot.creator_syncs[0];
+        assert_eq!(sync.creator_mid, "123456");
+        assert_eq!(sync.creator_name, "测试博主");
+        assert_eq!(sync.last_scanned_count, 12);
+        assert_eq!(sync.last_queued_count, 4);
+        assert_eq!(sync.last_skipped_existing_count, 8);
     }
 }
