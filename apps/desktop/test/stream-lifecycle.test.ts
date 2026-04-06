@@ -39,6 +39,59 @@ function installBrowserGlobals(): () => void {
   };
 }
 
+function installFakeTimers(): {
+  restore: () => void;
+  runTimer: (id: number) => void;
+  getTimerIds: () => number[];
+} {
+  const previousSetTimeout = globalThis.setTimeout;
+  const previousClearTimeout = globalThis.clearTimeout;
+  let nextId = 1;
+  const timers = new Map<number, () => void>();
+
+  Object.defineProperty(globalThis, 'setTimeout', {
+    value: ((callback: TimerHandler) => {
+      const id = nextId++;
+      timers.set(id, () => {
+        if (typeof callback === 'function') {
+          callback();
+        }
+      });
+      return id;
+    }) as typeof setTimeout,
+    configurable: true,
+  });
+
+  Object.defineProperty(globalThis, 'clearTimeout', {
+    value: ((id: ReturnType<typeof setTimeout>) => {
+      timers.delete(Number(id));
+    }) as typeof clearTimeout,
+    configurable: true,
+  });
+
+  return {
+    restore: () => {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        value: previousSetTimeout,
+        configurable: true,
+      });
+      Object.defineProperty(globalThis, 'clearTimeout', {
+        value: previousClearTimeout,
+        configurable: true,
+      });
+    },
+    runTimer: (id: number) => {
+      const callback = timers.get(id);
+      if (!callback) {
+        return;
+      }
+      timers.delete(id);
+      callback();
+    },
+    getTimerIds: () => [...timers.keys()],
+  };
+}
+
 import {
     startStream,
     feedStreamEvent,
@@ -147,6 +200,38 @@ test('D-STRM: events after done are ignored', () => {
   const state = getStreamState(TEST_CHAT);
   assert.equal(state.phase, 'done');
   assert.equal(state.partialText, '');
+});
+
+test('D-STRM: late terminal completion recovers a first-packet timeout', () => {
+  const fakeTimers = installFakeTimers();
+  try {
+    startStream(TEST_CHAT);
+    const [firstPacketTimerId] = fakeTimers.getTimerIds();
+    assert.ok(firstPacketTimerId, 'expected first-packet timer to be registered');
+
+    fakeTimers.runTimer(firstPacketTimerId);
+
+    let state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'error');
+    assert.equal(state.cancelSource, 'timeout');
+    assert.equal(state.errorMessage, 'No response within 10s');
+
+    feedStreamEvent(TEST_CHAT, {
+      type: 'done',
+      finalText: 'late final answer',
+      finalReasoningText: 'late reasoning',
+    });
+
+    state = getStreamState(TEST_CHAT);
+    assert.equal(state.phase, 'done');
+    assert.equal(state.partialText, 'late final answer');
+    assert.equal(state.partialReasoningText, 'late reasoning');
+    assert.equal(state.errorMessage, null);
+    assert.equal(state.cancelSource, null);
+    assert.equal(state.interrupted, false);
+  } finally {
+    fakeTimers.restore();
+  }
 });
 
 test('D-STRM: idle state for unknown chatId', () => {

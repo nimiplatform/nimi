@@ -152,6 +152,94 @@ fn chat_ai_store_round_trip_thread_message_and_draft() {
 }
 
 #[test]
+fn chat_ai_store_allows_empty_pending_assistant_placeholder_content() {
+    let home = temp_home("empty-placeholder");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-ai")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let thread = create_thread(
+            &conn,
+            &ChatAiCreateThreadInput {
+                id: "thread-ai-placeholder".to_string(),
+                title: "AI thread".to_string(),
+                created_at_ms: 100,
+                updated_at_ms: 120,
+                last_message_at_ms: None,
+                archived_at_ms: None,
+                route_snapshot: sample_route_snapshot(),
+            },
+        )
+        .expect("create thread");
+
+        let user_message = create_message(
+            &conn,
+            &ChatAiCreateMessageInput {
+                id: "message-user".to_string(),
+                thread_id: thread.id.clone(),
+                role: ChatAiMessageRole::User,
+                status: ChatAiMessageStatus::Complete,
+                content_text: "hello".to_string(),
+                content: sample_content("hello"),
+                error: None,
+                trace_id: None,
+                parent_message_id: None,
+                created_at_ms: 130,
+                updated_at_ms: 130,
+            },
+        )
+        .expect("create user message");
+
+        let assistant_placeholder = create_message(
+            &conn,
+            &ChatAiCreateMessageInput {
+                id: "message-assistant".to_string(),
+                thread_id: thread.id.clone(),
+                role: ChatAiMessageRole::Assistant,
+                status: ChatAiMessageStatus::Pending,
+                content_text: "".to_string(),
+                content: sample_content(""),
+                error: None,
+                trace_id: None,
+                parent_message_id: Some(user_message.id.clone()),
+                created_at_ms: 131,
+                updated_at_ms: 131,
+            },
+        )
+        .expect("create assistant placeholder");
+        assert_eq!(assistant_placeholder.content.parts.len(), 1);
+        match &assistant_placeholder.content.parts[0] {
+            ChatAiMessagePart::Text(value) => assert_eq!(value.text, ""),
+        }
+
+        let updated_placeholder = update_message(
+            &conn,
+            &ChatAiUpdateMessageInput {
+                id: assistant_placeholder.id.clone(),
+                status: ChatAiMessageStatus::Error,
+                content_text: "".to_string(),
+                content: sample_content(""),
+                error: Some(ChatAiMessageError {
+                    code: Some("RUNTIME_CALL_FAILED".to_string()),
+                    message: "failed".to_string(),
+                }),
+                trace_id: None,
+                updated_at_ms: 132,
+            },
+        )
+        .expect("update assistant placeholder");
+        match &updated_placeholder.content.parts[0] {
+            ChatAiMessagePart::Text(value) => assert_eq!(value.text, ""),
+        }
+    });
+}
+
+#[test]
 fn chat_ai_store_rejects_missing_thread_duplicate_id_and_invalid_json() {
     let home = temp_home("errors");
     with_env(&[("HOME", home.to_str())], || {

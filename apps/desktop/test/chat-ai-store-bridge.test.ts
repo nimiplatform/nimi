@@ -240,6 +240,19 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
       createdAtMs: 80,
       updatedAtMs: 90,
     });
+    await chatAiStoreClient.createMessage({
+      id: 'message-2',
+      threadId: 'thread-1',
+      role: 'assistant',
+      status: 'pending',
+      contentText: '',
+      content: sampleMessageContent(''),
+      error: null,
+      traceId: null,
+      parentMessageId: 'message-1',
+      createdAtMs: 91,
+      updatedAtMs: 91,
+    });
     await chatAiStoreClient.updateMessage({
       id: 'message-1',
       status: 'streaming',
@@ -264,6 +277,7 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
       'chat_ai_create_thread',
       'chat_ai_update_thread_metadata',
       'chat_ai_create_message',
+      'chat_ai_create_message',
       'chat_ai_update_message',
       'chat_ai_get_draft',
       'chat_ai_put_draft',
@@ -287,6 +301,21 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
     });
     assert.deepEqual(calls[5]?.payload, {
       payload: {
+        id: 'message-2',
+        threadId: 'thread-1',
+        role: 'assistant',
+        status: 'pending',
+        contentText: '',
+        content: sampleMessageContent(''),
+        error: null,
+        traceId: null,
+        parentMessageId: 'message-1',
+        createdAtMs: 91,
+        updatedAtMs: 91,
+      },
+    });
+    assert.deepEqual(calls[6]?.payload, {
+      payload: {
         id: 'message-1',
         status: 'streaming',
         contentText: 'hello world',
@@ -296,7 +325,7 @@ test('chat ai store bridge invokes fixed tauri commands and payload shapes', asy
         updatedAtMs: 95,
       },
     });
-    assert.deepEqual(calls[8]?.payload, {
+    assert.deepEqual(calls[9]?.payload, {
       payload: {
         threadId: 'thread-1',
       },

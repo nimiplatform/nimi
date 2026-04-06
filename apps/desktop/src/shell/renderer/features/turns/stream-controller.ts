@@ -32,7 +32,12 @@ export type StreamState = {
 export type StreamEvent =
   | { type: 'reasoning_delta'; textDelta: string }
   | { type: 'text_delta'; textDelta: string }
-  | { type: 'done'; usage?: { inputTokens?: number; outputTokens?: number } }
+  | {
+    type: 'done';
+    usage?: { inputTokens?: number; outputTokens?: number };
+    finalText?: string;
+    finalReasoningText?: string;
+  }
   | { type: 'error'; message: string; reasonCode?: string; traceId?: string };
 
 type StreamListener = (state: StreamState) => void;
@@ -283,7 +288,21 @@ function resetIdleTimeout(chatId: string, abortController: AbortController) {
 
 export function feedStreamEvent(chatId: string, event: StreamEvent) {
   const current = activeStreams.get(chatId);
-  if (!current || (current.phase !== 'waiting' && current.phase !== 'streaming')) {
+  const canRecoverTimeoutWithTerminal = Boolean(
+    current
+    && current.phase === 'error'
+    && current.cancelSource === 'timeout'
+    && event.type === 'done',
+  );
+
+  if (
+    !current
+    || (
+      current.phase !== 'waiting'
+      && current.phase !== 'streaming'
+      && !canRecoverTimeoutWithTerminal
+    )
+  ) {
     return;
   }
 
@@ -323,15 +342,39 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
   }
 
   if (event.type === 'done') {
+    const now = Date.now();
+    const finalText = typeof event.finalText === 'string'
+      ? event.finalText
+      : current.partialText;
+    const finalReasoningText = typeof event.finalReasoningText === 'string'
+      ? event.finalReasoningText
+      : current.partialReasoningText;
+    const hasTerminalContent = finalText.length > 0 || finalReasoningText.length > 0;
     const doneState: StreamState = {
       ...current,
       phase: 'done',
+      partialText: finalText,
+      partialReasoningText: finalReasoningText,
+      errorMessage: null,
+      interrupted: false,
+      firstPacketAt: current.firstPacketAt ?? (hasTerminalContent ? now : null),
+      lastActivityAt: hasTerminalContent ? now : current.lastActivityAt,
+      idleDeadlineAt: null,
+      cancelSource: null,
     };
     setStreamState(chatId, doneState);
     clearTimers(chatId);
     abortControllers.delete(chatId);
     scheduleTerminalCleanup(chatId);
     notify(doneState);
+    if (canRecoverTimeoutWithTerminal) {
+      logRendererEvent({
+        level: 'info',
+        area: 'stream-controller',
+        message: 'stream:late-terminal-recovery',
+        details: { chatId },
+      });
+    }
     return;
   }
 

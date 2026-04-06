@@ -162,7 +162,7 @@ function parseChatAiMessagePart(value: unknown, errorPrefix: string): ChatAiMess
   }
   return {
     type: 'text',
-    text: parseRequiredString(record.text, 'text', errorPrefix),
+    text: String(record.text ?? ''),
   };
 }
 

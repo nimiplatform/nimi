@@ -120,11 +120,9 @@ pub(super) fn normalize_message_content(
         .iter()
         .map(|part| -> Result<ChatAiMessagePart, String> {
             match part {
-                ChatAiMessagePart::Text(value) => {
-                    Ok(ChatAiMessagePart::Text(ChatAiMessagePartText {
-                        text: normalize_required_string(&value.text, "content.parts[].text")?,
-                    }))
-                }
+                ChatAiMessagePart::Text(value) => Ok(ChatAiMessagePart::Text(ChatAiMessagePartText {
+                    text: value.text.clone(),
+                })),
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
