@@ -83,9 +83,9 @@ origin, with same-origin proxying for backend traffic.
 - Custom domain: your primary web origin (for example `app.example.com`)
 - Static assets: served by Pages from `dist/`
 - Backend proxy:
-  [`functions/api/[[path]].js`](/Users/snwozy/nimi-realm/nimi/apps/web/functions/api/[[path]].js)
+  [`functions/api/[[path]].js`](./functions/api/[[path]].js)
   and
-  [`functions/socket.io/[[path]].js`](/Users/snwozy/nimi-realm/nimi/apps/web/functions/socket.io/[[path]].js)
+  [`functions/socket.io/[[path]].js`](./functions/socket.io/[[path]].js)
   forward `/api/*` and `/socket.io/*` to `API_ORIGIN`
 - Example `API_ORIGIN`: `https://api.example.com`
 

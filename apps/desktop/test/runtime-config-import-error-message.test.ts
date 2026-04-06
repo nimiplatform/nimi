@@ -5,11 +5,11 @@ import { toAssetImportUserMessage } from '../src/shell/renderer/features/runtime
 
 test('toAssetImportUserMessage strips reason code prefix and keeps symlink target guidance', () => {
   const message = toAssetImportUserMessage(new Error(
-    'LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: Symbolic links are not supported for import. Import the real file path instead. Link source: /Users/snwozy/.nimi/data/models/Qwen3-4B-Q4_K_M.gguf. Link target: /Users/snwozy/ai/ComfyUI/models/clip/Qwen3-4B-Q4_K_M.gguf',
+    'LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: Symbolic links are not supported for import. Import the real file path instead. Link source: /var/tmp/.nimi/data/models/Qwen3-4B-Q4_K_M.gguf. Link target: /var/tmp/ComfyUI/models/clip/Qwen3-4B-Q4_K_M.gguf',
   ));
   assert.equal(
     message,
-    'Symbolic links are not supported for import. Import the real file path instead. Link source: /Users/snwozy/.nimi/data/models/Qwen3-4B-Q4_K_M.gguf. Link target: /Users/snwozy/ai/ComfyUI/models/clip/Qwen3-4B-Q4_K_M.gguf',
+    'Symbolic links are not supported for import. Import the real file path instead. Link source: /var/tmp/.nimi/data/models/Qwen3-4B-Q4_K_M.gguf. Link target: /var/tmp/ComfyUI/models/clip/Qwen3-4B-Q4_K_M.gguf',
   );
 });
 

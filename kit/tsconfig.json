@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@nimiplatform/nimi-kit/ui": ["./ui/src/index.ts"],
       "@nimiplatform/nimi-kit/ui/*": ["./ui/src/*"],

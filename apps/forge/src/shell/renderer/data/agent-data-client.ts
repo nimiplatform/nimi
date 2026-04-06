@@ -7,6 +7,7 @@
 
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@renderer/bridge/types.js';
 
 function realm() {
   return getPlatformClient().realm;
@@ -20,7 +21,7 @@ type CreateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesCon
 type UpdateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerUpdateRule'>[3];
 type CreateCreatorKeyInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateKey'>[0];
 type UpdateAgentVisibilityInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateVisibility'>[1];
-type AgentRuleListPayload = Array<Record<string, unknown>>;
+type AgentRuleListPayload = JsonObject[];
 export type ForgeCreateCreatorAgentInput = CreateCreatorAgentInput | {
   handle?: string;
   displayName?: string;

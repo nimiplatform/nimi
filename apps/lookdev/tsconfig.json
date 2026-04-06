@@ -1,13 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/shell/renderer/*"],
-      "react": ["node_modules/@types/react/index.d.ts"],
-      "react/jsx-runtime": ["node_modules/@types/react/jsx-runtime.d.ts"],
-      "react-dom": ["node_modules/@types/react-dom/index.d.ts"],
-      "react-dom/client": ["node_modules/@types/react-dom/client.d.ts"],
-      "react-dom/server": ["node_modules/@types/react-dom/server.d.ts"],
+      "@renderer/*": ["./src/shell/renderer/*"],
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"],
+      "react-dom/server": ["./node_modules/@types/react-dom/server.d.ts"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],

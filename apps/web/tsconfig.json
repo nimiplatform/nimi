@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@renderer/infra/bootstrap/runtime-bootstrap": ["src/desktop-adapter/runtime-bootstrap.web.ts"],
-      "@renderer/mod-ui/host/slot-host": ["src/desktop-adapter/slot-host.web.tsx"],
-      "@renderer/mod-ui/host/slot-context": ["src/desktop-adapter/slot-context.web.ts"],
-      "@renderer/features/mod-workspace/mod-workspace-tabs": ["src/desktop-adapter/mod-workspace-tabs.web.tsx"],
-      "@renderer/features/runtime-config/runtime-config-panel-view": ["src/desktop-adapter/runtime-config-panel.web.tsx"],
-      "@renderer/features/mod-hub/mod-hub-page": ["src/desktop-adapter/mod-hub-page.web.tsx"],
-      "@renderer/bridge": ["src/desktop-adapter/bridge.web.ts"],
+      "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
+      "@renderer/mod-ui/host/slot-host": ["./src/desktop-adapter/slot-host.web.tsx"],
+      "@renderer/mod-ui/host/slot-context": ["./src/desktop-adapter/slot-context.web.ts"],
+      "@renderer/features/mod-workspace/mod-workspace-tabs": ["./src/desktop-adapter/mod-workspace-tabs.web.tsx"],
+      "@renderer/features/runtime-config/runtime-config-panel-view": ["./src/desktop-adapter/runtime-config-panel.web.tsx"],
+      "@renderer/features/mod-hub/mod-hub-page": ["./src/desktop-adapter/mod-hub-page.web.tsx"],
+      "@renderer/bridge": ["./src/desktop-adapter/bridge.web.ts"],
       "@runtime/*": ["../desktop/src/runtime/*"],
       "@renderer/*": ["../desktop/src/shell/renderer/*"],
       "@nimiplatform/sdk/runtime": ["../../sdk/src/runtime/browser.ts"],
