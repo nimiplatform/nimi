@@ -191,17 +191,17 @@ Age-appropriate sleep duration reference (descriptive only, not diagnostic):
 
 ## PO-PROF-011 Medical Event Shape
 
-Medical events capture injuries, fractures, surgeries, skin conditions, medication courses, and hearing screenings. Must store and read:
+Medical events capture outpatient visits, emergency visits, hospitalizations, checkups/screenings, medication courses, and other notable health events. Must store and read:
 
 - `eventId`
 - `childId`
-- `eventType` — one of `injury | fracture | surgery | skin-condition | medication | hearing-screening | other`
+- `eventType` — one of `visit | emergency | hospitalization | checkup | medication | other`
 - `title`
 - `eventDate`
 - `ageMonths`
 - optional `endDate`, `severity`, `result`, `hospital`, `medication`, `dosage`, `notes`, `photoPath`
 
-For hearing screenings, `result` uses `pass | refer | fail`. Newborn hearing screening should be recorded as the first hearing-screening event.
+For screenings/checkups, `result` uses `pass | refer | fail` when applicable. Newborn hearing screening should be recorded as the first `checkup` event.
 
 ## PO-PROF-012 Tanner Assessment Shape
 
@@ -223,7 +223,7 @@ Physical fitness assessments must store and read:
 - `childId`
 - `assessedAt`
 - `ageMonths`
-- optional `assessmentSource`, individual metric fields (`run50m`, `run800m`, `run1000m`, `sitAndReach`, `standingLongJump`, `sitUps`, `pullUps`, `ropeSkipping`, `vitalCapacity`), `footArchStatus`, `overallGrade`, `notes`
+- optional `assessmentSource`, individual metric fields (`run50m`, `run800m`, `run1000m`, `run50x8`, `sitAndReach`, `standingLongJump`, `sitUps`, `pullUps`, `ropeSkipping`, `vitalCapacity`), `footArchStatus`, `overallGrade`, `notes`
 
 Fitness metric fields follow China National Student Physical Fitness Standards (国家学生体质健康标准) test items. Not all fields are required per assessment — only populated metrics are meaningful.
 

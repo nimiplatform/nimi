@@ -255,11 +255,11 @@ tables:
   # ── 就医与用药事件 ──────────────────────────────────────
 
   - name: medical_events
-    description: "General medical events: injuries, fractures, surgeries, skin conditions (eczema flares), medication courses, hearing screenings."
+    description: "General medical events: outpatient visits, emergency visits, hospitalizations, checkups/screenings, medication courses, and other notable health events."
     columns:
       - { name: eventId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: eventType, type: TEXT, nullable: false, description: "injury | fracture | surgery | skin-condition | medication | hearing-screening | other" }
+      - { name: eventType, type: TEXT, nullable: false, description: "visit | emergency | hospitalization | checkup | medication | other" }
       - { name: title, type: TEXT, nullable: false, description: "Short summary (e.g. '左前臂骨折', '湿疹发作', '新生儿听力筛查')" }
       - { name: eventDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
       - { name: endDate, type: TEXT, nullable: true, description: "ISO 8601 date for conditions/medication courses with a duration" }
@@ -306,7 +306,8 @@ tables:
       - { name: assessmentSource, type: TEXT, nullable: true, description: "school-pe | sports-club | clinic | self" }
       - { name: run50m, type: REAL, nullable: true, description: "50m sprint in seconds" }
       - { name: run800m, type: REAL, nullable: true, description: "800m run in seconds (female)" }
-      - { name: run1000m, type: REAL, nullable: true, description: "1000m run in seconds (male)" }
+      - { name: run1000m, type: REAL, nullable: true, description: "1000m run in seconds (male, grade 7+)" }
+      - { name: run50x8, type: REAL, nullable: true, description: "50m×8 shuttle run in seconds (grades 5-6)" }
       - { name: sitAndReach, type: REAL, nullable: true, description: "Sit-and-reach flexibility in cm" }
       - { name: standingLongJump, type: REAL, nullable: true, description: "Standing long jump in cm" }
       - { name: sitUps, type: INTEGER, nullable: true, description: "Sit-ups count in 1 minute" }

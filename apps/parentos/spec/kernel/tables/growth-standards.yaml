@@ -223,6 +223,98 @@ measurementTypes:
     standardSource: "IOL-master normative"
     curveType: reference-range
 
+  # ── 眼科扩展（眼压/前房/晶体/K1K2） ────────────────────
+
+  - typeId: iop-left
+    displayName: "左眼眼压"
+    unit: "mmHg"
+    precision: 0
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: iop-right
+    displayName: "右眼眼压"
+    unit: "mmHg"
+    precision: 0
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "NHC-vision-2023"
+    curveType: reference-range
+
+  - typeId: corneal-k1-left
+    displayName: "左眼角膜曲率 K1"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: corneal-k1-right
+    displayName: "右眼角膜曲率 K1"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: corneal-k2-left
+    displayName: "左眼角膜曲率 K2"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: corneal-k2-right
+    displayName: "右眼角膜曲率 K2"
+    unit: "D"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: acd-left
+    displayName: "左眼前房深度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: acd-right
+    displayName: "右眼前房深度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: lt-left
+    displayName: "左眼晶体厚度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
+  - typeId: lt-right
+    displayName: "右眼晶体厚度"
+    unit: "mm"
+    precision: 2
+    ageRange: { startMonths: 36, endMonths: 216 }
+    frequency: "每半年"
+    standardSource: "IOL-master normative"
+    curveType: reference-range
+
   # ── 体成分 ──────────────────────────────────────────────
 
   - typeId: body-fat-percentage

@@ -661,6 +661,7 @@ export interface FitnessAssessmentRow {
   run50m: number | null;
   run800m: number | null;
   run1000m: number | null;
+  run50x8: number | null;
   sitAndReach: number | null;
   standingLongJump: number | null;
   sitUps: number | null;
@@ -682,6 +683,7 @@ export function insertFitnessAssessment(params: {
   run50m: number | null;
   run800m: number | null;
   run1000m: number | null;
+  run50x8: number | null;
   sitAndReach: number | null;
   standingLongJump: number | null;
   sitUps: number | null;

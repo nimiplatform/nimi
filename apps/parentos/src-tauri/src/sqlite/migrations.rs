@@ -5,7 +5,7 @@ mod migrations_schema;
 
 use migrations_schema::V1_SCHEMA_SQL;
 
-const SCHEMA_VERSION: u32 = 1;
+const SCHEMA_VERSION: u32 = 2;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
@@ -37,12 +37,87 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("migration: failed to record v1: {e}"))?;
     }
 
+    if current_version < 2 {
+        apply_v2(conn)?;
+        conn.execute(
+            "INSERT INTO _schema_version (version, applied_at) VALUES (?1, datetime('now'))",
+            [&2i64],
+        )
+        .map_err(|e| format!("migration: failed to record v2: {e}"))?;
+    }
+
     Ok(())
 }
 
 fn apply_v1(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(V1_SCHEMA_SQL)
     .map_err(|e| format!("migration v1 failed: {e}"))
+}
+
+/// v2: ensure tables added after initial v1 deployment exist for databases
+/// that already ran v1 before these tables were introduced.
+fn apply_v2(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(
+        r#"
+        CREATE TABLE IF NOT EXISTS medical_events (
+            eventId    TEXT PRIMARY KEY NOT NULL,
+            childId    TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
+            eventType  TEXT NOT NULL,
+            title      TEXT NOT NULL,
+            eventDate  TEXT NOT NULL,
+            endDate    TEXT,
+            ageMonths  INTEGER NOT NULL,
+            severity   TEXT,
+            result     TEXT,
+            hospital   TEXT,
+            medication TEXT,
+            dosage     TEXT,
+            notes      TEXT,
+            photoPath  TEXT,
+            createdAt  TEXT NOT NULL,
+            updatedAt  TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_medical_child_date ON medical_events (childId, eventDate);
+        CREATE INDEX IF NOT EXISTS idx_medical_child_type ON medical_events (childId, eventType);
+
+        CREATE TABLE IF NOT EXISTS tanner_assessments (
+            assessmentId         TEXT PRIMARY KEY NOT NULL,
+            childId              TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
+            assessedAt           TEXT NOT NULL,
+            ageMonths            INTEGER NOT NULL,
+            breastOrGenitalStage INTEGER,
+            pubicHairStage       INTEGER,
+            assessedBy           TEXT,
+            notes                TEXT,
+            createdAt            TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_tanner_child_date ON tanner_assessments (childId, assessedAt);
+
+        CREATE TABLE IF NOT EXISTS fitness_assessments (
+            assessmentId     TEXT PRIMARY KEY NOT NULL,
+            childId          TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
+            assessedAt       TEXT NOT NULL,
+            ageMonths        INTEGER NOT NULL,
+            assessmentSource TEXT,
+            run50m           REAL,
+            run800m          REAL,
+            run1000m         REAL,
+            run50x8          REAL,
+            sitAndReach      REAL,
+            standingLongJump REAL,
+            sitUps           INTEGER,
+            pullUps          INTEGER,
+            ropeSkipping     INTEGER,
+            vitalCapacity    INTEGER,
+            footArchStatus   TEXT,
+            overallGrade     TEXT,
+            notes            TEXT,
+            createdAt        TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_fitness_child_date ON fitness_assessments (childId, assessedAt);
+    "#,
+    )
+    .map_err(|e| format!("migration v2 failed: {e}"))
 }
 
 #[cfg(test)]
@@ -469,7 +544,7 @@ mod tests {
 
         conn.execute(
             "INSERT INTO medical_events (eventId, childId, eventType, title, eventDate, ageMonths, severity, result, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)",
-            params!["med-1", "child-1", "hearing-screening", "新生儿听力筛查", "2024-01-17", 0, std::option::Option::<String>::None, "pass", "2026-01-01T00:00:00.000Z"],
+            params!["med-1", "child-1", "checkup", "新生儿听力筛查", "2024-01-17", 0, std::option::Option::<String>::None, "pass", "2026-01-01T00:00:00.000Z"],
         ).expect("insert medical event");
 
         let row = conn.query_row(
@@ -477,7 +552,7 @@ mod tests {
             params!["med-1"],
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, Option<String>>(2)?)),
         ).expect("query medical event");
-        assert_eq!(row.0, "hearing-screening");
+        assert_eq!(row.0, "checkup");
         assert_eq!(row.1, "新生儿听力筛查");
         assert_eq!(row.2.as_deref(), Some("pass"));
 
