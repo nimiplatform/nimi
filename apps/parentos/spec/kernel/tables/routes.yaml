@@ -34,6 +34,12 @@ routes:
     description: "疫苗接种记录和计划。"
     parent: /profile
 
+  - path: /profile/vision
+    displayName: "Vision Record"
+    feature: profile
+    description: "Vision, refraction, axial length, and eye health records."
+    parent: /profile
+
   - path: /profile/dental
     displayName: "口腔发育"
     feature: profile
@@ -70,11 +76,22 @@ routes:
     description: "学校体测、体能评估成绩记录。"
     parent: /profile
 
+  - path: /profile/report-upload
+    displayName: "Report Upload"
+    feature: profile
+    description: "Upload a local checkup image, review extracted measurement candidates, and import only after parent confirmation."
+    parent: /profile
+
   - path: /journal
     displayName: "观察日记"
     feature: journal
     description: "家长观察记录，支持文字、语音、照片。"
     icon: book-open
+
+  - path: /reminders
+    displayName: "Reminders"
+    feature: timeline
+    description: "Review actionable, upcoming, and completed reminders."
 
   - path: /advisor
     displayName: "成长顾问"

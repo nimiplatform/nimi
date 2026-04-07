@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
 :root {
-  --color-primary: #6366f1;
-  --color-primary-light: #818cf8;
+  --color-primary: #1e3a5f;
+  --color-primary-light: #2d5a8e;
+  --color-navy-light: #2d5a8e;
   --color-surface: #ffffff;
   --color-surface-secondary: #f8fafc;
   --color-text-primary: #0f172a;
@@ -12,7 +13,7 @@
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-accent: #c5e84d;
-  --color-bg-dashboard: #f0f0ec;
+  --color-bg-dashboard: #E5ECEC;
   --color-navy: #1e3a5f;
 }
 
@@ -22,4 +23,37 @@ html, body, #root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   color: var(--color-text-primary);
   background: var(--color-surface);
+}
+
+/* Thin blue scrollbar — hidden by default, visible on hover */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: #b0bab5 transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: #b0bab5;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Card flip animation for child switch */
+@keyframes cardFlip {
+  0%   { transform: rotateY(0deg); }
+  50%  { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
 }

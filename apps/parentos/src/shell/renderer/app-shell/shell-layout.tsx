@@ -1,64 +1,89 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Home, User, BookText, MessageCircle, TrendingUp, Settings, type LucideProps } from 'lucide-react';
 import { useAppStore } from './app-store.js';
 
-const navItems = [
-  { to: '/timeline', label: 'Timeline', icon: 'T' },
-  { to: '/profile', label: 'Profile', icon: 'P' },
-  { to: '/journal', label: 'Journal', icon: 'J' },
-  { to: '/advisor', label: 'Advisor', icon: 'A' },
-  { to: '/reports', label: 'Reports', icon: 'R' },
-  { to: '/settings', label: 'Settings', icon: 'S' },
-] as const;
+const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
+  { to: '/timeline', label: '首页', Icon: Home },
+  { to: '/profile', label: '档案', Icon: User },
+  { to: '/journal', label: '观察笔记', Icon: BookText },
+  { to: '/advisor', label: '顾问', Icon: MessageCircle },
+  { to: '/reports', label: '报告', Icon: TrendingUp },
+  { to: '/settings', label: '设置', Icon: Settings },
+];
 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const { children: childList, activeChildId, setActiveChildId } = useAppStore();
+  const activeChild = childList.find((c) => c.childId === activeChildId);
 
   return (
-    <div className="flex h-full">
-      <nav className="flex w-56 shrink-0 flex-col border-r border-gray-200 bg-gray-50 px-3 pt-12">
-        <div className="mb-6 px-3">
-          <h1 className="text-lg font-semibold text-gray-900">ParentOS</h1>
-          <p className="mt-0.5 text-xs text-gray-500">成长底栈</p>
+    <div className="flex h-full" style={{ background: '#E5ECEA' }}>
+      {/* Narrow icon sidebar */}
+      <nav className="flex w-[72px] shrink-0 flex-col items-center py-4" style={{ background: '#E5ECEA' }}>
+        {/* Greeting — above nav icons, left-aligned with them, overflows right */}
+        <div className="w-[42px] self-center mb-5 relative">
+          <div className="whitespace-nowrap">
+            <h1 className="text-[18px] font-bold leading-tight" style={{ color: '#1a2b4a' }}>记录成长，科学育娃</h1>
+            <p className="text-[11px] mt-0.5" style={{ color: '#8a94a6' }}>
+              {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+            </p>
+          </div>
         </div>
 
-        {childList.length > 1 && (
-          <div className="mb-4 px-3">
-            <select
-              value={activeChildId ?? ''}
-              onChange={(event) => setActiveChildId(event.target.value || null)}
-              className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm"
-            >
-              {childList.map((child) => (
-                <option key={child.childId} value={child.childId}>
-                  {child.displayName}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-1">
+        {/* Nav items */}
+        <div className="flex flex-1 flex-col items-center gap-[10px]">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                `group relative flex items-center justify-center w-[42px] h-[42px] rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-indigo-50 font-medium text-indigo-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'text-white'
+                    : 'hover:bg-black/[0.04]'
                 }`
               }
+              style={({ isActive }) =>
+                isActive
+                  ? { background: '#94A533', color: '#fff' }
+                  : { color: '#8a94a6' }
+              }
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-gray-500">
-                {item.icon}
+              <item.Icon size={20} strokeWidth={1.8} />
+              {/* Green tooltip on hover */}
+              <span className="pointer-events-none absolute left-[54px] z-50 whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+                style={{ background: '#94A533' }}>
+                {item.label}
               </span>
-              {item.label}
             </NavLink>
           ))}
         </div>
+
+        {/* Child avatar + hidden selector */}
+        {childList.length > 0 && (
+          <div className="relative mt-auto">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold" style={{ background: '#1a2b4a', color: '#fff' }}>
+              {activeChild?.displayName.charAt(0) ?? '?'}
+            </div>
+            {childList.length > 1 && (
+              <select
+                value={activeChildId ?? ''}
+                onChange={(event) => setActiveChildId(event.target.value || null)}
+                className="absolute inset-0 cursor-pointer opacity-0"
+                aria-label="切换孩子"
+              >
+                {childList.map((child) => (
+                  <option key={child.childId} value={child.childId}>
+                    {child.displayName}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
       </nav>
+
+      {/* Main content */}
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );

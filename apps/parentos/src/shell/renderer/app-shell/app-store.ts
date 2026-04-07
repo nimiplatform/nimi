@@ -64,3 +64,15 @@ export function computeAgeMonthsAt(birthDate: string, atDate: string): number {
   }
   return Math.max(0, months);
 }
+
+/**
+ * Format age in months for display:
+ *   < 12 months → "X 个月"
+ *   >= 12 months → "X岁Y个月" (omit Y if 0)
+ */
+export function formatAge(months: number): string {
+  if (months < 12) return `${months}个月`;
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  return m > 0 ? `${y}岁${m}个月` : `${y}岁`;
+}
