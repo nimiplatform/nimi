@@ -9,6 +9,7 @@ import {
   Surface,
 } from '@nimiplatform/nimi-kit/ui';
 import {
+  importCreator,
   importVideo,
   loadSnapshot,
   loadVideoFoodMapRuntimeOptions,
@@ -74,6 +75,7 @@ function AppBody() {
     queryFn: loadVideoFoodMapRuntimeOptions,
   });
   const [videoUrl, setVideoUrl] = useState('');
+  const [creatorUrl, setCreatorUrl] = useState('');
   const [surface, setSurface] = useState<SurfaceId>('discover');
   const [searchText, setSearchText] = useState('');
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>('all');
@@ -82,6 +84,7 @@ function AppBody() {
   const [selectedDiscoveryVenueId, setSelectedDiscoveryVenueId] = useState<string | null>(null);
   const [selectedVideoVenueId, setSelectedVideoVenueId] = useState<string | null>(null);
   const [nearbyRadiusKm, setNearbyRadiusKm] = useState(10);
+  const [creatorSyncFeedbackText, setCreatorSyncFeedbackText] = useState<string | null>(null);
   const [nearbyLocationState, setNearbyLocationState] = useState<NearbyLocationState>({
     status: 'idle',
     location: null,
@@ -177,11 +180,28 @@ function AppBody() {
     mutationFn: async (url: string) => importVideo(url),
     onSuccess: async (record) => {
       setVideoUrl('');
+      setCreatorSyncFeedbackText(null);
       setSelectedImportId(record.id);
       const preferredVenueId = pickPreferredVenueId(record);
       setSelectedDetailVenueId(preferredVenueId);
       setSelectedVideoVenueId(preferredVenueId);
       setSelectedDiscoveryVenueId(preferredVenueId);
+    },
+    onSettled: refreshSnapshot,
+  });
+
+  const creatorImportMutation = useMutation({
+    mutationFn: async (url: string) => importCreator(url),
+    onSuccess: async (result) => {
+      setCreatorUrl('');
+      setCreatorSyncFeedbackText(
+        `${result.creatorName || '这个博主'}这次扫了 ${result.scannedCount} 条视频，新增 ${result.queuedCount} 条，跳过已存在 ${result.skippedExistingCount} 条。`,
+      );
+      const firstQueuedItem = result.items.find((item) => item.importId && item.status === 'queued');
+      if (firstQueuedItem?.importId) {
+        setSelectedImportId(firstQueuedItem.importId);
+      }
+      setSurface('discover');
     },
     onSettled: refreshSnapshot,
   });
@@ -330,6 +350,10 @@ function AppBody() {
         onVideoUrlChange={setVideoUrl}
         onImport={() => importMutation.mutate(videoUrl.trim())}
         importPending={importMutation.isPending}
+        creatorUrl={creatorUrl}
+        onCreatorUrlChange={setCreatorUrl}
+        onImportCreator={() => creatorImportMutation.mutate(creatorUrl.trim())}
+        creatorImportPending={creatorImportMutation.isPending}
         settings={settingsQuery.data}
         runtimeOptions={runtimeOptions}
         runtimeOptionsPending={runtimeOptionsQuery.isPending}
@@ -341,12 +365,15 @@ function AppBody() {
         runtimeOptionsErrorText={runtimeOptionsQuery.isError ? (runtimeOptionsQuery.error instanceof Error ? runtimeOptionsQuery.error.message : '模型列表加载失败') : null}
         saveSettingsErrorText={saveSettingsMutation.isError ? (saveSettingsMutation.error instanceof Error ? saveSettingsMutation.error.message : '设置保存失败') : null}
         importErrorText={importMutation.isError ? (importMutation.error instanceof Error ? importMutation.error.message : '导入失败') : null}
+        creatorImportErrorText={creatorImportMutation.isError ? (creatorImportMutation.error instanceof Error ? creatorImportMutation.error.message : '博主同步失败') : null}
+        creatorSyncFeedbackText={creatorSyncFeedbackText}
         snapshotErrorText={snapshotQuery.isError ? (snapshotQuery.error instanceof Error ? snapshotQuery.error.message : '加载失败') : null}
       />
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
         <VideoFoodMapSidebar
           snapshotPending={snapshotQuery.isPending}
+          creatorSyncs={snapshot?.creatorSyncs || []}
           favoriteVenues={favoriteVenues}
           filteredImports={filteredImports}
           selectedImport={selectedImport}

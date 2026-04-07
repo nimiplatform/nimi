@@ -11,7 +11,7 @@ import {
 } from '@nimiplatform/nimi-kit/ui';
 import type { ReviewFilter } from '@renderer/data/filter.js';
 import type { UserLocation } from '@renderer/data/nearby.js';
-import type { ImportRecord, VenueRecord, VideoFoodMapSettings, VideoFoodMapSnapshot } from '@renderer/data/types.js';
+import type { CreatorSyncRecord, ImportRecord, VenueRecord, VideoFoodMapSettings, VideoFoodMapSnapshot } from '@renderer/data/types.js';
 import type {
   VideoFoodMapRouteSetting,
   VideoFoodMapRouteSource,
@@ -90,6 +90,10 @@ export function VideoFoodMapHeroSection(props: {
   onVideoUrlChange: (next: string) => void;
   onImport: () => void;
   importPending: boolean;
+  creatorUrl: string;
+  onCreatorUrlChange: (next: string) => void;
+  onImportCreator: () => void;
+  creatorImportPending: boolean;
   settings: VideoFoodMapSettings | undefined;
   runtimeOptions: VideoFoodMapRuntimeOptions | undefined;
   runtimeOptionsPending: boolean;
@@ -101,6 +105,8 @@ export function VideoFoodMapHeroSection(props: {
   runtimeOptionsErrorText: string | null;
   saveSettingsErrorText: string | null;
   importErrorText: string | null;
+  creatorImportErrorText: string | null;
+  creatorSyncFeedbackText: string | null;
   snapshotErrorText: string | null;
 }) {
   const currentSettings = props.settings || createDefaultVideoFoodMapSettings();
@@ -157,20 +163,37 @@ export function VideoFoodMapHeroSection(props: {
         </Surface>
       </div>
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <SearchField
-            value={props.videoUrl}
-            onChange={(event) => props.onVideoUrlChange(event.target.value)}
-            placeholder="贴一个 Bilibili 视频链接，例如 https://www.bilibili.com/video/BV..."
-            className="min-w-0 flex-1 bg-white/80"
-          />
-          <Button
-            tone="primary"
-            onClick={props.onImport}
-            disabled={!props.videoUrl.trim() || props.importPending}
-          >
-            {props.importPending ? '开始导入中...' : '导入并解析'}
-          </Button>
+        <div className="grid gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <SearchField
+              value={props.videoUrl}
+              onChange={(event) => props.onVideoUrlChange(event.target.value)}
+              placeholder="贴一个 Bilibili 视频链接，例如 https://www.bilibili.com/video/BV..."
+              className="min-w-0 flex-1 bg-white/80"
+            />
+            <Button
+              tone="primary"
+              onClick={props.onImport}
+              disabled={!props.videoUrl.trim() || props.importPending}
+            >
+              {props.importPending ? '开始导入中...' : '导入并解析'}
+            </Button>
+          </div>
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <SearchField
+              value={props.creatorUrl}
+              onChange={(event) => props.onCreatorUrlChange(event.target.value)}
+              placeholder="贴一个 Bilibili 博主主页链接，例如 https://space.bilibili.com/..."
+              className="min-w-0 flex-1 bg-white/80"
+            />
+            <Button
+              tone="secondary"
+              onClick={props.onImportCreator}
+              disabled={!props.creatorUrl.trim() || props.creatorImportPending}
+            >
+              {props.creatorImportPending ? '同步中...' : '同步博主最近视频'}
+            </Button>
+          </div>
         </div>
         <SurfaceSwitcher current={props.surface} onChange={props.onSurfaceChange} />
       </div>
@@ -293,6 +316,12 @@ export function VideoFoodMapHeroSection(props: {
       {props.importErrorText ? (
         <div className="text-sm text-[var(--nimi-status-danger)]">{props.importErrorText}</div>
       ) : null}
+      {props.creatorImportErrorText ? (
+        <div className="text-sm text-[var(--nimi-status-danger)]">{props.creatorImportErrorText}</div>
+      ) : null}
+      {props.creatorSyncFeedbackText ? (
+        <div className="text-sm text-[var(--nimi-text-secondary)]">{props.creatorSyncFeedbackText}</div>
+      ) : null}
       {props.snapshotErrorText ? (
         <div className="text-sm text-[var(--nimi-status-danger)]">{props.snapshotErrorText}</div>
       ) : null}
@@ -302,6 +331,7 @@ export function VideoFoodMapHeroSection(props: {
 
 export function VideoFoodMapSidebar(props: {
   snapshotPending: boolean;
+  creatorSyncs: CreatorSyncRecord[];
   favoriteVenues: Array<{ venue: VenueRecord; record: ImportRecord }>;
   filteredImports: ImportRecord[];
   selectedImport: ImportRecord | null;
@@ -334,6 +364,30 @@ export function VideoFoodMapSidebar(props: {
         />
       </div>
       <ScrollArea className="flex-1" contentClassName="space-y-2 px-3 pb-3">
+        {!props.snapshotPending && props.creatorSyncs.length > 0 ? (
+          <Surface tone="card" elevation="base" className="mb-3 space-y-3 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-[var(--nimi-text-primary)]">最近同步的博主</div>
+              <StatusBadge tone="info">{props.creatorSyncs.length} 个</StatusBadge>
+            </div>
+            <div className="space-y-2">
+              {props.creatorSyncs.slice(0, 3).map((record) => (
+                <div
+                  key={`creator-sync-${record.creatorMid}`}
+                  className="rounded-2xl border border-[var(--nimi-border-subtle)] px-3 py-2 text-sm"
+                >
+                  <div className="font-medium text-[var(--nimi-text-primary)]">{record.creatorName || record.creatorMid}</div>
+                  <div className="mt-1 text-[var(--nimi-text-secondary)]">
+                    上次扫了 {record.lastScannedCount} 条，新增 {record.lastQueuedCount} 条
+                  </div>
+                  <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                    {formatImportTime(record.lastSyncedAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+        ) : null}
         {!props.snapshotPending && props.favoriteVenues.length > 0 ? (
           <Surface tone="card" elevation="base" className="mb-3 space-y-3 p-4">
             <div className="flex items-center justify-between gap-3">

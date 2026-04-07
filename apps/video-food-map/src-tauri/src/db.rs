@@ -289,7 +289,6 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_imports_bvid ON imports(bvid) WHERE bvid <> '';
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_imports_source_key ON imports(source_key) WHERE source_key <> '';
 
         CREATE TABLE IF NOT EXISTS venues (
           id TEXT PRIMARY KEY,
@@ -334,6 +333,11 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|error| format!("failed to initialize sqlite schema: {error}"))?;
     ensure_column(conn, "imports", "source_key", "TEXT NOT NULL DEFAULT ''")?;
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_imports_source_key ON imports(source_key) WHERE source_key <> ''",
+        [],
+    )
+    .map_err(|error| format!("failed to ensure source key index: {error}"))?;
     ensure_column(
         conn,
         "imports",
