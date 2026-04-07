@@ -156,7 +156,9 @@ export function useAiConversationModeHost(
     return {
       source: selectedTextBinding.source,
       connectorId: selectedTextBinding.connectorId || '',
-      model: selectedTextBinding.modelId || selectedTextBinding.model || '',
+      model: selectedTextBinding.source === 'local'
+        ? (selectedTextBinding.localModelId || selectedTextBinding.model || '')
+        : (selectedTextBinding.model || selectedTextBinding.modelId || ''),
     };
   }, [selectedTextBinding]);
 

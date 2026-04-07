@@ -40,24 +40,43 @@ const ICON_SETTINGS = (
   </svg>
 );
 
+/** Icon: thinking/brain (16×16). */
+const ICON_THINKING = (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M5.5 13.5V12a3.5 3.5 0 0 1-1.73-6.55A4 4 0 0 1 11.5 4a3.5 3.5 0 0 1 .77 6.91V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6.5 9.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" stroke="currentColor" strokeWidth="1.2" />
+    <circle cx="8" cy="5.5" r="0.75" fill="currentColor" />
+  </svg>
+);
+
 /** Circular icon button matching local-chat `.lc-btn-secondary` style. */
 function HeaderIconButton(props: {
   icon: ReactNode;
   label: string;
+  active?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       aria-label={props.label}
-      onClick={props.onClick}
+      onClick={props.disabled ? undefined : props.onClick}
+      disabled={props.disabled}
       className={cn(
         'inline-flex h-10 w-10 items-center justify-center rounded-full',
-        'border border-slate-200/80 bg-white/90 text-slate-700',
         'shadow-[0_2px_8px_rgba(15,23,42,0.05)]',
         'transition-all duration-150',
-        'hover:-translate-y-px hover:border-emerald-300 hover:text-teal-700 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
         'active:scale-[0.985]',
+        props.active
+          ? 'border border-emerald-400 bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.2)]'
+          : 'border border-slate-200/80 bg-white/90 text-slate-700',
+        props.disabled
+          ? 'cursor-not-allowed opacity-50'
+          : 'hover:-translate-y-px hover:border-emerald-300 hover:text-teal-700 hover:shadow-[0_8px_18px_rgba(15,23,42,0.08)]',
+        props.active && !props.disabled
+          ? 'hover:bg-emerald-600 hover:text-white hover:border-emerald-500'
+          : '',
       )}
     >
       {props.icon}
@@ -95,6 +114,9 @@ export type ConversationShellProps = {
     viewModel: ConversationShellViewModel,
   ) => ReactNode;
   renderThreadMeta?: (thread: ConversationThreadSummary) => ReactNode;
+  /** Thinking toggle state: 'on' = active, 'off' = inactive, 'unsupported' = disabled. */
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
   className?: string;
 
   /* ── legacy compat ── */
@@ -190,6 +212,8 @@ export function ConversationShell({
   settingsContent,
   headerContent,
   transcriptLayout = 'shell',
+  thinkingState,
+  onThinkingToggle,
   onModeChange,
   onSetupAction,
   renderTranscript,
@@ -232,6 +256,15 @@ export function ConversationShell({
         label={viewMode === 'stage' ? 'History' : 'Stage'}
         onClick={handleViewModeToggle}
       />
+      {thinkingState ? (
+        <HeaderIconButton
+          icon={ICON_THINKING}
+          label="Thinking"
+          active={thinkingState === 'on'}
+          disabled={thinkingState === 'unsupported'}
+          onClick={onThinkingToggle}
+        />
+      ) : null}
       {settingsContent ? (
         <HeaderIconButton icon={ICON_SETTINGS} label="Settings" onClick={handleSettingsToggle} />
       ) : null}

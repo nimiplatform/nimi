@@ -287,15 +287,6 @@ export function useHumanConversationModeHost(
     rightSidebarAutoOpenKey: rightSidebarAutoOpenKey,
     settingsContent: selectedChat ? (
       <ChatSettingsPanel
-        chatRouteConfigContent={(
-          <RuntimeInspectCard
-            label={t('Chat.mode.human', { defaultValue: 'Human' })}
-            value={getHumanChatTitle(selectedChat)}
-            detail={canonicalSurface.diagnosticsSummary.isStreaming
-              ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
-              : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-          />
-        )}
         voiceRouteConfigContent={rightSidebarContent || (
           <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
         )}

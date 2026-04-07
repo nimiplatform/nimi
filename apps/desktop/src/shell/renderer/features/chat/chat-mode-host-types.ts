@@ -38,6 +38,9 @@ export type DesktopConversationModeHost = {
   >;
   composerContent?: ReactNode;
   auxiliaryOverlayContent?: ReactNode;
+  /** Thinking toggle state for the header icon. */
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
   setupDescription?: ReactNode;
   onSelectTarget?: (targetId: string | null) => void;
   onSelectThread?: (threadId: string) => void;

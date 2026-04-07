@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
@@ -11,46 +11,22 @@ import {
   useRouteModelPickerData,
   type RouteModelPickerSelection,
 } from '@nimiplatform/nimi-kit/features/model-picker';
-import { RouteModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import type { ChatThinkingPreference } from './chat-thinking';
+import {
+  ModelPickerModal,
+  ModelSelectorTrigger,
+} from '@nimiplatform/nimi-kit/features/model-picker/ui';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
 
 type ChatSettingsPanelProps = {
-  /** Extra content rendered above the model section (e.g. agent selector). */
   headerSlot?: ReactNode;
-  /** Optional custom model picker content for sources that own their own route options. */
   modelPickerContent?: ReactNode;
-  /** Called when the user changes the model/route selection. */
   onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
-  /** Initial model selection to restore. */
   initialModelSelection?: Partial<RouteModelPickerSelection>;
-  chatRouteConfigContent?: ReactNode;
   voiceRouteConfigContent?: ReactNode;
   mediaRouteConfigContent?: ReactNode;
   diagnosticsContent?: ReactNode;
   presenceContent?: ReactNode;
-  thinkingPreference?: ChatThinkingPreference;
-  thinkingSupported?: boolean;
-  thinkingUnsupportedReason?: string | null;
-  onThinkingPreferenceChange?: (next: ChatThinkingPreference) => void;
   unavailableReason?: string;
-};
-
-export type RoutePickerLabels = {
-  source: string;
-  local: string;
-  cloud: string;
-  connector: string;
-  model: string;
-  active: string;
-  reset: string;
-  loading: string;
-  unavailable: string;
-  runtimeNotReady: string;
-  localUnavailable: string;
-  noLocalModels: string;
-  selectConnector: string;
-  noCloudModels: string;
-  savedRouteUnavailable: string;
 };
 
 function SettingsSection(props: { title: string; children: ReactNode }) {
@@ -73,70 +49,70 @@ export function DisabledSettingsNote(props: { label: string }) {
   );
 }
 
-export function buildRoutePickerLabels(
-  t: ReturnType<typeof useTranslation>['t'],
-): RoutePickerLabels {
-  return {
-    source: t('Chat.settingsSource', { defaultValue: 'Source' }),
-    local: t('Chat.settingsLocal', { defaultValue: 'Local' }),
-    cloud: t('Chat.settingsCloud', { defaultValue: 'Cloud' }),
-    connector: t('Chat.settingsConnector', { defaultValue: 'Connector' }),
-    model: t('Chat.settingsModel', { defaultValue: 'Model' }),
-    active: t('Chat.settingsActive', { defaultValue: 'Active' }),
-    reset: t('Chat.settingsReset', { defaultValue: 'Reset' }),
-    loading: t('Chat.settingsLoading', { defaultValue: 'Loading models...' }),
-    unavailable: t('Chat.settingsUnavailable', { defaultValue: 'Unavailable' }),
-    runtimeNotReady: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-    localUnavailable: t('Chat.settingsLocalUnavailable', { defaultValue: 'Local model discovery failed. Runtime may be unavailable.' }),
-    noLocalModels: t('Chat.settingsNoLocalModels', { defaultValue: 'No local models available for this capability.' }),
-    selectConnector: t('Chat.settingsSelectConnector', { defaultValue: 'Select a connector to see available models.' }),
-    noCloudModels: t('Chat.settingsNoCloudModels', { defaultValue: 'No models available for this connector.' }),
-    savedRouteUnavailable: t('Chat.settingsSavedRouteUnavailable', { defaultValue: 'Saved route is no longer available.' }),
-  };
-}
-
-export function CapabilityRouteModelPickerContent(input: {
-  capability: string;
-  initialModelSelection?: Partial<RouteModelPickerSelection>;
-  onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
-  labels: RoutePickerLabels;
-}) {
-  const providerRef = useRef<ReturnType<typeof createSdkRouteDataProvider> | null>(null);
+function useModelPickerProvider(): RouteModelPickerDataProvider | null {
+  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
   if (!providerRef.current) {
     try {
       providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
     } catch {
-      // Runtime not ready yet — will show loading state
+      // Runtime not ready
     }
   }
-
-  const { panelProps } = useRouteModelPickerData({
-    provider: providerRef.current!,
-    capability: input.capability,
-    initialSelection: input.initialModelSelection,
-    onSelectionChange: input.onModelSelectionChange,
-    labels: input.labels,
-  });
-
-  if (!providerRef.current) {
-    return <DisabledSettingsNote label={input.labels.runtimeNotReady} />;
-  }
-
-  return <RouteModelPickerPanel {...panelProps} className="rounded-xl" />;
+  return providerRef.current;
 }
 
-function DefaultRouteModelPickerContent(input: {
-  initialModelSelection?: Partial<RouteModelPickerSelection>;
-  onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
-  labels: RoutePickerLabels;
+function useResolvedModelLabel(
+  provider: RouteModelPickerDataProvider,
+  capability: string,
+  initialSelection?: Partial<RouteModelPickerSelection>,
+): string | null {
+  const { pickerState, selection } = useRouteModelPickerData({
+    provider,
+    capability,
+    initialSelection,
+  });
+  const modelId = selection.model;
+  if (!modelId) return null;
+  const match = pickerState.models.find((m) => pickerState.adapter.getId(m) === modelId);
+  return match ? pickerState.adapter.getTitle(match) : modelId;
+}
+
+function ModelSelectorWithModal(props: {
+  capability: string;
+  capabilityLabel: string;
+  provider: RouteModelPickerDataProvider;
+  initialSelection?: Partial<RouteModelPickerSelection>;
+  onSelect: (selection: RouteModelPickerSelection) => void;
+  placeholder?: string;
+  disabled?: boolean;
 }) {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const source = props.initialSelection?.source || null;
+  const connector = props.initialSelection?.connectorId || null;
+  const detail = source === 'cloud' && connector ? connector : null;
+  const resolvedLabel = useResolvedModelLabel(props.provider, props.capability, props.initialSelection);
+
   return (
-    <CapabilityRouteModelPickerContent
-      capability="text.generate"
-      initialModelSelection={input.initialModelSelection}
-      onModelSelectionChange={input.onModelSelectionChange}
-      labels={input.labels}
-    />
+    <>
+      <ModelSelectorTrigger
+        source={source}
+        modelLabel={resolvedLabel}
+        detail={detail}
+        placeholder={props.placeholder}
+        onClick={() => setModalOpen(true)}
+        disabled={props.disabled}
+      />
+      <ModelPickerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        capability={props.capability}
+        capabilityLabel={props.capabilityLabel}
+        provider={props.provider}
+        initialSelection={props.initialSelection}
+        onSelect={props.onSelect}
+      />
+    </>
   );
 }
 
@@ -145,25 +121,19 @@ export function ChatSettingsPanel({
   modelPickerContent,
   onModelSelectionChange,
   initialModelSelection,
-  chatRouteConfigContent,
   voiceRouteConfigContent,
   mediaRouteConfigContent,
   diagnosticsContent,
   presenceContent,
-  thinkingPreference = 'off',
-  thinkingSupported = false,
-  thinkingUnsupportedReason,
-  onThinkingPreferenceChange,
   unavailableReason,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
   const [voiceRouteOpen, setVoiceRouteOpen] = useState(false);
   const [visualRouteOpen, setVisualRouteOpen] = useState(false);
-  const routePickerLabels = useMemo(() => buildRoutePickerLabels(t), [t]);
+  const provider = useModelPickerProvider();
   const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
     defaultValue: 'This source does not expose runtime inspect yet.',
   });
-  const normalizedThinkingReason = String(thinkingUnsupportedReason || '').trim() || null;
 
   return (
     <div className="space-y-5">
@@ -171,31 +141,18 @@ export function ChatSettingsPanel({
 
       {/* Chat Model */}
       <SettingsSection title={t('Chat.settingsChatModel', { defaultValue: 'Chat Model' })}>
-        {modelPickerContent || (
-          <DefaultRouteModelPickerContent
-            initialModelSelection={initialModelSelection}
-            onModelSelectionChange={onModelSelectionChange}
-            labels={routePickerLabels}
+        {modelPickerContent || (provider && onModelSelectionChange ? (
+          <ModelSelectorWithModal
+            capability="text.generate"
+            capabilityLabel={t('Chat.settingsChatModel', { defaultValue: 'Chat Model' })}
+            provider={provider}
+            initialSelection={initialModelSelection}
+            onSelect={onModelSelectionChange}
+            placeholder={t('Chat.settingsSelectModel', { defaultValue: 'Select a chat model' })}
           />
-        )}
-        {chatRouteConfigContent ? (
-          <div className="pt-1">
-            {chatRouteConfigContent}
-          </div>
-        ) : null}
-      </SettingsSection>
-
-      {/* Thinking */}
-      <SettingsSection title={t('Chat.settingsThinkingTitle', { defaultValue: 'Thinking' })}>
-        <CanonicalSettingsToggleRow
-          label={t('Chat.settingsThinkingLabel', { defaultValue: 'Show thinking for supported routes' })}
-          hint={thinkingSupported
-            ? t('Chat.settingsThinkingReadyHint', { defaultValue: 'This route can stream the model thought process separately from the final answer.' })
-            : (normalizedThinkingReason || t('Chat.settingsThinkingFallbackHint', { defaultValue: 'Thinking is unavailable for the current route.' }))}
-          checked={thinkingPreference === 'on'}
-          disabled={!thinkingSupported}
-          onChange={(checked) => onThinkingPreferenceChange?.(checked ? 'on' : 'off')}
-        />
+        ) : (
+          <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
+        ))}
       </SettingsSection>
 
       {/* Voice */}

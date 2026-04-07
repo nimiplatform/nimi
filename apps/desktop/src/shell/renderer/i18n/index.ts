@@ -156,9 +156,6 @@ function reportMissingKey(input: {
   });
 
   const fallback = humanizeMissingKey(normalizedKey);
-  if (severity === 'error') {
-    throw new Error(`i18n missing key: ${chain.join(' -> ')}`);
-  }
   return fallback;
 }
 

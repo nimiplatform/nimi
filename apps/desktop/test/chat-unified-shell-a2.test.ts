@@ -143,9 +143,13 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatSettingsPanelSource, /CanonicalSettingsCollapsibleSection/);
   assert.match(chatSettingsPanelSource, /CanonicalSettingsToggleRow/);
   assert.match(chatSettingsPanelSource, /modelPickerContent\?:/);
-  assert.match(chatSettingsPanelSource, /chatRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /voiceRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /diagnosticsContent\?:/);
+  assert.match(chatSettingsPanelSource, /ModelPickerModal/);
+  assert.match(chatSettingsPanelSource, /ModelSelectorTrigger/);
+  assert.doesNotMatch(chatSettingsPanelSource, /thinkingPreference\?:/);
+  assert.doesNotMatch(chatSettingsPanelSource, /thinkingSupported\?:/);
+  assert.doesNotMatch(chatSettingsPanelSource, /chatRouteConfigContent\?:/);
   assert.doesNotMatch(chatSettingsPanelSource, /Coming soon/);
 
   assert.match(chatHumanAdapterSource, /useHumanCanonicalConversationSurface/);

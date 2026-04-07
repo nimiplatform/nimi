@@ -16,6 +16,98 @@ import { ChatContactsSidebar } from './chat-contacts-sidebar';
 import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
 import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
 import { ChatRightPanelSettings } from './chat-right-panel-settings';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { useTranslation } from 'react-i18next';
+
+const ICON_PANEL = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M15 3v18" />
+  </svg>
+);
+
+const ICON_SETTINGS = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const ICON_THINKING = (
+  <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+    <path d="M5.5 13.5V12a3.5 3.5 0 0 1-1.73-6.55A4 4 0 0 1 11.5 4a3.5 3.5 0 0 1 .77 6.91V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6.5 9.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" stroke="currentColor" strokeWidth="1.2" />
+    <circle cx="8" cy="5.5" r="0.75" fill="currentColor" />
+  </svg>
+);
+
+function FloatingIconButton(props: {
+  icon: React.ReactNode;
+  tooltip: string;
+  active?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Tooltip content={props.tooltip} placement="top">
+      <button
+        type="button"
+        disabled={props.disabled}
+        onClick={props.disabled ? undefined : props.onClick}
+        className={[
+          'inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150',
+          'shadow-[0_2px_8px_rgba(15,23,42,0.08)]',
+          props.active
+            ? 'border border-emerald-400 bg-emerald-500 text-white'
+            : 'border border-slate-200/80 bg-white/95 text-slate-500',
+          props.disabled
+            ? 'cursor-not-allowed opacity-50'
+            : props.active
+              ? 'hover:bg-emerald-600 hover:border-emerald-500 hover:text-white'
+              : 'hover:border-emerald-300 hover:text-teal-600',
+        ].join(' ')}
+      >
+        {props.icon}
+      </button>
+    </Tooltip>
+  );
+}
+
+function FoldedPanelFloatingBar(props: {
+  onUnfold: () => void;
+  onToggleSettings: () => void;
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="absolute right-[58px] bottom-3 z-10 flex flex-col gap-1.5">
+      {props.thinkingState ? (
+        <FloatingIconButton
+          icon={ICON_THINKING}
+          tooltip={props.thinkingState === 'on'
+            ? t('Chat.thinkingTooltipOn', { defaultValue: 'Thinking enabled — click to disable' })
+            : props.thinkingState === 'unsupported'
+              ? t('Chat.thinkingTooltipUnsupported', { defaultValue: 'Thinking is not supported by the current route' })
+              : t('Chat.thinkingTooltipOff', { defaultValue: 'Thinking disabled — click to enable' })}
+          active={props.thinkingState === 'on'}
+          disabled={props.thinkingState === 'unsupported'}
+          onClick={props.onThinkingToggle}
+        />
+      ) : null}
+      <FloatingIconButton
+        icon={ICON_SETTINGS}
+        tooltip={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
+        onClick={props.onToggleSettings}
+      />
+      <FloatingIconButton
+        icon={ICON_PANEL}
+        tooltip={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })}
+        onClick={props.onUnfold}
+      />
+    </div>
+  );
+}
 
 function toRuntimePageId(targetId: Extract<ConversationSetupAction, { kind: 'open-settings' }>['targetId']) {
   if (targetId === 'runtime-local') {
@@ -49,6 +141,10 @@ export function ChatPage() {
   const chatSetupState = useAppStore((state) => state.chatSetupState);
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
+  const [rightPanelFolded, setRightPanelFolded] = useState(false);
+  const toggleRightPanelFold = useCallback(() => {
+    setRightPanelFolded((prev) => !prev);
+  }, []);
 
   const runtimeConfigController = useRuntimeConfigPanelController();
   const humanHost = useHumanConversationModeHost({
@@ -218,10 +314,13 @@ export function ChatPage() {
     if (!activeHost || !selectedTarget) {
       return null;
     }
+    if (rightPanelFolded) {
+      return null;
+    }
     const settingsActive = rightPanelMode === 'settings';
     if (settingsActive) {
       return (
-        <ChatRightPanelSettings onToggleSettings={toggleRightPanelSettings}>
+        <ChatRightPanelSettings onToggleSettings={toggleRightPanelSettings} thinkingState={activeHost.thinkingState} onThinkingToggle={activeHost.onThinkingToggle}>
           {activeHost.settingsContent ?? null}
         </ChatRightPanelSettings>
       );
@@ -238,9 +337,11 @@ export function ChatPage() {
           onCreateThread={activeHost.onCreateThread ? () => void activeHost.onCreateThread!() : undefined}
           onArchiveThread={activeHost.onArchiveThread ? (id) => void activeHost.onArchiveThread!(id) : undefined}
           onRenameThread={activeHost.onRenameThread}
-          routeLabel={selectedTarget?.metadata?.routeLabel as string | null ?? null}
           onToggleSettings={toggleRightPanelSettings}
           settingsActive={false}
+          thinkingState={activeHost.thinkingState}
+          onThinkingToggle={activeHost.onThinkingToggle}
+          onToggleFold={toggleRightPanelFold}
         />
       );
     }
@@ -254,16 +355,19 @@ export function ChatPage() {
         characterData={activeHost.characterData}
         onToggleSettings={toggleRightPanelSettings}
         settingsActive={false}
+        thinkingState={activeHost.thinkingState}
+        onThinkingToggle={activeHost.onThinkingToggle}
+        onToggleFold={toggleRightPanelFold}
       />
     );
-  }, [activeHost, selectedTarget, rightPanelMode, toggleRightPanelSettings]);
+  }, [activeHost, selectedTarget, rightPanelMode, rightPanelFolded, toggleRightPanelSettings, toggleRightPanelFold]);
 
   if (!activeHost) {
     return <div className="flex min-h-0 flex-1" />;
   }
 
   return (
-    <div data-testid={E2E_IDS.chatPage} className="flex min-h-0 flex-1">
+    <div data-testid={E2E_IDS.chatPage} className="relative flex min-h-0 flex-1">
       <CanonicalConversationShell
         className="min-h-0 flex-1"
         hideTargetPane
@@ -291,6 +395,17 @@ export function ChatPage() {
         composer={activeHost.composerContent}
         auxiliaryOverlayContent={activeHost.auxiliaryOverlayContent}
       />
+      {rightPanelFolded && activeHost ? (
+        <FoldedPanelFloatingBar
+          onUnfold={toggleRightPanelFold}
+          onToggleSettings={() => {
+            setRightPanelFolded(false);
+            setRightPanelMode('settings');
+          }}
+          thinkingState={activeHost.thinkingState}
+          onThinkingToggle={activeHost.onThinkingToggle}
+        />
+      ) : null}
       {authStatus === 'authenticated' ? (
         <ChatContactsSidebar
           targets={allTargets}

@@ -1,7 +1,17 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createModRuntimeClient, type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import {
+  createSdkRouteDataProvider,
+  useRouteModelPickerData,
+  type RouteModelPickerSelection,
+} from '@nimiplatform/nimi-kit/features/model-picker';
+import {
+  ModelPickerModal,
+  ModelSelectorTrigger,
+} from '@nimiplatform/nimi-kit/features/model-picker/ui';
+import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
@@ -12,8 +22,6 @@ import {
   type RuntimeLocalProfileRef,
 } from './conversation-capability';
 import {
-  buildRoutePickerLabels,
-  CapabilityRouteModelPickerContent,
   DisabledSettingsNote,
 } from './chat-settings-panel';
 import { RuntimeInspectCard } from './chat-runtime-inspect-content';
@@ -45,25 +53,10 @@ function toSelection(binding: RuntimeRouteBinding | null | undefined): Partial<R
   return {
     source: binding.source === 'cloud' ? 'cloud' : 'local',
     connectorId: normalizeText(binding.connectorId),
-    model: normalizeText(binding.modelId) || normalizeText(binding.model),
+    model: binding.source === 'local'
+      ? (normalizeText(binding.localModelId) || normalizeText(binding.model))
+      : (normalizeText(binding.model) || normalizeText(binding.modelId)),
   };
-}
-
-function bindingKey(binding: RuntimeRouteBinding | null | undefined): string {
-  if (binding === undefined) {
-    return 'missing';
-  }
-  if (binding === null) {
-    return 'cleared';
-  }
-  return [
-    normalizeText(binding.source),
-    normalizeText(binding.connectorId),
-    normalizeText(binding.localModelId),
-    normalizeText(binding.modelId),
-    normalizeText(binding.model),
-    normalizeText(binding.engine),
-  ].join('|');
 }
 
 function summarizeRouteBinding(
@@ -77,14 +70,14 @@ function summarizeRouteBinding(
   }
   if (binding.source === 'local') {
     const provider = normalizeText(binding.provider) || normalizeText(binding.engine) || 'Local runtime';
-    const model = normalizeText(binding.modelId) || normalizeText(binding.model) || normalizeText(binding.localModelId) || 'Unknown model';
+    const model = normalizeText(binding.model) || normalizeText(binding.modelId) || normalizeText(binding.localModelId) || 'Unknown model';
     return {
       label: 'Local runtime',
       detail: [provider, model].filter(Boolean).join(' · '),
     };
   }
   const provider = normalizeText(binding.provider) || normalizeText(binding.connectorId) || 'Cloud route';
-  const model = normalizeText(binding.modelId) || normalizeText(binding.model) || 'Unknown model';
+  const model = normalizeText(binding.model) || normalizeText(binding.modelId) || 'Unknown model';
   return {
     label: provider,
     detail: model,
@@ -220,17 +213,53 @@ function normalizeProfileRefLabel(profileRef: RuntimeLocalProfileRef | null): st
   return `${modId}:${profileId}`;
 }
 
+function useCapabilityModelPickerProvider(): RouteModelPickerDataProvider | null {
+  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
+  if (!providerRef.current) {
+    try {
+      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
+    } catch {
+      // Runtime not ready
+    }
+  }
+  return providerRef.current;
+}
+
+const EMPTY_ROUTE_MODEL_PICKER_PROVIDER: RouteModelPickerDataProvider = {
+  listLocalModels: async () => [],
+  listConnectors: async () => [],
+  listConnectorModels: async () => [],
+};
+
+function useResolvedCapabilityModelLabel(
+  provider: RouteModelPickerDataProvider | null,
+  capability: string,
+  selection: Partial<RouteModelPickerSelection>,
+): string | null {
+  const { pickerState, selection: resolvedSelection } = useRouteModelPickerData({
+    provider: provider || EMPTY_ROUTE_MODEL_PICKER_PROVIDER,
+    capability,
+    initialSelection: selection,
+  });
+  const modelId = resolvedSelection.model;
+  if (!provider || !modelId) return null;
+  const match = pickerState.models.find((m) => pickerState.adapter.getId(m) === modelId);
+  return match ? pickerState.adapter.getTitle(match) : modelId;
+}
+
 function CapabilityRouteSettingCard(props: CapabilityConfig) {
   const { t } = useTranslation();
+  const [modalOpen, setModalOpen] = useState(false);
   const selectedBinding = useAppStore((state) => state.conversationCapabilitySelectionStore.selectedBindings[props.capability]);
   const projection = useAppStore((state) => state.conversationCapabilityProjectionByCapability[props.capability] || null);
   const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
-  const routePickerLabels = useMemo(() => buildRoutePickerLabels(t), [t]);
+  const provider = useCapabilityModelPickerProvider();
   const status = useMemo(
     () => buildProjectionStatus(t, props.title, projection, selectedBinding),
     [projection, props.title, selectedBinding, t],
   );
-  const pickerKey = `${props.capability}:${bindingKey(selectedBinding)}`;
+  const selection = useMemo(() => toSelection(selectedBinding), [selectedBinding]);
+  const resolvedLabel = useResolvedCapabilityModelLabel(provider, toRuntimeCanonicalCapability(props.capability), selection);
 
   return (
     <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
@@ -254,27 +283,39 @@ function CapabilityRouteSettingCard(props: CapabilityConfig) {
         </span>
       </div>
 
-      <RuntimeInspectCard
-        label={t('Chat.settingsCurrentRoute', { defaultValue: 'Current route' })}
-        value={status.value}
-        detail={status.detail}
-      />
-
-      <CapabilityRouteModelPickerContent
-        key={pickerKey}
-        capability={toRuntimeCanonicalCapability(props.capability)}
-        initialModelSelection={toSelection(selectedBinding)}
-        onModelSelectionChange={(selection) => {
-          setConversationCapabilityBinding(
-            props.capability,
-            toRuntimeRouteBindingFromPickerSelection({
-              capability: props.capability,
-              selection,
-            }),
-          );
-        }}
-        labels={routePickerLabels}
-      />
+      {provider ? (
+        <>
+          <ModelSelectorTrigger
+            source={selection.source || null}
+            modelLabel={resolvedLabel}
+            detail={status.detail}
+            placeholder={t('Chat.settingsCapabilityRouteRequired', {
+              defaultValue: 'Select a route for {{capability}}.',
+              capability: props.title,
+            })}
+            onClick={() => setModalOpen(true)}
+          />
+          <ModelPickerModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            capability={toRuntimeCanonicalCapability(props.capability)}
+            capabilityLabel={props.title}
+            provider={provider}
+            initialSelection={selection}
+            onSelect={(pickerSelection: RouteModelPickerSelection) => {
+              setConversationCapabilityBinding(
+                props.capability,
+                toRuntimeRouteBindingFromPickerSelection({
+                  capability: props.capability,
+                  selection: pickerSelection,
+                }),
+              );
+            }}
+          />
+        </>
+      ) : (
+        <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
+      )}
     </div>
   );
 }

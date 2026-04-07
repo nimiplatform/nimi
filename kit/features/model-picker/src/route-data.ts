@@ -28,6 +28,7 @@ import type { RouteModelPickerPanelProps, RouteModelPickerSource } from './compo
 export type RouteLocalModel = {
   localModelId: string;
   modelId: string;
+  label: string;
   engine: string;
   status: 'active' | 'installed' | 'unhealthy' | 'removed' | 'unspecified';
   capabilities: string[];
@@ -103,6 +104,7 @@ export function createSdkRouteDataProvider(runtime: {
         .map((a: any) => ({
           localModelId: (a.localAssetId || a.localModelId) as string,
           modelId: (a.logicalModelId || a.modelId || a.assetId) as string,
+          label: (a.assetId || a.entry || a.family || a.logicalModelId || a.localAssetId || '') as string,
           engine: (a.engine || '') as string,
           status: mapLocalStatus(a.status as number),
           capabilities: [...(a.capabilities || [])] as string[],
@@ -152,6 +154,10 @@ export type RouteModelPickerSelection = {
   source: RouteModelPickerSource;
   connectorId: string;
   model: string;
+  /** Local model metadata — populated when source === 'local'. */
+  localModelId?: string;
+  engine?: string;
+  modelId?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -331,7 +337,7 @@ export function useRouteModelPickerData({
         : localModels;
       return filtered.map((m) => ({
         id: m.localModelId,
-        label: m.modelId,
+        label: m.label,
         description: m.engine && m.engine !== 'unknown' ? m.engine : undefined,
       }));
     }
@@ -357,15 +363,30 @@ export function useRouteModelPickerData({
 
   const activeModel = model || availableModels[0]?.id || '';
 
+  const buildSelection = useCallback((sel: { source: RouteModelPickerSource; connectorId: string; model: string }): RouteModelPickerSelection => {
+    if (sel.source === 'local' && sel.model) {
+      const localModel = localModels.find((m) => m.localModelId === sel.model);
+      if (localModel) {
+        return {
+          ...sel,
+          localModelId: localModel.localModelId,
+          engine: localModel.engine,
+          modelId: localModel.modelId,
+        };
+      }
+    }
+    return sel;
+  }, [localModels]);
+
   // Sync initial auto-selection to callback when models first become available
   // (e.g. only one model → auto-selected but user never clicks)
   const initialSyncedRef = useRef(false);
   useEffect(() => {
     if (!loading && activeModel && !initialSyncedRef.current) {
       initialSyncedRef.current = true;
-      onSelectionChange?.({ source, connectorId, model: activeModel });
+      onSelectionChange?.(buildSelection({ source, connectorId, model: activeModel }));
     }
-  }, [loading, activeModel, source, connectorId, onSelectionChange]);
+  }, [loading, activeModel, source, connectorId, onSelectionChange, buildSelection]);
 
   const pickerState = useModelPicker({
     adapter,
@@ -373,7 +394,7 @@ export function useRouteModelPickerData({
     onSelectModel: (id) => {
       if (id && id !== model) {
         setModel(id);
-        onSelectionChange?.({ source, connectorId, model: id });
+        onSelectionChange?.(buildSelection({ source, connectorId, model: id }));
       }
     },
   });

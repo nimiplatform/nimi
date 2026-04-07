@@ -516,6 +516,9 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
     source: 'local' | 'cloud';
     connectorId: string;
     model: string;
+    localModelId?: string;
+    engine?: string;
+    modelId?: string;
   };
   provider?: string | null;
 }): RuntimeRouteBinding | null {
@@ -524,10 +527,16 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
     return null;
   }
   if (input.selection.source === 'local') {
+    const localModelId = normalizeText(input.selection.localModelId) || model;
+    const engine = normalizeText(input.selection.engine) || undefined;
     return {
       source: 'local',
       connectorId: '',
       model,
+      localModelId,
+      engine,
+      provider: engine || undefined,
+      goRuntimeLocalModelId: localModelId,
     };
   }
   const connectorId = normalizeText(input.selection.connectorId);

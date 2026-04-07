@@ -7,6 +7,8 @@ import {
   changeLocale,
   formatRelativeLocaleTime,
   initI18n,
+  i18n,
+  onI18nIssue,
 } from '../src/shell/renderer/i18n';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
@@ -128,6 +130,33 @@ test('formatRelativeLocaleTime follows current locale', async () => {
 
   await changeLocale('zh');
   assert.equal(formatRelativeLocaleTime(ts), '5 分钟前');
+});
+
+test('missing renderer translation keys emit issues and return fallback copy without crashing', async () => {
+  await initI18n();
+
+  const captured: Array<{ code: string; key: string; source: string }> = [];
+  const unsubscribe = onI18nIssue((issue) => {
+    if (issue.key === 'I18nSpecRegression.missingRendererCopy') {
+      captured.push({
+        code: issue.code,
+        key: issue.key,
+        source: issue.source,
+      });
+    }
+  });
+
+  try {
+    const fallback = i18n.t('I18nSpecRegression.missingRendererCopy');
+    assert.equal(fallback, 'Missing Renderer Copy');
+    assert.deepEqual(captured, [{
+      code: 'i18n:missing-key',
+      key: 'I18nSpecRegression.missingRendererCopy',
+      source: 'parseMissingKeyHandler',
+    }]);
+  } finally {
+    unsubscribe();
+  }
 });
 
 test('auth runtime locale keys exist in both desktop locales', async () => {

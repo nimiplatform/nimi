@@ -78,14 +78,6 @@ export function useAiConversationPresentation(
     input.t,
   ]);
 
-  const chatRouteConfigContent = useMemo(() => (
-    <RuntimeInspectCard
-      label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-      value={input.routeSummary.label}
-      detail={input.routeSummary.detail}
-    />
-  ), [input.routeSummary.detail, input.routeSummary.label, input.t]);
-
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -137,11 +129,6 @@ export function useAiConversationPresentation(
       <ChatSettingsPanel
         onModelSelectionChange={input.onModelSelectionChange}
         initialModelSelection={input.initialModelSelection}
-        thinkingPreference={input.thinkingPreference}
-        thinkingSupported={input.thinkingSupported}
-        thinkingUnsupportedReason={input.thinkingUnsupportedReason}
-        onThinkingPreferenceChange={input.setChatThinkingPreference}
-        chatRouteConfigContent={chatRouteConfigContent}
         voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
         mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
         diagnosticsContent={diagnosticsContent}
@@ -188,13 +175,16 @@ export function useAiConversationPresentation(
     setupDescription: input.t('Chat.aiRouteRequired', {
       defaultValue: 'Configure a local chat route or a healthy cloud connector before AI mode can open a conversation.',
     }),
+    thinkingState: input.thinkingSupported
+      ? (input.thinkingPreference === 'on' ? 'on' : 'off')
+      : 'unsupported',
+    onThinkingToggle: () => input.setChatThinkingPreference(input.thinkingPreference === 'on' ? 'off' : 'on'),
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
     onArchiveThread: input.handleArchiveThread,
     onRenameThread: input.handleRenameThread,
   }), [
     adapter,
-    chatRouteConfigContent,
     diagnosticsContent,
     hostFeedbackNode,
     input.activeThreadId,

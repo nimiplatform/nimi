@@ -36,9 +36,11 @@ export type ChatAiSessionListPanelProps = {
   onCreateThread?: () => void;
   onArchiveThread?: (threadId: string) => void;
   onRenameThread?: (threadId: string, title: string) => void;
-  routeLabel?: string | null;
   onToggleSettings: () => void;
   settingsActive: boolean;
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
+  onToggleFold?: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -89,15 +91,15 @@ function SessionThreadItem({
   return (
     <div
       className={cn(
-        'group relative rounded-xl transition-colors duration-100',
+        'group relative rounded-xl border transition-colors duration-100',
         active
-          ? 'bg-white/90 shadow-sm ring-1 ring-slate-200/60'
-          : 'hover:bg-slate-50/80',
+          ? 'border-slate-200/60 bg-white/90 shadow-sm'
+          : 'border-transparent hover:bg-slate-50/80',
       )}
     >
       <button
         type="button"
-        className="w-full px-3 py-2.5 pr-10 text-left"
+        className="w-full px-3 py-2 pr-10 text-left"
         onClick={onSelect}
       >
         <div className="flex items-start justify-between gap-2">
@@ -160,7 +162,7 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
   const { t } = useTranslation();
   return (
     <aside
-      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
+      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-slate-200/60 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
       data-right-panel="session-list"
     >
       {/* New conversation button */}
@@ -190,7 +192,7 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
           <p className="text-xs text-slate-400">{t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}</p>
         </div>
       ) : (
-        <ScrollArea className="min-h-0 flex-1 px-1.5">
+        <ScrollArea className="min-h-0 flex-1 px-3">
           <div className="flex flex-col gap-0.5 py-1">
             {props.threads.map((thread) => (
               <SessionThreadItem
@@ -206,8 +208,8 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
         </ScrollArea>
       )}
 
-      {/* Bottom bar: route info + settings */}
-      <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} routeLabel={props.routeLabel} />
+      {/* Bottom bar */}
+      <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} thinkingState={props.thinkingState} onThinkingToggle={props.onThinkingToggle} onToggleFold={props.onToggleFold} />
     </aside>
   );
 }

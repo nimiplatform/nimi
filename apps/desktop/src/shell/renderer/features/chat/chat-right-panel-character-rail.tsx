@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { cn, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { ConversationCharacterData, ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat/headless';
 
@@ -9,17 +9,53 @@ const NO_BIO_FALLBACK = 'This Agent has no public bio.';
 // Right-panel header with settings toggle
 // ---------------------------------------------------------------------------
 
-function RightPanelHeader({ onToggleSettings, settingsActive, routeLabel }: { onToggleSettings: () => void; settingsActive: boolean; routeLabel?: string | null }) {
+function RightPanelHeader({ onToggleSettings, settingsActive, thinkingState, onThinkingToggle, onToggleFold }: {
+  onToggleSettings: () => void;
+  settingsActive: boolean;
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
+  onToggleFold?: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <div className="flex shrink-0 items-center gap-2 border-t border-slate-200/60 px-3 py-2">
-      {routeLabel ? (
-        <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-400" title={routeLabel}>
-          {routeLabel}
-        </p>
-      ) : (
-        <div className="flex-1" />
-      )}
+      {thinkingState ? (
+        <Tooltip
+          content={thinkingState === 'on'
+            ? t('Chat.thinkingTooltipOn', { defaultValue: 'Thinking enabled — click to disable' })
+            : thinkingState === 'unsupported'
+              ? t('Chat.thinkingTooltipUnsupported', { defaultValue: 'Thinking is not supported by the current route' })
+              : t('Chat.thinkingTooltipOff', { defaultValue: 'Thinking disabled — click to enable' })}
+          placement="top"
+        >
+          <button
+            type="button"
+            disabled={thinkingState === 'unsupported'}
+            className={cn(
+              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+              'transition-all duration-150',
+              thinkingState === 'on'
+                ? 'border border-emerald-400 bg-emerald-500 text-white shadow-[0_2px_8px_rgba(16,185,129,0.2)]'
+                : 'border border-slate-200/80 bg-white/90 text-slate-500',
+              thinkingState === 'unsupported'
+                ? 'cursor-not-allowed opacity-50'
+                : 'hover:border-emerald-300 hover:text-teal-700',
+              thinkingState === 'on'
+                ? 'hover:bg-emerald-600 hover:text-white hover:border-emerald-500'
+                : '',
+            )}
+            aria-label={t('Chat.toggleThinking', { defaultValue: 'Toggle thinking' })}
+            onClick={thinkingState !== 'unsupported' ? onThinkingToggle : undefined}
+          >
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <path d="M5.5 13.5V12a3.5 3.5 0 0 1-1.73-6.55A4 4 0 0 1 11.5 4a3.5 3.5 0 0 1 .77 6.91V13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6.5 9.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="8" cy="5.5" r="0.75" fill="currentColor" />
+            </svg>
+          </button>
+        </Tooltip>
+      ) : null}
+      <div className="flex-1" />
       <button
         type="button"
         className={cn(
@@ -32,11 +68,30 @@ function RightPanelHeader({ onToggleSettings, settingsActive, routeLabel }: { on
         title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
         onClick={onToggleSettings}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
           <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10.91 3H11a2 2 0 1 1 4 0h.09a1.65 1.65 0 0 0 1.51 1 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
+      {onToggleFold ? (
+        <Tooltip content={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })} placement="top">
+          <button
+            type="button"
+            className={cn(
+              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+              'border border-slate-200/80 bg-white/90 text-slate-500 transition-all duration-150',
+              'hover:border-emerald-300 hover:text-teal-700',
+            )}
+            aria-label={t('Chat.togglePanel', { defaultValue: 'Toggle panel' })}
+            onClick={onToggleFold}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M15 3v18" />
+            </svg>
+          </button>
+        </Tooltip>
+      ) : null}
     </div>
   );
 }
@@ -52,6 +107,9 @@ export type ChatRightPanelCharacterRailProps = {
   characterData?: ConversationCharacterData | null;
   onToggleSettings: () => void;
   settingsActive: boolean;
+  thinkingState?: 'on' | 'off' | 'unsupported';
+  onThinkingToggle?: () => void;
+  onToggleFold?: () => void;
   children?: ReactNode;
 };
 
@@ -61,7 +119,7 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
 
   return (
     <aside
-      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
+      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-slate-200/60 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
       data-right-panel="character-rail"
     >
       <div className="pointer-events-none absolute inset-0">
@@ -109,7 +167,7 @@ export function ChatRightPanelCharacterRail(props: ChatRightPanelCharacterRailPr
           {/* Extra slot for mode-specific content */}
           {props.children}
         </div>
-        <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} />
+        <RightPanelHeader onToggleSettings={props.onToggleSettings} settingsActive={props.settingsActive} thinkingState={props.thinkingState} onThinkingToggle={props.onThinkingToggle} onToggleFold={props.onToggleFold} />
       </div>
     </aside>
   );

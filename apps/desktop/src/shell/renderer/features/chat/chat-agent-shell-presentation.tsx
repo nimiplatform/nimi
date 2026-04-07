@@ -201,26 +201,6 @@ export function useAgentConversationPresentation(
     characterData,
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
-  const chatRouteConfigContent = useMemo(() => (
-    <div className="space-y-3">
-      <RuntimeInspectCard
-        label={input.t('Chat.agentSelectLabel', { defaultValue: 'Agent friend' })}
-        value={input.activeTarget?.displayName || input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
-        detail={input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
-          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-        })}
-      />
-      <RuntimeInspectCard
-        label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-        value={input.agentRouteReady
-          ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-          : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
-        detail={input.t('Chat.agentRouteRequired', {
-          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-        })}
-      />
-    </div>
-  ), [input.activeTarget?.displayName, input.activeTarget?.worldName, input.agentRouteReady, input.t]);
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
       label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
@@ -265,11 +245,6 @@ export function useAgentConversationPresentation(
       <ChatSettingsPanel
         onModelSelectionChange={input.onModelSelectionChange}
         initialModelSelection={input.initialModelSelection}
-        thinkingPreference={input.thinkingPreference}
-        thinkingSupported={input.thinkingSupported}
-        thinkingUnsupportedReason={input.thinkingUnsupportedReason}
-        onThinkingPreferenceChange={input.setChatThinkingPreference}
-        chatRouteConfigContent={chatRouteConfigContent}
         voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
         mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
         diagnosticsContent={diagnosticsContent}
@@ -295,12 +270,15 @@ export function useAgentConversationPresentation(
         </div>
       ) : null
     ),
+    thinkingState: input.thinkingSupported
+      ? (input.thinkingPreference === 'on' ? 'on' : 'off')
+      : 'unsupported',
+    onThinkingToggle: () => input.setChatThinkingPreference(input.thinkingPreference === 'on' ? 'off' : 'on'),
     setupDescription: input.t('Chat.agentRouteRequired', {
       defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
     }),
   }), [
     adapter,
-    chatRouteConfigContent,
     diagnosticsContent,
     hostFeedbackNode,
     hostSnapshot,
