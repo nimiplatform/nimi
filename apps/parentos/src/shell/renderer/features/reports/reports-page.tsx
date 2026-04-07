@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { S } from '../../app-shell/page-style.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
   getGrowthReports,
@@ -63,7 +64,7 @@ export default function ReportsPage() {
   }, [child]);
 
   if (!child) {
-    return <div className="p-8 text-gray-500">Add a child profile to unlock reports.</div>;
+    return <div className="p-8" style={{ color: S.sub }}>Add a child profile to unlock reports.</div>;
   }
 
   const activeChild = child;
@@ -133,25 +134,26 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex h-full bg-white">
-      <aside className="flex w-72 flex-col gap-4 border-r border-gray-200 bg-gray-50 p-4">
+    <div className="flex h-full" style={{ background: S.bg, minHeight: '100%' }}>
+      <aside className="flex w-72 flex-col gap-4 p-4" style={{ borderRight: `1px solid ${S.border}`, background: S.bg }}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-xl font-bold mb-6" style={{ color: S.text }}>成长报告</h1>
+          <p className="mt-1 text-sm" style={{ color: S.sub }}>
             Structured local reports only. No free-form AI explanation is used for needs-review domains.
           </p>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+        <div className={`space-y-3 ${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div>
-            <label htmlFor="report-type" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="report-type" className="block text-sm font-medium" style={{ color: S.text }}>
               Report format
             </label>
             <select
               id="report-type"
               value={reportType}
               onChange={(event) => setReportType(event.target.value as GrowthReportType)}
-              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+              className={`mt-1 w-full ${S.radiusSm} px-3 py-2 text-sm`}
+              style={{ border: `1px solid ${S.border}`, background: S.card }}
             >
               {reportTypeOptions.map((option) => (
                 <option key={option.id} value={option.id}>
@@ -159,7 +161,7 @@ export default function ReportsPage() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs" style={{ color: S.sub }}>
               {reportTypeOptions.find((option) => option.id === reportType)?.detail}
             </p>
           </div>
@@ -168,17 +170,18 @@ export default function ReportsPage() {
             type="button"
             onClick={() => void handleGenerate()}
             disabled={generateState === 'saving'}
-            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`w-full ${S.radiusSm} px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60`}
+            style={{ background: S.accent }}
           >
             {generateState === 'saving' ? 'Generating structured report...' : 'Generate structured report'}
           </button>
         </div>
 
         <div className="min-h-0 flex-1">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Saved reports</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: S.sub }}>Saved reports</p>
           <div className="space-y-2 overflow-auto">
             {reports.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-500">
+              <div className={`${S.radius} p-4 text-sm`} style={{ border: `1px dashed ${S.border}`, background: S.card, color: S.sub }}>
                 No saved reports yet.
               </div>
             ) : (
@@ -195,14 +198,14 @@ export default function ReportsPage() {
                     type="button"
                     key={report.reportId}
                     onClick={() => setSelectedReportId(report.reportId)}
-                    className={`w-full rounded-xl border p-3 text-left transition-colors ${
-                      selectedReportId === report.reportId
-                        ? 'border-indigo-300 bg-indigo-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
+                    className={`w-full ${S.radius} p-3 text-left transition-colors`}
+                    style={{
+                      border: `1px solid ${selectedReportId === report.reportId ? S.accent : S.border}`,
+                      background: selectedReportId === report.reportId ? '#e8eccc' : S.card,
+                    }}
                   >
-                    <div className="text-sm font-medium text-gray-900">{title}</div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="text-sm font-medium" style={{ color: S.text }}>{title}</div>
+                    <div className="mt-1 text-xs" style={{ color: S.sub }}>
                       {report.reportType} · {report.periodStart.slice(0, 10)} to {report.periodEnd.slice(0, 10)}
                     </div>
                   </button>
@@ -213,47 +216,47 @@ export default function ReportsPage() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto p-8">
+      <main className="flex-1 overflow-auto p-8" style={{ background: S.bg }}>
         {errorMessage && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className={`mb-4 ${S.radius} px-4 py-3 text-sm`} style={{ border: '1px solid #fed7d7', background: '#fff5f5', color: '#c53030' }}>
             {errorMessage}
           </div>
         )}
 
         {!selectedReport ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 p-10 text-center text-gray-500">
+          <div className={`${S.radius} p-10 text-center`} style={{ border: `1px dashed ${S.border}`, color: S.sub }}>
             Generate the first structured report to populate this workspace.
           </div>
         ) : parsedError || !parsedContent ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+          <div className={`${S.radius} p-6 text-sm`} style={{ border: '1px solid #fed7d7', background: '#fff5f5', color: '#c53030' }}>
             {parsedError}
           </div>
         ) : (
           <div className="mx-auto max-w-4xl space-y-6">
-            <header className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+            <header className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: S.accent }}>
                 {parsedContent.reportType}
               </p>
-              <h2 className="mt-2 text-3xl font-bold text-gray-900">{parsedContent.title}</h2>
-              <p className="mt-2 text-sm text-gray-600">{parsedContent.subtitle}</p>
+              <h2 className="mt-2 text-3xl font-bold" style={{ color: S.text }}>{parsedContent.title}</h2>
+              <p className="mt-2 text-sm" style={{ color: S.sub }}>{parsedContent.subtitle}</p>
               <p className="mt-4 text-sm text-amber-700">{parsedContent.safetyNote}</p>
             </header>
 
             <section className="grid gap-4 md:grid-cols-5">
               {parsedContent.metrics.map((metric) => (
-                <div key={metric.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">{metric.label}</div>
-                  <div className="mt-2 text-2xl font-semibold text-gray-900">{metric.value}</div>
-                  {metric.detail && <div className="mt-1 text-xs text-gray-500">{metric.detail}</div>}
+                <div key={metric.id} className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+                  <div className="text-xs uppercase tracking-wide" style={{ color: S.sub }}>{metric.label}</div>
+                  <div className="mt-2 text-2xl font-semibold" style={{ color: S.text }}>{metric.value}</div>
+                  {metric.detail && <div className="mt-1 text-xs" style={{ color: S.sub }}>{metric.detail}</div>}
                 </div>
               ))}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">Overview</h3>
-              <ul className="mt-4 space-y-3 text-sm text-gray-700">
+            <section className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <h3 className="text-lg font-semibold" style={{ color: S.text }}>Overview</h3>
+              <ul className="mt-4 space-y-3 text-sm" style={{ color: S.text }}>
                 {parsedContent.overview.map((item) => (
-                  <li key={item} className="rounded-xl bg-gray-50 px-4 py-3">
+                  <li key={item} className={`${S.radiusSm} px-4 py-3`} style={{ background: S.bg }}>
                     {item}
                   </li>
                 ))}
@@ -261,19 +264,19 @@ export default function ReportsPage() {
             </section>
 
             {parsedContent.trendSignals.length > 0 && (
-              <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900">Trend signals</h3>
+              <section className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+                <h3 className="text-lg font-semibold" style={{ color: S.text }}>Trend signals</h3>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {parsedContent.trendSignals.map((signal) => (
-                    <div key={signal.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h4 className="text-sm font-semibold text-slate-900">{signal.title}</h4>
-                      <p className="mt-2 text-sm text-slate-700">{signal.summary}</p>
-                      <ul className="mt-3 space-y-2 text-xs text-slate-600">
+                    <div key={signal.id} className={`${S.radius} p-4`} style={{ background: S.bg, border: `1px solid ${S.border}` }}>
+                      <h4 className="text-sm font-semibold" style={{ color: S.text }}>{signal.title}</h4>
+                      <p className="mt-2 text-sm" style={{ color: S.text }}>{signal.summary}</p>
+                      <ul className="mt-3 space-y-2 text-xs" style={{ color: S.sub }}>
                         {signal.evidence.map((item) => (
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
-                      <p className="mt-3 text-xs text-slate-500">
+                      <p className="mt-3 text-xs" style={{ color: S.sub }}>
                         Sources: {signal.sources.join(', ')}
                       </p>
                     </div>
@@ -284,11 +287,11 @@ export default function ReportsPage() {
 
             <section className="grid gap-4 md:grid-cols-2">
               {parsedContent.sections.map((section) => (
-                <div key={section.id} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
-                  <ul className="mt-4 space-y-3 text-sm text-gray-700">
+                <div key={section.id} className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+                  <h3 className="text-lg font-semibold" style={{ color: S.text }}>{section.title}</h3>
+                  <ul className="mt-4 space-y-3 text-sm" style={{ color: S.text }}>
                     {section.items.map((item) => (
-                      <li key={item} className="rounded-xl bg-gray-50 px-4 py-3">
+                      <li key={item} className={`${S.radiusSm} px-4 py-3`} style={{ background: S.bg }}>
                         {item}
                       </li>
                     ))}
@@ -297,9 +300,9 @@ export default function ReportsPage() {
               ))}
             </section>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">Sources</h3>
-              <ul className="mt-4 space-y-2 text-sm text-gray-700">
+            <section className={`${S.radius} p-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <h3 className="text-lg font-semibold" style={{ color: S.text }}>Sources</h3>
+              <ul className="mt-4 space-y-2 text-sm" style={{ color: S.text }}>
                 {parsedContent.sources.map((item) => (
                   <li key={item}>{item}</li>
                 ))}

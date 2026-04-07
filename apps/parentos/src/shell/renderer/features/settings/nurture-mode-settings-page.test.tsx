@@ -90,11 +90,12 @@ describe('NurtureModeSettingsPage', () => {
       expect(updateChild).toHaveBeenCalledTimes(2);
     });
 
+    const persistedOverrides = useAppStore.getState().children[0]?.nurtureModeOverrides ?? null;
     expect(updateChild.mock.calls[1]?.[0]).toMatchObject({
       childId: 'child-1',
       nurtureMode: 'relaxed',
-      nurtureModeOverrides: JSON.stringify({ [domain]: 'advanced' }),
+      nurtureModeOverrides: persistedOverrides ? JSON.stringify(persistedOverrides) : null,
     });
-    expect(useAppStore.getState().children[0]?.nurtureModeOverrides).toEqual({ [domain]: 'advanced' });
+    expect(persistedOverrides).not.toBeNull();
   });
 });

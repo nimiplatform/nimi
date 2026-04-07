@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { S } from '../../app-shell/page-style.js';
 
 export default function SettingsPage() {
   const sections = [
@@ -7,19 +8,19 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">设置</h1>
+    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+      <h1 className="text-xl font-bold mb-6" style={{ color: S.text }}>设置</h1>
 
       <div className="grid gap-4">
         {sections.map((s) => (
-          <Link key={s.to} to={s.to} className="block rounded-lg border border-gray-200 p-5 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors">
-            <h3 className="font-semibold">{s.label}</h3>
-            <p className="text-sm text-gray-500 mt-1">{s.desc}</p>
+          <Link key={s.to} to={s.to} className={S.radius + ' block border p-5 hover:border-[#94A533]/30 hover:bg-[#f4f7ea]/30 transition-colors'} style={{ borderColor: S.border }}>
+            <h3 className="font-semibold" style={{ color: S.text }}>{s.label}</h3>
+            <p className="text-sm mt-1" style={{ color: S.sub }}>{s.desc}</p>
           </Link>
         ))}
-        <div className="rounded-lg border border-gray-200 p-5">
-          <h3 className="font-semibold">数据与隐私</h3>
-          <p className="text-sm text-gray-500 mt-1">所有数据存储在本地，不上传至云端。符合 PIPL 要求。</p>
+        <div className={S.radius + ' border p-5'} style={{ borderColor: S.border }}>
+          <h3 className="font-semibold" style={{ color: S.text }}>数据与隐私</h3>
+          <p className="text-sm mt-1" style={{ color: S.sub }}>所有数据存储在本地，不上传至云端。符合 PIPL 要求。</p>
         </div>
       </div>
     </div>
