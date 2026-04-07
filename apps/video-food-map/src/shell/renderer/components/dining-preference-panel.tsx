@@ -21,11 +21,11 @@ export function DiningPreferencePanel({ profile, disabled = false, onToggle }: D
   const totalSelections = countSelections(profile);
 
   return (
-    <Surface tone="panel" elevation="base" className="space-y-4 p-5">
+    <Surface tone="panel" elevation="base" className="space-y-6 rounded-[32px] p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">吃饭偏好</div>
-          <p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">
+          <div className="text-xl font-semibold text-[var(--nimi-text-primary)]">吃饭偏好</div>
+          <p className="mt-2 text-sm leading-7 text-[var(--nimi-text-secondary)]">
             这里先把你的忌口和常吃方向记住。现在还不会自动点菜，但后面的推荐会直接用这份设置。
           </p>
         </div>
@@ -38,7 +38,7 @@ export function DiningPreferencePanel({ profile, disabled = false, onToggle }: D
         {DINING_PREFERENCE_GROUPS.map((group) => {
           const selectedValues = profile[group.id];
           return (
-            <Surface key={group.id} tone="card" elevation="base" className="space-y-3 p-4">
+            <Surface key={group.id} tone="card" elevation="base" className="space-y-4 rounded-[24px] p-5">
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--nimi-text-primary)]">{group.title}</div>
@@ -46,7 +46,7 @@ export function DiningPreferencePanel({ profile, disabled = false, onToggle }: D
                     {selectedValues.length > 0 ? `${selectedValues.length} 项` : '未设置'}
                   </StatusBadge>
                 </div>
-                <div className="text-sm text-[var(--nimi-text-secondary)]">{group.description}</div>
+                <div className="text-sm leading-6 text-[var(--nimi-text-secondary)]">{group.description}</div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {group.options.map((option) => {

@@ -282,6 +282,21 @@ fn video_food_map_open_external_url(url: String) -> Result<bool, String> {
     Ok(true)
 }
 
+#[tauri::command]
+fn video_food_map_start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    if window.is_fullscreen().unwrap_or(false) {
+        return Ok(());
+    }
+
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        window.start_dragging().map_err(|error| error.to_string())
+    })) {
+        Ok(result) => result,
+        Err(_) => Err("window drag unavailable".to_string()),
+    }
+}
+
 fn main() {
     load_dotenv_files();
     tauri::Builder::default()
@@ -296,6 +311,7 @@ fn main() {
             video_food_map_set_venue_confirmation,
             video_food_map_toggle_venue_favorite,
             video_food_map_open_external_url,
+            video_food_map_start_window_drag,
         ])
         .run(tauri::generate_context!())
         .expect("error running video-food-map");

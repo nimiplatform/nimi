@@ -17,9 +17,9 @@ body {
   font-family: var(--nimi-font-sans);
   color: var(--nimi-text-primary);
   background:
-    radial-gradient(circle at top left, rgba(251, 146, 60, 0.20), transparent 28%),
-    radial-gradient(circle at top right, rgba(239, 68, 68, 0.16), transparent 24%),
-    linear-gradient(180deg, #fffaf5 0%, #fff2e2 44%, #fff7f1 100%);
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.12), transparent 22%),
+    linear-gradient(180deg, #f5f4ef 0%, #efece4 42%, #f6f2eb 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -59,4 +59,81 @@ body {
   background-size: 96px 96px;
   opacity: 0.3;
   pointer-events: none;
+}
+
+.vfm-app-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.14)),
+    radial-gradient(circle at top right, rgba(255, 237, 213, 0.78), transparent 22%);
+}
+
+.vfm-window-frame {
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(17, 24, 39, 0.94)) top / 100% 44px no-repeat,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.14)),
+    radial-gradient(circle at top right, rgba(255, 237, 213, 0.78), transparent 22%);
+}
+
+.vfm-rail {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.10), transparent 28%),
+    linear-gradient(180deg, #171717 0%, #111827 58%, #0f172a 100%);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.vfm-drag-strip {
+  position: relative;
+  z-index: 20;
+  letter-spacing: 0.24em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-tauri-drag-region] {
+  cursor: grab;
+}
+
+[data-tauri-drag-region]:active {
+  cursor: grabbing;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.24);
+  background-clip: padding-box;
+}
+
+.vfm-app-shell .inline-flex {
+  max-width: 100%;
+}
+
+.vfm-break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.vfm-clamp-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }

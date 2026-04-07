@@ -67,3 +67,11 @@ export async function openExternalUrl(url: string): Promise<void> {
     throw new Error('external url could not be opened');
   }
 }
+
+export async function startVideoFoodMapWindowDrag(): Promise<void> {
+  if (!hasTauriInvoke()) {
+    return;
+  }
+
+  await invoke('video_food_map_start_window_drag');
+}
