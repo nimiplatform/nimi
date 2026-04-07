@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
+import { S } from '../../app-shell/page-style.js';
+import { AISummaryCard } from './ai-summary-card.js';
 
 const SOURCE_OPTIONS = ['school-pe', 'sports-club', 'clinic', 'self'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -29,6 +31,61 @@ const GRADE_LABELS: Record<string, string> = {
   fail: '不及格',
 };
 
+/* ── Age tier logic (国家学生体质健康标准 2014) ──────────── */
+
+type AgeTier = 'preschool' | 'grade12' | 'grade34' | 'grade56' | 'grade7plus';
+
+const AGE_TIER_LABELS: Record<AgeTier, string> = {
+  preschool: '学龄前',
+  grade12: '1-2年级',
+  grade34: '3-4年级',
+  grade56: '5-6年级',
+  grade7plus: '初中及以上',
+};
+
+function ageTier(ageMonths: number): AgeTier {
+  if (ageMonths < 72) return 'preschool';     // < 6岁
+  if (ageMonths < 96) return 'grade12';        // 6-8岁
+  if (ageMonths < 120) return 'grade34';       // 8-10岁
+  if (ageMonths < 144) return 'grade56';       // 10-12岁
+  return 'grade7plus';                          // 12岁+
+}
+
+interface FieldVisibility {
+  run50m: boolean; run800m: boolean; run1000m: boolean; run50x8: boolean;
+  sitAndReach: boolean; standingLongJump: boolean; sitUps: boolean; pullUps: boolean;
+  ropeSkipping: boolean; vitalCapacity: boolean;
+}
+
+const NO_FIELDS: FieldVisibility = {
+  run50m: false, run800m: false, run1000m: false, run50x8: false,
+  sitAndReach: false, standingLongJump: false, sitUps: false, pullUps: false,
+  ropeSkipping: false, vitalCapacity: false,
+};
+
+/** Which metric fields are visible for a given age tier + gender */
+function visibleFields(tier: AgeTier, isFemale: boolean): FieldVisibility {
+  const base = { ...NO_FIELDS, run50m: true, sitAndReach: true, ropeSkipping: true, vitalCapacity: true };
+  switch (tier) {
+    case 'preschool':
+    case 'grade12':
+      return base;
+    case 'grade34':
+      return { ...base, sitUps: true };
+    case 'grade56':
+      return { ...base, sitUps: true, run50x8: true };
+    case 'grade7plus':
+      return {
+        ...base,
+        standingLongJump: true,
+        sitUps: isFemale,
+        pullUps: !isFemale,
+        run800m: isFemale,
+        run1000m: !isFemale,
+      };
+  }
+}
+
 function parseNum(v: string): number | null {
   if (!v.trim()) return null;
   const n = parseFloat(v);
@@ -53,6 +110,7 @@ export default function FitnessPage() {
   const [formRun50m, setFormRun50m] = useState('');
   const [formRun800m, setFormRun800m] = useState('');
   const [formRun1000m, setFormRun1000m] = useState('');
+  const [formRun50x8, setFormRun50x8] = useState('');
   const [formSitAndReach, setFormSitAndReach] = useState('');
   const [formStandingLongJump, setFormStandingLongJump] = useState('');
   const [formSitUps, setFormSitUps] = useState('');
@@ -69,9 +127,13 @@ export default function FitnessPage() {
     }
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-gray-500">请先添加孩子</div>;
+  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
+  const ageMonths = computeAgeMonths(child.birthDate);
   const isFemale = child.gender === 'female';
+  const tier = ageTier(ageMonths);
+  const fields = visibleFields(tier, isFemale);
+
   const sortedAssessments = [...assessments].sort(
     (a, b) => new Date(b.assessedAt).getTime() - new Date(a.assessedAt).getTime(),
   );
@@ -82,6 +144,7 @@ export default function FitnessPage() {
     setFormRun50m('');
     setFormRun800m('');
     setFormRun1000m('');
+    setFormRun50x8('');
     setFormSitAndReach('');
     setFormStandingLongJump('');
     setFormSitUps('');
@@ -107,6 +170,7 @@ export default function FitnessPage() {
         run50m: parseNum(formRun50m),
         run800m: parseNum(formRun800m),
         run1000m: parseNum(formRun1000m),
+        run50x8: parseNum(formRun50x8),
         sitAndReach: parseNum(formSitAndReach),
         standingLongJump: parseNum(formStandingLongJump),
         sitUps: parseIntNum(formSitUps),
@@ -124,27 +188,43 @@ export default function FitnessPage() {
     } catch { /* bridge unavailable */ }
   };
 
-  /** Render metric row in assessment card if value exists */
-  const metric = (label: string, value: number | null, unit: string) =>
-    value != null ? (
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">{label}:</span>
-        <span className="text-sm font-medium">{value}{unit}</span>
-      </div>
-    ) : null;
+  /** Reusable styled input for the form */
+  const formInput = (label: string, value: string, onChange: (v: string) => void, opts?: { type?: string; step?: string; min?: string; placeholder?: string; className?: string }) => (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] font-medium" style={{ color: S.sub }}>{label}</span>
+      <input
+        type={opts?.type ?? 'number'} step={opts?.step} min={opts?.min} placeholder={opts?.placeholder ?? '--'}
+        value={value} onChange={(e) => onChange(e.target.value)}
+        className={`${S.radiusSm} px-3 py-2 text-sm ${opts?.className ?? ''}`}
+        style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}
+      />
+    </label>
+  );
+
+  /** Section header inside form */
+  const sectionHeader = (icon: string, title: string) => (
+    <div className="flex items-center gap-2 mb-2.5">
+      <span className="text-[15px]">{icon}</span>
+      <span className="text-[13px] font-semibold" style={{ color: S.text }}>{title}</span>
+    </div>
+  );
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-gray-400 hover:text-gray-600 text-sm">&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">体能评估</h1>
-          <p className="text-sm text-gray-500">共 {assessments.length} 次评估</p>
+          <h1 className="text-xl font-bold mb-1" style={{ color: S.text }}>体能评估</h1>
+          <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
+            ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
+            dataContext={assessments.length > 0 ? `共 ${assessments.length} 次体能测评` : ''}
+          />
+          <p className="text-sm" style={{ color: S.sub }}>共 {assessments.length} 次评估</p>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+          <button onClick={() => setShowForm(true)} className={S.radiusSm + ' text-sm px-4 py-2 text-white'} style={{ background: S.accent }}>
             添加评估
           </button>
         )}
@@ -152,113 +232,115 @@ export default function FitnessPage() {
 
       {/* Add Form */}
       {showForm && (
-        <section className="mb-8 border rounded-lg p-4 bg-gray-50">
-          <h2 className="text-lg font-semibold mb-3">新增体能评估</h2>
-          <div className="space-y-3">
-            <div className="flex gap-2 flex-wrap items-end">
-              <label className="text-xs text-gray-500 flex flex-col gap-1">
-                评估日期
-                <input type="date" value={formAssessedAt} onChange={(e) => setFormAssessedAt(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm" />
-              </label>
-              <label className="text-xs text-gray-500 flex flex-col gap-1">
-                来源
-                <select value={formSource} onChange={(e) => setFormSource(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                  {SOURCE_OPTIONS.map((v) => (
-                    <option key={v} value={v}>{SOURCE_LABELS[v]}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
+        <section className={S.radius + ' mb-8 p-6'} style={{ background: S.card, boxShadow: S.shadow }}>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>新增体能评估</h2>
+            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
+              {AGE_TIER_LABELS[tier]}
+            </span>
+          </div>
 
-            {/* Speed */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1">速度</p>
-              <div className="flex gap-2 flex-wrap items-end">
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  50米跑 (秒)
-                  <input type="number" step="0.1" min="0" placeholder="--" value={formRun50m} onChange={(e) => setFormRun50m(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                </label>
-                {isFemale ? (
-                  <label className="text-xs text-gray-500 flex flex-col gap-1">
-                    800米跑 (秒)
-                    <input type="number" step="1" min="0" placeholder="--" value={formRun800m} onChange={(e) => setFormRun800m(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                  </label>
-                ) : (
-                  <label className="text-xs text-gray-500 flex flex-col gap-1">
-                    1000米跑 (秒)
-                    <input type="number" step="1" min="0" placeholder="--" value={formRun1000m} onChange={(e) => setFormRun1000m(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                  </label>
-                )}
+          {tier === 'preschool' && (
+            <div className={`${S.radiusSm} px-4 py-3 mb-5 text-[12px]`} style={{ background: '#FEF9E7', color: '#92760A' }}>
+              学龄前暂无国家体质健康标准测试项目，以下为基础运动能力记录。
+            </div>
+          )}
+
+          {/* Meta: date + source */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium" style={{ color: S.sub }}>评估日期</span>
+              <input type="date" value={formAssessedAt} onChange={(e) => setFormAssessedAt(e.target.value)}
+                className={`${S.radiusSm} px-3 py-2 text-sm`}
+                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }} />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-medium" style={{ color: S.sub }}>来源</span>
+              <select value={formSource} onChange={(e) => setFormSource(e.target.value)}
+                className={`${S.radiusSm} px-3 py-2 text-sm`}
+                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
+                {SOURCE_OPTIONS.map((v) => (
+                  <option key={v} value={v}>{SOURCE_LABELS[v]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="space-y-4">
+            {/* Speed / Endurance */}
+            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
+              {sectionHeader('⚡', '速度 & 耐力')}
+              <div className="grid grid-cols-2 gap-3">
+                {fields.run50m && formInput('50米跑 (秒)', formRun50m, setFormRun50m, { step: '0.1', min: '0' })}
+                {fields.run800m && formInput('800米跑 (秒)', formRun800m, setFormRun800m, { step: '1', min: '0' })}
+                {fields.run1000m && formInput('1000米跑 (秒)', formRun1000m, setFormRun1000m, { step: '1', min: '0' })}
+                {fields.run50x8 && formInput('50m×8往返跑 (秒)', formRun50x8, setFormRun50x8, { step: '0.1', min: '0' })}
               </div>
             </div>
 
-            {/* Flexibility & Power */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1">柔韧 & 力量</p>
-              <div className="flex gap-2 flex-wrap items-end">
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  坐位体前屈 (cm)
-                  <input type="number" step="0.1" placeholder="--" value={formSitAndReach} onChange={(e) => setFormSitAndReach(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                </label>
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  立定跳远 (cm)
-                  <input type="number" step="1" min="0" placeholder="--" value={formStandingLongJump} onChange={(e) => setFormStandingLongJump(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                </label>
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  仰卧起坐 (次/分)
-                  <input type="number" step="1" min="0" placeholder="--" value={formSitUps} onChange={(e) => setFormSitUps(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                </label>
-                {!isFemale && (
-                  <label className="text-xs text-gray-500 flex flex-col gap-1">
-                    引体向上 (次)
-                    <input type="number" step="1" min="0" placeholder="--" value={formPullUps} onChange={(e) => setFormPullUps(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
-                  </label>
-                )}
+            {/* Flexibility & Power — only show if any strength fields visible */}
+            {(fields.sitAndReach || fields.standingLongJump || fields.sitUps || fields.pullUps) && (
+              <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
+                {sectionHeader('💪', '柔韧 & 力量')}
+                <div className="grid grid-cols-2 gap-3">
+                  {fields.sitAndReach && formInput('坐位体前屈 (cm)', formSitAndReach, setFormSitAndReach, { step: '0.1' })}
+                  {fields.standingLongJump && formInput('立定跳远 (cm)', formStandingLongJump, setFormStandingLongJump, { step: '1', min: '0' })}
+                  {fields.sitUps && formInput('仰卧起坐 (次/分)', formSitUps, setFormSitUps, { step: '1', min: '0' })}
+                  {fields.pullUps && formInput('引体向上 (次)', formPullUps, setFormPullUps, { step: '1', min: '0' })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Coordination & Cardio */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1">协调 & 心肺</p>
-              <div className="flex gap-2 flex-wrap items-end">
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  跳绳 (次/分)
-                  <input type="number" step="1" min="0" placeholder="--" value={formRopeSkipping} onChange={(e) => setFormRopeSkipping(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-24" />
+            {(fields.ropeSkipping || fields.vitalCapacity) && (
+              <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
+                {sectionHeader('🫁', '协调 & 心肺')}
+                <div className="grid grid-cols-2 gap-3">
+                  {fields.ropeSkipping && formInput('跳绳 (次/分)', formRopeSkipping, setFormRopeSkipping, { step: '1', min: '0' })}
+                  {fields.vitalCapacity && formInput('肺活量 (mL)', formVitalCapacity, setFormVitalCapacity, { step: '1', min: '0' })}
+                </div>
+              </div>
+            )}
+
+            {/* Overall */}
+            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
+              {sectionHeader('📋', '综合评价')}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-medium" style={{ color: S.sub }}>足弓状态</span>
+                  <select value={formFootArch} onChange={(e) => setFormFootArch(e.target.value)}
+                    className={`${S.radiusSm} px-3 py-2 text-sm`}
+                    style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
+                    <option value="">可选</option>
+                    {FOOT_ARCH_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{FOOT_ARCH_LABELS[v]}</option>
+                    ))}
+                  </select>
                 </label>
-                <label className="text-xs text-gray-500 flex flex-col gap-1">
-                  肺活量 (mL)
-                  <input type="number" step="1" min="0" placeholder="--" value={formVitalCapacity} onChange={(e) => setFormVitalCapacity(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-28" />
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-medium" style={{ color: S.sub }}>综合等级</span>
+                  <select value={formGrade} onChange={(e) => setFormGrade(e.target.value)}
+                    className={`${S.radiusSm} px-3 py-2 text-sm`}
+                    style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
+                    <option value="">可选</option>
+                    {GRADE_OPTIONS.map((v) => (
+                      <option key={v} value={v}>{GRADE_LABELS[v]}</option>
+                    ))}
+                  </select>
                 </label>
               </div>
             </div>
+          </div>
 
-            {/* Foot & Grade */}
-            <div className="flex gap-2 flex-wrap items-end">
-              <label className="text-xs text-gray-500 flex flex-col gap-1">
-                足弓状态
-                <select value={formFootArch} onChange={(e) => setFormFootArch(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                  <option value="">可选</option>
-                  {FOOT_ARCH_OPTIONS.map((v) => (
-                    <option key={v} value={v}>{FOOT_ARCH_LABELS[v]}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-xs text-gray-500 flex flex-col gap-1">
-                综合等级
-                <select value={formGrade} onChange={(e) => setFormGrade(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                  <option value="">可选</option>
-                  {GRADE_OPTIONS.map((v) => (
-                    <option key={v} value={v}>{GRADE_LABELS[v]}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <input placeholder="备注" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-full" />
-            <div className="flex gap-2">
-              <button onClick={handleSubmit} className="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">保存</button>
-              <button onClick={resetForm} className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md">取消</button>
-            </div>
+          {/* Notes + actions */}
+          <div className="mt-5">
+            <input placeholder="备注（选填）" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+              className={`${S.radiusSm} px-3 py-2 text-sm w-full`}
+              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }} />
+          </div>
+          <div className="flex gap-3 mt-5">
+            <button onClick={handleSubmit} className={S.radiusSm + ' text-sm font-medium px-5 py-2 text-white'} style={{ background: S.accent }}>保存</button>
+            <button onClick={resetForm} className={S.radiusSm + ' text-sm px-5 py-2'} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
           </div>
         </section>
       )}
@@ -266,45 +348,82 @@ export default function FitnessPage() {
       {/* Assessment Cards */}
       <section>
         {sortedAssessments.length === 0 ? (
-          <p className="text-gray-400 text-sm">暂无体能评估</p>
+          <p className="text-sm" style={{ color: S.sub }}>暂无体能评估</p>
         ) : (
-          <div className="space-y-3">
-            {sortedAssessments.map((a) => (
-              <div key={a.assessmentId} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{a.assessedAt.split('T')[0]}</span>
-                    <span className="text-xs text-gray-400">{a.ageMonths} 月龄</span>
-                    {a.assessmentSource && (
-                      <span className="text-xs text-gray-400">{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
+          <div className="space-y-4">
+            {sortedAssessments.map((a) => {
+              const speedMetrics = [
+                { label: '50米跑', value: a.run50m, unit: 's' },
+                { label: '800米跑', value: a.run800m, unit: 's' },
+                { label: '1000米跑', value: a.run1000m, unit: 's' },
+                { label: '50m×8', value: a.run50x8, unit: 's' },
+              ].filter((m) => m.value != null);
+              const strengthMetrics = [
+                { label: '坐位体前屈', value: a.sitAndReach, unit: 'cm' },
+                { label: '立定跳远', value: a.standingLongJump, unit: 'cm' },
+                { label: '仰卧起坐', value: a.sitUps, unit: '次/分' },
+                { label: '引体向上', value: a.pullUps, unit: '次' },
+              ].filter((m) => m.value != null);
+              const cardioMetrics = [
+                { label: '跳绳', value: a.ropeSkipping, unit: '次/分' },
+                { label: '肺活量', value: a.vitalCapacity, unit: 'mL' },
+              ].filter((m) => m.value != null);
+
+              const metricChip = (m: { label: string; value: number | null; unit: string }) => (
+                <span key={m.label} className="inline-flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2' }}>
+                  <span style={{ color: S.sub }}>{m.label}</span>
+                  <span className="font-medium" style={{ color: S.text }}>{m.value}{m.unit}</span>
+                </span>
+              );
+
+              return (
+                <div key={a.assessmentId} className={S.radius + ' p-5'} style={{ background: S.card, boxShadow: S.shadow }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-sm font-semibold" style={{ color: S.text }}>{a.assessedAt.split('T')[0]}</span>
+                      <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: '#f4f4f2', color: S.sub }}>{AGE_TIER_LABELS[ageTier(a.ageMonths)]}</span>
+                      {a.assessmentSource && (
+                        <span className="text-[11px]" style={{ color: S.sub }}>{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
+                      )}
+                    </div>
+                    {a.overallGrade && (
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${a.overallGrade === 'excellent' ? 'bg-green-100 text-green-700' : a.overallGrade === 'good' ? 'bg-blue-100 text-blue-700' : a.overallGrade === 'pass' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
+                        {GRADE_LABELS[a.overallGrade] ?? a.overallGrade}
+                      </span>
                     )}
                   </div>
-                  {a.overallGrade && (
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${a.overallGrade === 'excellent' ? 'bg-green-100 text-green-700' : a.overallGrade === 'good' ? 'bg-blue-100 text-blue-700' : a.overallGrade === 'pass' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
-                      {GRADE_LABELS[a.overallGrade] ?? a.overallGrade}
-                    </span>
-                  )}
+                  <div className="space-y-2">
+                    {speedMetrics.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] w-8" style={{ color: S.sub }}>速度</span>
+                        {speedMetrics.map(metricChip)}
+                      </div>
+                    )}
+                    {strengthMetrics.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] w-8" style={{ color: S.sub }}>力量</span>
+                        {strengthMetrics.map(metricChip)}
+                      </div>
+                    )}
+                    {cardioMetrics.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] w-8" style={{ color: S.sub }}>心肺</span>
+                        {cardioMetrics.map(metricChip)}
+                      </div>
+                    )}
+                    {a.footArchStatus && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] w-8" style={{ color: S.sub }}>足弓</span>
+                        <span className="inline-flex items-center text-[12px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#f4f4f2', color: S.text }}>
+                          {FOOT_ARCH_LABELS[a.footArchStatus] ?? a.footArchStatus}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  {a.notes && <p className="text-[12px] mt-3 pt-2" style={{ color: S.sub, borderTop: `1px solid ${S.border}` }}>{a.notes}</p>}
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  {metric('50米跑', a.run50m, 's')}
-                  {metric('800米跑', a.run800m, 's')}
-                  {metric('1000米跑', a.run1000m, 's')}
-                  {metric('坐位体前屈', a.sitAndReach, 'cm')}
-                  {metric('立定跳远', a.standingLongJump, 'cm')}
-                  {metric('仰卧起坐', a.sitUps, '次/分')}
-                  {metric('引体向上', a.pullUps, '次')}
-                  {metric('跳绳', a.ropeSkipping, '次/分')}
-                  {metric('肺活量', a.vitalCapacity, 'mL')}
-                  {a.footArchStatus && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-gray-500">足弓:</span>
-                      <span className="text-sm font-medium">{FOOT_ARCH_LABELS[a.footArchStatus] ?? a.footArchStatus}</span>
-                    </div>
-                  )}
-                </div>
-                {a.notes && <p className="text-xs text-gray-400 mt-2">{a.notes}</p>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

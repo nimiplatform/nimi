@@ -1,20 +1,150 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { insertDentalRecord, getDentalRecords } from '../../bridge/sqlite-bridge.js';
+import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { insertDentalRecord, getDentalRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
 import type { DentalRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
+import { S } from '../../app-shell/page-style.js';
+import { AISummaryCard } from './ai-summary-card.js';
+import { generateDentalFollowup } from '../../engine/smart-alerts.js';
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  eruption: '萌出',
-  loss: '脱落',
-  caries: '龋齿',
-  cleaning: '洁牙',
-  'ortho-assessment': '正畸评估',
+/* ── Event types ─────────────────────────────────────────── */
+
+const EVENT_TYPES = [
+  { key: 'eruption', label: '萌出', emoji: '🌱', desc: '新牙冒出' },
+  { key: 'loss', label: '脱落', emoji: '🦷', desc: '乳牙脱落' },
+  { key: 'caries', label: '龋齿', emoji: '🔴', desc: '蛀牙' },
+  { key: 'filling', label: '补牙', emoji: '🔧', desc: '龋齿治疗' },
+  { key: 'cleaning', label: '洁牙', emoji: '✨', desc: '定期洁牙' },
+  { key: 'fluoride', label: '涂氟', emoji: '💧', desc: '氟化物防龋' },
+  { key: 'sealant', label: '窝沟封闭', emoji: '🛡️', desc: '防龋保护' },
+  { key: 'ortho-assessment', label: '正畸评估', emoji: '📐', desc: '咬合检查' },
+  { key: 'ortho-start', label: '开始正畸', emoji: '🦷', desc: '佩戴矫治器' },
+  { key: 'checkup', label: '口腔检查', emoji: '🔍', desc: '常规检查' },
+] as const;
+
+const EVENT_LABEL: Record<string, string> = Object.fromEntries(EVENT_TYPES.map((e) => [e.key, e.label]));
+const SEVERITY_LABELS: Record<string, string> = { mild: '轻度', moderate: '中度', severe: '重度' };
+const NEEDS_SEVERITY = new Set(['caries']);
+const NEEDS_TOOTH = new Set(['eruption', 'loss', 'caries', 'filling', 'sealant']);
+
+/* ── Auto-reminder config: eventType → months until next ── */
+const DENTAL_REMINDER_INTERVALS: Record<string, { months: number; title: string }> = {
+  fluoride: { months: 6, title: '涂氟复查' },
+  cleaning: { months: 6, title: '定期洁牙' },
+  sealant: { months: 12, title: '窝沟封闭复查' },
+  checkup: { months: 6, title: '口腔常规检查' },
+  filling: { months: 6, title: '补牙后复查' },
 };
 
-const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
-const TOOTH_SET_OPTIONS = ['primary', 'permanent'] as const;
+/* ── FDI tooth map ───────────────────────────────────────── */
+
+// Primary teeth: 51-55 (upper-right), 61-65 (upper-left), 71-75 (lower-left), 81-85 (lower-right)
+// Permanent teeth: 11-18, 21-28, 31-38, 41-48
+
+const PRIMARY_UPPER_R = ['55', '54', '53', '52', '51'];
+const PRIMARY_UPPER_L = ['61', '62', '63', '64', '65'];
+const PRIMARY_LOWER_L = ['71', '72', '73', '74', '75'];
+const PRIMARY_LOWER_R = ['85', '84', '83', '82', '81'];
+
+const PERM_UPPER_R = ['18', '17', '16', '15', '14', '13', '12', '11'];
+const PERM_UPPER_L = ['21', '22', '23', '24', '25', '26', '27', '28'];
+const PERM_LOWER_L = ['31', '32', '33', '34', '35', '36', '37', '38'];
+const PERM_LOWER_R = ['48', '47', '46', '45', '44', '43', '42', '41'];
+
+const TOOTH_NAMES: Record<string, string> = {
+  '11': '右上中切牙', '12': '右上侧切牙', '13': '右上尖牙', '14': '右上第一前磨', '15': '右上第二前磨', '16': '右上第一磨', '17': '右上第二磨', '18': '右上智齿',
+  '21': '左上中切牙', '22': '左上侧切牙', '23': '左上尖牙', '24': '左上第一前磨', '25': '左上第二前磨', '26': '左上第一磨', '27': '左上第二磨', '28': '左上智齿',
+  '31': '左下中切牙', '32': '左下侧切牙', '33': '左下尖牙', '34': '左下第一前磨', '35': '左下第二前磨', '36': '左下第一磨', '37': '左下第二磨', '38': '左下智齿',
+  '41': '右下中切牙', '42': '右下侧切牙', '43': '右下尖牙', '44': '右下第一前磨', '45': '右下第二前磨', '46': '右下第一磨', '47': '右下第二磨', '48': '右下智齿',
+  '51': '右上乳中切牙', '52': '右上乳侧切牙', '53': '右上乳尖牙', '54': '右上乳第一磨', '55': '右上乳第二磨',
+  '61': '左上乳中切牙', '62': '左上乳侧切牙', '63': '左上乳尖牙', '64': '左上乳第一磨', '65': '左上乳第二磨',
+  '71': '左下乳中切牙', '72': '左下乳侧切牙', '73': '左下乳尖牙', '74': '左下乳第一磨', '75': '左下乳第二磨',
+  '81': '右下乳中切牙', '82': '右下乳侧切牙', '83': '右下乳尖牙', '84': '右下乳第一磨', '85': '右下乳第二磨',
+};
+
+/* ── Interactive tooth chart ─────────────────────────────── */
+
+function ToothChart({ selectedTooth, onSelect, toothSet, recordedTeeth }: {
+  selectedTooth: string; onSelect: (id: string) => void; toothSet: 'primary' | 'permanent';
+  recordedTeeth: Map<string, string>; // toothId → latest eventType
+}) {
+  const isPrimary = toothSet === 'primary';
+  const upperR = isPrimary ? PRIMARY_UPPER_R : PERM_UPPER_R;
+  const upperL = isPrimary ? PRIMARY_UPPER_L : PERM_UPPER_L;
+  const lowerL = isPrimary ? PRIMARY_LOWER_L : PERM_LOWER_L;
+  const lowerR = isPrimary ? PRIMARY_LOWER_R : PERM_LOWER_R;
+
+  const toothColor = (id: string) => {
+    if (id === selectedTooth) return { bg: S.accent, color: '#fff' };
+    const evt = recordedTeeth.get(id);
+    if (evt === 'caries') return { bg: '#fecaca', color: '#dc2626' };
+    if (evt === 'loss') return { bg: '#e8e5e0', color: '#8a8f9a' };
+    if (evt === 'eruption') return { bg: '#d1fae5', color: '#059669' };
+    if (evt === 'filling' || evt === 'sealant') return { bg: '#dbeafe', color: '#2563eb' };
+    return { bg: '#f5f3ef', color: S.text };
+  };
+
+  const renderRow = (teeth: string[], label: string) => (
+    <div className="flex items-center gap-0.5">
+      <span className="text-[9px] w-8 text-right mr-1" style={{ color: S.sub }}>{label}</span>
+      {teeth.map((id) => {
+        const c = toothColor(id);
+        return (
+          <button key={id} onClick={() => onSelect(id)} title={`${id} ${TOOTH_NAMES[id] ?? ''}`}
+            className="w-7 h-7 rounded-lg text-[10px] font-bold transition-all hover:scale-110"
+            style={{ background: c.bg, color: c.color }}>
+            {id}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[12px] font-semibold" style={{ color: S.text }}>
+          {isPrimary ? '乳牙 (20颗)' : '恒牙 (32颗)'} · 点击选择牙位
+        </p>
+        <div className="flex gap-1">
+          {[
+            { c: '#d1fae5', l: '萌出' }, { c: '#e8e5e0', l: '脱落' },
+            { c: '#fecaca', l: '龋齿' }, { c: '#dbeafe', l: '治疗' },
+          ].map((x) => (
+            <span key={x.l} className="flex items-center gap-0.5 text-[9px]" style={{ color: S.sub }}>
+              <span className="w-2 h-2 rounded-sm" style={{ background: x.c }} />{x.l}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[9px]" style={{ color: S.sub }}>上颌</p>
+        <div className="flex gap-1">
+          {renderRow(upperR, '右')}
+          <span className="w-3" />
+          {renderRow(upperL, '')}
+          <span className="text-[9px] w-8 ml-1" style={{ color: S.sub }}>左</span>
+        </div>
+        <div className="w-full h-px my-1" style={{ background: S.border }} />
+        <div className="flex gap-1">
+          {renderRow(lowerR, '右')}
+          <span className="w-3" />
+          {renderRow(lowerL, '')}
+          <span className="text-[9px] w-8 ml-1" style={{ color: S.sub }}>左</span>
+        </div>
+        <p className="text-[9px]" style={{ color: S.sub }}>下颌</p>
+      </div>
+      {selectedTooth && (
+        <p className="text-center text-[11px] mt-2 font-medium" style={{ color: S.accent }}>
+          已选: {selectedTooth} — {TOOTH_NAMES[selectedTooth] ?? ''}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── Main page ───────────────────────────────────────────── */
 
 export default function DentalPage() {
   const { activeChildId, children } = useAppStore();
@@ -22,36 +152,46 @@ export default function DentalPage() {
   const [records, setRecords] = useState<DentalRecordRow[]>([]);
   const [showForm, setShowForm] = useState(false);
 
-  // Form state
-  const [formEventType, setFormEventType] = useState('eruption');
+  const [formEventType, setFormEventType] = useState('checkup');
   const [formToothId, setFormToothId] = useState('');
-  const [formToothSet, setFormToothSet] = useState('primary');
+  const [formToothSet, setFormToothSet] = useState<'primary' | 'permanent'>('primary');
   const [formEventDate, setFormEventDate] = useState(new Date().toISOString().slice(0, 10));
   const [formSeverity, setFormSeverity] = useState('');
   const [formHospital, setFormHospital] = useState('');
   const [formNotes, setFormNotes] = useState('');
+  const [reminderMsg, setReminderMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeChildId) {
-      getDentalRecords(activeChildId).then(setRecords).catch(() => {});
-    }
+    if (activeChildId) getDentalRecords(activeChildId).then(setRecords).catch(() => {});
   }, [activeChildId]);
 
-  if (!child) return <div className="p-8 text-gray-500">请先添加孩子</div>;
+  const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
 
-  const sortedRecords = [...records].sort(
-    (a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime(),
-  );
+  // Build tooth status map from records
+  const toothStatus = useMemo(() => {
+    const m = new Map<string, string>();
+    const sorted = [...records].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+    for (const r of sorted) { if (r.toothId) m.set(r.toothId, r.eventType); }
+    return m;
+  }, [records]);
+
+  // Stats
+  const cariesCount = records.filter((r) => r.eventType === 'caries').length;
+  const eruptedCount = new Set(records.filter((r) => r.eventType === 'eruption').map((r) => r.toothId)).size;
+  const lostCount = new Set(records.filter((r) => r.eventType === 'loss').map((r) => r.toothId)).size;
+
+  if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
+
+  const sortedRecords = [...records].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+  const needsTooth = NEEDS_TOOTH.has(formEventType);
+  const needsSeverity = NEEDS_SEVERITY.has(formEventType);
+
+  // Auto-detect tooth set by age
+  useEffect(() => { setFormToothSet(ageMonths < 72 ? 'primary' : 'permanent'); }, [ageMonths]);
 
   const resetForm = () => {
-    setFormEventType('eruption');
-    setFormToothId('');
-    setFormToothSet('primary');
-    setFormEventDate(new Date().toISOString().slice(0, 10));
-    setFormSeverity('');
-    setFormHospital('');
-    setFormNotes('');
-    setShowForm(false);
+    setFormEventType('checkup'); setFormToothId(''); setFormEventDate(new Date().toISOString().slice(0, 10));
+    setFormSeverity(''); setFormHospital(''); setFormNotes(''); setShowForm(false);
   };
 
   const handleSubmit = async () => {
@@ -59,107 +199,249 @@ export default function DentalPage() {
     const now = isoNow();
     try {
       await insertDentalRecord({
-        recordId: ulid(),
-        childId: child.childId,
-        eventType: formEventType,
-        toothId: formToothId || null,
-        toothSet: formToothSet || null,
-        eventDate: formEventDate,
-        ageMonths: computeAgeMonthsAt(child.birthDate, formEventDate),
-        severity: formSeverity || null,
-        hospital: formHospital || null,
-        notes: formNotes || null,
-        photoPath: null,
-        now,
+        recordId: ulid(), childId: child.childId, eventType: formEventType,
+        toothId: formToothId || null, toothSet: formToothSet,
+        eventDate: formEventDate, ageMonths: computeAgeMonthsAt(child.birthDate, formEventDate),
+        severity: needsSeverity ? (formSeverity || null) : null,
+        hospital: formHospital || null, notes: formNotes || null, photoPath: null, now,
       });
-      const updated = await getDentalRecords(child.childId);
-      setRecords(updated);
+
+      // Auto-create next-visit reminder if applicable
+      const reminderCfg = DENTAL_REMINDER_INTERVALS[formEventType];
+      if (reminderCfg) {
+        const nextDate = new Date(formEventDate);
+        nextDate.setMonth(nextDate.getMonth() + reminderCfg.months);
+        const nextTrigger = nextDate.toISOString();
+        try {
+          await upsertReminderState({
+            stateId: ulid(), childId: child.childId,
+            ruleId: `dental-auto-${formEventType}-${formEventDate}`,
+            status: 'pending', activatedAt: null, completedAt: null, dismissedAt: null,
+            dismissReason: null, repeatIndex: 0,
+            nextTriggerAt: nextTrigger,
+            notes: `[dental-reminder] ${reminderCfg.title} · 上次: ${formEventDate} · 下次: ${nextTrigger.split('T')[0]}`,
+            now,
+          });
+          const nextStr = nextTrigger.split('T')[0] ?? '';
+          setReminderMsg(`已设置提醒：${reminderCfg.title} · ${nextStr}`);
+          setTimeout(() => setReminderMsg(null), 5000);
+        } catch { /* reminder creation failed, non-critical */ }
+      }
+
+      setRecords(await getDentalRecords(child.childId));
       resetForm();
-    } catch { /* bridge unavailable */ }
+    } catch { /* bridge */ }
   };
 
+  const fmtAge = (am: number) => am < 24 ? `${am}月` : `${Math.floor(am / 12)}岁${am % 12 > 0 ? `${am % 12}月` : ''}`;
+
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-gray-400 hover:text-gray-600 text-sm">&larr; 返回档案</Link>
+    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+      <div className="flex items-center gap-2 mb-5">
+        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold mb-1">牙齿记录</h1>
-          <p className="text-sm text-gray-500">共 {records.length} 条记录</p>
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold" style={{ color: S.text }}>口腔记录</h1>
+          <div className="group relative">
+            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help hover:bg-[#f0f0ec]" style={{ color: S.sub }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+            </div>
+            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[320px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+              style={{ background: '#1a2b4a', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+              <p className="text-[12px] font-semibold text-white mb-2">参考标准</p>
+              <ul className="space-y-2">
+                <li>
+                  <span className="text-[#c8e64a] font-medium">牙位编号 (FDI)</span>
+                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国际牙科联合会 (FDI) 两位数标记法 · ISO 3950</span>
+                </li>
+                <li>
+                  <span className="text-[#c8e64a] font-medium">乳牙萌出时间表</span>
+                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">American Academy of Pediatric Dentistry (AAPD). Eruption charts, 2023.</span>
+                </li>
+                <li>
+                  <span className="text-[#c8e64a] font-medium">口腔检查建议</span>
+                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫健委《儿童口腔保健指导技术规范》· 建议每半年口腔检查</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+          <button onClick={() => setShowForm(true)} className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90`} style={{ background: S.accent }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             添加记录
           </button>
         )}
       </div>
+      <p className="text-[12px] mb-5" style={{ color: S.sub }}>{child.displayName}，{fmtAge(ageMonths)}</p>
 
-      {/* Add Form */}
-      {showForm && (
-        <section className="mb-8 border rounded-lg p-4 bg-gray-50">
-          <h2 className="text-lg font-semibold mb-3">新增牙齿事件</h2>
-          <div className="space-y-3">
-            <div className="flex gap-2 flex-wrap">
-              <select value={formEventType} onChange={(e) => setFormEventType(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                {Object.entries(EVENT_TYPE_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
-              </select>
-              <input placeholder="牙位 (FDI, 如 11)" value={formToothId} onChange={(e) => setFormToothId(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-32" />
-              <select value={formToothSet} onChange={(e) => setFormToothSet(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                {TOOTH_SET_OPTIONS.map((v) => (
-                  <option key={v} value={v}>{v === 'primary' ? '乳牙' : '恒牙'}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <input type="date" value={formEventDate} onChange={(e) => setFormEventDate(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm" />
-              <select value={formSeverity} onChange={(e) => setFormSeverity(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm">
-                <option value="">严重程度（可选）</option>
-                {SEVERITY_OPTIONS.map((v) => (
-                  <option key={v} value={v}>{v === 'mild' ? '轻度' : v === 'moderate' ? '中度' : '重度'}</option>
-                ))}
-              </select>
-              <input placeholder="医院/诊所" value={formHospital} onChange={(e) => setFormHospital(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm flex-1" />
-            </div>
-            <input placeholder="备注" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} className="border rounded-md px-2 py-1.5 text-sm w-full" />
-            <div className="flex gap-2">
-              <button onClick={handleSubmit} className="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">保存</button>
-              <button onClick={resetForm} className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md">取消</button>
-            </div>
-          </div>
-        </section>
+      {/* Reminder toast */}
+      {reminderMsg && (
+        <div className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-center gap-2 text-[12px] font-medium`}
+          style={{ background: '#f0f7f0', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+          {reminderMsg}
+        </div>
       )}
 
-      {/* Records List */}
-      <section>
-        {sortedRecords.length === 0 ? (
-          <p className="text-gray-400 text-sm">暂无牙齿记录</p>
-        ) : (
-          <div className="space-y-2">
-            {sortedRecords.map((r) => (
-              <div key={r.recordId} className="border rounded-lg p-4">
+      {/* Quick stats */}
+      {records.length > 0 && (
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          {[
+            { label: '总记录', val: records.length, emoji: '📋' },
+            { label: '已萌出', val: eruptedCount, emoji: '🌱' },
+            { label: '已脱落', val: lostCount, emoji: '🦷' },
+            { label: '龋齿', val: cariesCount, emoji: '🔴' },
+          ].map((s) => (
+            <div key={s.label} className={`${S.radius} p-3 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <span className="text-[16px]">{s.emoji}</span>
+              <p className="text-[16px] font-bold mt-1" style={{ color: S.text }}>{s.val}</p>
+              <p className="text-[10px]" style={{ color: S.sub }}>{s.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <AISummaryCard domain="dental" childName={child.displayName} childId={child.childId}
+        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
+        dataContext={records.length > 0 ? `共 ${records.length} 条记录 · 萌出 ${eruptedCount} · 龋齿 ${cariesCount}` : ''} />
+
+      {/* ── Add form ─────────────────────────────────────── */}
+      {showForm && (
+        <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>添加口腔记录</h2>
+            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          </div>
+
+          {/* Event type selector */}
+          <p className="text-[11px] mb-2" style={{ color: S.sub }}>事件类型</p>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {EVENT_TYPES.map((e) => (
+              <button key={e.key} onClick={() => setFormEventType(e.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                style={formEventType === e.key
+                  ? { background: S.accent, color: '#fff' }
+                  : { background: '#f5f3ef', color: S.sub }}>
+                <span>{e.emoji}</span> {e.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tooth chart — only for tooth-specific events */}
+          {needsTooth && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <p className="text-[11px]" style={{ color: S.sub }}>牙位选择</p>
+                <div className="flex gap-1">
+                  {(['primary', 'permanent'] as const).map((ts) => (
+                    <button key={ts} onClick={() => { setFormToothSet(ts); setFormToothId(''); }}
+                      className={`px-3 py-1 text-[10px] rounded-full font-medium transition-all`}
+                      style={formToothSet === ts ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
+                      {ts === 'primary' ? '乳牙' : '恒牙'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <ToothChart selectedTooth={formToothId} onSelect={setFormToothId} toothSet={formToothSet} recordedTeeth={toothStatus} />
+            </div>
+          )}
+
+          {/* Severity — only for caries */}
+          {needsSeverity && (
+            <div className="mb-4">
+              <p className="text-[11px] mb-2" style={{ color: S.sub }}>严重程度</p>
+              <div className="flex gap-1.5">
+                {(['mild', 'moderate', 'severe'] as const).map((sv) => (
+                  <button key={sv} onClick={() => setFormSeverity(formSeverity === sv ? '' : sv)}
+                    className={`px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                    style={formSeverity === sv
+                      ? { background: sv === 'severe' ? '#dc2626' : sv === 'moderate' ? '#d97706' : S.accent, color: '#fff' }
+                      : { background: '#f5f3ef', color: S.sub }}>
+                    {SEVERITY_LABELS[sv]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Date + hospital + notes */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>日期</p>
+              <input type="date" value={formEventDate} onChange={(e) => setFormEventDate(e.target.value)}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+            </div>
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
+              <input value={formHospital} onChange={(e) => setFormHospital(e.target.value)} placeholder="选填"
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+            </div>
+          </div>
+          <div className="mb-4">
+            <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
+            <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="选填"
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={() => void handleSubmit()}
+              className={`px-5 py-2.5 text-[13px] font-medium text-white ${S.radiusSm} hover:opacity-90`} style={{ background: S.accent }}>
+              保存
+            </button>
+            <button onClick={resetForm} className={`px-5 py-2.5 text-[13px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Records timeline ─────────────────────────────── */}
+      <h2 className="text-[13px] font-semibold mb-3" style={{ color: S.text }}>
+        {sortedRecords.length > 0 ? `历史记录（${sortedRecords.length} 条）` : '暂无记录'}
+      </h2>
+      {sortedRecords.length === 0 && !showForm && (
+        <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <span className="text-[28px]">🦷</span>
+          <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有口腔记录</p>
+          <p className="text-[11px] mt-1" style={{ color: S.sub }}>建议每半年进行一次口腔检查</p>
+        </div>
+      )}
+      <div className="space-y-2">
+        {sortedRecords.map((r) => {
+          const evtInfo = EVENT_TYPES.find((e) => e.key === r.eventType);
+          return (
+            <div key={r.recordId} className={`${S.radiusSm} p-3.5 flex items-start gap-3`}
+              style={{ background: S.card, boxShadow: S.shadow, borderLeft: r.eventType === 'caries' ? '3px solid #dc2626' : `3px solid ${S.border}` }}>
+              <span className="text-[16px] mt-0.5">{evtInfo?.emoji ?? '🦷'}</span>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{EVENT_TYPE_LABELS[r.eventType] ?? r.eventType}</span>
-                  {r.toothId && <span className="text-xs text-gray-500">牙位 {r.toothId}</span>}
-                  {r.toothSet && <span className="text-xs text-gray-400">({r.toothSet === 'primary' ? '乳牙' : '恒牙'})</span>}
+                  <span className="text-[12px] font-semibold" style={{ color: S.text }}>{evtInfo?.label ?? r.eventType}</span>
+                  {r.toothId && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
+                      {r.toothId} {TOOTH_NAMES[r.toothId] ?? ''}
+                    </span>
+                  )}
                   {r.severity && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${r.severity === 'severe' ? 'bg-red-100 text-red-700' : r.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {r.severity === 'mild' ? '轻度' : r.severity === 'moderate' ? '中度' : '重度'}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${r.severity === 'severe' ? 'bg-red-100 text-red-700' : r.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : ''}`}
+                      style={r.severity === 'mild' ? { background: '#f0f0ec', color: S.sub } : undefined}>
+                      {SEVERITY_LABELS[r.severity] ?? r.severity}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {r.eventDate.split('T')[0]} · {r.ageMonths} 月龄
+                <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>
+                  {r.eventDate.split('T')[0]} · {fmtAge(r.ageMonths)}
                   {r.hospital && ` · ${r.hospital}`}
                 </p>
-                {r.notes && <p className="text-xs text-gray-400 mt-1">{r.notes}</p>}
+                {r.notes && <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>{r.notes}</p>}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

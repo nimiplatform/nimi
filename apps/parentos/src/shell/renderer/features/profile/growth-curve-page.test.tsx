@@ -151,11 +151,10 @@ describe('GrowthCurvePage', () => {
       ).toBeTruthy();
     });
 
-    const typeSelect = screen.getByRole('combobox');
-    fireEvent.change(typeSelect, { target: { value: 'weight' } });
+    fireEvent.click(screen.getByText('体重').closest('button') as HTMLButtonElement);
 
     await waitFor(() => {
-      expect(screen.getByText(/covers 0-120 months/i)).toBeTruthy();
+      expect(screen.getByText(/Showing recorded measurements only/i)).toBeTruthy();
     });
 
     expect(screen.getByText(/Showing recorded measurements only/i)).toBeTruthy();
@@ -173,10 +172,10 @@ describe('GrowthCurvePage', () => {
     });
 
     const typeSelect = screen.getByRole('combobox');
-    fireEvent.change(typeSelect, { target: { value: 'vision-left' } });
+    fireEvent.change(typeSelect, { target: { value: 'bone-age' } });
 
     await waitFor(() => {
-      expect(screen.getByText(/static reference range instead of WHO percentile curves/i)).toBeTruthy();
+      expect(screen.getByText(/reference range/i)).toBeTruthy();
     });
   });
 
@@ -188,10 +187,10 @@ describe('GrowthCurvePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /\+ Import from health sheet \(OCR\)/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /智能识别/i })).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /\+ Import from health sheet \(OCR\)/i }));
+    fireEvent.click(screen.getByRole('button', { name: /智能识别/i }));
     fireEvent.change(screen.getByLabelText('checkup-sheet-file'), {
       target: {
         files: [new File(['fake-image'], 'checkup.png', { type: 'image/png' })],
