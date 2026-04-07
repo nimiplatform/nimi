@@ -5,6 +5,7 @@ use serde::Serialize;
 mod defaults;
 mod desktop_paths;
 mod journal_audio;
+mod journal_photo;
 #[path = "../../../shared-tauri/oauth_commands.rs"]
 mod oauth_commands;
 #[path = "../../../forge/src-tauri/src/runtime_bridge/mod.rs"]
@@ -62,6 +63,8 @@ fn main() {
             session_logging::log_renderer_event,
             journal_audio::save_journal_voice_audio,
             journal_audio::delete_journal_voice_audio,
+            journal_photo::save_journal_photo,
+            journal_photo::delete_journal_photo,
             // Family & Children
             sqlite::queries::create_family,
             sqlite::queries::get_family,
