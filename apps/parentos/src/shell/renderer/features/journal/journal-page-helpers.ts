@@ -1,3 +1,8 @@
+import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
+
+/* ── Types ── */
+
+export type SceneTab = 'quick' | 'deep' | 'review';
 export type CaptureMode = 'text' | 'voice';
 export type VoiceDraftStatus =
   | 'idle'
@@ -26,6 +31,36 @@ export const EMPTY_VOICE_DRAFT: VoiceDraft = {
   error: null,
 };
 
+export interface PhotoDraft {
+  file: File;
+  previewUrl: string;
+}
+
+/* ── Scene config ── */
+
+export const SCENE_TABS: Array<{ key: SceneTab; emoji: string; label: string; sub: string }> = [
+  { key: 'quick', emoji: '⚡️', label: '随手记', sub: '抓拍 · 速记 · 闪念' },
+  { key: 'deep', emoji: '🔍', label: '专项观察', sub: '深度 · 计时 · 结构化' },
+  { key: 'review', emoji: '🌙', label: '阶段复盘', sub: '回顾 · 梳理 · 感悟' },
+];
+
+/** Map scene tabs to existing observation mode IDs */
+export const SCENE_MODE_MAP: Record<SceneTab, string> = {
+  quick: 'quick-capture',
+  deep: 'focused-observation',
+  review: 'daily-reflection',
+};
+
+export const QUICK_EMOJIS = [
+  '😊', '😂', '🥰', '😍', '🤗', '😢', '😡', '😴',
+  '🎉', '👏', '💪', '🌟', '❤️', '🎈', '🎨', '🏃',
+  '📚', '🎵', '🧩', '🍼', '🌈', '🦋', '🐱', '🌸',
+];
+
+export const CAPTURE_MODES: CaptureMode[] = ['text', 'voice'];
+
+/* ── Helpers ── */
+
 export function describeVoiceStatus(status: VoiceDraftStatus) {
   switch (status) {
     case 'recording':
@@ -41,6 +76,18 @@ export function describeVoiceStatus(status: VoiceDraftStatus) {
     default:
       return 'No voice draft yet';
   }
+}
+
+export function fileToBase64(file: File): Promise<string> {
+  return file.arrayBuffer().then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+  });
 }
 
 export function blobToBase64(blob: Blob) {
@@ -63,4 +110,30 @@ export function parseSelectedTags(selectedTags: string | null) {
   } catch {
     return [];
   }
+}
+
+export function groupEntriesByDate(entries: JournalEntryRow[]): [string, JournalEntryRow[]][] {
+  const map = new Map<string, JournalEntryRow[]>();
+  for (const e of entries) {
+    const d = e.recordedAt.split('T')[0]!;
+    const list = map.get(d);
+    if (list) list.push(e);
+    else map.set(d, [e]);
+  }
+  return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+}
+
+export function formatDateLabel(iso: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  if (iso === today) return '今天';
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (iso === yesterday) return '昨天';
+  const [, m, d] = iso.split('-');
+  return `${parseInt(m!, 10)}月${parseInt(d!, 10)}日`;
+}
+
+export function getSceneForMode(modeId: string | null): SceneTab {
+  if (modeId === 'focused-observation') return 'deep';
+  if (modeId === 'daily-reflection') return 'review';
+  return 'quick';
 }

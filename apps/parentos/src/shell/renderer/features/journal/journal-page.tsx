@@ -25,120 +25,23 @@ import {
   suggestJournalTags,
   type JournalTagSuggestion,
 } from './ai-journal-tagging.js';
-
-/* ── Types ── */
-
-type SceneTab = 'quick' | 'deep' | 'review';
-type CaptureMode = 'text' | 'voice';
-type VoiceDraftStatus =
-  | 'idle'
-  | 'recording'
-  | 'ready'
-  | 'transcribing'
-  | 'transcribed'
-  | 'transcription-failed';
-type TagSuggestionStatus = 'idle' | 'suggesting' | 'ready' | 'failed';
-
-interface VoiceDraft {
-  status: VoiceDraftStatus;
-  blob: Blob | null;
-  mimeType: string | null;
-  previewUrl: string | null;
-  transcript: string;
-  error: string | null;
-}
-
-const EMPTY_VOICE_DRAFT: VoiceDraft = {
-  status: 'idle', blob: null, mimeType: null, previewUrl: null, transcript: '', error: null,
-};
-
-/* ── Scene config ── */
-
-const SCENE_TABS: Array<{ key: SceneTab; emoji: string; label: string; sub: string }> = [
-  { key: 'quick', emoji: '⚡️', label: '随手记', sub: '抓拍 · 速记 · 闪念' },
-  { key: 'deep', emoji: '🔍', label: '专项观察', sub: '深度 · 计时 · 结构化' },
-  { key: 'review', emoji: '🌙', label: '阶段复盘', sub: '回顾 · 梳理 · 感悟' },
-];
-
-/** Map scene tabs to existing observation mode IDs */
-const SCENE_MODE_MAP: Record<SceneTab, string> = {
-  quick: 'quick-capture',
-  deep: 'focused-observation',
-  review: 'daily-reflection',
-};
-
-const QUICK_EMOJIS = [
-  '😊', '😂', '🥰', '😍', '🤗', '😢', '😡', '😴',
-  '🎉', '👏', '💪', '🌟', '❤️', '🎈', '🎨', '🏃',
-  '📚', '🎵', '🧩', '🍼', '🌈', '🦋', '🐱', '🌸',
-];
-
-/* ── Photo types ── */
-
-interface PhotoDraft {
-  file: File;
-  previewUrl: string;
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return file.arrayBuffer().then((buffer) => {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-    return btoa(binary);
-  });
-}
-
-/* ── Helpers ── */
-
-function blobToBase64(blob: Blob) {
-  return blob.arrayBuffer().then((buffer) => {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let index = 0; index < bytes.length; index += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-    }
-    return btoa(binary);
-  });
-}
-
-function parseSelectedTags(selectedTags: string | null) {
-  if (!selectedTags) return [];
-  try {
-    const parsed = JSON.parse(selectedTags) as unknown;
-    return Array.isArray(parsed) ? parsed.map((tag) => String(tag)) : [];
-  } catch { return []; }
-}
-
-function groupEntriesByDate(entries: JournalEntryRow[]): [string, JournalEntryRow[]][] {
-  const map = new Map<string, JournalEntryRow[]>();
-  for (const e of entries) {
-    const d = e.recordedAt.split('T')[0]!;
-    const list = map.get(d);
-    if (list) list.push(e);
-    else map.set(d, [e]);
-  }
-  return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-}
-
-function formatDateLabel(iso: string): string {
-  const today = new Date().toISOString().slice(0, 10);
-  if (iso === today) return '今天';
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-  if (iso === yesterday) return '昨天';
-  const [, m, d] = iso.split('-');
-  return `${parseInt(m!, 10)}月${parseInt(d!, 10)}日`;
-}
-
-function getSceneForMode(modeId: string | null): SceneTab {
-  if (modeId === 'focused-observation') return 'deep';
-  if (modeId === 'daily-reflection') return 'review';
-  return 'quick';
-}
+import {
+  type SceneTab,
+  type CaptureMode,
+  type VoiceDraft,
+  type PhotoDraft,
+  type TagSuggestionStatus,
+  EMPTY_VOICE_DRAFT,
+  SCENE_TABS,
+  SCENE_MODE_MAP,
+  QUICK_EMOJIS,
+  fileToBase64,
+  blobToBase64,
+  parseSelectedTags,
+  getSceneForMode,
+} from './journal-page-helpers.js';
+import { AutoTagBar, PhotoBar, VoiceCapture } from './journal-sub-components.js';
+import { JournalEntryTimeline } from './journal-entry-timeline.js';
 
 /* ════════════════════════════════════════════════════════════
    MAIN PAGE
@@ -295,24 +198,15 @@ export default function JournalPage() {
   };
 
   const resetComposer = () => {
-    setCaptureMode('text');
-    setTextContent('');
-    setSelectedDimension(null);
-    setSelectedTags([]);
+    setCaptureMode('text'); setTextContent(''); setSelectedDimension(null); setSelectedTags([]);
     setSelectedRecorderId(child?.recorderProfiles?.[0]?.id ?? null);
-    setKeepsake(false);
-    setSubmitError(null);
-    resetSuggestionMetadata();
-    clearVoiceDraft();
-    clearPhotoDrafts();
+    setKeepsake(false); setSubmitError(null); resetSuggestionMetadata(); clearVoiceDraft(); clearPhotoDrafts();
   };
 
   const reloadEntries = async () => {
     if (!child) return;
     setEntries(await getJournalEntries(child.childId, 50));
   };
-
-  /* ── AI tags ── */
 
   const buildConfirmedAiTags = (): JournalTagInsertRow[] => {
     if (!confirmedSuggestion || !confirmedSuggestion.dimensionId || confirmedSuggestion.dimensionId !== selectedDimension) return [];
@@ -323,7 +217,6 @@ export default function JournalPage() {
 
   /* ── Submit ── */
 
-  /** Save photos to disk and return JSON paths array string */
   const persistPhotos = async (entryId: string): Promise<string | null> => {
     if (photoDrafts.length === 0) return null;
     const savedPaths: string[] = [];
@@ -339,7 +232,6 @@ export default function JournalPage() {
     return JSON.stringify(savedPaths);
   };
 
-  /** Rollback saved photos on error */
   const rollbackPhotos = async (photoPaths: string | null) => {
     if (!photoPaths) return;
     try {
@@ -485,15 +377,6 @@ export default function JournalPage() {
   const canSaveText = captureMode === 'text' && (textContent.trim().length > 0 || photoDrafts.length > 0);
   const canSaveVoice = captureMode === 'voice' && Boolean(voiceDraft.blob) && voiceDraft.status !== 'recording' && voiceDraft.status !== 'transcribing';
   const canSuggestTags = draftTextForTagging.length > 0 && tagSuggestionStatus !== 'suggesting' && taggingRuntimeAvailable !== false;
-
-  /* ── Timeline grouping for entries ── */
-  const filteredEntries = useMemo(() => {
-    if (entryFilter === 'all') return entries;
-    if (entryFilter === 'keepsake') return entries.filter((e) => e.keepsake === 1);
-    const modeId = SCENE_MODE_MAP[entryFilter];
-    return entries.filter((e) => e.observationMode === modeId);
-  }, [entries, entryFilter]);
-  const entryGroups = useMemo(() => groupEntriesByDate(filteredEntries), [filteredEntries]);
 
   /* ════════════════════════════════════════════════════════
      RENDER
@@ -890,296 +773,21 @@ export default function JournalPage() {
       </section>
 
       {/* ── Timeline entries ── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>观察记录</h2>
-          <div className="flex gap-1">
-            {([['all', '全部'], ['quick', '⚡️'], ['deep', '🔍'], ['review', '🌙'], ['keepsake', '⭐']] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setEntryFilter(key)}
-                className="px-2 py-0.5 rounded-full text-[10px] transition-colors"
-                style={entryFilter === key
-                  ? { background: S.accent, color: '#fff' }
-                  : { background: '#f0f0ec', color: S.sub }}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {entries.length === 0 ? (
-          <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <p className="text-[13px]" style={{ color: S.sub }}>还没有观察记录，选一个场景开始吧</p>
-          </div>
-        ) : (
-          <div className="relative">
-            <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
-
-            {entryGroups.map(([date, dayEntries]) => (
-              <div key={date} className="relative pl-10 pb-5">
-                {/* Date dot */}
-                <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
-                  style={{ background: S.card, borderColor: S.accent }}>
-                  <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
-                </div>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[12px] font-bold" style={{ color: S.text }}>{formatDateLabel(date)}</span>
-                  <span className="text-[10px]" style={{ color: S.sub }}>{dayEntries.length} 条</span>
-                </div>
-
-                <div className="space-y-1.5">
-                  {dayEntries.map((entry) => {
-                    const dimension = OBSERVATION_DIMENSIONS.find((item) => item.dimensionId === entry.dimensionId);
-                    const tags = parseSelectedTags(entry.selectedTags);
-                    const recorderName = child.recorderProfiles?.find((item) => item.id === entry.recorderId)?.name ?? null;
-                    const bodyText = entry.textContent?.trim() || (entry.voicePath ? '🎙️ 语音记录' : '');
-                    const entryPhotos = parseSelectedTags(entry.photoPaths); // reuse JSON array parser
-                    const scene = getSceneForMode(entry.observationMode);
-                    const sceneConfig = SCENE_TABS.find((t) => t.key === scene);
-
-                    return (
-                      <div key={entry.entryId}
-                        className={`${S.radiusSm} p-3 transition-all`}
-                        style={{
-                          background: entry.keepsake ? '#fefce8' : S.card,
-                          border: `1px solid ${entry.keepsake ? '#fde68a' : S.border}`,
-                        }}>
-                        {/* Meta row */}
-                        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                          <span className="text-[10px]" style={{ color: S.sub }}>
-                            {entry.recordedAt.split('T')[1]?.slice(0, 5)}
-                          </span>
-                          <button onClick={() => {
-                            setEditingEntryId(entry.entryId);
-                            setActiveScene(getSceneForMode(entry.observationMode));
-                            setTextContent(entry.textContent ?? '');
-                            setSelectedDimension(entry.dimensionId);
-                            setSelectedTags(parseSelectedTags(entry.selectedTags));
-                            setKeepsake(entry.keepsake === 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                            className="text-[10px] px-1 py-0.5 rounded transition-colors hover:bg-[#f0f0ec]"
-                            style={{ color: S.sub }} title="编辑">
-                            ✏️
-                          </button>
-                          {sceneConfig && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#f0f0ec', color: S.sub }}>
-                              {sceneConfig.emoji} {sceneConfig.label}
-                            </span>
-                          )}
-                          {dimension && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#e8eccc', color: S.accent }}>
-                              {dimension.displayName}
-                            </span>
-                          )}
-                          {entry.voicePath && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                              {entry.contentType === 'mixed' ? '🎙️+文字' : '🎙️'}
-                            </span>
-                          )}
-                          {entryPhotos.length > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>
-                              📷 {entryPhotos.length}
-                            </span>
-                          )}
-                          {recorderName && (
-                            <span className="text-[10px]" style={{ color: S.sub }}>{recorderName}</span>
-                          )}
-                          {entry.keepsake === 1 && <span className="text-[10px]">⭐</span>}
-                        </div>
-
-                        {/* Body */}
-                        {bodyText && (
-                          <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>{bodyText}</p>
-                        )}
-
-                        {/* Photos */}
-                        {entryPhotos.length > 0 && (
-                          <div className="mt-1.5 flex gap-1.5 flex-wrap">
-                            {entryPhotos.map((photoPath, pi) => (
-                              <img key={pi} src={`asset://localhost/${photoPath}`} alt=""
-                                className={`h-16 w-16 ${S.radiusSm} object-cover`} />
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Tags */}
-                        {tags.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {tags.map((tag) => (
-                              <span key={tag} className="rounded-full px-1.5 py-0.5 text-[10px]"
-                                style={{ background: '#f0f0ec', color: S.sub }}>
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-/* ── Auto tag bar sub-component ── */
-
-function AutoTagBar({ status, suggestion, selectedTags, selectedDimension, dimensions, onToggleTag, onRetry }: {
-  status: TagSuggestionStatus;
-  suggestion: JournalTagSuggestion | null;
-  selectedTags: string[];
-  selectedDimension: string | null;
-  dimensions: Array<{ dimensionId: string; displayName: string; quickTags: string[] }>;
-  onToggleTag: (tag: string) => void;
-  onRetry: () => void;
-}) {
-  if (status === 'idle') return null;
-
-  if (status === 'suggesting') {
-    return (
-      <div className="flex items-center gap-2 py-1.5">
-        <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: S.accent }} />
-        <span className="text-[11px]" style={{ color: S.sub }}>AI 正在分析...</span>
-      </div>
-    );
-  }
-
-  if (status === 'failed') {
-    return (
-      <div className="flex items-center gap-2 py-1.5">
-        <span className="text-[10px]" style={{ color: S.sub }}>AI 标签暂不可用</span>
-        <button onClick={onRetry} className="text-[10px] underline" style={{ color: S.accent }}>重试</button>
-      </div>
-    );
-  }
-
-  // status === 'ready'
-  if (!suggestion?.dimensionId) return null;
-
-  const dim = dimensions.find((d) => d.dimensionId === suggestion.dimensionId);
-  const suggestedTags = suggestion.tags;
-
-  if (!dim || suggestedTags.length === 0) return null;
-
-  return (
-    <div className={`flex items-center gap-2 flex-wrap py-1.5 px-2 ${S.radiusSm}`}
-      style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
-      <span className="text-[10px] shrink-0" style={{ color: S.accent }}>✨</span>
-      {selectedDimension !== suggestion.dimensionId && (
-        <span className="text-[10px] rounded-full px-1.5 py-0.5 font-medium"
-          style={{ background: S.accent + '20', color: S.accent }}>
-          {dim.displayName}
-        </span>
-      )}
-      {suggestedTags.map((tag) => (
-        <button key={tag} onClick={() => onToggleTag(tag)}
-          className="rounded-full px-2 py-0.5 text-[10px] transition-colors"
-          style={selectedTags.includes(tag)
-            ? { background: S.accent, color: '#fff' }
-            : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
-          {tag}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/* ── Voice capture sub-component ── */
-
-/* ── Photo bar sub-component ── */
-
-function PhotoBar({ drafts, onAdd, onRemove, inputRef }: {
-  drafts: PhotoDraft[];
-  onAdd: (files: FileList | null) => void;
-  onRemove: (index: number) => void;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {/* Photo previews */}
-      {drafts.map((d, i) => (
-        <div key={i} className="relative w-14 h-14 shrink-0">
-          <img src={d.previewUrl} alt="" className={`w-14 h-14 ${S.radiusSm} object-cover`} />
-          <button onClick={() => onRemove(i)}
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center leading-none">
-            ✕
-          </button>
-        </div>
-      ))}
-
-      {/* Add photo button */}
-      {drafts.length < 9 && (
-        <button onClick={() => inputRef.current?.click()}
-          className={`w-14 h-14 ${S.radiusSm} flex flex-col items-center justify-center gap-0.5 transition-colors hover:bg-[#eceeed]`}
-          style={{ border: `1px dashed ${S.border}`, color: S.sub }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="m21 15-5-5L5 21" />
-          </svg>
-          <span className="text-[8px]">添加</span>
-        </button>
-      )}
-
-      {/* File input is rendered globally in capture section, inputRef is shared */}
-    </div>
-  );
-}
-
-function VoiceCapture({ voiceDraft, recordingSupported, voiceRuntimeAvailable, onStart, onStop, onTranscribe, onClear, onTranscriptChange }: {
-  voiceDraft: VoiceDraft; recordingSupported: boolean; voiceRuntimeAvailable: boolean | null;
-  onStart: () => void; onStop: () => void; onTranscribe: () => void; onClear: () => void;
-  onTranscriptChange: (t: string) => void;
-}) {
-  return (
-    <div className={`space-y-3 ${S.radiusSm} p-4`} style={{ border: `1px dashed ${S.border}` }}>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[12px] font-medium" style={{ color: S.text }}>
-            {voiceDraft.status === 'recording' ? '🔴 录音中...' : voiceDraft.status === 'transcribing' ? '转写中...' : '语音记录'}
-          </p>
-          {voiceDraft.status === 'ready' && <p className="text-[10px]" style={{ color: S.sub }}>可转写为文字或直接保存</p>}
-        </div>
-        <div className="flex gap-1.5">
-          {voiceDraft.status === 'recording' ? (
-            <button onClick={onStop} className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white`} style={{ background: '#ef4444' }}>
-              停止
-            </button>
-          ) : (
-            <button onClick={onStart} disabled={!recordingSupported}
-              className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
-              开始录音
-            </button>
-          )}
-          {voiceDraft.blob && voiceDraft.status !== 'recording' && (
-            <>
-              <button onClick={onTranscribe}
-                disabled={voiceDraft.status === 'transcribing' || voiceRuntimeAvailable === false}
-                className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
-                {voiceDraft.status === 'transcribing' ? '转写中...' : '转文字'}
-              </button>
-              <button onClick={onClear} className={`${S.radiusSm} px-3 py-1.5 text-[12px]`}
-                style={{ background: '#f0f0ec', color: S.sub }}>删除</button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {!recordingSupported && <p className="text-[10px] text-red-500">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>}
-      {voiceRuntimeAvailable === false && <p className="text-[10px] text-amber-600">语音转写暂不可用，仍可保存语音记录。</p>}
-      {voiceDraft.error && <p className="text-[10px] text-red-500">{voiceDraft.error}</p>}
-      {voiceDraft.previewUrl && <audio controls src={voiceDraft.previewUrl} className="w-full" />}
-      {voiceDraft.previewUrl && (
-        <textarea value={voiceDraft.transcript} onChange={(e) => onTranscriptChange(e.target.value)}
-          placeholder="转写结果可编辑..."
-          className={`w-full resize-none ${S.radiusSm} p-3 text-[12px]`}
-          style={{ border: `1px solid ${S.border}` }} rows={3} />
-      )}
+      <JournalEntryTimeline
+        entries={entries}
+        entryFilter={entryFilter}
+        onFilterChange={setEntryFilter}
+        recorderProfiles={child.recorderProfiles}
+        onEditEntry={(entry) => {
+          setEditingEntryId(entry.entryId);
+          setActiveScene(getSceneForMode(entry.observationMode));
+          setTextContent(entry.textContent ?? '');
+          setSelectedDimension(entry.dimensionId);
+          setSelectedTags(parseSelectedTags(entry.selectedTags));
+          setKeepsake(entry.keepsake === 1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }
