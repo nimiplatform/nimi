@@ -57,6 +57,10 @@ import { useAgentConversationPresentation } from './chat-agent-shell-presentatio
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
+import { resolveAiConversationSetupStateFromProjection } from './chat-ai-route-view';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -78,6 +82,7 @@ export function useAgentConversationModeHost(
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
   const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
+  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
   );
@@ -116,6 +121,48 @@ export function useAgentConversationModeHost(
     const copy = getChatThinkingUnsupportedCopy(thinkingSupport.reason);
     return t(copy.key, { defaultValue: copy.defaultValue });
   }, [t, thinkingSupport]);
+
+  const textGenerateBinding: RuntimeRouteBinding | null | undefined =
+    conversationCapabilitySelectionStore.selectedBindings['text.generate'];
+  const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
+    conversationCapabilitySelectionStore.selectedBindings,
+    'text.generate',
+  );
+  const selectedTextBinding = hasExplicitTextGenerateSelection
+    ? (textGenerateBinding ?? null)
+    : null;
+
+  const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
+    if (!selection.model) {
+      return;
+    }
+    const currentModel = selectedTextBinding?.modelId || selectedTextBinding?.model || '';
+    if (
+      selectedTextBinding
+      && selectedTextBinding.source === selection.source
+      && currentModel === selection.model
+    ) {
+      return;
+    }
+    const binding = toRuntimeRouteBindingFromPickerSelection({
+      capability: 'text.generate',
+      selection,
+    });
+    if (binding) {
+      setConversationCapabilityBinding('text.generate', binding);
+    }
+  }, [selectedTextBinding, setConversationCapabilityBinding]);
+
+  const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
+    if (!selectedTextBinding) {
+      return {};
+    }
+    return {
+      source: selectedTextBinding.source,
+      connectorId: selectedTextBinding.connectorId || '',
+      model: selectedTextBinding.modelId || selectedTextBinding.model || '',
+    };
+  }, [selectedTextBinding]);
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
@@ -225,29 +272,14 @@ export function useAgentConversationModeHost(
         },
       };
     }
+    if (textCapabilityProjection?.supported) {
+      return createReadyConversationSetupState('agent');
+    }
     if (!activeTarget) {
       return createReadyConversationSetupState('agent');
     }
-    if (agentRouteReady) {
-      return createReadyConversationSetupState('agent');
-    }
-    const resolutionReason = agentResolution?.reason || 'projection_unavailable';
-    const issueDetail = resolutionReason === 'eligibility_denied'
-      ? 'Agent eligibility check failed'
-      : resolutionReason === 'route_unresolved'
-        ? 'Agent route is unresolved'
-        : 'Agent text capability is not available';
-    return {
-      mode: 'agent' as const,
-      status: 'setup-required' as const,
-      issues: [{ code: 'agent-contract-unavailable' as const, detail: issueDetail }],
-      primaryAction: {
-        kind: 'open-settings' as const,
-        targetId: 'runtime-overview' as const,
-        returnToMode: 'agent' as const,
-      },
-    };
-  }, [activeTarget, agentResolution, agentRouteReady, input.authStatus]);
+    return resolveAiConversationSetupStateFromProjection(textCapabilityProjection);
+  }, [activeTarget, input.authStatus, textCapabilityProjection]);
 
   const composerReady = setupState.status === 'ready'
     && !isBundleLoading
@@ -328,10 +360,12 @@ export function useAgentConversationModeHost(
     currentFooterHostState,
     handleSubmit,
     hostFeedback,
+    initialModelSelection,
     inputSelectionAgentId: input.selection.agentId,
     isBundleLoading,
     messages,
     onDismissHostFeedback: () => setHostFeedback(null),
+    onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
     renderMessageContent,
     selectedTargetId: activeTarget?.agentId || null,

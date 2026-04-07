@@ -7,11 +7,7 @@ import {
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import type {
-  LocalModelOptionV11,
-  RuntimeConfigStateV11,
-} from '@renderer/features/runtime-config/runtime-config-state-types';
-import { localRuntime, type LocalRuntimeAssetHealth } from '@runtime/local-runtime';
+import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { invokeModLlm } from '@runtime/llm-adapter/execution';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from '@runtime/llm-adapter/execution';
 import {
@@ -20,7 +16,6 @@ import {
   getRuntimeClient,
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import { pickPreferredChatLocalModel } from './chat-ai-thread-model';
 import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
@@ -91,73 +86,6 @@ function resolveRuntimeTextInput(input: ChatAiRuntimeInvokeInput): string | Text
     return input.messages.map((message) => toSdkTextMessage(message));
   }
   return input.prompt;
-}
-
-function hasChatCapability(capabilities: readonly string[]): boolean {
-  return capabilities.includes('chat');
-}
-
-function compareLocalModelPreference(left: LocalModelOptionV11, right: LocalModelOptionV11): number {
-  const rank = (status: LocalModelOptionV11['status']) => {
-    if (status === 'active') return 0;
-    if (status === 'installed') return 1;
-    if (status === 'unhealthy') return 2;
-    return 3;
-  };
-  const rankDelta = rank(left.status) - rank(right.status);
-  if (rankDelta !== 0) {
-    return rankDelta;
-  }
-  return left.model.localeCompare(right.model);
-}
-
-function listChatLocalModels(state: RuntimeConfigStateV11 | null): LocalModelOptionV11[] {
-  if (!state) {
-    return [];
-  }
-  return state.local.models
-    .filter((model) => model.status !== 'removed' && hasChatCapability(model.capabilities))
-    .sort(compareLocalModelPreference);
-}
-
-function matchesConfiguredLocalModel(model: LocalModelOptionV11, configuredModel: string | null | undefined): boolean {
-  const configured = normalizeText(configuredModel);
-  if (!configured) {
-    return false;
-  }
-  return normalizeText(model.model) === configured || normalizeText(model.localModelId) === configured;
-}
-
-export async function resolvePreferredChatLocalModel(
-  state: RuntimeConfigStateV11 | null,
-  preferredModel: string | null | undefined,
-  deps: {
-    healthLocalRuntimeAssetsImpl?: (localAssetId?: string) => Promise<readonly LocalRuntimeAssetHealth[]>;
-  } = {},
-): Promise<LocalModelOptionV11 | null> {
-  const candidates = listChatLocalModels(state);
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  const preferredCandidate = candidates.find((model) => matchesConfiguredLocalModel(model, preferredModel)) || null;
-  try {
-    const healthEntries = await (deps.healthLocalRuntimeAssetsImpl || localRuntime.health)();
-    const healthByLocalId = new Map(
-      healthEntries.map((entry) => [normalizeText(entry.localAssetId), entry] as const),
-    );
-    if (preferredCandidate && healthByLocalId.get(preferredCandidate.localModelId)?.status === 'active') {
-      return preferredCandidate;
-    }
-    const healthyCandidate = candidates.find((candidate) => healthByLocalId.get(candidate.localModelId)?.status === 'active');
-    if (healthyCandidate) {
-      return healthyCandidate;
-    }
-  } catch {
-    // Fall back to runtime-config state when authoritative health is unavailable.
-  }
-
-  return preferredCandidate || pickPreferredChatLocalModel(state);
 }
 
 async function resolveInvokeInput(

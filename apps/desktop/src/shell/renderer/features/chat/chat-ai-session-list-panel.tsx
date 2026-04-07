@@ -160,7 +160,7 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
   const { t } = useTranslation();
   return (
     <aside
-      className="relative flex min-h-0 w-[300px] shrink-0 flex-col overflow-hidden border-l border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
+      className="relative flex min-h-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-white/70 bg-[linear-gradient(180deg,rgba(250,252,252,0.98),rgba(244,247,248,0.96))]"
       data-right-panel="session-list"
     >
       {/* New conversation button */}

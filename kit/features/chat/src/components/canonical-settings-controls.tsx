@@ -13,10 +13,10 @@ export function CanonicalSettingsSegmentButton(props: {
       disabled={props.disabled}
       onClick={props.onClick}
       className={cn(
-        'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
+        'rounded-full px-4 py-2 text-[13px] font-semibold transition-colors',
         props.active
           ? 'bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)]'
-          : 'bg-white text-gray-600 hover:bg-gray-50',
+          : 'bg-white text-slate-600 hover:bg-slate-50',
         props.disabled ? 'cursor-not-allowed opacity-55 hover:bg-white' : '',
       )}
     >
@@ -38,15 +38,15 @@ export function CanonicalSettingsToggleRow(props: {
       disabled={props.disabled}
       onClick={() => props.onChange?.(!props.checked)}
       className={cn(
-        'flex w-full items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left transition-colors',
+        'flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors',
         props.disabled
           ? 'cursor-not-allowed opacity-65'
           : 'hover:border-emerald-200 hover:bg-emerald-50/40',
       )}
     >
       <div>
-        <p className="text-sm font-semibold text-gray-900">{props.label}</p>
-        <p className="mt-0.5 text-xs text-gray-500">{props.hint}</p>
+        <p className="text-[13px] font-semibold text-slate-900">{props.label}</p>
+        <p className="mt-0.5 text-[11px] text-slate-400">{props.hint}</p>
       </div>
       <span className={cn(
         'inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors',
@@ -71,14 +71,14 @@ export function CanonicalSettingsCollapsibleSection(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="mt-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/60">
+    <div className="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70">
       <button
         type="button"
         onClick={props.onToggle}
-        className="flex h-9 w-full items-center justify-between px-3 text-left text-[11px] font-semibold text-gray-500"
+        className="flex h-10 w-full items-center justify-between px-3 text-left text-xs font-semibold text-slate-500 transition-colors hover:text-slate-700"
       >
         <span>{props.title}</span>
-        <span className={cn('text-gray-400 transition-transform duration-200', props.open ? 'rotate-180' : '')}>
+        <span className={cn('text-slate-400 transition-transform duration-200', props.open ? 'rotate-180' : '')}>
           {CHEVRON_ICON}
         </span>
       </button>

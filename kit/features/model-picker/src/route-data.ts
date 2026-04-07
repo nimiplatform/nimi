@@ -453,7 +453,7 @@ export function useRouteModelPickerData({
     onConnectorChange,
     modelLabel: labels.model,
     selectedModelLabel: labels.active,
-    selectedModelValue: activeModel || undefined,
+    selectedModelValue: undefined,
     resetLabel: labels.reset,
     onReset,
     banners,

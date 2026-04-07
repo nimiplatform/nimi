@@ -12,13 +12,15 @@ export function CanonicalDrawerSection({
   children,
 }: CanonicalDrawerSectionProps) {
   return (
-    <section className="space-y-3 rounded-[24px] border border-white/80 bg-white/88 p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
-      <div>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">
+    <section className="space-y-4 rounded-[24px] border border-slate-100 bg-white/92 p-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)]">
+      <div className="group relative inline-block">
+        <h3 className="cursor-default text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           {title}
         </h3>
         {hint ? (
-          <p className="mt-1 text-sm text-gray-600">{hint}</p>
+          <div className="pointer-events-none absolute left-0 top-full z-30 mt-1.5 hidden w-56 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] leading-relaxed text-slate-500 shadow-lg group-hover:block">
+            {hint}
+          </div>
         ) : null}
       </div>
       {children}

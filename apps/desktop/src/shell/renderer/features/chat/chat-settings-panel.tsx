@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  CanonicalDrawerSection,
   CanonicalSettingsCollapsibleSection,
   CanonicalSettingsSegmentButton,
   CanonicalSettingsToggleRow,
@@ -18,6 +17,8 @@ import type { ChatThinkingPreference } from './chat-thinking';
 type ChatSettingsPanelProps = {
   /** Extra content rendered above the model section (e.g. agent selector). */
   headerSlot?: ReactNode;
+  /** Optional custom model picker content for sources that own their own route options. */
+  modelPickerContent?: ReactNode;
   /** Called when the user changes the model/route selection. */
   onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
   /** Initial model selection to restore. */
@@ -34,7 +35,37 @@ type ChatSettingsPanelProps = {
   unavailableReason?: string;
 };
 
-function DisabledSettingsNote(props: { label: string }) {
+export type RoutePickerLabels = {
+  source: string;
+  local: string;
+  cloud: string;
+  connector: string;
+  model: string;
+  active: string;
+  reset: string;
+  loading: string;
+  unavailable: string;
+  runtimeNotReady: string;
+  localUnavailable: string;
+  noLocalModels: string;
+  selectConnector: string;
+  noCloudModels: string;
+  savedRouteUnavailable: string;
+};
+
+function SettingsSection(props: { title: string; children: ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+        {props.title}
+      </h3>
+      {props.children}
+      <div className="border-b border-slate-100" />
+    </div>
+  );
+}
+
+export function DisabledSettingsNote(props: { label: string }) {
   return (
     <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
       {props.label}
@@ -42,8 +73,76 @@ function DisabledSettingsNote(props: { label: string }) {
   );
 }
 
+export function buildRoutePickerLabels(
+  t: ReturnType<typeof useTranslation>['t'],
+): RoutePickerLabels {
+  return {
+    source: t('Chat.settingsSource', { defaultValue: 'Source' }),
+    local: t('Chat.settingsLocal', { defaultValue: 'Local' }),
+    cloud: t('Chat.settingsCloud', { defaultValue: 'Cloud' }),
+    connector: t('Chat.settingsConnector', { defaultValue: 'Connector' }),
+    model: t('Chat.settingsModel', { defaultValue: 'Model' }),
+    active: t('Chat.settingsActive', { defaultValue: 'Active' }),
+    reset: t('Chat.settingsReset', { defaultValue: 'Reset' }),
+    loading: t('Chat.settingsLoading', { defaultValue: 'Loading models...' }),
+    unavailable: t('Chat.settingsUnavailable', { defaultValue: 'Unavailable' }),
+    runtimeNotReady: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
+    localUnavailable: t('Chat.settingsLocalUnavailable', { defaultValue: 'Local model discovery failed. Runtime may be unavailable.' }),
+    noLocalModels: t('Chat.settingsNoLocalModels', { defaultValue: 'No local models available for this capability.' }),
+    selectConnector: t('Chat.settingsSelectConnector', { defaultValue: 'Select a connector to see available models.' }),
+    noCloudModels: t('Chat.settingsNoCloudModels', { defaultValue: 'No models available for this connector.' }),
+    savedRouteUnavailable: t('Chat.settingsSavedRouteUnavailable', { defaultValue: 'Saved route is no longer available.' }),
+  };
+}
+
+export function CapabilityRouteModelPickerContent(input: {
+  capability: string;
+  initialModelSelection?: Partial<RouteModelPickerSelection>;
+  onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
+  labels: RoutePickerLabels;
+}) {
+  const providerRef = useRef<ReturnType<typeof createSdkRouteDataProvider> | null>(null);
+  if (!providerRef.current) {
+    try {
+      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
+    } catch {
+      // Runtime not ready yet — will show loading state
+    }
+  }
+
+  const { panelProps } = useRouteModelPickerData({
+    provider: providerRef.current!,
+    capability: input.capability,
+    initialSelection: input.initialModelSelection,
+    onSelectionChange: input.onModelSelectionChange,
+    labels: input.labels,
+  });
+
+  if (!providerRef.current) {
+    return <DisabledSettingsNote label={input.labels.runtimeNotReady} />;
+  }
+
+  return <RouteModelPickerPanel {...panelProps} className="rounded-xl" />;
+}
+
+function DefaultRouteModelPickerContent(input: {
+  initialModelSelection?: Partial<RouteModelPickerSelection>;
+  onModelSelectionChange?: (selection: RouteModelPickerSelection) => void;
+  labels: RoutePickerLabels;
+}) {
+  return (
+    <CapabilityRouteModelPickerContent
+      capability="text.generate"
+      initialModelSelection={input.initialModelSelection}
+      onModelSelectionChange={input.onModelSelectionChange}
+      labels={input.labels}
+    />
+  );
+}
+
 export function ChatSettingsPanel({
   headerSlot,
+  modelPickerContent,
   onModelSelectionChange,
   initialModelSelection,
   chatRouteConfigContent,
@@ -58,34 +157,9 @@ export function ChatSettingsPanel({
   unavailableReason,
 }: ChatSettingsPanelProps) {
   const { t } = useTranslation();
-  const [chatRouteOpen, setChatRouteOpen] = useState(false);
-  const [thinkingOpen, setThinkingOpen] = useState(true);
   const [voiceRouteOpen, setVoiceRouteOpen] = useState(false);
   const [visualRouteOpen, setVisualRouteOpen] = useState(false);
-
-  const providerRef = useRef<ReturnType<typeof createSdkRouteDataProvider> | null>(null);
-  if (!providerRef.current) {
-    try {
-      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
-    } catch {
-      // Runtime not ready yet — will show loading state
-    }
-  }
-
-  const { panelProps } = useRouteModelPickerData({
-    provider: providerRef.current!,
-    capability: 'text.generate',
-    initialSelection: initialModelSelection,
-    onSelectionChange: onModelSelectionChange,
-    labels: useMemo(() => ({
-      source: t('Chat.settingsSource', { defaultValue: 'Source' }),
-      local: t('Chat.settingsLocal', { defaultValue: 'Local' }),
-      cloud: t('Chat.settingsCloud', { defaultValue: 'Cloud' }),
-      connector: t('Chat.settingsConnector', { defaultValue: 'Connector' }),
-      model: t('Chat.settingsModel', { defaultValue: 'Model' }),
-      loading: t('Chat.settingsLoading', { defaultValue: 'Loading models...' }),
-    }), [t]),
-  });
+  const routePickerLabels = useMemo(() => buildRoutePickerLabels(t), [t]);
   const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
     defaultValue: 'This source does not expose runtime inspect yet.',
   });
@@ -95,91 +169,47 @@ export function ChatSettingsPanel({
     <div className="space-y-5">
       {headerSlot}
 
-      <CanonicalDrawerSection
-        title={t('Chat.settingsChatModel', { defaultValue: 'Chat Model' })}
-        hint={t('Chat.settingsChatModelHint', { defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.' })}
-      >
-        {providerRef.current ? (
-          <RouteModelPickerPanel {...panelProps} className="rounded-xl" />
-        ) : (
-          <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
+      {/* Chat Model */}
+      <SettingsSection title={t('Chat.settingsChatModel', { defaultValue: 'Chat Model' })}>
+        {modelPickerContent || (
+          <DefaultRouteModelPickerContent
+            initialModelSelection={initialModelSelection}
+            onModelSelectionChange={onModelSelectionChange}
+            labels={routePickerLabels}
+          />
         )}
         {chatRouteConfigContent ? (
-          <CanonicalSettingsCollapsibleSection
-            title={t('Chat.settingsChatRouteConfig', { defaultValue: 'Model route config' })}
-            open={chatRouteOpen}
-            onToggle={() => setChatRouteOpen((value) => !value)}
-          >
+          <div className="pt-1">
             {chatRouteConfigContent}
-          </CanonicalSettingsCollapsibleSection>
+          </div>
         ) : null}
-      </CanonicalDrawerSection>
+      </SettingsSection>
 
-      <CanonicalDrawerSection
-        title={t('Chat.settingsThinkingTitle', { defaultValue: 'Thinking' })}
-        hint={t('Chat.settingsThinkingHint', { defaultValue: 'Enable model thinking when the current route supports separate reasoning output.' })}
-      >
-        <CanonicalSettingsCollapsibleSection
-          title={t('Chat.settingsThinkingConfig', { defaultValue: 'Thinking mode' })}
-          open={thinkingOpen}
-          onToggle={() => setThinkingOpen((value) => !value)}
-        >
-          <div className="space-y-3">
-            <div>
-              <p className="mb-2 text-xs font-semibold text-gray-500">
-                {t('Chat.settingsThinkingModeLabel', { defaultValue: 'Mode' })}
-              </p>
-              <div className="flex flex-wrap gap-2 rounded-2xl bg-[#eef5f5] p-1.5">
-                <CanonicalSettingsSegmentButton
-                  active={thinkingPreference === 'off'}
-                  onClick={() => onThinkingPreferenceChange?.('off')}
-                >
-                  {t('Chat.settingsThinkingOff', { defaultValue: 'Off' })}
-                </CanonicalSettingsSegmentButton>
-                <CanonicalSettingsSegmentButton
-                  active={thinkingPreference === 'on'}
-                  disabled={!thinkingSupported}
-                  onClick={() => onThinkingPreferenceChange?.('on')}
-                >
-                  {t('Chat.settingsThinkingOn', { defaultValue: 'Thinking' })}
-                </CanonicalSettingsSegmentButton>
-              </div>
-            </div>
-            <CanonicalSettingsToggleRow
-              label={t('Chat.settingsThinkingLabel', { defaultValue: 'Show thinking for supported routes' })}
-              hint={thinkingSupported
-                ? t('Chat.settingsThinkingReadyHint', { defaultValue: 'This route can stream the model thought process separately from the final answer.' })
-                : (normalizedThinkingReason || t('Chat.settingsThinkingFallbackHint', { defaultValue: 'Thinking is unavailable for the current route.' }))}
-              checked={thinkingPreference === 'on'}
-              disabled={!thinkingSupported}
-              onChange={(checked) => onThinkingPreferenceChange?.(checked ? 'on' : 'off')}
-            />
-            {normalizedThinkingReason ? (
-              <DisabledSettingsNote label={normalizedThinkingReason} />
-            ) : null}
-          </div>
-        </CanonicalSettingsCollapsibleSection>
-      </CanonicalDrawerSection>
+      {/* Thinking */}
+      <SettingsSection title={t('Chat.settingsThinkingTitle', { defaultValue: 'Thinking' })}>
+        <CanonicalSettingsToggleRow
+          label={t('Chat.settingsThinkingLabel', { defaultValue: 'Show thinking for supported routes' })}
+          hint={thinkingSupported
+            ? t('Chat.settingsThinkingReadyHint', { defaultValue: 'This route can stream the model thought process separately from the final answer.' })
+            : (normalizedThinkingReason || t('Chat.settingsThinkingFallbackHint', { defaultValue: 'Thinking is unavailable for the current route.' }))}
+          checked={thinkingPreference === 'on'}
+          disabled={!thinkingSupported}
+          onChange={(checked) => onThinkingPreferenceChange?.(checked ? 'on' : 'off')}
+        />
+      </SettingsSection>
 
-      <CanonicalDrawerSection
-        title={t('Chat.settingsVoice', { defaultValue: 'Voice' })}
-        hint={t('Chat.settingsVoiceHint', { defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.' })}
-      >
-        <div>
-          <p className="mb-2 text-xs font-semibold text-gray-500">
-            {t('Chat.settingsVoiceTrigger', { defaultValue: 'Trigger' })}
-          </p>
-          <div className="flex flex-wrap gap-2 rounded-2xl bg-[#eef5f5] p-1.5">
-            <CanonicalSettingsSegmentButton active disabled>
-              {t('Chat.settingsVoiceOff', { defaultValue: 'Off' })}
-            </CanonicalSettingsSegmentButton>
-            <CanonicalSettingsSegmentButton disabled>
-              {t('Chat.settingsVoiceCommand', { defaultValue: 'Command' })}
-            </CanonicalSettingsSegmentButton>
-            <CanonicalSettingsSegmentButton disabled>
-              {t('Chat.settingsVoiceNatural', { defaultValue: 'Natural' })}
-            </CanonicalSettingsSegmentButton>
-          </div>
+      {/* Voice */}
+      <SettingsSection title={t('Chat.settingsVoice', { defaultValue: 'Voice' })}>
+        <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-1.5">
+          <CanonicalSettingsSegmentButton active disabled>
+            {t('Chat.settingsVoiceOff', { defaultValue: 'Off' })}
+          </CanonicalSettingsSegmentButton>
+          <CanonicalSettingsSegmentButton disabled>
+            {t('Chat.settingsVoiceCommand', { defaultValue: 'Command' })}
+          </CanonicalSettingsSegmentButton>
+          <CanonicalSettingsSegmentButton disabled>
+            {t('Chat.settingsVoiceNatural', { defaultValue: 'Natural' })}
+          </CanonicalSettingsSegmentButton>
         </div>
         <CanonicalSettingsToggleRow
           label={t('Chat.settingsVoiceConversationMode', { defaultValue: 'Voice conversation mode' })}
@@ -193,48 +223,43 @@ export function ChatSettingsPanel({
           checked={false}
           disabled
         />
-        <CanonicalSettingsCollapsibleSection
-          title={t('Chat.settingsVoiceRouteConfig', { defaultValue: 'Voice model config' })}
-          open={voiceRouteOpen}
-          onToggle={() => setVoiceRouteOpen((value) => !value)}
-        >
-          {voiceRouteConfigContent || <DisabledSettingsNote label={resolvedUnavailableReason} />}
-        </CanonicalSettingsCollapsibleSection>
-      </CanonicalDrawerSection>
+        {voiceRouteConfigContent ? (
+          <CanonicalSettingsCollapsibleSection
+            title={t('Chat.settingsVoiceRouteConfig', { defaultValue: 'Voice model config' })}
+            open={voiceRouteOpen}
+            onToggle={() => setVoiceRouteOpen((value) => !value)}
+          >
+            {voiceRouteConfigContent}
+          </CanonicalSettingsCollapsibleSection>
+        ) : null}
+      </SettingsSection>
 
-      <CanonicalDrawerSection
-        title={t('Chat.settingsVisuals', { defaultValue: 'Visuals' })}
-        hint={t('Chat.settingsVisualsHint', { defaultValue: 'Control whether images and videos appear in conversation, and their content style.' })}
-      >
-        <div>
-          <p className="mb-2 text-xs font-semibold text-gray-500">
-            {t('Chat.settingsVisualsTrigger', { defaultValue: 'Trigger' })}
-          </p>
-          <div className="flex flex-wrap gap-2 rounded-2xl bg-[#eef5f5] p-1.5">
-            <CanonicalSettingsSegmentButton active disabled>
-              {t('Chat.settingsVisualsOff', { defaultValue: 'Off' })}
-            </CanonicalSettingsSegmentButton>
-            <CanonicalSettingsSegmentButton disabled>
-              {t('Chat.settingsVisualsExplicitOnly', { defaultValue: 'Explicit only' })}
-            </CanonicalSettingsSegmentButton>
-            <CanonicalSettingsSegmentButton disabled>
-              {t('Chat.settingsVisualsNatural', { defaultValue: 'Natural' })}
-            </CanonicalSettingsSegmentButton>
-          </div>
+      {/* Visuals */}
+      <SettingsSection title={t('Chat.settingsVisuals', { defaultValue: 'Visuals' })}>
+        <div className="flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-1.5">
+          <CanonicalSettingsSegmentButton active disabled>
+            {t('Chat.settingsVisualsOff', { defaultValue: 'Off' })}
+          </CanonicalSettingsSegmentButton>
+          <CanonicalSettingsSegmentButton disabled>
+            {t('Chat.settingsVisualsExplicitOnly', { defaultValue: 'Explicit only' })}
+          </CanonicalSettingsSegmentButton>
+          <CanonicalSettingsSegmentButton disabled>
+            {t('Chat.settingsVisualsNatural', { defaultValue: 'Natural' })}
+          </CanonicalSettingsSegmentButton>
         </div>
-        <CanonicalSettingsCollapsibleSection
-          title={t('Chat.settingsMediaRouteConfig', { defaultValue: 'Visual route config' })}
-          open={visualRouteOpen}
-          onToggle={() => setVisualRouteOpen((value) => !value)}
-        >
-          {mediaRouteConfigContent || <DisabledSettingsNote label={resolvedUnavailableReason} />}
-        </CanonicalSettingsCollapsibleSection>
-      </CanonicalDrawerSection>
+        {mediaRouteConfigContent ? (
+          <CanonicalSettingsCollapsibleSection
+            title={t('Chat.settingsMediaRouteConfig', { defaultValue: 'Visual route config' })}
+            open={visualRouteOpen}
+            onToggle={() => setVisualRouteOpen((value) => !value)}
+          >
+            {mediaRouteConfigContent}
+          </CanonicalSettingsCollapsibleSection>
+        ) : null}
+      </SettingsSection>
 
-      <CanonicalDrawerSection
-        title={t('Chat.settingsPresence', { defaultValue: 'Presence' })}
-        hint={t('Chat.settingsPresenceHint', { defaultValue: 'Control whether this conversation may proactively re-enter the room.' })}
-      >
+      {/* Presence */}
+      <SettingsSection title={t('Chat.settingsPresence', { defaultValue: 'Presence' })}>
         {presenceContent || (
           <CanonicalSettingsToggleRow
             label={t('Chat.settingsAllowProactiveContact', { defaultValue: 'Allow proactive contact' })}
@@ -243,16 +268,14 @@ export function ChatSettingsPanel({
             disabled
           />
         )}
-      </CanonicalDrawerSection>
+      </SettingsSection>
 
-      <CanonicalDrawerSection
-        title={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-        hint={t('Chat.settingsDiagnosticsHint', { defaultValue: 'Inspect route, runtime, and conversation health details for the current chat.' })}
-      >
+      {/* Diagnostics */}
+      <SettingsSection title={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}>
         {diagnosticsContent || (
           <DisabledSettingsNote label={resolvedUnavailableReason} />
         )}
-      </CanonicalDrawerSection>
+      </SettingsSection>
     </div>
   );
 }

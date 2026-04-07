@@ -28,13 +28,14 @@ test('chat unified shell a2: anonymous desktop only exposes AI mode', () => {
   assert.match(chatModeRegistrySource, /input\.authStatus === 'authenticated'\s*\?\s*\[input\.aiHost, input\.humanHost, input\.agentHost\]\s*:\s*\[input\.aiHost\]/);
 });
 
-test('chat unified shell a2: AI host setup state is sourced from route readiness', () => {
-  assert.match(chatAiAdapterSource, /resolveAiConversationRouteReadiness/);
+test('chat unified shell a2: AI host setup state is sourced from projection and route options', () => {
+  assert.match(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
+  assert.match(chatAiAdapterSource, /toRuntimeRouteBindingFromPickerSelection/);
+  assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
   assert.match(chatPageSource, /useRuntimeConfigPanelController/);
   assert.match(chatPageSource, /setChatSetupState/);
-  assert.match(chatPageSource, /const aiRouteReadinessPending = !runtimeConfigController\.hydrated \|\| runtimeConfigController\.discovering/);
-  assert.doesNotMatch(chatPageSource, /runtimeConfigController\.runtimeDaemonUpdatedAt/);
-  assert.match(chatPageSource, /Loading AI routes\.\.\./);
+  assert.doesNotMatch(chatPageSource, /aiRouteReadinessPending/);
+  assert.doesNotMatch(chatPageSource, /Loading AI routes\.\.\./);
 });
 
 test('chat unified shell a2: chat page mounts the canonical target-first shell', () => {
@@ -106,13 +107,17 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAiAdapterSource, /createChatAiConversationRuntimeAdapter/);
   assert.match(chatAiAdapterSource, /useAiConversationEffects/);
   assert.match(chatAiPresentationSource, /CanonicalComposer/);
-  assert.match(chatAiPresentationSource, /CanonicalDrawerSection/);
+  assert.match(chatAiPresentationSource, /onModelSelectionChange=/);
   assert.match(chatAiPresentationSource, /transcriptProps:/);
   assert.match(chatAiPresentationSource, /composerContent:/);
   assert.match(chatAiPresentationSource, /settingsContent:/);
+  assert.match(chatAiPresentationSource, /ConversationCapabilitySettingsSection section="voice"/);
+  assert.match(chatAiPresentationSource, /ConversationCapabilitySettingsSection section="visual"/);
   assert.match(chatAiPresentationSource, /diagnosticsContent=/);
   assert.match(chatAiPresentationSource, /onArchiveThread: input\.handleArchiveThread/);
   assert.match(chatAiPresentationSource, /onRenameThread: input\.handleRenameThread/);
+  assert.doesNotMatch(chatAiPresentationSource, /voiceRouteConfigContent={<RuntimeInspectUnsupportedNote/);
+  assert.doesNotMatch(chatAiPresentationSource, /mediaRouteConfigContent={<RuntimeInspectUnsupportedNote/);
   assert.doesNotMatch(chatAiPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderComposer:/);
@@ -123,16 +128,21 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
+  assert.match(chatAgentPresentationSource, /ConversationCapabilitySettingsSection section="voice"/);
+  assert.match(chatAgentPresentationSource, /ConversationCapabilitySettingsSection section="visual"/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);
+  assert.doesNotMatch(chatAgentPresentationSource, /voiceRouteConfigContent={<RuntimeInspectUnsupportedNote/);
+  assert.doesNotMatch(chatAgentPresentationSource, /mediaRouteConfigContent={<RuntimeInspectUnsupportedNote/);
   assert.doesNotMatch(chatAgentPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderComposer:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTargetRail:/);
 
-  assert.match(chatSettingsPanelSource, /CanonicalDrawerSection/);
+  assert.match(chatSettingsPanelSource, /SettingsSection/);
   assert.match(chatSettingsPanelSource, /CanonicalSettingsCollapsibleSection/);
   assert.match(chatSettingsPanelSource, /CanonicalSettingsToggleRow/);
+  assert.match(chatSettingsPanelSource, /modelPickerContent\?:/);
   assert.match(chatSettingsPanelSource, /chatRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /voiceRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /diagnosticsContent\?:/);

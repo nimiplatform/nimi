@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   CanonicalComposer,
-  type CanonicalRuntimeInspectSectionData,
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
 import type {
@@ -16,10 +15,10 @@ import type {
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import { ConversationCapabilitySettingsSection } from './chat-conversation-capability-settings';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
   RuntimeInspectCard,
-  RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
 import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
 import type { AgentConversationSelection } from './chat-shell-types';
@@ -39,6 +38,7 @@ import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback'
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ChatThinkingPreference } from './chat-thinking';
 import type { StreamState } from '../turns/stream-controller';
+import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -53,10 +53,12 @@ type UseAgentConversationPresentationInput = {
   } | null;
   handleSubmit: (text: string) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
+  initialModelSelection?: Partial<RouteModelPickerSelection>;
   inputSelectionAgentId: AgentConversationSelection['agentId'];
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   onDismissHostFeedback: () => void;
+  onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageContent: CanonicalMessageContentSlot;
   selectedTargetId: string | null;
@@ -199,76 +201,37 @@ export function useAgentConversationPresentation(
     characterData,
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
-  const agentInspectSections = useMemo<CanonicalRuntimeInspectSectionData[]>(() => [
-    {
-      key: 'chat',
-      title: input.t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
-      hint: input.t('Chat.settingsChatModelHint', {
-        defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.',
-      }),
-      summary: input.agentRouteReady
-        ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-        : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
-      content: (
-        <div className="space-y-3">
-          <RuntimeInspectCard
-            label={input.t('Chat.agentSelectLabel', { defaultValue: 'Agent friend' })}
-            value={input.activeTarget?.displayName || input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
-            detail={input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
-              defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-            })}
-          />
-          <RuntimeInspectCard
-            label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-            value={input.agentRouteReady
-              ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-              : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
-            detail={input.t('Chat.agentRouteRequired', {
-              defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-            })}
-          />
-        </div>
-      ),
-    },
-    {
-      key: 'voice',
-      title: input.t('Chat.settingsVoice', { defaultValue: 'Voice' }),
-      hint: input.t('Chat.settingsVoiceHint', {
-        defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.',
-      }),
-      disabledReason: input.t('Chat.settingsUnavailableReason', {
-        defaultValue: 'This source does not expose runtime inspect yet.',
-      }),
-    },
-    {
-      key: 'media',
-      title: input.t('Chat.settingsVisuals', { defaultValue: 'Visuals' }),
-      hint: input.t('Chat.settingsVisualsHint', {
-        defaultValue: 'Control whether images and videos appear in conversation, and their content style.',
-      }),
-      disabledReason: input.t('Chat.settingsUnavailableReason', {
-        defaultValue: 'This source does not expose runtime inspect yet.',
-      }),
-    },
-    {
-      key: 'diagnostics',
-      title: input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-      hint: input.t('Chat.agentProfileSubtitle', {
-        defaultValue: 'Relationship, memory, and target details.',
-      }),
-      content: (
-        <RuntimeInspectCard
-          label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-          value={input.targetsPending
-            ? input.t('Chat.settingsLoading', { defaultValue: 'Loading models...' })
-            : input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
-          detail={input.activeTarget?.ownershipType || input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
-            defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-          })}
-        />
-      ),
-    },
-  ], [input.activeTarget?.displayName, input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.agentRouteReady, input.t, input.targetsPending]);
+  const chatRouteConfigContent = useMemo(() => (
+    <div className="space-y-3">
+      <RuntimeInspectCard
+        label={input.t('Chat.agentSelectLabel', { defaultValue: 'Agent friend' })}
+        value={input.activeTarget?.displayName || input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
+        detail={input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
+          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
+        })}
+      />
+      <RuntimeInspectCard
+        label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
+        value={input.agentRouteReady
+          ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
+          : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
+        detail={input.t('Chat.agentRouteRequired', {
+          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
+        })}
+      />
+    </div>
+  ), [input.activeTarget?.displayName, input.activeTarget?.worldName, input.agentRouteReady, input.t]);
+  const diagnosticsContent = useMemo(() => (
+    <RuntimeInspectCard
+      label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+      value={input.targetsPending
+        ? input.t('Chat.settingsLoading', { defaultValue: 'Loading models...' })
+        : input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
+      detail={input.activeTarget?.ownershipType || input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
+        defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
+      })}
+    />
+  ), [input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.t, input.targetsPending]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -300,15 +263,17 @@ export function useAgentConversationPresentation(
     adapter,
     settingsContent: (
       <ChatSettingsPanel
+        onModelSelectionChange={input.onModelSelectionChange}
+        initialModelSelection={input.initialModelSelection}
         thinkingPreference={input.thinkingPreference}
         thinkingSupported={input.thinkingSupported}
         thinkingUnsupportedReason={input.thinkingUnsupportedReason}
         onThinkingPreferenceChange={input.setChatThinkingPreference}
-        chatRouteConfigContent={agentInspectSections[0]?.content}
-        voiceRouteConfigContent={<RuntimeInspectUnsupportedNote label={agentInspectSections[1]?.disabledReason || ''} />}
-        mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={agentInspectSections[2]?.disabledReason || ''} />}
-        diagnosticsContent={agentInspectSections[3]?.content}
-        presenceContent={<RuntimeInspectUnsupportedNote label={input.t('Chat.settingsAllowProactiveContactHint', {
+        chatRouteConfigContent={chatRouteConfigContent}
+        voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
+        mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
+        diagnosticsContent={diagnosticsContent}
+        presenceContent={<DisabledPresenceNote label={input.t('Chat.settingsAllowProactiveContactHint', {
           defaultValue: 'Unavailable until runtime inspect is connected for this source.',
         })} />}
       />
@@ -335,7 +300,8 @@ export function useAgentConversationPresentation(
     }),
   }), [
     adapter,
-    agentInspectSections,
+    chatRouteConfigContent,
+    diagnosticsContent,
     hostFeedbackNode,
     hostSnapshot,
     input.activeTarget,
@@ -351,5 +317,15 @@ export function useAgentConversationPresentation(
     input.thinkingPreference,
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
+    input.initialModelSelection,
+    input.onModelSelectionChange,
   ]);
+}
+
+function DisabledPresenceNote(props: { label: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
+      {props.label}
+    </div>
+  );
 }

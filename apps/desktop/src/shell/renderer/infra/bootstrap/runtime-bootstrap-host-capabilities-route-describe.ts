@@ -17,14 +17,19 @@ import {
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { buildRuntimeCallOptions } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 
-const ROUTE_DESCRIBE_PROBE_TIMEOUT_MS = 10_000;
+const ROUTE_DESCRIBE_PROBE_TIMEOUT_MS = 30_000;
 const TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.text_generate.route_describe';
 const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.voice_clone.route_describe';
 const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.voice_design.route_describe';
 const TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(text.generate)';
 const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_v2v)';
 const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_t2v)';
-const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_BYTES = new Uint8Array([0]);
+const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_URI = 'https://nimi.invalid/route-describe-reference.wav';
+const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_BYTES = new Uint8Array([0x01]);
+const VOICE_CLONE_ROUTE_DESCRIBE_PREFERRED_NAME = 'runtime-route-describe-probe';
+const VOICE_DESIGN_ROUTE_DESCRIBE_PREVIEW_TEXT = 'route describe preview';
+const VOICE_DESIGN_ROUTE_DESCRIBE_LANGUAGE = 'en';
+const VOICE_DESIGN_ROUTE_DESCRIBE_PREFERRED_NAME = 'runtime-route-describe-probe';
 
 type RouteDescribeCapability =
   | 'text.generate'
@@ -131,7 +136,10 @@ function buildDescribeProbeSpec(
           targetModelId: modelId,
           input: {
             referenceAudioBytes: VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_BYTES,
+            referenceAudioUri: VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_URI,
             referenceAudioMime: 'audio/wav',
+            languageHints: [],
+            preferredName: VOICE_CLONE_ROUTE_DESCRIBE_PREFERRED_NAME,
             text: VOICE_CLONE_ROUTE_DESCRIBE_PROBE_TEXT,
           },
         },
@@ -146,6 +154,9 @@ function buildDescribeProbeSpec(
         targetModelId: modelId,
         input: {
           instructionText: VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_TEXT,
+          previewText: VOICE_DESIGN_ROUTE_DESCRIBE_PREVIEW_TEXT,
+          language: VOICE_DESIGN_ROUTE_DESCRIBE_LANGUAGE,
+          preferredName: VOICE_DESIGN_ROUTE_DESCRIBE_PREFERRED_NAME,
         },
       },
     },

@@ -199,6 +199,18 @@ function isProjectionHealthHealthy(health: RuntimeRouteHealthResult | null): boo
   return health.healthy !== false;
 }
 
+function isAgentEligibilityReadyForLocalExecution(
+  eligibility: AgentCapabilityEligibility | null,
+): boolean {
+  if (!eligibility) {
+    return false;
+  }
+  if (!eligibility.channel || !eligibility.sessionClass || !normalizeText(eligibility.reason)) {
+    return false;
+  }
+  return eligibility.channel === 'LOCAL' && eligibility.sessionClass === 'AGENT_LOCAL';
+}
+
 export function createDefaultConversationCapabilitySelectionStore(): ConversationCapabilitySelectionStore {
   return {
     version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
@@ -455,20 +467,11 @@ export function buildAgentEffectiveCapabilityResolution(input: {
   }
 
   const eligibility = input.eligibility || null;
-  if (!eligibility) {
+  if (!isAgentEligibilityReadyForLocalExecution(eligibility)) {
     return {
       ready: false,
       textProjection,
-      eligibility: null,
-      reason: 'eligibility_denied',
-    };
-  }
-
-  if (!eligibility.channel || !eligibility.sessionClass || !normalizeText(eligibility.reason)) {
-    return {
-      ready: false,
-      textProjection,
-      eligibility,
+      eligibility: eligibility || null,
       reason: 'eligibility_denied',
     };
   }

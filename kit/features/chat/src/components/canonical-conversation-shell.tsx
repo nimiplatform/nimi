@@ -206,14 +206,17 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
       <ConversationAnimationStyles />
       <div className="flex min-h-0 w-full min-w-0 flex-1">
         {setupBlocking ? (
-          <div className="flex min-h-0 flex-1 items-center justify-center px-6">
-            <ConversationSetupPanel
-              state={props.setupState!}
-              description={props.setupDescription}
-              onAction={props.onSetupAction}
-              className="w-full"
-            />
-          </div>
+          <>
+            <div className="flex min-h-0 flex-1 items-center justify-center px-6">
+              <ConversationSetupPanel
+                state={props.setupState!}
+                description={props.setupDescription}
+                onAction={props.onSetupAction}
+                className="w-full"
+              />
+            </div>
+            {props.rightPanel ?? null}
+          </>
         ) : !props.selectedTarget ? (
           props.hideTargetPane ? (
             <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">

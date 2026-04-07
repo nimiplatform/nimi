@@ -1,8 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import {
-  CanonicalDrawerSection,
   CanonicalComposer,
-  type CanonicalRuntimeInspectSectionData,
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
 import type {
@@ -15,56 +13,45 @@ import type {
   ChatAiThreadBundle,
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
+import { ConversationCapabilitySettingsSection } from './chat-conversation-capability-settings';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
   RuntimeInspectCard,
-  RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
-import {
-  getResolvedRouteDisplaySummary,
-  isResolvedRouteEqual,
-  toConversationThreadSummary,
-} from './chat-ai-thread-model';
-import type { AiConversationResolvedRoute } from './chat-ai-route-readiness';
+import { toConversationThreadSummary } from './chat-ai-thread-model';
 import type { ChatThinkingPreference } from './chat-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 
 type UseAiConversationPresentationInput = {
   activeThreadId: string | null;
   aiCharacterData: DesktopConversationModeHost['characterData'];
-  availableResolvedRoutes: readonly AiConversationResolvedRoute[];
   bundle: ChatAiThreadBundle | null;
   bundleError: unknown;
   canonicalMessages: NonNullable<DesktopConversationModeHost['messages']>;
   composerReady: boolean;
   currentDraftTextRef: { current: string };
-  currentResolvedRoute: AiConversationResolvedRoute | null;
   footerContent: ReactNode;
   handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
   handleRenameThread: (threadId: string, title: string) => void;
-  handleRouteSelection: (route: AiConversationResolvedRoute) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
+  initialModelSelection?: Partial<RouteModelPickerSelection>;
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
   onDismissHostFeedback: () => void;
+  onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   pendingFirstBeat: boolean;
-  readiness: {
-    cloudReady: boolean;
-    localReady: boolean;
-    setupState: ConversationSetupState;
-  };
   renderMessageContent: CanonicalMessageContentSlot;
   routeSummary: {
     label: string;
     detail: string | null;
   };
-  runtimeConfigState: RuntimeConfigStateV11 | null;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
+  setupState: ConversationSetupState;
   submittingThreadId: string | null;
   syntheticTarget: NonNullable<DesktopConversationModeHost['targets']>[number];
   t: ReturnType<typeof useTranslation>['t'];
@@ -77,116 +64,35 @@ type UseAiConversationPresentationInput = {
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
 ): DesktopConversationModeHost {
-  const aiInspectSections = useMemo<CanonicalRuntimeInspectSectionData[]>(() => [
-    {
-      key: 'chat',
-      title: input.t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
-      hint: input.t('Chat.settingsChatModelHint', {
-        defaultValue: 'AI model used for this conversation. Follows Runtime default unless overridden.',
-      }),
-      summary: input.routeSummary.label,
-      content: (
-        <div className="space-y-3">
-          <RuntimeInspectCard
-            label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
-            value={input.routeSummary.label}
-            detail={input.routeSummary.detail}
-          />
-          <div className="space-y-2">
-            {input.availableResolvedRoutes.map((route) => {
-              const routeDisplay = getResolvedRouteDisplaySummary(route, input.runtimeConfigState);
-              const active = isResolvedRouteEqual(route, input.currentResolvedRoute);
-              const routeKey = route.routeKind === 'local'
-                ? 'local'
-                : `${route.connectorId}:${route.modelId || 'missing-model'}`;
-              return (
-                <button
-                  key={routeKey}
-                  type="button"
-                  disabled={Boolean(input.submittingThreadId)}
-                  onClick={() => input.handleRouteSelection(route)}
-                  className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                    active
-                      ? 'border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]'
-                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] hover:border-[var(--nimi-border-strong)]'
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                    {routeDisplay.label}
-                  </div>
-                  <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                    {routeDisplay.detail}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'voice',
-      title: input.t('Chat.settingsVoice', { defaultValue: 'Voice' }),
-      hint: input.t('Chat.settingsVoiceHint', {
-        defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.',
-      }),
-      disabledReason: input.t('Chat.settingsUnavailableReason', {
-        defaultValue: 'This source does not expose runtime inspect yet.',
-      }),
-    },
-    {
-      key: 'media',
-      title: input.t('Chat.settingsVisuals', { defaultValue: 'Visuals' }),
-      hint: input.t('Chat.settingsVisualsHint', {
-        defaultValue: 'Control whether images and videos appear in conversation, and their content style.',
-      }),
-      disabledReason: input.t('Chat.settingsUnavailableReason', {
-        defaultValue: 'This source does not expose runtime inspect yet.',
-      }),
-    },
-    {
-      key: 'diagnostics',
-      title: input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-      hint: input.t('Chat.aiProfileSubtitle', { defaultValue: 'Route, target, and conversation details.' }),
-      content: (
-        <RuntimeInspectCard
-          label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
-          value={input.readiness.setupState.status === 'ready'
-            ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-            : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
-          detail={input.routeSummary.detail}
-        />
-      ),
-    },
-  ], [
-    input.availableResolvedRoutes,
-    input.currentResolvedRoute,
-    input.handleRouteSelection,
-    input.readiness.setupState.status,
+  const diagnosticsContent = useMemo(() => (
+    <RuntimeInspectCard
+      label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+      value={input.setupState.status === 'ready'
+        ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
+        : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
+      detail={input.routeSummary.detail}
+    />
+  ), [
     input.routeSummary.detail,
-    input.routeSummary.label,
-    input.runtimeConfigState,
-    input.submittingThreadId,
+    input.setupState.status,
     input.t,
   ]);
+
   const chatRouteConfigContent = useMemo(() => (
-    aiInspectSections[0]?.content ? (
-      <CanonicalDrawerSection
-        title={input.t('Chat.settingsChatRouteConfig', { defaultValue: 'Model route config' })}
-        hint={input.t('Chat.settingsChatRouteConfigHint', {
-          defaultValue: 'Inspect and switch the runtime-backed route selection used for this conversation.',
-        })}
-      >
-        {aiInspectSections[0].content}
-      </CanonicalDrawerSection>
-    ) : null
-  ), [aiInspectSections, input.t]);
+    <RuntimeInspectCard
+      label={input.t('Chat.aiCurrentRoute', { defaultValue: 'Current route' })}
+      value={input.routeSummary.label}
+      detail={input.routeSummary.detail}
+    />
+  ), [input.routeSummary.detail, input.routeSummary.label, input.t]);
+
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
+
   const adapter = useMemo(() => ({
     mode: 'ai' as const,
-    setupState: input.readiness.setupState,
+    setupState: input.setupState,
     threadAdapter: {
       listThreads: () => input.threads.map((thread) => toConversationThreadSummary(thread)),
       listMessages: (threadId: string) => (
@@ -204,12 +110,12 @@ export function useAiConversationPresentation(
         disabledReason: input.submittingThreadId
           ? input.t('Chat.aiSending', { defaultValue: 'Generating response…' })
           : null,
-        placeholder: input.readiness.setupState.status === 'ready'
+        placeholder: input.setupState.status === 'ready'
           ? input.t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })
           : input.t('Chat.aiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting…' }),
       }
       : null,
-  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.readiness.setupState, input.submittingThreadId, input.t, input.threads]);
+  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads]);
 
   return useMemo(() => ({
     mode: 'ai' as const,
@@ -229,15 +135,17 @@ export function useAiConversationPresentation(
     characterData: input.aiCharacterData,
     settingsContent: (
       <ChatSettingsPanel
+        onModelSelectionChange={input.onModelSelectionChange}
+        initialModelSelection={input.initialModelSelection}
         thinkingPreference={input.thinkingPreference}
         thinkingSupported={input.thinkingSupported}
         thinkingUnsupportedReason={input.thinkingUnsupportedReason}
         onThinkingPreferenceChange={input.setChatThinkingPreference}
         chatRouteConfigContent={chatRouteConfigContent}
-        voiceRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[1]?.disabledReason || ''} />}
-        mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={aiInspectSections[2]?.disabledReason || ''} />}
-        diagnosticsContent={aiInspectSections[3]?.content}
-        presenceContent={<RuntimeInspectUnsupportedNote label={input.t('Chat.settingsAllowProactiveContactHint', {
+        voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
+        mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
+        diagnosticsContent={diagnosticsContent}
+        presenceContent={<DisabledPresenceNote label={input.t('Chat.settingsAllowProactiveContactHint', {
           defaultValue: 'Unavailable until runtime inspect is connected for this source.',
         })} />}
       />
@@ -277,48 +185,37 @@ export function useAiConversationPresentation(
         </div>
       ) : null
     ),
-    setupDescription: (
-      input.readiness.localReady || input.readiness.cloudReady
-        ? input.t('Chat.aiRouteUnavailable', {
-          defaultValue: 'The saved AI route is no longer ready. Pick one of the ready routes on the right to continue.',
-        })
-        : input.t('Chat.aiRouteRequired', {
-          defaultValue: 'Configure a local chat route or a healthy cloud connector before AI mode can open a conversation.',
-        })
-    ),
+    setupDescription: input.t('Chat.aiRouteRequired', {
+      defaultValue: 'Configure a local chat route or a healthy cloud connector before AI mode can open a conversation.',
+    }),
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
     onArchiveThread: input.handleArchiveThread,
     onRenameThread: input.handleRenameThread,
   }), [
     adapter,
-    aiInspectSections,
     chatRouteConfigContent,
+    diagnosticsContent,
     hostFeedbackNode,
     input.activeThreadId,
     input.aiCharacterData,
-    input.availableResolvedRoutes,
     input.bundle?.draft?.text,
     input.bundle?.draft?.updatedAtMs,
     input.bundleError,
     input.canonicalMessages,
     input.currentDraftTextRef,
-    input.currentResolvedRoute,
     input.footerContent,
+    input.isBundleLoading,
     input.handleArchiveThread,
     input.handleCreateThread,
     input.handleRenameThread,
-    input.handleRouteSelection,
     input.handleSelectThread,
-    input.isBundleLoading,
     input.messages,
     input.onDismissHostFeedback,
     input.pendingFirstBeat,
-    input.readiness.cloudReady,
-    input.readiness.localReady,
-    input.readiness.setupState,
     input.renderMessageContent,
     input.setChatThinkingPreference,
+    input.setupState,
     input.submittingThreadId,
     input.syntheticTarget,
     input.t,
@@ -326,5 +223,15 @@ export function useAiConversationPresentation(
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
     input.threads.length,
+    input.initialModelSelection,
+    input.onModelSelectionChange,
   ]);
+}
+
+function DisabledPresenceNote(props: { label: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
+      {props.label}
+    </div>
+  );
 }

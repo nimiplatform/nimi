@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import * as React from 'react';
 import type { JsonObject } from '../internal/utils.js';
 import { loadStorageJsonFrom, saveStorageJsonTo } from './local-storage.js';
 import { setModSdkRuntimeModSettings, useModSdkRuntimeModSettings } from './internal/settings-access.js';
@@ -112,15 +112,15 @@ export function useRuntimeModSettings<T extends JsonObject>(input: {
   setSettings: (settings: T) => void;
   updateSettings: (updater: Partial<T> | ((previous: T) => T)) => void;
 } {
-  const normalizedModId = useMemo(() => normalizeModId(input.modId), [input.modId]);
-  const normalize = useMemo(
+  const normalizedModId = React.useMemo(() => normalizeModId(input.modId), [input.modId]);
+  const normalize = React.useMemo(
     () => input.normalize || ((value: unknown) => identityNormalize(value, input.defaults)),
     [input.defaults, input.normalize],
   );
 
   const runtimeModSettings = useModSdkRuntimeModSettings(normalizedModId);
 
-  const settings = useMemo(() => {
+  const settings = React.useMemo(() => {
     if (!normalizedModId) {
       return normalize(input.defaults);
     }
@@ -129,12 +129,12 @@ export function useRuntimeModSettings<T extends JsonObject>(input: {
     return normalize(fallbackValue);
   }, [input.defaults, normalize, normalizedModId, runtimeModSettings]);
 
-  const setSettings = useCallback((nextSettings: T) => {
+  const setSettings = React.useCallback((nextSettings: T) => {
     if (!normalizedModId) return;
     setModSdkRuntimeModSettings(normalizedModId, nextSettings);
   }, [normalizedModId]);
 
-  const updateSettings = useCallback((updater: Partial<T> | ((previous: T) => T)) => {
+  const updateSettings = React.useCallback((updater: Partial<T> | ((previous: T) => T)) => {
     const nextSettings = typeof updater === 'function'
       ? (updater as (previous: T) => T)(settings)
       : ({ ...settings, ...updater } as T);

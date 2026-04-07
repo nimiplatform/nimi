@@ -51,7 +51,6 @@ export function ChatPage() {
   const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
 
   const runtimeConfigController = useRuntimeConfigPanelController();
-  const aiRouteReadinessPending = !runtimeConfigController.hydrated || runtimeConfigController.discovering;
   const humanHost = useHumanConversationModeHost({
     authStatus,
     selectedChatId,
@@ -171,6 +170,13 @@ export function ChatPage() {
       });
       return;
     }
+    // AI/Agent mode: open the settings drawer (which contains the route picker)
+    // instead of navigating away to the runtime config page.
+    if (chatMode === 'ai' || chatMode === 'agent' || action.returnToMode === 'ai' || action.returnToMode === 'agent') {
+      setChatMode(action.returnToMode || chatMode);
+      setRightPanelMode('settings');
+      return;
+    }
     setChatMode(action.returnToMode || chatMode);
     setActiveTab('runtime');
     dispatchRuntimeConfigOpenPage(toRuntimePageId(action.targetId));
@@ -254,14 +260,6 @@ export function ChatPage() {
 
   if (!activeHost) {
     return <div className="flex min-h-0 flex-1" />;
-  }
-
-  if (activeHost.mode === 'ai' && aiRouteReadinessPending) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-slate-400">
-        Loading AI routes...
-      </div>
-    );
   }
 
   return (

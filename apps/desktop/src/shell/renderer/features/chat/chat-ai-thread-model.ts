@@ -3,7 +3,6 @@ import type {
   ConversationThreadSummary,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
-  ApiConnector,
   LocalModelOptionV11,
   RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -13,7 +12,6 @@ import type {
   ChatAiMessageRecord,
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { AiConversationResolvedRoute } from './chat-ai-route-readiness';
 
 export const AI_NEW_CONVERSATION_TITLE = 'New conversation';
 const AI_THREAD_TITLE_MAX_LENGTH = 80;
@@ -42,22 +40,6 @@ function compareLocalModels(left: LocalModelOptionV11, right: LocalModelOptionV1
     return rankDelta;
   }
   return left.model.localeCompare(right.model);
-}
-
-export function isResolvedRouteEqual(
-  left: AiConversationResolvedRoute | null | undefined,
-  right: AiConversationResolvedRoute | null | undefined,
-): boolean {
-  if (!left && !right) {
-    return true;
-  }
-  if (!left || !right) {
-    return false;
-  }
-  return left.routeKind === right.routeKind
-    && left.connectorId === right.connectorId
-    && left.provider === right.provider
-    && left.modelId === right.modelId;
 }
 
 export function hasAiConversationThread(
@@ -95,61 +77,6 @@ export function pickPreferredChatLocalModel(
     .filter((model) => model.status !== 'removed' && hasChatCapability(model.capabilities))
     .sort(compareLocalModels);
   return models[0] || null;
-}
-
-export function pickChatCapableConnectorModel(
-  connector: ApiConnector,
-  preferredModelId?: string | null,
-): string | null {
-  const models = connector.models
-    .map((modelId) => normalizeText(modelId))
-    .filter(Boolean);
-  if (models.length === 0) {
-    return null;
-  }
-
-  const capabilityMap = connector.modelCapabilities || {};
-  const modelSupportsChat = (modelId: string) => {
-    const capabilities = capabilityMap[modelId];
-    if (!Array.isArray(capabilities) || capabilities.length === 0) {
-      return Object.keys(capabilityMap).length === 0;
-    }
-    return capabilities.includes('chat');
-  };
-
-  const preferred = normalizeText(preferredModelId);
-  if (preferred && models.includes(preferred) && modelSupportsChat(preferred)) {
-    return preferred;
-  }
-
-  return models.find((modelId) => modelSupportsChat(modelId)) || null;
-}
-
-export function getResolvedRouteDisplaySummary(
-  route: AiConversationResolvedRoute | null,
-  state: RuntimeConfigStateV11 | null,
-): { label: string; detail: string } {
-  if (!route) {
-    return {
-      label: 'Route unavailable',
-      detail: 'Select a local or cloud route before starting a conversation.',
-    };
-  }
-
-  if (route.routeKind === 'local') {
-    const localModel = pickPreferredChatLocalModel(state);
-    return {
-      label: 'Local runtime',
-      detail: localModel
-        ? `${localModel.engine} · ${localModel.model}`
-        : 'No active local chat model',
-    };
-  }
-
-  return {
-    label: route.provider || 'Cloud route',
-    detail: route.modelId || route.connectorId || 'Missing model selection',
-  };
 }
 
 export function toConversationThreadSummary(

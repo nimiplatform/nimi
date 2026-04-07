@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import * as React from 'react';
 import type { ReactNode } from 'react';
 import type { ModSdkUiContext } from './internal/host-types';
 import {
@@ -20,5 +20,5 @@ export function SlotHost(props: {
   base: ReactNode;
   context: ModSdkUiContext;
 }) {
-  return createElement(getModSdkSlotHost(), props);
+  return React.createElement(getModSdkSlotHost(), props);
 }

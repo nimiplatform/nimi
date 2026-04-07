@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import * as React from 'react';
 import type { ModLifecycleState } from './internal/host-types.js';
 import { getModSdkHost } from './host.js';
 
@@ -16,7 +16,7 @@ export function queryRouteLifecycleState(tabId: string): ModLifecycleState {
 }
 
 export function useRouteLifecycleState(tabId: string): ModLifecycleState {
-  return useSyncExternalStore(
+  return React.useSyncExternalStore(
     (onStoreChange) => getModSdkHost().lifecycle.subscribe(tabId, onStoreChange),
     () => getModSdkHost().lifecycle.getState(tabId),
   );

@@ -5,7 +5,6 @@ import test from 'node:test';
 
 import {
   invokeChatAiRuntime,
-  resolvePreferredChatLocalModel,
 } from '../src/shell/renderer/features/chat/chat-ai-runtime.js';
 import {
   AI_NEW_CONVERSATION_TITLE,
@@ -151,9 +150,9 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
 test('chat ai a4: adapter reads text.generate binding from SelectionStore as primary route truth', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
   // Readiness derives from selectedBinding, not routeSnapshot
-  assert.match(adapterSource, /selectedBinding:\s*textGenerateBinding/);
-  assert.match(adapterSource, /hasExplicitSelection:\s*hasExplicitTextGenerateSelection/);
+  assert.match(adapterSource, /selectedBinding:\s*selectedTextBinding/);
   assert.match(adapterSource, /conversationCapabilitySelectionStore\.selectedBindings\['text\.generate'\]/);
+  assert.match(adapterSource, /const selectedTextBinding = hasExplicitTextGenerateSelection/);
   // Adapter must NOT sync routeSnapshot → binding
   assert.equal(
     /setConversationCapabilityBinding\('text\.generate', desiredBinding\)/.test(adapterSource),
@@ -364,43 +363,19 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
   }
 });
 
-test('chat ai a4: local route prefers runtime-healthy chat model over stale configured selection', async () => {
-  const state = createRuntimeConfigState();
-  state.local.models = [{
-    localModelId: 'local-chat-gemma',
-    engine: 'llama',
-    model: 'gemma-26b',
-    endpoint: 'http://127.0.0.1:11434',
-    capabilities: ['chat'],
-    status: 'active',
-  }, {
-    localModelId: 'local-chat-qwen',
-    engine: 'llama',
-    model: 'qwen3',
-    endpoint: 'http://127.0.0.1:11434',
-    capabilities: ['chat'],
-    status: 'active',
-  }];
+test('chat ai a4: no stale local-model preference helper remains in runtime adapter', () => {
+  const runtimeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-runtime.ts');
 
-  const resolved = await resolvePreferredChatLocalModel(state, 'gemma-26b', {
-    healthLocalRuntimeAssetsImpl: async () => ([
-      {
-        localAssetId: 'local-chat-gemma',
-        status: 'unhealthy',
-        detail: 'probe mismatch',
-        endpoint: 'http://127.0.0.1:11434',
-      },
-      {
-        localAssetId: 'local-chat-qwen',
-        status: 'active',
-        detail: 'ready',
-        endpoint: 'http://127.0.0.1:11434',
-      },
-    ]),
-  });
-
-  assert.equal(resolved?.localModelId, 'local-chat-qwen');
-  assert.equal(resolved?.model, 'qwen3');
+  assert.equal(
+    /resolvePreferredChatLocalModel/.test(runtimeSource),
+    false,
+    'chat-ai-runtime.ts must not keep stale local model preference fallback helpers',
+  );
+  assert.equal(
+    /Fall back to runtime-config state when authoritative health is unavailable/.test(runtimeSource),
+    false,
+    'chat-ai-runtime.ts must not retain runtime-config health fallback comments or logic',
+  );
 });
 
 test('chat ai a4: invoke runtime fails close when projection is unavailable', async () => {

@@ -8,8 +8,13 @@ import type {
   AppStoreState,
 } from '../src/shell/renderer/app-shell/providers/store-types';
 import { INITIAL_RUNTIME_FIELDS } from '../src/shell/renderer/app-shell/providers/store-types';
-import { resolveAiConversationRouteReadiness } from '../src/shell/renderer/features/chat/chat-ai-route-readiness';
-import { createDefaultStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
+import {
+  buildAiConversationRouteOptions,
+  buildAiConversationRouteSummary,
+  resolveAiConversationSetupStateFromProjection,
+} from '../src/shell/renderer/features/chat/chat-ai-route-view';
+import type { ConversationCapabilityProjection } from '../src/shell/renderer/features/chat/conversation-capability';
+import type { RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 
 function createUiSliceHarness(): { getState: () => AppStoreState } {
   let state = {
@@ -31,6 +36,19 @@ function createUiSliceHarness(): { getState: () => AppStoreState } {
 
   return {
     getState: () => state,
+  };
+}
+
+function createProjection(overrides: Partial<ConversationCapabilityProjection>): ConversationCapabilityProjection {
+  return {
+    capability: 'text.generate',
+    selectedBinding: null,
+    resolvedBinding: null,
+    health: null,
+    metadata: null,
+    supported: false,
+    reasonCode: null,
+    ...overrides,
   };
 }
 
@@ -83,204 +101,123 @@ test('A0 ui slice keeps mode-scoped thread state for AI/human/agent', () => {
   assert.deepEqual(harness.getState().chatSetupState.ai, createReadyConversationSetupState('ai'));
 });
 
-test('A0 AI route readiness fails closed while runtime config state is unavailable', () => {
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: null,
-  });
+test('A0 AI setup is ready only when text.generate projection is supported', () => {
+  const result = resolveAiConversationSetupStateFromProjection(createProjection({
+    supported: true,
+  }));
 
-  assert.equal(result.status, 'unavailable');
-  assert.equal(result.setupState.primaryAction?.kind, 'open-settings');
-  if (result.setupState.primaryAction?.kind !== 'open-settings') {
-    assert.fail('expected unavailable AI readiness to expose an open-settings action');
-  }
-  assert.equal(result.setupState.primaryAction.targetId, 'runtime-overview');
-  assert.deepEqual(result.readyRoutes, []);
+  assert.deepEqual(result, createReadyConversationSetupState('ai'));
 });
 
-test('A0 AI route readiness fails closed when no explicit text.generate selection exists', () => {
-  const state = createDefaultStateV11({});
-  state.local.status = 'healthy';
-  state.local.models = [{
-    localModelId: 'local-qwen',
-    engine: 'llama',
-    model: 'qwen3',
-    endpoint: 'http://127.0.0.1:11434/v1',
-    capabilities: ['chat'],
-    status: 'active',
-  }];
-
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: state,
-  });
+test('A0 AI setup maps selection missing to setup-required without inventing fallback route', () => {
+  const result = resolveAiConversationSetupStateFromProjection(createProjection({
+    reasonCode: 'selection_missing',
+  }));
 
   assert.equal(result.status, 'setup-required');
-  assert.equal(result.localReady, true);
-  assert.equal(result.cloudReady, false);
-  assert.equal(result.defaultRoute, null);
-  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
+  assert.equal(result.issues[0]?.code, 'ai-thread-route-unavailable');
+  assert.equal(result.issues[0]?.detail, 'Select an AI route before sending a message.');
 });
 
-test('A0 AI route readiness publishes ready routes but still requires explicit selection when routes are available', () => {
-  const state = createDefaultStateV11({});
-  state.local.status = 'healthy';
-  state.local.models = [{
-    localModelId: 'local-qwen',
-    engine: 'llama',
-    model: 'qwen3-local',
-    endpoint: 'http://127.0.0.1:11434/v1',
-    capabilities: ['chat'],
-    status: 'active',
-  }];
-  state.connectors = [{
-    id: 'connector-openai',
-    label: 'OpenAI',
-    vendor: 'gpt',
-    provider: 'openai',
-    endpoint: 'https://api.openai.com/v1',
-    scope: 'user',
-    hasCredential: true,
-    isSystemOwned: false,
-    models: ['gpt-4.1', 'gpt-4o-mini'],
-    modelCapabilities: {
-      'gpt-4.1': ['chat'],
-      'gpt-4o-mini': ['image.generate'],
-    },
-    status: 'healthy',
-    lastCheckedAt: null,
-    lastDetail: '',
-  }];
-
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: state,
-  });
+test('A0 AI setup maps explicit cleared selection to setup-required without inventing fallback route', () => {
+  const result = resolveAiConversationSetupStateFromProjection(createProjection({
+    reasonCode: 'selection_cleared',
+  }));
 
   assert.equal(result.status, 'setup-required');
-  assert.deepEqual(result.readyRoutes, [
-    {
-      routeKind: 'local',
-      connectorId: null,
-      provider: null,
-      modelId: 'qwen3-local',
+  assert.equal(result.issues[0]?.code, 'ai-thread-route-unavailable');
+  assert.equal(result.issues[0]?.detail, 'Select an AI route before sending a message.');
+});
+
+test('A0 AI route options derive from runtime.route.listOptions snapshot, not runtime-config readiness', () => {
+  const snapshot: RuntimeRouteOptionsSnapshot = {
+    capability: 'text.generate',
+    selected: null,
+    local: {
+      defaultEndpoint: 'http://127.0.0.1:11434/v1',
+      models: [{
+        localModelId: 'local-qwen',
+        model: 'qwen3',
+        modelId: 'qwen3',
+        engine: 'llama',
+        provider: 'llama',
+        capabilities: ['chat'],
+        status: 'active',
+      }],
     },
-    {
-      routeKind: 'cloud',
-      connectorId: 'connector-openai',
+    connectors: [{
+      id: 'connector-openai',
+      label: 'OpenAI',
       provider: 'openai',
-      modelId: 'gpt-4.1',
+      models: ['gpt-4.1'],
+      modelCapabilities: {
+        'gpt-4.1': ['chat'],
+      },
+    }],
+  };
+
+  const result = buildAiConversationRouteOptions(snapshot);
+
+  assert.deepEqual(result.map((item) => ({
+    label: item.label,
+    detail: item.detail,
+    source: item.binding.source,
+    connectorId: item.binding.connectorId,
+    model: item.binding.model,
+    localModelId: item.binding.localModelId || null,
+  })), [
+    {
+      label: 'Local runtime',
+      detail: 'llama · qwen3',
+      source: 'local',
+      connectorId: '',
+      model: 'qwen3',
+      localModelId: 'local-qwen',
+    },
+    {
+      label: 'openai',
+      detail: 'gpt-4.1',
+      source: 'cloud',
+      connectorId: 'connector-openai',
+      model: 'gpt-4.1',
+      localModelId: null,
     },
   ]);
-  assert.equal(result.defaultRoute, null);
-  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
 });
 
-test('A0 AI route readiness treats explicit null selection as setup-required instead of inventing a fallback route', () => {
-  const state = createDefaultStateV11({});
-  state.local.status = 'healthy';
-  state.local.models = [{
-    localModelId: 'local-qwen',
-    engine: 'llama',
-    model: 'qwen3',
-    endpoint: 'http://127.0.0.1:11434/v1',
-    capabilities: ['chat'],
-    status: 'active',
-  }];
-
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: state,
-    hasExplicitSelection: true,
-    selectedBinding: null,
-  });
-
-  assert.equal(result.status, 'setup-required');
-  assert.equal(result.defaultRoute, null);
-  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-selection-missing');
-});
-
-test('A0 AI route readiness does not silently fall back when a saved cloud route is gone', () => {
-  const state = createDefaultStateV11({});
-  state.local.status = 'healthy';
-  state.local.models = [{
-    localModelId: 'local-qwen',
-    engine: 'llama',
-    model: 'qwen3',
-    endpoint: 'http://127.0.0.1:11434/v1',
-    capabilities: ['chat'],
-    status: 'active',
-  }];
-  state.connectors = [{
-    id: 'connector-openai',
-    label: 'OpenAI',
-    vendor: 'gpt',
-    provider: 'openai',
-    endpoint: 'https://api.openai.com/v1',
-    scope: 'user',
-    hasCredential: true,
-    isSystemOwned: false,
-    models: ['gpt-4.1'],
-    modelCapabilities: {
-      'gpt-4.1': ['chat'],
-    },
-    status: 'healthy',
-    lastCheckedAt: null,
-    lastDetail: '',
-  }];
-
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: state,
-    hasExplicitSelection: true,
+test('A0 AI route summary prefers projection resolvedBinding over selectedBinding', () => {
+  const summary = buildAiConversationRouteSummary({
+    projection: createProjection({
+      supported: true,
+      selectedBinding: {
+        source: 'cloud',
+        connectorId: 'connector-openai',
+        provider: 'openai',
+        model: 'gpt-4.1',
+      },
+      resolvedBinding: {
+        capability: 'text.generate',
+        source: 'local',
+        connectorId: '',
+        provider: 'llama',
+        model: 'qwen3',
+        modelId: 'qwen3',
+        localModelId: 'local-qwen',
+        engine: 'llama',
+        resolvedBindingRef: 'resolved-local-qwen',
+      },
+    }),
     selectedBinding: {
       source: 'cloud',
-      connectorId: 'connector-missing',
+      connectorId: 'connector-openai',
       provider: 'openai',
       model: 'gpt-4.1',
     },
+    routeOptions: [],
   });
 
-  assert.equal(result.status, 'setup-required');
-  assert.equal(result.defaultRoute, null);
-  assert.equal(result.setupState.issues[0]?.code, 'ai-thread-route-unavailable');
-  if (result.setupState.primaryAction?.kind !== 'open-settings') {
-    assert.fail('expected saved cloud-route recovery to open runtime settings');
-  }
-  assert.equal(result.setupState.primaryAction.targetId, 'runtime-cloud');
-  assert.equal(result.readyRoutes.length, 2);
-});
-
-test('A0 AI route readiness requires explicit cloud readiness instead of assuming configured connectors are ready', () => {
-  const state = createDefaultStateV11({});
-  state.local.status = 'unreachable';
-  state.connectors = [{
-    id: 'connector-openai',
-    label: 'OpenAI',
-    vendor: 'gpt',
-    provider: 'openai',
-    endpoint: 'https://api.openai.com/v1',
-    scope: 'user',
-    hasCredential: true,
-    isSystemOwned: false,
-    models: ['gpt-4.1'],
-    modelCapabilities: {
-      'gpt-4.1': ['chat'],
-    },
-    status: 'idle',
-    lastCheckedAt: null,
-    lastDetail: '',
-  }];
-
-  const result = resolveAiConversationRouteReadiness({
-    runtimeConfigState: state,
+  assert.deepEqual(summary, {
+    label: 'Local runtime',
+    detail: 'llama · qwen3',
   });
-
-  assert.equal(result.status, 'setup-required');
-  assert.equal(result.cloudReady, false);
-  assert.equal(result.configuredCloudConnectorCount, 1);
-  assert.deepEqual(result.readyRoutes, []);
-  if (result.setupState.primaryAction?.kind !== 'open-settings') {
-    assert.fail('expected cloud remediation to open runtime settings');
-  }
-  assert.equal(result.setupState.primaryAction.targetId, 'runtime-cloud');
-  assert.deepEqual(
-    result.setupState.issues.map((issue) => issue.code),
-    ['ai-local-route-unavailable', 'ai-cloud-route-unavailable', 'ai-no-chat-route'],
-  );
 });

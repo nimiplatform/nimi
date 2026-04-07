@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
@@ -224,8 +225,22 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
     assert.equal(requestText.includes('nimi.scenario.voice_clone.route_describe'), true);
     assert.equal(requestText.includes('binding-voice-cloud-001'), true);
     assert.equal(requestText.includes('voice-clone-v1'), true);
+    assert.equal(requestText.includes('https://nimi.invalid/route-describe-reference.wav'), true);
+    assert.equal(requestText.includes('runtime-route-describe-probe'), true);
   } finally {
     clearPlatformClient();
     restoreTauri();
   }
+});
+
+test('voice clone route describe probe keeps explicit placeholder fields in source payload', () => {
+  const source = readFileSync(
+    new URL('../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-route-describe.ts', import.meta.url),
+    'utf8',
+  );
+
+  assert.equal(source.includes("referenceAudioUri: VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_URI"), true);
+  assert.equal(source.includes("referenceAudioMime: 'audio/wav'"), true);
+  assert.equal(source.includes('languageHints: []'), true);
+  assert.equal(source.includes('preferredName: VOICE_CLONE_ROUTE_DESCRIBE_PREFERRED_NAME'), true);
 });

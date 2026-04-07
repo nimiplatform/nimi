@@ -6,7 +6,6 @@ import {
   type ConversationTurnError,
   type ConversationTurnEvent,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
   type ChatAiMessageRecord,
   type ChatAiThreadBundle,
@@ -14,7 +13,6 @@ import {
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
-import type { AiConversationResolvedRoute } from './chat-ai-route-readiness';
 import { toChatAiRuntimeError } from './chat-ai-runtime';
 import {
   AI_NEW_CONVERSATION_TITLE,
@@ -64,10 +62,6 @@ type UseAiConversationHostActionsInput = {
     threadId: string,
     updater: (current: ChatAiThreadBundle | null | undefined) => ChatAiThreadBundle | null | undefined,
   ) => void;
-  setConversationCapabilityBinding: (
-    capability: 'text.generate',
-    binding: RuntimeRouteBinding | null | undefined,
-  ) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   setThreadsCache: (updater: (current: ChatAiThreadSummary[]) => ChatAiThreadSummary[]) => void;
   setupReady: boolean;
@@ -83,7 +77,6 @@ export function useAiConversationHostActions(
   handleArchiveThread: (threadId: string) => Promise<void>;
   handleCreateThread: () => Promise<void>;
   handleRenameThread: (threadId: string, title: string) => void;
-  handleRouteSelection: (route: AiConversationResolvedRoute) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (text: string) => Promise<void>;
 } {
@@ -210,29 +203,6 @@ export function useAiConversationHostActions(
       syncAiThreadSelectionState(threadId);
     })().catch(input.reportHostError);
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);
-
-  const handleRouteSelection = useCallback((route: AiConversationResolvedRoute) => {
-    if (input.submittingThreadId) {
-      return;
-    }
-    // User-initiated route selection: write binding to SelectionStore (primary truth)
-    if (route.routeKind === 'local') {
-      input.setConversationCapabilityBinding('text.generate', {
-        source: 'local',
-        connectorId: '',
-        model: route.modelId || '',
-      });
-    } else if (route.connectorId && route.provider) {
-      input.setConversationCapabilityBinding('text.generate', {
-        source: 'cloud',
-        connectorId: route.connectorId,
-        provider: route.provider,
-        model: route.modelId || '',
-        modelId: route.modelId || '',
-      });
-    }
-    syncAiThreadSelectionState(input.selectedThreadRecord?.id || null);
-  }, [input, syncAiThreadSelectionState]);
 
   const handleSubmit = useCallback(async (text: string) => {
     if (!input.runAiTurn) {
@@ -510,7 +480,6 @@ export function useAiConversationHostActions(
     handleArchiveThread,
     handleCreateThread,
     handleRenameThread,
-    handleRouteSelection,
     handleSelectThread,
     handleSubmit,
   };

@@ -5,7 +5,7 @@ timeouts:
     overridable: true
     source_rule: K-DAEMON-008
   - operation: StreamScenario_first_packet
-    default_ms: 10000
+    default_ms: 30000
     overridable: false
     source_rule: K-DAEMON-008
   - operation: StreamScenario_total

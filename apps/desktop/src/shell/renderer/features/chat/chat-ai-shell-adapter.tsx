@@ -17,10 +17,8 @@ import type { ChatAiMessageRecord } from '@renderer/bridge/runtime-bridge/types'
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useTranslation } from 'react-i18next';
-import { resolveAiConversationRouteReadiness, type AiConversationResolvedRoute, type AiConversationRouteReadiness } from './chat-ai-route-readiness';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import {
-  getResolvedRouteDisplaySummary,
   hasAiConversationThread,
   resolveAiConversationActiveThreadId,
   toConversationMessageViewModel,
@@ -32,6 +30,10 @@ import {
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
 import { composeDesktopChatSystemPrompt } from './chat-output-contract';
+import {
+  buildAiConversationRouteSummary,
+  resolveAiConversationSetupStateFromProjection,
+} from './chat-ai-route-view';
 import {
   getChatThinkingUnsupportedCopy,
   resolveAiThinkingSupportFromProjection,
@@ -45,11 +47,13 @@ import {
   toErrorMessage,
 } from './chat-ai-shell-core';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import { useAiConversationPresentation } from './chat-ai-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-ai-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-ai-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-ai-shell-capability-effects';
 import { useAiConversationHostActions } from './chat-ai-shell-host-actions';
+import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
 
 type UseAiConversationModeHostInput = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
@@ -59,10 +63,9 @@ type UseAiConversationModeHostInput = {
   setSelection: (selection: AiConversationSelection) => void;
 };
 
-
 export function useAiConversationModeHost(
   input: UseAiConversationModeHostInput,
-): { host: DesktopConversationModeHost; readiness: AiConversationRouteReadiness } {
+): { host: DesktopConversationModeHost } {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
@@ -76,6 +79,7 @@ export function useAiConversationModeHost(
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const currentDraftTextRef = useRef('');
+
   const reportHostError = useCallback((error: unknown) => {
     setHostFeedback({
       kind: 'error',
@@ -120,22 +124,47 @@ export function useAiConversationModeHost(
     conversationCapabilitySelectionStore.selectedBindings,
     'text.generate',
   );
-  const readiness = useMemo(
-    () => resolveAiConversationRouteReadiness({
-      runtimeConfigState: input.runtimeConfigState,
-      hasExplicitSelection: hasExplicitTextGenerateSelection,
-      selectedBinding: textGenerateBinding,
-    }),
-    [hasExplicitTextGenerateSelection, input.runtimeConfigState, textGenerateBinding],
+  const selectedTextBinding = hasExplicitTextGenerateSelection
+    ? (textGenerateBinding ?? null)
+    : null;
+
+  const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
+    if (!selection.model) {
+      return;
+    }
+    const currentModel = selectedTextBinding?.modelId || selectedTextBinding?.model || '';
+    if (
+      selectedTextBinding
+      && selectedTextBinding.source === selection.source
+      && currentModel === selection.model
+    ) {
+      return;
+    }
+    const binding = toRuntimeRouteBindingFromPickerSelection({
+      capability: 'text.generate',
+      selection,
+    });
+    if (binding) {
+      setConversationCapabilityBinding('text.generate', binding);
+    }
+  }, [selectedTextBinding, setConversationCapabilityBinding]);
+
+  const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
+    if (!selectedTextBinding) {
+      return {};
+    }
+    return {
+      source: selectedTextBinding.source,
+      connectorId: selectedTextBinding.connectorId || '',
+      model: selectedTextBinding.modelId || selectedTextBinding.model || '',
+    };
+  }, [selectedTextBinding]);
+
+  const setupState = useMemo(
+    () => resolveAiConversationSetupStateFromProjection(textCapabilityProjection),
+    [textCapabilityProjection],
   );
 
-  const availableResolvedRoutes = useMemo(
-    () => readiness.readyRoutes,
-    [readiness.readyRoutes],
-  );
-
-  const currentResolvedRoute: AiConversationResolvedRoute | null =
-    readiness.preferredRoute || readiness.defaultRoute || null;
   const thinkingSupport = useMemo(
     () => resolveAiThinkingSupportFromProjection(textCapabilityProjection),
     [textCapabilityProjection],
@@ -189,9 +218,7 @@ export function useAiConversationModeHost(
   ]);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
-  // Composer is available whenever setup is ready — don't gate on activeThreadId
-  // so that the composer shows before auto-create finishes.
-  const composerReady = readiness.setupState.status === 'ready'
+  const composerReady = setupState.status === 'ready'
     && !isBundleLoading
     && !bundleQuery.error;
 
@@ -237,7 +264,6 @@ export function useAiConversationModeHost(
     handleArchiveThread,
     handleCreateThread,
     handleRenameThread,
-    handleRouteSelection,
     handleSelectThread,
     handleSubmit,
   } = useAiConversationHostActions({
@@ -254,17 +280,24 @@ export function useAiConversationModeHost(
       : null,
     selectedThreadRecord,
     setBundleCache,
-    setConversationCapabilityBinding,
     setSubmittingThreadId,
     setThreadsCache,
-    setupReady: readiness.setupState.status === 'ready',
+    setupReady: setupState.status === 'ready',
     submittingThreadId,
     syncSelectionToThread,
     t,
     threads,
   });
 
-  const routeSummary = getResolvedRouteDisplaySummary(currentResolvedRoute, input.runtimeConfigState);
+  const routeSummary = useMemo(
+    () => buildAiConversationRouteSummary({
+      projection: textCapabilityProjection,
+      selectedBinding: selectedTextBinding,
+      routeOptions: [],
+    }),
+    [selectedTextBinding, textCapabilityProjection],
+  );
+
   const aiCharacterData = useMemo(() => ({
     name: t('Chat.aiAssistantName', { defaultValue: 'AI Assistant' }),
     avatarUrl: null,
@@ -284,6 +317,7 @@ export function useAiConversationModeHost(
       text: '#0c4a6e',
     },
   }), [routeSummary.detail, submittingThreadId, t]);
+
   const syntheticTarget = useMemo(() => ({
     id: 'ai:assistant',
     source: 'ai' as const,
@@ -297,7 +331,7 @@ export function useAiConversationModeHost(
     updatedAt: selectedThreadRecord ? new Date(selectedThreadRecord.updatedAtMs).toISOString() : null,
     unreadCount: 0,
     status: 'active' as const,
-    isOnline: readiness.localReady || readiness.cloudReady,
+    isOnline: projectionSupported,
     metadata: {
       routeLabel: routeSummary.label,
     },
@@ -308,11 +342,11 @@ export function useAiConversationModeHost(
     aiCharacterData.bio,
     aiCharacterData.name,
     messages,
-    readiness.cloudReady,
-    readiness.localReady,
+    projectionSupported,
     routeSummary.label,
     selectedThreadRecord,
   ]);
+
   const aiAssistantName = aiCharacterData.name;
   const canonicalMessages = useMemo(
     () => messages.map((message) => {
@@ -336,6 +370,7 @@ export function useAiConversationModeHost(
     }),
     [activeThreadId, aiAssistantName, messages],
   );
+
   const reasoningLabel = t('Chat.reasoningLabel', { defaultValue: 'Thought process' });
   const renderMessageContent = useMemo(
     () => createReasoningMessageContentRenderer(reasoningLabel),
@@ -358,43 +393,39 @@ export function useAiConversationModeHost(
       />
     );
   }, [activeThreadId, aiCharacterData.avatarUrl, aiCharacterData.name, reasoningLabel, streamState, t]);
+
   const pendingFirstBeat = Boolean(
     streamState
     && streamState.phase === 'waiting'
     && !streamState.partialText
     && !streamState.partialReasoningText,
   );
+
   const host = useAiConversationPresentation({
     activeThreadId,
     aiCharacterData,
-    availableResolvedRoutes,
     bundle,
     bundleError: bundleQuery.error,
     canonicalMessages,
     composerReady,
     currentDraftTextRef,
-    currentResolvedRoute,
     footerContent,
     handleArchiveThread,
     handleCreateThread,
     handleRenameThread,
-    handleRouteSelection,
     handleSelectThread,
     handleSubmit,
     hostFeedback,
+    initialModelSelection,
     isBundleLoading,
     messages,
     onDismissHostFeedback: () => setHostFeedback(null),
+    onModelSelectionChange: handleModelSelectionChange,
     pendingFirstBeat,
-    readiness: {
-      cloudReady: readiness.cloudReady,
-      localReady: readiness.localReady,
-      setupState: readiness.setupState,
-    },
     renderMessageContent,
     routeSummary,
-    runtimeConfigState: input.runtimeConfigState,
     setChatThinkingPreference,
+    setupState,
     submittingThreadId,
     syntheticTarget,
     t,
@@ -404,5 +435,5 @@ export function useAiConversationModeHost(
     threads,
   });
 
-  return { host, readiness };
+  return { host };
 }

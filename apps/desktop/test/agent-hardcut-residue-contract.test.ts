@@ -212,10 +212,10 @@ test('phase 3: AI adapter does not sync routeSnapshot to setConversationCapabili
     false,
     'adapter must not contain normalizeRuntimeRouteBindingSelectionKey',
   );
-  // Readiness must use selectedBinding, not routeSnapshot
+  // Route summary/setup must use SelectionStore/projection, not routeSnapshot
   assert.ok(
-    /selectedBinding:\s*textGenerateBinding/.test(adapterSource),
-    'readiness must derive from textGenerateBinding (SelectionStore)',
+    /selectedBinding:\s*selectedTextBinding/.test(adapterSource),
+    'AI adapter must derive setup/summary from selectedTextBinding (SelectionStore)',
   );
 });
 
@@ -243,31 +243,16 @@ test('phase 3: AI host actions do not call toConversationCapabilityBindingSelect
   );
 });
 
-test('phase 5: AI readiness uses selectedBinding only, routeSnapshot parameter fully removed', () => {
-  const readinessSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-ai-route-readiness.ts'),
-    'utf8',
-  );
-  const fnSignature = readinessSource.match(
-    /export function resolveAiConversationRouteReadiness\(input: \{([^}]*)\}\)/s,
-  );
-  if (!fnSignature) {
-    assert.fail('resolveAiConversationRouteReadiness must exist');
-  }
-  assert.ok(
-    /selectedBinding\?/.test(fnSignature[1] ?? ''),
-    'resolveAiConversationRouteReadiness must accept selectedBinding parameter',
+test('phase 5: legacy AI route readiness module is fully removed', () => {
+  assert.equal(
+    fs.existsSync(path.join(srcDir, 'shell/renderer/features/chat/chat-ai-route-readiness.ts')),
+    false,
+    'chat-ai-route-readiness.ts must be deleted once AI setup moves to shared projection',
   );
   assert.equal(
-    /routeSnapshot/.test(fnSignature[1] ?? ''),
-    false,
-    'resolveAiConversationRouteReadiness must not accept routeSnapshot parameter — deleted in Phase 5',
-  );
-  // Ensure the file no longer imports AiConversationRouteSnapshot
-  assert.equal(
-    /AiConversationRouteSnapshot/.test(readinessSource),
-    false,
-    'chat-ai-route-readiness.ts must not reference AiConversationRouteSnapshot',
+    findFilesContaining(/\bresolveAiConversationRouteReadiness\b/).length,
+    0,
+    'resolveAiConversationRouteReadiness must not exist in any source file',
   );
 });
 
