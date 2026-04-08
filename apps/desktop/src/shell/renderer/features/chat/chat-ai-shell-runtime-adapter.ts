@@ -5,27 +5,46 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import type { ChatThinkingPreference } from './chat-thinking';
 import { streamChatAiRuntime } from './chat-ai-runtime';
 import {
-  createConversationExecutionSnapshot,
+  createAISnapshot,
+  type AIConfig,
   type ConversationCapabilityProjection,
 } from './conversation-capability';
+import {
+  peekDesktopAISchedulingForEvidence,
+  recordDesktopAISnapshot,
+  resolveAIConfigSchedulingTargetForCapability,
+} from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { withPromptTrace } from './chat-ai-shell-core';
 
 export function createChatAiConversationRuntimeAdapter(input: {
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
   textProjection: ConversationCapabilityProjection | null;
+  aiConfig: AIConfig;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
 }): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
       const prompt = request.messages[request.messages.length - 1]?.text || '';
-      const executionSnapshot = input.textProjection?.supported
-        ? createConversationExecutionSnapshot({
-          capability: 'text.generate',
-          projection: input.textProjection,
+      // K-AIEXEC-003: capture scheduling evidence before execution.
+      const runtimeEvidence = input.textProjection?.supported
+        ? await peekDesktopAISchedulingForEvidence({
+          scopeRef: input.aiConfig.scopeRef,
+          target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
         })
         : null;
+      const executionSnapshot = input.textProjection?.supported
+        ? createAISnapshot({
+          config: input.aiConfig,
+          capability: 'text.generate',
+          projection: input.textProjection,
+          runtimeEvidence,
+        })
+        : null;
+      if (executionSnapshot) {
+        recordDesktopAISnapshot(executionSnapshot);
+      }
       const runtimeResult = await streamChatAiRuntime({
         prompt,
         messages: request.messages,

@@ -15,7 +15,6 @@ import type {
   AgentLocalThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
-import { ConversationCapabilitySettingsSection } from './chat-conversation-capability-settings';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
   RuntimeInspectCard,
@@ -39,6 +38,8 @@ import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ChatThinkingPreference } from './chat-thinking';
 import type { StreamState } from '../turns/stream-controller';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
+import { resolveExecutionSchedulingGuardDecision } from './chat-execution-scheduling-guard';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -61,6 +62,7 @@ type UseAgentConversationPresentationInput = {
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageContent: CanonicalMessageContentSlot;
+  schedulingJudgement: AISchedulingJudgement | null;
   selectedTargetId: string | null;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupState: ConversationSetupState;
@@ -96,6 +98,13 @@ export function useAgentConversationPresentation(
   | 'targets'
   | 'transcriptProps'
 > {
+  const schedulingGuard = useMemo(
+    () => resolveExecutionSchedulingGuardDecision({
+      judgement: input.schedulingJudgement,
+      t: input.t,
+    }),
+    [input.schedulingJudgement, input.t],
+  );
   const targetSummaries = useMemo(
     () => resolveAgentTargetSummaries(input.targetSummariesInput),
     [input.targetSummariesInput],
@@ -203,7 +212,7 @@ export function useAgentConversationPresentation(
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
-      label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+      label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
       value={input.targetsPending
         ? input.t('Chat.settingsLoading', { defaultValue: 'Loading models...' })
         : input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
@@ -214,6 +223,9 @@ export function useAgentConversationPresentation(
   ), [input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.t, input.targetsPending]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
+  ) : null;
+  const schedulingFeedbackNode = schedulingGuard.feedback ? (
+    <InlineFeedback feedback={schedulingGuard.feedback} />
   ) : null;
   const adapter = useMemo(() => ({
     mode: 'agent' as const,
@@ -231,12 +243,12 @@ export function useAgentConversationPresentation(
         submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
           await input.handleSubmit(composerInput.text);
         },
-        disabled: surfaceState.composer.disabled,
-        disabledReason: surfaceState.composer.disabledReason,
+        disabled: surfaceState.composer.disabled || schedulingGuard.disabled,
+        disabledReason: schedulingGuard.disabledReason || surfaceState.composer.disabledReason,
         placeholder: surfaceState.composer.placeholder,
       }
       : null,
-  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, input.targetSummariesInput.threads, surfaceState.composer]);
+  }), [input.bundle, input.handleSubmit, input.messages, input.setupState, input.targetSummariesInput.threads, schedulingGuard.disabled, schedulingGuard.disabledReason, surfaceState.composer]);
 
   return useMemo(() => ({
     ...hostSnapshot,
@@ -245,23 +257,19 @@ export function useAgentConversationPresentation(
       <ChatSettingsPanel
         onModelSelectionChange={input.onModelSelectionChange}
         initialModelSelection={input.initialModelSelection}
-        voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
-        mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
         diagnosticsContent={diagnosticsContent}
-        presenceContent={<DisabledPresenceNote label={input.t('Chat.settingsAllowProactiveContactHint', {
-          defaultValue: 'Unavailable until runtime inspect is connected for this source.',
-        })} />}
       />
     ),
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
+          {schedulingFeedbackNode}
           {hostFeedbackNode}
           <CanonicalComposer
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             adapter={adapter.composerAdapter}
             initialText={input.bundle?.draft?.text || ''}
-            disabled={Boolean(input.submittingThreadId)}
+            disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
@@ -281,6 +289,7 @@ export function useAgentConversationPresentation(
     adapter,
     diagnosticsContent,
     hostFeedbackNode,
+    schedulingFeedbackNode,
     hostSnapshot,
     input.activeTarget,
     input.activeThreadId,
@@ -297,13 +306,6 @@ export function useAgentConversationPresentation(
     input.thinkingUnsupportedReason,
     input.initialModelSelection,
     input.onModelSelectionChange,
+    schedulingGuard.disabled,
   ]);
-}
-
-function DisabledPresenceNote(props: { label: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
-      {props.label}
-    </div>
-  );
 }

@@ -5,7 +5,7 @@ import test from 'node:test';
 
 import { setRuntimeLogger } from '../src/runtime/telemetry/logger.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
-import { createDefaultConversationCapabilitySelectionStore } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 import {
   loadLocalRouteMetadata,
   loadRuntimeRouteOptions,
@@ -22,7 +22,7 @@ test.afterEach(() => {
   setRuntimeLogger(null);
   useAppStore.setState({
     runtimeFields: { ...initialRuntimeFields },
-    conversationCapabilitySelectionStore: createDefaultConversationCapabilitySelectionStore(),
+    aiConfig: createEmptyAIConfig(),
   });
 });
 
@@ -107,17 +107,20 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
     runtimeFields: {
       ...useAppStore.getState().runtimeFields,
     },
-    conversationCapabilitySelectionStore: {
-      ...createDefaultConversationCapabilitySelectionStore(),
-      selectedBindings: {
-        'text.generate': {
-          source: 'local',
-          connectorId: '',
-          model: 'local-model',
-          modelId: 'local-model',
-          provider: 'localai',
-          engine: 'llama',
+    aiConfig: {
+      ...createEmptyAIConfig(),
+      capabilities: {
+        selectedBindings: {
+          'text.generate': {
+            source: 'local',
+            connectorId: '',
+            model: 'local-model',
+            modelId: 'local-model',
+            provider: 'localai',
+            engine: 'llama',
+          },
         },
+        localProfileRefs: {},
       },
     },
   });
@@ -172,18 +175,21 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
     runtimeFields: {
       ...useAppStore.getState().runtimeFields,
     },
-    conversationCapabilitySelectionStore: {
-      ...createDefaultConversationCapabilitySelectionStore(),
-      selectedBindings: {
-        'text.generate': {
-          source: 'local',
-          connectorId: '',
-          model: 'local/local-import/Qwen3-4B-Q4_K_M',
-          modelId: 'local/local-import/Qwen3-4B-Q4_K_M',
-          provider: 'local',
-          engine: 'llama',
-          endpoint: 'http://127.0.0.1:1234/v1',
+    aiConfig: {
+      ...createEmptyAIConfig(),
+      capabilities: {
+        selectedBindings: {
+          'text.generate': {
+            source: 'local',
+            connectorId: '',
+            model: 'local/local-import/Qwen3-4B-Q4_K_M',
+            modelId: 'local/local-import/Qwen3-4B-Q4_K_M',
+            provider: 'local',
+            engine: 'llama',
+            endpoint: 'http://127.0.0.1:1234/v1',
+          },
         },
+        localProfileRefs: {},
       },
     },
   });

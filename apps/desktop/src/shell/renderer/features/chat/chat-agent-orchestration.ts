@@ -26,7 +26,7 @@ import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type { ChatThinkingPreference } from './chat-thinking';
 import type {
   AgentEffectiveCapabilityResolution,
-  ConversationExecutionSnapshot,
+  AISnapshot,
 } from './conversation-capability';
 
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
@@ -50,7 +50,7 @@ export type AgentLocalChatRuntimeRequest = {
   threadId: string;
   routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
-  executionSnapshot: ConversationExecutionSnapshot | null;
+  executionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
@@ -68,7 +68,7 @@ export type AgentLocalChatProviderMetadata = {
   targetSnapshot: AgentLocalTargetSnapshot;
   routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
-  executionSnapshot: ConversationExecutionSnapshot | null;
+  executionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
@@ -117,7 +117,7 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
     targetSnapshot: targetSnapshot as AgentLocalTargetSnapshot,
     routeResult: (nextRecord.routeResult ?? null) as AgentChatRouteResult | null,
     agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,
-    executionSnapshot: (nextRecord.executionSnapshot ?? null) as ConversationExecutionSnapshot | null,
+    executionSnapshot: (nextRecord.executionSnapshot ?? null) as AISnapshot | null,
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,

@@ -1,14 +1,19 @@
 import type { AppStoreSet, AppStoreState } from './store-types';
 import { INITIAL_RUNTIME_FIELDS } from './store-types';
 import {
-  loadConversationCapabilitySelectionStore,
-  persistConversationCapabilitySelectionStore,
-} from './conversation-capability-selection-storage';
+  scopeKeyFromRef,
+} from './desktop-ai-config-storage';
 import {
   toConversationCapabilityRouteProjectionFields,
-  updateConversationCapabilityBinding,
-  updateConversationCapabilityDefaultRefs,
 } from '@renderer/features/chat/conversation-capability';
+import {
+  bindDesktopAIConfigAppStore,
+  getDesktopAIConfigService,
+} from './desktop-ai-config-service';
+import { getActiveScope } from '@renderer/features/chat/chat-active-ai-config-scope';
+import { bindProjectionRefreshToSurface } from '@renderer/features/chat/conversation-capability-projection';
+import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 const ROUTE_RELATED_RUNTIME_FIELD_KEYS = new Set([
   'provider',
@@ -22,26 +27,39 @@ const ROUTE_RELATED_RUNTIME_FIELD_KEYS = new Set([
 type RuntimeSlice = Pick<AppStoreState,
   'runtimeDefaults'
   | 'runtimeFields'
-  | 'conversationCapabilitySelectionStore'
+  | 'aiConfig'
   | 'conversationCapabilityProjectionByCapability'
   | 'agentEffectiveCapabilityResolution'
   | 'setRuntimeDefaults'
   | 'setRuntimeField'
   | 'setRuntimeFields'
   | 'setRuntimeRouteProjection'
-  | 'setConversationCapabilitySelectionStore'
+  | 'setAIConfig'
+  | 'applyAIProfile'
   | 'setConversationCapabilityBinding'
-  | 'setConversationCapabilityDefaultRefs'
   | 'setConversationCapabilityProjections'
   | 'setAgentEffectiveCapabilityResolution'
 >;
 
 export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
-  const initialSelectionStore = loadConversationCapabilitySelectionStore();
+  const initialAIConfig = getDesktopAIConfigService().aiConfig.get(getActiveScope());
+
+  // Bind the surface so it can push config updates to the store.
+  // Surface is the unified write owner; store is a read projection.
+  // Phase 6: dynamically checks getActiveScope() so scope switches
+  // are immediately reflected in the filter.
+  bindDesktopAIConfigAppStore((updatedScopeKey, config) => {
+    if (updatedScopeKey === scopeKeyFromRef(getActiveScope())) {
+      set({ aiConfig: config });
+    }
+  });
+  // S-AICONF-006: surface subscription drives projection refresh centrally.
+  bindProjectionRefreshToSurface();
+
   return {
     runtimeDefaults: null,
     runtimeFields: INITIAL_RUNTIME_FIELDS,
-    conversationCapabilitySelectionStore: initialSelectionStore,
+    aiConfig: initialAIConfig,
     conversationCapabilityProjectionByCapability: {},
     agentEffectiveCapabilityResolution: null,
     setRuntimeDefaults: (defaults) =>
@@ -105,34 +123,34 @@ export function createRuntimeSlice(set: AppStoreSet): RuntimeSlice {
           connectorId: String(updates.connectorId || ''),
         },
       })),
-    setConversationCapabilitySelectionStore: (store) => {
-      persistConversationCapabilitySelectionStore(store);
-      set({
-        conversationCapabilitySelectionStore: store,
-      });
+    setAIConfig: (config) => {
+      // Delegate to surface as unified write owner. commitConfig inside
+      // the surface handles persistence + in-memory + app store push + subscribers.
+      getDesktopAIConfigService().aiConfig.update(config.scopeRef, config);
     },
+    applyAIProfile: (profile) =>
+      set((state) => {
+        const nextConfig = applyAIProfileToConfig(state.aiConfig, profile);
+        getDesktopAIConfigService().aiConfig.update(nextConfig.scopeRef, nextConfig);
+        return {};
+      }),
     setConversationCapabilityBinding: (capability, binding) =>
       set((state) => {
-        const nextStore = updateConversationCapabilityBinding(
-          state.conversationCapabilitySelectionStore,
-          capability,
-          binding,
-        );
-        persistConversationCapabilitySelectionStore(nextStore);
-        return {
-          conversationCapabilitySelectionStore: nextStore,
+        const nextBindings = { ...state.aiConfig.capabilities.selectedBindings };
+        if (binding === undefined) {
+          delete nextBindings[capability];
+        } else {
+          nextBindings[capability] = binding as RuntimeRouteBinding | null;
+        }
+        const nextConfig = {
+          ...state.aiConfig,
+          capabilities: {
+            ...state.aiConfig.capabilities,
+            selectedBindings: nextBindings,
+          },
         };
-      }),
-    setConversationCapabilityDefaultRefs: (updates) =>
-      set((state) => {
-        const nextStore = updateConversationCapabilityDefaultRefs(
-          state.conversationCapabilitySelectionStore,
-          updates,
-        );
-        persistConversationCapabilitySelectionStore(nextStore);
-        return {
-          conversationCapabilitySelectionStore: nextStore,
-        };
+        getDesktopAIConfigService().aiConfig.update(nextConfig.scopeRef, nextConfig);
+        return {};
       }),
     setConversationCapabilityProjections: (projections) =>
       set((state) => {

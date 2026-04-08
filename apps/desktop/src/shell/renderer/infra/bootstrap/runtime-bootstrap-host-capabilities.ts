@@ -10,8 +10,10 @@ import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { buildRuntimeRequestMetadata, ensureRuntimeLocalModelWarm, } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
 import { createModLocalProfileSnapshotResolver, readManifestProfiles, } from './runtime-bootstrap-host-capabilities-profiles';
@@ -20,7 +22,18 @@ import { buildRuntimeMediaCapabilities } from './runtime-bootstrap-host-capabili
 import { describeRuntimeRouteMetadata } from './runtime-bootstrap-host-capabilities-route-describe';
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
 import { setConversationCapabilityRouteRuntime, toRuntimeCanonicalCapability, type ConversationCapability } from '@renderer/features/chat/conversation-capability';
-import { type ModSdkHost, type RuntimeLlmHealthInput, type RuntimeLlmHealthResult, type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
+import {
+    assertCanonicalModAIScopeRef,
+    isCanonicalModAIScopeRef,
+    type AIScopeRef,
+    type ModSdkHost,
+    type RuntimeLlmHealthInput,
+    type RuntimeLlmHealthResult,
+    type ModRuntimeResolvedBinding,
+    type RuntimeCanonicalCapability,
+    type RuntimeRouteBinding,
+    type RuntimeRouteOptionsSnapshot,
+} from "@nimiplatform/sdk/mod";
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const DESKTOP_CONVERSATION_ROUTE_RUNTIME_MOD_ID = 'core:runtime';
@@ -30,6 +43,25 @@ function encodeResolvedBindingPayload(value: string): string {
         return globalThis.btoa(value);
     }
     return Buffer.from(value, 'utf8').toString('base64');
+}
+
+function toProtoInt64String(value: number | null | undefined): string {
+    const numeric = Number(value ?? 0);
+    if (!Number.isFinite(numeric)) {
+        return '0';
+    }
+    return String(Math.max(0, Math.trunc(numeric)));
+}
+
+function fromProtoInt64String(value: string | number | bigint | null | undefined): number | null {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    if (typeof value === 'bigint') {
+        return Number(value);
+    }
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
 }
 
 function createResolvedBindingRef(capability: RuntimeCanonicalCapability, resolved: Omit<ModRuntimeResolvedBinding, 'capability'>): string {
@@ -58,6 +90,7 @@ type HostCapabilityInput = {
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdkHost {
     const lifecycleManager = new LifecycleSubscriptionManager();
     const hookRuntime = input.getRuntimeHookRuntime();
+    const desktopAIConfigService = getDesktopAIConfigService();
     hookRuntime.setModLocalProfileSnapshotResolver(createModLocalProfileSnapshotResolver());
     const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
     const resolvedBindingRegistry = new Map<string, {
@@ -106,10 +139,10 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         capability: RuntimeCanonicalCapability;
         binding?: RuntimeRouteBinding;
     }): Promise<ModRuntimeResolvedBinding> => {
-        const selectedBindings = useAppStore.getState().conversationCapabilitySelectionStore.selectedBindings;
+        const aiConfigBindings = useAppStore.getState().aiConfig.capabilities.selectedBindings;
         const selectedBinding = payload.capability === 'text.embed'
             ? undefined
-            : selectedBindings[payload.capability] ?? undefined;
+            : (aiConfigBindings[payload.capability] as RuntimeRouteBinding | null | undefined) ?? undefined;
         let effectiveBinding = payload.binding ?? (selectedBinding === null ? undefined : selectedBinding);
         if (!effectiveBinding) {
             throw new Error('RUNTIME_ROUTE_SELECTION_REQUIRED');
@@ -196,6 +229,14 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         providerEndpoint: inputValue.endpoint,
     });
     const getRuntimeClient = () => getPlatformClient().runtime;
+    const toCanonicalModScopeRef = (scopeRef: AIScopeRef | null | undefined, modId: string) =>
+        assertCanonicalModAIScopeRef(scopeRef, modId);
+    const invalidSnapshotAccessError = (modId: string, executionId: string) => createNimiError({
+        message: `AISnapshot ${executionId} does not belong to mod ${modId}`,
+        reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+        actionHint: 'use_snapshot_from_caller_mod_scope',
+        source: 'runtime',
+    });
     const toKernelTurnInput = (payload: ModSdkHost['runtime']['executeLocalKernelTurn'] extends (input: infer T) => Promise<unknown> ? T : never): ExecuteLocalKernelTurnInput | null => {
         const runtime = getRuntimeFieldsFromStore();
         const provider = String(payload.provider || runtime.provider || '').trim();
@@ -298,6 +339,91 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     });
                 },
             },
+            scheduler: {
+                peek: async (peekInput) => {
+                    const client = getRuntimeClient();
+                    try {
+                        const response = await client.ai.peekScheduling({
+                            appId: String(peekInput.appId || '').trim() || '_default',
+                            targets: (peekInput.targets || []).map((target) => ({
+                                capability: String(target.capability || '').trim(),
+                                modId: String(target.modId || '').trim(),
+                                profileId: String(target.profileId || '').trim(),
+                                resourceHint: target.resourceHint ? {
+                                    estimatedVramBytes: toProtoInt64String(target.resourceHint.estimatedVramBytes),
+                                    estimatedRamBytes: toProtoInt64String(target.resourceHint.estimatedRamBytes),
+                                    estimatedDiskBytes: toProtoInt64String(target.resourceHint.estimatedDiskBytes),
+                                    engine: String(target.resourceHint.engine || '').trim(),
+                                } : undefined,
+                            })),
+                        });
+                        const stateMap: Record<number, string> = {
+                            0: 'unknown', 1: 'runnable', 2: 'queue_required',
+                            3: 'preemption_risk', 4: 'slowdown_risk', 5: 'denied', 6: 'unknown',
+                        };
+                        const toOccupancy = (occ: {
+                            globalUsed: number;
+                            globalCap: number;
+                            appUsed: number;
+                            appCap: number;
+                        } | null | undefined) => occ ? {
+                            globalUsed: occ.globalUsed,
+                            globalCap: occ.globalCap,
+                            appUsed: occ.appUsed,
+                            appCap: occ.appCap,
+                        } : null;
+                        const toJudgement = (judgement: {
+                            state: number;
+                            detail: string;
+                            occupancy?: {
+                                globalUsed: number;
+                                globalCap: number;
+                                appUsed: number;
+                                appCap: number;
+                            } | null;
+                            resourceWarnings?: string[];
+                        } | null | undefined) => judgement ? ({
+                            state: stateMap[judgement.state] || 'unknown',
+                            detail: judgement.detail || '',
+                            occupancy: toOccupancy(judgement.occupancy),
+                            resourceWarnings: judgement.resourceWarnings || [],
+                        }) : null;
+                        const aggregateJudgement = toJudgement(response?.aggregateJudgement);
+                        if (!aggregateJudgement) {
+                            return { occupancy: null, aggregateJudgement: null, targetJudgements: [] };
+                        }
+                        return {
+                            occupancy: toOccupancy(response?.occupancy),
+                            aggregateJudgement,
+                            targetJudgements: (response?.targetJudgements || []).map((entry) => ({
+                                target: {
+                                    capability: entry.target?.capability || '',
+                                    modId: entry.target?.modId || null,
+                                    profileId: entry.target?.profileId || null,
+                                    resourceHint: entry.target?.resourceHint ? {
+                                        estimatedVramBytes: fromProtoInt64String(entry.target.resourceHint.estimatedVramBytes),
+                                        estimatedRamBytes: fromProtoInt64String(entry.target.resourceHint.estimatedRamBytes),
+                                        estimatedDiskBytes: fromProtoInt64String(entry.target.resourceHint.estimatedDiskBytes),
+                                        engine: entry.target.resourceHint.engine || null,
+                                    } : null,
+                                },
+                                judgement: toJudgement(entry.judgement) || {
+                                    state: 'unknown',
+                                    detail: 'empty target judgement',
+                                    occupancy: null,
+                                    resourceWarnings: [],
+                                },
+                            })),
+                        };
+                    } catch {
+                        return {
+                            occupancy: null,
+                            aggregateJudgement: null,
+                            targetJudgements: [],
+                        };
+                    }
+                },
+            },
             local: {
                 listAssets: async ({ modId, ...payload }) => {
                     authorizeRuntimeCapability({
@@ -384,6 +510,104 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         capability: String(capability || '').trim() || undefined,
                         entryOverrides,
                     });
+                },
+            },
+            aiConfig: {
+                get: ({ modId, scopeRef }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.get',
+                    });
+                    return desktopAIConfigService.aiConfig.get(toCanonicalModScopeRef(scopeRef, modId));
+                },
+                update: ({ modId, scopeRef, config }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.update',
+                    });
+                    const canonicalScopeRef = toCanonicalModScopeRef(scopeRef, modId);
+                    desktopAIConfigService.aiConfig.update(canonicalScopeRef, {
+                        ...config,
+                        scopeRef: canonicalScopeRef,
+                    });
+                },
+                listScopes: ({ modId }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.list.scopes',
+                    });
+                    return desktopAIConfigService.aiConfig.listScopes().filter((scopeRef) =>
+                        isCanonicalModAIScopeRef(scopeRef, modId));
+                },
+                probe: async ({ modId, scopeRef }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.probe',
+                    });
+                    return desktopAIConfigService.aiConfig.probe(toCanonicalModScopeRef(scopeRef, modId));
+                },
+                probeFeasibility: async ({ modId, scopeRef }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.probe.feasibility',
+                    });
+                    return desktopAIConfigService.aiConfig.probeFeasibility(
+                        toCanonicalModScopeRef(scopeRef, modId),
+                    );
+                },
+                probeSchedulingTarget: async ({ modId, scopeRef, target }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.probe.scheduling.target',
+                    });
+                    return desktopAIConfigService.aiConfig.probeSchedulingTarget(
+                        toCanonicalModScopeRef(scopeRef, modId),
+                        target,
+                    );
+                },
+                subscribe: ({ modId, scopeRef, callback }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-config.subscribe',
+                    });
+                    return desktopAIConfigService.aiConfig.subscribe(
+                        toCanonicalModScopeRef(scopeRef, modId),
+                        callback,
+                    );
+                },
+            },
+            aiSnapshot: {
+                record: ({ modId, scopeRef, snapshot }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-snapshot.record',
+                    });
+                    const canonicalScopeRef = toCanonicalModScopeRef(scopeRef, modId);
+                    desktopAIConfigService.aiSnapshot.record(canonicalScopeRef, {
+                        ...snapshot,
+                        scopeRef: canonicalScopeRef,
+                    });
+                },
+                get: ({ modId, executionId }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-snapshot.get',
+                    });
+                    const snapshot = desktopAIConfigService.aiSnapshot.get(executionId);
+                    if (!snapshot) {
+                        return null;
+                    }
+                    if (!isCanonicalModAIScopeRef(snapshot.scopeRef, modId)) {
+                        throw invalidSnapshotAccessError(modId, executionId);
+                    }
+                    return snapshot;
+                },
+                getLatest: ({ modId, scopeRef }) => {
+                    authorizeRuntimeCapability({
+                        modId,
+                        capabilityKey: 'runtime.ai-snapshot.get.latest',
+                    });
+                    return desktopAIConfigService.aiSnapshot.getLatest(toCanonicalModScopeRef(scopeRef, modId));
                 },
             },
             ai: {

@@ -10,16 +10,18 @@ const AGENT_CONVERSATION_REFRESHED_CAPABILITIES: readonly ConversationCapability
 type UseAgentConversationCapabilityEffectsInput = {
   agentRouteData: AgentCapabilityEligibility | null | undefined;
   bootstrapReady: boolean;
-  conversationCapabilitySelectionStore: unknown;
   textCapabilityProjection: unknown;
 };
 
 export function useAgentConversationCapabilityEffects(
   input: UseAgentConversationCapabilityEffectsInput,
 ): void {
+  // Initial projection build on bootstrap. Ongoing config-change driven refresh
+  // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
+    if (!input.bootstrapReady) return;
     void refreshConversationCapabilityProjections(AGENT_CONVERSATION_REFRESHED_CAPABILITIES);
-  }, [input.bootstrapReady, input.conversationCapabilitySelectionStore]);
+  }, [input.bootstrapReady]);
 
   useEffect(() => {
     refreshAgentEffectiveCapabilityResolution(input.agentRouteData || null);

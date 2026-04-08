@@ -1,3 +1,20 @@
+/**
+ * Conversation capability submodel (D-AIPC-010).
+ *
+ * This module defines the conversation-capability domain types, projection
+ * builder, and execution snapshot factory. These are **submodels** of the
+ * AIConfig / AISnapshot umbrella authority (D-AIPC-001). They are NOT
+ * independent product-level owners.
+ *
+ * Primary authority chain:
+ *   AIConfig (live truth) -> capabilities.selectedBindings (selection submodel)
+ *   AISnapshot (execution truth) -> conversationCapabilitySlice (snapshot submodel)
+ *
+ * UI and adapter code should write config through the AIConfigSDKSurface
+ * (desktop-ai-config-service.ts), not through these helpers directly.
+ * The projection builder and snapshot factory are consumed by the surface
+ * and by bootstrap/effects code, not by product-facing UI components.
+ */
 import { ulid } from 'ulid';
 import type {
   ModRuntimeResolvedBinding,
@@ -6,7 +23,15 @@ import type {
   RuntimeRouteDescribeResult,
   RuntimeRouteHealthResult,
 } from '@nimiplatform/sdk/mod';
-import { parseRuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type {
+  AIConfig,
+  AIConfigCapabilities,
+  AIConversationExecutionSlice,
+  AIRuntimeEvidence,
+  AIScopeRef,
+  AISnapshot,
+} from '@nimiplatform/sdk/mod';
+import { createDefaultAIScopeRef } from '@nimiplatform/sdk/mod';
 
 export const CONVERSATION_CAPABILITIES = [
   'text.generate',
@@ -135,19 +160,6 @@ function hasOwn(target: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(target, key);
 }
 
-function normalizeImageProfileRef(value: unknown): RuntimeLocalProfileRef | null | undefined {
-  if (value === null) {
-    return null;
-  }
-  const record = asRecord(value);
-  const modId = normalizeText(record.modId);
-  const profileId = normalizeText(record.profileId);
-  if (!modId || !profileId) {
-    return undefined;
-  }
-  return { modId, profileId };
-}
-
 function createProjection(
   capability: ConversationCapability,
   overrides: Partial<ConversationCapabilityProjection>,
@@ -217,39 +229,6 @@ export function createDefaultConversationCapabilitySelectionStore(): Conversatio
     selectedBindings: {},
     defaultRefs: {},
   };
-}
-
-export function normalizeConversationCapabilitySelectionStore(value: unknown): ConversationCapabilitySelectionStore {
-  const record = asRecord(value);
-  const normalized = createDefaultConversationCapabilitySelectionStore();
-  const version = Math.floor(Number(record.version || 0));
-  normalized.version = version > 0 ? version : CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION;
-
-  const selectedBindings = asRecord(record.selectedBindings);
-  for (const capability of CONVERSATION_CAPABILITIES) {
-    if (!hasOwn(selectedBindings, capability)) {
-      continue;
-    }
-    const raw = selectedBindings[capability];
-    if (raw === null) {
-      normalized.selectedBindings[capability] = null;
-      continue;
-    }
-    const parsed = parseRuntimeRouteBinding(raw);
-    if (parsed) {
-      normalized.selectedBindings[capability] = parsed;
-    }
-  }
-
-  const defaultRefs = asRecord(record.defaultRefs);
-  if (hasOwn(defaultRefs, 'imageProfileRef')) {
-    const imageProfileRef = normalizeImageProfileRef(defaultRefs.imageProfileRef);
-    if (imageProfileRef !== undefined) {
-      normalized.defaultRefs.imageProfileRef = imageProfileRef;
-    }
-  }
-
-  return normalized;
 }
 
 export function updateConversationCapabilityBinding(
@@ -516,6 +495,7 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
     source: 'local' | 'cloud';
     connectorId: string;
     model: string;
+    modelLabel?: string;
     localModelId?: string;
     engine?: string;
     modelId?: string;
@@ -526,6 +506,7 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
   if (!model) {
     return null;
   }
+  const modelLabel = normalizeText(input.selection.modelLabel) || undefined;
   if (input.selection.source === 'local') {
     const localModelId = normalizeText(input.selection.localModelId) || model;
     const engine = normalizeText(input.selection.engine) || undefined;
@@ -533,6 +514,7 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
       source: 'local',
       connectorId: '',
       model,
+      modelLabel,
       localModelId,
       engine,
       provider: engine || undefined,
@@ -547,9 +529,104 @@ export function toRuntimeRouteBindingFromPickerSelection(input: {
     source: 'cloud',
     connectorId,
     model,
+    modelLabel,
     provider: normalizeText(input.provider) || undefined,
   };
 }
+
+// ---------------------------------------------------------------------------
+// AIConfig <-> ConversationCapabilitySelectionStore bridge  (D-AIPC-010)
+// ---------------------------------------------------------------------------
+
+export function aiConfigFromSelectionStore(
+  store: ConversationCapabilitySelectionStore,
+  scopeRef?: AIScopeRef,
+): AIConfig {
+  const localProfileRefs: AIConfigCapabilities['localProfileRefs'] = {};
+  if (store.defaultRefs.imageProfileRef) {
+    localProfileRefs['image.generate'] = store.defaultRefs.imageProfileRef;
+    localProfileRefs['image.edit'] = store.defaultRefs.imageProfileRef;
+  }
+  return {
+    scopeRef: scopeRef || createDefaultAIScopeRef(),
+    capabilities: {
+      selectedBindings: { ...store.selectedBindings },
+      localProfileRefs,
+    },
+    profileOrigin: null,
+  };
+}
+
+export function selectionStoreFromAIConfig(config: AIConfig): ConversationCapabilitySelectionStore {
+  const imageRef = (config.capabilities.localProfileRefs?.['image.generate'] || null) as RuntimeLocalProfileRef | null;
+  return {
+    version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
+    selectedBindings: { ...config.capabilities.selectedBindings } as ConversationCapabilitySelectionStore['selectedBindings'],
+    defaultRefs: {
+      imageProfileRef: imageRef,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// AISnapshot factory  (D-AIPC-004)
+// ---------------------------------------------------------------------------
+
+export function createAISnapshot(input: {
+  scopeRef?: AIScopeRef;
+  config: AIConfig;
+  capability: ConversationCapability;
+  projection: ConversationCapabilityProjection;
+  agentResolution?: AgentEffectiveCapabilityResolution | null;
+  runtimeEvidence?: AIRuntimeEvidence | null;
+}): AISnapshot {
+  const capabilitySlice = createConversationExecutionSnapshot({
+    capability: input.capability,
+    projection: input.projection,
+    agentResolution: input.agentResolution,
+  });
+  const slice: AIConversationExecutionSlice = {
+    executionId: capabilitySlice.executionId,
+    createdAt: capabilitySlice.createdAt,
+    capability: capabilitySlice.capability,
+    selectedBinding: capabilitySlice.selectedBinding,
+    resolvedBinding: capabilitySlice.resolvedBinding,
+    health: capabilitySlice.health,
+    metadata: capabilitySlice.metadata,
+    agentResolution: capabilitySlice.agentResolution,
+  };
+  return {
+    executionId: capabilitySlice.executionId,
+    scopeRef: input.scopeRef || input.config.scopeRef,
+    configEvidence: {
+      profileOrigin: input.config.profileOrigin,
+      capabilityBindingKeys: Object.keys(input.config.capabilities.selectedBindings),
+    },
+    conversationCapabilitySlice: slice,
+    runtimeEvidence: input.runtimeEvidence || null,
+    createdAt: capabilitySlice.createdAt,
+  };
+}
+
+// Re-export SDK AI config types for desktop consumers
+export type {
+  AIConfig,
+  AIConfigCapabilities,
+  AIConfigEvidence,
+  AIConversationExecutionSlice,
+  AIProfile,
+  AIProfileCapabilityIntent,
+  AIProfileRef,
+  AIRuntimeEvidence,
+  AIRuntimeLocalProfileRef,
+  AISchedulingJudgement,
+  AISchedulingOccupancy,
+  AISchedulingState,
+  AIScopeKind,
+  AIScopeRef,
+  AISnapshot,
+} from '@nimiplatform/sdk/mod';
+export { applyAIProfileToConfig, createDefaultAIScopeRef, createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 
 export function toConversationCapabilityRouteProjectionFields(
   projection: ConversationCapabilityProjection | null | undefined,

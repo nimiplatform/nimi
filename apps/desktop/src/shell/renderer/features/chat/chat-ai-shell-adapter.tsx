@@ -52,8 +52,10 @@ import { useAiConversationPresentation } from './chat-ai-shell-presentation';
 import { createChatAiConversationRuntimeAdapter } from './chat-ai-shell-runtime-adapter';
 import { useAiConversationEffects } from './chat-ai-shell-effects';
 import { useAiConversationCapabilityEffects } from './chat-ai-shell-capability-effects';
+import { useSchedulingFeasibility } from './chat-execution-scheduling-guard';
 import { useAiConversationHostActions } from './chat-ai-shell-host-actions';
 import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 type UseAiConversationModeHostInput = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
@@ -71,14 +73,14 @@ export function useAiConversationModeHost(
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
-  const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
-  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
+  const aiConfig = useAppStore((state) => state.aiConfig);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
   );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const currentDraftTextRef = useRef('');
+  const schedulingJudgement = useSchedulingFeasibility();
 
   const reportHostError = useCallback((error: unknown) => {
     setHostFeedback({
@@ -119,9 +121,9 @@ export function useAiConversationModeHost(
   );
 
   const textGenerateBinding: RuntimeRouteBinding | null | undefined =
-    conversationCapabilitySelectionStore.selectedBindings['text.generate'];
+    aiConfig.capabilities.selectedBindings['text.generate'] as RuntimeRouteBinding | null | undefined;
   const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
-    conversationCapabilitySelectionStore.selectedBindings,
+    aiConfig.capabilities.selectedBindings,
     'text.generate',
   );
   const selectedTextBinding = hasExplicitTextGenerateSelection
@@ -145,9 +147,17 @@ export function useAiConversationModeHost(
       selection,
     });
     if (binding) {
-      setConversationCapabilityBinding('text.generate', binding);
+      // Write through AIConfig surface (D-AIPC-003) — the formal config owner.
+      const surface = getDesktopAIConfigService();
+      const nextBindings = { ...aiConfig.capabilities.selectedBindings };
+      nextBindings['text.generate'] = binding;
+      const nextConfig = {
+        ...aiConfig,
+        capabilities: { ...aiConfig.capabilities, selectedBindings: nextBindings },
+      };
+      surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
     }
-  }, [selectedTextBinding, setConversationCapabilityBinding]);
+  }, [aiConfig, selectedTextBinding]);
 
   const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
     if (!selectedTextBinding) {
@@ -159,6 +169,7 @@ export function useAiConversationModeHost(
       model: selectedTextBinding.source === 'local'
         ? (selectedTextBinding.localModelId || selectedTextBinding.model || '')
         : (selectedTextBinding.model || selectedTextBinding.modelId || ''),
+      modelLabel: selectedTextBinding.modelLabel,
     };
   }, [selectedTextBinding]);
 
@@ -204,6 +215,7 @@ export function useAiConversationModeHost(
         threadId: activeThreadId,
         reasoningPreference: chatThinkingPreference,
         textProjection: textCapabilityProjection,
+        aiConfig,
         runtimeConfigState: input.runtimeConfigState,
         runtimeFields: input.runtimeFields,
       }),
@@ -235,7 +247,6 @@ export function useAiConversationModeHost(
 
   useAiConversationCapabilityEffects({
     bootstrapReady,
-    conversationCapabilitySelectionStore,
     currentDraftTextRef,
     draftText: bundle?.draft?.text,
     draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
@@ -270,6 +281,7 @@ export function useAiConversationModeHost(
     handleSubmit,
   } = useAiConversationHostActions({
     activeThreadId,
+    aiConfig,
     bundleMessages: bundle?.messages,
     currentDraftTextRef,
     queryClient,
@@ -426,6 +438,7 @@ export function useAiConversationModeHost(
     pendingFirstBeat,
     renderMessageContent,
     routeSummary,
+    schedulingJudgement,
     setChatThinkingPreference,
     setupState,
     submittingThreadId,

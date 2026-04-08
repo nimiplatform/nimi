@@ -25,6 +25,10 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Runtime',
     description: 'Daemon lifecycle, health, audit log, EAA, and provider diagnostics.',
   },
+  profiles: {
+    name: 'AI Profiles',
+    description: 'Browse, create, edit, import and export AI capability profiles.',
+  },
   mods: {
     name: 'Mods',
     description: 'Recommended local AI profile setup for registered mods.',

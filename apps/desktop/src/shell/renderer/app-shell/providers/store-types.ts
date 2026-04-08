@@ -30,10 +30,9 @@ import type {
   AgentEffectiveCapabilityResolution,
   ConversationCapability,
   ConversationCapabilityProjection,
-  ConversationCapabilitySelectionStore,
-  RuntimeLocalProfileRef,
 } from '@renderer/features/chat/conversation-capability';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { AIConfig, AIProfile } from '@nimiplatform/sdk/mod';
 import type { OpenModWorkspaceTabResult } from './mod-workspace-policy';
 
 export type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -103,7 +102,7 @@ export type AppStoreState = {
     refreshToken: string;
   };
   runtimeFields: RuntimeFieldMap;
-  conversationCapabilitySelectionStore: ConversationCapabilitySelectionStore;
+  aiConfig: AIConfig;
   conversationCapabilityProjectionByCapability: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>;
   agentEffectiveCapabilityResolution: AgentEffectiveCapabilityResolution | null;
   activeTab: AppTab;
@@ -152,14 +151,19 @@ export type AppStoreState = {
   setRuntimeField: (key: string, value: string | number | boolean) => void;
   setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
   setRuntimeRouteProjection: (updates: Partial<RuntimeFieldMap>) => void;
-  setConversationCapabilitySelectionStore: (store: ConversationCapabilitySelectionStore) => void;
+  setAIConfig: (config: AIConfig) => void;
+  applyAIProfile: (profile: AIProfile) => void;
+  /**
+   * Internal convenience delegate — writes a single capability binding into
+   * AIConfig and commits through the AIConfigSDKSurface (D-AIPC-003).
+   * Prefer calling `getDesktopAIConfigService().aiConfig.update()` directly
+   * in product-facing UI code. This action exists for runtime-config effects
+   * and bootstrap paths that operate within the Zustand set() context.
+   */
   setConversationCapabilityBinding: (
     capability: ConversationCapability,
     binding: RuntimeRouteBinding | null | undefined,
   ) => void;
-  setConversationCapabilityDefaultRefs: (updates: {
-    imageProfileRef?: RuntimeLocalProfileRef | null;
-  }) => void;
   setConversationCapabilityProjections: (
     projections: Partial<Record<ConversationCapability, ConversationCapabilityProjection>>,
   ) => void;

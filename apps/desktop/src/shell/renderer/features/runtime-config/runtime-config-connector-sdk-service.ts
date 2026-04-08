@@ -149,7 +149,7 @@ export function sdkConnectorToApiConnector(
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
   const providerCatalog = await sdkListProviderCatalog();
   const response = await runtimeAdmin().listConnectors(
-    { pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
+    { pageSize: 0, pageToken: '', kindFilter: CONNECTOR_KIND_REMOTE_MANAGED, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
   );
   const connectors = Array.isArray(response.connectors)

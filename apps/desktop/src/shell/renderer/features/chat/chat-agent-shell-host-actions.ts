@@ -39,10 +39,17 @@ import {
   type AgentChatRouteResult,
 } from './chat-agent-runtime';
 import {
-  createConversationExecutionSnapshot,
+  createAISnapshot,
   type AgentEffectiveCapabilityResolution,
-  type ConversationExecutionSnapshot,
+  type AIConfig,
+  type AISnapshot,
 } from './conversation-capability';
+import { probeExecutionSchedulingGuard } from './chat-execution-scheduling-guard';
+import {
+  peekDesktopAISchedulingForEvidence,
+  recordDesktopAISnapshot,
+  resolveAIConfigSchedulingTargetForCapability,
+} from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   bundleQueryKey,
   normalizeText,
@@ -72,7 +79,7 @@ type AgentRunTurn = (input: {
   signal: AbortSignal;
   routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution;
-  executionSnapshot: ConversationExecutionSnapshot;
+  executionSnapshot: AISnapshot;
   target: AgentLocalTargetSnapshot;
 }) => AsyncIterable<ConversationTurnEvent>;
 
@@ -80,6 +87,7 @@ type UseAgentConversationHostActionsInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
+  aiConfig: AIConfig;
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
   currentDraftTextRef: { current: string };
@@ -111,6 +119,24 @@ type UseAgentConversationHostActionsInput = {
   threads: readonly AgentLocalThreadSummary[];
   threadsReady: boolean;
 };
+
+export async function assertAgentSubmitSchedulingAllowed(input: {
+  aiConfig: AIConfig;
+  t: TFunction;
+}): Promise<void> {
+  const target = resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const schedulingGuard = await probeExecutionSchedulingGuard({
+    scopeRef: input.aiConfig.scopeRef,
+    target,
+    t: input.t,
+  });
+  if (schedulingGuard.disabled) {
+    throw new Error(schedulingGuard.disabledReason || input.t('Chat.schedulingDeniedDetail', {
+      defaultValue: 'Cannot execute: {{detail}}',
+      detail: '',
+    }));
+  }
+}
 
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
@@ -283,6 +309,10 @@ export function useAgentConversationHostActions(
     if (!submittedText) {
       return;
     }
+    await assertAgentSubmitSchedulingAllowed({
+      aiConfig: input.aiConfig,
+      t: input.t,
+    });
     const userTurnId = randomIdV11('agent-turn-user');
     const userMessageId = randomIdV11('agent-message-user');
     const assistantTurnId = randomIdV11('agent-turn');
@@ -410,11 +440,19 @@ export function useAgentConversationHostActions(
           reason: eligibility.reason,
         }
         : null;
-      const executionSnapshot = createConversationExecutionSnapshot({
+      // K-AIEXEC-003: capture scheduling evidence before execution.
+      const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
+        scopeRef: input.aiConfig.scopeRef,
+        target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
+      });
+      const executionSnapshot = createAISnapshot({
+        config: input.aiConfig,
         capability: 'text.generate',
         projection: input.agentResolution.textProjection!,
         agentResolution: input.agentResolution,
+        runtimeEvidence,
       });
+      recordDesktopAISnapshot(executionSnapshot);
       const abortController = startStream(input.activeThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
       const history = toConversationHistoryMessages(userBundle.messages);
       for await (const event of input.runAgentTurn({

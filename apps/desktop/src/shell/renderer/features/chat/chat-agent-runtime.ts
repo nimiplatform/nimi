@@ -22,7 +22,7 @@ import {
 } from './chat-thinking';
 import type {
   AgentEffectiveCapabilityResolution,
-  ConversationExecutionSnapshot,
+  AISnapshot,
 } from './conversation-capability';
 
 export type AgentChatRouteResult = {
@@ -39,7 +39,7 @@ export type ChatAgentRuntimeInvokeInput = {
   reasoningPreference: ChatThinkingPreference;
   routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
-  executionSnapshot: ConversationExecutionSnapshot | null;
+  executionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
@@ -153,7 +153,8 @@ async function resolveInvokeInput(
     });
   }
   const snapshot = input.executionSnapshot;
-  if (!snapshot || snapshot.capability !== 'text.generate' || !snapshot.resolvedBinding) {
+  const slice = snapshot?.conversationCapabilitySlice;
+  if (!slice || slice.capability !== 'text.generate' || !slice.resolvedBinding) {
     throw createNimiError({
       message: 'agent execution snapshot is not available',
       reasonCode: ReasonCode.AI_INPUT_INVALID,
@@ -161,7 +162,7 @@ async function resolveInvokeInput(
       source: 'runtime',
     });
   }
-  const resolved = snapshot.resolvedBinding;
+  const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
   if (resolved.source !== 'local') {
     throw createNimiError({
       message: 'agent execution snapshot resolved to an invalid source',

@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { ImageCapabilitySettings } from './chat-image-capability-settings';
+import { VideoCapabilitySettings } from './chat-video-capability-settings';
 import { useQuery } from '@tanstack/react-query';
 import { createModRuntimeClient, type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
-  createSdkRouteDataProvider,
-  useRouteModelPickerData,
+  createSnapshotRouteDataProvider,
   type RouteModelPickerSelection,
 } from '@nimiplatform/nimi-kit/features/model-picker';
 import {
@@ -11,7 +13,6 @@ import {
   ModelSelectorTrigger,
 } from '@nimiplatform/nimi-kit/features/model-picker/ui';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
@@ -25,11 +26,12 @@ import {
   DisabledSettingsNote,
 } from './chat-settings-panel';
 import { RuntimeInspectCard } from './chat-runtime-inspect-content';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 const CORE_RUNTIME_MOD_ID = 'core:runtime';
 
 type ConversationCapabilitySettingsSectionProps = {
-  section: 'voice' | 'visual';
+  section: 'voice' | 'visual' | 'image' | 'video';
 };
 
 type CapabilityConfig = {
@@ -108,9 +110,9 @@ function buildProjectionStatus(
   if (projection?.reasonCode === 'profile_ref_missing') {
     return {
       badge: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-      value: t('Chat.settingsImageProfileRequired', { defaultValue: 'Image profile required' }),
+      value: t('Chat.settingsImageProfileRequired', { defaultValue: 'Local image profile required' }),
       detail: t('Chat.settingsImageProfileRequiredHint', {
-        defaultValue: 'Choose an image profile before using this visual capability.',
+        defaultValue: 'Select a local image profile in your AI configuration before using this capability.',
       }),
       supported: false,
     };
@@ -213,186 +215,156 @@ function normalizeProfileRefLabel(profileRef: RuntimeLocalProfileRef | null): st
   return `${modId}:${profileId}`;
 }
 
-function useCapabilityModelPickerProvider(): RouteModelPickerDataProvider | null {
+function useCapabilityModelPickerProvider(capability: string): RouteModelPickerDataProvider | null {
+  const keyRef = useRef<string>(capability);
   const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
-  if (!providerRef.current) {
+  // Recreate provider when capability changes
+  if (!providerRef.current || keyRef.current !== capability) {
+    keyRef.current = capability;
     try {
-      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
+      const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
+      providerRef.current = createSnapshotRouteDataProvider(
+        () => modClient.route.listOptions({
+          capability: capability as Parameters<typeof modClient.route.listOptions>[0]['capability'],
+        }),
+      );
     } catch {
-      // Runtime not ready
+      providerRef.current = null;
     }
   }
   return providerRef.current;
 }
 
-const EMPTY_ROUTE_MODEL_PICKER_PROVIDER: RouteModelPickerDataProvider = {
-  listLocalModels: async () => [],
-  listConnectors: async () => [],
-  listConnectorModels: async () => [],
-};
-
-function useResolvedCapabilityModelLabel(
-  provider: RouteModelPickerDataProvider | null,
-  capability: string,
-  selection: Partial<RouteModelPickerSelection>,
-): string | null {
-  const { pickerState, selection: resolvedSelection } = useRouteModelPickerData({
-    provider: provider || EMPTY_ROUTE_MODEL_PICKER_PROVIDER,
-    capability,
-    initialSelection: selection,
-  });
-  const modelId = resolvedSelection.model;
-  if (!provider || !modelId) return null;
-  const match = pickerState.models.find((m) => pickerState.adapter.getId(m) === modelId);
-  return match ? pickerState.adapter.getTitle(match) : modelId;
-}
-
-function CapabilityRouteSettingCard(props: CapabilityConfig) {
+function CapabilityRouteSettingCard(props: CapabilityConfig & { localContent?: ReactNode }) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
-  const selectedBinding = useAppStore((state) => state.conversationCapabilitySelectionStore.selectedBindings[props.capability]);
+  const selectedBinding = useAppStore((state) => state.aiConfig.capabilities.selectedBindings[props.capability]) as RuntimeRouteBinding | null | undefined;
   const projection = useAppStore((state) => state.conversationCapabilityProjectionByCapability[props.capability] || null);
-  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
-  const provider = useCapabilityModelPickerProvider();
+  const capabilitySurface = useMemo(() => getDesktopAIConfigService(), []);
+  const aiConfigForBinding = useAppStore((state) => state.aiConfig);
+  const runtimeCapability = toRuntimeCanonicalCapability(props.capability);
+  const provider = useCapabilityModelPickerProvider(runtimeCapability);
   const status = useMemo(
     () => buildProjectionStatus(t, props.title, projection, selectedBinding),
     [projection, props.title, selectedBinding, t],
   );
   const selection = useMemo(() => toSelection(selectedBinding), [selectedBinding]);
-  const resolvedLabel = useResolvedCapabilityModelLabel(provider, toRuntimeCanonicalCapability(props.capability), selection);
+  const displayLabel = selectedBinding?.modelLabel || null;
 
   return (
-    <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {props.title}
-          </div>
-          <p className="text-xs text-[var(--nimi-text-muted)]">
-            {props.detail}
-          </p>
-        </div>
-        <span
-          className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-            status.supported
-              ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_16%,transparent)] text-[var(--nimi-status-success)]'
-              : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]'
-          }`}
-        >
-          {status.badge}
-        </span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Tooltip content={props.detail} placement="top">
+          <span className="text-xs font-medium text-slate-500">{props.title}</span>
+        </Tooltip>
+        {!status.supported ? (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title={status.badge} />
+        ) : null}
       </div>
 
       {provider ? (
         <>
           <ModelSelectorTrigger
             source={selection.source || null}
-            modelLabel={resolvedLabel}
-            detail={status.detail}
-            placeholder={t('Chat.settingsCapabilityRouteRequired', {
-              defaultValue: 'Select a route for {{capability}}.',
-              capability: props.title,
-            })}
+            modelLabel={displayLabel}
+            placeholder={t('Chat.settingsSelectModel', { defaultValue: 'Select a model' })}
             onClick={() => setModalOpen(true)}
           />
           <ModelPickerModal
             open={modalOpen}
             onClose={() => setModalOpen(false)}
-            capability={toRuntimeCanonicalCapability(props.capability)}
+            capability={runtimeCapability}
             capabilityLabel={props.title}
             provider={provider}
             initialSelection={selection}
             onSelect={(pickerSelection: RouteModelPickerSelection) => {
-              setConversationCapabilityBinding(
-                props.capability,
-                toRuntimeRouteBindingFromPickerSelection({
-                  capability: props.capability,
-                  selection: pickerSelection,
-                }),
-              );
+              const binding = toRuntimeRouteBindingFromPickerSelection({
+                capability: props.capability,
+                selection: pickerSelection,
+              });
+              const nextBindings = { ...aiConfigForBinding.capabilities.selectedBindings };
+              if (binding === undefined) {
+                delete nextBindings[props.capability];
+              } else {
+                nextBindings[props.capability] = binding as RuntimeRouteBinding | null;
+              }
+              const nextConfig = {
+                ...aiConfigForBinding,
+                capabilities: {
+                  ...aiConfigForBinding.capabilities,
+                  selectedBindings: nextBindings,
+                },
+              };
+              capabilitySurface.aiConfig.update(nextConfig.scopeRef, nextConfig);
             }}
           />
         </>
       ) : (
         <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
       )}
+      {props.localContent && selectedBinding?.source === 'local' ? props.localContent : null}
     </div>
   );
 }
 
+function hasImageCapability(profile: { capabilities: Record<string, unknown> }): boolean {
+  return Object.keys(profile.capabilities).some(supportsImageCapability);
+}
+
 function ImageProfileSelectorCard() {
   const { t } = useTranslation();
-  const imageProfileRef = useAppStore((state) => state.conversationCapabilitySelectionStore.defaultRefs.imageProfileRef || null);
-  const setConversationCapabilityDefaultRefs = useAppStore((state) => state.setConversationCapabilityDefaultRefs);
-  const profileClientRef = useRef<ReturnType<typeof createModRuntimeClient> | null>(null);
-
-  if (!profileClientRef.current) {
-    try {
-      profileClientRef.current = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-    } catch {
-      profileClientRef.current = null;
-    }
-  }
+  // Read the image capability's local profile ref from AIConfig (D-AIPC-008).
+  // This is an internal capability sub-setting, not a top-level product concept.
+  const imageCapabilityLocalRef = useAppStore((state) => (state.aiConfig.capabilities.localProfileRefs['image.generate'] || null) as RuntimeLocalProfileRef | null);
+  const aiConfig = useAppStore((state) => state.aiConfig);
+  const surface = useMemo(() => getDesktopAIConfigService(), []);
 
   const profileQuery = useQuery({
-    queryKey: ['conversation-image-profiles', CORE_RUNTIME_MOD_ID],
-    enabled: Boolean(profileClientRef.current),
-    queryFn: async () => profileClientRef.current!.local.listProfiles(),
+    queryKey: ['ai-profiles', 'surface', 'image'],
+    queryFn: () => surface.aiProfile.list(),
   });
 
   const profiles = useMemo(
-    () => (profileQuery.data || []).filter((profile) => (
-      (Array.isArray(profile.consumeCapabilities) && profile.consumeCapabilities.some(supportsImageCapability))
-      || (Array.isArray(profile.entries) && profile.entries.some((entry) => supportsImageCapability(entry.capability)))
-    )),
+    () => (profileQuery.data || []).filter(hasImageCapability),
     [profileQuery.data],
   );
-  const selectedValue = normalizeText(imageProfileRef?.profileId);
+  const selectedValue = normalizeText(imageCapabilityLocalRef?.profileId);
   const selectedExternalLabel = useMemo(() => {
-    const current = normalizeProfileRefLabel(imageProfileRef);
+    const current = normalizeProfileRefLabel(imageCapabilityLocalRef);
     if (!current) {
       return null;
     }
     const known = profiles.some((profile) => (
-      normalizeText(profile.id) === normalizeText(imageProfileRef?.profileId)
-      && normalizeText(imageProfileRef?.modId) === CORE_RUNTIME_MOD_ID
+      normalizeText(profile.profileId) === normalizeText(imageCapabilityLocalRef?.profileId)
     ));
     return known ? null : current;
-  }, [imageProfileRef, profiles]);
-
-  if (!profileClientRef.current) {
-    return (
-      <DisabledSettingsNote
-        label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
-      />
-    );
-  }
+  }, [imageCapabilityLocalRef, profiles]);
 
   return (
     <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
       <div className="space-y-1">
         <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('Chat.settingsImageProfileTitle', { defaultValue: 'Image Profile' })}
+          {t('Chat.settingsImageProfileTitle', { defaultValue: 'Local image profile' })}
         </div>
         <p className="text-xs text-[var(--nimi-text-muted)]">
           {t('Chat.settingsImageProfileHint', {
-            defaultValue: 'Visual generation keeps only a profile ref. Runtime resolves the backing assets and slots at execution time.',
+            defaultValue: 'Selects the local asset bundle for image capabilities within the current AI configuration.',
           })}
         </p>
       </div>
 
       <RuntimeInspectCard
-        label={t('Chat.settingsSelectedImageProfile', { defaultValue: 'Selected profile' })}
-        value={profiles.find((profile) => normalizeText(profile.id) === selectedValue)?.title
+        label={t('Chat.settingsSelectedImageProfile', { defaultValue: 'Active profile' })}
+        value={profiles.find((profile) => normalizeText(profile.profileId) === selectedValue)?.title
           || selectedExternalLabel
           || t('Chat.settingsImageProfileUnset', { defaultValue: 'No profile selected' })}
-        detail={profiles.find((profile) => normalizeText(profile.id) === selectedValue)?.description
+        detail={profiles.find((profile) => normalizeText(profile.profileId) === selectedValue)?.description
           || (selectedExternalLabel
             ? t('Chat.settingsExternalImageProfileHint', {
               defaultValue: 'Using an existing profile ref that is not published by core runtime.',
             })
             : t('Chat.settingsImageProfileUnsetHint', {
-              defaultValue: 'Choose a profile to enable image.generate and image.edit projections.',
+              defaultValue: 'Select a profile to enable image.generate and image.edit capabilities.',
             }))}
       />
 
@@ -407,18 +379,32 @@ function ImageProfileSelectorCard() {
           onChange={(event) => {
             const nextValue = normalizeText(event.target.value);
             if (!nextValue || nextValue === '__none__') {
-              setConversationCapabilityDefaultRefs({ imageProfileRef: null });
+              const nextRefs = { ...aiConfig.capabilities.localProfileRefs };
+              delete nextRefs['image.generate'];
+              delete nextRefs['image.edit'];
+              const nextConfig = {
+                ...aiConfig,
+                capabilities: { ...aiConfig.capabilities, localProfileRefs: nextRefs },
+              };
+              surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
               return;
             }
             if (nextValue === '__external__') {
               return;
             }
-            setConversationCapabilityDefaultRefs({
-              imageProfileRef: {
-                modId: CORE_RUNTIME_MOD_ID,
-                profileId: nextValue,
+            const ref = { modId: CORE_RUNTIME_MOD_ID, profileId: nextValue };
+            const nextConfig = {
+              ...aiConfig,
+              capabilities: {
+                ...aiConfig.capabilities,
+                localProfileRefs: {
+                  ...aiConfig.capabilities.localProfileRefs,
+                  'image.generate': ref,
+                  'image.edit': ref,
+                },
               },
-            });
+            };
+            surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
           }}
         >
           <option value="__none__">
@@ -430,7 +416,7 @@ function ImageProfileSelectorCard() {
             </option>
           ) : null}
           {profiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
+            <option key={profile.profileId} value={profile.profileId}>
               {profile.title}
             </option>
           ))}
@@ -480,6 +466,30 @@ export function ConversationCapabilitySettingsSection(
         },
       ];
     }
+    if (props.section === 'image') {
+      return [
+        {
+          capability: 'image.generate',
+          title: t('Chat.settingsImageGenerateTitle', { defaultValue: 'Image generation' }),
+          detail: t('Chat.settingsImageGenerateHint', { defaultValue: 'Controls the route used when the conversation generates images.' }),
+        },
+        {
+          capability: 'image.edit',
+          title: t('Chat.settingsImageEditTitle', { defaultValue: 'Image editing' }),
+          detail: t('Chat.settingsImageEditHint', { defaultValue: 'Independent route for edit-style image operations.' }),
+        },
+      ];
+    }
+    if (props.section === 'video') {
+      return [
+        {
+          capability: 'video.generate',
+          title: t('Chat.settingsVideoGenerateTitle', { defaultValue: 'Video generation' }),
+          detail: t('Chat.settingsVideoGenerateHint', { defaultValue: 'Controls the route used when the conversation generates videos.' }),
+        },
+      ];
+    }
+    // legacy 'visual' — image + video combined
     return [
       {
         capability: 'image.generate',
@@ -499,15 +509,22 @@ export function ConversationCapabilitySettingsSection(
     ];
   }, [props.section, t]);
 
+  const resolveLocalContent = (capability: string) => {
+    if (props.section === 'image') return <ImageCapabilitySettings capability={capability} />;
+    if (props.section === 'video') return <VideoCapabilitySettings />;
+    return undefined;
+  };
+
   return (
     <div className="space-y-4">
-      {props.section === 'visual' ? <ImageProfileSelectorCard /> : null}
+      {props.section === 'image' ? <ImageProfileSelectorCard /> : null}
       {capabilities.map((capability) => (
         <CapabilityRouteSettingCard
           key={capability.capability}
           capability={capability.capability}
           title={capability.title}
           detail={capability.detail}
+          localContent={resolveLocalContent(capability.capability)}
         />
       ))}
     </div>

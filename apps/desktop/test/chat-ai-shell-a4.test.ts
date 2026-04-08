@@ -19,12 +19,14 @@ import type { RuntimeConfigStateV11 } from '../src/shell/renderer/features/runti
 import type { RuntimeFieldMap } from '../src/shell/renderer/app-shell/providers/store-types.js';
 import { useAppStore } from '../src/shell/renderer/app-shell/providers/app-store.js';
 import {
+  aiConfigFromSelectionStore,
   buildConversationCapabilityProjection,
-  createConversationExecutionSnapshot,
+  createAISnapshot,
   createDefaultConversationCapabilitySelectionStore,
   setConversationCapabilityRouteRuntime,
   updateConversationCapabilityBinding,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 
 type CapturedInvokeInput = {
   modId: string;
@@ -102,11 +104,7 @@ function createRuntimeConfigState(): RuntimeConfigStateV11 {
 function resetConversationCapabilityTestState(): void {
   setConversationCapabilityRouteRuntime(null);
   useAppStore.getState().setConversationCapabilityProjections({});
-  useAppStore.getState().setConversationCapabilitySelectionStore({
-    version: 1,
-    selectedBindings: {},
-    defaultRefs: {},
-  });
+  useAppStore.getState().setAIConfig(createEmptyAIConfig());
 }
 
 function readWorkspaceFile(relativePath: string): string {
@@ -147,11 +145,11 @@ test('chat ai a4: active thread restore prefers explicit selection before last s
   }), null);
 });
 
-test('chat ai a4: adapter reads text.generate binding from SelectionStore as primary route truth', () => {
+test('chat ai a4: adapter reads text.generate binding from AIConfig as primary route truth', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
   // Readiness derives from selectedBinding, not routeSnapshot
   assert.match(adapterSource, /selectedBinding:\s*selectedTextBinding/);
-  assert.match(adapterSource, /conversationCapabilitySelectionStore\.selectedBindings\['text\.generate'\]/);
+  assert.match(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
   assert.match(adapterSource, /const selectedTextBinding = hasExplicitTextGenerateSelection/);
   // Adapter must NOT sync routeSnapshot → binding
   assert.equal(
@@ -282,7 +280,7 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
     'text.generate',
     { source: 'local', connectorId: '', model: 'qwen3' },
   );
-  useAppStore.getState().setConversationCapabilitySelectionStore(selectionStore);
+  useAppStore.getState().setAIConfig(aiConfigFromSelectionStore(selectionStore));
   const routeRuntime = {
     resolve: async () => ({
       capability: 'text.generate' as const,
@@ -323,7 +321,8 @@ test('chat ai a4: invoke runtime uses desktop-owned core caller and local route 
     selectionStore,
     routeRuntime,
   });
-  const executionSnapshot = createConversationExecutionSnapshot({
+  const executionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
     capability: 'text.generate',
     projection,
   });

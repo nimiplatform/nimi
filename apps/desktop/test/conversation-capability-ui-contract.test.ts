@@ -34,9 +34,10 @@ function findFilesContaining(pattern: RegExp): string[] {
     .sort();
 }
 
-test('conversation capability UI contract: multimodal settings own the production selection writes', () => {
+test('conversation capability UI contract: multimodal settings own the production selection writes via surface', () => {
   const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
-  assert.match(settingsSource, /setConversationCapabilityBinding\(/);
+  // Phase 3: writes go through surface.aiConfig.update(), not store actions
+  assert.match(settingsSource, /surface\.aiConfig\.update\(|capabilitySurface\.aiConfig\.update\(/);
   assert.match(settingsSource, /capability:\s*'audio\.synthesize'/);
   assert.match(settingsSource, /capability:\s*'voice_workflow\.tts_v2v'/);
   assert.match(settingsSource, /capability:\s*'voice_workflow\.tts_t2v'/);
@@ -45,9 +46,12 @@ test('conversation capability UI contract: multimodal settings own the productio
   assert.match(settingsSource, /capability:\s*'video\.generate'/);
 });
 
-test('conversation capability UI contract: image profile selection only writes imageProfileRef', () => {
+test('conversation capability UI contract: image profile selection writes through surface AIConfig update (D-AIPC-008)', () => {
   const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
-  assert.match(settingsSource, /setConversationCapabilityDefaultRefs\(\{\s*imageProfileRef:/);
+  assert.match(settingsSource, /aiConfig\.capabilities\.localProfileRefs/);
+  // Phase 3: writes through formal surface, not store action
+  assert.match(settingsSource, /surface\.aiConfig\.update\(/);
+  assert.doesNotMatch(settingsSource, /setConversationCapabilityDefaultRefs/);
   assert.doesNotMatch(settingsSource, /assetRef|slotRef|passiveAsset/i);
 });
 
@@ -57,6 +61,14 @@ test('conversation capability UI contract: runtimeFields projection still only r
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['image\.generate'\]/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['audio\.synthesize'\]/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['voice_workflow\.tts_v2v'\]/);
+});
+
+test('conversation capability UI contract: Phase 4 — image profile variable uses capability-scoped naming (D-AIPC-008)', () => {
+  const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+  // Old top-level product name `imageProfileRef` must not appear as a local variable
+  assert.doesNotMatch(settingsSource, /const imageProfileRef\b/);
+  // Must use capability-scoped naming
+  assert.match(settingsSource, /imageCapabilityLocalRef/);
 });
 
 test('conversation capability UI contract: conversationExecution stays confined to host media authority path', () => {

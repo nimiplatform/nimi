@@ -115,7 +115,7 @@ test('web auth session storage persists metadata only and never restores raw acc
       raw: storage.get(mod.WEB_AUTH_SESSION_KEY),
     }));
   `;
-  const output = execFileSync(process.execPath, ['--import', 'tsx/esm', '-e', script], {
+  const output = execFileSync(process.execPath, ['--input-type=module', '--import', 'tsx/esm', '-e', script], {
     cwd: path.join(repoRoot, 'apps/desktop'),
     encoding: 'utf8',
   });

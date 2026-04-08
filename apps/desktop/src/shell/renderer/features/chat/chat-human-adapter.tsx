@@ -166,7 +166,7 @@ export function useHumanConversationModeHost(
           }),
           content: (
             <RuntimeInspectCard
-              label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+              label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
               value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
               detail={canonicalSurface.diagnosticsSummary.isStreaming
                 ? t('ChatTimeline.stopGenerating', 'Stop generating')
@@ -287,22 +287,16 @@ export function useHumanConversationModeHost(
     rightSidebarAutoOpenKey: rightSidebarAutoOpenKey,
     settingsContent: selectedChat ? (
       <ChatSettingsPanel
-        voiceRouteConfigContent={rightSidebarContent || (
-          <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
-        )}
-        mediaRouteConfigContent={<RuntimeInspectUnsupportedNote label={t('Chat.settingsUnavailableReason', { defaultValue: 'This source does not expose runtime inspect yet.' })} />}
+        mode="human"
         diagnosticsContent={(
           <RuntimeInspectCard
-            label={t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+            label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
             value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
             detail={canonicalSurface.diagnosticsSummary.isStreaming
               ? t('ChatTimeline.stopGenerating', 'Stop generating')
               : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
           />
         )}
-        presenceContent={<RuntimeInspectUnsupportedNote label={t('Chat.settingsAllowProactiveContactHint', {
-          defaultValue: 'Unavailable until runtime inspect is connected for this source.',
-        })} />}
       />
     ) : (
       <ChatSettingsPanel

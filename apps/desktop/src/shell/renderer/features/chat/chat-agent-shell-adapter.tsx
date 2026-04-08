@@ -56,11 +56,13 @@ import {
 import { useAgentConversationPresentation } from './chat-agent-shell-presentation';
 import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
+import { useSchedulingFeasibility } from './chat-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
 import { resolveAiConversationSetupStateFromProjection } from './chat-ai-route-view';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -81,13 +83,13 @@ export function useAgentConversationModeHost(
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
-  const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
-  const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
+  const agentAdapterAiConfig = useAppStore((state) => state.aiConfig);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
   );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
+  const schedulingJudgement = useSchedulingFeasibility();
   const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
     Record<string, {
       footerState: AgentHostFlowFooterState;
@@ -123,9 +125,9 @@ export function useAgentConversationModeHost(
   }, [t, thinkingSupport]);
 
   const textGenerateBinding: RuntimeRouteBinding | null | undefined =
-    conversationCapabilitySelectionStore.selectedBindings['text.generate'];
+    agentAdapterAiConfig.capabilities.selectedBindings['text.generate'] as RuntimeRouteBinding | null | undefined;
   const hasExplicitTextGenerateSelection = Object.prototype.hasOwnProperty.call(
-    conversationCapabilitySelectionStore.selectedBindings,
+    agentAdapterAiConfig.capabilities.selectedBindings,
     'text.generate',
   );
   const selectedTextBinding = hasExplicitTextGenerateSelection
@@ -149,9 +151,17 @@ export function useAgentConversationModeHost(
       selection,
     });
     if (binding) {
-      setConversationCapabilityBinding('text.generate', binding);
+      // Write through AIConfig surface (D-AIPC-003) — the formal config owner.
+      const surface = getDesktopAIConfigService();
+      const nextBindings = { ...agentAdapterAiConfig.capabilities.selectedBindings };
+      nextBindings['text.generate'] = binding;
+      const nextConfig = {
+        ...agentAdapterAiConfig,
+        capabilities: { ...agentAdapterAiConfig.capabilities, selectedBindings: nextBindings },
+      };
+      surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
     }
-  }, [selectedTextBinding, setConversationCapabilityBinding]);
+  }, [agentAdapterAiConfig, selectedTextBinding]);
 
   const initialModelSelection = useMemo<Partial<RouteModelPickerSelection>>(() => {
     if (!selectedTextBinding) {
@@ -161,6 +171,7 @@ export function useAgentConversationModeHost(
       source: selectedTextBinding.source,
       connectorId: selectedTextBinding.connectorId || '',
       model: selectedTextBinding.modelId || selectedTextBinding.model || '',
+      modelLabel: selectedTextBinding.modelLabel,
     };
   }, [selectedTextBinding]);
 
@@ -256,7 +267,6 @@ export function useAgentConversationModeHost(
       }
       : null,
     bootstrapReady,
-    conversationCapabilitySelectionStore,
     textCapabilityProjection,
   });
 
@@ -298,10 +308,12 @@ export function useAgentConversationModeHost(
     setSelection,
   });
 
+  const agentAiConfig = useAppStore((state) => state.aiConfig);
   const { handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
     agentResolution,
+    aiConfig: agentAiConfig,
     applyDriverEffects,
     bundle,
     currentDraftTextRef,
@@ -368,6 +380,7 @@ export function useAgentConversationModeHost(
     onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
     renderMessageContent,
+    schedulingJudgement,
     selectedTargetId: activeTarget?.agentId || null,
     setChatThinkingPreference,
     setupState,

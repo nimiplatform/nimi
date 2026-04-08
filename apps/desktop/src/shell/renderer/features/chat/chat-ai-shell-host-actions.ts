@@ -20,6 +20,9 @@ import {
   createPlainTextMessageContent,
   resolveThreadTitleAfterFirstSend,
 } from './chat-ai-thread-model';
+import type { AIConfig } from './conversation-capability';
+import { resolveAIConfigSchedulingTargetForCapability } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { probeExecutionSchedulingGuard } from './chat-execution-scheduling-guard';
 import {
   feedStreamEvent,
   getStreamState,
@@ -52,6 +55,7 @@ type AiRunTurn = (input: {
 
 type UseAiConversationHostActionsInput = {
   activeThreadId: string | null;
+  aiConfig: AIConfig;
   bundleMessages: readonly ChatAiMessageRecord[] | undefined;
   currentDraftTextRef: { current: string };
   queryClient: QueryClient;
@@ -70,6 +74,24 @@ type UseAiConversationHostActionsInput = {
   t: TFunction;
   threads: readonly ChatAiThreadSummary[];
 };
+
+export async function assertAiSubmitSchedulingAllowed(input: {
+  aiConfig: AIConfig;
+  t: TFunction;
+}): Promise<void> {
+  const target = resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate');
+  const schedulingGuard = await probeExecutionSchedulingGuard({
+    scopeRef: input.aiConfig.scopeRef,
+    target,
+    t: input.t,
+  });
+  if (schedulingGuard.disabled) {
+    throw new Error(schedulingGuard.disabledReason || input.t('Chat.schedulingDeniedDetail', {
+      defaultValue: 'Cannot execute: {{detail}}',
+      detail: '',
+    }));
+  }
+}
 
 export function useAiConversationHostActions(
   input: UseAiConversationHostActionsInput,
@@ -220,6 +242,10 @@ export function useAiConversationHostActions(
     if (!submittedText) {
       return;
     }
+    await assertAiSubmitSchedulingAllowed({
+      aiConfig: input.aiConfig,
+      t: input.t,
+    });
 
     let effectiveThreadId = input.activeThreadId;
     let effectiveThreadRecord = input.selectedThreadRecord;

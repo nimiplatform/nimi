@@ -21,8 +21,9 @@ import {
 import type { AgentLocalThreadSummary } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-types.js';
 import {
   buildAgentEffectiveCapabilityResolution,
-  createConversationExecutionSnapshot,
+  createAISnapshot,
 } from '../src/shell/renderer/features/chat/conversation-capability.js';
+import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -206,7 +207,8 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
       sessionClass: 'AGENT_LOCAL',
     },
   });
-  const executionSnapshot = createConversationExecutionSnapshot({
+  const executionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
     capability: 'text.generate',
     projection,
     agentResolution,

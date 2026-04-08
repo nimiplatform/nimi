@@ -12,7 +12,6 @@ import { useRuntimeConfigDaemonController } from './runtime-config-panel-control
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
 import { useRuntimeConfigBridgeSync } from './runtime-config-panel-controller-bridge-sync';
 import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
-import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
@@ -23,8 +22,9 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const offlineTier = useAppStore((state) => state.offlineTier);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  // D-LLM-021: Runtime Config is an authority editor for AIConfig capability bindings.
+  // Uses the store convenience delegate which commits through the AIConfig surface.
   const setConversationCapabilityBinding = useAppStore((state) => state.setConversationCapabilityBinding);
-  const conversationCapabilitySelectionStore = useAppStore((state) => state.conversationCapabilitySelectionStore);
   const registeredRuntimeModIds = useAppStore((state) => state.registeredRuntimeModIds);
   const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
   const [pageFeedback, setPageFeedback] = useState<InlineFeedbackState | null>(null);
@@ -139,9 +139,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     discoverLocalModels: commands.discoverLocalModels,
   });
 
-  useEffect(() => {
-    void refreshConversationCapabilityProjections();
-  }, [bootstrapReady, conversationCapabilitySelectionStore]);
+  // Projection refresh is now driven centrally by surface subscription
+  // (S-AICONF-006 via bindProjectionRefreshToSurface in runtime-slice bootstrap).
 
   useEffect(() => {
     if (!panelState.hydrated) return;

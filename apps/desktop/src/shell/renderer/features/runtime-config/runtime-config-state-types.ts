@@ -6,7 +6,7 @@ export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedd
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
 
 export type SourceIdV11 = 'local' | 'cloud';
-export type RuntimePageIdV11 = 'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods' | 'data-management' | 'performance' | 'mod-developer';
+export type RuntimePageIdV11 = 'overview' | 'recommend' | 'local' | 'cloud' | 'catalog' | 'runtime' | 'mods' | 'profiles' | 'data-management' | 'performance' | 'mod-developer';
 export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
@@ -172,6 +172,7 @@ export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
     || value === 'catalog'
     || value === 'runtime'
     || value === 'mods'
+    || value === 'profiles'
     || value === 'data-management'
     || value === 'performance'
     || value === 'mod-developer'

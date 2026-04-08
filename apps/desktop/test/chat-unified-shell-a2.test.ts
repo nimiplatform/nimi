@@ -7,6 +7,12 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
+const conversationCapabilitySource = readWorkspaceFile('src/shell/renderer/features/chat/conversation-capability.ts');
+const runtimeSliceSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/runtime-slice.ts');
+const storeTypesSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/store-types.ts');
+const capabilityStorageSource = readWorkspaceFile('src/shell/renderer/app-shell/providers/desktop-ai-config-storage.ts');
+const capabilitySettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
+
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatModeRegistrySource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-registry.ts');
 const chatModeHostTypesSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-mode-host-types.ts');
@@ -111,13 +117,9 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAiPresentationSource, /transcriptProps:/);
   assert.match(chatAiPresentationSource, /composerContent:/);
   assert.match(chatAiPresentationSource, /settingsContent:/);
-  assert.match(chatAiPresentationSource, /ConversationCapabilitySettingsSection section="voice"/);
-  assert.match(chatAiPresentationSource, /ConversationCapabilitySettingsSection section="visual"/);
   assert.match(chatAiPresentationSource, /diagnosticsContent=/);
   assert.match(chatAiPresentationSource, /onArchiveThread: input\.handleArchiveThread/);
   assert.match(chatAiPresentationSource, /onRenameThread: input\.handleRenameThread/);
-  assert.doesNotMatch(chatAiPresentationSource, /voiceRouteConfigContent={<RuntimeInspectUnsupportedNote/);
-  assert.doesNotMatch(chatAiPresentationSource, /mediaRouteConfigContent={<RuntimeInspectUnsupportedNote/);
   assert.doesNotMatch(chatAiPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAiAdapterSource, /renderComposer:/);
@@ -128,25 +130,21 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /CanonicalComposer/);
   assert.match(chatAgentPresentationSource, /resolveAgentConversationHostSnapshot/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
-  assert.match(chatAgentPresentationSource, /ConversationCapabilitySettingsSection section="voice"/);
-  assert.match(chatAgentPresentationSource, /ConversationCapabilitySettingsSection section="visual"/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);
   assert.match(chatAgentPresentationSource, /composerContent:/);
-  assert.doesNotMatch(chatAgentPresentationSource, /voiceRouteConfigContent={<RuntimeInspectUnsupportedNote/);
-  assert.doesNotMatch(chatAgentPresentationSource, /mediaRouteConfigContent={<RuntimeInspectUnsupportedNote/);
   assert.doesNotMatch(chatAgentPresentationSource, /rightSidebarContent:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTranscript:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderComposer:/);
   assert.doesNotMatch(chatAgentAdapterSource, /renderTargetRail:/);
 
   assert.match(chatSettingsPanelSource, /SettingsSection/);
-  assert.match(chatSettingsPanelSource, /CanonicalSettingsCollapsibleSection/);
-  assert.match(chatSettingsPanelSource, /CanonicalSettingsToggleRow/);
+  assert.match(chatSettingsPanelSource, /CapabilityAccordionSection/);
+  assert.match(chatSettingsPanelSource, /ConversationCapabilitySettingsSection/);
   assert.match(chatSettingsPanelSource, /modelPickerContent\?:/);
-  assert.match(chatSettingsPanelSource, /voiceRouteConfigContent\?:/);
   assert.match(chatSettingsPanelSource, /diagnosticsContent\?:/);
   assert.match(chatSettingsPanelSource, /ModelPickerModal/);
   assert.match(chatSettingsPanelSource, /ModelSelectorTrigger/);
+  assert.match(chatSettingsPanelSource, /mode === 'ai'/);
   assert.doesNotMatch(chatSettingsPanelSource, /thinkingPreference\?:/);
   assert.doesNotMatch(chatSettingsPanelSource, /thinkingSupported\?:/);
   assert.doesNotMatch(chatSettingsPanelSource, /chatRouteConfigContent\?:/);
@@ -164,4 +162,65 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.doesNotMatch(chatHumanAdapterSource, /renderTargetRail:/);
   assert.doesNotMatch(chatHumanAdapterSource, /HumanConversationTranscript/);
   assert.doesNotMatch(chatHumanAdapterSource, /HumanConversationComposer/);
+});
+
+test('chat unified shell a2: AIConfig is the umbrella authority over conversation capability (D-AIPC-010)', () => {
+  // SDK types imported in conversation-capability.ts
+  assert.match(conversationCapabilitySource, /AIConfig/);
+  assert.match(conversationCapabilitySource, /AIScopeRef/);
+  assert.match(conversationCapabilitySource, /@nimiplatform\/sdk\/mod/);
+
+  // Bridge functions exist
+  assert.match(conversationCapabilitySource, /function aiConfigFromSelectionStore\(/);
+  assert.match(conversationCapabilitySource, /function selectionStoreFromAIConfig\(/);
+
+  // AISnapshot factory wraps ConversationExecutionSnapshot
+  assert.match(conversationCapabilitySource, /function createAISnapshot\(/);
+  assert.match(conversationCapabilitySource, /conversationCapabilitySlice/);
+
+  // Store types include aiConfig as primary truth
+  assert.match(storeTypesSource, /aiConfig: AIConfig/);
+  assert.match(storeTypesSource, /setAIConfig:/);
+  assert.match(storeTypesSource, /applyAIProfile:/);
+
+  // Runtime slice initializes from active scope AIConfig and delegates writes to surface — no legacy store in public shape
+  assert.match(runtimeSliceSource, /getDesktopAIConfigService\(\)\.aiConfig\.get\(getActiveScope\(\)\)/);
+  assert.match(runtimeSliceSource, /getDesktopAIConfigService/);
+  assert.match(runtimeSliceSource, /bindDesktopAIConfigAppStore/);
+  assert.match(runtimeSliceSource, /applyAIProfileToConfig/);
+  assert.doesNotMatch(runtimeSliceSource, /conversationCapabilitySelectionStore/);
+
+  // Persistence layer is scope-keyed (Phase 5 hard cut — no legacy single key)
+  assert.match(capabilityStorageSource, /nimi\.ai-config\.scope-index\.v2/);
+  assert.match(capabilityStorageSource, /function loadAIConfigForScope\(/);
+  assert.match(capabilityStorageSource, /function persistAIConfigForScope\(/);
+  assert.doesNotMatch(capabilityStorageSource, /function loadAIConfig\(/);
+  assert.doesNotMatch(capabilityStorageSource, /function persistAIConfig\(/);
+  assert.doesNotMatch(capabilityStorageSource, /LEGACY_SINGLE_KEY/);
+
+  // ImageProfileSelectorCard reads from aiConfig.capabilities.localProfileRefs (D-AIPC-008)
+  assert.match(capabilitySettingsSource, /aiConfig\.capabilities\.localProfileRefs\['image\.generate'\]/);
+  assert.doesNotMatch(capabilitySettingsSource, /setConversationCapabilityDefaultRefs/);
+});
+
+test('chat unified shell a2: Phase 4 — AI and Agent adapters write through AIConfig surface, not store action (D-AIPC-003)', () => {
+  // AI adapter uses surface.aiConfig.update for model selection writes
+  assert.match(chatAiAdapterSource, /getDesktopAIConfigService/);
+  assert.match(chatAiAdapterSource, /surface\.aiConfig\.update\(/);
+  assert.doesNotMatch(chatAiAdapterSource, /setConversationCapabilityBinding/);
+
+  // Agent adapter uses surface.aiConfig.update for model selection writes
+  assert.match(chatAgentAdapterSource, /getDesktopAIConfigService/);
+  assert.match(chatAgentAdapterSource, /surface\.aiConfig\.update\(/);
+  assert.doesNotMatch(chatAgentAdapterSource, /setConversationCapabilityBinding/);
+});
+
+test('chat unified shell a2: Phase 4 — conversation-capability module positions itself as submodel (D-AIPC-010)', () => {
+  // Module-level comment declares submodel status
+  assert.match(conversationCapabilitySource, /submodel.*D-AIPC-010/i);
+  assert.match(conversationCapabilitySource, /AIConfig.*live truth/);
+
+  // imageProfileRef variable name is not used in settings (renamed to capability-scoped name)
+  assert.doesNotMatch(capabilitySettingsSource, /const imageProfileRef\b/);
+  assert.match(capabilitySettingsSource, /imageCapabilityLocalRef/);
 });

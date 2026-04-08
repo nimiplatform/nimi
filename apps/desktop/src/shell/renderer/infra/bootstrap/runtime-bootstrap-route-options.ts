@@ -19,6 +19,20 @@ type ConnectorDescriptor = {
     vendor?: string;
     provider?: string;
 };
+/**
+ * Extract a human-readable model name from an assetId.
+ * Strips common prefixes like "local/local-import/", "local/", "media/" etc.
+ */
+function extractModelDisplayName(assetId: string): string {
+    const raw = String(assetId || '').trim();
+    // Strip known prefixes: "local/local-import/", "local/", "media/"
+    const stripped = raw
+        .replace(/^local\/local-import\//, '')
+        .replace(/^local\//, '')
+        .replace(/^media\//, '');
+    return stripped || raw;
+}
+
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
 let localRoutePlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
 
@@ -448,10 +462,9 @@ export async function loadRuntimeRouteOptions(input: {
 }, deps?: Partial<LoadRuntimeRouteOptionsDeps>): Promise<RuntimeRouteOptionsSnapshot> {
     const appStore = useAppStore.getState();
     const runtimeFields = appStore.runtimeFields as RuntimeFields;
-    const selectedBindings = appStore.conversationCapabilitySelectionStore.selectedBindings;
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
-        : selectedBindings[input.capability];
+        : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/mod').RuntimeRouteBinding | null | undefined;
     const connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
     const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
         sdkListConnectors: connectorService.sdkListConnectors,
@@ -537,7 +550,7 @@ export async function loadRuntimeRouteOptions(input: {
         }
         return {
             localModelId: item.localAssetId,
-            label: item.assetId,
+            label: extractModelDisplayName(item.assetId),
             engine: item.engine,
             model: item.assetId,
             modelId: item.assetId,

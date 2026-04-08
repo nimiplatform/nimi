@@ -15,6 +15,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices",
     "/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
     "/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets",
+    "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",

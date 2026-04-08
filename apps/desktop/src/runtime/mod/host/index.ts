@@ -89,11 +89,32 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                 }),
                 describe: async () => { throw notReady(); },
             },
+            scheduler: {
+                peek: async () => ({
+                    occupancy: null,
+                    aggregateJudgement: null,
+                    targetJudgements: [],
+                }),
+            },
             local: {
                 listAssets: async () => { throw notReady(); },
                 listProfiles: async () => { throw notReady(); },
                 requestProfileInstall: async () => { throw notReady(); },
                 getProfileInstallStatus: async () => { throw notReady(); },
+            },
+            aiConfig: {
+                get: () => { throw notReady(); },
+                update: () => { throw notReady(); },
+                listScopes: () => { throw notReady(); },
+                probe: async () => { throw notReady(); },
+                probeFeasibility: async () => { throw notReady(); },
+                probeSchedulingTarget: async () => { throw notReady(); },
+                subscribe: () => { throw notReady(); },
+            },
+            aiSnapshot: {
+                record: () => { throw notReady(); },
+                get: () => { throw notReady(); },
+                getLatest: () => { throw notReady(); },
             },
             ai: {
                 text: {

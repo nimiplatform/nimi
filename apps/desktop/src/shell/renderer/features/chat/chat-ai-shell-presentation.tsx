@@ -14,7 +14,6 @@ import type {
   ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
-import { ConversationCapabilitySettingsSection } from './chat-conversation-capability-settings';
 import { ChatSettingsPanel } from './chat-settings-panel';
 import {
   RuntimeInspectCard,
@@ -23,6 +22,8 @@ import { toConversationThreadSummary } from './chat-ai-thread-model';
 import type { ChatThinkingPreference } from './chat-thinking';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
+import { resolveExecutionSchedulingGuardDecision } from './chat-execution-scheduling-guard';
 
 type UseAiConversationPresentationInput = {
   activeThreadId: string | null;
@@ -50,6 +51,7 @@ type UseAiConversationPresentationInput = {
     label: string;
     detail: string | null;
   };
+  schedulingJudgement: AISchedulingJudgement | null;
   setChatThinkingPreference: (value: ChatThinkingPreference) => void;
   setupState: ConversationSetupState;
   submittingThreadId: string | null;
@@ -64,9 +66,16 @@ type UseAiConversationPresentationInput = {
 export function useAiConversationPresentation(
   input: UseAiConversationPresentationInput,
 ): DesktopConversationModeHost {
+  const schedulingGuard = useMemo(
+    () => resolveExecutionSchedulingGuardDecision({
+      judgement: input.schedulingJudgement,
+      t: input.t,
+    }),
+    [input.schedulingJudgement, input.t],
+  );
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
-      label={input.t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' })}
+      label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
       value={input.setupState.status === 'ready'
         ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
         : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
@@ -80,6 +89,9 @@ export function useAiConversationPresentation(
 
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
+  ) : null;
+  const schedulingFeedbackNode = schedulingGuard.feedback ? (
+    <InlineFeedback feedback={schedulingGuard.feedback} />
   ) : null;
 
   const adapter = useMemo(() => ({
@@ -98,16 +110,16 @@ export function useAiConversationPresentation(
         submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
           await input.handleSubmit(composerInput.text);
         },
-        disabled: Boolean(input.submittingThreadId),
+        disabled: Boolean(input.submittingThreadId) || schedulingGuard.disabled,
         disabledReason: input.submittingThreadId
           ? input.t('Chat.aiSending', { defaultValue: 'Generating response…' })
-          : null,
+          : schedulingGuard.disabledReason,
         placeholder: input.setupState.status === 'ready'
           ? input.t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })
           : input.t('Chat.aiComposerSetupPlaceholder', { defaultValue: 'Set up a model to start chatting…' }),
       }
       : null,
-  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads]);
+  }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads, schedulingGuard.disabled, schedulingGuard.disabledReason]);
 
   return useMemo(() => ({
     mode: 'ai' as const,
@@ -129,12 +141,7 @@ export function useAiConversationPresentation(
       <ChatSettingsPanel
         onModelSelectionChange={input.onModelSelectionChange}
         initialModelSelection={input.initialModelSelection}
-        voiceRouteConfigContent={<ConversationCapabilitySettingsSection section="voice" />}
-        mediaRouteConfigContent={<ConversationCapabilitySettingsSection section="visual" />}
         diagnosticsContent={diagnosticsContent}
-        presenceContent={<DisabledPresenceNote label={input.t('Chat.settingsAllowProactiveContactHint', {
-          defaultValue: 'Unavailable until runtime inspect is connected for this source.',
-        })} />}
       />
     ),
     settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
@@ -158,12 +165,13 @@ export function useAiConversationPresentation(
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
+          {schedulingFeedbackNode}
           {hostFeedbackNode}
           <CanonicalComposer
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             adapter={adapter.composerAdapter}
             initialText={input.bundle?.draft?.text || ''}
-            disabled={Boolean(input.submittingThreadId)}
+            disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
             placeholder={input.t('Chat.aiComposerPlaceholder', { defaultValue: 'Ask anything…' })}
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
@@ -187,6 +195,7 @@ export function useAiConversationPresentation(
     adapter,
     diagnosticsContent,
     hostFeedbackNode,
+    schedulingFeedbackNode,
     input.activeThreadId,
     input.aiCharacterData,
     input.bundle?.draft?.text,
@@ -215,13 +224,6 @@ export function useAiConversationPresentation(
     input.threads.length,
     input.initialModelSelection,
     input.onModelSelectionChange,
+    schedulingGuard.disabled,
   ]);
-}
-
-function DisabledPresenceNote(props: { label: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-4 text-center text-[11px] text-gray-500">
-      {props.label}
-    </div>
-  );
 }

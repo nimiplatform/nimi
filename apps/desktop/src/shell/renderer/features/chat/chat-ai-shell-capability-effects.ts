@@ -6,7 +6,6 @@ const AI_CONVERSATION_REFRESHED_CAPABILITIES: readonly ConversationCapability[] 
 
 type UseAiConversationCapabilityEffectsInput = {
   bootstrapReady: boolean;
-  conversationCapabilitySelectionStore: unknown;
   currentDraftTextRef: { current: string };
   draftText: string | null | undefined;
   draftUpdatedAtMs: number | null | undefined;
@@ -15,9 +14,12 @@ type UseAiConversationCapabilityEffectsInput = {
 export function useAiConversationCapabilityEffects(
   input: UseAiConversationCapabilityEffectsInput,
 ): void {
+  // Initial projection build on bootstrap. Ongoing config-change driven refresh
+  // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
+    if (!input.bootstrapReady) return;
     void refreshConversationCapabilityProjections(AI_CONVERSATION_REFRESHED_CAPABILITIES);
-  }, [input.bootstrapReady, input.conversationCapabilitySelectionStore]);
+  }, [input.bootstrapReady]);
 
   useEffect(() => {
     input.currentDraftTextRef.current = input.draftText || '';

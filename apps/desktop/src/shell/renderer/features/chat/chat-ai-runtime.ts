@@ -21,7 +21,7 @@ import {
   resolveTextExecutionSnapshotThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
-import type { ConversationExecutionSnapshot } from './conversation-capability';
+import type { AISnapshot } from './conversation-capability';
 
 export type ChatAiRuntimeInvokeInput = {
   prompt: string;
@@ -29,7 +29,7 @@ export type ChatAiRuntimeInvokeInput = {
   systemPrompt?: string | null;
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
-  executionSnapshot: ConversationExecutionSnapshot | null;
+  executionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   signal?: AbortSignal;
@@ -92,7 +92,8 @@ async function resolveInvokeInput(
   input: ChatAiRuntimeInvokeInput,
 ): Promise<InvokeModLlmInput> {
   const snapshot = input.executionSnapshot;
-  if (!snapshot || snapshot.capability !== 'text.generate') {
+  const slice = snapshot?.conversationCapabilitySlice;
+  if (!slice || slice.capability !== 'text.generate') {
     throw createNimiError({
       message: 'text.generate execution snapshot is not available',
       reasonCode: ReasonCode.AI_INPUT_INVALID,
@@ -100,7 +101,7 @@ async function resolveInvokeInput(
       source: 'runtime',
     });
   }
-  const resolved = snapshot.resolvedBinding;
+  const resolved = slice.resolvedBinding as import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding'];
   if (!resolved) {
     throw createNimiError({
       message: 'text.generate execution snapshot resolved binding is missing',
@@ -196,7 +197,7 @@ export async function streamChatAiRuntime(
     system: normalizeText(input.systemPrompt) || undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
-      resolveTextExecutionSnapshotThinkingSupport(input.executionSnapshot),
+      resolveTextExecutionSnapshotThinkingSupport(input.executionSnapshot?.conversationCapabilitySlice as Parameters<typeof resolveTextExecutionSnapshotThinkingSupport>[0]),
     ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,
