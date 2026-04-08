@@ -1,15 +1,15 @@
 /**
  * AI Configuration Section for Settings Page
  *
- * Uses kit useRouteModelPickerData + RouteModelPickerPanel per capability.
- * All data fetching and state management is handled by the kit hook.
+ * All capabilities (text.generate, image.generate, music.generate) use the
+ * snapshot-driven provider backed by runtime.route.listOptions (FG-ROUTE-001/005).
  */
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
-  createSdkRouteDataProvider,
+  createSnapshotRouteDataProvider,
   useRouteModelPickerData,
   type RouteModelPickerDataProvider,
   type RouteModelPickerSelection,
@@ -25,11 +25,37 @@ import {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CAPABILITIES: { key: ForgeAiCapability; labelKey: string; fallback: string; runtimeCapability: string }[] = [
+const CORE_RUNTIME_MOD_ID = 'core:runtime';
+
+type CapabilityEntry = {
+  key: ForgeAiCapability;
+  labelKey: string;
+  fallback: string;
+  runtimeCapability: string;
+};
+
+const CAPABILITIES: CapabilityEntry[] = [
   { key: 'text', labelKey: 'settings.aiText', fallback: 'Chat Model', runtimeCapability: 'text.generate' },
   { key: 'image', labelKey: 'settings.aiImage', fallback: 'Image Model', runtimeCapability: 'image.generate' },
-  { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'audio.generate' },
+  { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'music.generate' },
 ];
+
+// ---------------------------------------------------------------------------
+// Snapshot-driven provider (FG-ROUTE-005)
+// ---------------------------------------------------------------------------
+
+function createCapabilitySnapshotProvider(capability: string): RouteModelPickerDataProvider | null {
+  try {
+    const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
+    return createSnapshotRouteDataProvider(
+      () => modClient.route.listOptions({
+        capability: capability as Parameters<typeof modClient.route.listOptions>[0]['capability'],
+      }),
+    );
+  } catch {
+    return null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // AiConfigSection (top-level)
@@ -41,16 +67,6 @@ export function AiConfigSection() {
   const error = useAiConfigStore((s) => s.error);
   const checkRuntimeStatus = useAiConfigStore((s) => s.checkRuntimeStatus);
   const resetToDefaults = useAiConfigStore((s) => s.resetToDefaults);
-
-  // Create a single SDK data provider (stable across renders)
-  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
-  if (!providerRef.current) {
-    try {
-      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
-    } catch {
-      // Runtime not ready yet — will be null
-    }
-  }
 
   useEffect(() => {
     void checkRuntimeStatus();
@@ -103,18 +119,11 @@ export function AiConfigSection() {
       {CAPABILITIES.map((cap) => (
         <SettingsCard key={cap.key} className="space-y-3 p-4">
           <SettingsSectionTitle>{t(cap.labelKey, cap.fallback)}</SettingsSectionTitle>
-          {providerRef.current ? (
-            <ForgeCapabilityModelPanel
-              capability={cap.key}
-              runtimeCapability={cap.runtimeCapability}
-              provider={providerRef.current}
-              disabled={runtimeStatus === 'unavailable'}
-            />
-          ) : (
-            <p className="text-sm text-[color:var(--nimi-text-secondary)]">
-              {t('settings.aiRuntimeUnavailable', 'Runtime unavailable')}
-            </p>
-          )}
+          <ForgeCapabilityModelPanel
+            capability={cap.key}
+            runtimeCapability={cap.runtimeCapability}
+            disabled={runtimeStatus === 'unavailable'}
+          />
         </SettingsCard>
       ))}
 
@@ -129,26 +138,36 @@ export function AiConfigSection() {
 }
 
 // ---------------------------------------------------------------------------
-// ForgeCapabilityModelPanel — delegates everything to kit hook
+// ForgeCapabilityModelPanel — all capabilities use snapshot-driven provider
 // ---------------------------------------------------------------------------
 
 function ForgeCapabilityModelPanel({
   capability,
   runtimeCapability,
-  provider,
   disabled,
 }: {
   capability: ForgeAiCapability;
   runtimeCapability: string;
-  provider: RouteModelPickerDataProvider;
   disabled: boolean;
 }) {
   const { t } = useTranslation();
-  const selection = useAiConfigStore((s) => s.selections[capability]);
   const setSelection = useAiConfigStore((s) => s.setSelection);
 
-  // Derive initial source from persisted selection
-  const initialSource = selection.route === 'cloud' ? 'cloud' as const : 'local' as const;
+  const binding = useAiConfigStore((s) =>
+    s.aiConfig.capabilities.selectedBindings[runtimeCapability],
+  );
+
+  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
+  if (!providerRef.current) {
+    providerRef.current = createCapabilitySnapshotProvider(runtimeCapability);
+  }
+
+  const initialSource: 'local' | 'cloud' =
+    binding && typeof binding === 'object' ? binding.source : 'local';
+  const initialConnectorId =
+    binding && typeof binding === 'object' ? binding.connectorId || '' : '';
+  const initialModel =
+    binding && typeof binding === 'object' ? binding.model || '' : '';
 
   const labels = useMemo(() => ({
     source: t('settings.aiSource', 'Source'),
@@ -169,25 +188,26 @@ function ForgeCapabilityModelPanel({
 
   const handleSelectionChange = useMemo(() => (next: RouteModelPickerSelection) => {
     setSelection(capability, {
-      route: next.source === 'cloud' ? 'cloud' : 'local',
+      source: next.source === 'cloud' ? 'cloud' : 'local',
       connectorId: next.connectorId,
       model: next.model,
+      modelLabel: next.modelLabel,
     });
   }, [capability, setSelection]);
 
   const { panelProps } = useRouteModelPickerData({
-    provider,
+    provider: providerRef.current!,
     capability: runtimeCapability,
     initialSelection: {
       source: initialSource,
-      connectorId: selection.connectorId,
-      model: selection.model === 'auto' ? '' : selection.model,
+      connectorId: initialConnectorId,
+      model: initialModel,
     },
     onSelectionChange: handleSelectionChange,
     labels,
   });
 
-  if (disabled) {
+  if (disabled || !providerRef.current) {
     return (
       <p className="text-sm text-[color:var(--nimi-text-secondary)]">
         {t('settings.aiRuntimeUnavailable', 'Runtime unavailable')}

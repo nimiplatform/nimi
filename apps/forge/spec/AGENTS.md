@@ -19,6 +19,7 @@ spec/
 │   ├── ai-advisor-contract.md          # FG-ADV-*: AI advisor contract
 │   ├── analytics-contract.md           # FG-ANA-*: Analytics contract
 │   ├── import-contract.md              # FG-IMPORT-*: Import pipelines contract
+│   ├── route-authority-contract.md     # FG-ROUTE-*: Route authority + capability routing
 │   └── tables/
 │       ├── routes.yaml                 # Route table — authoritative
 │       ├── api-surface.yaml            # API surface — existing + new endpoints
@@ -42,6 +43,7 @@ All rules use prefix `FG-<DOMAIN>-NNN`.
 | AI Advisor | FG-ADV | `ai-advisor-contract.md` |
 | Analytics | FG-ANA | `analytics-contract.md` |
 | Import | FG-IMPORT | `import-contract.md` |
+| Route Authority | FG-ROUTE | `route-authority-contract.md` |
 
 ## Fact Sources
 

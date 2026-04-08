@@ -23,6 +23,10 @@ vi.mock('@nimiplatform/sdk', () => ({
   createPlatformClient: (...args: unknown[]) => mockInitializePlatformClient(...args),
 }));
 
+vi.mock('./forge-runtime-host.js', () => ({
+  registerForgeModSdkHost: vi.fn(),
+}));
+
 const { useAppStore } = await import('@renderer/app-shell/providers/app-store.js');
 
 const { runForgeBootstrap } = await import('./forge-bootstrap.js');

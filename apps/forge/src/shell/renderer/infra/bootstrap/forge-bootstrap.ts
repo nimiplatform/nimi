@@ -12,6 +12,7 @@ import {
   resolveDesktopBootstrapAuthSession,
 } from '@nimiplatform/nimi-kit/auth';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { registerForgeModSdkHost } from './forge-runtime-host.js';
 import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
 
 function toForgeAuthUser(user: Record<string, unknown> | null) {
@@ -87,7 +88,7 @@ export async function runForgeBootstrap(): Promise<void> {
       void clearPersistedAuthSession();
     };
 
-    // Step 3: Platform Client
+    // Step 2: Platform Client
     const { runtime, realm } = await createPlatformClient({
       appId: 'nimi.forge',
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
@@ -124,6 +125,9 @@ export async function runForgeBootstrap(): Promise<void> {
       },
     });
 
+    // Step 3: Runtime Host Capabilities (per FG-ROUTE-003)
+    registerForgeModSdkHost();
+
     // Step 4: Auth Session
     await bootstrapAuthSession({
       realm,
@@ -136,7 +140,7 @@ export async function runForgeBootstrap(): Promise<void> {
       },
     });
 
-    // Step 5: Runtime SDK Readiness
+    // Step 6: Runtime SDK Readiness
     try {
       await runtime.ready();
     } catch {
@@ -144,7 +148,7 @@ export async function runForgeBootstrap(): Promise<void> {
       // may work without local AI runtime available
     }
 
-    // Step 6: Exit Handler (daemon status check)
+    // Step 7: Exit Handler (daemon status check)
     try {
       const daemonStatus = await getDaemonStatus();
       if (daemonStatus.managed) {
@@ -155,7 +159,7 @@ export async function runForgeBootstrap(): Promise<void> {
       // Non-blocking — daemon may not be running
     }
 
-    // Step 7: Ready
+    // Step 8: Ready
     store.setBootstrapReady(true);
     logRendererEvent({
       level: 'info',

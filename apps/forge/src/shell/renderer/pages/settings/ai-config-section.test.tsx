@@ -5,7 +5,6 @@ import { AiConfigSection } from './ai-config-section.js';
 import { useAiConfigStore } from '@renderer/state/ai-config-store.js';
 import { i18n, initI18n } from '@renderer/i18n/index.js';
 
-// Mock localStorage
 const storage = new Map<string, string>();
 vi.stubGlobal('localStorage', {
   getItem: (key: string) => storage.get(key) ?? null,
@@ -13,32 +12,33 @@ vi.stubGlobal('localStorage', {
   removeItem: (key: string) => storage.delete(key),
 });
 
-const listLocalAssets = vi.fn().mockResolvedValue({
-  assets: [
-    { localAssetId: 'qwen3-4b', logicalModelId: 'Qwen3-4B-Q4', capabilities: ['text.generate'], engine: 'llama', status: 2 },
-  ],
-  nextPageToken: '',
-});
-
-const listConnectors = vi.fn().mockResolvedValue({
-  connectors: [
-    { connectorId: 'c1', provider: 'openai', label: 'OpenAI', status: 1 },
-  ],
-  nextPageToken: '',
-});
-
 const healthFn = vi.fn().mockResolvedValue({ status: 'healthy' });
 
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
-    runtime: {
-      local: { listLocalAssets },
-      connector: {
-        listConnectors,
-        listConnectorModels: vi.fn().mockResolvedValue({ models: [], nextPageToken: '' }),
-      },
-      health: healthFn,
+    runtime: { health: healthFn },
+  }),
+}));
+
+vi.mock('@nimiplatform/sdk/mod', () => ({
+  createModRuntimeClient: () => ({
+    route: {
+      listOptions: vi.fn().mockResolvedValue({
+        capability: 'text.generate',
+        selected: null,
+        local: {
+          models: [
+            { localModelId: 'qwen3-4b', model: 'Qwen3-4B-Q4', engine: 'llama', status: 'active', capabilities: ['text.generate'] },
+          ],
+        },
+        connectors: [],
+      }),
     },
+  }),
+  createEmptyAIConfig: (scopeRef?: { kind: string; ownerId: string; surfaceId?: string }) => ({
+    scopeRef: scopeRef || { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
+    capabilities: { selectedBindings: {}, localProfileRefs: {} },
+    profileOrigin: null,
   }),
 }));
 
@@ -59,10 +59,10 @@ describe('AiConfigSection', () => {
     vi.clearAllMocks();
     storage.clear();
     useAiConfigStore.setState({
-      selections: {
-        text: { connectorId: '', model: 'auto', route: 'auto' },
-        image: { connectorId: '', model: 'auto', route: 'auto' },
-        music: { connectorId: '', model: 'auto', route: 'auto' },
+      aiConfig: {
+        scopeRef: { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
+        capabilities: { selectedBindings: {}, localProfileRefs: {} },
+        profileOrigin: null,
       },
       runtimeStatus: 'unknown',
       error: null,
@@ -88,6 +88,11 @@ describe('AiConfigSection', () => {
     expect(screen.getByText('Music Model')).toBeTruthy();
   });
 
+  it('does not render Preview badge — all capabilities are stable', () => {
+    renderSection();
+    expect(screen.queryByText('Preview')).toBeNull();
+  });
+
   it('shows unavailable when runtime health fails', async () => {
     healthFn.mockRejectedValueOnce(new Error('connection refused'));
     renderSection();
@@ -103,13 +108,6 @@ describe('AiConfigSection', () => {
       const cloudButtons = screen.getAllByText('Cloud');
       expect(localButtons.length).toBeGreaterThanOrEqual(3);
       expect(cloudButtons.length).toBeGreaterThanOrEqual(3);
-    });
-  });
-
-  it('fetches local models via kit data provider', async () => {
-    renderSection();
-    await waitFor(() => {
-      expect(listLocalAssets).toHaveBeenCalled();
     });
   });
 });

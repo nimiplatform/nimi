@@ -47,7 +47,7 @@ Retained subsystems:
 
 ## FG-SHELL-003: Bootstrap Sequence
 
-7-step bootstrap, simplified from desktop's full bootstrap:
+8-step bootstrap, simplified from desktop's full bootstrap:
 
 ```
 Step 1: Runtime Defaults
@@ -58,24 +58,28 @@ Step 2: Platform Client
   → createPlatformClient({ realmBaseUrl, accessToken: '', accessTokenProvider, subjectUserIdProvider })
   → Produces { runtime, realm } SDK clients
 
-Step 3: Auth Session
+Step 3: Runtime Host Capabilities (per FG-ROUTE-003)
+  → Build trimmed host capabilities (route + local + ai + media + logging)
+  → Register via setModSdkHost(host)
+  → createModRuntimeClient('core:runtime') becomes available
+
+Step 4: Auth Session
   → bootstrapAuthSession({ accessToken })
   → On success: setAuthSession(user, token, refreshToken)
   → On failure: clearAuthSession() + show login
 
-Step 4: Query Client
+Step 5: Query Client
   → Initialize TanStack QueryClient with default options
   → Configure auth-aware fetch wrapper
 
-Step 5: Runtime SDK Readiness
+Step 6: Runtime SDK Readiness
   → runtime.ready()
-  → checkLocalLlmHealth() for text.stream / image.generate / music.generate route availability
   → No mod registration, no external agent bridge
 
-Step 6: Exit Handler
+Step 7: Exit Handler
   → registerExitHandler({ managed: daemonStatus.managed })
 
-Step 7: Ready
+Step 8: Ready
   → setBootstrapReady(true)
   → Render app shell
 ```
@@ -227,6 +231,8 @@ interface ForgeAppStore {
     checked: boolean;
     hasAccess: boolean;
   };
+  // AI configuration (per FG-ROUTE-004)
+  aiConfig: AIConfig;
   // UI
   sidebarCollapsed: boolean;
   // Actions
@@ -235,16 +241,21 @@ interface ForgeAppStore {
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(error: string | null): void;
   setCreatorAccess(hasAccess: boolean): void;
+  setAIConfig(config: AIConfig): void;
   toggleSidebar(): void;
 }
 ```
 
+`AIConfig` type is imported from `@nimiplatform/sdk/mod`. See FG-ROUTE-004 for persistence and migration rules.
+```
+
 ## FG-SHELL-010: SDK Direct Connectivity
 
-Forge invokes runtime and realm through SDK clients created by `createPlatformClient()`:
+Forge invokes runtime and realm through SDK clients:
 
-- `platformClient.runtime` is the only allowed entry for `text.stream`, `image.generate`, `music.generate`, and related runtime jobs
-- `platformClient.realm` is the only allowed entry for creator/business REST data
-- `desktopBridge` is limited to shell bootstrapping, window/runtime lifecycle, and external URL helpers
+- **Route option authority**: `createModRuntimeClient('core:runtime').route.listOptions(...)` is the only allowed entry for app-facing route option truth (per FG-ROUTE-001). Requires mod SDK host registered at Step 3 of FG-SHELL-003.
+- **Capability execution**: `platformClient.runtime` is the allowed entry for `text.stream`, `image.generate`, `music.generate`, and related runtime jobs.
+- **Realm data**: `platformClient.realm` is the only allowed entry for creator/business REST data.
+- **Desktop bridge**: `desktopBridge` is limited to shell bootstrapping, window/runtime lifecycle, and external URL helpers.
 
-This keeps Forge aligned with the desktop app's SDK-first boundary while still running inside a Tauri shell.
+Forge must NOT use `platformClient.runtime.connector.listConnectors` or `platformClient.runtime.local.listLocalAssets` as app-facing route option truth. These are inventory APIs used internally by the host capabilities builder, not consumer-facing route authority.

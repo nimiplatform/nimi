@@ -2,33 +2,50 @@
  * AI Config Resolution
  *
  * Resolves the user's AI selection into parameters suitable for runtime AI calls.
+ * All capabilities read from AIConfig.capabilities.selectedBindings.
  */
 
-import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
-import { useAiConfigStore, type ForgeAiCapability } from '@renderer/state/ai-config-store.js';
+import { useAiConfigStore, CAPABILITY_MAP, type ForgeAiCapability } from '@renderer/state/ai-config-store.js';
 
 export type ResolvedAiParams = {
   model: string;
   connectorId: string;
-  route: NimiRoutePolicy | undefined;
+  source: 'local' | 'cloud' | undefined;
+  /** Route policy for runtime SDK calls. Derived from source. */
+  route: 'local' | 'cloud' | undefined;
 };
 
 /** Non-reactive — use outside React components (e.g. in createForgeAiClient). */
 export function getResolvedAiParams(capability: ForgeAiCapability): ResolvedAiParams {
-  const selection = useAiConfigStore.getState().selections[capability];
+  const store = useAiConfigStore.getState();
+  const canonicalCap = CAPABILITY_MAP[capability];
+  const binding = store.aiConfig.capabilities.selectedBindings[canonicalCap];
+
+  if (!binding || typeof binding !== 'object') {
+    return { model: '', connectorId: '', source: undefined, route: undefined };
+  }
   return {
-    model: selection.model,
-    connectorId: selection.connectorId,
-    route: selection.route === 'auto' ? undefined : selection.route,
+    model: binding.model || '',
+    connectorId: binding.connectorId || '',
+    source: binding.source,
+    route: binding.source,
   };
 }
 
 /** Reactive hook — use inside React components. */
 export function useResolvedAiParams(capability: ForgeAiCapability): ResolvedAiParams {
-  const selection = useAiConfigStore((s) => s.selections[capability]);
+  const canonicalCap = CAPABILITY_MAP[capability];
+  const binding = useAiConfigStore((s) =>
+    s.aiConfig.capabilities.selectedBindings[canonicalCap],
+  );
+
+  if (!binding || typeof binding !== 'object') {
+    return { model: '', connectorId: '', source: undefined, route: undefined };
+  }
   return {
-    model: selection.model,
-    connectorId: selection.connectorId,
-    route: selection.route === 'auto' ? undefined : selection.route,
+    model: binding.model || '',
+    connectorId: binding.connectorId || '',
+    source: binding.source,
+    route: binding.source,
   };
 }
