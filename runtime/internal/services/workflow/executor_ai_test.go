@@ -606,6 +606,10 @@ func (c *recordingRuntimeAIClient) UploadArtifact(_ context.Context, _ ...grpc.C
 	return nil, status.Error(codes.Unimplemented, "unimplemented")
 }
 
+func (c *recordingRuntimeAIClient) PeekScheduling(_ context.Context, _ *runtimev1.PeekSchedulingRequest, _ ...grpc.CallOption) (*runtimev1.PeekSchedulingResponse, error) {
+	return &runtimev1.PeekSchedulingResponse{}, nil
+}
+
 func (c *recordingRuntimeAIClient) findScenarioReqByType(scenarioType runtimev1.ScenarioType) *runtimev1.SubmitScenarioJobRequest {
 	for _, req := range c.scenarioSubmitReqs {
 		if req.GetScenarioType() == scenarioType {

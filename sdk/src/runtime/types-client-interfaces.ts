@@ -48,6 +48,8 @@ import type {
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
   SubscribeScenarioJobEventsRequest,
+  PeekSchedulingRequest,
+  PeekSchedulingResponse,
 } from './generated/runtime/v1/ai';
 import type {
   DeleteVoiceAssetRequest,
@@ -265,6 +267,7 @@ export type RuntimeAiClient = {
     request: CloseRealtimeSessionRequest,
     options?: RuntimeCallOptions,
   ): Promise<CloseRealtimeSessionResponse>;
+  peekScheduling(request: PeekSchedulingRequest, options?: RuntimeCallOptions): Promise<PeekSchedulingResponse>;
 };
 
 export type RuntimeWorkflowClient = {

@@ -76,6 +76,14 @@ func fileConfigEngineString(fileCfg FileConfig, engine string, field string) str
 	return ""
 }
 
+// fileConfigSchedulingInt extracts a *int field from the optional FileConfig Scheduling section.
+func fileConfigSchedulingInt(fileCfg FileConfig, getter func(*FileConfigScheduling) *int) *int {
+	if fileCfg.Scheduling == nil {
+		return nil
+	}
+	return getter(fileCfg.Scheduling)
+}
+
 // fileConfigEngineInt extracts a *int field for the named engine from FileConfig.
 func fileConfigEngineInt(fileCfg FileConfig, engine string, field string) *int {
 	if fileCfg.Engines == nil {

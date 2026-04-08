@@ -166,6 +166,36 @@ func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
 }
 
+// RegisterSchedulerDenialCheck adds a K-SCHED-004 denial check to the scheduler.
+// Called during daemon bootstrap after device profile collection is available.
+func (s *Service) RegisterSchedulerDenialCheck(check scheduler.DenialCheck) {
+	if s.scheduler != nil {
+		s.scheduler.RegisterDenialCheck(check)
+	}
+}
+
+// SetSchedulerResourceAssessor injects the resource snapshot provider for
+// Phase 2+ risk assessment (K-SCHED-005).
+func (s *Service) SetSchedulerResourceAssessor(assessor scheduler.ResourceAssessor) {
+	if s.scheduler != nil {
+		s.scheduler.SetResourceAssessor(assessor)
+	}
+}
+
+// SetSchedulerRiskThresholds sets configurable risk thresholds on the scheduler (K-SCHED-005).
+func (s *Service) SetSchedulerRiskThresholds(thresholds scheduler.RiskThresholds) {
+	if s.scheduler != nil {
+		s.scheduler.SetRiskThresholds(thresholds)
+	}
+}
+
+// SetSchedulerDependencyChecker injects the K-SCHED-004 dependency feasibility checker.
+func (s *Service) SetSchedulerDependencyChecker(checker scheduler.DependencyFeasibilityChecker) {
+	if s.scheduler != nil {
+		s.scheduler.SetDependencyFeasibilityChecker(checker)
+	}
+}
+
 // SetLocalImageProfileResolver wires RuntimeLocalService for dynamic
 // managed media profile materialization.
 func (s *Service) SetLocalImageProfileResolver(resolver localImageProfileResolver) {

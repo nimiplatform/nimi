@@ -1101,6 +1101,68 @@ func (ScenarioJobEventType) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{18}
 }
 
+// K-SCHED-001: Six-value scheduling judgement state enum.
+type SchedulingState int32
+
+const (
+	SchedulingState_SCHEDULING_STATE_UNSPECIFIED     SchedulingState = 0
+	SchedulingState_SCHEDULING_STATE_RUNNABLE        SchedulingState = 1
+	SchedulingState_SCHEDULING_STATE_QUEUE_REQUIRED  SchedulingState = 2
+	SchedulingState_SCHEDULING_STATE_PREEMPTION_RISK SchedulingState = 3
+	SchedulingState_SCHEDULING_STATE_SLOWDOWN_RISK   SchedulingState = 4
+	SchedulingState_SCHEDULING_STATE_DENIED          SchedulingState = 5
+	SchedulingState_SCHEDULING_STATE_UNKNOWN         SchedulingState = 6
+)
+
+// Enum value maps for SchedulingState.
+var (
+	SchedulingState_name = map[int32]string{
+		0: "SCHEDULING_STATE_UNSPECIFIED",
+		1: "SCHEDULING_STATE_RUNNABLE",
+		2: "SCHEDULING_STATE_QUEUE_REQUIRED",
+		3: "SCHEDULING_STATE_PREEMPTION_RISK",
+		4: "SCHEDULING_STATE_SLOWDOWN_RISK",
+		5: "SCHEDULING_STATE_DENIED",
+		6: "SCHEDULING_STATE_UNKNOWN",
+	}
+	SchedulingState_value = map[string]int32{
+		"SCHEDULING_STATE_UNSPECIFIED":     0,
+		"SCHEDULING_STATE_RUNNABLE":        1,
+		"SCHEDULING_STATE_QUEUE_REQUIRED":  2,
+		"SCHEDULING_STATE_PREEMPTION_RISK": 3,
+		"SCHEDULING_STATE_SLOWDOWN_RISK":   4,
+		"SCHEDULING_STATE_DENIED":          5,
+		"SCHEDULING_STATE_UNKNOWN":         6,
+	}
+)
+
+func (x SchedulingState) Enum() *SchedulingState {
+	p := new(SchedulingState)
+	*p = x
+	return p
+}
+
+func (x SchedulingState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SchedulingState) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_ai_proto_enumTypes[19].Descriptor()
+}
+
+func (SchedulingState) Type() protoreflect.EnumType {
+	return &file_runtime_v1_ai_proto_enumTypes[19]
+}
+
+func (x SchedulingState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SchedulingState.Descriptor instead.
+func (SchedulingState) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{19}
+}
+
 type ChatMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
@@ -7145,6 +7207,448 @@ func (x *CloseRealtimeSessionResponse) GetAck() *Ack {
 	return nil
 }
 
+// K-SCHED-003: Occupancy snapshot at peek time.
+type SchedulingOccupancySnapshot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GlobalUsed    int32                  `protobuf:"varint,1,opt,name=global_used,json=globalUsed,proto3" json:"global_used,omitempty"`
+	GlobalCap     int32                  `protobuf:"varint,2,opt,name=global_cap,json=globalCap,proto3" json:"global_cap,omitempty"`
+	AppUsed       int32                  `protobuf:"varint,3,opt,name=app_used,json=appUsed,proto3" json:"app_used,omitempty"`
+	AppCap        int32                  `protobuf:"varint,4,opt,name=app_cap,json=appCap,proto3" json:"app_cap,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SchedulingOccupancySnapshot) Reset() {
+	*x = SchedulingOccupancySnapshot{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulingOccupancySnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulingOccupancySnapshot) ProtoMessage() {}
+
+func (x *SchedulingOccupancySnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulingOccupancySnapshot.ProtoReflect.Descriptor instead.
+func (*SchedulingOccupancySnapshot) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *SchedulingOccupancySnapshot) GetGlobalUsed() int32 {
+	if x != nil {
+		return x.GlobalUsed
+	}
+	return 0
+}
+
+func (x *SchedulingOccupancySnapshot) GetGlobalCap() int32 {
+	if x != nil {
+		return x.GlobalCap
+	}
+	return 0
+}
+
+func (x *SchedulingOccupancySnapshot) GetAppUsed() int32 {
+	if x != nil {
+		return x.AppUsed
+	}
+	return 0
+}
+
+func (x *SchedulingOccupancySnapshot) GetAppCap() int32 {
+	if x != nil {
+		return x.AppCap
+	}
+	return 0
+}
+
+// K-SCHED-002: Scheduling preflight judgement result.
+type SchedulingJudgement struct {
+	state            protoimpl.MessageState       `protogen:"open.v1"`
+	State            SchedulingState              `protobuf:"varint,1,opt,name=state,proto3,enum=nimi.runtime.v1.SchedulingState" json:"state,omitempty"`
+	Detail           string                       `protobuf:"bytes,2,opt,name=detail,proto3" json:"detail,omitempty"`
+	Occupancy        *SchedulingOccupancySnapshot `protobuf:"bytes,3,opt,name=occupancy,proto3" json:"occupancy,omitempty"`
+	ResourceWarnings []string                     `protobuf:"bytes,4,rep,name=resource_warnings,json=resourceWarnings,proto3" json:"resource_warnings,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *SchedulingJudgement) Reset() {
+	*x = SchedulingJudgement{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulingJudgement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulingJudgement) ProtoMessage() {}
+
+func (x *SchedulingJudgement) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulingJudgement.ProtoReflect.Descriptor instead.
+func (*SchedulingJudgement) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *SchedulingJudgement) GetState() SchedulingState {
+	if x != nil {
+		return x.State
+	}
+	return SchedulingState_SCHEDULING_STATE_UNSPECIFIED
+}
+
+func (x *SchedulingJudgement) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *SchedulingJudgement) GetOccupancy() *SchedulingOccupancySnapshot {
+	if x != nil {
+		return x.Occupancy
+	}
+	return nil
+}
+
+func (x *SchedulingJudgement) GetResourceWarnings() []string {
+	if x != nil {
+		return x.ResourceWarnings
+	}
+	return nil
+}
+
+// K-SCHED-007: Target-scoped scheduling evaluation input.
+type SchedulingResourceHint struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	EstimatedVramBytes int64                  `protobuf:"varint,1,opt,name=estimated_vram_bytes,json=estimatedVramBytes,proto3" json:"estimated_vram_bytes,omitempty"`
+	EstimatedRamBytes  int64                  `protobuf:"varint,2,opt,name=estimated_ram_bytes,json=estimatedRamBytes,proto3" json:"estimated_ram_bytes,omitempty"`
+	EstimatedDiskBytes int64                  `protobuf:"varint,3,opt,name=estimated_disk_bytes,json=estimatedDiskBytes,proto3" json:"estimated_disk_bytes,omitempty"`
+	Engine             string                 `protobuf:"bytes,4,opt,name=engine,proto3" json:"engine,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *SchedulingResourceHint) Reset() {
+	*x = SchedulingResourceHint{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[86]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulingResourceHint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulingResourceHint) ProtoMessage() {}
+
+func (x *SchedulingResourceHint) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[86]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulingResourceHint.ProtoReflect.Descriptor instead.
+func (*SchedulingResourceHint) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{86}
+}
+
+func (x *SchedulingResourceHint) GetEstimatedVramBytes() int64 {
+	if x != nil {
+		return x.EstimatedVramBytes
+	}
+	return 0
+}
+
+func (x *SchedulingResourceHint) GetEstimatedRamBytes() int64 {
+	if x != nil {
+		return x.EstimatedRamBytes
+	}
+	return 0
+}
+
+func (x *SchedulingResourceHint) GetEstimatedDiskBytes() int64 {
+	if x != nil {
+		return x.EstimatedDiskBytes
+	}
+	return 0
+}
+
+func (x *SchedulingResourceHint) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+// K-SCHED-002: Atomic scheduling evaluation target.
+type SchedulingEvaluationTarget struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Capability    string                  `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
+	ModId         string                  `protobuf:"bytes,2,opt,name=mod_id,json=modId,proto3" json:"mod_id,omitempty"`
+	ProfileId     string                  `protobuf:"bytes,3,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	ResourceHint  *SchedulingResourceHint `protobuf:"bytes,4,opt,name=resource_hint,json=resourceHint,proto3" json:"resource_hint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SchedulingEvaluationTarget) Reset() {
+	*x = SchedulingEvaluationTarget{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[87]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulingEvaluationTarget) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulingEvaluationTarget) ProtoMessage() {}
+
+func (x *SchedulingEvaluationTarget) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[87]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulingEvaluationTarget.ProtoReflect.Descriptor instead.
+func (*SchedulingEvaluationTarget) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{87}
+}
+
+func (x *SchedulingEvaluationTarget) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *SchedulingEvaluationTarget) GetModId() string {
+	if x != nil {
+		return x.ModId
+	}
+	return ""
+}
+
+func (x *SchedulingEvaluationTarget) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *SchedulingEvaluationTarget) GetResourceHint() *SchedulingResourceHint {
+	if x != nil {
+		return x.ResourceHint
+	}
+	return nil
+}
+
+// K-SCHED-002: Per-target scheduling judgement mapping.
+type SchedulingTargetJudgement struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Target        *SchedulingEvaluationTarget `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Judgement     *SchedulingJudgement        `protobuf:"bytes,2,opt,name=judgement,proto3" json:"judgement,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SchedulingTargetJudgement) Reset() {
+	*x = SchedulingTargetJudgement{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[88]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SchedulingTargetJudgement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SchedulingTargetJudgement) ProtoMessage() {}
+
+func (x *SchedulingTargetJudgement) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[88]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SchedulingTargetJudgement.ProtoReflect.Descriptor instead.
+func (*SchedulingTargetJudgement) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{88}
+}
+
+func (x *SchedulingTargetJudgement) GetTarget() *SchedulingEvaluationTarget {
+	if x != nil {
+		return x.Target
+	}
+	return nil
+}
+
+func (x *SchedulingTargetJudgement) GetJudgement() *SchedulingJudgement {
+	if x != nil {
+		return x.Judgement
+	}
+	return nil
+}
+
+// K-SCHED-002: PeekScheduling preflight request.
+type PeekSchedulingRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	AppId         string                        `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	Targets       []*SchedulingEvaluationTarget `protobuf:"bytes,2,rep,name=targets,proto3" json:"targets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeekSchedulingRequest) Reset() {
+	*x = PeekSchedulingRequest{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[89]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeekSchedulingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeekSchedulingRequest) ProtoMessage() {}
+
+func (x *PeekSchedulingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[89]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeekSchedulingRequest.ProtoReflect.Descriptor instead.
+func (*PeekSchedulingRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{89}
+}
+
+func (x *PeekSchedulingRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *PeekSchedulingRequest) GetTargets() []*SchedulingEvaluationTarget {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+type PeekSchedulingResponse struct {
+	state              protoimpl.MessageState       `protogen:"open.v1"`
+	Occupancy          *SchedulingOccupancySnapshot `protobuf:"bytes,1,opt,name=occupancy,proto3" json:"occupancy,omitempty"`
+	AggregateJudgement *SchedulingJudgement         `protobuf:"bytes,2,opt,name=aggregate_judgement,json=aggregateJudgement,proto3" json:"aggregate_judgement,omitempty"`
+	TargetJudgements   []*SchedulingTargetJudgement `protobuf:"bytes,3,rep,name=target_judgements,json=targetJudgements,proto3" json:"target_judgements,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PeekSchedulingResponse) Reset() {
+	*x = PeekSchedulingResponse{}
+	mi := &file_runtime_v1_ai_proto_msgTypes[90]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeekSchedulingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeekSchedulingResponse) ProtoMessage() {}
+
+func (x *PeekSchedulingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_ai_proto_msgTypes[90]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeekSchedulingResponse.ProtoReflect.Descriptor instead.
+func (*PeekSchedulingResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_ai_proto_rawDescGZIP(), []int{90}
+}
+
+func (x *PeekSchedulingResponse) GetOccupancy() *SchedulingOccupancySnapshot {
+	if x != nil {
+		return x.Occupancy
+	}
+	return nil
+}
+
+func (x *PeekSchedulingResponse) GetAggregateJudgement() *SchedulingJudgement {
+	if x != nil {
+		return x.AggregateJudgement
+	}
+	return nil
+}
+
+func (x *PeekSchedulingResponse) GetTargetJudgements() []*SchedulingTargetJudgement {
+	if x != nil {
+		return x.TargetJudgements
+	}
+	return nil
+}
+
 var File_runtime_v1_ai_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_ai_proto_rawDesc = "" +
@@ -7615,7 +8119,42 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"F\n" +
 	"\x1cCloseRealtimeSessionResponse\x12&\n" +
-	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack*\x94\x01\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\x91\x01\n" +
+	"\x1bSchedulingOccupancySnapshot\x12\x1f\n" +
+	"\vglobal_used\x18\x01 \x01(\x05R\n" +
+	"globalUsed\x12\x1d\n" +
+	"\n" +
+	"global_cap\x18\x02 \x01(\x05R\tglobalCap\x12\x19\n" +
+	"\bapp_used\x18\x03 \x01(\x05R\aappUsed\x12\x17\n" +
+	"\aapp_cap\x18\x04 \x01(\x05R\x06appCap\"\xde\x01\n" +
+	"\x13SchedulingJudgement\x126\n" +
+	"\x05state\x18\x01 \x01(\x0e2 .nimi.runtime.v1.SchedulingStateR\x05state\x12\x16\n" +
+	"\x06detail\x18\x02 \x01(\tR\x06detail\x12J\n" +
+	"\toccupancy\x18\x03 \x01(\v2,.nimi.runtime.v1.SchedulingOccupancySnapshotR\toccupancy\x12+\n" +
+	"\x11resource_warnings\x18\x04 \x03(\tR\x10resourceWarnings\"\xc4\x01\n" +
+	"\x16SchedulingResourceHint\x120\n" +
+	"\x14estimated_vram_bytes\x18\x01 \x01(\x03R\x12estimatedVramBytes\x12.\n" +
+	"\x13estimated_ram_bytes\x18\x02 \x01(\x03R\x11estimatedRamBytes\x120\n" +
+	"\x14estimated_disk_bytes\x18\x03 \x01(\x03R\x12estimatedDiskBytes\x12\x16\n" +
+	"\x06engine\x18\x04 \x01(\tR\x06engine\"\xc0\x01\n" +
+	"\x1aSchedulingEvaluationTarget\x12\x1e\n" +
+	"\n" +
+	"capability\x18\x01 \x01(\tR\n" +
+	"capability\x12\x15\n" +
+	"\x06mod_id\x18\x02 \x01(\tR\x05modId\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x03 \x01(\tR\tprofileId\x12L\n" +
+	"\rresource_hint\x18\x04 \x01(\v2'.nimi.runtime.v1.SchedulingResourceHintR\fresourceHint\"\xa4\x01\n" +
+	"\x19SchedulingTargetJudgement\x12C\n" +
+	"\x06target\x18\x01 \x01(\v2+.nimi.runtime.v1.SchedulingEvaluationTargetR\x06target\x12B\n" +
+	"\tjudgement\x18\x02 \x01(\v2$.nimi.runtime.v1.SchedulingJudgementR\tjudgement\"u\n" +
+	"\x15PeekSchedulingRequest\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12E\n" +
+	"\atargets\x18\x02 \x03(\v2+.nimi.runtime.v1.SchedulingEvaluationTargetR\atargets\"\x94\x02\n" +
+	"\x16PeekSchedulingResponse\x12J\n" +
+	"\toccupancy\x18\x01 \x01(\v2,.nimi.runtime.v1.SchedulingOccupancySnapshotR\toccupancy\x12U\n" +
+	"\x13aggregate_judgement\x18\x02 \x01(\v2$.nimi.runtime.v1.SchedulingJudgementR\x12aggregateJudgement\x12W\n" +
+	"\x11target_judgements\x18\x03 \x03(\v2*.nimi.runtime.v1.SchedulingTargetJudgementR\x10targetJudgements*\x94\x01\n" +
 	"\x05Modal\x12\x15\n" +
 	"\x11MODAL_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -7741,8 +8280,15 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x1cSCENARIO_JOB_EVENT_COMPLETED\x10\x04\x12\x1d\n" +
 	"\x19SCENARIO_JOB_EVENT_FAILED\x10\x05\x12\x1f\n" +
 	"\x1bSCENARIO_JOB_EVENT_CANCELED\x10\x06\x12\x1e\n" +
-	"\x1aSCENARIO_JOB_EVENT_TIMEOUT\x10\a2\xf3\n" +
-	"\n" +
+	"\x1aSCENARIO_JOB_EVENT_TIMEOUT\x10\a*\xfc\x01\n" +
+	"\x0fSchedulingState\x12 \n" +
+	"\x1cSCHEDULING_STATE_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19SCHEDULING_STATE_RUNNABLE\x10\x01\x12#\n" +
+	"\x1fSCHEDULING_STATE_QUEUE_REQUIRED\x10\x02\x12$\n" +
+	" SCHEDULING_STATE_PREEMPTION_RISK\x10\x03\x12\"\n" +
+	"\x1eSCHEDULING_STATE_SLOWDOWN_RISK\x10\x04\x12\x1b\n" +
+	"\x17SCHEDULING_STATE_DENIED\x10\x05\x12\x1c\n" +
+	"\x18SCHEDULING_STATE_UNKNOWN\x10\x062\xd6\v\n" +
 	"\x10RuntimeAiService\x12d\n" +
 	"\x0fExecuteScenario\x12'.nimi.runtime.v1.ExecuteScenarioRequest\x1a(.nimi.runtime.v1.ExecuteScenarioResponse\x12`\n" +
 	"\x0eStreamScenario\x12&.nimi.runtime.v1.StreamScenarioRequest\x1a$.nimi.runtime.v1.StreamScenarioEvent0\x01\x12j\n" +
@@ -7756,7 +8302,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0fListVoiceAssets\x12'.nimi.runtime.v1.ListVoiceAssetsRequest\x1a(.nimi.runtime.v1.ListVoiceAssetsResponse\x12g\n" +
 	"\x10DeleteVoiceAsset\x12(.nimi.runtime.v1.DeleteVoiceAssetRequest\x1a).nimi.runtime.v1.DeleteVoiceAssetResponse\x12g\n" +
 	"\x10ListPresetVoices\x12(.nimi.runtime.v1.ListPresetVoicesRequest\x1a).nimi.runtime.v1.ListPresetVoicesResponse\x12c\n" +
-	"\x0eUploadArtifact\x12&.nimi.runtime.v1.UploadArtifactRequest\x1a'.nimi.runtime.v1.UploadArtifactResponse(\x012\xd7\x03\n" +
+	"\x0eUploadArtifact\x12&.nimi.runtime.v1.UploadArtifactRequest\x1a'.nimi.runtime.v1.UploadArtifactResponse(\x01\x12a\n" +
+	"\x0ePeekScheduling\x12&.nimi.runtime.v1.PeekSchedulingRequest\x1a'.nimi.runtime.v1.PeekSchedulingResponse2\xd7\x03\n" +
 	"\x18RuntimeAiRealtimeService\x12p\n" +
 	"\x13OpenRealtimeSession\x12+.nimi.runtime.v1.OpenRealtimeSessionRequest\x1a,.nimi.runtime.v1.OpenRealtimeSessionResponse\x12p\n" +
 	"\x13AppendRealtimeInput\x12+.nimi.runtime.v1.AppendRealtimeInputRequest\x1a,.nimi.runtime.v1.AppendRealtimeInputResponse\x12b\n" +
@@ -7775,8 +8322,8 @@ func file_runtime_v1_ai_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_ai_proto_rawDescData
 }
 
-var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 19)
-var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 85)
+var file_runtime_v1_ai_proto_enumTypes = make([]protoimpl.EnumInfo, 20)
+var file_runtime_v1_ai_proto_msgTypes = make([]protoimpl.MessageInfo, 92)
 var file_runtime_v1_ai_proto_goTypes = []any{
 	(Modal)(0),                                // 0: nimi.runtime.v1.Modal
 	(ScenarioType)(0),                         // 1: nimi.runtime.v1.ScenarioType
@@ -7797,288 +8344,307 @@ var file_runtime_v1_ai_proto_goTypes = []any{
 	(ChatContentPartType)(0),                  // 16: nimi.runtime.v1.ChatContentPartType
 	(ScenarioJobStatus)(0),                    // 17: nimi.runtime.v1.ScenarioJobStatus
 	(ScenarioJobEventType)(0),                 // 18: nimi.runtime.v1.ScenarioJobEventType
-	(*ChatMessage)(nil),                       // 19: nimi.runtime.v1.ChatMessage
-	(*ChatContentImageURL)(nil),               // 20: nimi.runtime.v1.ChatContentImageURL
-	(*ChatContentArtifactRef)(nil),            // 21: nimi.runtime.v1.ChatContentArtifactRef
-	(*ChatContentPart)(nil),                   // 22: nimi.runtime.v1.ChatContentPart
-	(*ToolSpec)(nil),                          // 23: nimi.runtime.v1.ToolSpec
-	(*ScenarioRequestHead)(nil),               // 24: nimi.runtime.v1.ScenarioRequestHead
-	(*ScenarioExtension)(nil),                 // 25: nimi.runtime.v1.ScenarioExtension
-	(*IgnoredScenarioExtension)(nil),          // 26: nimi.runtime.v1.IgnoredScenarioExtension
-	(*ReasoningConfig)(nil),                   // 27: nimi.runtime.v1.ReasoningConfig
-	(*TextGenerateScenarioSpec)(nil),          // 28: nimi.runtime.v1.TextGenerateScenarioSpec
-	(*TextEmbedScenarioSpec)(nil),             // 29: nimi.runtime.v1.TextEmbedScenarioSpec
-	(*ImageGenerateScenarioSpec)(nil),         // 30: nimi.runtime.v1.ImageGenerateScenarioSpec
-	(*VideoGenerateScenarioSpec)(nil),         // 31: nimi.runtime.v1.VideoGenerateScenarioSpec
-	(*SpeechSynthesizeScenarioSpec)(nil),      // 32: nimi.runtime.v1.SpeechSynthesizeScenarioSpec
-	(*SpeechTranscribeScenarioSpec)(nil),      // 33: nimi.runtime.v1.SpeechTranscribeScenarioSpec
-	(*VoiceCloneScenarioSpec)(nil),            // 34: nimi.runtime.v1.VoiceCloneScenarioSpec
-	(*VoiceDesignScenarioSpec)(nil),           // 35: nimi.runtime.v1.VoiceDesignScenarioSpec
-	(*MusicGenerateScenarioSpec)(nil),         // 36: nimi.runtime.v1.MusicGenerateScenarioSpec
-	(*ScenarioSpec)(nil),                      // 37: nimi.runtime.v1.ScenarioSpec
-	(*ExecuteScenarioRequest)(nil),            // 38: nimi.runtime.v1.ExecuteScenarioRequest
-	(*TextGenerateOutput)(nil),                // 39: nimi.runtime.v1.TextGenerateOutput
-	(*EmbeddingVector)(nil),                   // 40: nimi.runtime.v1.EmbeddingVector
-	(*TextEmbedOutput)(nil),                   // 41: nimi.runtime.v1.TextEmbedOutput
-	(*ImageGenerateResult)(nil),               // 42: nimi.runtime.v1.ImageGenerateResult
-	(*VideoGenerateResult)(nil),               // 43: nimi.runtime.v1.VideoGenerateResult
-	(*SpeechSynthesizeResult)(nil),            // 44: nimi.runtime.v1.SpeechSynthesizeResult
-	(*SpeechTranscribeResult)(nil),            // 45: nimi.runtime.v1.SpeechTranscribeResult
-	(*MusicGenerateResult)(nil),               // 46: nimi.runtime.v1.MusicGenerateResult
-	(*ScenarioOutput)(nil),                    // 47: nimi.runtime.v1.ScenarioOutput
-	(*ExecuteScenarioResponse)(nil),           // 48: nimi.runtime.v1.ExecuteScenarioResponse
-	(*StreamScenarioRequest)(nil),             // 49: nimi.runtime.v1.StreamScenarioRequest
-	(*ScenarioStreamStarted)(nil),             // 50: nimi.runtime.v1.ScenarioStreamStarted
-	(*TextStreamDelta)(nil),                   // 51: nimi.runtime.v1.TextStreamDelta
-	(*ReasoningStreamDelta)(nil),              // 52: nimi.runtime.v1.ReasoningStreamDelta
-	(*ArtifactStreamDelta)(nil),               // 53: nimi.runtime.v1.ArtifactStreamDelta
-	(*ScenarioStreamDelta)(nil),               // 54: nimi.runtime.v1.ScenarioStreamDelta
-	(*ScenarioStreamCompleted)(nil),           // 55: nimi.runtime.v1.ScenarioStreamCompleted
-	(*ScenarioStreamFailed)(nil),              // 56: nimi.runtime.v1.ScenarioStreamFailed
-	(*StreamScenarioEvent)(nil),               // 57: nimi.runtime.v1.StreamScenarioEvent
-	(*ScenarioArtifact)(nil),                  // 58: nimi.runtime.v1.ScenarioArtifact
-	(*ScenarioJob)(nil),                       // 59: nimi.runtime.v1.ScenarioJob
-	(*SubmitScenarioJobRequest)(nil),          // 60: nimi.runtime.v1.SubmitScenarioJobRequest
-	(*SubmitScenarioJobResponse)(nil),         // 61: nimi.runtime.v1.SubmitScenarioJobResponse
-	(*GetScenarioJobRequest)(nil),             // 62: nimi.runtime.v1.GetScenarioJobRequest
-	(*GetScenarioJobResponse)(nil),            // 63: nimi.runtime.v1.GetScenarioJobResponse
-	(*CancelScenarioJobRequest)(nil),          // 64: nimi.runtime.v1.CancelScenarioJobRequest
-	(*CancelScenarioJobResponse)(nil),         // 65: nimi.runtime.v1.CancelScenarioJobResponse
-	(*ScenarioJobEvent)(nil),                  // 66: nimi.runtime.v1.ScenarioJobEvent
-	(*SubscribeScenarioJobEventsRequest)(nil), // 67: nimi.runtime.v1.SubscribeScenarioJobEventsRequest
-	(*GetScenarioArtifactsRequest)(nil),       // 68: nimi.runtime.v1.GetScenarioArtifactsRequest
-	(*GetScenarioArtifactsResponse)(nil),      // 69: nimi.runtime.v1.GetScenarioArtifactsResponse
-	(*ScenarioProfile)(nil),                   // 70: nimi.runtime.v1.ScenarioProfile
-	(*ListScenarioProfilesRequest)(nil),       // 71: nimi.runtime.v1.ListScenarioProfilesRequest
-	(*ListScenarioProfilesResponse)(nil),      // 72: nimi.runtime.v1.ListScenarioProfilesResponse
-	(*VideoContentImageURL)(nil),              // 73: nimi.runtime.v1.VideoContentImageURL
-	(*VideoContentVideoURL)(nil),              // 74: nimi.runtime.v1.VideoContentVideoURL
-	(*VideoContentAudioURL)(nil),              // 75: nimi.runtime.v1.VideoContentAudioURL
-	(*VideoContentItem)(nil),                  // 76: nimi.runtime.v1.VideoContentItem
-	(*VideoGenerationOptions)(nil),            // 77: nimi.runtime.v1.VideoGenerationOptions
-	(*VoiceRenderHints)(nil),                  // 78: nimi.runtime.v1.VoiceRenderHints
-	(*AudioChunks)(nil),                       // 79: nimi.runtime.v1.AudioChunks
-	(*SpeechTranscriptionAudioSource)(nil),    // 80: nimi.runtime.v1.SpeechTranscriptionAudioSource
-	(*SpeechAlignmentToken)(nil),              // 81: nimi.runtime.v1.SpeechAlignmentToken
-	(*SpeechAlignment)(nil),                   // 82: nimi.runtime.v1.SpeechAlignment
-	(*ArtifactChunk)(nil),                     // 83: nimi.runtime.v1.ArtifactChunk
-	(*UploadArtifactMetadata)(nil),            // 84: nimi.runtime.v1.UploadArtifactMetadata
-	(*UploadArtifactChunk)(nil),               // 85: nimi.runtime.v1.UploadArtifactChunk
-	(*UploadArtifactRequest)(nil),             // 86: nimi.runtime.v1.UploadArtifactRequest
-	(*UploadArtifactResponse)(nil),            // 87: nimi.runtime.v1.UploadArtifactResponse
-	(*OpenRealtimeSessionRequest)(nil),        // 88: nimi.runtime.v1.OpenRealtimeSessionRequest
-	(*OpenRealtimeSessionResponse)(nil),       // 89: nimi.runtime.v1.OpenRealtimeSessionResponse
-	(*RealtimeAudioInput)(nil),                // 90: nimi.runtime.v1.RealtimeAudioInput
-	(*RealtimeInputItem)(nil),                 // 91: nimi.runtime.v1.RealtimeInputItem
-	(*AppendRealtimeInputRequest)(nil),        // 92: nimi.runtime.v1.AppendRealtimeInputRequest
-	(*AppendRealtimeInputResponse)(nil),       // 93: nimi.runtime.v1.AppendRealtimeInputResponse
-	(*ReadRealtimeEventsRequest)(nil),         // 94: nimi.runtime.v1.ReadRealtimeEventsRequest
-	(*RealtimeSessionOpened)(nil),             // 95: nimi.runtime.v1.RealtimeSessionOpened
-	(*RealtimeTextDelta)(nil),                 // 96: nimi.runtime.v1.RealtimeTextDelta
-	(*RealtimeAudioChunk)(nil),                // 97: nimi.runtime.v1.RealtimeAudioChunk
-	(*RealtimeCompleted)(nil),                 // 98: nimi.runtime.v1.RealtimeCompleted
-	(*RealtimeFailed)(nil),                    // 99: nimi.runtime.v1.RealtimeFailed
-	(*RealtimeEvent)(nil),                     // 100: nimi.runtime.v1.RealtimeEvent
-	(*CloseRealtimeSessionRequest)(nil),       // 101: nimi.runtime.v1.CloseRealtimeSessionRequest
-	(*CloseRealtimeSessionResponse)(nil),      // 102: nimi.runtime.v1.CloseRealtimeSessionResponse
-	nil,                                       // 103: nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
-	(*structpb.Struct)(nil),                   // 104: google.protobuf.Struct
-	(*VoiceReference)(nil),                    // 105: nimi.runtime.v1.VoiceReference
-	(*VoiceV2VInput)(nil),                     // 106: nimi.runtime.v1.VoiceV2VInput
-	(*VoiceT2VInput)(nil),                     // 107: nimi.runtime.v1.VoiceT2VInput
-	(*UsageStats)(nil),                        // 108: nimi.runtime.v1.UsageStats
-	(ReasonCode)(0),                           // 109: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),             // 110: google.protobuf.Timestamp
-	(*VoiceAsset)(nil),                        // 111: nimi.runtime.v1.VoiceAsset
-	(*Ack)(nil),                               // 112: nimi.runtime.v1.Ack
-	(*GetVoiceAssetRequest)(nil),              // 113: nimi.runtime.v1.GetVoiceAssetRequest
-	(*ListVoiceAssetsRequest)(nil),            // 114: nimi.runtime.v1.ListVoiceAssetsRequest
-	(*DeleteVoiceAssetRequest)(nil),           // 115: nimi.runtime.v1.DeleteVoiceAssetRequest
-	(*ListPresetVoicesRequest)(nil),           // 116: nimi.runtime.v1.ListPresetVoicesRequest
-	(*GetVoiceAssetResponse)(nil),             // 117: nimi.runtime.v1.GetVoiceAssetResponse
-	(*ListVoiceAssetsResponse)(nil),           // 118: nimi.runtime.v1.ListVoiceAssetsResponse
-	(*DeleteVoiceAssetResponse)(nil),          // 119: nimi.runtime.v1.DeleteVoiceAssetResponse
-	(*ListPresetVoicesResponse)(nil),          // 120: nimi.runtime.v1.ListPresetVoicesResponse
+	(SchedulingState)(0),                      // 19: nimi.runtime.v1.SchedulingState
+	(*ChatMessage)(nil),                       // 20: nimi.runtime.v1.ChatMessage
+	(*ChatContentImageURL)(nil),               // 21: nimi.runtime.v1.ChatContentImageURL
+	(*ChatContentArtifactRef)(nil),            // 22: nimi.runtime.v1.ChatContentArtifactRef
+	(*ChatContentPart)(nil),                   // 23: nimi.runtime.v1.ChatContentPart
+	(*ToolSpec)(nil),                          // 24: nimi.runtime.v1.ToolSpec
+	(*ScenarioRequestHead)(nil),               // 25: nimi.runtime.v1.ScenarioRequestHead
+	(*ScenarioExtension)(nil),                 // 26: nimi.runtime.v1.ScenarioExtension
+	(*IgnoredScenarioExtension)(nil),          // 27: nimi.runtime.v1.IgnoredScenarioExtension
+	(*ReasoningConfig)(nil),                   // 28: nimi.runtime.v1.ReasoningConfig
+	(*TextGenerateScenarioSpec)(nil),          // 29: nimi.runtime.v1.TextGenerateScenarioSpec
+	(*TextEmbedScenarioSpec)(nil),             // 30: nimi.runtime.v1.TextEmbedScenarioSpec
+	(*ImageGenerateScenarioSpec)(nil),         // 31: nimi.runtime.v1.ImageGenerateScenarioSpec
+	(*VideoGenerateScenarioSpec)(nil),         // 32: nimi.runtime.v1.VideoGenerateScenarioSpec
+	(*SpeechSynthesizeScenarioSpec)(nil),      // 33: nimi.runtime.v1.SpeechSynthesizeScenarioSpec
+	(*SpeechTranscribeScenarioSpec)(nil),      // 34: nimi.runtime.v1.SpeechTranscribeScenarioSpec
+	(*VoiceCloneScenarioSpec)(nil),            // 35: nimi.runtime.v1.VoiceCloneScenarioSpec
+	(*VoiceDesignScenarioSpec)(nil),           // 36: nimi.runtime.v1.VoiceDesignScenarioSpec
+	(*MusicGenerateScenarioSpec)(nil),         // 37: nimi.runtime.v1.MusicGenerateScenarioSpec
+	(*ScenarioSpec)(nil),                      // 38: nimi.runtime.v1.ScenarioSpec
+	(*ExecuteScenarioRequest)(nil),            // 39: nimi.runtime.v1.ExecuteScenarioRequest
+	(*TextGenerateOutput)(nil),                // 40: nimi.runtime.v1.TextGenerateOutput
+	(*EmbeddingVector)(nil),                   // 41: nimi.runtime.v1.EmbeddingVector
+	(*TextEmbedOutput)(nil),                   // 42: nimi.runtime.v1.TextEmbedOutput
+	(*ImageGenerateResult)(nil),               // 43: nimi.runtime.v1.ImageGenerateResult
+	(*VideoGenerateResult)(nil),               // 44: nimi.runtime.v1.VideoGenerateResult
+	(*SpeechSynthesizeResult)(nil),            // 45: nimi.runtime.v1.SpeechSynthesizeResult
+	(*SpeechTranscribeResult)(nil),            // 46: nimi.runtime.v1.SpeechTranscribeResult
+	(*MusicGenerateResult)(nil),               // 47: nimi.runtime.v1.MusicGenerateResult
+	(*ScenarioOutput)(nil),                    // 48: nimi.runtime.v1.ScenarioOutput
+	(*ExecuteScenarioResponse)(nil),           // 49: nimi.runtime.v1.ExecuteScenarioResponse
+	(*StreamScenarioRequest)(nil),             // 50: nimi.runtime.v1.StreamScenarioRequest
+	(*ScenarioStreamStarted)(nil),             // 51: nimi.runtime.v1.ScenarioStreamStarted
+	(*TextStreamDelta)(nil),                   // 52: nimi.runtime.v1.TextStreamDelta
+	(*ReasoningStreamDelta)(nil),              // 53: nimi.runtime.v1.ReasoningStreamDelta
+	(*ArtifactStreamDelta)(nil),               // 54: nimi.runtime.v1.ArtifactStreamDelta
+	(*ScenarioStreamDelta)(nil),               // 55: nimi.runtime.v1.ScenarioStreamDelta
+	(*ScenarioStreamCompleted)(nil),           // 56: nimi.runtime.v1.ScenarioStreamCompleted
+	(*ScenarioStreamFailed)(nil),              // 57: nimi.runtime.v1.ScenarioStreamFailed
+	(*StreamScenarioEvent)(nil),               // 58: nimi.runtime.v1.StreamScenarioEvent
+	(*ScenarioArtifact)(nil),                  // 59: nimi.runtime.v1.ScenarioArtifact
+	(*ScenarioJob)(nil),                       // 60: nimi.runtime.v1.ScenarioJob
+	(*SubmitScenarioJobRequest)(nil),          // 61: nimi.runtime.v1.SubmitScenarioJobRequest
+	(*SubmitScenarioJobResponse)(nil),         // 62: nimi.runtime.v1.SubmitScenarioJobResponse
+	(*GetScenarioJobRequest)(nil),             // 63: nimi.runtime.v1.GetScenarioJobRequest
+	(*GetScenarioJobResponse)(nil),            // 64: nimi.runtime.v1.GetScenarioJobResponse
+	(*CancelScenarioJobRequest)(nil),          // 65: nimi.runtime.v1.CancelScenarioJobRequest
+	(*CancelScenarioJobResponse)(nil),         // 66: nimi.runtime.v1.CancelScenarioJobResponse
+	(*ScenarioJobEvent)(nil),                  // 67: nimi.runtime.v1.ScenarioJobEvent
+	(*SubscribeScenarioJobEventsRequest)(nil), // 68: nimi.runtime.v1.SubscribeScenarioJobEventsRequest
+	(*GetScenarioArtifactsRequest)(nil),       // 69: nimi.runtime.v1.GetScenarioArtifactsRequest
+	(*GetScenarioArtifactsResponse)(nil),      // 70: nimi.runtime.v1.GetScenarioArtifactsResponse
+	(*ScenarioProfile)(nil),                   // 71: nimi.runtime.v1.ScenarioProfile
+	(*ListScenarioProfilesRequest)(nil),       // 72: nimi.runtime.v1.ListScenarioProfilesRequest
+	(*ListScenarioProfilesResponse)(nil),      // 73: nimi.runtime.v1.ListScenarioProfilesResponse
+	(*VideoContentImageURL)(nil),              // 74: nimi.runtime.v1.VideoContentImageURL
+	(*VideoContentVideoURL)(nil),              // 75: nimi.runtime.v1.VideoContentVideoURL
+	(*VideoContentAudioURL)(nil),              // 76: nimi.runtime.v1.VideoContentAudioURL
+	(*VideoContentItem)(nil),                  // 77: nimi.runtime.v1.VideoContentItem
+	(*VideoGenerationOptions)(nil),            // 78: nimi.runtime.v1.VideoGenerationOptions
+	(*VoiceRenderHints)(nil),                  // 79: nimi.runtime.v1.VoiceRenderHints
+	(*AudioChunks)(nil),                       // 80: nimi.runtime.v1.AudioChunks
+	(*SpeechTranscriptionAudioSource)(nil),    // 81: nimi.runtime.v1.SpeechTranscriptionAudioSource
+	(*SpeechAlignmentToken)(nil),              // 82: nimi.runtime.v1.SpeechAlignmentToken
+	(*SpeechAlignment)(nil),                   // 83: nimi.runtime.v1.SpeechAlignment
+	(*ArtifactChunk)(nil),                     // 84: nimi.runtime.v1.ArtifactChunk
+	(*UploadArtifactMetadata)(nil),            // 85: nimi.runtime.v1.UploadArtifactMetadata
+	(*UploadArtifactChunk)(nil),               // 86: nimi.runtime.v1.UploadArtifactChunk
+	(*UploadArtifactRequest)(nil),             // 87: nimi.runtime.v1.UploadArtifactRequest
+	(*UploadArtifactResponse)(nil),            // 88: nimi.runtime.v1.UploadArtifactResponse
+	(*OpenRealtimeSessionRequest)(nil),        // 89: nimi.runtime.v1.OpenRealtimeSessionRequest
+	(*OpenRealtimeSessionResponse)(nil),       // 90: nimi.runtime.v1.OpenRealtimeSessionResponse
+	(*RealtimeAudioInput)(nil),                // 91: nimi.runtime.v1.RealtimeAudioInput
+	(*RealtimeInputItem)(nil),                 // 92: nimi.runtime.v1.RealtimeInputItem
+	(*AppendRealtimeInputRequest)(nil),        // 93: nimi.runtime.v1.AppendRealtimeInputRequest
+	(*AppendRealtimeInputResponse)(nil),       // 94: nimi.runtime.v1.AppendRealtimeInputResponse
+	(*ReadRealtimeEventsRequest)(nil),         // 95: nimi.runtime.v1.ReadRealtimeEventsRequest
+	(*RealtimeSessionOpened)(nil),             // 96: nimi.runtime.v1.RealtimeSessionOpened
+	(*RealtimeTextDelta)(nil),                 // 97: nimi.runtime.v1.RealtimeTextDelta
+	(*RealtimeAudioChunk)(nil),                // 98: nimi.runtime.v1.RealtimeAudioChunk
+	(*RealtimeCompleted)(nil),                 // 99: nimi.runtime.v1.RealtimeCompleted
+	(*RealtimeFailed)(nil),                    // 100: nimi.runtime.v1.RealtimeFailed
+	(*RealtimeEvent)(nil),                     // 101: nimi.runtime.v1.RealtimeEvent
+	(*CloseRealtimeSessionRequest)(nil),       // 102: nimi.runtime.v1.CloseRealtimeSessionRequest
+	(*CloseRealtimeSessionResponse)(nil),      // 103: nimi.runtime.v1.CloseRealtimeSessionResponse
+	(*SchedulingOccupancySnapshot)(nil),       // 104: nimi.runtime.v1.SchedulingOccupancySnapshot
+	(*SchedulingJudgement)(nil),               // 105: nimi.runtime.v1.SchedulingJudgement
+	(*SchedulingResourceHint)(nil),            // 106: nimi.runtime.v1.SchedulingResourceHint
+	(*SchedulingEvaluationTarget)(nil),        // 107: nimi.runtime.v1.SchedulingEvaluationTarget
+	(*SchedulingTargetJudgement)(nil),         // 108: nimi.runtime.v1.SchedulingTargetJudgement
+	(*PeekSchedulingRequest)(nil),             // 109: nimi.runtime.v1.PeekSchedulingRequest
+	(*PeekSchedulingResponse)(nil),            // 110: nimi.runtime.v1.PeekSchedulingResponse
+	nil,                                       // 111: nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
+	(*structpb.Struct)(nil),                   // 112: google.protobuf.Struct
+	(*VoiceReference)(nil),                    // 113: nimi.runtime.v1.VoiceReference
+	(*VoiceV2VInput)(nil),                     // 114: nimi.runtime.v1.VoiceV2VInput
+	(*VoiceT2VInput)(nil),                     // 115: nimi.runtime.v1.VoiceT2VInput
+	(*UsageStats)(nil),                        // 116: nimi.runtime.v1.UsageStats
+	(ReasonCode)(0),                           // 117: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),             // 118: google.protobuf.Timestamp
+	(*VoiceAsset)(nil),                        // 119: nimi.runtime.v1.VoiceAsset
+	(*Ack)(nil),                               // 120: nimi.runtime.v1.Ack
+	(*GetVoiceAssetRequest)(nil),              // 121: nimi.runtime.v1.GetVoiceAssetRequest
+	(*ListVoiceAssetsRequest)(nil),            // 122: nimi.runtime.v1.ListVoiceAssetsRequest
+	(*DeleteVoiceAssetRequest)(nil),           // 123: nimi.runtime.v1.DeleteVoiceAssetRequest
+	(*ListPresetVoicesRequest)(nil),           // 124: nimi.runtime.v1.ListPresetVoicesRequest
+	(*GetVoiceAssetResponse)(nil),             // 125: nimi.runtime.v1.GetVoiceAssetResponse
+	(*ListVoiceAssetsResponse)(nil),           // 126: nimi.runtime.v1.ListVoiceAssetsResponse
+	(*DeleteVoiceAssetResponse)(nil),          // 127: nimi.runtime.v1.DeleteVoiceAssetResponse
+	(*ListPresetVoicesResponse)(nil),          // 128: nimi.runtime.v1.ListPresetVoicesResponse
 }
 var file_runtime_v1_ai_proto_depIdxs = []int32{
-	22,  // 0: nimi.runtime.v1.ChatMessage.parts:type_name -> nimi.runtime.v1.ChatContentPart
+	23,  // 0: nimi.runtime.v1.ChatMessage.parts:type_name -> nimi.runtime.v1.ChatContentPart
 	16,  // 1: nimi.runtime.v1.ChatContentPart.type:type_name -> nimi.runtime.v1.ChatContentPartType
-	20,  // 2: nimi.runtime.v1.ChatContentPart.image_url:type_name -> nimi.runtime.v1.ChatContentImageURL
-	21,  // 3: nimi.runtime.v1.ChatContentPart.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
-	104, // 4: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
+	21,  // 2: nimi.runtime.v1.ChatContentPart.image_url:type_name -> nimi.runtime.v1.ChatContentImageURL
+	22,  // 3: nimi.runtime.v1.ChatContentPart.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
+	112, // 4: nimi.runtime.v1.ToolSpec.input_schema:type_name -> google.protobuf.Struct
 	3,   // 5: nimi.runtime.v1.ScenarioRequestHead.route_policy:type_name -> nimi.runtime.v1.RoutePolicy
 	4,   // 6: nimi.runtime.v1.ScenarioRequestHead.fallback:type_name -> nimi.runtime.v1.FallbackPolicy
-	104, // 7: nimi.runtime.v1.ScenarioExtension.payload:type_name -> google.protobuf.Struct
+	112, // 7: nimi.runtime.v1.ScenarioExtension.payload:type_name -> google.protobuf.Struct
 	6,   // 8: nimi.runtime.v1.ReasoningConfig.mode:type_name -> nimi.runtime.v1.ReasoningMode
 	7,   // 9: nimi.runtime.v1.ReasoningConfig.trace_mode:type_name -> nimi.runtime.v1.ReasoningTraceMode
-	19,  // 10: nimi.runtime.v1.TextGenerateScenarioSpec.input:type_name -> nimi.runtime.v1.ChatMessage
-	23,  // 11: nimi.runtime.v1.TextGenerateScenarioSpec.tools:type_name -> nimi.runtime.v1.ToolSpec
-	27,  // 12: nimi.runtime.v1.TextGenerateScenarioSpec.reasoning:type_name -> nimi.runtime.v1.ReasoningConfig
+	20,  // 10: nimi.runtime.v1.TextGenerateScenarioSpec.input:type_name -> nimi.runtime.v1.ChatMessage
+	24,  // 11: nimi.runtime.v1.TextGenerateScenarioSpec.tools:type_name -> nimi.runtime.v1.ToolSpec
+	28,  // 12: nimi.runtime.v1.TextGenerateScenarioSpec.reasoning:type_name -> nimi.runtime.v1.ReasoningConfig
 	11,  // 13: nimi.runtime.v1.VideoGenerateScenarioSpec.mode:type_name -> nimi.runtime.v1.VideoMode
-	76,  // 14: nimi.runtime.v1.VideoGenerateScenarioSpec.content:type_name -> nimi.runtime.v1.VideoContentItem
-	77,  // 15: nimi.runtime.v1.VideoGenerateScenarioSpec.options:type_name -> nimi.runtime.v1.VideoGenerationOptions
-	105, // 16: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
+	77,  // 14: nimi.runtime.v1.VideoGenerateScenarioSpec.content:type_name -> nimi.runtime.v1.VideoContentItem
+	78,  // 15: nimi.runtime.v1.VideoGenerateScenarioSpec.options:type_name -> nimi.runtime.v1.VideoGenerationOptions
+	113, // 16: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_ref:type_name -> nimi.runtime.v1.VoiceReference
 	14,  // 17: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.timing_mode:type_name -> nimi.runtime.v1.SpeechTimingMode
-	78,  // 18: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_render_hints:type_name -> nimi.runtime.v1.VoiceRenderHints
-	80,  // 19: nimi.runtime.v1.SpeechTranscribeScenarioSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
-	106, // 20: nimi.runtime.v1.VoiceCloneScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceV2VInput
-	107, // 21: nimi.runtime.v1.VoiceDesignScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceT2VInput
-	28,  // 22: nimi.runtime.v1.ScenarioSpec.text_generate:type_name -> nimi.runtime.v1.TextGenerateScenarioSpec
-	29,  // 23: nimi.runtime.v1.ScenarioSpec.text_embed:type_name -> nimi.runtime.v1.TextEmbedScenarioSpec
-	30,  // 24: nimi.runtime.v1.ScenarioSpec.image_generate:type_name -> nimi.runtime.v1.ImageGenerateScenarioSpec
-	31,  // 25: nimi.runtime.v1.ScenarioSpec.video_generate:type_name -> nimi.runtime.v1.VideoGenerateScenarioSpec
-	32,  // 26: nimi.runtime.v1.ScenarioSpec.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeScenarioSpec
-	33,  // 27: nimi.runtime.v1.ScenarioSpec.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeScenarioSpec
-	34,  // 28: nimi.runtime.v1.ScenarioSpec.voice_clone:type_name -> nimi.runtime.v1.VoiceCloneScenarioSpec
-	35,  // 29: nimi.runtime.v1.ScenarioSpec.voice_design:type_name -> nimi.runtime.v1.VoiceDesignScenarioSpec
-	36,  // 30: nimi.runtime.v1.ScenarioSpec.music_generate:type_name -> nimi.runtime.v1.MusicGenerateScenarioSpec
-	24,  // 31: nimi.runtime.v1.ExecuteScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	79,  // 18: nimi.runtime.v1.SpeechSynthesizeScenarioSpec.voice_render_hints:type_name -> nimi.runtime.v1.VoiceRenderHints
+	81,  // 19: nimi.runtime.v1.SpeechTranscribeScenarioSpec.audio_source:type_name -> nimi.runtime.v1.SpeechTranscriptionAudioSource
+	114, // 20: nimi.runtime.v1.VoiceCloneScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceV2VInput
+	115, // 21: nimi.runtime.v1.VoiceDesignScenarioSpec.input:type_name -> nimi.runtime.v1.VoiceT2VInput
+	29,  // 22: nimi.runtime.v1.ScenarioSpec.text_generate:type_name -> nimi.runtime.v1.TextGenerateScenarioSpec
+	30,  // 23: nimi.runtime.v1.ScenarioSpec.text_embed:type_name -> nimi.runtime.v1.TextEmbedScenarioSpec
+	31,  // 24: nimi.runtime.v1.ScenarioSpec.image_generate:type_name -> nimi.runtime.v1.ImageGenerateScenarioSpec
+	32,  // 25: nimi.runtime.v1.ScenarioSpec.video_generate:type_name -> nimi.runtime.v1.VideoGenerateScenarioSpec
+	33,  // 26: nimi.runtime.v1.ScenarioSpec.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeScenarioSpec
+	34,  // 27: nimi.runtime.v1.ScenarioSpec.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeScenarioSpec
+	35,  // 28: nimi.runtime.v1.ScenarioSpec.voice_clone:type_name -> nimi.runtime.v1.VoiceCloneScenarioSpec
+	36,  // 29: nimi.runtime.v1.ScenarioSpec.voice_design:type_name -> nimi.runtime.v1.VoiceDesignScenarioSpec
+	37,  // 30: nimi.runtime.v1.ScenarioSpec.music_generate:type_name -> nimi.runtime.v1.MusicGenerateScenarioSpec
+	25,  // 31: nimi.runtime.v1.ExecuteScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
 	1,   // 32: nimi.runtime.v1.ExecuteScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
 	2,   // 33: nimi.runtime.v1.ExecuteScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	37,  // 34: nimi.runtime.v1.ExecuteScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	25,  // 35: nimi.runtime.v1.ExecuteScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	40,  // 36: nimi.runtime.v1.TextEmbedOutput.vectors:type_name -> nimi.runtime.v1.EmbeddingVector
-	58,  // 37: nimi.runtime.v1.ImageGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	58,  // 38: nimi.runtime.v1.VideoGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	58,  // 39: nimi.runtime.v1.SpeechSynthesizeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	58,  // 40: nimi.runtime.v1.SpeechTranscribeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	58,  // 41: nimi.runtime.v1.MusicGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	39,  // 42: nimi.runtime.v1.ScenarioOutput.text_generate:type_name -> nimi.runtime.v1.TextGenerateOutput
-	41,  // 43: nimi.runtime.v1.ScenarioOutput.text_embed:type_name -> nimi.runtime.v1.TextEmbedOutput
-	42,  // 44: nimi.runtime.v1.ScenarioOutput.image_generate:type_name -> nimi.runtime.v1.ImageGenerateResult
-	43,  // 45: nimi.runtime.v1.ScenarioOutput.video_generate:type_name -> nimi.runtime.v1.VideoGenerateResult
-	44,  // 46: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
-	45,  // 47: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
-	46,  // 48: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
-	47,  // 49: nimi.runtime.v1.ExecuteScenarioResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
+	38,  // 34: nimi.runtime.v1.ExecuteScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	26,  // 35: nimi.runtime.v1.ExecuteScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	41,  // 36: nimi.runtime.v1.TextEmbedOutput.vectors:type_name -> nimi.runtime.v1.EmbeddingVector
+	59,  // 37: nimi.runtime.v1.ImageGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	59,  // 38: nimi.runtime.v1.VideoGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	59,  // 39: nimi.runtime.v1.SpeechSynthesizeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	59,  // 40: nimi.runtime.v1.SpeechTranscribeResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	59,  // 41: nimi.runtime.v1.MusicGenerateResult.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	40,  // 42: nimi.runtime.v1.ScenarioOutput.text_generate:type_name -> nimi.runtime.v1.TextGenerateOutput
+	42,  // 43: nimi.runtime.v1.ScenarioOutput.text_embed:type_name -> nimi.runtime.v1.TextEmbedOutput
+	43,  // 44: nimi.runtime.v1.ScenarioOutput.image_generate:type_name -> nimi.runtime.v1.ImageGenerateResult
+	44,  // 45: nimi.runtime.v1.ScenarioOutput.video_generate:type_name -> nimi.runtime.v1.VideoGenerateResult
+	45,  // 46: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
+	46,  // 47: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
+	47,  // 48: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
+	48,  // 49: nimi.runtime.v1.ExecuteScenarioResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
 	5,   // 50: nimi.runtime.v1.ExecuteScenarioResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	108, // 51: nimi.runtime.v1.ExecuteScenarioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
+	116, // 51: nimi.runtime.v1.ExecuteScenarioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
 	3,   // 52: nimi.runtime.v1.ExecuteScenarioResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	26,  // 53: nimi.runtime.v1.ExecuteScenarioResponse.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
-	24,  // 54: nimi.runtime.v1.StreamScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	27,  // 53: nimi.runtime.v1.ExecuteScenarioResponse.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
+	25,  // 54: nimi.runtime.v1.StreamScenarioRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
 	1,   // 55: nimi.runtime.v1.StreamScenarioRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
 	2,   // 56: nimi.runtime.v1.StreamScenarioRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	37,  // 57: nimi.runtime.v1.StreamScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	25,  // 58: nimi.runtime.v1.StreamScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	38,  // 57: nimi.runtime.v1.StreamScenarioRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	26,  // 58: nimi.runtime.v1.StreamScenarioRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
 	3,   // 59: nimi.runtime.v1.ScenarioStreamStarted.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	51,  // 60: nimi.runtime.v1.ScenarioStreamDelta.text:type_name -> nimi.runtime.v1.TextStreamDelta
-	53,  // 61: nimi.runtime.v1.ScenarioStreamDelta.artifact:type_name -> nimi.runtime.v1.ArtifactStreamDelta
-	52,  // 62: nimi.runtime.v1.ScenarioStreamDelta.reasoning:type_name -> nimi.runtime.v1.ReasoningStreamDelta
+	52,  // 60: nimi.runtime.v1.ScenarioStreamDelta.text:type_name -> nimi.runtime.v1.TextStreamDelta
+	54,  // 61: nimi.runtime.v1.ScenarioStreamDelta.artifact:type_name -> nimi.runtime.v1.ArtifactStreamDelta
+	53,  // 62: nimi.runtime.v1.ScenarioStreamDelta.reasoning:type_name -> nimi.runtime.v1.ReasoningStreamDelta
 	5,   // 63: nimi.runtime.v1.ScenarioStreamCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	108, // 64: nimi.runtime.v1.ScenarioStreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
-	109, // 65: nimi.runtime.v1.ScenarioStreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	116, // 64: nimi.runtime.v1.ScenarioStreamCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
+	117, // 65: nimi.runtime.v1.ScenarioStreamFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	9,   // 66: nimi.runtime.v1.StreamScenarioEvent.event_type:type_name -> nimi.runtime.v1.StreamEventType
-	110, // 67: nimi.runtime.v1.StreamScenarioEvent.timestamp:type_name -> google.protobuf.Timestamp
-	50,  // 68: nimi.runtime.v1.StreamScenarioEvent.started:type_name -> nimi.runtime.v1.ScenarioStreamStarted
-	54,  // 69: nimi.runtime.v1.StreamScenarioEvent.delta:type_name -> nimi.runtime.v1.ScenarioStreamDelta
-	108, // 70: nimi.runtime.v1.StreamScenarioEvent.usage:type_name -> nimi.runtime.v1.UsageStats
-	55,  // 71: nimi.runtime.v1.StreamScenarioEvent.completed:type_name -> nimi.runtime.v1.ScenarioStreamCompleted
-	56,  // 72: nimi.runtime.v1.StreamScenarioEvent.failed:type_name -> nimi.runtime.v1.ScenarioStreamFailed
-	82,  // 73: nimi.runtime.v1.ScenarioArtifact.speech_alignment:type_name -> nimi.runtime.v1.SpeechAlignment
-	104, // 74: nimi.runtime.v1.ScenarioArtifact.metadata:type_name -> google.protobuf.Struct
-	24,  // 75: nimi.runtime.v1.ScenarioJob.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	118, // 67: nimi.runtime.v1.StreamScenarioEvent.timestamp:type_name -> google.protobuf.Timestamp
+	51,  // 68: nimi.runtime.v1.StreamScenarioEvent.started:type_name -> nimi.runtime.v1.ScenarioStreamStarted
+	55,  // 69: nimi.runtime.v1.StreamScenarioEvent.delta:type_name -> nimi.runtime.v1.ScenarioStreamDelta
+	116, // 70: nimi.runtime.v1.StreamScenarioEvent.usage:type_name -> nimi.runtime.v1.UsageStats
+	56,  // 71: nimi.runtime.v1.StreamScenarioEvent.completed:type_name -> nimi.runtime.v1.ScenarioStreamCompleted
+	57,  // 72: nimi.runtime.v1.StreamScenarioEvent.failed:type_name -> nimi.runtime.v1.ScenarioStreamFailed
+	83,  // 73: nimi.runtime.v1.ScenarioArtifact.speech_alignment:type_name -> nimi.runtime.v1.SpeechAlignment
+	112, // 74: nimi.runtime.v1.ScenarioArtifact.metadata:type_name -> google.protobuf.Struct
+	25,  // 75: nimi.runtime.v1.ScenarioJob.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
 	1,   // 76: nimi.runtime.v1.ScenarioJob.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
 	2,   // 77: nimi.runtime.v1.ScenarioJob.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
 	3,   // 78: nimi.runtime.v1.ScenarioJob.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	17,  // 79: nimi.runtime.v1.ScenarioJob.status:type_name -> nimi.runtime.v1.ScenarioJobStatus
-	109, // 80: nimi.runtime.v1.ScenarioJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	110, // 81: nimi.runtime.v1.ScenarioJob.created_at:type_name -> google.protobuf.Timestamp
-	110, // 82: nimi.runtime.v1.ScenarioJob.updated_at:type_name -> google.protobuf.Timestamp
-	110, // 83: nimi.runtime.v1.ScenarioJob.next_poll_at:type_name -> google.protobuf.Timestamp
-	58,  // 84: nimi.runtime.v1.ScenarioJob.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	108, // 85: nimi.runtime.v1.ScenarioJob.usage:type_name -> nimi.runtime.v1.UsageStats
-	26,  // 86: nimi.runtime.v1.ScenarioJob.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
-	104, // 87: nimi.runtime.v1.ScenarioJob.reason_metadata:type_name -> google.protobuf.Struct
-	24,  // 88: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	117, // 80: nimi.runtime.v1.ScenarioJob.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	118, // 81: nimi.runtime.v1.ScenarioJob.created_at:type_name -> google.protobuf.Timestamp
+	118, // 82: nimi.runtime.v1.ScenarioJob.updated_at:type_name -> google.protobuf.Timestamp
+	118, // 83: nimi.runtime.v1.ScenarioJob.next_poll_at:type_name -> google.protobuf.Timestamp
+	59,  // 84: nimi.runtime.v1.ScenarioJob.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	116, // 85: nimi.runtime.v1.ScenarioJob.usage:type_name -> nimi.runtime.v1.UsageStats
+	27,  // 86: nimi.runtime.v1.ScenarioJob.ignored_extensions:type_name -> nimi.runtime.v1.IgnoredScenarioExtension
+	112, // 87: nimi.runtime.v1.ScenarioJob.reason_metadata:type_name -> google.protobuf.Struct
+	25,  // 88: nimi.runtime.v1.SubmitScenarioJobRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
 	1,   // 89: nimi.runtime.v1.SubmitScenarioJobRequest.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
 	2,   // 90: nimi.runtime.v1.SubmitScenarioJobRequest.execution_mode:type_name -> nimi.runtime.v1.ExecutionMode
-	37,  // 91: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
-	103, // 92: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
-	25,  // 93: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
-	59,  // 94: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	111, // 95: nimi.runtime.v1.SubmitScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	59,  // 96: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
-	59,  // 97: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	38,  // 91: nimi.runtime.v1.SubmitScenarioJobRequest.spec:type_name -> nimi.runtime.v1.ScenarioSpec
+	111, // 92: nimi.runtime.v1.SubmitScenarioJobRequest.labels:type_name -> nimi.runtime.v1.SubmitScenarioJobRequest.LabelsEntry
+	26,  // 93: nimi.runtime.v1.SubmitScenarioJobRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	60,  // 94: nimi.runtime.v1.SubmitScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	119, // 95: nimi.runtime.v1.SubmitScenarioJobResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	60,  // 96: nimi.runtime.v1.GetScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
+	60,  // 97: nimi.runtime.v1.CancelScenarioJobResponse.job:type_name -> nimi.runtime.v1.ScenarioJob
 	18,  // 98: nimi.runtime.v1.ScenarioJobEvent.event_type:type_name -> nimi.runtime.v1.ScenarioJobEventType
-	110, // 99: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
-	59,  // 100: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
-	58,  // 101: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
-	47,  // 102: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
+	118, // 99: nimi.runtime.v1.ScenarioJobEvent.timestamp:type_name -> google.protobuf.Timestamp
+	60,  // 100: nimi.runtime.v1.ScenarioJobEvent.job:type_name -> nimi.runtime.v1.ScenarioJob
+	59,  // 101: nimi.runtime.v1.GetScenarioArtifactsResponse.artifacts:type_name -> nimi.runtime.v1.ScenarioArtifact
+	48,  // 102: nimi.runtime.v1.GetScenarioArtifactsResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
 	1,   // 103: nimi.runtime.v1.ScenarioProfile.scenario_type:type_name -> nimi.runtime.v1.ScenarioType
 	2,   // 104: nimi.runtime.v1.ScenarioProfile.supported_execution_modes:type_name -> nimi.runtime.v1.ExecutionMode
-	70,  // 105: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
+	71,  // 105: nimi.runtime.v1.ListScenarioProfilesResponse.profiles:type_name -> nimi.runtime.v1.ScenarioProfile
 	12,  // 106: nimi.runtime.v1.VideoContentItem.type:type_name -> nimi.runtime.v1.VideoContentType
 	13,  // 107: nimi.runtime.v1.VideoContentItem.role:type_name -> nimi.runtime.v1.VideoContentRole
-	73,  // 108: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
-	74,  // 109: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
-	75,  // 110: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
-	79,  // 111: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
+	74,  // 108: nimi.runtime.v1.VideoContentItem.image_url:type_name -> nimi.runtime.v1.VideoContentImageURL
+	75,  // 109: nimi.runtime.v1.VideoContentItem.video_url:type_name -> nimi.runtime.v1.VideoContentVideoURL
+	76,  // 110: nimi.runtime.v1.VideoContentItem.audio_url:type_name -> nimi.runtime.v1.VideoContentAudioURL
+	80,  // 111: nimi.runtime.v1.SpeechTranscriptionAudioSource.audio_chunks:type_name -> nimi.runtime.v1.AudioChunks
 	15,  // 112: nimi.runtime.v1.SpeechAlignment.unit:type_name -> nimi.runtime.v1.SpeechAlignmentUnit
-	81,  // 113: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
-	108, // 114: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
+	82,  // 113: nimi.runtime.v1.SpeechAlignment.tokens:type_name -> nimi.runtime.v1.SpeechAlignmentToken
+	116, // 114: nimi.runtime.v1.ArtifactChunk.usage:type_name -> nimi.runtime.v1.UsageStats
 	3,   // 115: nimi.runtime.v1.ArtifactChunk.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	84,  // 116: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
-	85,  // 117: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
-	58,  // 118: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
-	24,  // 119: nimi.runtime.v1.OpenRealtimeSessionRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
-	25,  // 120: nimi.runtime.v1.OpenRealtimeSessionRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
+	85,  // 116: nimi.runtime.v1.UploadArtifactRequest.metadata:type_name -> nimi.runtime.v1.UploadArtifactMetadata
+	86,  // 117: nimi.runtime.v1.UploadArtifactRequest.chunk:type_name -> nimi.runtime.v1.UploadArtifactChunk
+	59,  // 118: nimi.runtime.v1.UploadArtifactResponse.artifact:type_name -> nimi.runtime.v1.ScenarioArtifact
+	25,  // 119: nimi.runtime.v1.OpenRealtimeSessionRequest.head:type_name -> nimi.runtime.v1.ScenarioRequestHead
+	26,  // 120: nimi.runtime.v1.OpenRealtimeSessionRequest.extensions:type_name -> nimi.runtime.v1.ScenarioExtension
 	3,   // 121: nimi.runtime.v1.OpenRealtimeSessionResponse.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
-	21,  // 122: nimi.runtime.v1.RealtimeAudioInput.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
-	19,  // 123: nimi.runtime.v1.RealtimeInputItem.message:type_name -> nimi.runtime.v1.ChatMessage
-	90,  // 124: nimi.runtime.v1.RealtimeInputItem.audio:type_name -> nimi.runtime.v1.RealtimeAudioInput
-	91,  // 125: nimi.runtime.v1.AppendRealtimeInputRequest.items:type_name -> nimi.runtime.v1.RealtimeInputItem
-	112, // 126: nimi.runtime.v1.AppendRealtimeInputResponse.ack:type_name -> nimi.runtime.v1.Ack
+	22,  // 122: nimi.runtime.v1.RealtimeAudioInput.artifact_ref:type_name -> nimi.runtime.v1.ChatContentArtifactRef
+	20,  // 123: nimi.runtime.v1.RealtimeInputItem.message:type_name -> nimi.runtime.v1.ChatMessage
+	91,  // 124: nimi.runtime.v1.RealtimeInputItem.audio:type_name -> nimi.runtime.v1.RealtimeAudioInput
+	92,  // 125: nimi.runtime.v1.AppendRealtimeInputRequest.items:type_name -> nimi.runtime.v1.RealtimeInputItem
+	120, // 126: nimi.runtime.v1.AppendRealtimeInputResponse.ack:type_name -> nimi.runtime.v1.Ack
 	3,   // 127: nimi.runtime.v1.RealtimeSessionOpened.route_decision:type_name -> nimi.runtime.v1.RoutePolicy
 	5,   // 128: nimi.runtime.v1.RealtimeCompleted.finish_reason:type_name -> nimi.runtime.v1.FinishReason
-	108, // 129: nimi.runtime.v1.RealtimeCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
-	109, // 130: nimi.runtime.v1.RealtimeFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	116, // 129: nimi.runtime.v1.RealtimeCompleted.usage:type_name -> nimi.runtime.v1.UsageStats
+	117, // 130: nimi.runtime.v1.RealtimeFailed.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	10,  // 131: nimi.runtime.v1.RealtimeEvent.event_type:type_name -> nimi.runtime.v1.RealtimeEventType
-	110, // 132: nimi.runtime.v1.RealtimeEvent.timestamp:type_name -> google.protobuf.Timestamp
-	95,  // 133: nimi.runtime.v1.RealtimeEvent.opened:type_name -> nimi.runtime.v1.RealtimeSessionOpened
-	96,  // 134: nimi.runtime.v1.RealtimeEvent.text_delta:type_name -> nimi.runtime.v1.RealtimeTextDelta
-	97,  // 135: nimi.runtime.v1.RealtimeEvent.audio_chunk:type_name -> nimi.runtime.v1.RealtimeAudioChunk
-	98,  // 136: nimi.runtime.v1.RealtimeEvent.completed:type_name -> nimi.runtime.v1.RealtimeCompleted
-	99,  // 137: nimi.runtime.v1.RealtimeEvent.failed:type_name -> nimi.runtime.v1.RealtimeFailed
-	112, // 138: nimi.runtime.v1.CloseRealtimeSessionResponse.ack:type_name -> nimi.runtime.v1.Ack
-	38,  // 139: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
-	49,  // 140: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
-	60,  // 141: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
-	62,  // 142: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
-	64,  // 143: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
-	67,  // 144: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
-	68,  // 145: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
-	71,  // 146: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
-	113, // 147: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
-	114, // 148: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
-	115, // 149: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
-	116, // 150: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
-	86,  // 151: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
-	88,  // 152: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:input_type -> nimi.runtime.v1.OpenRealtimeSessionRequest
-	92,  // 153: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:input_type -> nimi.runtime.v1.AppendRealtimeInputRequest
-	94,  // 154: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:input_type -> nimi.runtime.v1.ReadRealtimeEventsRequest
-	101, // 155: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:input_type -> nimi.runtime.v1.CloseRealtimeSessionRequest
-	48,  // 156: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
-	57,  // 157: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
-	61,  // 158: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
-	63,  // 159: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
-	65,  // 160: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
-	66,  // 161: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
-	69,  // 162: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
-	72,  // 163: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
-	117, // 164: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
-	118, // 165: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
-	119, // 166: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
-	120, // 167: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
-	87,  // 168: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
-	89,  // 169: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:output_type -> nimi.runtime.v1.OpenRealtimeSessionResponse
-	93,  // 170: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:output_type -> nimi.runtime.v1.AppendRealtimeInputResponse
-	100, // 171: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:output_type -> nimi.runtime.v1.RealtimeEvent
-	102, // 172: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:output_type -> nimi.runtime.v1.CloseRealtimeSessionResponse
-	156, // [156:173] is the sub-list for method output_type
-	139, // [139:156] is the sub-list for method input_type
-	139, // [139:139] is the sub-list for extension type_name
-	139, // [139:139] is the sub-list for extension extendee
-	0,   // [0:139] is the sub-list for field type_name
+	118, // 132: nimi.runtime.v1.RealtimeEvent.timestamp:type_name -> google.protobuf.Timestamp
+	96,  // 133: nimi.runtime.v1.RealtimeEvent.opened:type_name -> nimi.runtime.v1.RealtimeSessionOpened
+	97,  // 134: nimi.runtime.v1.RealtimeEvent.text_delta:type_name -> nimi.runtime.v1.RealtimeTextDelta
+	98,  // 135: nimi.runtime.v1.RealtimeEvent.audio_chunk:type_name -> nimi.runtime.v1.RealtimeAudioChunk
+	99,  // 136: nimi.runtime.v1.RealtimeEvent.completed:type_name -> nimi.runtime.v1.RealtimeCompleted
+	100, // 137: nimi.runtime.v1.RealtimeEvent.failed:type_name -> nimi.runtime.v1.RealtimeFailed
+	120, // 138: nimi.runtime.v1.CloseRealtimeSessionResponse.ack:type_name -> nimi.runtime.v1.Ack
+	19,  // 139: nimi.runtime.v1.SchedulingJudgement.state:type_name -> nimi.runtime.v1.SchedulingState
+	104, // 140: nimi.runtime.v1.SchedulingJudgement.occupancy:type_name -> nimi.runtime.v1.SchedulingOccupancySnapshot
+	106, // 141: nimi.runtime.v1.SchedulingEvaluationTarget.resource_hint:type_name -> nimi.runtime.v1.SchedulingResourceHint
+	107, // 142: nimi.runtime.v1.SchedulingTargetJudgement.target:type_name -> nimi.runtime.v1.SchedulingEvaluationTarget
+	105, // 143: nimi.runtime.v1.SchedulingTargetJudgement.judgement:type_name -> nimi.runtime.v1.SchedulingJudgement
+	107, // 144: nimi.runtime.v1.PeekSchedulingRequest.targets:type_name -> nimi.runtime.v1.SchedulingEvaluationTarget
+	104, // 145: nimi.runtime.v1.PeekSchedulingResponse.occupancy:type_name -> nimi.runtime.v1.SchedulingOccupancySnapshot
+	105, // 146: nimi.runtime.v1.PeekSchedulingResponse.aggregate_judgement:type_name -> nimi.runtime.v1.SchedulingJudgement
+	108, // 147: nimi.runtime.v1.PeekSchedulingResponse.target_judgements:type_name -> nimi.runtime.v1.SchedulingTargetJudgement
+	39,  // 148: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:input_type -> nimi.runtime.v1.ExecuteScenarioRequest
+	50,  // 149: nimi.runtime.v1.RuntimeAiService.StreamScenario:input_type -> nimi.runtime.v1.StreamScenarioRequest
+	61,  // 150: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:input_type -> nimi.runtime.v1.SubmitScenarioJobRequest
+	63,  // 151: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:input_type -> nimi.runtime.v1.GetScenarioJobRequest
+	65,  // 152: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:input_type -> nimi.runtime.v1.CancelScenarioJobRequest
+	68,  // 153: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:input_type -> nimi.runtime.v1.SubscribeScenarioJobEventsRequest
+	69,  // 154: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:input_type -> nimi.runtime.v1.GetScenarioArtifactsRequest
+	72,  // 155: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:input_type -> nimi.runtime.v1.ListScenarioProfilesRequest
+	121, // 156: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:input_type -> nimi.runtime.v1.GetVoiceAssetRequest
+	122, // 157: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:input_type -> nimi.runtime.v1.ListVoiceAssetsRequest
+	123, // 158: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:input_type -> nimi.runtime.v1.DeleteVoiceAssetRequest
+	124, // 159: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:input_type -> nimi.runtime.v1.ListPresetVoicesRequest
+	87,  // 160: nimi.runtime.v1.RuntimeAiService.UploadArtifact:input_type -> nimi.runtime.v1.UploadArtifactRequest
+	109, // 161: nimi.runtime.v1.RuntimeAiService.PeekScheduling:input_type -> nimi.runtime.v1.PeekSchedulingRequest
+	89,  // 162: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:input_type -> nimi.runtime.v1.OpenRealtimeSessionRequest
+	93,  // 163: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:input_type -> nimi.runtime.v1.AppendRealtimeInputRequest
+	95,  // 164: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:input_type -> nimi.runtime.v1.ReadRealtimeEventsRequest
+	102, // 165: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:input_type -> nimi.runtime.v1.CloseRealtimeSessionRequest
+	49,  // 166: nimi.runtime.v1.RuntimeAiService.ExecuteScenario:output_type -> nimi.runtime.v1.ExecuteScenarioResponse
+	58,  // 167: nimi.runtime.v1.RuntimeAiService.StreamScenario:output_type -> nimi.runtime.v1.StreamScenarioEvent
+	62,  // 168: nimi.runtime.v1.RuntimeAiService.SubmitScenarioJob:output_type -> nimi.runtime.v1.SubmitScenarioJobResponse
+	64,  // 169: nimi.runtime.v1.RuntimeAiService.GetScenarioJob:output_type -> nimi.runtime.v1.GetScenarioJobResponse
+	66,  // 170: nimi.runtime.v1.RuntimeAiService.CancelScenarioJob:output_type -> nimi.runtime.v1.CancelScenarioJobResponse
+	67,  // 171: nimi.runtime.v1.RuntimeAiService.SubscribeScenarioJobEvents:output_type -> nimi.runtime.v1.ScenarioJobEvent
+	70,  // 172: nimi.runtime.v1.RuntimeAiService.GetScenarioArtifacts:output_type -> nimi.runtime.v1.GetScenarioArtifactsResponse
+	73,  // 173: nimi.runtime.v1.RuntimeAiService.ListScenarioProfiles:output_type -> nimi.runtime.v1.ListScenarioProfilesResponse
+	125, // 174: nimi.runtime.v1.RuntimeAiService.GetVoiceAsset:output_type -> nimi.runtime.v1.GetVoiceAssetResponse
+	126, // 175: nimi.runtime.v1.RuntimeAiService.ListVoiceAssets:output_type -> nimi.runtime.v1.ListVoiceAssetsResponse
+	127, // 176: nimi.runtime.v1.RuntimeAiService.DeleteVoiceAsset:output_type -> nimi.runtime.v1.DeleteVoiceAssetResponse
+	128, // 177: nimi.runtime.v1.RuntimeAiService.ListPresetVoices:output_type -> nimi.runtime.v1.ListPresetVoicesResponse
+	88,  // 178: nimi.runtime.v1.RuntimeAiService.UploadArtifact:output_type -> nimi.runtime.v1.UploadArtifactResponse
+	110, // 179: nimi.runtime.v1.RuntimeAiService.PeekScheduling:output_type -> nimi.runtime.v1.PeekSchedulingResponse
+	90,  // 180: nimi.runtime.v1.RuntimeAiRealtimeService.OpenRealtimeSession:output_type -> nimi.runtime.v1.OpenRealtimeSessionResponse
+	94,  // 181: nimi.runtime.v1.RuntimeAiRealtimeService.AppendRealtimeInput:output_type -> nimi.runtime.v1.AppendRealtimeInputResponse
+	101, // 182: nimi.runtime.v1.RuntimeAiRealtimeService.ReadRealtimeEvents:output_type -> nimi.runtime.v1.RealtimeEvent
+	103, // 183: nimi.runtime.v1.RuntimeAiRealtimeService.CloseRealtimeSession:output_type -> nimi.runtime.v1.CloseRealtimeSessionResponse
+	166, // [166:184] is the sub-list for method output_type
+	148, // [148:166] is the sub-list for method input_type
+	148, // [148:148] is the sub-list for extension type_name
+	148, // [148:148] is the sub-list for extension extendee
+	0,   // [0:148] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_ai_proto_init() }
@@ -8157,8 +8723,8 @@ func file_runtime_v1_ai_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_ai_proto_rawDesc), len(file_runtime_v1_ai_proto_rawDesc)),
-			NumEnums:      19,
-			NumMessages:   85,
+			NumEnums:      20,
+			NumMessages:   92,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

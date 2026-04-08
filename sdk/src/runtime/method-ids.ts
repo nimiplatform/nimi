@@ -28,6 +28,7 @@ export const RuntimeMethodIds = {
     listVoiceAssets: '/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets',
     deleteVoiceAsset: '/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset',
     listPresetVoices: '/nimi.runtime.v1.RuntimeAiService/ListPresetVoices',
+    peekScheduling: '/nimi.runtime.v1.RuntimeAiService/PeekScheduling',
   },
   aiRealtime: {
     openRealtimeSession: '/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession',

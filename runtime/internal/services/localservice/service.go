@@ -79,6 +79,8 @@ type Service struct {
 	engineResidency                map[string]localEngineResidencyState
 	managedLlamaLoadMu             sync.Mutex
 
+	profileRegistry              *ProfileRegistry
+
 	endpointProbe                endpointProbeFunc
 	hfCatalogSearch              hfCatalogSearchFunc
 	hfDownloadBaseURL            string
@@ -137,6 +139,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		warmedModelOrder:             make([]string, 0, 512),
 		assetResidency:               make(map[string]localAssetResidencyState),
 		engineResidency:              make(map[string]localEngineResidencyState),
+		profileRegistry:              NewProfileRegistry(),
 		endpointProbe:                defaultEndpointProbe,
 		hfCatalogSearch:              defaultHFCatalogSearch,
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,

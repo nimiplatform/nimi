@@ -185,6 +185,47 @@ func Load() (Config, error) {
 		cfg.ShutdownTimeout = time.Duration(*fileCfg.ShutdownTimeoutSeconds) * time.Second
 	}
 
+	// K-SCHED-004 / K-SCHED-005: scheduling risk thresholds (env > file config > default).
+	schedDiskDenial, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SCHEDULING_DISK_DENIAL_THRESHOLD_BYTES",
+		fileConfigSchedulingInt(fileCfg, func(s *FileConfigScheduling) *int { return s.DiskDenialThresholdBytes }),
+		500*1024*1024)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SchedulingDiskDenialThresholdBytes = int64(schedDiskDenial)
+
+	schedSlowdownRAM, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SCHEDULING_SLOWDOWN_RAM_THRESHOLD_BYTES",
+		fileConfigSchedulingInt(fileCfg, func(s *FileConfigScheduling) *int { return s.SlowdownRamThresholdBytes }),
+		2*1024*1024*1024)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SchedulingSlowdownRAMThresholdBytes = int64(schedSlowdownRAM)
+
+	schedSlowdownVRAM, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SCHEDULING_SLOWDOWN_VRAM_THRESHOLD_BYTES",
+		fileConfigSchedulingInt(fileCfg, func(s *FileConfigScheduling) *int { return s.SlowdownVramThresholdBytes }),
+		1*1024*1024*1024)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SchedulingSlowdownVRAMThresholdBytes = int64(schedSlowdownVRAM)
+
+	schedSlowdownDisk, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SCHEDULING_SLOWDOWN_DISK_THRESHOLD_BYTES",
+		fileConfigSchedulingInt(fileCfg, func(s *FileConfigScheduling) *int { return s.SlowdownDiskThresholdBytes }),
+		2*1024*1024*1024)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SchedulingSlowdownDiskThresholdBytes = int64(schedSlowdownDisk)
+
+	schedPreemptionPct, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SCHEDULING_PREEMPTION_OCCUPANCY_PERCENT",
+		fileConfigSchedulingInt(fileCfg, func(s *FileConfigScheduling) *int { return s.PreemptionOccupancyPercent }),
+		75)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.SchedulingPreemptionOccupancyPercent = schedPreemptionPct
+
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
 	}

@@ -57,6 +57,14 @@ import type {
   RuntimeRouteOptionsSnapshot,
   RuntimeRouteResolvedBindingRef,
 } from '../runtime-route.js';
+import type {
+  AIConfig,
+  AIConfigProbeResult,
+  AISchedulingEvaluationTarget,
+  AISchedulingJudgement,
+  AIScopeRef,
+  AISnapshot,
+} from '../runtime/ai-config.js';
 
 export type ModRuntimeHost = {
   checkLocalLlmHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
@@ -87,6 +95,50 @@ export type ModRuntimeHost = {
       resolvedBindingRef: RuntimeRouteResolvedBindingRef;
     }) => Promise<RuntimeRouteDescribeResult>;
   };
+  /** K-SCHED-002: Scheduling preflight surface. */
+  scheduler: {
+    peek: (input: {
+      appId: string;
+      targets: Array<{
+        capability: string;
+        modId?: string | null;
+        profileId?: string | null;
+        resourceHint?: {
+          estimatedVramBytes?: number | null;
+          estimatedRamBytes?: number | null;
+          estimatedDiskBytes?: number | null;
+          engine?: string | null;
+        } | null;
+      }>;
+    }) => Promise<{
+      occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
+      aggregateJudgement: {
+        state: string;
+        detail: string;
+        occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
+        resourceWarnings: string[];
+      } | null;
+      targetJudgements: Array<{
+        target: {
+          capability: string;
+          modId?: string | null;
+          profileId?: string | null;
+          resourceHint?: {
+            estimatedVramBytes?: number | null;
+            estimatedRamBytes?: number | null;
+            estimatedDiskBytes?: number | null;
+            engine?: string | null;
+          } | null;
+        };
+        judgement: {
+          state: string;
+          detail: string;
+          occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
+          resourceWarnings: string[];
+        };
+      }>;
+    }>;
+  };
   local: {
     listAssets: (input: ModRuntimeListLocalAssetsInput & {
       modId: string;
@@ -107,6 +159,28 @@ export type ModRuntimeHost = {
       capability?: RuntimeCanonicalCapability | string;
       entryOverrides?: ModRuntimeProfileEntryOverride[];
     }) => Promise<ModRuntimeLocalProfileInstallStatus>;
+  };
+  aiConfig: {
+    get: (input: { modId: string; scopeRef: AIScopeRef }) => AIConfig;
+    update: (input: { modId: string; scopeRef: AIScopeRef; config: AIConfig }) => void;
+    listScopes: (input: { modId: string }) => AIScopeRef[];
+    probe: (input: { modId: string; scopeRef: AIScopeRef }) => Promise<AIConfigProbeResult>;
+    probeFeasibility: (input: { modId: string; scopeRef: AIScopeRef }) => Promise<AIConfigProbeResult>;
+    probeSchedulingTarget: (input: {
+      modId: string;
+      scopeRef: AIScopeRef;
+      target: AISchedulingEvaluationTarget;
+    }) => Promise<AISchedulingJudgement | null>;
+    subscribe: (input: {
+      modId: string;
+      scopeRef: AIScopeRef;
+      callback: (config: AIConfig) => void;
+    }) => () => void;
+  };
+  aiSnapshot: {
+    record: (input: { modId: string; scopeRef: AIScopeRef; snapshot: AISnapshot }) => void;
+    get: (input: { modId: string; executionId: string }) => AISnapshot | null;
+    getLatest: (input: { modId: string; scopeRef: AIScopeRef }) => AISnapshot | null;
   };
   ai: {
     text: {

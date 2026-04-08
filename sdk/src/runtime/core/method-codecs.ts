@@ -50,6 +50,8 @@ import {
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
   SubscribeScenarioJobEventsRequest,
+  PeekSchedulingRequest,
+  PeekSchedulingResponse,
 } from '../generated/runtime/v1/ai';
 import {
   DeleteVoiceAssetRequest,
@@ -340,6 +342,10 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
   [RuntimeMethodIds.ai.listPresetVoices]: {
     requestType: ListPresetVoicesRequest,
     responseType: ListPresetVoicesResponse,
+  },
+  [RuntimeMethodIds.ai.peekScheduling]: {
+    requestType: PeekSchedulingRequest,
+    responseType: PeekSchedulingResponse,
   },
   [RuntimeMethodIds.aiRealtime.openRealtimeSession]: {
     requestType: OpenRealtimeSessionRequest,

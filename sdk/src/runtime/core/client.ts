@@ -169,6 +169,7 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       appendRealtimeInput: unary(RuntimeMethodIds.aiRealtime.appendRealtimeInput),
       readRealtimeEvents: stream(RuntimeMethodIds.aiRealtime.readRealtimeEvents),
       closeRealtimeSession: unary(RuntimeMethodIds.aiRealtime.closeRealtimeSession),
+      peekScheduling: unary(RuntimeMethodIds.ai.peekScheduling),
     },
     workflow: {
       submit: unary(RuntimeMethodIds.workflow.submit),

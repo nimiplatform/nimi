@@ -487,6 +487,9 @@ export function createAiModule(
     closeRealtimeSession: async (request, optionsValue) => invokeWithClient(
       async (client) => client.ai.closeRealtimeSession(request, optionsValue),
     ),
+    peekScheduling: async (request, optionsValue) => invokeWithClient(
+      async (client) => client.ai.peekScheduling(request, optionsValue),
+    ),
     text: {
       generate: async (textInput) => runtimeGenerateText(ctx, textInput),
       stream: async (textInput) => runtimeStreamText(ctx, textInput),

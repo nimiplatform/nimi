@@ -5,6 +5,11 @@ import {
 } from '../internal/runtime-access.js';
 import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 import type { ModRuntimeClient } from './types.js';
+import {
+  assertCanonicalModAIScopeRef,
+  type AIConfig,
+  type AIScopeRef,
+} from './ai-config.js';
 export { createModRuntimeInspector } from './inspector.js';
 export {
   buildLocalProfileExtensions,
@@ -25,10 +30,33 @@ function normalizeModId(modId: string): string {
   return normalized;
 }
 
+function requireRuntimeHostBridge<T>(
+  bridge: T | null | undefined,
+  bridgeName: string,
+): T {
+  if (!bridge) {
+    throw createNimiError({
+      message: `mod runtime ${bridgeName} bridge is not available`,
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      actionHint: 'ensure_desktop_mod_host_bridge_initialized',
+      source: 'sdk',
+    });
+  }
+  return bridge;
+}
+
 export function createModRuntimeClient(modId: string, context?: ModRuntimeContextInput): ModRuntimeClient {
   const normalizedModId = normalizeModId(modId);
   const runtimeContext = resolveModRuntimeContext(context);
   const runtimeHost = runtimeContext.runtimeHost;
+  const getCanonicalScopeRef = (scopeRef: AIScopeRef | null | undefined): AIScopeRef =>
+    assertCanonicalModAIScopeRef(scopeRef, normalizedModId);
+  const getAIConfigBridge = () => requireRuntimeHostBridge(runtimeHost.aiConfig, 'aiConfig');
+  const getAISnapshotBridge = () => requireRuntimeHostBridge(runtimeHost.aiSnapshot, 'aiSnapshot');
+  const normalizeScopedConfig = (scopeRef: AIScopeRef, config: AIConfig): AIConfig => ({
+    ...config,
+    scopeRef,
+  });
 
   return {
     route: {
@@ -52,6 +80,12 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         resolvedBindingRef: input.resolvedBindingRef,
       }),
     },
+    scheduler: {
+      peek: async (input) => runtimeHost.scheduler.peek({
+        appId: input.appId,
+        targets: input.targets,
+      }),
+    },
     local: {
       listAssets: async (input) => runtimeHost.local.listAssets({
         modId: normalizedModId,
@@ -67,6 +101,62 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
       getProfileInstallStatus: async (input) => runtimeHost.local.getProfileInstallStatus({
         modId: normalizedModId,
         ...input,
+      }),
+    },
+    aiConfig: {
+      get: (scopeRef) => getAIConfigBridge().get({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+      }),
+      update: (scopeRef, config) => {
+        const canonicalScopeRef = getCanonicalScopeRef(scopeRef);
+        getAIConfigBridge().update({
+          modId: normalizedModId,
+          scopeRef: canonicalScopeRef,
+          config: normalizeScopedConfig(canonicalScopeRef, config),
+        });
+      },
+      listScopes: () => getAIConfigBridge().listScopes({
+        modId: normalizedModId,
+      }),
+      probe: async (scopeRef) => getAIConfigBridge().probe({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+      }),
+      probeFeasibility: async (scopeRef) => getAIConfigBridge().probeFeasibility({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+      }),
+      probeSchedulingTarget: async (scopeRef, target) => getAIConfigBridge().probeSchedulingTarget({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+        target,
+      }),
+      subscribe: (scopeRef, callback) => getAIConfigBridge().subscribe({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
+        callback,
+      }),
+    },
+    aiSnapshot: {
+      record: (scopeRef, snapshot) => {
+        const canonicalScopeRef = getCanonicalScopeRef(scopeRef);
+        getAISnapshotBridge().record({
+          modId: normalizedModId,
+          scopeRef: canonicalScopeRef,
+          snapshot: {
+            ...snapshot,
+            scopeRef: canonicalScopeRef,
+          },
+        });
+      },
+      get: (executionId) => getAISnapshotBridge().get({
+        modId: normalizedModId,
+        executionId,
+      }),
+      getLatest: (scopeRef) => getAISnapshotBridge().getLatest({
+        modId: normalizedModId,
+        scopeRef: getCanonicalScopeRef(scopeRef),
       }),
     },
     ai: {
@@ -173,3 +263,4 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
 }
 
 export type * from './types.js';
+export * from './ai-config.js';

@@ -32,6 +32,7 @@ const (
 	RuntimeAiService_DeleteVoiceAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset"
 	RuntimeAiService_ListPresetVoices_FullMethodName           = "/nimi.runtime.v1.RuntimeAiService/ListPresetVoices"
 	RuntimeAiService_UploadArtifact_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/UploadArtifact"
+	RuntimeAiService_PeekScheduling_FullMethodName             = "/nimi.runtime.v1.RuntimeAiService/PeekScheduling"
 )
 
 // RuntimeAiServiceClient is the client API for RuntimeAiService service.
@@ -51,6 +52,8 @@ type RuntimeAiServiceClient interface {
 	DeleteVoiceAsset(ctx context.Context, in *DeleteVoiceAssetRequest, opts ...grpc.CallOption) (*DeleteVoiceAssetResponse, error)
 	ListPresetVoices(ctx context.Context, in *ListPresetVoicesRequest, opts ...grpc.CallOption) (*ListPresetVoicesResponse, error)
 	UploadArtifact(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse], error)
+	// K-SCHED-002: Non-blocking scheduling preflight assessment.
+	PeekScheduling(ctx context.Context, in *PeekSchedulingRequest, opts ...grpc.CallOption) (*PeekSchedulingResponse, error)
 }
 
 type runtimeAiServiceClient struct {
@@ -212,6 +215,16 @@ func (c *runtimeAiServiceClient) UploadArtifact(ctx context.Context, opts ...grp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_UploadArtifactClient = grpc.ClientStreamingClient[UploadArtifactRequest, UploadArtifactResponse]
 
+func (c *runtimeAiServiceClient) PeekScheduling(ctx context.Context, in *PeekSchedulingRequest, opts ...grpc.CallOption) (*PeekSchedulingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PeekSchedulingResponse)
+	err := c.cc.Invoke(ctx, RuntimeAiService_PeekScheduling_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAiServiceServer is the server API for RuntimeAiService service.
 // All implementations should embed UnimplementedRuntimeAiServiceServer
 // for forward compatibility.
@@ -229,6 +242,8 @@ type RuntimeAiServiceServer interface {
 	DeleteVoiceAsset(context.Context, *DeleteVoiceAssetRequest) (*DeleteVoiceAssetResponse, error)
 	ListPresetVoices(context.Context, *ListPresetVoicesRequest) (*ListPresetVoicesResponse, error)
 	UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]) error
+	// K-SCHED-002: Non-blocking scheduling preflight assessment.
+	PeekScheduling(context.Context, *PeekSchedulingRequest) (*PeekSchedulingResponse, error)
 }
 
 // UnimplementedRuntimeAiServiceServer should be embedded to have
@@ -276,6 +291,9 @@ func (UnimplementedRuntimeAiServiceServer) ListPresetVoices(context.Context, *Li
 }
 func (UnimplementedRuntimeAiServiceServer) UploadArtifact(grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]) error {
 	return status.Error(codes.Unimplemented, "method UploadArtifact not implemented")
+}
+func (UnimplementedRuntimeAiServiceServer) PeekScheduling(context.Context, *PeekSchedulingRequest) (*PeekSchedulingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PeekScheduling not implemented")
 }
 func (UnimplementedRuntimeAiServiceServer) testEmbeddedByValue() {}
 
@@ -506,6 +524,24 @@ func _RuntimeAiService_UploadArtifact_Handler(srv interface{}, stream grpc.Serve
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAiService_UploadArtifactServer = grpc.ClientStreamingServer[UploadArtifactRequest, UploadArtifactResponse]
 
+func _RuntimeAiService_PeekScheduling_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PeekSchedulingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAiServiceServer).PeekScheduling(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAiService_PeekScheduling_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAiServiceServer).PeekScheduling(ctx, req.(*PeekSchedulingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAiService_ServiceDesc is the grpc.ServiceDesc for RuntimeAiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -552,6 +588,10 @@ var RuntimeAiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPresetVoices",
 			Handler:    _RuntimeAiService_ListPresetVoices_Handler,
+		},
+		{
+			MethodName: "PeekScheduling",
+			Handler:    _RuntimeAiService_PeekScheduling_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

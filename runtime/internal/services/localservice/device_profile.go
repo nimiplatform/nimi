@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,14 +56,18 @@ func collectDeviceProfile(extraPorts ...int32) *runtimev1.LocalDeviceProfile {
 		})
 	}
 
+	totalRAM, availableRAM := probeRAM()
+
 	return &runtimev1.LocalDeviceProfile{
-		Os:            localRuntimeGOOS,
-		Arch:          localRuntimeGOARCH,
-		Gpu:           probeGPUProfile(),
-		Python:        probePythonProfile(),
-		Npu:           probeNPUProfile(),
-		DiskFreeBytes: probeDiskFreeBytes(),
-		Ports:         probedPorts,
+		Os:                localRuntimeGOOS,
+		Arch:              localRuntimeGOARCH,
+		Gpu:               probeGPUProfile(),
+		Python:            probePythonProfile(),
+		Npu:               probeNPUProfile(),
+		DiskFreeBytes:     probeDiskFreeBytes(),
+		Ports:             probedPorts,
+		TotalRamBytes:     totalRAM,
+		AvailableRamBytes: availableRAM,
 	}
 }
 
@@ -81,20 +86,25 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	if vendor != "" || model != "" {
 		return gpuProbeCapabilities{
 			profile: &runtimev1.LocalGpuProfile{
-				Available: true,
-				Vendor:    vendor,
-				Model:     model,
+				Available:   true,
+				Vendor:      vendor,
+				Model:       model,
+				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN,
 			},
 			cudaReady: strings.EqualFold(strings.TrimSpace(vendor), "nvidia") && probeGPUCUDAReadyValue(),
 		}
 	}
 
 	if _, err := localRuntimeStat("/dev/nvidia0"); err == nil {
+		totalVRAM, freeVRAM := probeNvidiaVRAM()
 		return gpuProbeCapabilities{
 			profile: &runtimev1.LocalGpuProfile{
-				Available: true,
-				Vendor:    "nvidia",
-				Model:     "nvidia-gpu",
+				Available:          true,
+				Vendor:             "nvidia",
+				Model:              "nvidia-gpu",
+				TotalVramBytes:     totalVRAM,
+				AvailableVramBytes: freeVRAM,
+				MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
 			},
 			cudaReady: probeGPUCUDAReadyValue(),
 		}
@@ -103,23 +113,30 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	if _, err := localRuntimeLookPath("nvidia-smi"); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
-		output, runErr := localRuntimeCommand(ctx, "nvidia-smi", "--query-gpu=name", "--format=csv,noheader").Output()
+		// K-DEV-002: query name, memory.total, memory.free in one call.
+		output, runErr := localRuntimeCommand(ctx, "nvidia-smi",
+			"--query-gpu=name,memory.total,memory.free",
+			"--format=csv,noheader,nounits").Output()
 		if runErr == nil {
-			name := strings.TrimSpace(strings.SplitN(string(output), "\n", 2)[0])
+			name, totalVRAM, freeVRAM := parseNvidiaSmiOutput(string(output))
 			return gpuProbeCapabilities{
 				profile: &runtimev1.LocalGpuProfile{
-					Available: true,
-					Vendor:    "nvidia",
-					Model:     name,
+					Available:          true,
+					Vendor:             "nvidia",
+					Model:              name,
+					TotalVramBytes:     totalVRAM,
+					AvailableVramBytes: freeVRAM,
+					MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
 				},
 				cudaReady: probeGPUCUDAReadyValue(),
 			}
 		}
 		return gpuProbeCapabilities{
 			profile: &runtimev1.LocalGpuProfile{
-				Available: true,
-				Vendor:    "nvidia",
-				Model:     "nvidia-gpu",
+				Available:   true,
+				Vendor:      "nvidia",
+				Model:       "nvidia-gpu",
+				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
 			},
 			cudaReady: probeGPUCUDAReadyValue(),
 		}
@@ -131,11 +148,16 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 		output, runErr := localRuntimeCommand(ctx, "sysctl", "-n", "machdep.cpu.brand_string").Output()
 		model := strings.TrimSpace(string(output))
 		if runErr == nil || model != "" {
+			// K-DEV-002: Apple unified memory — VRAM = host RAM.
+			totalRAM, availRAM := probeRAM()
 			return gpuProbeCapabilities{
 				profile: &runtimev1.LocalGpuProfile{
-					Available: true,
-					Vendor:    "apple",
-					Model:     model,
+					Available:          true,
+					Vendor:             "apple",
+					Model:              model,
+					TotalVramBytes:     totalRAM,
+					AvailableVramBytes: availRAM,
+					MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED,
 				},
 				cudaReady: false,
 			}
@@ -143,9 +165,50 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	}
 
 	return gpuProbeCapabilities{
-		profile:   &runtimev1.LocalGpuProfile{Available: false},
+		profile: &runtimev1.LocalGpuProfile{
+			Available:   false,
+			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN,
+		},
 		cudaReady: false,
 	}
+}
+
+// probeNvidiaVRAM runs nvidia-smi to get VRAM. Used when /dev/nvidia0 is
+// detected but nvidia-smi wasn't found via LookPath (unlikely but defensive).
+func probeNvidiaVRAM() (totalBytes int64, freeBytes int64) {
+	if _, err := localRuntimeLookPath("nvidia-smi"); err != nil {
+		return 0, 0
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	output, runErr := localRuntimeCommand(ctx, "nvidia-smi",
+		"--query-gpu=memory.total,memory.free",
+		"--format=csv,noheader,nounits").Output()
+	if runErr != nil {
+		return 0, 0
+	}
+	line := strings.TrimSpace(strings.SplitN(string(output), "\n", 2)[0])
+	parts := strings.SplitN(line, ",", 2)
+	if len(parts) < 2 {
+		return 0, 0
+	}
+	totalMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
+	freeMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
+	return totalMiB * 1024 * 1024, freeMiB * 1024 * 1024
+}
+
+// parseNvidiaSmiOutput parses "name, total_mib, free_mib" CSV line from nvidia-smi.
+func parseNvidiaSmiOutput(output string) (name string, totalBytes int64, freeBytes int64) {
+	line := strings.TrimSpace(strings.SplitN(output, "\n", 2)[0])
+	parts := strings.SplitN(line, ",", 3)
+	if len(parts) < 3 {
+		// Fallback: try old format with just name
+		return strings.TrimSpace(line), 0, 0
+	}
+	name = strings.TrimSpace(parts[0])
+	totalMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
+	freeMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[2]), 10, 64)
+	return name, totalMiB * 1024 * 1024, freeMiB * 1024 * 1024
 }
 
 func probeGPUCUDAReady() (bool, string) {

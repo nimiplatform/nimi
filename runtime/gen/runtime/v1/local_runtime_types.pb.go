@@ -473,6 +473,56 @@ func (LocalProfileEntryKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{7}
 }
 
+// K-DEV-001: GPU memory architecture model.
+type GpuMemoryModel int32
+
+const (
+	GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN  GpuMemoryModel = 0
+	GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE GpuMemoryModel = 1
+	GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED  GpuMemoryModel = 2
+)
+
+// Enum value maps for GpuMemoryModel.
+var (
+	GpuMemoryModel_name = map[int32]string{
+		0: "GPU_MEMORY_MODEL_UNKNOWN",
+		1: "GPU_MEMORY_MODEL_DISCRETE",
+		2: "GPU_MEMORY_MODEL_UNIFIED",
+	}
+	GpuMemoryModel_value = map[string]int32{
+		"GPU_MEMORY_MODEL_UNKNOWN":  0,
+		"GPU_MEMORY_MODEL_DISCRETE": 1,
+		"GPU_MEMORY_MODEL_UNIFIED":  2,
+	}
+)
+
+func (x GpuMemoryModel) Enum() *GpuMemoryModel {
+	p := new(GpuMemoryModel)
+	*p = x
+	return p
+}
+
+func (x GpuMemoryModel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GpuMemoryModel) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_local_runtime_types_proto_enumTypes[8].Descriptor()
+}
+
+func (GpuMemoryModel) Type() protoreflect.EnumType {
+	return &file_runtime_v1_local_runtime_types_proto_enumTypes[8]
+}
+
+func (x GpuMemoryModel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GpuMemoryModel.Descriptor instead.
+func (GpuMemoryModel) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{8}
+}
+
 type LocalAssetSource struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
@@ -1973,12 +2023,16 @@ func (x *LocalInstallPlanDescriptor) GetEngineConfig() *structpb.Struct {
 }
 
 type LocalGpuProfile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Available     bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
-	Vendor        string                 `protobuf:"bytes,2,opt,name=vendor,proto3" json:"vendor,omitempty"`
-	Model         string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Available bool                   `protobuf:"varint,1,opt,name=available,proto3" json:"available,omitempty"`
+	Vendor    string                 `protobuf:"bytes,2,opt,name=vendor,proto3" json:"vendor,omitempty"`
+	Model     string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	// K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+	TotalVramBytes     int64          `protobuf:"varint,4,opt,name=total_vram_bytes,json=totalVramBytes,proto3" json:"total_vram_bytes,omitempty"`
+	AvailableVramBytes int64          `protobuf:"varint,5,opt,name=available_vram_bytes,json=availableVramBytes,proto3" json:"available_vram_bytes,omitempty"`
+	MemoryModel        GpuMemoryModel `protobuf:"varint,6,opt,name=memory_model,json=memoryModel,proto3,enum=nimi.runtime.v1.GpuMemoryModel" json:"memory_model,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LocalGpuProfile) Reset() {
@@ -2030,6 +2084,27 @@ func (x *LocalGpuProfile) GetModel() string {
 		return x.Model
 	}
 	return ""
+}
+
+func (x *LocalGpuProfile) GetTotalVramBytes() int64 {
+	if x != nil {
+		return x.TotalVramBytes
+	}
+	return 0
+}
+
+func (x *LocalGpuProfile) GetAvailableVramBytes() int64 {
+	if x != nil {
+		return x.AvailableVramBytes
+	}
+	return 0
+}
+
+func (x *LocalGpuProfile) GetMemoryModel() GpuMemoryModel {
+	if x != nil {
+		return x.MemoryModel
+	}
+	return GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN
 }
 
 type LocalPythonProfile struct {
@@ -2221,8 +2296,11 @@ type LocalDeviceProfile struct {
 	Npu           *LocalNpuProfile         `protobuf:"bytes,5,opt,name=npu,proto3" json:"npu,omitempty"`
 	DiskFreeBytes int64                    `protobuf:"varint,6,opt,name=disk_free_bytes,json=diskFreeBytes,proto3" json:"disk_free_bytes,omitempty"`
 	Ports         []*LocalPortAvailability `protobuf:"bytes,7,rep,name=ports,proto3" json:"ports,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// K-DEV-001: Host memory fields. Zero means probe unavailable.
+	TotalRamBytes     int64 `protobuf:"varint,8,opt,name=total_ram_bytes,json=totalRamBytes,proto3" json:"total_ram_bytes,omitempty"`
+	AvailableRamBytes int64 `protobuf:"varint,9,opt,name=available_ram_bytes,json=availableRamBytes,proto3" json:"available_ram_bytes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LocalDeviceProfile) Reset() {
@@ -2302,6 +2380,20 @@ func (x *LocalDeviceProfile) GetPorts() []*LocalPortAvailability {
 		return x.Ports
 	}
 	return nil
+}
+
+func (x *LocalDeviceProfile) GetTotalRamBytes() int64 {
+	if x != nil {
+		return x.TotalRamBytes
+	}
+	return 0
+}
+
+func (x *LocalDeviceProfile) GetAvailableRamBytes() int64 {
+	if x != nil {
+		return x.AvailableRamBytes
+	}
+	return 0
 }
 
 type LocalExecutionOptionDescriptor struct {
@@ -4568,11 +4660,14 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfd\x01\n" +
 	"\x0fLocalGpuProfile\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12\x16\n" +
 	"\x06vendor\x18\x02 \x01(\tR\x06vendor\x12\x14\n" +
-	"\x05model\x18\x03 \x01(\tR\x05model\"L\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\x12(\n" +
+	"\x10total_vram_bytes\x18\x04 \x01(\x03R\x0etotalVramBytes\x120\n" +
+	"\x14available_vram_bytes\x18\x05 \x01(\x03R\x12availableVramBytes\x12B\n" +
+	"\fmemory_model\x18\x06 \x01(\x0e2\x1f.nimi.runtime.v1.GpuMemoryModelR\vmemoryModel\"L\n" +
 	"\x12LocalPythonProfile\x12\x1c\n" +
 	"\tavailable\x18\x01 \x01(\bR\tavailable\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\"\x8f\x01\n" +
@@ -4584,7 +4679,7 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x06detail\x18\x05 \x01(\tR\x06detail\"I\n" +
 	"\x15LocalPortAvailability\x12\x12\n" +
 	"\x04port\x18\x01 \x01(\x05R\x04port\x12\x1c\n" +
-	"\tavailable\x18\x02 \x01(\bR\tavailable\"\xc3\x02\n" +
+	"\tavailable\x18\x02 \x01(\bR\tavailable\"\x9b\x03\n" +
 	"\x12LocalDeviceProfile\x12\x0e\n" +
 	"\x02os\x18\x01 \x01(\tR\x02os\x12\x12\n" +
 	"\x04arch\x18\x02 \x01(\tR\x04arch\x122\n" +
@@ -4592,7 +4687,9 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x06python\x18\x04 \x01(\v2#.nimi.runtime.v1.LocalPythonProfileR\x06python\x122\n" +
 	"\x03npu\x18\x05 \x01(\v2 .nimi.runtime.v1.LocalNpuProfileR\x03npu\x12&\n" +
 	"\x0fdisk_free_bytes\x18\x06 \x01(\x03R\rdiskFreeBytes\x12<\n" +
-	"\x05ports\x18\a \x03(\v2&.nimi.runtime.v1.LocalPortAvailabilityR\x05ports\"\xc1\x02\n" +
+	"\x05ports\x18\a \x03(\v2&.nimi.runtime.v1.LocalPortAvailabilityR\x05ports\x12&\n" +
+	"\x0ftotal_ram_bytes\x18\b \x01(\x03R\rtotalRamBytes\x12.\n" +
+	"\x13available_ram_bytes\x18\t \x01(\x03R\x11availableRamBytes\"\xc1\x02\n" +
 	"\x1eLocalExecutionOptionDescriptor\x12\x19\n" +
 	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12<\n" +
 	"\x04kind\x18\x02 \x01(\x0e2(.nimi.runtime.v1.LocalExecutionEntryKindR\x04kind\x12\x1e\n" +
@@ -4884,7 +4981,11 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"$LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED\x10\x00\x12$\n" +
 	" LOCAL_PROFILE_ENTRY_KIND_SERVICE\x10\x03\x12!\n" +
 	"\x1dLOCAL_PROFILE_ENTRY_KIND_NODE\x10\x04\x12\"\n" +
-	"\x1eLOCAL_PROFILE_ENTRY_KIND_ASSET\x10\x05\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02*\x1eLOCAL_PROFILE_ENTRY_KIND_MODEL*!LOCAL_PROFILE_ENTRY_KIND_ARTIFACTB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"\x1eLOCAL_PROFILE_ENTRY_KIND_ASSET\x10\x05\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02*\x1eLOCAL_PROFILE_ENTRY_KIND_MODEL*!LOCAL_PROFILE_ENTRY_KIND_ARTIFACT*k\n" +
+	"\x0eGpuMemoryModel\x12\x1c\n" +
+	"\x18GPU_MEMORY_MODEL_UNKNOWN\x10\x00\x12\x1d\n" +
+	"\x19GPU_MEMORY_MODEL_DISCRETE\x10\x01\x12\x1c\n" +
+	"\x18GPU_MEMORY_MODEL_UNIFIED\x10\x02B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_local_runtime_types_proto_rawDescOnce sync.Once
@@ -4898,7 +4999,7 @@ func file_runtime_v1_local_runtime_types_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_local_runtime_types_proto_rawDescData
 }
 
-var file_runtime_v1_local_runtime_types_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_runtime_v1_local_runtime_types_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
 var file_runtime_v1_local_runtime_types_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_runtime_v1_local_runtime_types_proto_goTypes = []any{
 	(LocalAssetKind)(0),                         // 0: nimi.runtime.v1.LocalAssetKind
@@ -4909,121 +5010,123 @@ var file_runtime_v1_local_runtime_types_proto_goTypes = []any{
 	(LocalWarmState)(0),                         // 5: nimi.runtime.v1.LocalWarmState
 	(LocalExecutionEntryKind)(0),                // 6: nimi.runtime.v1.LocalExecutionEntryKind
 	(LocalProfileEntryKind)(0),                  // 7: nimi.runtime.v1.LocalProfileEntryKind
-	(*LocalAssetSource)(nil),                    // 8: nimi.runtime.v1.LocalAssetSource
-	(*LocalHostRequirements)(nil),               // 9: nimi.runtime.v1.LocalHostRequirements
-	(*LocalAssetRecord)(nil),                    // 10: nimi.runtime.v1.LocalAssetRecord
-	(*LocalAssetHealth)(nil),                    // 11: nimi.runtime.v1.LocalAssetHealth
-	(*LocalVerifiedAssetDescriptor)(nil),        // 12: nimi.runtime.v1.LocalVerifiedAssetDescriptor
-	(*LocalProviderHintsLlama)(nil),             // 13: nimi.runtime.v1.LocalProviderHintsLlama
-	(*LocalProviderHintsMedia)(nil),             // 14: nimi.runtime.v1.LocalProviderHintsMedia
-	(*LocalProviderHintsSpeech)(nil),            // 15: nimi.runtime.v1.LocalProviderHintsSpeech
-	(*LocalProviderHintsSidecar)(nil),           // 16: nimi.runtime.v1.LocalProviderHintsSidecar
-	(*LocalProviderHints)(nil),                  // 17: nimi.runtime.v1.LocalProviderHints
-	(*LocalCatalogModelDescriptor)(nil),         // 18: nimi.runtime.v1.LocalCatalogModelDescriptor
-	(*LocalInstallPlanDescriptor)(nil),          // 19: nimi.runtime.v1.LocalInstallPlanDescriptor
-	(*LocalGpuProfile)(nil),                     // 20: nimi.runtime.v1.LocalGpuProfile
-	(*LocalPythonProfile)(nil),                  // 21: nimi.runtime.v1.LocalPythonProfile
-	(*LocalNpuProfile)(nil),                     // 22: nimi.runtime.v1.LocalNpuProfile
-	(*LocalPortAvailability)(nil),               // 23: nimi.runtime.v1.LocalPortAvailability
-	(*LocalDeviceProfile)(nil),                  // 24: nimi.runtime.v1.LocalDeviceProfile
-	(*LocalExecutionOptionDescriptor)(nil),      // 25: nimi.runtime.v1.LocalExecutionOptionDescriptor
-	(*LocalExecutionAlternativeDescriptor)(nil), // 26: nimi.runtime.v1.LocalExecutionAlternativeDescriptor
-	(*LocalExecutionDeclarationDescriptor)(nil), // 27: nimi.runtime.v1.LocalExecutionDeclarationDescriptor
-	(*LocalExecutionEntryDescriptor)(nil),       // 28: nimi.runtime.v1.LocalExecutionEntryDescriptor
-	(*LocalPreflightDecision)(nil),              // 29: nimi.runtime.v1.LocalPreflightDecision
-	(*LocalExecutionSelectionRationale)(nil),    // 30: nimi.runtime.v1.LocalExecutionSelectionRationale
-	(*LocalExecutionPlan)(nil),                  // 31: nimi.runtime.v1.LocalExecutionPlan
-	(*LocalExecutionStageResult)(nil),           // 32: nimi.runtime.v1.LocalExecutionStageResult
-	(*LocalServiceDescriptor)(nil),              // 33: nimi.runtime.v1.LocalServiceDescriptor
-	(*LocalExecutionApplyResult)(nil),           // 34: nimi.runtime.v1.LocalExecutionApplyResult
-	(*LocalProfileRequirementDescriptor)(nil),   // 35: nimi.runtime.v1.LocalProfileRequirementDescriptor
-	(*LocalProfileEntryDescriptor)(nil),         // 36: nimi.runtime.v1.LocalProfileEntryDescriptor
-	(*LocalProfileDescriptor)(nil),              // 37: nimi.runtime.v1.LocalProfileDescriptor
-	(*ProfileEntryOverride)(nil),                // 38: nimi.runtime.v1.ProfileEntryOverride
-	(*LocalProfileResolutionPlan)(nil),          // 39: nimi.runtime.v1.LocalProfileResolutionPlan
-	(*LocalProfileApplyResult)(nil),             // 40: nimi.runtime.v1.LocalProfileApplyResult
-	(*LocalNodeDescriptor)(nil),                 // 41: nimi.runtime.v1.LocalNodeDescriptor
-	(*LocalAuditEvent)(nil),                     // 42: nimi.runtime.v1.LocalAuditEvent
-	(*LocalAuditTimeRange)(nil),                 // 43: nimi.runtime.v1.LocalAuditTimeRange
-	(*LocalUnregisteredAssetDeclaration)(nil),   // 44: nimi.runtime.v1.LocalUnregisteredAssetDeclaration
-	(*LocalUnregisteredAssetDescriptor)(nil),    // 45: nimi.runtime.v1.LocalUnregisteredAssetDescriptor
-	nil,                                         // 46: nimi.runtime.v1.LocalAssetRecord.HashesEntry
-	nil,                                         // 47: nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
-	nil,                                         // 48: nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	nil,                                         // 49: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	nil,                                         // 50: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	nil,                                         // 51: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
-	(*structpb.Struct)(nil),                     // 52: google.protobuf.Struct
+	(GpuMemoryModel)(0),                         // 8: nimi.runtime.v1.GpuMemoryModel
+	(*LocalAssetSource)(nil),                    // 9: nimi.runtime.v1.LocalAssetSource
+	(*LocalHostRequirements)(nil),               // 10: nimi.runtime.v1.LocalHostRequirements
+	(*LocalAssetRecord)(nil),                    // 11: nimi.runtime.v1.LocalAssetRecord
+	(*LocalAssetHealth)(nil),                    // 12: nimi.runtime.v1.LocalAssetHealth
+	(*LocalVerifiedAssetDescriptor)(nil),        // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor
+	(*LocalProviderHintsLlama)(nil),             // 14: nimi.runtime.v1.LocalProviderHintsLlama
+	(*LocalProviderHintsMedia)(nil),             // 15: nimi.runtime.v1.LocalProviderHintsMedia
+	(*LocalProviderHintsSpeech)(nil),            // 16: nimi.runtime.v1.LocalProviderHintsSpeech
+	(*LocalProviderHintsSidecar)(nil),           // 17: nimi.runtime.v1.LocalProviderHintsSidecar
+	(*LocalProviderHints)(nil),                  // 18: nimi.runtime.v1.LocalProviderHints
+	(*LocalCatalogModelDescriptor)(nil),         // 19: nimi.runtime.v1.LocalCatalogModelDescriptor
+	(*LocalInstallPlanDescriptor)(nil),          // 20: nimi.runtime.v1.LocalInstallPlanDescriptor
+	(*LocalGpuProfile)(nil),                     // 21: nimi.runtime.v1.LocalGpuProfile
+	(*LocalPythonProfile)(nil),                  // 22: nimi.runtime.v1.LocalPythonProfile
+	(*LocalNpuProfile)(nil),                     // 23: nimi.runtime.v1.LocalNpuProfile
+	(*LocalPortAvailability)(nil),               // 24: nimi.runtime.v1.LocalPortAvailability
+	(*LocalDeviceProfile)(nil),                  // 25: nimi.runtime.v1.LocalDeviceProfile
+	(*LocalExecutionOptionDescriptor)(nil),      // 26: nimi.runtime.v1.LocalExecutionOptionDescriptor
+	(*LocalExecutionAlternativeDescriptor)(nil), // 27: nimi.runtime.v1.LocalExecutionAlternativeDescriptor
+	(*LocalExecutionDeclarationDescriptor)(nil), // 28: nimi.runtime.v1.LocalExecutionDeclarationDescriptor
+	(*LocalExecutionEntryDescriptor)(nil),       // 29: nimi.runtime.v1.LocalExecutionEntryDescriptor
+	(*LocalPreflightDecision)(nil),              // 30: nimi.runtime.v1.LocalPreflightDecision
+	(*LocalExecutionSelectionRationale)(nil),    // 31: nimi.runtime.v1.LocalExecutionSelectionRationale
+	(*LocalExecutionPlan)(nil),                  // 32: nimi.runtime.v1.LocalExecutionPlan
+	(*LocalExecutionStageResult)(nil),           // 33: nimi.runtime.v1.LocalExecutionStageResult
+	(*LocalServiceDescriptor)(nil),              // 34: nimi.runtime.v1.LocalServiceDescriptor
+	(*LocalExecutionApplyResult)(nil),           // 35: nimi.runtime.v1.LocalExecutionApplyResult
+	(*LocalProfileRequirementDescriptor)(nil),   // 36: nimi.runtime.v1.LocalProfileRequirementDescriptor
+	(*LocalProfileEntryDescriptor)(nil),         // 37: nimi.runtime.v1.LocalProfileEntryDescriptor
+	(*LocalProfileDescriptor)(nil),              // 38: nimi.runtime.v1.LocalProfileDescriptor
+	(*ProfileEntryOverride)(nil),                // 39: nimi.runtime.v1.ProfileEntryOverride
+	(*LocalProfileResolutionPlan)(nil),          // 40: nimi.runtime.v1.LocalProfileResolutionPlan
+	(*LocalProfileApplyResult)(nil),             // 41: nimi.runtime.v1.LocalProfileApplyResult
+	(*LocalNodeDescriptor)(nil),                 // 42: nimi.runtime.v1.LocalNodeDescriptor
+	(*LocalAuditEvent)(nil),                     // 43: nimi.runtime.v1.LocalAuditEvent
+	(*LocalAuditTimeRange)(nil),                 // 44: nimi.runtime.v1.LocalAuditTimeRange
+	(*LocalUnregisteredAssetDeclaration)(nil),   // 45: nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+	(*LocalUnregisteredAssetDescriptor)(nil),    // 46: nimi.runtime.v1.LocalUnregisteredAssetDescriptor
+	nil,                                         // 47: nimi.runtime.v1.LocalAssetRecord.HashesEntry
+	nil,                                         // 48: nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
+	nil,                                         // 49: nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	nil,                                         // 50: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	nil,                                         // 51: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	nil,                                         // 52: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
+	(*structpb.Struct)(nil),                     // 53: google.protobuf.Struct
 }
 var file_runtime_v1_local_runtime_types_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalAssetRecord.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	8,  // 1: nimi.runtime.v1.LocalAssetRecord.source:type_name -> nimi.runtime.v1.LocalAssetSource
-	46, // 2: nimi.runtime.v1.LocalAssetRecord.hashes:type_name -> nimi.runtime.v1.LocalAssetRecord.HashesEntry
+	9,  // 1: nimi.runtime.v1.LocalAssetRecord.source:type_name -> nimi.runtime.v1.LocalAssetSource
+	47, // 2: nimi.runtime.v1.LocalAssetRecord.hashes:type_name -> nimi.runtime.v1.LocalAssetRecord.HashesEntry
 	1,  // 3: nimi.runtime.v1.LocalAssetRecord.status:type_name -> nimi.runtime.v1.LocalAssetStatus
 	4,  // 4: nimi.runtime.v1.LocalAssetRecord.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
 	5,  // 5: nimi.runtime.v1.LocalAssetRecord.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
-	9,  // 6: nimi.runtime.v1.LocalAssetRecord.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	52, // 7: nimi.runtime.v1.LocalAssetRecord.engine_config:type_name -> google.protobuf.Struct
-	52, // 8: nimi.runtime.v1.LocalAssetRecord.metadata:type_name -> google.protobuf.Struct
+	10, // 6: nimi.runtime.v1.LocalAssetRecord.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	53, // 7: nimi.runtime.v1.LocalAssetRecord.engine_config:type_name -> google.protobuf.Struct
+	53, // 8: nimi.runtime.v1.LocalAssetRecord.metadata:type_name -> google.protobuf.Struct
 	1,  // 9: nimi.runtime.v1.LocalAssetHealth.status:type_name -> nimi.runtime.v1.LocalAssetStatus
 	0,  // 10: nimi.runtime.v1.LocalVerifiedAssetDescriptor.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	47, // 11: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
-	52, // 12: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
-	52, // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
-	9,  // 14: nimi.runtime.v1.LocalVerifiedAssetDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	13, // 15: nimi.runtime.v1.LocalProviderHints.llama:type_name -> nimi.runtime.v1.LocalProviderHintsLlama
-	14, // 16: nimi.runtime.v1.LocalProviderHints.media:type_name -> nimi.runtime.v1.LocalProviderHintsMedia
-	15, // 17: nimi.runtime.v1.LocalProviderHints.speech:type_name -> nimi.runtime.v1.LocalProviderHintsSpeech
-	16, // 18: nimi.runtime.v1.LocalProviderHints.sidecar:type_name -> nimi.runtime.v1.LocalProviderHintsSidecar
-	48, // 19: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	48, // 11: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
+	53, // 12: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
+	53, // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
+	10, // 14: nimi.runtime.v1.LocalVerifiedAssetDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
+	14, // 15: nimi.runtime.v1.LocalProviderHints.llama:type_name -> nimi.runtime.v1.LocalProviderHintsLlama
+	15, // 16: nimi.runtime.v1.LocalProviderHints.media:type_name -> nimi.runtime.v1.LocalProviderHintsMedia
+	16, // 17: nimi.runtime.v1.LocalProviderHints.speech:type_name -> nimi.runtime.v1.LocalProviderHintsSpeech
+	17, // 18: nimi.runtime.v1.LocalProviderHints.sidecar:type_name -> nimi.runtime.v1.LocalProviderHintsSidecar
+	49, // 19: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
 	3,  // 20: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	17, // 21: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	49, // 22: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	52, // 23: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
+	18, // 21: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	50, // 22: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	53, // 23: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
 	3,  // 24: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
-	17, // 25: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	50, // 26: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	52, // 27: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
-	20, // 28: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
-	21, // 29: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
-	22, // 30: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
-	23, // 31: nimi.runtime.v1.LocalDeviceProfile.ports:type_name -> nimi.runtime.v1.LocalPortAvailability
-	6,  // 32: nimi.runtime.v1.LocalExecutionOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
-	25, // 33: nimi.runtime.v1.LocalExecutionAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	25, // 34: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	25, // 35: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	26, // 36: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalExecutionAlternativeDescriptor
-	51, // 37: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
-	6,  // 38: nimi.runtime.v1.LocalExecutionEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
-	24, // 39: nimi.runtime.v1.LocalExecutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	28, // 40: nimi.runtime.v1.LocalExecutionPlan.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
-	30, // 41: nimi.runtime.v1.LocalExecutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalExecutionSelectionRationale
-	29, // 42: nimi.runtime.v1.LocalExecutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	2,  // 43: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
-	28, // 44: nimi.runtime.v1.LocalExecutionApplyResult.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
-	10, // 45: nimi.runtime.v1.LocalExecutionApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
-	33, // 46: nimi.runtime.v1.LocalExecutionApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	32, // 47: nimi.runtime.v1.LocalExecutionApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalExecutionStageResult
-	29, // 48: nimi.runtime.v1.LocalExecutionApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	7,  // 49: nimi.runtime.v1.LocalProfileEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalProfileEntryKind
-	0,  // 50: nimi.runtime.v1.LocalProfileEntryDescriptor.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	36, // 51: nimi.runtime.v1.LocalProfileDescriptor.entries:type_name -> nimi.runtime.v1.LocalProfileEntryDescriptor
-	35, // 52: nimi.runtime.v1.LocalProfileDescriptor.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
-	35, // 53: nimi.runtime.v1.LocalProfileResolutionPlan.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
-	31, // 54: nimi.runtime.v1.LocalProfileResolutionPlan.execution_plan:type_name -> nimi.runtime.v1.LocalExecutionPlan
-	34, // 55: nimi.runtime.v1.LocalProfileApplyResult.execution_result:type_name -> nimi.runtime.v1.LocalExecutionApplyResult
-	10, // 56: nimi.runtime.v1.LocalProfileApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
-	17, // 57: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	52, // 58: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
-	52, // 59: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
-	52, // 60: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
-	0,  // 61: nimi.runtime.v1.LocalUnregisteredAssetDeclaration.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	44, // 62: nimi.runtime.v1.LocalUnregisteredAssetDescriptor.declaration:type_name -> nimi.runtime.v1.LocalUnregisteredAssetDeclaration
-	63, // [63:63] is the sub-list for method output_type
-	63, // [63:63] is the sub-list for method input_type
-	63, // [63:63] is the sub-list for extension type_name
-	63, // [63:63] is the sub-list for extension extendee
-	0,  // [0:63] is the sub-list for field type_name
+	18, // 25: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	51, // 26: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	53, // 27: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
+	8,  // 28: nimi.runtime.v1.LocalGpuProfile.memory_model:type_name -> nimi.runtime.v1.GpuMemoryModel
+	21, // 29: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
+	22, // 30: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
+	23, // 31: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
+	24, // 32: nimi.runtime.v1.LocalDeviceProfile.ports:type_name -> nimi.runtime.v1.LocalPortAvailability
+	6,  // 33: nimi.runtime.v1.LocalExecutionOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
+	26, // 34: nimi.runtime.v1.LocalExecutionAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	26, // 35: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	26, // 36: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	27, // 37: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalExecutionAlternativeDescriptor
+	52, // 38: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
+	6,  // 39: nimi.runtime.v1.LocalExecutionEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
+	25, // 40: nimi.runtime.v1.LocalExecutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	29, // 41: nimi.runtime.v1.LocalExecutionPlan.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
+	31, // 42: nimi.runtime.v1.LocalExecutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalExecutionSelectionRationale
+	30, // 43: nimi.runtime.v1.LocalExecutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	2,  // 44: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
+	29, // 45: nimi.runtime.v1.LocalExecutionApplyResult.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
+	11, // 46: nimi.runtime.v1.LocalExecutionApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
+	34, // 47: nimi.runtime.v1.LocalExecutionApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	33, // 48: nimi.runtime.v1.LocalExecutionApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalExecutionStageResult
+	30, // 49: nimi.runtime.v1.LocalExecutionApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	7,  // 50: nimi.runtime.v1.LocalProfileEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalProfileEntryKind
+	0,  // 51: nimi.runtime.v1.LocalProfileEntryDescriptor.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	37, // 52: nimi.runtime.v1.LocalProfileDescriptor.entries:type_name -> nimi.runtime.v1.LocalProfileEntryDescriptor
+	36, // 53: nimi.runtime.v1.LocalProfileDescriptor.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
+	36, // 54: nimi.runtime.v1.LocalProfileResolutionPlan.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
+	32, // 55: nimi.runtime.v1.LocalProfileResolutionPlan.execution_plan:type_name -> nimi.runtime.v1.LocalExecutionPlan
+	35, // 56: nimi.runtime.v1.LocalProfileApplyResult.execution_result:type_name -> nimi.runtime.v1.LocalExecutionApplyResult
+	11, // 57: nimi.runtime.v1.LocalProfileApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
+	18, // 58: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	53, // 59: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
+	53, // 60: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
+	53, // 61: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
+	0,  // 62: nimi.runtime.v1.LocalUnregisteredAssetDeclaration.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	45, // 63: nimi.runtime.v1.LocalUnregisteredAssetDescriptor.declaration:type_name -> nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+	64, // [64:64] is the sub-list for method output_type
+	64, // [64:64] is the sub-list for method input_type
+	64, // [64:64] is the sub-list for extension type_name
+	64, // [64:64] is the sub-list for extension extendee
+	0,  // [0:64] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_types_proto_init() }
@@ -5037,7 +5140,7 @@ func file_runtime_v1_local_runtime_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_types_proto_rawDesc), len(file_runtime_v1_local_runtime_types_proto_rawDesc)),
-			NumEnums:      8,
+			NumEnums:      9,
 			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   0,

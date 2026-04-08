@@ -272,10 +272,21 @@ message LocalInstallPlanDescriptor {
 
 // === Device Profile ===
 
+// K-DEV-001: GPU memory architecture model.
+enum GpuMemoryModel {
+  GPU_MEMORY_MODEL_UNKNOWN  = 0;
+  GPU_MEMORY_MODEL_DISCRETE = 1;
+  GPU_MEMORY_MODEL_UNIFIED  = 2;
+}
+
 message LocalGpuProfile {
-  bool available = 1;
-  string vendor  = 2;
-  string model   = 3;
+  bool available              = 1;
+  string vendor               = 2;
+  string model                = 3;
+  // K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+  int64 total_vram_bytes      = 4;
+  int64 available_vram_bytes  = 5;
+  GpuMemoryModel memory_model = 6;
 }
 
 message LocalPythonProfile {
@@ -304,6 +315,9 @@ message LocalDeviceProfile {
   LocalNpuProfile npu                   = 5;
   int64 disk_free_bytes                 = 6;
   repeated LocalPortAvailability ports  = 7;
+  // K-DEV-001: Host memory fields. Zero means probe unavailable.
+  int64 total_ram_bytes                 = 8;
+  int64 available_ram_bytes             = 9;
 }
 
 // === Execution Descriptors ===

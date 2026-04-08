@@ -14,6 +14,8 @@ import type { OpenRealtimeSessionRequest } from "./ai";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAiService } from "./ai";
+import type { PeekSchedulingResponse } from "./ai";
+import type { PeekSchedulingRequest } from "./ai";
 import type { UploadArtifactResponse } from "./ai";
 import type { UploadArtifactRequest } from "./ai";
 import type { ClientStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -45,11 +47,6 @@ import type { ExecuteScenarioResponse } from "./ai";
 import type { ExecuteScenarioRequest } from "./ai";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
-// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
-// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
-// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
-// CheckTokenProviderHealthResponse (fields 1-2).
-
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -106,12 +103,13 @@ export interface IRuntimeAiServiceClient {
      * @generated from protobuf rpc: UploadArtifact
      */
     uploadArtifact(options?: RpcOptions): ClientStreamingCall<UploadArtifactRequest, UploadArtifactResponse>;
+    /**
+     * K-SCHED-002: Non-blocking scheduling preflight assessment.
+     *
+     * @generated from protobuf rpc: PeekScheduling
+     */
+    peekScheduling(input: PeekSchedulingRequest, options?: RpcOptions): UnaryCall<PeekSchedulingRequest, PeekSchedulingResponse>;
 }
-// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
-// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
-// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
-// CheckTokenProviderHealthResponse (fields 1-2).
-
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAiService
  */
@@ -211,6 +209,15 @@ export class RuntimeAiServiceClient implements IRuntimeAiServiceClient, ServiceI
     uploadArtifact(options?: RpcOptions): ClientStreamingCall<UploadArtifactRequest, UploadArtifactResponse> {
         const method = this.methods[12], opt = this._transport.mergeOptions(options);
         return stackIntercept<UploadArtifactRequest, UploadArtifactResponse>("clientStreaming", this._transport, method, opt);
+    }
+    /**
+     * K-SCHED-002: Non-blocking scheduling preflight assessment.
+     *
+     * @generated from protobuf rpc: PeekScheduling
+     */
+    peekScheduling(input: PeekSchedulingRequest, options?: RpcOptions): UnaryCall<PeekSchedulingRequest, PeekSchedulingResponse> {
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        return stackIntercept<PeekSchedulingRequest, PeekSchedulingResponse>("unary", this._transport, method, opt, input);
     }
 }
 /**

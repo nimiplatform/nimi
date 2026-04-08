@@ -921,6 +921,10 @@ func (f *fakeRuntimeAIClient) UploadArtifact(context.Context, ...grpc.CallOption
 	return nil, status.Error(12, "unimplemented")
 }
 
+func (f *fakeRuntimeAIClient) PeekScheduling(context.Context, *runtimev1.PeekSchedulingRequest, ...grpc.CallOption) (*runtimev1.PeekSchedulingResponse, error) {
+	return &runtimev1.PeekSchedulingResponse{}, nil
+}
+
 func longWorkflowDefinition(nodes int) *runtimev1.WorkflowDefinition {
 	definition := &runtimev1.WorkflowDefinition{
 		WorkflowType: "long.pipeline",

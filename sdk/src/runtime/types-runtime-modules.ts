@@ -41,6 +41,8 @@ import type {
   SubmitScenarioJobResponse,
   SubscribeScenarioJobEventsRequest,
   UploadArtifactResponse,
+  PeekSchedulingRequest,
+  PeekSchedulingResponse,
 } from './generated/runtime/v1/ai';
 import type {
   DeleteVoiceAssetRequest,
@@ -179,6 +181,10 @@ export type RuntimeAiModule = {
     request: CloseRealtimeSessionRequest,
     options?: RuntimeCallOptions,
   ): Promise<CloseRealtimeSessionResponse>;
+  peekScheduling(
+    request: PeekSchedulingRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<PeekSchedulingResponse>;
   text: {
     generate(input: TextGenerateInput): Promise<TextGenerateOutput>;
     stream(input: TextStreamInput): Promise<TextStreamOutput>;

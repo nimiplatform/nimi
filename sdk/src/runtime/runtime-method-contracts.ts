@@ -39,6 +39,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.ai.listVoiceAssets]: RuntimeClientMethodContract<'ai', 'listVoiceAssets'>;
   [RuntimeMethodIds.ai.deleteVoiceAsset]: RuntimeClientMethodContract<'ai', 'deleteVoiceAsset'>;
   [RuntimeMethodIds.ai.listPresetVoices]: RuntimeClientMethodContract<'ai', 'listPresetVoices'>;
+  [RuntimeMethodIds.ai.peekScheduling]: RuntimeClientMethodContract<'ai', 'peekScheduling'>;
   [RuntimeMethodIds.aiRealtime.openRealtimeSession]: RuntimeClientMethodContract<'ai', 'openRealtimeSession'>;
   [RuntimeMethodIds.aiRealtime.appendRealtimeInput]: RuntimeClientMethodContract<'ai', 'appendRealtimeInput'>;
   [RuntimeMethodIds.aiRealtime.closeRealtimeSession]: RuntimeClientMethodContract<'ai', 'closeRealtimeSession'>;

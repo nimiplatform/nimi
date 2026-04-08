@@ -632,8 +632,6 @@ export interface LocalInstallPlanDescriptor {
      */
     engineConfig?: Struct;
 }
-// === Device Profile ===
-
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalGpuProfile
  */
@@ -650,6 +648,20 @@ export interface LocalGpuProfile {
      * @generated from protobuf field: string model = 3
      */
     model: string;
+    /**
+     * K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+     *
+     * @generated from protobuf field: int64 total_vram_bytes = 4
+     */
+    totalVramBytes: string;
+    /**
+     * @generated from protobuf field: int64 available_vram_bytes = 5
+     */
+    availableVramBytes: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.GpuMemoryModel memory_model = 6
+     */
+    memoryModel: GpuMemoryModel;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalPythonProfile
@@ -734,6 +746,16 @@ export interface LocalDeviceProfile {
      * @generated from protobuf field: repeated nimi.runtime.v1.LocalPortAvailability ports = 7
      */
     ports: LocalPortAvailability[];
+    /**
+     * K-DEV-001: Host memory fields. Zero means probe unavailable.
+     *
+     * @generated from protobuf field: int64 total_ram_bytes = 8
+     */
+    totalRamBytes: string;
+    /**
+     * @generated from protobuf field: int64 available_ram_bytes = 9
+     */
+    availableRamBytes: string;
 }
 // === Execution Descriptors ===
 
@@ -1739,6 +1761,27 @@ export enum LocalProfileEntryKind {
      * @generated from protobuf enum value: LOCAL_PROFILE_ENTRY_KIND_ASSET = 5;
      */
     ASSET = 5
+}
+// === Device Profile ===
+
+/**
+ * K-DEV-001: GPU memory architecture model.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.GpuMemoryModel
+ */
+export enum GpuMemoryModel {
+    /**
+     * @generated from protobuf enum value: GPU_MEMORY_MODEL_UNKNOWN = 0;
+     */
+    UNKNOWN = 0,
+    /**
+     * @generated from protobuf enum value: GPU_MEMORY_MODEL_DISCRETE = 1;
+     */
+    DISCRETE = 1,
+    /**
+     * @generated from protobuf enum value: GPU_MEMORY_MODEL_UNIFIED = 2;
+     */
+    UNIFIED = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAssetSource$Type extends MessageType<LocalAssetSource> {
@@ -3343,7 +3386,10 @@ class LocalGpuProfile$Type extends MessageType<LocalGpuProfile> {
         super("nimi.runtime.v1.LocalGpuProfile", [
             { no: 1, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 2, name: "vendor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "model", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "total_vram_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 5, name: "available_vram_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 6, name: "memory_model", kind: "enum", T: () => ["nimi.runtime.v1.GpuMemoryModel", GpuMemoryModel, "GPU_MEMORY_MODEL_"] }
         ]);
     }
     create(value?: PartialMessage<LocalGpuProfile>): LocalGpuProfile {
@@ -3351,6 +3397,9 @@ class LocalGpuProfile$Type extends MessageType<LocalGpuProfile> {
         message.available = false;
         message.vendor = "";
         message.model = "";
+        message.totalVramBytes = "0";
+        message.availableVramBytes = "0";
+        message.memoryModel = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalGpuProfile>(this, message, value);
         return message;
@@ -3368,6 +3417,15 @@ class LocalGpuProfile$Type extends MessageType<LocalGpuProfile> {
                     break;
                 case /* string model */ 3:
                     message.model = reader.string();
+                    break;
+                case /* int64 total_vram_bytes */ 4:
+                    message.totalVramBytes = reader.int64().toString();
+                    break;
+                case /* int64 available_vram_bytes */ 5:
+                    message.availableVramBytes = reader.int64().toString();
+                    break;
+                case /* nimi.runtime.v1.GpuMemoryModel memory_model */ 6:
+                    message.memoryModel = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3390,6 +3448,15 @@ class LocalGpuProfile$Type extends MessageType<LocalGpuProfile> {
         /* string model = 3; */
         if (message.model !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.model);
+        /* int64 total_vram_bytes = 4; */
+        if (message.totalVramBytes !== "0")
+            writer.tag(4, WireType.Varint).int64(message.totalVramBytes);
+        /* int64 available_vram_bytes = 5; */
+        if (message.availableVramBytes !== "0")
+            writer.tag(5, WireType.Varint).int64(message.availableVramBytes);
+        /* nimi.runtime.v1.GpuMemoryModel memory_model = 6; */
+        if (message.memoryModel !== 0)
+            writer.tag(6, WireType.Varint).int32(message.memoryModel);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3599,7 +3666,9 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
             { no: 4, name: "python", kind: "message", T: () => LocalPythonProfile },
             { no: 5, name: "npu", kind: "message", T: () => LocalNpuProfile },
             { no: 6, name: "disk_free_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 7, name: "ports", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalPortAvailability }
+            { no: 7, name: "ports", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalPortAvailability },
+            { no: 8, name: "total_ram_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 9, name: "available_ram_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<LocalDeviceProfile>): LocalDeviceProfile {
@@ -3608,6 +3677,8 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
         message.arch = "";
         message.diskFreeBytes = "0";
         message.ports = [];
+        message.totalRamBytes = "0";
+        message.availableRamBytes = "0";
         if (value !== undefined)
             reflectionMergePartial<LocalDeviceProfile>(this, message, value);
         return message;
@@ -3637,6 +3708,12 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
                     break;
                 case /* repeated nimi.runtime.v1.LocalPortAvailability ports */ 7:
                     message.ports.push(LocalPortAvailability.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* int64 total_ram_bytes */ 8:
+                    message.totalRamBytes = reader.int64().toString();
+                    break;
+                case /* int64 available_ram_bytes */ 9:
+                    message.availableRamBytes = reader.int64().toString();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3671,6 +3748,12 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
         /* repeated nimi.runtime.v1.LocalPortAvailability ports = 7; */
         for (let i = 0; i < message.ports.length; i++)
             LocalPortAvailability.internalBinaryWrite(message.ports[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* int64 total_ram_bytes = 8; */
+        if (message.totalRamBytes !== "0")
+            writer.tag(8, WireType.Varint).int64(message.totalRamBytes);
+        /* int64 available_ram_bytes = 9; */
+        if (message.availableRamBytes !== "0")
+            writer.tag(9, WireType.Varint).int64(message.availableRamBytes);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

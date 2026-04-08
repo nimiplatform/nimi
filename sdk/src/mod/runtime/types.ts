@@ -42,6 +42,14 @@ import type {
   RuntimeRouteSource,
 } from '../runtime-route.js';
 import type { RuntimeRouteHealthResult } from '../types/llm.js';
+import type {
+  AIConfig,
+  AIConfigProbeResult,
+  AISchedulingEvaluationTarget,
+  AISchedulingJudgement,
+  AIScopeRef,
+  AISnapshot,
+} from './ai-config.js';
 
 export type ModRuntimeResolvedBinding = {
   capability: RuntimeCanonicalCapability;
@@ -253,12 +261,60 @@ export type ModRuntimeLocalAssetRecord = {
   metadata?: JsonObject;
 };
 
+export type ModRuntimeSchedulingResourceHint = {
+  estimatedVramBytes?: number | null;
+  estimatedRamBytes?: number | null;
+  estimatedDiskBytes?: number | null;
+  engine?: string | null;
+};
+
+/** K-SCHED-002: Scheduling evaluation target for ModRuntimeClient. */
+export type ModRuntimeSchedulingEvaluationTarget = {
+  capability: string;
+  /** K-SCHED-004: module owning the local profile for dependency denial check. */
+  modId?: string | null;
+  /** K-SCHED-004: local profile ID for dependency denial check. */
+  profileId?: string | null;
+  resourceHint?: ModRuntimeSchedulingResourceHint | null;
+};
+
+/** K-SCHED-002: Scheduling judgement payload mapped from runtime SchedulingJudgement. */
+export type ModRuntimeSchedulerJudgement = {
+  state: string;
+  detail: string;
+  occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
+  resourceWarnings: string[];
+};
+
+/** K-SCHED-002: Per-target scheduling judgement mapping. */
+export type ModRuntimeSchedulerTargetJudgement = {
+  target: ModRuntimeSchedulingEvaluationTarget;
+  judgement: ModRuntimeSchedulerJudgement;
+};
+
+/** K-SCHED-002: Scheduling batch peek input for ModRuntimeClient. */
+export type ModRuntimeSchedulerPeekInput = {
+  appId: string;
+  targets: ModRuntimeSchedulingEvaluationTarget[];
+};
+
+/** K-SCHED-002: Scheduling batch peek result mapped from runtime PeekSchedulingResponse. */
+export type ModRuntimeSchedulerPeekResult = {
+  occupancy: { globalUsed: number; globalCap: number; appUsed: number; appCap: number } | null;
+  aggregateJudgement: ModRuntimeSchedulerJudgement | null;
+  targetJudgements: ModRuntimeSchedulerTargetJudgement[];
+};
+
 export type ModRuntimeClient = {
   route: {
     listOptions(input: ModRuntimeRouteListOptionsInput): Promise<RuntimeRouteOptionsSnapshot>;
     resolve(input: ModRuntimeRouteResolveInput): Promise<ModRuntimeResolvedBinding>;
     checkHealth(input: ModRuntimeRouteCheckHealthInput): Promise<RuntimeRouteHealthResult>;
     describe(input: ModRuntimeRouteDescribeInput): Promise<RuntimeRouteDescribeResult>;
+  };
+  /** K-SCHED-002: Scheduling preflight surface. */
+  scheduler: {
+    peek(input: ModRuntimeSchedulerPeekInput): Promise<ModRuntimeSchedulerPeekResult>;
   };
   local: {
     listAssets(input?: ModRuntimeListLocalAssetsInput): Promise<ModRuntimeLocalAssetRecord[]>;
@@ -274,6 +330,23 @@ export type ModRuntimeClient = {
       capability?: RuntimeCanonicalCapability | string;
       entryOverrides?: ModRuntimeProfileEntryOverride[];
     }): Promise<ModRuntimeLocalProfileInstallStatus>;
+  };
+  aiConfig: {
+    get(scopeRef: AIScopeRef): AIConfig;
+    update(scopeRef: AIScopeRef, config: AIConfig): void;
+    listScopes(): AIScopeRef[];
+    probe(scopeRef: AIScopeRef): Promise<AIConfigProbeResult>;
+    probeFeasibility(scopeRef: AIScopeRef): Promise<AIConfigProbeResult>;
+    probeSchedulingTarget(
+      scopeRef: AIScopeRef,
+      target: AISchedulingEvaluationTarget,
+    ): Promise<AISchedulingJudgement | null>;
+    subscribe(scopeRef: AIScopeRef, callback: (config: AIConfig) => void): () => void;
+  };
+  aiSnapshot: {
+    record(scopeRef: AIScopeRef, snapshot: AISnapshot): void;
+    get(executionId: string): AISnapshot | null;
+    getLatest(scopeRef: AIScopeRef): AISnapshot | null;
   };
   ai: {
     text: {

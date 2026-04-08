@@ -19,6 +19,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
@@ -162,6 +163,97 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)
+
+	// K-SCHED-004: register target-agnostic denial checks. Device profile is
+	// collected on each Peek (no caching per K-SCHED-004).
+
+	// Denial 1: disk below safety threshold (K-CFG driven, K-SCHED-004).
+	diskDenialThreshold := cfg.SchedulingDiskDenialThresholdBytes
+	if diskDenialThreshold <= 0 {
+		diskDenialThreshold = 500 * 1024 * 1024 // fallback 500 MB
+	}
+	aiSvc.RegisterSchedulerDenialCheck(func() (bool, string) {
+		resp, err := localSvc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{})
+		if err != nil || resp == nil || resp.GetProfile() == nil {
+			return false, ""
+		}
+		free := resp.GetProfile().GetDiskFreeBytes()
+		if free > 0 && free < diskDenialThreshold {
+			return true, fmt.Sprintf("disk free space %d bytes is below safety threshold %d bytes", free, diskDenialThreshold)
+		}
+		return false, ""
+	})
+
+	// K-SCHED-004 denial 2: dependency infeasible. Uses profile registry + ResolveProfile preflight.
+	// The checker looks up the profile descriptor by (modID, profileID) from the runtime-side
+	// profile registry, then calls ResolveProfile to evaluate dependency feasibility.
+	profileRegistry := localSvc.GetProfileRegistry()
+	aiSvc.SetSchedulerDependencyChecker(func(modID, profileID, capability string) (bool, string) {
+		profile := profileRegistry.LookupProfile(modID, profileID)
+		if profile == nil {
+			return true, "" // profile not found — skip, not deny ("unable to evaluate ≠ infeasible")
+		}
+		resp, err := localSvc.ResolveProfile(context.Background(), &runtimev1.ResolveProfileRequest{
+			ModId:      modID,
+			Profile:    profile,
+			Capability: capability,
+		})
+		if err != nil || resp == nil || resp.GetPlan() == nil {
+			return true, "" // cannot evaluate — skip, not deny
+		}
+		execPlan := resp.GetPlan().GetExecutionPlan()
+		if execPlan == nil {
+			return true, ""
+		}
+		for _, decision := range execPlan.GetPreflightDecisions() {
+			if decision != nil && !decision.GetOk() {
+				return false, fmt.Sprintf("dependency infeasible: %s — %s",
+					decision.GetReasonCode(), decision.GetDetail())
+			}
+		}
+		return true, ""
+	})
+
+	// K-SCHED-005: resource assessor for risk states.
+	// Collects device profile on each Peek call (no caching per K-DEV-008).
+	aiSvc.SetSchedulerResourceAssessor(func() *scheduler.ResourceSnapshot {
+		resp, err := localSvc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{})
+		if err != nil || resp == nil || resp.GetProfile() == nil {
+			return nil
+		}
+		p := resp.GetProfile()
+		gpu := p.GetGpu()
+		memoryModel := "unknown"
+		if gpu != nil {
+			switch gpu.GetMemoryModel() {
+			case runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE:
+				memoryModel = "discrete"
+			case runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED:
+				memoryModel = "unified"
+			}
+		}
+		return &scheduler.ResourceSnapshot{
+			TotalRAMBytes:      p.GetTotalRamBytes(),
+			AvailableRAMBytes:  p.GetAvailableRamBytes(),
+			TotalVRAMBytes:     gpu.GetTotalVramBytes(),
+			AvailableVRAMBytes: gpu.GetAvailableVramBytes(),
+			DiskFreeBytes:      p.GetDiskFreeBytes(),
+			GPUAvailable:       gpu.GetAvailable(),
+			MemoryModel:        memoryModel,
+		}
+	})
+
+	// K-SCHED-005: risk thresholds from config.
+	preemptionPct := cfg.SchedulingPreemptionOccupancyPercent
+	if preemptionPct <= 0 || preemptionPct > 100 {
+		preemptionPct = 75
+	}
+	aiSvc.SetSchedulerRiskThresholds(scheduler.RiskThresholds{
+		SlowdownRAMBytes:         cfg.SchedulingSlowdownRAMThresholdBytes,
+		SlowdownVRAMBytes:        cfg.SchedulingSlowdownVRAMThresholdBytes,
+		SlowdownDiskBytes:        cfg.SchedulingSlowdownDiskThresholdBytes,
+		PreemptionOccupancyRatio: float64(preemptionPct) / 100.0,
+	})
 
 	connSvc := connectorservice.New(logger, connStore, auditStore)
 	connSvc.SetCloudProvider(aiSvc.CloudProvider())

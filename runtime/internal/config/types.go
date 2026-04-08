@@ -152,6 +152,26 @@ type Config struct {
 
 	// EngineSidecarPort is the port for the supervised sidecar instance.
 	EngineSidecarPort int
+
+	// SchedulingDiskDenialThresholdBytes is the disk free threshold for scheduling
+	// denial. Default: 500 MB. (K-SCHED-004)
+	SchedulingDiskDenialThresholdBytes int64
+
+	// SchedulingSlowdownRAMThresholdBytes is the available RAM threshold for
+	// slowdown_risk. Default: 2 GB. (K-SCHED-005)
+	SchedulingSlowdownRAMThresholdBytes int64
+
+	// SchedulingSlowdownVRAMThresholdBytes is the available VRAM threshold for
+	// slowdown_risk. Default: 1 GB. (K-SCHED-005)
+	SchedulingSlowdownVRAMThresholdBytes int64
+
+	// SchedulingSlowdownDiskThresholdBytes is the disk free threshold for
+	// slowdown_risk (above denial but low). Default: 2 GB. (K-SCHED-005)
+	SchedulingSlowdownDiskThresholdBytes int64
+
+	// SchedulingPreemptionOccupancyPercent is the global slot occupancy percentage
+	// above which preemption_risk is returned. Default: 75. (K-SCHED-005)
+	SchedulingPreemptionOccupancyPercent int
 }
 
 // FileConfig is the on-disk JSON schema for runtime configuration.
@@ -183,9 +203,19 @@ type FileConfig struct {
 	ModelCatalogCustomDir   string `json:"modelCatalogCustomDir,omitempty"`
 	LogLevel                string `json:"logLevel,omitempty"`
 
-	Auth      *FileConfigAuth              `json:"auth,omitempty"`
-	Providers map[string]RuntimeFileTarget `json:"providers,omitempty"`
-	Engines   *FileConfigEngines           `json:"engines,omitempty"`
+	Auth       *FileConfigAuth              `json:"auth,omitempty"`
+	Providers  map[string]RuntimeFileTarget `json:"providers,omitempty"`
+	Engines    *FileConfigEngines           `json:"engines,omitempty"`
+	Scheduling *FileConfigScheduling        `json:"scheduling,omitempty"`
+}
+
+// FileConfigScheduling holds scheduling risk threshold configuration.
+type FileConfigScheduling struct {
+	DiskDenialThresholdBytes      *int `json:"diskDenialThresholdBytes,omitempty"`
+	SlowdownRamThresholdBytes     *int `json:"slowdownRamThresholdBytes,omitempty"`
+	SlowdownVramThresholdBytes    *int `json:"slowdownVramThresholdBytes,omitempty"`
+	SlowdownDiskThresholdBytes    *int `json:"slowdownDiskThresholdBytes,omitempty"`
+	PreemptionOccupancyPercent    *int `json:"preemptionOccupancyPercent,omitempty"`
 }
 
 // FileConfigEngines holds supervised engine configuration in the config file.

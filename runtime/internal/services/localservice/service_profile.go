@@ -9,6 +9,15 @@ import (
 )
 
 func (s *Service) ResolveProfile(_ context.Context, req *runtimev1.ResolveProfileRequest) (*runtimev1.ResolveProfileResponse, error) {
+	// K-SCHED-004: auto-register profile in the runtime-side registry so that
+	// the scheduling dependency feasibility checker can look it up by identity.
+	if profile := req.GetProfile(); profile != nil {
+		modID := strings.TrimSpace(req.GetModId())
+		profileID := strings.TrimSpace(profile.GetId())
+		if profileID != "" && s.profileRegistry != nil {
+			s.profileRegistry.RegisterProfile(modID, profileID, profile)
+		}
+	}
 	return &runtimev1.ResolveProfileResponse{
 		Plan: s.resolveProfilePlan(req),
 	}, nil

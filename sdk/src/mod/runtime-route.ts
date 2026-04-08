@@ -12,6 +12,7 @@ export type RuntimeCanonicalCapability =
   | 'video.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
+  | 'music.generate'
   | 'voice_workflow.tts_v2v'
   | 'voice_workflow.tts_t2v';
 
@@ -19,6 +20,7 @@ export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
   connectorId: string;
   model: string;
+  modelLabel?: string;
   modelId?: string;
   provider?: string;
   localModelId?: string;
@@ -140,11 +142,14 @@ export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonica
     || normalized === 'video.generate'
     || normalized === 'audio.synthesize'
     || normalized === 'audio.transcribe'
+    || normalized === 'music.generate'
     || normalized === 'voice_workflow.tts_v2v'
     || normalized === 'voice_workflow.tts_t2v'
   ) {
     return normalized;
   }
+  // Aliases — backward compatibility only, not canonical tokens
+  if (normalized === 'music') return 'music.generate';
   return null;
 }
 
@@ -181,6 +186,7 @@ export function parseRuntimeRouteBinding(value: unknown): RuntimeRouteBinding | 
     source: normalizeRuntimeRouteSource(record.source),
     connectorId: String(record.connectorId || ''),
     model: String(record.model || ''),
+    modelLabel: String(record.modelLabel || '').trim() || undefined,
     modelId: String(record.modelId || '').trim() || undefined,
     provider: String(record.provider || '').trim() || undefined,
     localModelId: String(record.localModelId || '').trim() || undefined,
