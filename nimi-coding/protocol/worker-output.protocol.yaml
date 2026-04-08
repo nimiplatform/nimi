@@ -1,0 +1,12 @@
+id: worker-output.v1
+purpose: Normalize worker completion output for audit and acceptance.
+requires:
+  - findings
+  - implementation summary
+  - files changed
+  - checks run
+  - remaining gaps / risks
+forbids:
+  - completion without checks
+  - narrative-only output
+  - partial work labeled as complete

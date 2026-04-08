@@ -31,6 +31,7 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `kit/**` | `kit/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
+| `nimi-coding/**` | `nimi-coding/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
 | `spec/**` | `spec/AGENTS.md` |
 | `nimi-mods/runtime/<name>/spec/**` | That mod's `spec/AGENTS.md` |

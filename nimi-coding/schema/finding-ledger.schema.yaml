@@ -1,0 +1,33 @@
+id: nimi-coding.finding-ledger.v1
+kind: finding-ledger
+required:
+  - topic_id
+  - updated_at
+  - owner
+  - findings
+finding_required:
+  - finding_id
+  - title
+  - source
+  - status
+  - phase
+  - reason
+  - opened_at
+  - updated_at
+  - owner
+finding_optional:
+  - evidence_ref
+  - superseded_by
+  - baseline_ref
+  - protocol_ref
+status_enum:
+  - active
+  - fixed
+  - deferred
+  - invalid
+  - superseded
+  - archived
+closeout_rules:
+  - fixed requires evidence_ref
+  - invalid requires evidence_ref
+  - superseded requires superseded_by

@@ -1,0 +1,14 @@
+id: nimi-coding.worker-output.v1
+kind: worker-output
+required_blocks:
+  - Findings
+  - Implementation summary
+  - Files changed
+  - Checks run
+  - Remaining gaps / risks
+optional_blocks:
+  - Chosen decision
+  - Authority / spec impact
+  - Guard behavior decision
+  - Next implementation step
+  - Remaining blockers

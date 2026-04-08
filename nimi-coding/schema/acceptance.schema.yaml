@@ -1,0 +1,16 @@
+id: nimi-coding.acceptance.v1
+kind: acceptance
+required_order:
+  - authority alignment
+  - phase closure
+  - evidence sufficiency
+  - disposition
+  - next step or reopen
+disposition_enum:
+  - complete
+  - partial
+  - deferred
+required_blocks:
+  - Findings
+  - Current Phase Disposition
+  - Next Step or Reopen Condition

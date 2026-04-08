@@ -1,0 +1,12 @@
+id: acceptance.v1
+purpose: Standardize manager acceptance ordering and output.
+requires:
+  - authority check
+  - phase closure check
+  - evidence sufficiency check
+  - disposition
+  - next step or reopen condition
+dispositions:
+  - complete
+  - partial
+  - deferred

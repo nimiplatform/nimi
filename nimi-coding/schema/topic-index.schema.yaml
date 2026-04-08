@@ -1,0 +1,29 @@
+id: nimi-coding.topic-index.v1
+kind: topic-index
+required:
+  - topic_id
+  - title
+  - status
+  - reason
+  - owner
+  - updated_at
+  - active_baseline
+  - active_explores
+  - latest_evidence
+  - final_evidence
+  - spec_rule_refs
+  - protocol_refs
+optional:
+  - finding_ledger_ref
+status_enum:
+  - exploring
+  - active
+  - blocked
+  - deferred
+  - closed
+  - archived
+rules:
+  - when status=active, active_baseline must be non-null
+  - if final_evidence is non-null, target evidence status must be final
+  - active_explores is a list of relative file paths
+  - latest_evidence and final_evidence are single relative file paths or null

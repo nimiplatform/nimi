@@ -1,0 +1,11 @@
+id: phase-lifecycle.v1
+purpose: Define the standard staged delivery phase lifecycle.
+steps:
+  - Preflight
+  - Converge
+  - Phase Freeze
+  - Dispatch
+  - Execute
+  - Verify
+  - Accept
+  - Close / Reject / Defer

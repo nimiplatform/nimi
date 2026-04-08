@@ -1,0 +1,27 @@
+id: nimi-coding.baseline-doc.v1
+kind: markdown-doc
+doc_type: baseline
+required_frontmatter:
+  - title
+  - doc_type
+  - status
+  - reason
+  - owner
+  - updated_at
+  - phase
+status_enum:
+  - draft
+  - active
+  - frozen
+  - superseded
+  - archived
+required_sections:
+  - Phase Goal
+  - Confirmed State
+  - Entry Criteria
+  - Hard Constraints
+  - Explicit Non-Goals
+  - Required Checks
+  - Completion Criteria
+  - Reject / Reopen Conditions
+  - Next Step

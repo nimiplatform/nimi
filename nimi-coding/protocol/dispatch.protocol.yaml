@@ -1,0 +1,14 @@
+id: dispatch.v1
+purpose: Freeze and dispatch one bounded phase to a worker.
+requires:
+  - phase goal
+  - authority reads
+  - confirmed state
+  - hard constraints
+  - explicit non-goals
+  - required checks
+  - final output format
+forbids:
+  - multi-phase dispatch
+  - missing authority reads
+  - open-ended scope

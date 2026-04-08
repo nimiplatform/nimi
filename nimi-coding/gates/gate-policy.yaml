@@ -1,0 +1,23 @@
+hard_gates:
+  - topic-index-schema-valid
+  - typed-doc-schema-valid
+  - route-target-exists
+  - route-target-doc-type-match
+  - final-evidence-target-final
+  - finding-closeout-minimum-rules
+  - finding-id-unique-in-ledger
+  - closed-topic-requires-final-evidence
+  - closed-archived-topic-baseline-not-active
+  - batch-requires-frozen-baseline
+  - batch-requires-active-topic
+  - batch-requires-protocol-refs
+  - batch-requires-valid-ledger
+soft_gates:
+  - active-topic-has-protocol-refs
+  - active-topic-has-finding-ledger
+  - evidence-contains-structured-finding-closeout
+  - acceptance-has-disposition-in-frontmatter
+advisory:
+  - authority-refs-minimized
+  - protocol-refs-minimized
+  - non-goals-complete

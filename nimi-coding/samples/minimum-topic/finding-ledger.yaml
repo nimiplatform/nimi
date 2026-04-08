@@ -1,0 +1,17 @@
+topic_id: minimum-topic
+updated_at: 2026-04-08T16:00:00+08:00
+owner: nimi-coding/samples
+findings:
+  - finding_id: MIN-001
+    title: Final evidence route is not covered in the minimum topic
+    source: sample-audit
+    status: deferred
+    phase: sample-baseline
+    evidence_ref: audit.evidence.md
+    superseded_by: null
+    reason: The minimum sample intentionally omits final-evidence coverage to stay small.
+    baseline_ref: methodology.baseline.md
+    protocol_ref: acceptance.v1
+    opened_at: 2026-04-08T16:00:00+08:00
+    updated_at: 2026-04-08T16:00:00+08:00
+    owner: nimi-coding/samples

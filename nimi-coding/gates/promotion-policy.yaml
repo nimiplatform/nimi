@@ -1,0 +1,19 @@
+local_incubator_root: .local/coding
+promoted_root: nimi-coding
+never_promote:
+  - ad hoc audit notes
+  - session transcripts
+  - local scratch topics
+promotable:
+  - stable contracts
+  - stable schema
+  - reusable protocols
+  - reusable validators
+  - reusable CLI commands
+  - canonical samples
+promotion_requirements:
+  - decision complete
+  - reusable beyond one topic
+  - validator-compatible
+  - sample-backed
+  - not normative product authority

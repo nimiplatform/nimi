@@ -1,0 +1,21 @@
+id: nimi-coding.explore-doc.v1
+kind: markdown-doc
+doc_type: explore
+required_frontmatter:
+  - title
+  - doc_type
+  - status
+  - reason
+  - owner
+  - updated_at
+status_enum:
+  - draft
+  - active
+  - superseded
+  - archived
+required_sections:
+  - Question / Scope
+  - Current Understanding
+  - Options
+  - Recommendation or Current Lean
+  - Open Questions

@@ -1,0 +1,11 @@
+id: reopen-defer.v1
+purpose: Define defer and reopen semantics.
+requires:
+  - explicit reason
+  - owner
+  - updated_at
+  - evidence_ref when closeout is evidence-backed
+rules:
+  - deferred is not failure
+  - reopen must be explicit
+  - old findings or phases are not reopened by silent state overwrite

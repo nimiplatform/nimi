@@ -1,0 +1,12 @@
+id: nimi-coding.prompt.v1
+kind: prompt
+required_blocks:
+  - Task Goal
+  - Authority Reads
+  - Confirmed State
+  - Hard Constraints
+  - Must Complete
+  - Explicit Non-Goals
+  - Required Checks
+  - Required Final Output Format
+  - Blocker Escalation Rule
