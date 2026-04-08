@@ -16,6 +16,7 @@ import type {
   AgentLocalInteractionSnapshotRecord,
   AgentLocalLoadTurnContextInput,
   AgentLocalMessageError,
+  AgentLocalMessageKind,
   AgentLocalMessageRecord,
   AgentLocalMessageRole,
   AgentLocalMessageStatus,
@@ -71,6 +72,14 @@ function parseMessageStatus(value: unknown, errorPrefix: string): AgentLocalMess
     return normalized;
   }
   throw new Error(`${errorPrefix}: status is invalid`);
+}
+
+function parseMessageKind(value: unknown, errorPrefix: string): AgentLocalMessageKind {
+  const normalized = String(value || '').trim();
+  if (normalized === 'text' || normalized === 'image') {
+    return normalized;
+  }
+  throw new Error(`${errorPrefix}: kind is invalid`);
 }
 
 function parseTurnRole(value: unknown, errorPrefix: string): AgentLocalTurnRole {
@@ -201,11 +210,15 @@ export function parseAgentLocalMessageRecord(value: unknown): AgentLocalMessageR
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent message record'),
     role: parseMessageRole(record.role, 'chat_agent message record'),
     status: parseMessageStatus(record.status, 'chat_agent message record'),
+    kind: parseMessageKind(record.kind, 'chat_agent message record'),
     contentText: String(record.contentText ?? ''),
     reasoningText: parseOptionalString(record.reasoningText) || null,
     error: record.error == null ? null : parseAgentLocalMessageError(record.error),
     traceId: parseOptionalString(record.traceId) || null,
     parentMessageId: parseOptionalString(record.parentMessageId) || null,
+    mediaUrl: parseOptionalString(record.mediaUrl) || null,
+    mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
+    artifactId: parseOptionalString(record.artifactId) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent message record'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent message record'),
   };
@@ -247,6 +260,7 @@ export function parseAgentLocalTurnBeatRecord(value: unknown): AgentLocalTurnBea
     textShadow: parseOptionalString(record.textShadow) || null,
     artifactId: parseOptionalString(record.artifactId) || null,
     mimeType: parseOptionalString(record.mimeType) || null,
+    mediaUrl: parseOptionalString(record.mediaUrl) || null,
     projectionMessageId: parseOptionalString(record.projectionMessageId) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent turn beat record'),
     deliveredAtMs: parseNullableFiniteInteger(record.deliveredAtMs, 'deliveredAtMs', 'chat_agent turn beat record'),
@@ -394,11 +408,15 @@ export function parseAgentLocalCreateMessageInput(value: unknown): AgentLocalCre
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent create_message payload'),
     role: parseMessageRole(record.role, 'chat_agent create_message payload'),
     status: parseMessageStatus(record.status, 'chat_agent create_message payload'),
+    kind: parseMessageKind(record.kind, 'chat_agent create_message payload'),
     contentText: String(record.contentText ?? ''),
     reasoningText: parseOptionalString(record.reasoningText) || null,
     error: record.error == null ? null : parseAgentLocalMessageError(record.error),
     traceId: parseOptionalString(record.traceId) || null,
     parentMessageId: parseOptionalString(record.parentMessageId) || null,
+    mediaUrl: parseOptionalString(record.mediaUrl) || null,
+    mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
+    artifactId: parseOptionalString(record.artifactId) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_message payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_message payload'),
   };
@@ -413,6 +431,9 @@ export function parseAgentLocalUpdateMessageInput(value: unknown): AgentLocalUpd
     reasoningText: parseOptionalString(record.reasoningText) || null,
     error: record.error == null ? null : parseAgentLocalMessageError(record.error),
     traceId: parseOptionalString(record.traceId) || null,
+    mediaUrl: parseOptionalString(record.mediaUrl) || null,
+    mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
+    artifactId: parseOptionalString(record.artifactId) || null,
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent update_message payload'),
   };
 }

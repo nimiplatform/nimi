@@ -103,6 +103,7 @@ export type ExecuteLocalKernelTurnResult = {
   requestId: string;
   sessionId: string;
   turnIndex: number;
+  traceId: string;
   assistantMessage: ExecuteLocalKernelAssistantMessage;
   sceneCards?: ExecuteLocalKernelSceneCard[];
   stateDelta: ExecuteLocalKernelStateDelta;

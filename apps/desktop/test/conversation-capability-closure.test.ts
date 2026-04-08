@@ -7,23 +7,33 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-test('agent effective capability resolution only marks LOCAL + AGENT_LOCAL as ready', () => {
+test('agent effective capability resolution checks textProjection + resolvedBinding', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/conversation-capability.ts');
 
   assert.match(
     source,
-    /function isAgentEligibilityReadyForLocalExecution\(/,
-    'conversation-capability.ts must centralize agent eligibility execution gating',
+    /function buildAgentEffectiveCapabilityResolution\(/,
+    'conversation-capability.ts must export buildAgentEffectiveCapabilityResolution',
   );
   assert.match(
     source,
-    /return eligibility\.channel === 'LOCAL' && eligibility\.sessionClass === 'AGENT_LOCAL';/,
-    'AgentEffectiveCapabilityResolution must only become ready for LOCAL \\+ AGENT_LOCAL eligibility',
+    /textProjection: ConversationCapabilityProjection \| null;/,
+    'buildAgentEffectiveCapabilityResolution input must accept textProjection',
   );
   assert.match(
     source,
-    /if \(!isAgentEligibilityReadyForLocalExecution\(eligibility\)\) \{/,
-    'buildAgentEffectiveCapabilityResolution must fail-close on non-local or HUMAN_DIRECT eligibility',
+    /reason:\s*\n?\s*\| 'ok'\s*\n?\s*\| 'projection_unavailable'\s*\n?\s*\| 'route_unresolved'/,
+    'AgentEffectiveCapabilityResolution reason must be ok | projection_unavailable | route_unresolved',
+  );
+  assert.doesNotMatch(
+    source,
+    /AgentCapabilityEligibility/,
+    'AgentCapabilityEligibility type must not exist',
+  );
+  assert.doesNotMatch(
+    source,
+    /\beligibility\b/,
+    'eligibility field must not exist in AgentEffectiveCapabilityResolution',
   );
 });
 

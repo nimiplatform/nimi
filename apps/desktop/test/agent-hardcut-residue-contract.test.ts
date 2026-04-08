@@ -33,15 +33,11 @@ function findFilesContaining(pattern: RegExp): string[] {
 test('agent hard-cut residues stay confined to explicit host-private and rejection surfaces', () => {
   assert.deepEqual(
     findFilesContaining(/targetType:\s*'AGENT'/),
-    ['src/shell/renderer/infra/bootstrap/core-capabilities.ts'],
+    [],
   );
   assert.deepEqual(
     findFilesContaining(/\bAGENT_LOCAL\b/),
-    [
-      'src/shell/renderer/features/chat/chat-agent-runtime.ts',
-      'src/shell/renderer/features/chat/conversation-capability.ts',
-      'src/shell/renderer/infra/bootstrap/core-capabilities.ts',
-    ],
+    [],
   );
   assert.deepEqual(
     findFilesContaining(/HANDLE_PREFIX_UNSUPPORTED/),
@@ -147,34 +143,6 @@ test('phase 3: AI runtime adapter does not pass routeSnapshot to streamChatAiRun
   );
 });
 
-test('phase 3: agent submit does not call resolveAgentLocalRoute in host actions', () => {
-  const hostActionsSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions.ts'),
-    'utf8',
-  );
-  // Must not call resolveAgentLocalRoute — eligibility comes from AgentEffectiveCapabilityResolution
-  assert.equal(
-    /resolveAgentLocalRoute\s*\(/.test(hostActionsSource),
-    false,
-    'chat-agent-shell-host-actions.ts must not call resolveAgentLocalRoute',
-  );
-  // Must not import resolveAgentLocalRoute
-  assert.equal(
-    /import[^}]*resolveAgentLocalRoute/.test(hostActionsSource),
-    false,
-    'chat-agent-shell-host-actions.ts must not import resolveAgentLocalRoute',
-  );
-  // Must consume agentResolution, not agentRouteReady boolean
-  assert.ok(
-    /agentResolution/.test(hostActionsSource),
-    'chat-agent-shell-host-actions.ts must consume agentResolution',
-  );
-  assert.equal(
-    /agentRouteReady\s*:/.test(hostActionsSource),
-    false,
-    'chat-agent-shell-host-actions.ts must not use agentRouteReady boolean field',
-  );
-});
 
 test('phase 3: agent adapter passes resolution to host actions, not separate readiness', () => {
   const hostActionsSource = fs.readFileSync(

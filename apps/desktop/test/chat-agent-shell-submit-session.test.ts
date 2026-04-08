@@ -14,6 +14,7 @@ import {
   resolveProjectionRefreshAgentSubmitSession,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-submit-session.js';
 import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {
   return {
@@ -48,37 +49,30 @@ function sampleDraft(): AgentLocalDraftRecord {
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }],
+    })],
     draft: null,
   };
 }
 
 function assistantPlaceholder() {
-  return {
+  return createAgentTextMessage({
     id: 'assistant-1',
     threadId: 'thread-1',
     role: 'assistant' as const,
     status: 'pending' as const,
     contentText: '',
-    reasoningText: null,
-    error: null,
-    traceId: null,
     parentMessageId: 'user-1',
     createdAtMs: 101,
     updatedAtMs: 101,
-  };
+  });
 }
 
 function authoritativeBundle(): AgentLocalThreadBundle {
@@ -88,31 +82,26 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       updatedAtMs: 999,
       lastMessageAtMs: 999,
     },
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative projection',
       reasoningText: 'authoritative reasoning',
-      error: null,
       traceId: 'trace-authoritative',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 999,
-    }],
+    })],
     draft: null,
   };
 }
@@ -198,6 +187,63 @@ test('agent submit session keeps assistant invisible until first-beat and then g
   });
   assert.equal(postFirstBeatText.visibleBundle?.messages.at(-1)?.contentText, 'sealed first beat tail');
   assert.equal(postFirstBeatText.visibleBundle?.messages.at(-1)?.reasoningText, 'thinking');
+});
+
+test('agent submit session shows a pending image card when an image beat is planned', () => {
+  const session = createSession();
+
+  const step = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'beat-planned',
+      turnId: 'turn-1',
+      beatId: 'turn-1:beat:1',
+      beatIndex: 1,
+      modality: 'image',
+    },
+    updatedAtMs: 135,
+  });
+
+  const imageMessage = step.visibleBundle?.messages.at(-1);
+  assert.equal(imageMessage?.kind, 'image');
+  assert.equal(imageMessage?.status, 'pending');
+  assert.equal(imageMessage?.contentText, 'Generating image...');
+});
+
+test('agent submit session ignores the echoed first text-delta that immediately follows first-beat-sealed', () => {
+  let session = createSession();
+
+  const firstBeatStep = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'first-beat-sealed',
+      turnId: 'turn-1',
+      beatId: 'beat-1',
+      text: 'hello',
+    },
+    updatedAtMs: 130,
+  });
+  session = firstBeatStep.state;
+  assert.equal(firstBeatStep.visibleBundle?.messages.at(-1)?.contentText, 'hello');
+
+  const echoedDelta = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'text-delta',
+      turnId: 'turn-1',
+      textDelta: 'hello',
+    },
+    updatedAtMs: 140,
+  });
+  session = echoedDelta.state;
+  assert.equal(echoedDelta.visibleBundle?.messages.at(-1)?.contentText, 'hello');
+
+  const nextDelta = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'text-delta',
+      turnId: 'turn-1',
+      textDelta: ' world',
+    },
+    updatedAtMs: 150,
+  });
+  assert.equal(nextDelta.visibleBundle?.messages.at(-1)?.contentText, 'hello world');
 });
 
 test('agent submit session keeps authoritative projection when stale text delta arrives after projection rebuild', () => {

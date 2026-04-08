@@ -17,7 +17,6 @@ import {
 import { withPromptTrace } from './chat-ai-shell-core';
 
 export function createChatAiConversationRuntimeAdapter(input: {
-  threadId: string;
   reasoningPreference: ChatThinkingPreference;
   textProjection: ConversationCapabilityProjection | null;
   aiConfig: AIConfig;
@@ -49,7 +48,7 @@ export function createChatAiConversationRuntimeAdapter(input: {
         prompt,
         messages: request.messages,
         systemPrompt: request.systemPrompt,
-        threadId: input.threadId,
+        threadId: request.threadId,
         reasoningPreference: input.reasoningPreference,
         executionSnapshot,
         runtimeConfigState: input.runtimeConfigState,

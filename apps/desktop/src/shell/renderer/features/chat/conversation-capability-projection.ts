@@ -4,8 +4,6 @@ import {
   buildConversationCapabilityProjectionMap,
   getConversationCapabilityRouteRuntime,
   selectionStoreFromAIConfig,
-  type AgentCapabilityEligibility,
-  type ConversationCapability,
 } from './conversation-capability';
 import {
   getDesktopAIConfigService,
@@ -15,13 +13,8 @@ import {
   onActiveScopeChange,
 } from './chat-active-ai-config-scope';
 
-const IMAGE_PROFILE_REQUIRED_CAPABILITIES: Partial<Record<ConversationCapability, boolean>> = {
-  'image.generate': true,
-  'image.edit': true,
-};
-
 export async function refreshConversationCapabilityProjections(
-  capabilities?: readonly ConversationCapability[],
+  capabilities?: readonly import('./conversation-capability').ConversationCapability[],
 ): Promise<void> {
   const appStore = useAppStore.getState();
   const selectionStore = selectionStoreFromAIConfig(appStore.aiConfig);
@@ -29,20 +22,15 @@ export async function refreshConversationCapabilityProjections(
     capabilities,
     selectionStore,
     routeRuntime: getConversationCapabilityRouteRuntime(),
-    requiresImageProfileRefByCapability: IMAGE_PROFILE_REQUIRED_CAPABILITIES,
   });
   useAppStore.getState().setConversationCapabilityProjections(projections);
 }
 
-export function refreshAgentEffectiveCapabilityResolution(
-  eligibility: AgentCapabilityEligibility | null,
-): void {
+export function refreshAgentEffectiveCapabilityResolution(): void {
   const textProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
+  const imageProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['image.generate'] || null;
   useAppStore.getState().setAgentEffectiveCapabilityResolution(
-    buildAgentEffectiveCapabilityResolution({
-      textProjection,
-      eligibility,
-    }),
+    buildAgentEffectiveCapabilityResolution({ textProjection, imageProjection }),
   );
 }
 

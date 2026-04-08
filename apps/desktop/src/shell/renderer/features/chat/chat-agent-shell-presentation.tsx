@@ -121,7 +121,7 @@ export function useAgentConversationPresentation(
     footerViewState,
     labels: {
       title: input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' }),
-      sendingDisabledReason: input.t('Chat.agentSending', { defaultValue: 'Waiting for agent response…' }),
+      sendingDisabledReason: input.t('Chat.agentSending', { defaultValue: 'The agent is replying…' }),
       composerPlaceholderWithTarget: input.t('Chat.agentComposerPlaceholder', {
         defaultValue: 'Talk to {{name}}…',
         name: input.activeTarget?.displayName || 'this agent',
@@ -176,6 +176,10 @@ export function useAgentConversationPresentation(
           stopLabel={input.t('ChatTimeline.stopGenerating', 'Stop generating')}
           interruptedLabel={input.t('ChatTimeline.streamInterrupted', 'Response interrupted')}
           reasoningLabel={input.reasoningLabel}
+          waitingLabel={input.t('Chat.agentSending', {
+            defaultValue: 'The agent is replying...',
+          })}
+          showStreamingText={false}
         />
       )
       : null,

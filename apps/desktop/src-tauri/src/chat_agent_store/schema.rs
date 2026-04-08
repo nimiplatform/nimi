@@ -23,12 +23,16 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           thread_id TEXT NOT NULL REFERENCES agent_threads(id) ON DELETE CASCADE,
           role TEXT NOT NULL,
           status TEXT NOT NULL,
+          kind TEXT NOT NULL DEFAULT 'text',
           content_text TEXT NOT NULL,
           reasoning_text TEXT,
           error_code TEXT,
           error_message TEXT,
           trace_id TEXT,
           parent_message_id TEXT,
+          media_url TEXT,
+          media_mime_type TEXT,
+          artifact_id TEXT,
           created_at_ms INTEGER NOT NULL,
           updated_at_ms INTEGER NOT NULL
         );
@@ -63,6 +67,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           text_shadow TEXT,
           artifact_id TEXT,
           mime_type TEXT,
+          media_url TEXT,
           projection_message_id TEXT,
           created_at_ms INTEGER NOT NULL,
           delivered_at_ms INTEGER
@@ -131,6 +136,10 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         ],
     )?;
     add_nullable_text_column_if_missing(conn, "agent_messages", "reasoning_text")?;
+    add_nullable_text_column_if_missing(conn, "agent_messages", "media_url")?;
+    add_nullable_text_column_if_missing(conn, "agent_messages", "media_mime_type")?;
+    add_nullable_text_column_if_missing(conn, "agent_messages", "artifact_id")?;
+    add_text_column_with_default_if_missing(conn, "agent_messages", "kind", "'text'")?;
     ensure_required_columns(
         conn,
         "agent_messages",
@@ -139,12 +148,16 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "thread_id",
             "role",
             "status",
+            "kind",
             "content_text",
             "reasoning_text",
             "error_code",
             "error_message",
             "trace_id",
             "parent_message_id",
+            "media_url",
+            "media_mime_type",
+            "artifact_id",
             "created_at_ms",
             "updated_at_ms",
         ],
@@ -170,6 +183,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "aborted_at_ms",
         ],
     )?;
+    add_nullable_text_column_if_missing(conn, "agent_turn_beats", "media_url")?;
     ensure_required_columns(
         conn,
         "agent_turn_beats",
@@ -182,6 +196,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "text_shadow",
             "artifact_id",
             "mime_type",
+            "media_url",
             "projection_message_id",
             "created_at_ms",
             "delivered_at_ms",
@@ -240,6 +255,26 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
         serde_json::json!({ "version": CHAT_AGENT_DB_SCHEMA_VERSION }),
         0,
     )?;
+    Ok(())
+}
+
+fn add_text_column_with_default_if_missing(
+    conn: &Connection,
+    table_name: &str,
+    column_name: &str,
+    default_sql: &str,
+) -> Result<(), String> {
+    if has_column(conn, table_name, column_name)? {
+        return Ok(());
+    }
+    conn.execute(
+        format!(
+            "ALTER TABLE {table_name} ADD COLUMN {column_name} TEXT NOT NULL DEFAULT {default_sql}"
+        )
+        .as_str(),
+        [],
+    )
+    .map_err(|error| format!("为 {table_name} 添加列 {column_name} 失败: {error}"))?;
     Ok(())
 }
 

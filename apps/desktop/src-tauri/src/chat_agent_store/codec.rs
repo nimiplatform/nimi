@@ -57,6 +57,13 @@ pub(super) fn message_status_to_db_value(value: ChatAgentMessageStatus) -> &'sta
     }
 }
 
+pub(super) fn message_kind_to_db_value(value: ChatAgentMessageKind) -> &'static str {
+    match value {
+        ChatAgentMessageKind::Text => "text",
+        ChatAgentMessageKind::Image => "image",
+    }
+}
+
 pub(super) fn parse_message_role(value: &str) -> Result<ChatAgentMessageRole, String> {
     match value {
         "system" => Ok(ChatAgentMessageRole::System),
@@ -72,6 +79,14 @@ pub(super) fn parse_message_status(value: &str) -> Result<ChatAgentMessageStatus
         "complete" => Ok(ChatAgentMessageStatus::Complete),
         "error" => Ok(ChatAgentMessageStatus::Error),
         other => Err(format!("chat_agent message status is invalid: {other}")),
+    }
+}
+
+pub(super) fn parse_message_kind(value: &str) -> Result<ChatAgentMessageKind, String> {
+    match value {
+        "text" => Ok(ChatAgentMessageKind::Text),
+        "image" => Ok(ChatAgentMessageKind::Image),
+        other => Err(format!("chat_agent message kind is invalid: {other}")),
     }
 }
 

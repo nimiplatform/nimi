@@ -22,6 +22,7 @@ import { buildRuntimeMediaCapabilities } from './runtime-bootstrap-host-capabili
 import { describeRuntimeRouteMetadata } from './runtime-bootstrap-host-capabilities-route-describe';
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
 import { setConversationCapabilityRouteRuntime, toRuntimeCanonicalCapability, type ConversationCapability } from '@renderer/features/chat/conversation-capability';
+import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import {
     assertCanonicalModAIScopeRef,
     isCanonicalModAIScopeRef,
@@ -90,6 +91,7 @@ type HostCapabilityInput = {
 export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdkHost {
     const lifecycleManager = new LifecycleSubscriptionManager();
     const hookRuntime = input.getRuntimeHookRuntime();
+    const worldEvolution = createDesktopWorldEvolutionSelectorReadAdapter();
     const desktopAIConfigService = getDesktopAIConfigService();
     hookRuntime.setModLocalProfileSnapshotResolver(createModLocalProfileSnapshotResolver());
     const resolveRuntimeBinding = createResolveRuntimeBinding(() => getRuntimeFieldsFromStore());
@@ -276,6 +278,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         }),
     });
     return {
+        worldEvolution,
         runtime: {
             checkLocalLlmHealth: async (payload: RuntimeLlmHealthInput): Promise<RuntimeLlmHealthResult> => {
                 const resolvedInput = toHealthInput(payload);

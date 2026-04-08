@@ -36,7 +36,6 @@ import {
 } from './chat-agent-shell-bundle';
 import {
   toChatAgentRuntimeError,
-  type AgentChatRouteResult,
 } from './chat-agent-runtime';
 import {
   createAISnapshot,
@@ -77,9 +76,9 @@ type AgentRunTurn = (input: {
   };
   history: ReturnType<typeof toConversationHistoryMessages>;
   signal: AbortSignal;
-  routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution;
-  executionSnapshot: AISnapshot;
+  textExecutionSnapshot: AISnapshot;
+  imageExecutionSnapshot: AISnapshot | null;
   target: AgentLocalTargetSnapshot;
 }) => AsyncIterable<ConversationTurnEvent>;
 
@@ -294,82 +293,98 @@ export function useAgentConversationHostActions(
   }, [createOrRestoreThreadForTarget, input, persistDraftForThread]);
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!input.activeThreadId || !input.selectedThreadRecord || !input.activeTarget) {
-      throw new Error(input.t('Chat.agentSubmitMissingThread', {
-        defaultValue: 'Select an agent friend before sending a message.',
-      }));
-    }
-    if (!input.agentResolution || !input.agentResolution.ready) {
-      const resolutionReason = input.agentResolution?.reason || 'projection_unavailable';
-      throw new Error(input.t('Chat.agentSubmitRouteUnavailable', {
-        defaultValue: `Agent capability resolution not ready: ${resolutionReason}`,
-      }));
-    }
-    const submittedText = text.trim();
-    if (!submittedText) {
-      return;
-    }
-    await assertAgentSubmitSchedulingAllowed({
-      aiConfig: input.aiConfig,
-      t: input.t,
-    });
-    const userTurnId = randomIdV11('agent-turn-user');
-    const userMessageId = randomIdV11('agent-message-user');
-    const assistantTurnId = randomIdV11('agent-turn');
-    const assistantMessageId = `${assistantTurnId}:message:0`;
-    const createdAtMs = Date.now();
-    const userMessage: AgentLocalMessageRecord = {
-      id: userMessageId,
-      threadId: input.activeThreadId,
-      role: 'user',
-      status: 'complete',
-      contentText: submittedText,
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
-      createdAtMs,
-      updatedAtMs: createdAtMs,
-    };
-    const assistantPlaceholder: AgentLocalMessageRecord = {
-      id: assistantMessageId,
-      threadId: input.activeThreadId,
-      role: 'assistant',
-      status: 'pending',
-      contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: userMessageId,
-      createdAtMs: createdAtMs + 1,
-      updatedAtMs: createdAtMs + 1,
-    };
-
-    input.currentDraftTextRef.current = submittedText;
-    input.setSubmittingThreadId(input.activeThreadId);
-    input.setFooterHostState(input.activeThreadId, null);
-    let projectionRefreshPromise: Promise<void> | null = null;
-    let projectionRefreshError: unknown = null;
-    let submitSession = createInitialAgentSubmitDriverState({
-      fallbackThread: {
-        ...input.selectedThreadRecord,
-        createdAtMs,
-      },
-      assistantMessageId,
-      assistantPlaceholder,
-      submittedText,
-      workingBundle: input.bundle,
-    });
-
     try {
-      await chatAgentStoreClient.deleteDraft(input.activeThreadId);
-      input.setBundleCache(input.activeThreadId, (current) => upsertBundleDraft(current, null) || current);
+      if (!input.activeTarget) {
+        throw new Error(input.t('Chat.agentSubmitMissingThread', {
+          defaultValue: 'Select an agent friend before sending a message.',
+        }));
+      }
+      if (!input.agentResolution || !input.agentResolution.ready) {
+        const resolutionReason = input.agentResolution?.reason || 'projection_unavailable';
+        throw new Error(input.t('Chat.agentSubmitRouteUnavailable', {
+          defaultValue: `Agent capability resolution not ready: ${resolutionReason}`,
+        }));
+      }
+      const submittedText = text.trim();
+      if (!submittedText) {
+        return;
+      }
+      await assertAgentSubmitSchedulingAllowed({
+        aiConfig: input.aiConfig,
+        t: input.t,
+      });
+
+      let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.selectedThreadRecord;
+      let effectiveThreadId = input.activeThreadId;
+      if (!effectiveThreadId || !effectiveThreadRecord) {
+        effectiveThreadRecord = await createOrRestoreThreadForTarget(input.activeTarget);
+        effectiveThreadId = effectiveThreadRecord.id;
+      }
+
+      const userTurnId = randomIdV11('agent-turn-user');
+      const userMessageId = randomIdV11('agent-message-user');
+      const assistantTurnId = randomIdV11('agent-turn');
+      const assistantMessageId = `${assistantTurnId}:message:0`;
+      const createdAtMs = Date.now();
+      const userMessage: AgentLocalMessageRecord = {
+        id: userMessageId,
+        threadId: effectiveThreadId,
+        role: 'user',
+        status: 'complete',
+        kind: 'text',
+        contentText: submittedText,
+        reasoningText: null,
+        error: null,
+        traceId: null,
+        parentMessageId: null,
+        mediaUrl: null,
+        mediaMimeType: null,
+        artifactId: null,
+        createdAtMs,
+        updatedAtMs: createdAtMs,
+      };
+      const assistantPlaceholder: AgentLocalMessageRecord = {
+        id: assistantMessageId,
+        threadId: effectiveThreadId,
+        role: 'assistant',
+        status: 'pending',
+        kind: 'text',
+        contentText: '',
+        reasoningText: null,
+        error: null,
+        traceId: null,
+        parentMessageId: userMessageId,
+        mediaUrl: null,
+        mediaMimeType: null,
+        artifactId: null,
+        createdAtMs: createdAtMs + 1,
+        updatedAtMs: createdAtMs + 1,
+      };
+
+      input.currentDraftTextRef.current = submittedText;
+      input.setSubmittingThreadId(effectiveThreadId);
+      input.setFooterHostState(effectiveThreadId, null);
+      let projectionRefreshPromise: Promise<void> | null = null;
+      let projectionRefreshError: unknown = null;
+      let submitSession = createInitialAgentSubmitDriverState({
+        fallbackThread: {
+          ...effectiveThreadRecord,
+          createdAtMs,
+        },
+        assistantMessageId,
+        assistantPlaceholder,
+        submittedText,
+        workingBundle: input.bundle,
+      });
+
+      await chatAgentStoreClient.deleteDraft(effectiveThreadId);
+      input.setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
 
       const userCommitted = await chatAgentStoreClient.commitTurnResult({
-        threadId: input.activeThreadId,
+        threadId: effectiveThreadId,
         turn: {
           id: userTurnId,
-          threadId: input.activeThreadId,
+          threadId: effectiveThreadId,
           role: 'user',
           status: 'completed',
           providerMode: 'agent-local-chat-v1',
@@ -388,6 +403,7 @@ export function useAgentConversationHostActions(
           textShadow: submittedText,
           artifactId: null,
           mimeType: 'text/plain',
+          mediaUrl: null,
           projectionMessageId: userMessageId,
           createdAtMs,
           deliveredAtMs: createdAtMs,
@@ -397,11 +413,11 @@ export function useAgentConversationHostActions(
         recallEntries: [],
         projection: {
           thread: {
-            id: input.selectedThreadRecord.id,
-            title: input.selectedThreadRecord.title,
+            id: effectiveThreadRecord.id,
+            title: effectiveThreadRecord.title,
             updatedAtMs: createdAtMs,
             lastMessageAtMs: createdAtMs,
-            archivedAtMs: input.selectedThreadRecord.archivedAtMs,
+            archivedAtMs: effectiveThreadRecord.archivedAtMs,
             targetSnapshot: input.activeTarget,
           },
           messages: [userMessage],
@@ -418,11 +434,11 @@ export function useAgentConversationHostActions(
         throw new Error('agent-local-chat-v1 user commit did not return a projection bundle');
       }
       input.setThreadsCache((current) => upsertThreadSummary(current, userBundle.thread));
-      input.queryClient.setQueryData(bundleQueryKey(input.activeThreadId), userBundle);
+      input.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
       input.syncSelectionToThread(userBundle.thread);
       submitSession = createInitialAgentSubmitDriverState({
         fallbackThread: {
-          ...input.selectedThreadRecord,
+          ...effectiveThreadRecord,
           createdAtMs,
         },
         assistantMessageId,
@@ -431,172 +447,190 @@ export function useAgentConversationHostActions(
         workingBundle: userBundle,
       });
 
-      const eligibility = input.agentResolution!.eligibility;
-      const routeResult: AgentChatRouteResult | null = eligibility
-        ? {
-          channel: eligibility.channel!,
-          sessionClass: eligibility.sessionClass!,
-          providerSelectable: eligibility.providerSelectable,
-          reason: eligibility.reason,
-        }
-        : null;
       // K-AIEXEC-003: capture scheduling evidence before execution.
       const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
         scopeRef: input.aiConfig.scopeRef,
         target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
       });
-      const executionSnapshot = createAISnapshot({
+      const textExecutionSnapshot = createAISnapshot({
         config: input.aiConfig,
         capability: 'text.generate',
         projection: input.agentResolution.textProjection!,
         agentResolution: input.agentResolution,
         runtimeEvidence,
       });
-      recordDesktopAISnapshot(executionSnapshot);
-      const abortController = startStream(input.activeThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
-      const history = toConversationHistoryMessages(userBundle.messages);
-      for await (const event of input.runAgentTurn({
-        threadId: input.activeThreadId,
-        turnId: assistantTurnId,
-        userMessage: {
-          id: userMessageId,
-          text: submittedText,
-          attachments: [],
-        },
-        history,
-        signal: abortController.signal,
-        routeResult,
-        agentResolution: input.agentResolution,
-        executionSnapshot,
-        target: input.activeTarget,
-      })) {
-        matchConversationTurnEvent(event, {
-          'turn-started': () => undefined,
-          'reasoning-delta': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-          'text-delta': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-          'first-beat-sealed': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-          'beat-planned': () => undefined,
-          'beat-delivery-started': () => undefined,
-          'beat-delivered': () => undefined,
-          'artifact-ready': () => undefined,
-          'projection-rebuilt': (nextEvent) => {
-            const projectionEffects = reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            });
-            submitSession = input.applyDriverEffects(input.activeThreadId!, projectionEffects);
-            if (!projectionEffects.awaitRefresh) {
-              return;
-            }
-            const requestedProjectionVersion = projectionEffects.awaitRefresh.requestedProjectionVersion;
-            projectionRefreshPromise = chatAgentStoreClient.getThreadBundle(input.activeThreadId!)
-              .then((refreshedBundle) => {
-                submitSession = input.applyDriverEffects(input.activeThreadId!, resolveAgentSubmitDriverProjectionRefresh({
-                  state: submitSession,
-                  requestedProjectionVersion,
-                  streamSnapshot: getStreamState(input.activeThreadId!),
-                  refreshedBundle,
-                  draftText: input.currentDraftTextRef.current,
-                }));
-              })
-              .catch((refreshError) => {
-                projectionRefreshError = refreshError;
-              });
-          },
-          'turn-completed': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-          'turn-failed': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-          'turn-canceled': (nextEvent) => {
-            submitSession = input.applyDriverEffects(input.activeThreadId!, reduceAgentSubmitDriverEvent({
-              state: submitSession,
-              event: nextEvent,
-              updatedAtMs: Date.now(),
-            }));
-          },
-        });
-      }
-      if (projectionRefreshPromise) {
-        await projectionRefreshPromise;
-      }
-      if (projectionRefreshError) {
-        throw projectionRefreshError;
-      }
-
-      const refreshedBundle = submitSession.lifecycle.projectionVersion
-        ? await chatAgentStoreClient.getThreadBundle(input.activeThreadId)
+      recordDesktopAISnapshot(textExecutionSnapshot);
+      const imageExecutionSnapshot = input.agentResolution.imageProjection?.supported
+        && input.agentResolution.imageProjection?.resolvedBinding
+        ? createAISnapshot({
+          config: input.aiConfig,
+          capability: 'image.generate',
+          projection: input.agentResolution.imageProjection,
+          agentResolution: input.agentResolution,
+          runtimeEvidence: await peekDesktopAISchedulingForEvidence({
+            scopeRef: input.aiConfig.scopeRef,
+            target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'image.generate'),
+          }),
+        })
         : null;
-      submitSession = input.applyDriverEffects(input.activeThreadId, resolveCompletedAgentSubmitDriverCheckpoint({
-        state: submitSession,
-        refreshedBundle,
-        streamSnapshot: getStreamState(input.activeThreadId),
-      }));
-
-      if (submitSession.lifecycle.terminal === 'failed' && submitSession.lifecycle.error) {
-        throw toStructuredProviderError(submitSession.lifecycle.error);
+      if (imageExecutionSnapshot) {
+        recordDesktopAISnapshot(imageExecutionSnapshot);
       }
-      if (submitSession.lifecycle.terminal === 'canceled') {
-        throw toAbortError(input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }));
-      }
-      assertAgentTurnLifecycleCompleted(submitSession.lifecycle);
-    } catch (error) {
-      const streamSnapshot = getStreamState(input.activeThreadId);
-      const runtimeError = streamSnapshot.cancelSource === 'user'
-        ? {
-          code: 'OPERATION_ABORTED',
-          message: input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
+      const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
+      const history = toConversationHistoryMessages(userBundle.messages);
+      try {
+        for await (const event of input.runAgentTurn({
+          threadId: effectiveThreadId,
+          turnId: assistantTurnId,
+          userMessage: {
+            id: userMessageId,
+            text: submittedText,
+            attachments: [],
+          },
+          history,
+          signal: abortController.signal,
+          agentResolution: input.agentResolution,
+          textExecutionSnapshot,
+          imageExecutionSnapshot,
+          target: input.activeTarget,
+        })) {
+          matchConversationTurnEvent(event, {
+            'turn-started': () => undefined,
+            'reasoning-delta': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'text-delta': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'first-beat-sealed': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'beat-planned': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'beat-delivery-started': () => undefined,
+            'beat-delivered': () => undefined,
+            'artifact-ready': () => undefined,
+            'projection-rebuilt': (nextEvent) => {
+              const projectionEffects = reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              });
+              submitSession = input.applyDriverEffects(effectiveThreadId, projectionEffects);
+              if (!projectionEffects.awaitRefresh) {
+                return;
+              }
+              const requestedProjectionVersion = projectionEffects.awaitRefresh.requestedProjectionVersion;
+              projectionRefreshPromise = chatAgentStoreClient.getThreadBundle(effectiveThreadId)
+                .then((refreshedBundle) => {
+                  submitSession = input.applyDriverEffects(effectiveThreadId, resolveAgentSubmitDriverProjectionRefresh({
+                    state: submitSession,
+                    requestedProjectionVersion,
+                    streamSnapshot: getStreamState(effectiveThreadId),
+                    refreshedBundle,
+                    draftText: input.currentDraftTextRef.current,
+                  }));
+                })
+                .catch((refreshError) => {
+                  projectionRefreshError = refreshError;
+                });
+            },
+            'turn-completed': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'turn-failed': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+            'turn-canceled': (nextEvent) => {
+              submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
+                state: submitSession,
+                event: nextEvent,
+                updatedAtMs: Date.now(),
+              }));
+            },
+          });
         }
-        : toChatAgentRuntimeError(error);
-      const draftUpdatedAtMs = Date.now();
-      const draft = await chatAgentStoreClient.putDraft({
-        threadId: input.activeThreadId,
-        text: submittedText,
-        updatedAtMs: draftUpdatedAtMs,
-      });
-      let refreshedBundle: AgentLocalThreadBundle | null = null;
-      if (submitSession.lifecycle.projectionVersion) {
-        refreshedBundle = await chatAgentStoreClient.getThreadBundle(input.activeThreadId);
+        if (projectionRefreshPromise) {
+          await projectionRefreshPromise;
+        }
+        if (projectionRefreshError) {
+          throw projectionRefreshError;
+        }
+
+        const refreshedBundle = submitSession.lifecycle.projectionVersion
+          ? await chatAgentStoreClient.getThreadBundle(effectiveThreadId)
+          : null;
+        submitSession = input.applyDriverEffects(effectiveThreadId, resolveCompletedAgentSubmitDriverCheckpoint({
+          state: submitSession,
+          refreshedBundle,
+          streamSnapshot: getStreamState(effectiveThreadId),
+        }));
+
+        if (submitSession.lifecycle.terminal === 'failed' && submitSession.lifecycle.error) {
+          throw toStructuredProviderError(submitSession.lifecycle.error);
+        }
+        if (submitSession.lifecycle.terminal === 'canceled') {
+          throw toAbortError(input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }));
+        }
+        assertAgentTurnLifecycleCompleted(submitSession.lifecycle);
+      } catch (error) {
+        const streamSnapshot = getStreamState(effectiveThreadId);
+        const runtimeError = streamSnapshot.cancelSource === 'user'
+          ? {
+            code: 'OPERATION_ABORTED',
+            message: input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
+          }
+          : toChatAgentRuntimeError(error);
+        const draftUpdatedAtMs = Date.now();
+        const draft = await chatAgentStoreClient.putDraft({
+          threadId: effectiveThreadId,
+          text: submittedText,
+          updatedAtMs: draftUpdatedAtMs,
+        });
+        let refreshedBundle: AgentLocalThreadBundle | null = null;
+        if (submitSession.lifecycle.projectionVersion) {
+          refreshedBundle = await chatAgentStoreClient.getThreadBundle(effectiveThreadId);
+        }
+        submitSession = input.applyDriverEffects(effectiveThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
+          state: submitSession,
+          refreshedBundle,
+          runtimeError,
+          draft,
+          updatedAtMs: draftUpdatedAtMs,
+          streamSnapshot,
+        }));
+        throw new Error(runtimeError.message, { cause: error });
+      } finally {
+        input.setSubmittingThreadId(null);
       }
-      submitSession = input.applyDriverEffects(input.activeThreadId, resolveInterruptedAgentSubmitDriverCheckpoint({
-        state: submitSession,
-        refreshedBundle,
-        runtimeError,
-        draft,
-        updatedAtMs: draftUpdatedAtMs,
-        streamSnapshot,
-      }));
-      throw new Error(runtimeError.message, { cause: error });
-    } finally {
-      input.setSubmittingThreadId(null);
+    } catch (error) {
+      input.reportHostError(error);
+      throw error;
     }
   }, [input]);
 

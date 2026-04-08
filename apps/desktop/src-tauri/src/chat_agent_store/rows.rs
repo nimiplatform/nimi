@@ -1,6 +1,6 @@
 use super::codec::{
-    parse_beat_modality, parse_beat_status, parse_json_required, parse_message_role,
-    parse_message_status, parse_turn_role, parse_turn_status,
+    parse_beat_modality, parse_beat_status, parse_json_required, parse_message_kind,
+    parse_message_role, parse_message_status, parse_turn_role, parse_turn_status,
 };
 use super::types::*;
 
@@ -50,9 +50,17 @@ pub(super) fn message_record_from_row(
             Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
         )
     })?;
-    let reasoning_text: Option<String> = row.get(5)?;
-    let error_code: Option<String> = row.get(6)?;
-    let error_message: Option<String> = row.get(7)?;
+    let kind_raw: String = row.get(4)?;
+    let kind = parse_message_kind(&kind_raw).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(
+            4,
+            rusqlite::types::Type::Text,
+            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
+        )
+    })?;
+    let reasoning_text: Option<String> = row.get(6)?;
+    let error_code: Option<String> = row.get(7)?;
+    let error_message: Option<String> = row.get(8)?;
     let error = match (error_code, error_message) {
         (None, None) => None,
         (Some(code), Some(message)) => Some(ChatAgentMessageError {
@@ -79,13 +87,17 @@ pub(super) fn message_record_from_row(
         thread_id: row.get(1)?,
         role,
         status,
-        content_text: row.get(4)?,
+        kind,
+        content_text: row.get(5)?,
         reasoning_text,
         error,
-        trace_id: row.get(8)?,
-        parent_message_id: row.get(9)?,
-        created_at_ms: row.get(10)?,
-        updated_at_ms: row.get(11)?,
+        trace_id: row.get(9)?,
+        parent_message_id: row.get(10)?,
+        media_url: row.get(11)?,
+        media_mime_type: row.get(12)?,
+        artifact_id: row.get(13)?,
+        created_at_ms: row.get(14)?,
+        updated_at_ms: row.get(15)?,
     })
 }
 
@@ -160,9 +172,10 @@ pub(super) fn beat_record_from_row(
         text_shadow: row.get(5)?,
         artifact_id: row.get(6)?,
         mime_type: row.get(7)?,
-        projection_message_id: row.get(8)?,
-        created_at_ms: row.get(9)?,
-        delivered_at_ms: row.get(10)?,
+        media_url: row.get(8)?,
+        projection_message_id: row.get(9)?,
+        created_at_ms: row.get(10)?,
+        delivered_at_ms: row.get(11)?,
     })
 }
 

@@ -25,7 +25,6 @@ import type {
 } from '@nimiplatform/sdk/mod';
 import type {
   AIConfig,
-  AIConfigCapabilities,
   AIConversationExecutionSlice,
   AIRuntimeEvidence,
   AIScopeRef,
@@ -61,9 +60,6 @@ export type RuntimeLocalProfileRef = {
 export type ConversationCapabilitySelectionStore = {
   version: number;
   selectedBindings: Partial<Record<ConversationCapability, RuntimeRouteBinding | null>>;
-  defaultRefs: {
-    imageProfileRef?: RuntimeLocalProfileRef | null;
-  };
 };
 
 export type ConversationCapabilityProjectionReasonCode =
@@ -73,7 +69,6 @@ export type ConversationCapabilityProjectionReasonCode =
   | 'route_unhealthy'
   | 'metadata_missing'
   | 'capability_unsupported'
-  | 'profile_ref_missing'
   | 'host_denied';
 
 export type ConversationCapabilityProjection = {
@@ -86,21 +81,14 @@ export type ConversationCapabilityProjection = {
   reasonCode: ConversationCapabilityProjectionReasonCode | null;
 };
 
-export type AgentCapabilityEligibility = {
-  channel: 'LOCAL' | 'CLOUD' | null;
-  sessionClass: 'AGENT_LOCAL' | 'HUMAN_DIRECT' | null;
-  providerSelectable: boolean;
-  reason: string;
-};
-
 export type AgentEffectiveCapabilityResolution = {
   ready: boolean;
   textProjection: ConversationCapabilityProjection | null;
-  eligibility: AgentCapabilityEligibility | null;
+  imageProjection: ConversationCapabilityProjection | null;
+  imageReady: boolean;
   reason:
     | 'ok'
     | 'projection_unavailable'
-    | 'eligibility_denied'
     | 'route_unresolved';
 };
 
@@ -137,7 +125,6 @@ type BuildConversationCapabilityProjectionInput = {
   selectionStore: ConversationCapabilitySelectionStore;
   routeRuntime?: ConversationCapabilityRouteRuntime | null;
   hostAllowed?: boolean;
-  requiresImageProfileRef?: boolean;
   requiresDescribeMetadata?: boolean;
 };
 
@@ -211,23 +198,11 @@ function isProjectionHealthHealthy(health: RuntimeRouteHealthResult | null): boo
   return health.healthy !== false;
 }
 
-function isAgentEligibilityReadyForLocalExecution(
-  eligibility: AgentCapabilityEligibility | null,
-): boolean {
-  if (!eligibility) {
-    return false;
-  }
-  if (!eligibility.channel || !eligibility.sessionClass || !normalizeText(eligibility.reason)) {
-    return false;
-  }
-  return eligibility.channel === 'LOCAL' && eligibility.sessionClass === 'AGENT_LOCAL';
-}
 
 export function createDefaultConversationCapabilitySelectionStore(): ConversationCapabilitySelectionStore {
   return {
     version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
     selectedBindings: {},
-    defaultRefs: {},
   };
 }
 
@@ -239,31 +214,11 @@ export function updateConversationCapabilityBinding(
   const next: ConversationCapabilitySelectionStore = {
     version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
     selectedBindings: { ...state.selectedBindings },
-    defaultRefs: { ...state.defaultRefs },
   };
   if (binding === undefined) {
     delete next.selectedBindings[capability];
   } else {
     next.selectedBindings[capability] = binding;
-  }
-  return next;
-}
-
-export function updateConversationCapabilityDefaultRefs(
-  state: ConversationCapabilitySelectionStore,
-  updates: Partial<ConversationCapabilitySelectionStore['defaultRefs']>,
-): ConversationCapabilitySelectionStore {
-  const next: ConversationCapabilitySelectionStore = {
-    version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
-    selectedBindings: { ...state.selectedBindings },
-    defaultRefs: { ...state.defaultRefs },
-  };
-  if (hasOwn(updates, 'imageProfileRef')) {
-    if (updates.imageProfileRef === undefined) {
-      delete next.defaultRefs.imageProfileRef;
-    } else {
-      next.defaultRefs.imageProfileRef = updates.imageProfileRef;
-    }
   }
   return next;
 }
@@ -283,9 +238,6 @@ export async function buildConversationCapabilityProjection(
   const hostAllowed = input.hostAllowed !== false;
   if (!hostAllowed) {
     return createProjection(input.capability, { reasonCode: 'host_denied' });
-  }
-  if (input.requiresImageProfileRef && !input.selectionStore.defaultRefs.imageProfileRef) {
-    return createProjection(input.capability, { reasonCode: 'profile_ref_missing' });
   }
 
   const selectedBindings = input.selectionStore.selectedBindings;
@@ -413,7 +365,6 @@ export async function buildConversationCapabilityProjectionMap(input: {
   selectionStore: ConversationCapabilitySelectionStore;
   routeRuntime?: ConversationCapabilityRouteRuntime | null;
   hostAllowlist?: Partial<Record<ConversationCapability, boolean>>;
-  requiresImageProfileRefByCapability?: Partial<Record<ConversationCapability, boolean>>;
   capabilities?: readonly ConversationCapability[];
 }): Promise<ConversationCapabilityProjectionMap> {
   const capabilities = input.capabilities || CONVERSATION_CAPABILITIES;
@@ -423,7 +374,6 @@ export async function buildConversationCapabilityProjectionMap(input: {
       selectionStore: input.selectionStore,
       routeRuntime: input.routeRuntime,
       hostAllowed: input.hostAllowlist?.[capability] !== false,
-      requiresImageProfileRef: input.requiresImageProfileRefByCapability?.[capability] === true,
       requiresDescribeMetadata: CAPABILITIES_WITH_DESCRIBE_METADATA.has(capability),
     });
     return [capability, projection] as const;
@@ -433,25 +383,18 @@ export async function buildConversationCapabilityProjectionMap(input: {
 
 export function buildAgentEffectiveCapabilityResolution(input: {
   textProjection: ConversationCapabilityProjection | null;
-  eligibility: AgentCapabilityEligibility | null;
+  imageProjection?: ConversationCapabilityProjection | null;
 }): AgentEffectiveCapabilityResolution {
   const textProjection = input.textProjection || null;
+  const imageProjection = input.imageProjection || null;
+  const imageReady = Boolean(imageProjection?.supported && imageProjection?.resolvedBinding);
   if (!textProjection || !textProjection.supported) {
     return {
       ready: false,
       textProjection,
-      eligibility: input.eligibility || null,
+      imageProjection,
+      imageReady,
       reason: 'projection_unavailable',
-    };
-  }
-
-  const eligibility = input.eligibility || null;
-  if (!isAgentEligibilityReadyForLocalExecution(eligibility)) {
-    return {
-      ready: false,
-      textProjection,
-      eligibility: eligibility || null,
-      reason: 'eligibility_denied',
     };
   }
 
@@ -459,7 +402,8 @@ export function buildAgentEffectiveCapabilityResolution(input: {
     return {
       ready: false,
       textProjection,
-      eligibility,
+      imageProjection,
+      imageReady,
       reason: 'route_unresolved',
     };
   }
@@ -467,7 +411,8 @@ export function buildAgentEffectiveCapabilityResolution(input: {
   return {
     ready: true,
     textProjection,
-    eligibility,
+    imageProjection,
+    imageReady,
     reason: 'ok',
   };
 }
@@ -542,16 +487,11 @@ export function aiConfigFromSelectionStore(
   store: ConversationCapabilitySelectionStore,
   scopeRef?: AIScopeRef,
 ): AIConfig {
-  const localProfileRefs: AIConfigCapabilities['localProfileRefs'] = {};
-  if (store.defaultRefs.imageProfileRef) {
-    localProfileRefs['image.generate'] = store.defaultRefs.imageProfileRef;
-    localProfileRefs['image.edit'] = store.defaultRefs.imageProfileRef;
-  }
   return {
     scopeRef: scopeRef || createDefaultAIScopeRef(),
     capabilities: {
       selectedBindings: { ...store.selectedBindings },
-      localProfileRefs,
+      localProfileRefs: {},
       selectedParams: {},
     },
     profileOrigin: null,
@@ -559,13 +499,9 @@ export function aiConfigFromSelectionStore(
 }
 
 export function selectionStoreFromAIConfig(config: AIConfig): ConversationCapabilitySelectionStore {
-  const imageRef = (config.capabilities.localProfileRefs?.['image.generate'] || null) as RuntimeLocalProfileRef | null;
   return {
     version: CONVERSATION_CAPABILITY_SELECTION_STORE_VERSION,
     selectedBindings: { ...config.capabilities.selectedBindings } as ConversationCapabilitySelectionStore['selectedBindings'],
-    defaultRefs: {
-      imageProfileRef: imageRef,
-    },
   };
 }
 

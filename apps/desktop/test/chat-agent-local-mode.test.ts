@@ -5,9 +5,8 @@ import test from 'node:test';
 
 import {
   CORE_CHAT_AGENT_MOD_ID,
+  generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
-  isAgentLocalRouteReady,
-  resolveAgentLocalRoute,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import {
   findAgentConversationThreadByAgentId,
@@ -129,34 +128,6 @@ test('agent local mode keeps one thread per agent when restoring selection', () 
   }), 'thread-agent-1');
 });
 
-test('agent local runtime route readiness stays fail-close for non-local routes', async () => {
-  const localRoute = await resolveAgentLocalRoute('agent-1', {
-    resolveAgentChatRouteImpl: async () => ({
-      channel: 'LOCAL',
-      providerSelectable: false,
-      reason: 'ok',
-      sessionClass: 'AGENT_LOCAL',
-    }),
-  });
-  const remoteRoute = await resolveAgentLocalRoute('agent-1', {
-    resolveAgentChatRouteImpl: async () => ({
-      channel: 'CLOUD',
-      providerSelectable: true,
-      reason: 'remote',
-      sessionClass: 'HUMAN_DIRECT',
-    }),
-  });
-
-  assert.equal(isAgentLocalRouteReady(localRoute), true);
-  assert.equal(isAgentLocalRouteReady(remoteRoute), false);
-  await assert.rejects(
-    () => resolveAgentLocalRoute('agent-1', {
-      resolveAgentChatRouteImpl: async () => ({ channel: 'bad' }),
-    }),
-    /channel is invalid/,
-  );
-});
-
 test('agent local runtime invoke passes core mod id and agentId to the runtime call', async () => {
   const projection = {
     capability: 'text.generate' as const,
@@ -200,12 +171,6 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
   };
   const agentResolution = buildAgentEffectiveCapabilityResolution({
     textProjection: projection,
-    eligibility: {
-      channel: 'LOCAL',
-      providerSelectable: false,
-      reason: 'ok',
-      sessionClass: 'AGENT_LOCAL',
-    },
   });
   const executionSnapshot = createAISnapshot({
     config: createEmptyAIConfig(),
@@ -219,12 +184,6 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
     prompt: 'hello',
     threadId: 'thread-1',
     reasoningPreference: 'off',
-    routeResult: {
-      channel: 'LOCAL',
-      providerSelectable: false,
-      reason: 'ok',
-      sessionClass: 'AGENT_LOCAL',
-    },
     agentResolution,
     executionSnapshot,
     runtimeConfigState: null,
@@ -259,22 +218,322 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
   assert.equal(result.text, 'hi');
 });
 
-test('agent submit derives routeResult from AgentEffectiveCapabilityResolution eligibility', () => {
-  // Verify the host-actions file uses agentResolution.eligibility, not resolveAgentLocalRoute
-  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
-  // Must derive routeResult from eligibility
-  assert.match(
-    hostActionsSource,
-    /eligibility = input\.agentResolution/,
-    'host actions must derive route from agentResolution eligibility',
-  );
-  // Must not call resolveAgentLocalRoute
-  assert.doesNotMatch(
-    hostActionsSource,
-    /await resolveAgentLocalRoute\(/,
-    'host actions must not call resolveAgentLocalRoute',
-  );
+test('agent runtime invoke supports cloud routes via connectorId', async () => {
+  const projection = {
+    capability: 'text.generate' as const,
+    selectedBinding: {
+      source: 'cloud' as const,
+      connectorId: 'connector-openai',
+      model: 'gpt-5.4-mini',
+    },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      resolvedBindingRef: 'cloud:connector-openai:gpt-5.4-mini',
+      source: 'cloud' as const,
+      provider: 'openai',
+      model: 'gpt-5.4-mini',
+      modelId: 'gpt-5.4-mini',
+      connectorId: 'connector-openai',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'cloud:connector-openai:gpt-5.4-mini',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: true,
+        traceModeSupport: 'separate' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: projection,
+  });
+  const executionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'text.generate',
+    projection,
+    agentResolution,
+  });
+
+  const result = await invokeChatAgentRuntime({
+    agentId: 'agent-1',
+    prompt: 'hello cloud',
+    threadId: 'thread-cloud',
+    reasoningPreference: 'off',
+    agentResolution,
+    executionSnapshot,
+    runtimeConfigState: null,
+    runtimeFields: {
+      targetType: '',
+      targetAccountId: '',
+      agentId: '',
+      targetId: '',
+      worldId: '',
+      provider: 'openai',
+      runtimeModelType: 'chat',
+      localProviderEndpoint: '',
+      localProviderModel: '',
+      localOpenAiEndpoint: '',
+      connectorId: 'connector-openai',
+      mode: 'STORY',
+      turnIndex: 1,
+      userConfirmedUpload: false,
+    },
+  }, {
+    invokeModLlmImpl: async (input) => {
+      assert.equal(input.modId, CORE_CHAT_AGENT_MOD_ID);
+      assert.equal(input.agentId, 'agent-1');
+      assert.equal(input.provider, 'openai');
+      assert.equal(input.connectorId, 'connector-openai');
+      assert.equal(input.localProviderModel, 'gpt-5.4-mini');
+      return {
+        text: 'hi cloud',
+        traceId: 'trace-cloud',
+        promptTraceId: 'prompt-trace-cloud',
+      };
+    },
+  });
+
+  assert.equal(result.text, 'hi cloud');
 });
+
+test('agent local runtime invoke falls back to resolved endpoint when provider-specific endpoints are absent', async () => {
+  const projection = {
+    capability: 'text.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'qwen3',
+    },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      resolvedBindingRef: 'local:llama:qwen3',
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'qwen3',
+      modelId: 'qwen3',
+      localModelId: 'local-chat-1',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:11434/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'local:llama:qwen3',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: false,
+        traceModeSupport: 'none' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: projection,
+  });
+  const executionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'text.generate',
+    projection,
+    agentResolution,
+  });
+
+  await assert.doesNotReject(async () => {
+    await invokeChatAgentRuntime({
+      agentId: 'agent-1',
+      prompt: 'hello local',
+      threadId: 'thread-local',
+      reasoningPreference: 'off',
+      agentResolution,
+      executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: '',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: '',
+        localProviderModel: '',
+        localOpenAiEndpoint: '',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 1,
+        userConfirmedUpload: false,
+      },
+    }, {
+      invokeModLlmImpl: async (input) => {
+        assert.equal(input.localProviderEndpoint, 'http://127.0.0.1:11434/v1');
+        assert.equal(input.localOpenAiEndpoint, 'http://127.0.0.1:11434/v1');
+        return {
+          text: 'hi local',
+          traceId: 'trace-local',
+          promptTraceId: 'prompt-trace-local',
+        };
+      },
+    });
+  });
+});
+
+test('agent image runtime returns artifact uri when provided by runtime media output', async () => {
+  const projection = {
+    capability: 'image.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'flux',
+    },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:forge:flux',
+      source: 'local' as const,
+      provider: 'forge',
+      model: 'flux',
+      modelId: 'flux',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:7860',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    imageProjection: projection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection,
+    agentResolution,
+  });
+
+  const result = await generateChatAgentImageRuntime({
+    prompt: 'draw the inn at sunset',
+    imageExecutionSnapshot,
+  }, {
+    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-image-uri' }),
+    getRuntimeClientImpl: () => ({
+      media: {
+        image: {
+          generate: async (request: Record<string, unknown>) => {
+            assert.equal(request.prompt, 'draw the inn at sunset');
+            assert.equal(request.model, 'flux');
+            return {
+              artifacts: [{
+                artifactId: 'artifact-uri',
+                mimeType: 'image/png',
+                uri: 'https://cdn.nimi.test/generated.png',
+              }],
+              trace: {
+                traceId: 'trace-image-uri',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
+  });
+
+  assert.equal(result.mediaUrl, 'https://cdn.nimi.test/generated.png');
+  assert.equal(result.mimeType, 'image/png');
+  assert.equal(result.artifactId, 'artifact-uri');
+});
+
+test('agent image runtime encodes artifact bytes to stable data url when uri is absent', async () => {
+  const projection = {
+    capability: 'image.generate' as const,
+    selectedBinding: {
+      source: 'cloud' as const,
+      connectorId: 'connector-image',
+      model: 'gpt-image-1',
+    },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'cloud:connector-image:gpt-image-1',
+      source: 'cloud' as const,
+      provider: 'openai',
+      model: 'gpt-image-1',
+      modelId: 'gpt-image-1',
+      connectorId: 'connector-image',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    imageProjection: projection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection,
+    agentResolution,
+  });
+
+  const result = await generateChatAgentImageRuntime({
+    prompt: 'paint a tea bowl',
+    imageExecutionSnapshot,
+  }, {
+    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-image-bytes' }),
+    getRuntimeClientImpl: () => ({
+      media: {
+        image: {
+          generate: async () => ({
+            artifacts: [{
+              artifactId: 'artifact-bytes',
+              mimeType: 'image/png',
+              bytes: new Uint8Array([0x41, 0x42, 0x43]),
+            }],
+            trace: {
+              traceId: 'trace-image-bytes',
+            },
+          }),
+        },
+      },
+    }) as never,
+  });
+
+  assert.equal(result.mediaUrl, 'data:image/png;base64,QUJD');
+  assert.equal(result.mimeType, 'image/png');
+  assert.equal(result.artifactId, 'artifact-bytes');
+});
+
 
 test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is false', () => {
   const supportedProjection = {
@@ -290,33 +549,101 @@ test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is 
   // projection_unavailable
   const res1 = buildAgentEffectiveCapabilityResolution({
     textProjection: null,
-    eligibility: { channel: 'LOCAL', sessionClass: 'AGENT_LOCAL', providerSelectable: false, reason: 'ok' },
   });
   assert.equal(res1.ready, false);
   assert.equal(res1.reason, 'projection_unavailable');
 
-  // eligibility_denied
+  // route_unresolved (supported but no resolvedBinding)
+  const noBindingProjection = { ...supportedProjection, resolvedBinding: null };
   const res2 = buildAgentEffectiveCapabilityResolution({
-    textProjection: supportedProjection,
-    eligibility: null,
+    textProjection: noBindingProjection,
   });
   assert.equal(res2.ready, false);
-  assert.equal(res2.reason, 'eligibility_denied');
-
-  // HUMAN_DIRECT passes through unchanged — Desktop must not rewrite to AGENT_LOCAL
-  const res3 = buildAgentEffectiveCapabilityResolution({
-    textProjection: supportedProjection,
-    eligibility: { channel: 'LOCAL', sessionClass: 'HUMAN_DIRECT', providerSelectable: false, reason: 'human' },
-  });
-  assert.equal(res3.eligibility?.sessionClass, 'HUMAN_DIRECT');
+  assert.equal(res2.reason, 'route_unresolved');
 
   // ok
-  const res4 = buildAgentEffectiveCapabilityResolution({
+  const res3 = buildAgentEffectiveCapabilityResolution({
     textProjection: supportedProjection,
-    eligibility: { channel: 'LOCAL', sessionClass: 'AGENT_LOCAL', providerSelectable: false, reason: 'ok' },
   });
-  assert.equal(res4.ready, true);
-  assert.equal(res4.reason, 'ok');
+  assert.equal(res3.ready, true);
+  assert.equal(res3.reason, 'ok');
+});
+
+test('agent capability resolution keeps image optional while exposing image readiness truth', () => {
+  const textProjection = {
+    capability: 'text.generate' as const,
+    selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      resolvedBindingRef: 'local:text:qwen3',
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'qwen3',
+      modelId: 'qwen3',
+      connectorId: '',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'local:text:qwen3',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: false,
+        traceModeSupport: 'none' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const readyImageProjection = {
+    capability: 'image.generate' as const,
+    selectedBinding: { source: 'local' as const, connectorId: '', model: 'flux' },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:image:flux',
+      source: 'local' as const,
+      provider: 'forge',
+      model: 'flux',
+      modelId: 'flux',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:7860',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+
+  const withoutImage = buildAgentEffectiveCapabilityResolution({
+    textProjection,
+    imageProjection: null,
+  });
+  assert.equal(withoutImage.ready, true);
+  assert.equal(withoutImage.imageProjection, null);
+  assert.equal(withoutImage.imageReady, false);
+
+  const withReadyImage = buildAgentEffectiveCapabilityResolution({
+    textProjection,
+    imageProjection: readyImageProjection,
+  });
+  assert.equal(withReadyImage.ready, true);
+  assert.equal(withReadyImage.imageProjection?.capability, 'image.generate');
+  assert.equal(withReadyImage.imageReady, true);
+
+  const unresolvedImage = buildAgentEffectiveCapabilityResolution({
+    textProjection,
+    imageProjection: {
+      ...readyImageProjection,
+      resolvedBinding: null,
+    },
+  });
+  assert.equal(unresolvedImage.ready, true);
+  assert.equal(unresolvedImage.imageReady, false);
 });
 
 test('agent local mode keeps thinking unsupported and forces effective off config', () => {
@@ -338,6 +665,7 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
   const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
   const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
+  const orchestrationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-orchestration.ts');
   assert.match(adapterSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
   assert.match(adapterSource, /useAgentConversationEffects/);
@@ -352,12 +680,20 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionsSource, /resolveAgentSubmitDriverProjectionRefresh/);
   assert.match(hostActionsSource, /resolveAuthoritativeAgentThreadBundle/);
   assert.match(hostActionsSource, /assertAgentTurnLifecycleCompleted/);
-  assert.match(hostActionsSource, /setSubmittingThreadId\(input\.activeThreadId\)/);
-  assert.match(hostActionsSource, /setFooterHostState\(input\.activeThreadId,\s*null\)/);
+  assert.match(hostActionsSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(input\.activeTarget\);/);
+  assert.match(hostActionsSource, /setSubmittingThreadId\(effectiveThreadId\)/);
+  assert.match(hostActionsSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionsSource, /finally\s*\{\s*input\.setSubmittingThreadId\(null\);/);
-  assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId\)/);
-  assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId\)/);
-  assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(input\.activeThreadId!\)/);
+  assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
+  assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\);/);
+  assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
+  assert.match(adapterSource, /logRendererEvent/);
+  assert.match(adapterSource, /if \(agentRouteReady\) \{\s+return createReadyConversationSetupState\('agent'\);/);
+  assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& \(!activeTarget \|\| agentRouteReady\)/);
+  assert.match(orchestrationSource, /normalizeConversationRuntimeTextStreamPart/);
+  assert.doesNotMatch(orchestrationSource, /Unsupported agent runtime stream part/);
+  assert.doesNotMatch(orchestrationSource, /yield \{ type: 'start' \};/);
+  assert.match(presentationSource, /showStreamingText=\{false\}/);
   assert.match(presentationSource, /resolveAgentFooterViewState/);
   assert.match(presentationSource, /resolveAgentConversationSurfaceState/);
   assert.match(presentationSource, /resolveAgentConversationHostView/);

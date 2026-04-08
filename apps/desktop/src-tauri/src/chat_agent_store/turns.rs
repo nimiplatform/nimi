@@ -79,6 +79,7 @@ pub(crate) fn load_turn_context(
               b.text_shadow,
               b.artifact_id,
               b.mime_type,
+              b.media_url,
               b.projection_message_id,
               b.created_at_ms,
               b.delivered_at_ms
@@ -298,10 +299,11 @@ pub(crate) fn commit_turn_result(
               text_shadow,
               artifact_id,
               mime_type,
+              media_url,
               projection_message_id,
               created_at_ms,
               delivered_at_ms
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#,
             params![
                 normalize_required_string(&beat.id, "beats[].id")?,
@@ -312,6 +314,7 @@ pub(crate) fn commit_turn_result(
                 normalize_optional_string(beat.text_shadow.as_deref()),
                 normalize_optional_string(beat.artifact_id.as_deref()),
                 normalize_optional_string(beat.mime_type.as_deref()),
+                normalize_optional_string(beat.media_url.as_deref()),
                 normalize_optional_string(beat.projection_message_id.as_deref()),
                 require_non_negative_ms(beat.created_at_ms, "beats[].createdAtMs")?,
                 beat.delivered_at_ms
@@ -527,6 +530,7 @@ pub(crate) fn commit_turn_result(
                   text_shadow,
                   artifact_id,
                   mime_type,
+                  media_url,
                   projection_message_id,
                   created_at_ms,
                   delivered_at_ms

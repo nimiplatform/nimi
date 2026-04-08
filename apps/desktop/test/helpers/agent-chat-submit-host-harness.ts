@@ -189,7 +189,7 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
     footerViewState,
     labels: {
       title,
-      sendingDisabledReason: 'Waiting for agent response…',
+      sendingDisabledReason: 'The agent is replying…',
       composerPlaceholderWithTarget: `Talk to ${input.activeTarget?.displayName || 'this agent'}…`,
       composerPlaceholderWithoutTarget: 'Select an agent to start chatting…',
     },

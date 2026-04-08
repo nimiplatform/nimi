@@ -41,6 +41,7 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
     requestId: input.requestId,
     sessionId: input.sessionId,
     turnIndex: input.turnIndex,
+    traceId: result.traceId,
     assistantMessage: {
       text: assistantText,
       style: input.mode === 'STORY' ? 'narration' : 'mixed',

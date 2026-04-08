@@ -45,6 +45,9 @@ export function resolveAgentCanonicalMessages(input: {
 }): ConversationCanonicalMessage[] {
   return input.messages.map((message) => {
     const isUser = message.role === 'user' || message.role === 'human';
+    const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
+    const kind = String(metadata.kind || '').trim();
+    const isImage = kind === 'image';
     return {
       id: message.id,
       sessionId: input.activeThreadId || input.activeTargetId || 'agent',
@@ -56,12 +59,14 @@ export function resolveAgentCanonicalMessages(input: {
       updatedAt: message.updatedAt,
       status: message.status,
       error: message.error,
-      kind: 'text' as const,
+      kind: isImage
+        ? (message.status === 'pending' ? 'image-pending' as const : 'image' as const)
+        : 'text' as const,
       senderName: isUser ? 'You' : input.character.name,
       senderAvatarUrl: isUser ? undefined : input.character.avatarUrl || undefined,
       senderHandle: isUser ? undefined : input.character.handle || undefined,
       senderKind: isUser ? ('human' as const) : ('agent' as const),
-      metadata: message.metadata,
+      metadata,
     };
   });
 }

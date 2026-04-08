@@ -7,7 +7,9 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import type { ConversationTurnEvent } from '@nimiplatform/nimi-kit/features/chat/headless';
 import {
+  createEmptyAgentThreadBundle,
   overlayAgentAssistantVisibleState,
+  replaceAgentBundleMessage,
 } from './chat-agent-shell-bundle';
 import {
   resolveCompletedAgentHostInteraction,
@@ -35,6 +37,7 @@ export type AgentSubmitSessionState = {
   runtimeTraceId: string | null;
   promptTraceId: string | null;
   assistantVisible: boolean;
+  pendingFirstBeatEchoTextDelta: string | null;
   workingBundle: AgentLocalThreadBundle | null;
   lifecycle: AgentTurnLifecycleState;
 };
@@ -101,6 +104,35 @@ function createVisibleBundle(
   });
 }
 
+function overlayPendingImageBeat(input: {
+  state: AgentSubmitSessionState;
+  beatIndex: number;
+  updatedAtMs: number;
+}): AgentLocalThreadBundle {
+  const base = input.state.workingBundle || createEmptyAgentThreadBundle(input.state.fallbackThread);
+  const messageId = `${input.state.assistantMessageId.split(':message:')[0]}:message:${input.beatIndex}`;
+  return {
+    ...base,
+    messages: replaceAgentBundleMessage(base.messages, {
+      id: messageId,
+      threadId: base.thread.id,
+      role: 'assistant',
+      status: 'pending',
+      kind: 'image',
+      contentText: 'Generating image...',
+      reasoningText: null,
+      error: null,
+      traceId: null,
+      parentMessageId: input.state.assistantMessageId,
+      mediaUrl: null,
+      mediaMimeType: null,
+      artifactId: null,
+      createdAtMs: input.updatedAtMs,
+      updatedAtMs: input.updatedAtMs,
+    }),
+  };
+}
+
 function resolveTraceId(
   state: AgentSubmitSessionState,
   streamSnapshot: StreamState,
@@ -129,6 +161,7 @@ export function createInitialAgentSubmitSessionState(input: {
     runtimeTraceId: null,
     promptTraceId: null,
     assistantVisible: false,
+    pendingFirstBeatEchoTextDelta: null,
     workingBundle: input.workingBundle,
     lifecycle: createInitialAgentTurnLifecycleState(),
   };
@@ -143,11 +176,27 @@ export function reduceAgentSubmitSessionEvent(
 ): AgentSubmitSessionStep {
   switch (input.event.type) {
     case 'turn-started':
-    case 'beat-planned':
     case 'beat-delivery-started':
     case 'beat-delivered':
     case 'artifact-ready':
       return { state };
+    case 'beat-planned': {
+      if (input.event.modality !== 'image') {
+        return { state };
+      }
+      const pendingImageBundle = overlayPendingImageBeat({
+        state,
+        beatIndex: input.event.beatIndex,
+        updatedAtMs: input.updatedAtMs,
+      });
+      return {
+        state: {
+          ...state,
+          workingBundle: pendingImageBundle,
+        },
+        visibleBundle: pendingImageBundle,
+      };
+    }
     case 'reasoning-delta':
       return {
         state: {
@@ -160,9 +209,17 @@ export function reduceAgentSubmitSessionEvent(
         },
       };
     case 'text-delta': {
+      const echoedFirstBeatDelta = state.pendingFirstBeatEchoTextDelta;
+      const shouldSkipEcho = Boolean(
+        echoedFirstBeatDelta
+        && echoedFirstBeatDelta === input.event.textDelta,
+      );
       const nextStateBase = {
         ...state,
-        streamedText: state.streamedText + input.event.textDelta,
+        streamedText: shouldSkipEcho
+          ? state.streamedText
+          : state.streamedText + input.event.textDelta,
+        pendingFirstBeatEchoTextDelta: null,
       };
       if (!nextStateBase.assistantVisible) {
         return {
@@ -191,10 +248,14 @@ export function reduceAgentSubmitSessionEvent(
       };
     }
     case 'first-beat-sealed': {
+      const sealedText = input.event.text || state.streamedText;
+      const echoedDelta = sealedText.startsWith(state.streamedText)
+        ? sealedText.slice(state.streamedText.length)
+        : sealedText;
       const visibleBundle = createVisibleBundle({
         ...state,
         assistantVisible: true,
-        streamedText: input.event.text || state.streamedText,
+        streamedText: sealedText,
       }, {
         partialText: input.event.text,
         partialReasoningText: '',
@@ -204,7 +265,8 @@ export function reduceAgentSubmitSessionEvent(
         state: {
           ...state,
           assistantVisible: true,
-          streamedText: input.event.text || state.streamedText,
+          streamedText: sealedText,
+          pendingFirstBeatEchoTextDelta: echoedDelta || null,
           workingBundle: visibleBundle,
         },
         visibleBundle,

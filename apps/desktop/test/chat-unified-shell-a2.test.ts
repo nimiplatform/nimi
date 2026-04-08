@@ -198,9 +198,10 @@ test('chat unified shell a2: AIConfig is the umbrella authority over conversatio
   assert.doesNotMatch(capabilityStorageSource, /function persistAIConfig\(/);
   assert.doesNotMatch(capabilityStorageSource, /LEGACY_SINGLE_KEY/);
 
-  // ImageProfileSelectorCard reads from aiConfig.capabilities.localProfileRefs (D-AIPC-008)
-  assert.match(capabilitySettingsSource, /aiConfig\.capabilities\.localProfileRefs\['image\.generate'\]/);
   assert.doesNotMatch(capabilitySettingsSource, /setConversationCapabilityDefaultRefs/);
+  // ImageProfileSelectorCard was removed — no localProfileRefs access in settings
+  assert.doesNotMatch(capabilitySettingsSource, /ImageProfileSelectorCard/);
+  assert.doesNotMatch(capabilitySettingsSource, /aiConfig\.capabilities\.localProfileRefs/);
 });
 
 test('chat unified shell a2: Phase 4 — AI and Agent adapters write through AIConfig surface, not store action (D-AIPC-003)', () => {
@@ -220,7 +221,7 @@ test('chat unified shell a2: Phase 4 — conversation-capability module position
   assert.match(conversationCapabilitySource, /submodel.*D-AIPC-010/i);
   assert.match(conversationCapabilitySource, /AIConfig.*live truth/);
 
-  // imageProfileRef variable name is not used in settings (renamed to capability-scoped name)
+  // imageProfileRef and imageCapabilityLocalRef were removed with ImageProfileSelectorCard
   assert.doesNotMatch(capabilitySettingsSource, /const imageProfileRef\b/);
-  assert.match(capabilitySettingsSource, /imageCapabilityLocalRef/);
+  assert.doesNotMatch(capabilitySettingsSource, /imageCapabilityLocalRef/);
 });

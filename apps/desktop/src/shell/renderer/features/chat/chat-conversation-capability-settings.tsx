@@ -110,17 +110,6 @@ function buildProjectionStatus(
     };
   }
 
-  if (projection?.reasonCode === 'profile_ref_missing') {
-    return {
-      badge: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-      value: t('Chat.settingsImageProfileRequired', { defaultValue: 'Local image profile required' }),
-      detail: t('Chat.settingsImageProfileRequiredHint', {
-        defaultValue: 'Select a local image profile in your AI configuration before using this capability.',
-      }),
-      supported: false,
-    };
-  }
-
   if (projection?.reasonCode === 'selection_missing' || projection?.reasonCode === 'selection_cleared') {
     return {
       badge: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),

@@ -13,6 +13,7 @@ import {
   resolveAuthoritativeAgentThreadBundle,
   resolveInterruptedAgentThreadBundle,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-bundle.js';
+import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {
   return {
@@ -47,31 +48,26 @@ function sampleDraft(): AgentLocalDraftRecord {
 function sampleBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'sealed first beat',
       reasoningText: 'private chain',
-      error: null,
       traceId: 'trace-sealed',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 102,
-    }],
+    })],
     draft: null,
   };
 }
@@ -87,31 +83,25 @@ test('agent shell bundle prefers refreshed projection over optimistic cache and 
       updatedAtMs: 999,
       lastMessageAtMs: 999,
     },
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative projection',
-      reasoningText: null,
-      error: null,
       traceId: 'trace-authoritative',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 999,
-    }],
+    })],
     draft: sampleDraft(),
   };
 
@@ -156,31 +146,25 @@ test('agent shell bundle resolves completed terminals by preferring refreshed pr
       updatedAtMs: 1000,
       lastMessageAtMs: 1000,
     },
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative completion',
-      reasoningText: null,
-      error: null,
       traceId: 'trace-complete',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 1000,
-    }],
+    })],
     draft: sampleDraft(),
   };
 
@@ -200,19 +184,16 @@ test('agent shell bundle preserves sealed assistant content when abort lands aft
     bundle: sampleBundle(),
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'tail that should not replace sealed content',
     partialReasoningText: 'tail reasoning',
     runtimeError: {
@@ -240,36 +221,29 @@ test('agent shell bundle grows pending assistant content during streaming before
   const firstBeatBundle = overlayAgentAssistantVisibleState({
     bundle: {
       thread: sampleThread(),
-      messages: [{
+      messages: [createAgentTextMessage({
         id: 'user-1',
         threadId: 'thread-1',
         role: 'user',
         status: 'complete',
         contentText: 'hello',
-        reasoningText: null,
-        error: null,
-        traceId: null,
-        parentMessageId: null,
         createdAtMs: 100,
         updatedAtMs: 100,
-      }],
+      })],
       draft: null,
     },
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'sealed first beat',
     partialReasoningText: '',
     updatedAtMs: 120,
@@ -279,19 +253,16 @@ test('agent shell bundle grows pending assistant content during streaming before
     bundle: firstBeatBundle,
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'sealed first beat plus tail',
     partialReasoningText: 'stream reasoning',
     updatedAtMs: 130,
@@ -310,31 +281,26 @@ test('agent shell bundle does not let later partial deltas overwrite authoritati
       updatedAtMs: 999,
       lastMessageAtMs: 999,
     },
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative projection',
       reasoningText: 'authoritative reasoning',
-      error: null,
       traceId: 'trace-authoritative',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 999,
-    }],
+    })],
     draft: null,
   };
 
@@ -342,19 +308,16 @@ test('agent shell bundle does not let later partial deltas overwrite authoritati
     bundle: authoritativeBundle,
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'stale tail that should not win',
     partialReasoningText: 'stale reasoning',
     updatedAtMs: 1300,
@@ -368,19 +331,15 @@ test('agent shell bundle does not let later partial deltas overwrite authoritati
 test('agent shell bundle creates assistant error placeholder when no committed assistant beat exists yet', () => {
   const baseBundle: AgentLocalThreadBundle = {
     thread: sampleThread(),
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }],
+    })],
     draft: null,
   };
 
@@ -388,19 +347,16 @@ test('agent shell bundle creates assistant error placeholder when no committed a
     bundle: baseBundle,
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'partial answer',
     partialReasoningText: 'stream reasoning',
     runtimeError: {
@@ -444,19 +400,16 @@ test('agent shell bundle resolves interrupted terminals against refreshed projec
     refreshedBundle,
     fallbackThread: sampleThread(),
     assistantMessageId: 'assistant-1',
-    assistantPlaceholder: {
+    assistantPlaceholder: createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'pending',
       contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 101,
-    },
+    }),
     partialText: 'late tail',
     partialReasoningText: 'late reasoning',
     runtimeError: {

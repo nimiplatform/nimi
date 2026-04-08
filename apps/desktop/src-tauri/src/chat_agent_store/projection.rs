@@ -1,6 +1,7 @@
 use super::codec::{
-    map_sql_error, message_role_to_db_value, message_status_to_db_value, normalize_message_error,
-    normalize_optional_string, normalize_required_string, parse_beat_status, parse_message_role,
+    map_sql_error, message_kind_to_db_value, message_role_to_db_value,
+    message_status_to_db_value, normalize_message_error, normalize_optional_string,
+    normalize_required_string, parse_beat_modality, parse_beat_status, parse_message_role,
     require_non_negative_ms,
 };
 use super::crud::get_thread_bundle;
@@ -77,25 +78,33 @@ pub(super) fn upsert_projection_message(
           thread_id,
           role,
           status,
+          kind,
           content_text,
           reasoning_text,
           error_code,
           error_message,
           trace_id,
           parent_message_id,
+          media_url,
+          media_mime_type,
+          artifact_id,
           created_at_ms,
           updated_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
         ON CONFLICT(id) DO UPDATE SET
           thread_id = excluded.thread_id,
           role = excluded.role,
           status = excluded.status,
+          kind = excluded.kind,
           content_text = excluded.content_text,
           reasoning_text = excluded.reasoning_text,
           error_code = excluded.error_code,
           error_message = excluded.error_message,
           trace_id = excluded.trace_id,
           parent_message_id = excluded.parent_message_id,
+          media_url = excluded.media_url,
+          media_mime_type = excluded.media_mime_type,
+          artifact_id = excluded.artifact_id,
           created_at_ms = excluded.created_at_ms,
           updated_at_ms = excluded.updated_at_ms
         "#,
@@ -104,12 +113,16 @@ pub(super) fn upsert_projection_message(
             thread_id,
             message_role_to_db_value(input.role),
             message_status_to_db_value(input.status),
+            message_kind_to_db_value(input.kind),
             content_text,
             normalize_optional_string(input.reasoning_text.as_deref()),
             error.as_ref().and_then(|item| item.code.clone()),
             error.as_ref().map(|item| item.message.clone()),
             normalize_optional_string(input.trace_id.as_deref()),
             normalize_optional_string(input.parent_message_id.as_deref()),
+            normalize_optional_string(input.media_url.as_deref()),
+            normalize_optional_string(input.media_mime_type.as_deref()),
+            normalize_optional_string(input.artifact_id.as_deref()),
             created_at_ms,
             updated_at_ms,
         ],
@@ -134,8 +147,12 @@ pub(super) fn rebuild_projection_internal(
               b.projection_message_id,
               t.thread_id,
               t.role,
+              b.modality,
               b.status,
               b.text_shadow,
+              b.artifact_id,
+              b.mime_type,
+              b.media_url,
               t.trace_id,
               b.created_at_ms,
               COALESCE(b.delivered_at_ms, t.completed_at_ms, t.aborted_at_ms, b.created_at_ms)
@@ -153,10 +170,14 @@ pub(super) fn rebuild_projection_internal(
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
                 row.get::<_, String>(3)?,
-                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(4)?,
                 row.get::<_, Option<String>>(5)?,
-                row.get::<_, i64>(6)?,
-                row.get::<_, i64>(7)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<String>>(8)?,
+                row.get::<_, Option<String>>(9)?,
+                row.get::<_, i64>(10)?,
+                row.get::<_, i64>(11)?,
             ))
         })
         .map_err(|error| format!("query rebuild chat_agent projection beats failed: {error}"))?;
@@ -168,8 +189,12 @@ pub(super) fn rebuild_projection_internal(
             message_id,
             row_thread_id,
             role_raw,
+            modality_raw,
             beat_status_raw,
             text_shadow,
+            artifact_id,
+            mime_type,
+            media_url,
             trace_id,
             created_at_ms,
             updated_at_ms,
@@ -181,7 +206,12 @@ pub(super) fn rebuild_projection_internal(
             );
         }
         let role = parse_message_role(&role_raw)?;
+        let modality = parse_beat_modality(&modality_raw)?;
         let beat_status = parse_beat_status(&beat_status_raw)?;
+        let kind = match modality {
+            ChatAgentBeatModality::Image => ChatAgentMessageKind::Image,
+            _ => ChatAgentMessageKind::Text,
+        };
         let (status, error) = match beat_status {
             ChatAgentBeatStatus::Delivered => (ChatAgentMessageStatus::Complete, None),
             ChatAgentBeatStatus::Failed => (
@@ -202,16 +232,38 @@ pub(super) fn rebuild_projection_internal(
                 (ChatAgentMessageStatus::Pending, None)
             }
         };
+        let content_text = if kind == ChatAgentMessageKind::Image {
+            let candidate = text_shadow.clone().unwrap_or_default();
+            let normalized = candidate.trim();
+            if !normalized.is_empty() {
+                normalized.to_string()
+            } else {
+                match beat_status {
+                    ChatAgentBeatStatus::Planned | ChatAgentBeatStatus::Sealed => {
+                        "Generating image...".to_string()
+                    }
+                    ChatAgentBeatStatus::Failed => "Image generation failed.".to_string(),
+                    ChatAgentBeatStatus::Canceled => "Image generation stopped.".to_string(),
+                    ChatAgentBeatStatus::Delivered => "".to_string(),
+                }
+            }
+        } else {
+            text_shadow.unwrap_or_default()
+        };
         projection_messages.push(ChatAgentProjectionMessageInput {
             id: message_id,
             thread_id: row_thread_id,
             role,
             status,
-            content_text: text_shadow.unwrap_or_default(),
+            kind,
+            content_text,
             reasoning_text: None,
             error,
             trace_id,
             parent_message_id: None,
+            media_url,
+            media_mime_type: mime_type,
+            artifact_id,
             created_at_ms,
             updated_at_ms,
         });

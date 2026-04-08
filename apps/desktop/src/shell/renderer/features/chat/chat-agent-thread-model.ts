@@ -126,9 +126,14 @@ export function toConversationMessageViewModel(
     status: message.status,
     error: message.error?.message || null,
     metadata: {
+      kind: message.kind,
       traceId: message.traceId,
       parentMessageId: message.parentMessageId,
       reasoningText: message.reasoningText,
+      mediaUrl: message.mediaUrl,
+      mediaMimeType: message.mediaMimeType,
+      artifactId: message.artifactId,
+      mediaError: message.error?.message || null,
     },
   };
 }

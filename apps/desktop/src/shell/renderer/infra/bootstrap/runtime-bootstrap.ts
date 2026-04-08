@@ -7,7 +7,11 @@ import {
   checkLocalLlmHealth,
   executeLocalKernelTurn,
 } from '@runtime/llm-adapter';
-import { createPlatformClient, withRealmContextLock } from '@nimiplatform/sdk';
+import {
+  createPlatformClient,
+  unstable_attachPlatformWorldEvolutionSelectorReadProvider,
+  withRealmContextLock,
+} from '@nimiplatform/sdk';
 import {
   getRuntimeHookRuntime,
   listRegisteredRuntimeModIds,
@@ -19,6 +23,7 @@ import {
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
+import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
@@ -300,7 +305,7 @@ export function bootstrapRuntime(): Promise<void> {
     };
     const proxyFetch = createProxyFetch();
 
-    await createPlatformClient({
+    const platformClient = await createPlatformClient({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: bootstrapAccessToken,
@@ -337,6 +342,10 @@ export function bootstrapRuntime(): Promise<void> {
         },
       },
     });
+    unstable_attachPlatformWorldEvolutionSelectorReadProvider(
+      platformClient,
+      createDesktopWorldEvolutionSelectorReadAdapter(),
+    );
     await reconcileLocalRuntimeBootstrapState({ flowId });
 
     dataSync.initApi({

@@ -114,6 +114,51 @@ test('agent shell view model resolves canonical messages with user/agent sender 
   assert.equal(messages[1]?.targetId, 'agent-1');
 });
 
+test('agent shell view model maps image messages to canonical image kinds with media metadata', () => {
+  const messages = resolveAgentCanonicalMessages({
+    messages: [{
+      id: 'assistant-image-1',
+      threadId: 'thread-agent-1',
+      role: 'assistant',
+      text: '一张客栈插画',
+      createdAt: '2026-04-05T00:00:03.000Z',
+      updatedAt: '2026-04-05T00:00:04.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {
+        kind: 'image',
+        mediaUrl: 'https://cdn.nimi.test/inn-scene.png',
+        mediaMimeType: 'image/png',
+        artifactId: 'artifact-1',
+      },
+    }, {
+      id: 'assistant-image-pending-1',
+      threadId: 'thread-agent-1',
+      role: 'assistant',
+      text: 'Generating image...',
+      createdAt: '2026-04-05T00:00:05.000Z',
+      updatedAt: '2026-04-05T00:00:05.000Z',
+      status: 'pending',
+      error: null,
+      metadata: {
+        kind: 'image',
+        mediaUrl: null,
+      },
+    }],
+    activeThreadId: 'thread-agent-1',
+    activeTargetId: 'agent-1',
+    character: {
+      name: 'Companion',
+      avatarUrl: null,
+      handle: '@companion',
+    },
+  });
+
+  assert.equal(messages[0]?.kind, 'image');
+  assert.equal((messages[0]?.metadata as Record<string, unknown>)?.mediaUrl, 'https://cdn.nimi.test/inn-scene.png');
+  assert.equal(messages[1]?.kind, 'image-pending');
+});
+
 test('agent shell view model resolves selected target id fail-close', () => {
   assert.equal(resolveAgentSelectedTargetId({
     selectionAgentId: 'agent-1',

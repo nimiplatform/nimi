@@ -30,39 +30,6 @@ function makeMemoryRecord(id: string, overrides: Partial<AgentMemoryRecord> = {}
   };
 }
 
-test('agent chat route capability fails close on missing agentId, invalid payload, and remote errors', async () => {
-  resetAgentCoreDataStateForTesting();
-
-  const missingHandlers = createAgentCoreDataCapabilityHandlers();
-  await assert.rejects(
-    () => missingHandlers.agentChatRouteResolve({}),
-    /AGENT_ID_REQUIRED/,
-  );
-
-  const invalidHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      resolveAgentChatRoute: async () => ({}) as never,
-    },
-  });
-  await assert.rejects(
-    () => invalidHandlers.agentChatRouteResolve({ agentId: 'agent-1' }),
-    /AGENT_CHAT_ROUTE_INVALID/,
-  );
-
-  const remoteError = new Error('CONTROL_PLANE_DOWN');
-  const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      resolveAgentChatRoute: async () => {
-        throw remoteError;
-      },
-    },
-  });
-  await assert.rejects(
-    () => failingHandlers.agentChatRouteResolve({ agentId: 'agent-1' }),
-    /CONTROL_PLANE_DOWN/,
-  );
-});
-
 test('agent memory core list uses cache-only semantics and rejects missing agentId', async () => {
   resetAgentCoreDataStateForTesting();
 

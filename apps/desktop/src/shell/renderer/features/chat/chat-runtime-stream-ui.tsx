@@ -98,6 +98,8 @@ export function RuntimeStreamFooter(props: {
   stopLabel: string;
   interruptedLabel: string;
   reasoningLabel: ReactNode;
+  waitingLabel?: string;
+  showStreamingText?: boolean;
 }) {
   const avatar = useMemo(() => (
     <EntityAvatar
@@ -110,22 +112,44 @@ export function RuntimeStreamFooter(props: {
   ), [props.assistantAvatarUrl, props.assistantKind, props.assistantName]);
 
   if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
+    const showStreamingText = props.showStreamingText !== false;
+    const isPendingFirstBeat = !props.streamState.partialText && !props.streamState.partialReasoningText;
+    const visiblePartialText = showStreamingText
+      ? (
+        props.streamState.partialText
+        || (props.streamState.phase === 'waiting'
+          ? (props.waitingLabel || '...')
+          : '')
+      )
+      : (
+        isPendingFirstBeat
+          ? (props.waitingLabel || '...')
+          : ''
+      );
+    const stopAction = (
+      <button
+        type="button"
+        onClick={() => cancelStream(props.chatId)}
+        className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+      >
+        {props.stopLabel}
+      </button>
+    );
+    if (!showStreamingText && !isPendingFirstBeat) {
+      return (
+        <div className="pl-10">
+          {stopAction}
+        </div>
+      );
+    }
     return (
       <ChatStreamStatus
         mode="streaming"
-        partialText={props.streamState.partialText}
+        partialText={visiblePartialText}
         reasoningText={props.streamState.partialReasoningText}
         reasoningLabel={props.reasoningLabel}
         avatar={avatar}
-        actions={(
-          <button
-            type="button"
-            onClick={() => cancelStream(props.chatId)}
-            className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
-          >
-            {props.stopLabel}
-          </button>
-        )}
+        actions={stopAction}
       />
     );
   }

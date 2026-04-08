@@ -114,7 +114,6 @@ export const CORE_DATA_API_CAPABILITIES = {
   userByHandleGet: 'data-api.core.user.by-handle.get',
   worldByIdGet: 'data-api.core.world.by-id.get',
   worldviewByIdGet: 'data-api.core.worldview.by-id.get',
-  agentChatRouteResolve: 'data-api.core.agent.chat.route.resolve',
   agentMemoryCoreList: 'data-api.core.agent.memory.core.list',
   agentMemoryDyadicList: 'data-api.core.agent.memory.dyadic.list',
   agentMemoryProfilesList: 'data-api.core.agent.memory.profiles.list',

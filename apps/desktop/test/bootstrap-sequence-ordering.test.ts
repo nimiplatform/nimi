@@ -29,6 +29,23 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
+  test('D-BOOT-003: world evolution selector-read provider attaches after platform client init and before DataSync init', () => {
+    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
+    const attachIndex = bootstrapSource.indexOf('unstable_attachPlatformWorldEvolutionSelectorReadProvider(');
+    const dataSyncIndex = bootstrapSource.indexOf('dataSync.initApi(');
+    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
+    assert.ok(attachIndex !== -1, 'unstable_attachPlatformWorldEvolutionSelectorReadProvider( must appear in bootstrap source');
+    assert.ok(dataSyncIndex !== -1, 'dataSync.initApi( must appear in bootstrap source');
+    assert.ok(
+      platformClientIndex < attachIndex,
+      `createPlatformClient( (pos ${platformClientIndex}) must appear before unstable_attachPlatformWorldEvolutionSelectorReadProvider( (pos ${attachIndex})`,
+    );
+    assert.ok(
+      attachIndex < dataSyncIndex,
+      `unstable_attachPlatformWorldEvolutionSelectorReadProvider( (pos ${attachIndex}) must appear before dataSync.initApi( (pos ${dataSyncIndex})`,
+    );
+  });
+
   test('D-BOOT-004: runtime host assembly gated by enableRuntimeBootstrap flag', () => {
     assert.ok(
       bootstrapSource.includes('flags.enableRuntimeBootstrap'),

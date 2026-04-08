@@ -16,16 +16,8 @@ type AgentMemorySliceQuery = {
   offset?: number;
 };
 
-type AgentChatRouteResult = {
-  channel: 'CLOUD' | 'LOCAL';
-  providerSelectable: boolean;
-  reason: string;
-  sessionClass: 'AGENT_LOCAL' | 'HUMAN_DIRECT';
-};
-
 type AgentCoreDataClient = {
   getCurrentUser: () => Promise<unknown>;
-  resolveAgentChatRoute: (agentId: string) => Promise<unknown>;
   listAgentCoreMemories: (agentId: string, query?: AgentMemorySliceQuery) => Promise<AgentMemoryRecord[]>;
   listAgentDyadicMemories: (
     agentId: string,
@@ -43,12 +35,6 @@ type AgentCoreDataClient = {
 function createAgentCoreDataClient(): AgentCoreDataClient {
   return {
     getCurrentUser: () => withRuntimeOpenApiContext((realm) => realm.services.MeService.getMe()),
-    resolveAgentChatRoute: (agentId) => withRuntimeOpenApiContext((realm) => (
-      realm.services.DesktopService.desktopControllerResolveChatRoute({
-        targetType: 'AGENT',
-        agentId,
-      })
-    )),
     listAgentCoreMemories: (agentId, query) => withRuntimeOpenApiContext((realm) => (
       listAgentCoreMemories(realm, {
         agentId,
@@ -121,25 +107,6 @@ function dedupeMemory(items: AgentMemoryRecord[]): AgentMemoryRecord[] {
   return deduped;
 }
 
-function isAgentChatRouteResult(value: unknown): value is AgentChatRouteResult {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  const record = value as Record<string, unknown>;
-  if (record.channel !== 'CLOUD' && record.channel !== 'LOCAL') {
-    return false;
-  }
-  if (typeof record.providerSelectable !== 'boolean') {
-    return false;
-  }
-  if (typeof record.reason !== 'string') {
-    return false;
-  }
-  if (record.sessionClass !== 'AGENT_LOCAL' && record.sessionClass !== 'HUMAN_DIRECT') {
-    return false;
-  }
-  return true;
-}
 
 type MemoryIndexEntry = {
   core: AgentMemoryRecord[];
@@ -253,7 +220,6 @@ type AgentCoreDataCapabilityDeps = {
 };
 
 export type AgentCoreDataCapabilityHandlers = {
-  agentChatRouteResolve: (query: Record<string, unknown>) => Promise<AgentChatRouteResult>;
   agentMemoryCoreList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only' }>;
   agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
   agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
@@ -305,15 +271,6 @@ export function createAgentCoreDataCapabilityHandlers(
   const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(client));
 
   return {
-    agentChatRouteResolve: async (query) => {
-      const agentId = requireAgentId(toRecord(query));
-      const payload = await client.resolveAgentChatRoute(agentId);
-      if (!isAgentChatRouteResult(payload)) {
-        throw new Error('AGENT_CHAT_ROUTE_INVALID');
-      }
-      return payload;
-    },
-
     agentMemoryCoreList: async (query) => {
       const queryRecord = toRecord(query);
       const agentId = requireAgentId(queryRecord);
@@ -477,9 +434,6 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     return requireObjectPayload(payload as Record<string, unknown>, 'CORE_WORLDVIEW_GET_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentChatRouteResolve, async (query) => {
-    return agentHandlers.agentChatRouteResolve(toRecord(query));
-  });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryCoreList, async (query) => {
     return agentHandlers.agentMemoryCoreList(toRecord(query));

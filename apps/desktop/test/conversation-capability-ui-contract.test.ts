@@ -46,12 +46,13 @@ test('conversation capability UI contract: multimodal settings own the productio
   assert.match(settingsSource, /capability:\s*'video\.generate'/);
 });
 
-test('conversation capability UI contract: image profile selection writes through surface AIConfig update (D-AIPC-008)', () => {
+test('conversation capability UI contract: image profile selector card was removed (D-AIPC-008)', () => {
   const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
-  assert.match(settingsSource, /aiConfig\.capabilities\.localProfileRefs/);
-  // Phase 3: writes through formal surface, not store action
-  assert.match(settingsSource, /surface\.aiConfig\.update\(/);
+  // ImageProfileSelectorCard and localProfileRefs access removed
+  assert.doesNotMatch(settingsSource, /ImageProfileSelectorCard/);
+  assert.doesNotMatch(settingsSource, /aiConfig\.capabilities\.localProfileRefs/);
   assert.doesNotMatch(settingsSource, /setConversationCapabilityDefaultRefs/);
+  assert.doesNotMatch(settingsSource, /profile_ref_missing/);
   assert.doesNotMatch(settingsSource, /assetRef|slotRef|passiveAsset/i);
 });
 
@@ -63,12 +64,11 @@ test('conversation capability UI contract: runtimeFields projection still only r
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['voice_workflow\.tts_v2v'\]/);
 });
 
-test('conversation capability UI contract: Phase 4 — image profile variable uses capability-scoped naming (D-AIPC-008)', () => {
+test('conversation capability UI contract: Phase 4 — image profile selector variables removed with card (D-AIPC-008)', () => {
   const settingsSource = readSource('src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx');
-  // Old top-level product name `imageProfileRef` must not appear as a local variable
+  // Both imageProfileRef and imageCapabilityLocalRef removed with ImageProfileSelectorCard
   assert.doesNotMatch(settingsSource, /const imageProfileRef\b/);
-  // Must use capability-scoped naming
-  assert.match(settingsSource, /imageCapabilityLocalRef/);
+  assert.doesNotMatch(settingsSource, /imageCapabilityLocalRef/);
 });
 
 test('conversation capability UI contract: conversationExecution stays confined to host media authority path', () => {

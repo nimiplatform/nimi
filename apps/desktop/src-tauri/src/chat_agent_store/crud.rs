@@ -1,7 +1,7 @@
 use super::codec::{
-    map_sql_error, message_role_to_db_value, message_status_to_db_value, normalize_message_error,
-    normalize_optional_string, normalize_required_string, normalize_target_snapshot,
-    require_non_negative_ms,
+    map_sql_error, message_kind_to_db_value, message_role_to_db_value,
+    message_status_to_db_value, normalize_message_error, normalize_optional_string,
+    normalize_required_string, normalize_target_snapshot, require_non_negative_ms,
 };
 use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
 use super::types::*;
@@ -85,12 +85,16 @@ pub(crate) fn get_thread_bundle(
               thread_id,
               role,
               status,
+              kind,
               content_text,
               reasoning_text,
               error_code,
               error_message,
               trace_id,
               parent_message_id,
+              media_url,
+              media_mime_type,
+              artifact_id,
               created_at_ms,
               updated_at_ms
             FROM agent_messages
@@ -245,27 +249,35 @@ pub(crate) fn create_message(
           thread_id,
           role,
           status,
+          kind,
           content_text,
           reasoning_text,
           error_code,
           error_message,
           trace_id,
           parent_message_id,
+          media_url,
+          media_mime_type,
+          artifact_id,
           created_at_ms,
           updated_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
         "#,
         params![
             id,
             thread_id,
             message_role_to_db_value(input.role),
             message_status_to_db_value(input.status),
+            message_kind_to_db_value(input.kind),
             content_text,
             normalize_optional_string(input.reasoning_text.as_deref()),
             error.as_ref().and_then(|item| item.code.clone()),
             error.as_ref().map(|item| item.message.clone()),
             normalize_optional_string(input.trace_id.as_deref()),
             normalize_optional_string(input.parent_message_id.as_deref()),
+            normalize_optional_string(input.media_url.as_deref()),
+            normalize_optional_string(input.media_mime_type.as_deref()),
+            normalize_optional_string(input.artifact_id.as_deref()),
             created_at_ms,
             updated_at_ms,
         ],
@@ -278,12 +290,16 @@ pub(crate) fn create_message(
           thread_id,
           role,
           status,
+          kind,
           content_text,
           reasoning_text,
           error_code,
           error_message,
           trace_id,
           parent_message_id,
+          media_url,
+          media_mime_type,
+          artifact_id,
           created_at_ms,
           updated_at_ms
         FROM agent_messages
@@ -314,7 +330,10 @@ pub(crate) fn update_message(
               error_code = ?5,
               error_message = ?6,
               trace_id = ?7,
-              updated_at_ms = ?8
+              media_url = ?8,
+              media_mime_type = ?9,
+              artifact_id = ?10,
+              updated_at_ms = ?11
             WHERE id = ?1
             "#,
             params![
@@ -325,6 +344,9 @@ pub(crate) fn update_message(
                 error.as_ref().and_then(|item| item.code.clone()),
                 error.as_ref().map(|item| item.message.clone()),
                 normalize_optional_string(input.trace_id.as_deref()),
+                normalize_optional_string(input.media_url.as_deref()),
+                normalize_optional_string(input.media_mime_type.as_deref()),
+                normalize_optional_string(input.artifact_id.as_deref()),
                 updated_at_ms,
             ],
         )
@@ -339,12 +361,16 @@ pub(crate) fn update_message(
           thread_id,
           role,
           status,
+          kind,
           content_text,
           reasoning_text,
           error_code,
           error_message,
           trace_id,
           parent_message_id,
+          media_url,
+          media_mime_type,
+          artifact_id,
           created_at_ms,
           updated_at_ms
         FROM agent_messages

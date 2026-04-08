@@ -16,7 +16,7 @@ Desktop 侧 conversation capability authority 固定拆分为四层：
 
 - `ConversationCapabilitySelectionStore`：唯一可持久化的 selection truth
 - `ConversationCapabilityProjection`：只读 app-facing projection
-- `AgentEffectiveCapabilityResolution`：`text.generate` projection 与 agent eligibility 的单一路径 overlay
+- `AgentEffectiveCapabilityResolution`：agent chat 的 capability overlay。`text.generate` 决定 send readiness；`image.generate` 仅作为可选 media capability truth 暴露，不得反向阻断基础发送。
 - `ConversationExecutionSnapshot`：每次 turn/job 固化的执行证据
 
 Desktop host bootstrap 是 conversation capability shared builder 的唯一 authority home：
@@ -24,11 +24,9 @@ Desktop host bootstrap 是 conversation capability shared builder 的唯一 auth
 - AI Chat、Agent Chat、Runtime Config 必须消费同一 builder 结果，不得各自重算 route truth。
 - builder 允许输入固定为：
   - `SelectionStore.selectedBindings[capability]`
-  - `SelectionStore.defaultRefs`
   - `runtime.route.resolve(...)`
   - `runtime.route.checkHealth(...)`
   - `runtime.route.describe(...)`
-  - runtime local profile read model（仅 `defaultRefs.imageProfileRef` 被 capability 明确需要时）
 - builder 不得读取或恢复以下真相：
   - thread `routeSnapshot`
   - provider / route kind / local-cloud heuristic
@@ -41,11 +39,6 @@ Desktop host bootstrap 是 conversation capability shared builder 的唯一 auth
 `ConversationCapabilitySelectionStore` 只允许持久化：
 
 - `selectedBindings`
-- `defaultRefs`
-
-`defaultRefs` 在 Phase 1 只允许：
-
-- `imageProfileRef?: RuntimeLocalProfileRef | null`
 
 `selectedBindings` 的 capability key 语义固定为：
 
@@ -77,7 +70,6 @@ store codec / migration 不得把 key 缺失与 `null` 互相折叠；presence b
 - `route_unhealthy`
 - `metadata_missing`
 - `capability_unsupported`
-- `profile_ref_missing`
 - `host_denied`
 
 producer -> projection 映射规则固定为：
@@ -88,19 +80,17 @@ producer -> projection 映射规则固定为：
 - `runtime.route.checkHealth(...)` 声明 unavailable / unhealthy -> `route_unhealthy`
 - `runtime.route.describe(...)` 缺失 typed metadata、或 typed metadata discriminator/枚举/字段类型非法 -> `metadata_missing`
 - runtime truth 明确声明该 canonical capability 当前不被支持 -> `capability_unsupported`
-- `defaultRefs.imageProfileRef` 被 capability 明确需要但缺失、越界、或无法解析 -> `profile_ref_missing`
 - host-owned capability gate 明确拒绝 app-facing 成功路径 -> `host_denied`
 
 优先级固定为：
 
 1. `host_denied`
-2. `profile_ref_missing`
-3. `selection_cleared`
-4. `selection_missing`
-5. `capability_unsupported`
-6. `binding_unresolved`
-7. `route_unhealthy`
-8. `metadata_missing`
+2. `selection_cleared`
+3. `selection_missing`
+4. `capability_unsupported`
+5. `binding_unresolved`
+6. `route_unhealthy`
+7. `metadata_missing`
 
 `ConversationCapabilityProjection.reasonCode` 不得暴露 producer 原始字符串；上游 reason code 只能先映射到上述封闭枚举，再进入 stable surface。
 
@@ -115,36 +105,39 @@ producer -> projection 映射规则固定为：
 
 ## D-LLM-018 — Agent Effective Capability Resolution
 
-`AgentEffectiveCapabilityResolution` 只能由：
+`AgentEffectiveCapabilityResolution` 依赖：
 
 - `ConversationCapabilityProjection(capability='text.generate')`
-- `data-api.core.agent.chat.route.resolve`
+- `ConversationCapabilityProjection(capability='image.generate')`
 
-共同生成。
+Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
+`data-api.core.agent.chat.route.resolve` 已移除（Realm v1 不拥有 agent chat 路由 authority）。
 
-字段 `channel`、`sessionClass`、`providerSelectable`、`eligibility` 只能来自 host capability 返回值；Desktop 不得根据 provider、route kind、mode、local/cloud 或 `HUMAN_DIRECT` 假设自行合成。
-
-`reason` 固定为封闭枚举：
+`reason` 固定为封闭枚举，且只表达 agent chat 的基础可发送性：
 
 - `projection_unavailable`
-- `eligibility_denied`
 - `route_unresolved`
 - `ok`
 
 优先级固定为：
 
 1. `projection_unavailable`
-2. `eligibility_denied`
-3. `route_unresolved`
-4. `ok`
+2. `route_unresolved`
+3. `ok`
 
 `ready=true` 仅当：
 
 - `text.generate` projection `supported=true`
-- host eligibility payload 合法且未拒绝
-- route-required host fields 完整
+- `resolvedBinding` 存在
 
 同时满足时才允许成立。
+
+`image.generate` 对 Agent chat 是可选 capability。
+
+- `imageProjection` 可以为 `null`
+- `imageReady` 必须仅由 `image.generate` projection 是否 `supported=true` 且 `resolvedBinding` 存在决定
+- `imageReady=false` 不得改变 `reason`，也不得把已经可发送的 Agent chat 降级成 `ready=false`
+- Agent chat settings / submit / provider 若消费图片能力，必须统一读取这一份 `imageProjection` / `imageReady` truth，不得自行从 `runtimeFields` 或 UI 局部状态重算一份 image route truth
 
 ## D-LLM-019 — Conversation Execution Snapshot
 

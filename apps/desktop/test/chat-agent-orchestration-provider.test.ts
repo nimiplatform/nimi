@@ -18,6 +18,85 @@ import {
   type AgentLocalChatRuntimeAdapter,
 } from '../src/shell/renderer/features/chat/chat-agent-orchestration.js';
 import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
+import {
+  createAgentTextMessage,
+  createAgentTurnBeat,
+} from './helpers/agent-chat-record-fixtures.js';
+
+type AgentCommitInput = Parameters<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitAgentTurnResult']>[0];
+
+function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>): AgentLocalChatRuntimeAdapter {
+  return {
+    async streamText() {
+      async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+        yield { type: 'start' };
+        yield {
+          type: 'finish',
+          finishReason: 'stop',
+          trace: {
+            traceId: 'trace-default',
+            promptTraceId: 'prompt-default',
+          },
+        };
+      }
+      return { stream: stream() };
+    },
+    async invokeText() {
+      return {
+        text: '{"kind":"none","prompt":"","reason":"default","confidence":0}',
+        traceId: 'trace-planner',
+        promptTraceId: 'prompt-planner',
+      };
+    },
+    async generateImage() {
+      return {
+        mediaUrl: 'data:image/png;base64,AA==',
+        mimeType: 'image/png',
+        artifactId: 'artifact-default',
+        traceId: 'trace-image',
+      };
+    },
+    ...overrides,
+  };
+}
+
+function createContinuityAdapter(
+  committed: AgentCommitInput[],
+  projectionVersion = 'truth:140:t1:b1:s0:m0:r0',
+): ReturnType<typeof createAgentLocalChatContinuityAdapter> {
+  return {
+    async loadTurnContext() {
+      return sampleTurnContext();
+    },
+    async commitTurnResult(input) {
+      committed.push({
+        ...input,
+        modeId: 'agent-local-chat-v1',
+        imageState: { status: 'none' },
+      });
+      return {
+        ...sampleCommitResult(),
+        projectionVersion,
+      };
+    },
+    async commitAgentTurnResult(input) {
+      committed.push(input);
+      return {
+        ...sampleCommitResult(),
+        projectionVersion,
+      };
+    },
+    async cancelTurn() {
+      throw new Error('cancelTurn should not run during committed turn path');
+    },
+    async rebuildProjection() {
+      return {
+        threadId: 'thread-1',
+        projectionVersion,
+      };
+    },
+  };
+}
 
 function sampleTarget(): AgentLocalTargetSnapshot {
   return {
@@ -61,17 +140,18 @@ function sampleTurnContext(): AgentLocalTurnContext {
       abortedAtMs: null,
     }],
     recentBeats: [{
+      ...createAgentTurnBeat({
       id: 'beat-prev-1',
       turnId: 'turn-prev-1',
       beatIndex: 0,
       modality: 'text',
       status: 'delivered',
       textShadow: 'previous answer',
-      artifactId: null,
       mimeType: 'text/plain',
       projectionMessageId: 'message-prev-1',
       createdAtMs: 11,
       deliveredAtMs: 12,
+      }),
     }],
     interactionSnapshot: {
       threadId: 'thread-1',
@@ -122,17 +202,18 @@ function sampleCommitResult(): AgentLocalCommitTurnResult {
       abortedAtMs: null,
     },
     beats: [{
+      ...createAgentTurnBeat({
       id: 'turn-1:beat:0',
       turnId: 'turn-1',
       beatIndex: 0,
       modality: 'text',
       status: 'delivered',
       textShadow: 'hello world',
-      artifactId: null,
       mimeType: 'text/plain',
       projectionMessageId: 'turn-1:message:0',
       createdAtMs: 100,
       deliveredAtMs: 140,
+      }),
     }],
     interactionSnapshot: null,
     relationMemorySlots: [],
@@ -146,14 +227,18 @@ function sampleCommitResult(): AgentLocalCommitTurnResult {
   };
 }
 
-function sampleTurnInput(): ConversationTurnInput {
+function sampleTurnInput(overrides: Partial<ConversationTurnInput> & {
+  userText?: string;
+  agentLocalChat?: Record<string, unknown>;
+} = {}): ConversationTurnInput {
+  const userText = overrides.userText || 'What should we do next?';
   return {
     modeId: 'agent-local-chat-v1',
     threadId: 'thread-1',
     turnId: 'turn-1',
     userMessage: {
       id: 'user-message-1',
-      text: 'What should we do next?',
+      text: userText,
       attachments: [],
     },
     history: [{
@@ -170,8 +255,10 @@ function sampleTurnInput(): ConversationTurnInput {
         runtimeConfigState: null,
         runtimeFields: {},
         reasoningPreference: 'off',
+        ...overrides.agentLocalChat,
       },
     },
+    ...overrides,
   };
 }
 
@@ -206,7 +293,7 @@ test('agent local chat prompt includes continuity and transcript context', () =>
 
 test('agent local chat provider emits first-beat before terminal and commits completed turn', async () => {
   const runtimeCalls: string[] = [];
-  const runtimeAdapter: AgentLocalChatRuntimeAdapter = {
+  const runtimeAdapter = createRuntimeAdapter({
     async streamText(request) {
       runtimeCalls.push(request.prompt);
       async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
@@ -225,28 +312,11 @@ test('agent local chat provider emits first-beat before terminal and commits com
       }
       return { stream: stream() };
     },
-  };
-  const committed: Array<Parameters<NonNullable<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitTurnResult']>>[0]> = [];
+  });
+  const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter,
-    continuityAdapter: {
-      async loadTurnContext() {
-        return sampleTurnContext();
-      },
-      async commitTurnResult(input) {
-        committed.push(input);
-        return sampleCommitResult();
-      },
-      async cancelTurn() {
-        throw new Error('cancelTurn should not run during completed turn');
-      },
-      async rebuildProjection() {
-        return {
-          threadId: 'thread-1',
-          projectionVersion: 'truth:140:t1:b1:s0:m0:r0',
-        };
-      },
-    },
+    continuityAdapter: createContinuityAdapter(committed),
   });
 
   const events = await collectEvents(provider, sampleTurnInput());
@@ -275,9 +345,9 @@ test('agent local chat provider emits first-beat before terminal and commits com
 });
 
 test('agent local chat provider commits canceled turns with tail scope after first beat', async () => {
-  const committed: Array<Parameters<NonNullable<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitTurnResult']>>[0]> = [];
+  const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
-    runtimeAdapter: {
+    runtimeAdapter: createRuntimeAdapter({
       async streamText() {
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
@@ -286,28 +356,8 @@ test('agent local chat provider commits canceled turns with tail scope after fir
         }
         return { stream: stream() };
       },
-    },
-    continuityAdapter: {
-      async loadTurnContext() {
-        return sampleTurnContext();
-      },
-      async commitTurnResult(input) {
-        committed.push(input);
-        return {
-          ...sampleCommitResult(),
-          projectionVersion: 'truth:141:t1:b1:s0:m0:r0',
-        };
-      },
-      async cancelTurn() {
-        throw new Error('cancelTurn should not run during terminal commit path');
-      },
-      async rebuildProjection() {
-        return {
-          threadId: 'thread-1',
-          projectionVersion: 'truth:141:t1:b1:s0:m0:r0',
-        };
-      },
-    },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:141:t1:b1:s0:m0:r0'),
   });
 
   const events = await collectEvents(provider, sampleTurnInput());
@@ -317,6 +367,293 @@ test('agent local chat provider commits canceled turns with tail scope after fir
   const canceledEvent = events.at(-1);
   assert.equal(canceledEvent?.type, 'turn-canceled');
   assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'tail');
+});
+
+test('agent local chat provider can emit a second image beat after text when the user explicitly asks for an image', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: 'Here is the scene.' };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-image-turn',
+              promptTraceId: 'prompt-image-turn',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async generateImage(request) {
+        assert.equal(request.prompt, '一张图片');
+        return {
+          mediaUrl: 'https://cdn.nimi.test/agent-image.png',
+          mimeType: 'image/png',
+          artifactId: 'artifact-image-1',
+          traceId: 'trace-image-1',
+        };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:150:t1:b2:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '请给我一张图片',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: {
+          capability: 'image.generate',
+          selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageReady: true,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      imageExecutionSnapshot: { executionId: 'image-snapshot' },
+    },
+  }));
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    [
+      'turn-started',
+      'beat-planned',
+      'first-beat-sealed',
+      'text-delta',
+      'beat-delivered',
+      'beat-planned',
+      'beat-delivery-started',
+      'artifact-ready',
+      'beat-delivered',
+      'projection-rebuilt',
+      'turn-completed',
+    ],
+  );
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.imageState?.status, 'complete');
+  assert.equal(committed[0]?.imageState?.mediaUrl, 'https://cdn.nimi.test/agent-image.png');
+});
+
+test('agent local chat provider ignores explicit negative image requests', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: '那我先不发图。' };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-no-image',
+              promptTraceId: 'prompt-no-image',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async invokeText() {
+        throw new Error('planner should not run after an explicit negative image request');
+      },
+      async generateImage() {
+        throw new Error('image generation should not run after an explicit negative image request');
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:150:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '先别发图，我们继续聊。',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: {
+          capability: 'image.generate',
+          selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageReady: true,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      imageExecutionSnapshot: { executionId: 'image-snapshot' },
+    },
+  }));
+
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
+  assert.equal(committed[0]?.imageState?.status, 'none');
+});
+
+test('agent local chat provider can trigger planner-driven image generation after text first-beat', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText(request) {
+        if (request.prompt.includes('Return strict JSON only.')) {
+          throw new Error('planner decision should use invokeText, not streamText');
+        }
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: '她抬头看了你一眼。' };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-planner-turn',
+              promptTraceId: 'prompt-planner-turn',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async invokeText(request) {
+        assert.match(request.prompt, /Return strict JSON only/);
+        return {
+          text: '{"kind":"image","trigger":"scene-enhancement","confidence":0.95,"subject":"客栈老板娘","scene":"抬头看向来客的瞬间","styleIntent":"写实电影感插画","mood":"克制、略带审视","negativeCues":["不要多余人物","不要夸张表情"],"continuityRefs":["古风客栈","夜色室内"],"reason":"scene enhancement","nsfwIntent":"none"}',
+          traceId: 'trace-planner',
+          promptTraceId: 'prompt-planner',
+        };
+      },
+      async generateImage(request) {
+        assert.match(request.prompt, /subject: 客栈老板娘/);
+        assert.match(request.prompt, /scene: 抬头看向来客的瞬间/);
+        assert.match(request.prompt, /style: 写实电影感插画/);
+        assert.match(request.prompt, /avoid: 不要多余人物, 不要夸张表情/);
+        return {
+          mediaUrl: 'https://cdn.nimi.test/planner-image.png',
+          mimeType: 'image/png',
+          artifactId: 'artifact-planner-image',
+          traceId: 'trace-planner-image',
+        };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '她现在是什么表情？',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: {
+          capability: 'image.generate',
+          selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageReady: true,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      imageExecutionSnapshot: { executionId: 'image-snapshot' },
+    },
+  }));
+
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), true);
+  assert.equal(committed[0]?.imageState?.status, 'complete');
+  assert.match(committed[0]?.imageState?.prompt || '', /subject: 客栈老板娘/);
+  assert.match(committed[0]?.imageState?.prompt || '', /continuity: 古风客栈, 夜色室内/);
+});
+
+test('agent local chat provider fails close when runtime stream finishes without output text', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {},
+            trace: {
+              traceId: 'trace-empty',
+              promptTraceId: 'prompt-empty',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:142:t1:b0:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  assert.match(failedEvent?.type === 'turn-failed' ? failedEvent.error.message : '', /without output text/);
+});
+
+test('agent local chat provider fails close when runtime stream ends without terminal event', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: 'partial answer' };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:143:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  assert.match(failedEvent?.type === 'turn-failed' ? failedEvent.error.message : '', /without a terminal event/);
 });
 
 test('agent local chat continuity adapter maps committed turn events to truth source payloads', async () => {
@@ -402,17 +739,18 @@ test('agent local chat continuity adapter maps committed turn events to truth so
       abortedAtMs: null,
     },
     beats: [{
+      ...createAgentTurnBeat({
       id: 'turn-1:beat:0',
       turnId: 'turn-1',
       beatIndex: 0,
       modality: 'text',
       status: 'delivered',
       textShadow: 'hello world',
-      artifactId: null,
       mimeType: 'text/plain',
       projectionMessageId: 'turn-1:message:0',
       createdAtMs: 200,
       deliveredAtMs: 200,
+      }),
     }],
     interactionSnapshot: null,
     relationMemorySlots: [],
@@ -426,19 +764,16 @@ test('agent local chat continuity adapter maps committed turn events to truth so
         archivedAtMs: null,
         targetSnapshot: sampleTarget(),
       },
-      messages: [{
+      messages: [createAgentTextMessage({
         id: 'turn-1:message:0',
         threadId: 'thread-1',
         role: 'assistant',
         status: 'complete',
         contentText: 'hello world',
-        reasoningText: null,
-        error: null,
         traceId: 'trace-1',
-        parentMessageId: null,
         createdAtMs: 200,
         updatedAtMs: 200,
-      }],
+      })],
       draft: null,
       clearDraft: true,
     },

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type { AgentLocalThreadBundle, AgentLocalThreadRecord } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 import { resolveAgentProjectionRefreshOutcome } from '../src/shell/renderer/features/chat/chat-agent-shell-projection-refresh.js';
+import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {
   return {
@@ -29,19 +30,17 @@ function sampleThread(): AgentLocalThreadRecord {
 function sampleBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative projection',
-      reasoningText: null,
-      error: null,
       traceId: 'trace-authoritative',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 999,
-    }],
+    })],
     draft: null,
   };
 }

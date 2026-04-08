@@ -33,7 +33,6 @@ import {
 import {
   type AgentHostFlowFooterState,
 } from './chat-agent-shell-host-flow';
-import { resolveAgentLocalRoute } from './chat-agent-runtime';
 import { createAgentLocalChatConversationProvider } from './chat-agent-orchestration';
 import type { AgentConversationSelection } from './chat-shell-types';
 import {
@@ -63,6 +62,7 @@ import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -87,6 +87,9 @@ export function useAgentConversationModeHost(
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
   );
+  const imageCapabilityProjection = useAppStore(
+    (state) => state.conversationCapabilityProjectionByCapability['image.generate'] || null,
+  );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const schedulingJudgement = useSchedulingFeasibility();
@@ -107,9 +110,18 @@ export function useAgentConversationModeHost(
     [registry],
   );
   const reportHostError = useCallback((error: unknown) => {
+    const message = toErrorMessage(error);
+    logRendererEvent({
+      level: 'error',
+      area: 'agent-chat-shell',
+      message: 'action:host-error',
+      details: {
+        error: message,
+      },
+    });
     setHostFeedback({
       kind: 'error',
-      message: toErrorMessage(error),
+      message,
     });
   }, []);
   const thinkingSupport = useMemo(
@@ -233,12 +245,6 @@ export function useAgentConversationModeHost(
     [input.selection.agentId, targetByAgentId],
   );
   const activeTarget = selectedThreadRecord?.targetSnapshot || selectedTarget || null;
-  const agentRouteQuery = useQuery({
-    queryKey: ['agent-chat-route', activeTarget?.agentId || 'inactive'],
-    queryFn: () => resolveAgentLocalRoute(activeTarget?.agentId || ''),
-    enabled: input.authStatus === 'authenticated' && Boolean(activeTarget?.agentId),
-  });
-
   const agentResolution = useAppStore((state) => state.agentEffectiveCapabilityResolution);
   const agentRouteReady = agentResolution?.ready === true;
 
@@ -258,16 +264,9 @@ export function useAgentConversationModeHost(
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
 
   useAgentConversationCapabilityEffects({
-    agentRouteData: agentRouteQuery.data
-      ? {
-        channel: agentRouteQuery.data.channel,
-        sessionClass: agentRouteQuery.data.sessionClass,
-        providerSelectable: agentRouteQuery.data.providerSelectable,
-        reason: agentRouteQuery.data.reason || '',
-      }
-      : null,
     bootstrapReady,
     textCapabilityProjection,
+    imageCapabilityProjection,
   });
 
   const setupState = useMemo(() => {
@@ -282,16 +281,34 @@ export function useAgentConversationModeHost(
         },
       };
     }
-    if (textCapabilityProjection?.supported) {
-      return createReadyConversationSetupState('agent');
-    }
     if (!activeTarget) {
       return createReadyConversationSetupState('agent');
     }
-    return resolveAiConversationSetupStateFromProjection(textCapabilityProjection);
-  }, [activeTarget, input.authStatus, textCapabilityProjection]);
+    if (agentRouteReady) {
+      return createReadyConversationSetupState('agent');
+    }
+    if (!textCapabilityProjection?.supported) {
+      return resolveAiConversationSetupStateFromProjection(textCapabilityProjection);
+    }
+    return {
+      mode: 'agent' as const,
+      status: 'setup-required' as const,
+      issues: [{
+        code: 'ai-thread-route-unavailable' as const,
+        detail: t('Chat.agentRouteRequired', {
+          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
+        }),
+      }],
+      primaryAction: {
+        kind: 'open-settings' as const,
+        targetId: 'runtime-overview' as const,
+        returnToMode: 'agent' as const,
+      },
+    };
+  }, [activeTarget, agentRouteReady, input.authStatus, t, textCapabilityProjection]);
 
   const composerReady = setupState.status === 'ready'
+    && (!activeTarget || agentRouteReady)
     && !isBundleLoading
     && !bundleQuery.error;
 
@@ -332,9 +349,9 @@ export function useAgentConversationModeHost(
         agentLocalChat: {
           agentId: turnInput.target.agentId,
           targetSnapshot: turnInput.target,
-          routeResult: turnInput.routeResult,
           agentResolution: turnInput.agentResolution,
-          executionSnapshot: turnInput.executionSnapshot,
+          textExecutionSnapshot: turnInput.textExecutionSnapshot,
+          imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
           runtimeConfigState: input.runtimeConfigState,
           runtimeFields: input.runtimeFields,
           reasoningPreference: chatThinkingPreference,

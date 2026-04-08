@@ -206,13 +206,12 @@ export function useAiConversationModeHost(
   const streamState = useConversationStreamState(activeThreadId);
   const projectionSupported = textCapabilityProjection?.supported === true;
   const aiProvider = useMemo(() => {
-    if (!projectionSupported || !activeThreadId) {
+    if (!projectionSupported) {
       return null;
     }
     const registry = new ConversationOrchestrationRegistry();
     registry.register(createSimpleAiConversationProvider({
       runtimeAdapter: createChatAiConversationRuntimeAdapter({
-        threadId: activeThreadId,
         reasoningPreference: chatThinkingPreference,
         textProjection: textCapabilityProjection,
         aiConfig,
@@ -223,10 +222,10 @@ export function useAiConversationModeHost(
     }));
     return registry.require('simple-ai');
   }, [
-    activeThreadId,
     chatThinkingPreference,
     projectionSupported,
     textCapabilityProjection,
+    aiConfig,
     input.runtimeConfigState,
     input.runtimeFields,
   ]);

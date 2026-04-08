@@ -8,6 +8,7 @@ import type {
   ConversationTurnInput,
   ConversationOrchestrationProvider,
 } from '@nimiplatform/nimi-kit/features/chat';
+import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import type {
@@ -18,9 +19,10 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
+  generateChatAgentImageRuntime,
+  invokeChatAgentRuntime,
   streamChatAgentRuntime,
   toChatAgentRuntimeError,
-  type AgentChatRouteResult,
 } from './chat-agent-runtime';
 import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type { ChatThinkingPreference } from './chat-thinking';
@@ -35,7 +37,7 @@ const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   firstBeat: true,
   voiceInput: false,
   voiceOutput: false,
-  imageGeneration: false,
+  imageGeneration: true,
   videoGeneration: false,
 } as const;
 
@@ -48,12 +50,17 @@ export type AgentLocalChatRuntimeRequest = {
   agentId: string;
   prompt: string;
   threadId: string;
-  routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
-  executionSnapshot: AISnapshot | null;
+  textExecutionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
+  signal?: AbortSignal;
+};
+
+export type AgentLocalChatImageRequest = {
+  prompt: string;
+  imageExecutionSnapshot: AISnapshot | null;
   signal?: AbortSignal;
 };
 
@@ -61,25 +68,76 @@ export interface AgentLocalChatRuntimeAdapter {
   streamText: (
     request: AgentLocalChatRuntimeRequest,
   ) => Promise<{ stream: AsyncIterable<ConversationRuntimeTextStreamPart> }>;
+  invokeText: (
+    request: AgentLocalChatRuntimeRequest,
+  ) => Promise<{ text: string; traceId: string; promptTraceId: string }>;
+  generateImage: (
+    request: AgentLocalChatImageRequest,
+  ) => Promise<{ mediaUrl: string; mimeType: string; artifactId: string | null; traceId: string }>;
 }
 
 export type AgentLocalChatProviderMetadata = {
   agentId: string;
   targetSnapshot: AgentLocalTargetSnapshot;
-  routeResult: AgentChatRouteResult | null;
   agentResolution: AgentEffectiveCapabilityResolution | null;
-  executionSnapshot: AISnapshot | null;
+  textExecutionSnapshot: AISnapshot | null;
+  imageExecutionSnapshot: AISnapshot | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
 };
 
+type AgentLocalChatImageState =
+  | {
+    status: 'none';
+  }
+  | {
+    status: 'generate';
+    beatId: string;
+    beatIndex: number;
+    projectionMessageId: string;
+    prompt: string;
+  }
+  | {
+    status: 'error';
+    beatId: string;
+    beatIndex: number;
+    projectionMessageId: string;
+    prompt: string;
+    message: string;
+  }
+  | {
+    status: 'complete';
+    beatId: string;
+    beatIndex: number;
+    projectionMessageId: string;
+    prompt: string;
+    mediaUrl: string;
+    mimeType: string;
+    artifactId: string | null;
+  };
+
+type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
+  AgentLocalTurnContext,
+  AgentLocalCommitTurnResult
+> & {
+  commitAgentTurnResult: (input: {
+    modeId: 'agent-local-chat-v1';
+    threadId: string;
+    turnId: string;
+    outcome: 'completed' | 'failed' | 'canceled';
+    outputText?: string;
+    reasoningText?: string;
+    error?: ConversationTurnError;
+    events: readonly ConversationTurnEvent[];
+    signal?: AbortSignal;
+    imageState?: AgentLocalChatImageState;
+  }) => Promise<AgentLocalCommitTurnResult>;
+};
+
 export type AgentLocalChatProviderOptions = {
   runtimeAdapter?: AgentLocalChatRuntimeAdapter;
-  continuityAdapter?: ConversationContinuityAdapter<
-    AgentLocalTurnContext,
-    AgentLocalCommitTurnResult
-  >;
+  continuityAdapter?: AgentLocalChatContinuityAdapter;
 };
 
 type AgentLocalTextBeatState = {
@@ -115,9 +173,9 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
   return {
     agentId,
     targetSnapshot: targetSnapshot as AgentLocalTargetSnapshot,
-    routeResult: (nextRecord.routeResult ?? null) as AgentChatRouteResult | null,
     agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,
-    executionSnapshot: (nextRecord.executionSnapshot ?? null) as AISnapshot | null,
+    textExecutionSnapshot: (nextRecord.textExecutionSnapshot ?? null) as AISnapshot | null,
+    imageExecutionSnapshot: (nextRecord.imageExecutionSnapshot ?? null) as AISnapshot | null,
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,
@@ -142,6 +200,319 @@ function isAbortLikeError(error: unknown): boolean {
     || message.includes('aborted')
     || message.includes('cancelled')
     || message.includes('canceled');
+}
+
+const AGENT_IMAGE_MARKER_RE = /\[\[IMG:([\s\S]*?)\]\]/giu;
+const AGENT_IMAGE_REQUEST_RE = /\b(?:image|picture|photo|illustration|artwork|portrait|wallpaper)\b|(?:图片|图|照片|插画|头像|壁纸)/iu;
+const AGENT_IMAGE_VERB_RE = /\b(?:send|show|make|create|generate|draw|render|give)\b|(?:发|给|来|做|生成|画|出|整|弄)/iu;
+const AGENT_IMAGE_DIRECT_REQUEST_RE = /\b(?:can you|could you|please|send me|show me|make me|create me|generate me|draw me|render me)\b|(?:给我|帮我|替我|发我|来个|来一|来张|发张|做张|整点|生成张|画张)/iu;
+const AGENT_IMAGE_NEGATION_RE = /\b(?:don't|do not|no need to|not now|stop)\b|(?:不要|别|不用|先别|不必|暂时别|别再)/iu;
+const AGENT_NSFW_RE = /\b(?:nude|naked|sex|porn|nsfw|explicit)\b|(?:裸体|裸照|色情|成人视频|成人图)/iu;
+const AGENT_IMAGE_PLANNER_TIMEOUT_MS = 4_000;
+
+function normalizeWhitespace(value: string): string {
+  return String(value || '')
+    .replace(/\r/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function hasNegativeAgentImageRequest(text: string): boolean {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized || !AGENT_IMAGE_NEGATION_RE.test(normalized)) {
+    return false;
+  }
+  return (
+    /(?:不要|别|不用|先别|不必|暂时别).{0,12}(?:发|给|来|做|生成|画|出|整|弄).{0,12}(?:图|图片|照片|插画|头像|壁纸)/iu.test(normalized)
+    || /(?:不要|别|不用|先别|不必|暂时别).{0,8}(?:图|图片|照片|插画|头像|壁纸)/iu.test(normalized)
+    || /(?:don't|do not|no need to|not now|stop).{0,16}(?:send|show|make|create|generate|draw|render|give).{0,16}(?:image|picture|photo|illustration|artwork|portrait|wallpaper)/iu.test(normalized)
+  );
+}
+
+function sanitizeExplicitAgentImagePrompt(text: string): string {
+  return normalizeWhitespace(
+    text
+      .replace(/[!?！？]+$/g, '')
+      .replace(/^(?:能不能|可以|可不可以|麻烦|请|please\s+)/iu, '')
+      .replace(/^(?:给我|帮我|替我|发我)\s*/iu, ''),
+  );
+}
+
+function parseExplicitAgentImageRequest(text: string): string | null {
+  const normalized = normalizeWhitespace(text);
+  if (!normalized) {
+    return null;
+  }
+  if (hasNegativeAgentImageRequest(normalized)) {
+    return null;
+  }
+  if (!AGENT_IMAGE_REQUEST_RE.test(normalized)) {
+    return null;
+  }
+  if (!AGENT_IMAGE_VERB_RE.test(normalized) && !AGENT_IMAGE_DIRECT_REQUEST_RE.test(normalized)) {
+    return null;
+  }
+  return sanitizeExplicitAgentImagePrompt(normalized) || normalized;
+}
+
+function parseAgentImageMarker(input: {
+  assistantText: string;
+  userText: string;
+}): { cleanedText: string; prompt: string | null } {
+  const source = String(input.assistantText || '');
+  let prompt: string | null = null;
+  const cleanedText = normalizeWhitespace(source.replace(AGENT_IMAGE_MARKER_RE, (_match, markerPrompt) => {
+    const nextPrompt = normalizeWhitespace(String(markerPrompt || ''));
+    if (nextPrompt && !prompt) {
+      prompt = nextPrompt;
+    }
+    return '';
+  }));
+  if (prompt) {
+    return { cleanedText, prompt };
+  }
+  return {
+    cleanedText: normalizeWhitespace(source),
+    prompt: null,
+  };
+}
+
+function buildAgentRecentMediaSummary(context: AgentLocalTurnContext): string {
+  const now = Date.now();
+  const pending = context.recentBeats.some((beat) => beat.modality === 'image' && beat.status !== 'delivered');
+  const recentDelivered = [...context.recentBeats]
+    .reverse()
+    .find((beat) => beat.modality === 'image' && beat.status === 'delivered');
+  if (!recentDelivered) {
+    return pending ? 'recentImage=none · pending=yes' : 'recentImage=none · pending=no';
+  }
+  const minutes = Math.max(0, Math.round((now - recentDelivered.createdAtMs) / 60000));
+  return `recentImage=${minutes}m · pending=${pending ? 'yes' : 'no'}`;
+}
+
+function hasRecentImageCooldown(context: AgentLocalTurnContext): boolean {
+  const recentImageBeat = [...context.recentBeats]
+    .reverse()
+    .find((beat) => beat.modality === 'image' && beat.status === 'delivered');
+  if (!recentImageBeat) {
+    return false;
+  }
+  return Date.now() - recentImageBeat.createdAtMs < 10 * 60 * 1000;
+}
+
+function isPromptLikelyNsfw(text: string): boolean {
+  return AGENT_NSFW_RE.test(normalizeWhitespace(text));
+}
+
+function buildAgentImagePlannerPrompt(input: {
+  userText: string;
+  assistantText: string;
+  targetSnapshot: AgentLocalTargetSnapshot;
+  context: AgentLocalTurnContext;
+}): string {
+  return [
+    'You are deciding whether an agent reply should also generate an image.',
+    'Return strict JSON only.',
+    'Choose "image" only when the dialogue strongly implies a visual deliverable or scene enhancement.',
+    'Never choose image for simple greetings, plain Q&A, or when the user explicitly asked not to send an image.',
+    'If kind="image", provide concrete visual fields instead of generic wording.',
+    'Schema: {"kind":"none|image","trigger":"scene-enhancement|assistant-offer|none","confidence":0,"subject":"string","scene":"string","styleIntent":"string","mood":"string","negativeCues":["string"],"continuityRefs":["string"],"reason":"string","nsfwIntent":"none|suggested"}',
+    `Target: ${stringifyJson({
+      displayName: input.targetSnapshot.displayName,
+      handle: input.targetSnapshot.handle,
+      worldName: input.targetSnapshot.worldName,
+      bio: input.targetSnapshot.bio,
+      ownershipType: input.targetSnapshot.ownershipType,
+    })}`,
+    `RecentContinuity: ${buildContinuitySummary(input.context)}`,
+    `RecentMedia: ${buildAgentRecentMediaSummary(input.context)}`,
+    `User: ${input.userText || '-'}`,
+    `Assistant: ${input.assistantText || '-'}`,
+  ].join('\n');
+}
+
+function parseAgentImagePlannerDecision(text: string): {
+  kind: 'none' | 'image';
+  trigger: 'scene-enhancement' | 'assistant-offer' | 'none';
+  subject: string;
+  scene: string;
+  styleIntent: string;
+  mood: string;
+  negativeCues: string[];
+  continuityRefs: string[];
+  reason: string;
+  confidence: number;
+  nsfwIntent: 'none' | 'suggested';
+} {
+  const normalized = normalizeText(text);
+  const parsed = JSON.parse(normalized) as Record<string, unknown>;
+  const kind = normalizeText(parsed.kind);
+  if (kind !== 'none' && kind !== 'image') {
+    throw new Error('AGENT_IMAGE_PLANNER_INVALID_KIND');
+  }
+  const trigger = normalizeText(parsed.trigger);
+  const negativeCues = Array.isArray(parsed.negativeCues)
+    ? parsed.negativeCues.map((value) => normalizeWhitespace(String(value || ''))).filter(Boolean)
+    : [];
+  const continuityRefs = Array.isArray(parsed.continuityRefs)
+    ? parsed.continuityRefs.map((value) => normalizeWhitespace(String(value || ''))).filter(Boolean)
+    : [];
+  return {
+    kind,
+    trigger: trigger === 'assistant-offer' || trigger === 'scene-enhancement' ? trigger : 'none',
+    subject: normalizeWhitespace(String(parsed.subject || '')),
+    scene: normalizeWhitespace(String(parsed.scene || '')),
+    styleIntent: normalizeWhitespace(String(parsed.styleIntent || '')),
+    mood: normalizeWhitespace(String(parsed.mood || '')),
+    negativeCues,
+    continuityRefs,
+    reason: normalizeWhitespace(String(parsed.reason || '')),
+    confidence: Number(parsed.confidence || 0),
+    nsfwIntent: normalizeText(parsed.nsfwIntent) === 'suggested' ? 'suggested' : 'none',
+  };
+}
+
+function compileAgentPlannerImagePrompt(input: {
+  subject: string;
+  scene: string;
+  styleIntent: string;
+  mood: string;
+  negativeCues: string[];
+  continuityRefs: string[];
+}): string {
+  const lines = [
+    input.subject ? `subject: ${input.subject}` : '',
+    input.scene ? `scene: ${input.scene}` : '',
+    input.styleIntent ? `style: ${input.styleIntent}` : '',
+    input.mood ? `mood: ${input.mood}` : '',
+    input.continuityRefs.length > 0 ? `continuity: ${input.continuityRefs.join(', ')}` : '',
+    input.negativeCues.length > 0 ? `avoid: ${input.negativeCues.join(', ')}` : '',
+  ].filter(Boolean);
+  return normalizeWhitespace(lines.join('\n'));
+}
+
+async function decideAgentImageState(input: {
+  runtimeAdapter: AgentLocalChatRuntimeAdapter;
+  agentId: string;
+  threadId: string;
+  turnId: string;
+  userText: string;
+  assistantText: string;
+  targetSnapshot: AgentLocalTargetSnapshot;
+  context: AgentLocalTurnContext;
+  agentResolution: AgentEffectiveCapabilityResolution | null;
+  textExecutionSnapshot: AISnapshot | null;
+  imageExecutionSnapshot: AISnapshot | null;
+  runtimeConfigState: RuntimeConfigStateV11 | null;
+  runtimeFields: RuntimeFieldMap;
+  reasoningPreference: ChatThinkingPreference;
+  signal?: AbortSignal;
+}): Promise<AgentLocalChatImageState> {
+  const cleanedAssistant = parseAgentImageMarker({
+    assistantText: input.assistantText,
+    userText: input.userText,
+  });
+  if (hasNegativeAgentImageRequest(input.userText)) {
+    return { status: 'none' };
+  }
+  const explicitPrompt = parseExplicitAgentImageRequest(input.userText);
+  const requestedPrompt = cleanedAssistant.prompt || explicitPrompt;
+  const imageProjection = input.agentResolution?.imageProjection || null;
+  const imageReady = input.agentResolution?.imageReady === true;
+
+  const blockedMessage = !imageProjection?.selectedBinding
+    ? 'Image generation is unavailable because no image route is configured.'
+    : 'Image generation is unavailable because the image runtime is not ready.';
+
+  if (requestedPrompt) {
+    if (!imageReady || !input.imageExecutionSnapshot) {
+      return {
+        status: 'error',
+        beatId: `${input.turnId}:beat:1`,
+        beatIndex: 1,
+        projectionMessageId: `${input.turnId}:message:1`,
+        prompt: requestedPrompt,
+        message: blockedMessage,
+      };
+    }
+    if (isPromptLikelyNsfw(requestedPrompt)) {
+      return {
+        status: 'error',
+        beatId: `${input.turnId}:beat:1`,
+        beatIndex: 1,
+        projectionMessageId: `${input.turnId}:message:1`,
+        prompt: requestedPrompt,
+        message: 'Image generation was blocked by the current safety policy.',
+      };
+    }
+    return {
+      status: 'generate',
+      beatId: `${input.turnId}:beat:1`,
+      beatIndex: 1,
+      projectionMessageId: `${input.turnId}:message:1`,
+      prompt: requestedPrompt,
+    };
+  }
+
+  if (!imageReady || !input.imageExecutionSnapshot || hasRecentImageCooldown(input.context)) {
+    return { status: 'none' };
+  }
+
+  const plannerController = new AbortController();
+  const plannerTimer = globalThis.setTimeout(() => plannerController.abort(), AGENT_IMAGE_PLANNER_TIMEOUT_MS);
+  try {
+    const plannerResult = await input.runtimeAdapter.invokeText({
+      agentId: input.agentId,
+      prompt: buildAgentImagePlannerPrompt({
+        userText: input.userText,
+        assistantText: cleanedAssistant.cleanedText,
+        targetSnapshot: input.targetSnapshot,
+        context: input.context,
+      }),
+      threadId: input.threadId,
+      agentResolution: input.agentResolution,
+      textExecutionSnapshot: input.textExecutionSnapshot,
+      runtimeConfigState: input.runtimeConfigState,
+      runtimeFields: input.runtimeFields,
+      reasoningPreference: input.reasoningPreference,
+      signal: plannerController.signal,
+    });
+    const decision = parseAgentImagePlannerDecision(plannerResult.text);
+    const compiledPrompt = compileAgentPlannerImagePrompt({
+      subject: decision.subject,
+      scene: decision.scene,
+      styleIntent: decision.styleIntent,
+      mood: decision.mood,
+      negativeCues: decision.negativeCues,
+      continuityRefs: decision.continuityRefs,
+    });
+    if (decision.kind !== 'image' || !compiledPrompt || decision.confidence < 0.82) {
+      return { status: 'none' };
+    }
+    if (decision.nsfwIntent === 'suggested' || isPromptLikelyNsfw(compiledPrompt)) {
+      return {
+        status: 'error',
+        beatId: `${input.turnId}:beat:1`,
+        beatIndex: 1,
+        projectionMessageId: `${input.turnId}:message:1`,
+        prompt: compiledPrompt,
+        message: 'Image generation was blocked by the current safety policy.',
+      };
+    }
+    return {
+      status: 'generate',
+      beatId: `${input.turnId}:beat:1`,
+      beatIndex: 1,
+      projectionMessageId: `${input.turnId}:message:1`,
+      prompt: compiledPrompt,
+    };
+  } catch {
+    return { status: 'none' };
+  } finally {
+    globalThis.clearTimeout(plannerTimer);
+  }
 }
 
 function formatHistoryLine(message: ConversationTurnHistoryMessage): string {
@@ -231,9 +602,8 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
         prompt: request.prompt,
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
-        routeResult: request.routeResult,
         agentResolution: request.agentResolution,
-        executionSnapshot: request.executionSnapshot,
+        executionSnapshot: request.textExecutionSnapshot,
         runtimeConfigState: request.runtimeConfigState,
         runtimeFields: request.runtimeFields,
         signal: request.signal,
@@ -242,6 +612,22 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
         stream: normalizeAgentLocalRuntimeStream(result.stream, result.promptTraceId),
       };
     },
+    async invokeText(request) {
+      return invokeChatAgentRuntime({
+        agentId: request.agentId,
+        prompt: request.prompt,
+        threadId: request.threadId,
+        reasoningPreference: request.reasoningPreference,
+        agentResolution: request.agentResolution,
+        executionSnapshot: request.textExecutionSnapshot,
+        runtimeConfigState: request.runtimeConfigState,
+        runtimeFields: request.runtimeFields,
+        signal: request.signal,
+      });
+    },
+    async generateImage(request) {
+      return generateChatAgentImageRuntime(request);
+    },
   };
 }
 
@@ -249,47 +635,33 @@ async function* normalizeAgentLocalRuntimeStream(
   stream: AsyncIterable<Awaited<ReturnType<typeof streamChatAgentRuntime>>['stream'] extends AsyncIterable<infer T> ? T : never>,
   promptTraceId: string,
 ): AsyncIterable<ConversationRuntimeTextStreamPart> {
-  yield { type: 'start' };
   for await (const part of stream) {
-    switch (part.type) {
-      case 'reasoning-delta':
-        yield {
-          type: 'reasoning-delta',
-          textDelta: part.text,
-        };
-        break;
-      case 'delta':
-        yield {
-          type: 'text-delta',
-          textDelta: part.text,
-        };
-        break;
+    const normalizedPart = normalizeConversationRuntimeTextStreamPart(part);
+    switch (normalizedPart.type) {
       case 'finish':
         yield {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: part.usage,
+          ...normalizedPart,
           trace: {
-            traceId: normalizeText(part.trace.traceId) || null,
-            promptTraceId: normalizeText(promptTraceId) || null,
+            ...normalizedPart.trace,
+            promptTraceId: normalizeText(normalizedPart.trace?.promptTraceId)
+              || normalizeText(promptTraceId)
+              || null,
           },
         };
         break;
       case 'error':
         yield {
-          type: 'error',
-          error: {
-            code: normalizeText(part.error.reasonCode) || 'RUNTIME_CALL_FAILED',
-            message: normalizeText(part.error.message) || 'agent runtime stream failed',
-          },
+          ...normalizedPart,
           trace: {
-            traceId: normalizeText(part.error.traceId) || null,
-            promptTraceId: normalizeText(promptTraceId) || null,
+            ...normalizedPart.trace,
+            promptTraceId: normalizeText(normalizedPart.trace?.promptTraceId)
+              || normalizeText(promptTraceId)
+              || null,
           },
         };
         break;
       default:
-        throw new Error(`Unsupported agent runtime stream part: ${JSON.stringify(part)}`);
+        yield normalizedPart;
     }
   }
 }
@@ -299,71 +671,99 @@ export function createAgentLocalChatContinuityAdapter(
     storeClient?: AgentLocalChatStoreClient;
     now?: () => number;
   } = {},
-): ConversationContinuityAdapter<AgentLocalTurnContext, AgentLocalCommitTurnResult> {
+): AgentLocalChatContinuityAdapter {
   const storeClient = options.storeClient ?? chatAgentStoreClient;
   const now = options.now ?? (() => Date.now());
-  return {
-    loadTurnContext: async (input) => storeClient.loadTurnContext({
+  const commitAgentTurnResultInternal: AgentLocalChatContinuityAdapter['commitAgentTurnResult'] = async (input) => {
+    const context = await storeClient.loadTurnContext({
       threadId: input.threadId,
-    }),
-    commitTurnResult: async (input) => {
-      const context = await storeClient.loadTurnContext({
+    });
+    const committedAtMs = now();
+    const thread = context.thread;
+    const textBeat = resolveTextBeatState(input.events, input.turnId);
+    const imageState = input.imageState || { status: 'none' as const };
+    const projectionMessages = [
+      ...(textBeat ? [buildTextProjectionMessage(thread, textBeat, input, committedAtMs)] : []),
+      ...((imageState.status === 'complete' || imageState.status === 'error')
+        ? [buildImageProjectionMessage(thread, imageState, committedAtMs)]
+        : []),
+    ];
+    return storeClient.commitTurnResult({
+      threadId: input.threadId,
+      turn: {
+        id: input.turnId,
         threadId: input.threadId,
-      });
-      const committedAtMs = now();
-      const thread = context.thread;
-      const textBeat = resolveTextBeatState(input.events, input.turnId);
-      const projectionMessages = textBeat
-        ? [buildProjectionMessage(thread, textBeat, input, committedAtMs)]
-        : [];
-      const result = await storeClient.commitTurnResult({
-        threadId: input.threadId,
-        turn: {
-          id: input.turnId,
-          threadId: input.threadId,
-          role: 'assistant',
-          status: mapOutcomeToTurnStatus(input.outcome),
-          providerMode: 'agent-local-chat-v1',
-          traceId: resolveTerminalTraceId(input.events),
-          promptTraceId: resolveTerminalPromptTraceId(input.events),
-          startedAtMs: committedAtMs,
-          completedAtMs: input.outcome === 'completed' ? committedAtMs : null,
-          abortedAtMs: input.outcome === 'canceled' ? committedAtMs : null,
-        },
-        beats: textBeat
+        role: 'assistant',
+        status: mapOutcomeToTurnStatus(input.outcome),
+        providerMode: 'agent-local-chat-v1',
+        traceId: resolveTerminalTraceId(input.events),
+        promptTraceId: resolveTerminalPromptTraceId(input.events),
+        startedAtMs: committedAtMs,
+        completedAtMs: input.outcome === 'completed' ? committedAtMs : null,
+        abortedAtMs: input.outcome === 'canceled' ? committedAtMs : null,
+      },
+      beats: [
+        ...(textBeat
           ? [{
             id: textBeat.beatId,
             turnId: input.turnId,
             beatIndex: textBeat.beatIndex,
-            modality: 'text',
+            modality: 'text' as const,
             status: mapOutcomeToBeatStatus(input.outcome),
             textShadow: normalizeText(input.outputText) || textBeat.text || null,
             artifactId: null,
             mimeType: 'text/plain',
+            mediaUrl: null,
             projectionMessageId: textBeat.projectionMessageId,
             createdAtMs: committedAtMs,
             deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
           }]
-          : [],
-        interactionSnapshot: null,
-        relationMemorySlots: [],
-        recallEntries: [],
-        projection: {
-          thread: {
-            id: thread.id,
-            title: thread.title,
-            updatedAtMs: committedAtMs,
-            lastMessageAtMs: projectionMessages.length > 0 ? committedAtMs : thread.lastMessageAtMs,
-            archivedAtMs: thread.archivedAtMs,
-            targetSnapshot: thread.targetSnapshot,
-          },
-          messages: projectionMessages,
-          draft: null,
-          clearDraft: input.outcome === 'completed',
+          : []),
+        ...(imageState.status === 'none' || imageState.status === 'generate'
+          ? []
+          : [{
+            id: imageState.beatId,
+            turnId: input.turnId,
+            beatIndex: imageState.beatIndex,
+            modality: 'image' as const,
+            status: imageState.status === 'complete' ? 'delivered' as const : 'failed' as const,
+            textShadow: imageState.prompt || null,
+            artifactId: imageState.status === 'complete' ? imageState.artifactId : null,
+            mimeType: imageState.status === 'complete' ? imageState.mimeType : null,
+            mediaUrl: imageState.status === 'complete' ? imageState.mediaUrl : null,
+            projectionMessageId: imageState.projectionMessageId,
+            createdAtMs: committedAtMs,
+            deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
+          }]),
+      ],
+      interactionSnapshot: null,
+      relationMemorySlots: [],
+      recallEntries: [],
+      projection: {
+        thread: {
+          id: thread.id,
+          title: thread.title,
+          updatedAtMs: committedAtMs,
+          lastMessageAtMs: projectionMessages.length > 0 ? committedAtMs : thread.lastMessageAtMs,
+          archivedAtMs: thread.archivedAtMs,
+          targetSnapshot: thread.targetSnapshot,
         },
-      });
-      return result;
-    },
+        messages: projectionMessages,
+        draft: null,
+        clearDraft: input.outcome === 'completed',
+      },
+    });
+  };
+  return {
+    loadTurnContext: async (input) => storeClient.loadTurnContext({
+      threadId: input.threadId,
+    }),
+    commitTurnResult: async (input) => commitAgentTurnResultInternal({
+      ...input,
+      modeId: 'agent-local-chat-v1',
+      imageState: { status: 'none' },
+    }),
+    commitAgentTurnResult: commitAgentTurnResultInternal,
     cancelTurn: async (input) => {
       await storeClient.cancelTurn({
         threadId: input.threadId,
@@ -476,7 +876,7 @@ function resolveTerminalPromptTraceId(events: readonly ConversationTurnEvent[]):
   return null;
 }
 
-function buildProjectionMessage(
+function buildTextProjectionMessage(
   thread: AgentLocalThreadRecord,
   textBeat: AgentLocalTextBeatState,
   input: {
@@ -503,18 +903,51 @@ function buildProjectionMessage(
     threadId: thread.id,
     role: 'assistant' as const,
     status: input.outcome === 'completed' ? 'complete' as const : 'error' as const,
+    kind: 'text' as const,
     contentText: normalizeText(input.outputText) || textBeat.text,
     reasoningText: null,
     error,
     traceId: resolveTerminalTraceId(input.events),
     parentMessageId: null,
+    mediaUrl: null,
+    mediaMimeType: null,
+    artifactId: null,
+    createdAtMs: committedAtMs,
+    updatedAtMs: committedAtMs,
+  };
+}
+
+function buildImageProjectionMessage(
+  thread: AgentLocalThreadRecord,
+  imageState: Extract<AgentLocalChatImageState, { status: 'complete' | 'error' }>,
+  committedAtMs: number,
+) {
+  return {
+    id: imageState.projectionMessageId,
+    threadId: thread.id,
+    role: 'assistant' as const,
+    status: imageState.status === 'complete' ? 'complete' as const : 'error' as const,
+    kind: 'image' as const,
+    contentText: imageState.prompt,
+    reasoningText: null,
+    error: imageState.status === 'complete'
+      ? null
+      : {
+        code: 'AGENT_IMAGE_FAILED',
+        message: imageState.message,
+      },
+    traceId: null,
+    parentMessageId: null,
+    mediaUrl: imageState.status === 'complete' ? imageState.mediaUrl : null,
+    mediaMimeType: imageState.status === 'complete' ? imageState.mimeType : null,
+    artifactId: imageState.status === 'complete' ? imageState.artifactId : null,
     createdAtMs: committedAtMs,
     updatedAtMs: committedAtMs,
   };
 }
 
 async function commitProviderOutcome(input: {
-  continuityAdapter: ConversationContinuityAdapter<AgentLocalTurnContext, AgentLocalCommitTurnResult>;
+  continuityAdapter: AgentLocalChatContinuityAdapter;
   baseInput: ConversationTurnInput;
   emittedEvents: readonly ConversationTurnEvent[];
   terminalEvent: ConversationTurnEvent;
@@ -522,8 +955,9 @@ async function commitProviderOutcome(input: {
   outputText: string;
   reasoningText: string;
   error?: ConversationTurnError;
+  imageState?: AgentLocalChatImageState;
 }): Promise<AgentLocalCommitTurnResult> {
-  return input.continuityAdapter.commitTurnResult({
+  return input.continuityAdapter.commitAgentTurnResult({
     modeId: 'agent-local-chat-v1',
     threadId: input.baseInput.threadId,
     turnId: input.baseInput.turnId,
@@ -536,6 +970,7 @@ async function commitProviderOutcome(input: {
       input.terminalEvent,
     ],
     signal: input.baseInput.signal,
+    imageState: input.imageState,
   });
 }
 
@@ -581,6 +1016,7 @@ export function createAgentLocalChatConversationProvider(
       let outputText = '';
       let reasoningText = '';
       let textBeatEmitted = false;
+      let terminalEventEmitted = false;
       const beatId = `${input.turnId}:beat:0`;
       const projectionMessageId = `${input.turnId}:message:0`;
 
@@ -614,9 +1050,8 @@ export function createAgentLocalChatConversationProvider(
           agentId: metadata.agentId,
           prompt,
           threadId: input.threadId,
-          routeResult: metadata.routeResult,
           agentResolution: metadata.agentResolution,
-          executionSnapshot: metadata.executionSnapshot,
+          textExecutionSnapshot: metadata.textExecutionSnapshot,
           runtimeConfigState: metadata.runtimeConfigState,
           runtimeFields: metadata.runtimeFields,
           reasoningPreference: metadata.reasoningPreference,
@@ -653,6 +1088,14 @@ export function createAgentLocalChatConversationProvider(
               break;
             }
             case 'finish': {
+              if (!normalizeText(outputText)) {
+                throw new Error('agent-local-chat-v1 runtime stream completed without output text');
+              }
+              const cleanedAssistant = parseAgentImageMarker({
+                assistantText: outputText,
+                userText,
+              });
+              outputText = cleanedAssistant.cleanedText || outputText;
               for await (const beatEvent of emitFirstBeat()) {
                 yield beatEvent;
               }
@@ -665,6 +1108,91 @@ export function createAgentLocalChatConversationProvider(
                 };
                 emittedEvents.push(deliveredEvent);
                 yield deliveredEvent;
+              }
+              let imageState: AgentLocalChatImageState = { status: 'none' };
+              const imageDecision = await decideAgentImageState({
+                runtimeAdapter,
+                agentId: metadata.agentId,
+                threadId: input.threadId,
+                turnId: input.turnId,
+                userText,
+                assistantText: outputText,
+                targetSnapshot: metadata.targetSnapshot,
+                context: turnContext,
+                agentResolution: metadata.agentResolution,
+                textExecutionSnapshot: metadata.textExecutionSnapshot,
+                imageExecutionSnapshot: metadata.imageExecutionSnapshot,
+                runtimeConfigState: metadata.runtimeConfigState,
+                runtimeFields: metadata.runtimeFields,
+                reasoningPreference: metadata.reasoningPreference,
+                signal: input.signal,
+              });
+              if (imageDecision.status !== 'none') {
+                const imagePlannedEvent: ConversationTurnEvent = {
+                  type: 'beat-planned',
+                  turnId: input.turnId,
+                  beatId: imageDecision.beatId,
+                  beatIndex: imageDecision.beatIndex,
+                  modality: 'image',
+                };
+                emittedEvents.push(imagePlannedEvent);
+                yield imagePlannedEvent;
+
+                if (imageDecision.status === 'generate') {
+                  const imageDeliveryStarted: ConversationTurnEvent = {
+                    type: 'beat-delivery-started',
+                    turnId: input.turnId,
+                    beatId: `${input.turnId}:beat:1`,
+                  };
+                  emittedEvents.push(imageDeliveryStarted);
+                  yield imageDeliveryStarted;
+                  try {
+                    const generatedImage = await runtimeAdapter.generateImage({
+                      prompt: imageDecision.prompt,
+                      imageExecutionSnapshot: metadata.imageExecutionSnapshot,
+                      signal: input.signal,
+                    });
+                    imageState = {
+                      status: 'complete',
+                      beatId: `${input.turnId}:beat:1`,
+                      beatIndex: 1,
+                      projectionMessageId: `${input.turnId}:message:1`,
+                      prompt: imageDecision.prompt,
+                      mediaUrl: generatedImage.mediaUrl,
+                      mimeType: generatedImage.mimeType,
+                      artifactId: generatedImage.artifactId,
+                    };
+                    const artifactReadyEvent: ConversationTurnEvent = {
+                      type: 'artifact-ready',
+                      turnId: input.turnId,
+                      beatId: imageState.beatId,
+                      artifactId: imageState.artifactId || imageState.projectionMessageId,
+                      mimeType: imageState.mimeType,
+                      projectionMessageId: imageState.projectionMessageId,
+                    };
+                    emittedEvents.push(artifactReadyEvent);
+                    yield artifactReadyEvent;
+                    const imageDeliveredEvent: ConversationTurnEvent = {
+                      type: 'beat-delivered',
+                      turnId: input.turnId,
+                      beatId: imageState.beatId,
+                      projectionMessageId: imageState.projectionMessageId,
+                    };
+                    emittedEvents.push(imageDeliveredEvent);
+                    yield imageDeliveredEvent;
+                  } catch (imageError) {
+                    imageState = {
+                      status: 'error',
+                      beatId: `${input.turnId}:beat:1`,
+                      beatIndex: 1,
+                      projectionMessageId: `${input.turnId}:message:1`,
+                      prompt: imageDecision.prompt,
+                      message: toChatAgentRuntimeError(imageError).message,
+                    };
+                  }
+                } else {
+                  imageState = imageDecision;
+                }
               }
               const terminalEvent: ConversationTurnEvent = {
                 type: 'turn-completed',
@@ -683,6 +1211,7 @@ export function createAgentLocalChatConversationProvider(
                 outcome: 'completed',
                 outputText,
                 reasoningText,
+                imageState,
               });
               yield {
                 type: 'projection-rebuilt',
@@ -716,12 +1245,16 @@ export function createAgentLocalChatConversationProvider(
                 threadId: input.threadId,
                 projectionVersion: commitResult.projectionVersion,
               };
+              terminalEventEmitted = true;
               yield terminalEvent;
               return;
             }
             default:
               throw new Error(`Unsupported agent-local-chat-v1 runtime part: ${JSON.stringify(part)}`);
           }
+        }
+        if (!terminalEventEmitted) {
+          throw new Error('agent-local-chat-v1 runtime stream ended without a terminal event');
         }
       } catch (error) {
         if (isAbortLikeError(error) || input.signal?.aborted) {

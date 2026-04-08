@@ -17,6 +17,7 @@ import {
   resolveProjectionRefreshAgentHostInteraction,
 } from '../src/shell/renderer/features/chat/chat-agent-shell-host-interaction.js';
 import type { StreamState } from '../src/shell/renderer/features/turns/stream-controller.js';
+import { createAgentTextMessage } from './helpers/agent-chat-record-fixtures.js';
 
 function sampleThread(): AgentLocalThreadRecord {
   return {
@@ -51,37 +52,30 @@ function sampleDraft(): AgentLocalDraftRecord {
 function baseUserBundle(): AgentLocalThreadBundle {
   return {
     thread: sampleThread(),
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }],
+    })],
     draft: null,
   };
 }
 
 function assistantPlaceholder() {
-  return {
+  return createAgentTextMessage({
     id: 'assistant-1',
     threadId: 'thread-1',
     role: 'assistant' as const,
     status: 'pending' as const,
     contentText: '',
-    reasoningText: null,
-    error: null,
-    traceId: null,
     parentMessageId: 'user-1',
     createdAtMs: 101,
     updatedAtMs: 101,
-  };
+  });
 }
 
 function authoritativeBundle(): AgentLocalThreadBundle {
@@ -91,31 +85,26 @@ function authoritativeBundle(): AgentLocalThreadBundle {
       updatedAtMs: 999,
       lastMessageAtMs: 999,
     },
-    messages: [{
+    messages: [createAgentTextMessage({
       id: 'user-1',
       threadId: 'thread-1',
       role: 'user',
       status: 'complete',
       contentText: 'hello',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId: null,
       createdAtMs: 100,
       updatedAtMs: 100,
-    }, {
+    }), createAgentTextMessage({
       id: 'assistant-1',
       threadId: 'thread-1',
       role: 'assistant',
       status: 'complete',
       contentText: 'authoritative projection',
       reasoningText: 'authoritative reasoning',
-      error: null,
       traceId: 'trace-authoritative',
       parentMessageId: 'user-1',
       createdAtMs: 101,
       updatedAtMs: 999,
-    }],
+    })],
     draft: null,
   };
 }

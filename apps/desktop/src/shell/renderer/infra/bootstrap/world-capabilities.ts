@@ -1,5 +1,9 @@
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
 import {
+  recordDesktopWorldEvolutionCommitRequestCandidate,
+  settleDesktopWorldEvolutionCommitRequestRecord,
+} from '@runtime/world-evolution/commit-requests';
+import {
   WORLD_DATA_API_CAPABILITIES,
   requireObjectArray,
   requireItemsPayload,
@@ -315,6 +319,90 @@ export function parseAppendWorldHistoryInput(input: unknown, code: string): Appe
   };
 }
 
+type WorldStateCommitExecutor = (
+  worldId: string,
+  input: CommitWorldStateInput,
+) => Promise<unknown>;
+
+async function defaultCommitWorldState(
+  worldId: string,
+  input: CommitWorldStateInput,
+): Promise<unknown> {
+  return withRuntimeOpenApiContext((realm) => (
+    realm.services.WorldControlService.worldControlControllerCommitState(
+      worldId,
+      input,
+    )
+  ));
+}
+
+export async function handleWorldStateCommitDataCapability(
+  query: unknown,
+  options: {
+    commitWorldState?: WorldStateCommitExecutor;
+  } = {},
+): Promise<unknown> {
+  const record = toRecord(query);
+  const worldId = String(record.worldId || '').trim();
+  if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+
+  const parsedInput = parseCommitWorldStateInput(record.payload, 'WORLD_STATE_COMMIT_INPUT_REQUIRED');
+  const commitRecord = recordDesktopWorldEvolutionCommitRequestCandidate({
+    worldId: parsedInput.commit.worldId,
+    appId: parsedInput.commit.appId,
+    sessionId: parsedInput.commit.sessionId,
+    effectClass: parsedInput.commit.effectClass,
+    scope: parsedInput.commit.scope,
+    schemaId: parsedInput.commit.schemaId,
+    schemaVersion: parsedInput.commit.schemaVersion,
+    actorRefs: parsedInput.commit.actorRefs.map((actorRef) => (
+      actorRef.role
+        ? {
+          actorId: actorRef.actorId,
+          actorType: actorRef.actorType,
+          role: actorRef.role,
+        }
+        : {
+          actorId: actorRef.actorId,
+          actorType: actorRef.actorType,
+        }
+    )),
+    reason: parsedInput.commit.reason,
+    evidenceRefs: parsedInput.commit.evidenceRefs?.map((evidenceRef) => (
+      evidenceRef.uri
+        ? {
+          kind: evidenceRef.kind,
+          refId: evidenceRef.refId,
+          uri: evidenceRef.uri,
+        }
+        : {
+          kind: evidenceRef.kind,
+          refId: evidenceRef.refId,
+        }
+    )),
+  });
+
+  try {
+    const result = await (options.commitWorldState || defaultCommitWorldState)(worldId, parsedInput);
+    if (commitRecord) {
+      settleDesktopWorldEvolutionCommitRequestRecord({
+        commitRequestRecordId: commitRecord.commitRequestRecordId,
+        outcomeStatus: 'committed',
+      });
+    }
+    return result;
+  } catch (error) {
+    if (commitRecord) {
+      settleDesktopWorldEvolutionCommitRequestRecord({
+        commitRequestRecordId: commitRecord.commitRequestRecordId,
+        outcomeStatus: 'failed',
+        outcomeReason: error instanceof Error ? error.message : String(error || 'unknown commit failure'),
+      });
+    }
+    throw error;
+  }
+}
+
 export async function registerWorldDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.accessMe, async () => (
     withRuntimeOpenApiContext((realm) => (
@@ -403,15 +491,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
   ));
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.stateCommit, async (query) => {
-    const record = toRecord(query);
-    const worldId = String(record.worldId || '').trim();
-    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
-    return withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerCommitState(
-        worldId,
-        parseCommitWorldStateInput(record.payload, 'WORLD_STATE_COMMIT_INPUT_REQUIRED'),
-      )
-    ));
+    return handleWorldStateCommitDataCapability(query);
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksList, async (query) => {

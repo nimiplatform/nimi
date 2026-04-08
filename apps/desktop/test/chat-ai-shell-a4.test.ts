@@ -151,6 +151,11 @@ test('chat ai a4: adapter reads text.generate binding from AIConfig as primary r
   assert.match(adapterSource, /selectedBinding:\s*selectedTextBinding/);
   assert.match(adapterSource, /aiConfig\.capabilities\.selectedBindings\['text\.generate'\]/);
   assert.match(adapterSource, /const selectedTextBinding = hasExplicitTextGenerateSelection/);
+  assert.equal(
+    /if\s*\(!projectionSupported\s*\|\|\s*!activeThreadId\)/.test(adapterSource),
+    false,
+    'ai provider must not require an existing activeThreadId before first submit',
+  );
   // Adapter must NOT sync routeSnapshot → binding
   assert.equal(
     /setConversationCapabilityBinding\('text\.generate', desiredBinding\)/.test(adapterSource),

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CONVERSATION_CAPABILITIES, type AgentCapabilityEligibility, type ConversationCapability } from './conversation-capability';
+import { CONVERSATION_CAPABILITIES, type ConversationCapability } from './conversation-capability';
 import {
   refreshAgentEffectiveCapabilityResolution,
   refreshConversationCapabilityProjections,
@@ -8,9 +8,9 @@ import {
 const AGENT_CONVERSATION_REFRESHED_CAPABILITIES: readonly ConversationCapability[] = CONVERSATION_CAPABILITIES;
 
 type UseAgentConversationCapabilityEffectsInput = {
-  agentRouteData: AgentCapabilityEligibility | null | undefined;
   bootstrapReady: boolean;
   textCapabilityProjection: unknown;
+  imageCapabilityProjection?: unknown;
 };
 
 export function useAgentConversationCapabilityEffects(
@@ -24,6 +24,6 @@ export function useAgentConversationCapabilityEffects(
   }, [input.bootstrapReady]);
 
   useEffect(() => {
-    refreshAgentEffectiveCapabilityResolution(input.agentRouteData || null);
-  }, [input.agentRouteData, input.textCapabilityProjection]);
+    refreshAgentEffectiveCapabilityResolution();
+  }, [input.imageCapabilityProjection, input.textCapabilityProjection]);
 }

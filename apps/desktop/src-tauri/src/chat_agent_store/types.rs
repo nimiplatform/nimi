@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 2;
+pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -16,6 +16,13 @@ pub enum ChatAgentMessageStatus {
     Pending,
     Complete,
     Error,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChatAgentMessageKind {
+    Text,
+    Image,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -106,11 +113,15 @@ pub struct ChatAgentMessageRecord {
     pub thread_id: String,
     pub role: ChatAgentMessageRole,
     pub status: ChatAgentMessageStatus,
+    pub kind: ChatAgentMessageKind,
     pub content_text: String,
     pub reasoning_text: Option<String>,
     pub error: Option<ChatAgentMessageError>,
     pub trace_id: Option<String>,
     pub parent_message_id: Option<String>,
+    pub media_url: Option<String>,
+    pub media_mime_type: Option<String>,
+    pub artifact_id: Option<String>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }
@@ -149,6 +160,7 @@ pub struct ChatAgentTurnBeatRecord {
     pub text_shadow: Option<String>,
     pub artifact_id: Option<String>,
     pub mime_type: Option<String>,
+    pub media_url: Option<String>,
     pub projection_message_id: Option<String>,
     pub created_at_ms: i64,
     pub delivered_at_ms: Option<i64>,
@@ -263,11 +275,15 @@ pub struct ChatAgentCreateMessageInput {
     pub thread_id: String,
     pub role: ChatAgentMessageRole,
     pub status: ChatAgentMessageStatus,
+    pub kind: ChatAgentMessageKind,
     pub content_text: String,
     pub reasoning_text: Option<String>,
     pub error: Option<ChatAgentMessageError>,
     pub trace_id: Option<String>,
     pub parent_message_id: Option<String>,
+    pub media_url: Option<String>,
+    pub media_mime_type: Option<String>,
+    pub artifact_id: Option<String>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }
@@ -281,6 +297,9 @@ pub struct ChatAgentUpdateMessageInput {
     pub reasoning_text: Option<String>,
     pub error: Option<ChatAgentMessageError>,
     pub trace_id: Option<String>,
+    pub media_url: Option<String>,
+    pub media_mime_type: Option<String>,
+    pub artifact_id: Option<String>,
     pub updated_at_ms: i64,
 }
 
@@ -339,6 +358,7 @@ pub struct ChatAgentTurnBeatInput {
     pub text_shadow: Option<String>,
     pub artifact_id: Option<String>,
     pub mime_type: Option<String>,
+    pub media_url: Option<String>,
     pub projection_message_id: Option<String>,
     pub created_at_ms: i64,
     pub delivered_at_ms: Option<i64>,
@@ -389,11 +409,15 @@ pub struct ChatAgentProjectionMessageInput {
     pub thread_id: String,
     pub role: ChatAgentMessageRole,
     pub status: ChatAgentMessageStatus,
+    pub kind: ChatAgentMessageKind,
     pub content_text: String,
     pub reasoning_text: Option<String>,
     pub error: Option<ChatAgentMessageError>,
     pub trace_id: Option<String>,
     pub parent_message_id: Option<String>,
+    pub media_url: Option<String>,
+    pub media_mime_type: Option<String>,
+    pub artifact_id: Option<String>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }

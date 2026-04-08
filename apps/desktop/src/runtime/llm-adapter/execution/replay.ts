@@ -1,6 +1,10 @@
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioJobStatus, ScenarioType } from '@nimiplatform/sdk/runtime';
 import {
+  createDesktopWorldEvolutionReplayRecord,
+  settleDesktopWorldEvolutionReplayRecord,
+} from '@runtime/world-evolution/replays';
+import {
   asRuntimeInvokeError,
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,
@@ -285,6 +289,31 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
     resolvedTargetModel: input.fixture.target_model_id || undefined,
     routePolicy: resolved.source,
   };
+  const replayRecord = createDesktopWorldEvolutionReplayRecord({
+    replayMode: 'RECORDED',
+  });
+
+  function finalizeReplaySuccess(result: DesktopReplayResult): DesktopReplayResult {
+    if (replayRecord) {
+      settleDesktopWorldEvolutionReplayRecord({
+        replayRefId: replayRecord.replayRefId,
+        outcomeStatus: 'passed',
+      });
+    }
+    return result;
+  }
+
+  function finalizeReplayFailure(error: unknown): DesktopReplayResult {
+    const failure = withFailure(base, error);
+    if (replayRecord) {
+      settleDesktopWorldEvolutionReplayRecord({
+        replayRefId: replayRecord.replayRefId,
+        outcomeStatus: 'failed',
+        outcomeReason: failure.error,
+      });
+    }
+    return failure;
+  }
 
   try {
     if (input.fixture.capability === 'text.generate') {
@@ -331,7 +360,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         extensions: [],
       }, callOptions);
       const text = extractTextFromGenerateOutput(response.output);
-      return {
+      return finalizeReplaySuccess({
         ...base,
         status: 'passed',
         traceId: String(response.traceId || callOptions.metadata.traceId || '').trim() || undefined,
@@ -342,7 +371,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           textPreview: trimPreview(text),
           finishReason: Number(response.finishReason || 0),
         },
-      };
+      });
     }
 
     if (input.fixture.capability === 'text.embed') {
@@ -372,7 +401,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         extensions: [],
       }, callOptions);
       const vectors = extractEmbeddings(response.output);
-      return {
+      return finalizeReplaySuccess({
         ...base,
         status: 'passed',
         traceId: String(response.traceId || callOptions.metadata.traceId || '').trim() || undefined,
@@ -381,7 +410,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           kind: 'embedding',
           vectorCount: vectors.length,
         },
-      };
+      });
     }
 
     if (input.fixture.capability === 'image.generate') {
@@ -395,14 +424,14 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         route: resolved.source,
         metadata,
       });
-      return {
+      return finalizeReplaySuccess({
         ...base,
         status: 'passed',
         traceId: String(response.trace?.traceId || metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.trace?.modelResolved || input.fixture.model_id).trim(),
         jobId: String(response.job?.jobId || '').trim() || undefined,
         artifactSummary: summarizeArtifacts(response.artifacts),
-      };
+      });
     }
 
     if (input.fixture.capability === 'audio.synthesize') {
@@ -418,14 +447,14 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         route: resolved.source,
         metadata,
       });
-      return {
+      return finalizeReplaySuccess({
         ...base,
         status: 'passed',
         traceId: String(response.trace?.traceId || metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.trace?.modelResolved || input.fixture.model_id).trim(),
         jobId: String(response.job?.jobId || '').trim() || undefined,
         artifactSummary: summarizeArtifacts(response.artifacts),
-      };
+      });
     }
 
     if (input.fixture.capability === 'audio.transcribe') {
@@ -449,7 +478,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         route: resolved.source,
         metadata,
       });
-      return {
+      return finalizeReplaySuccess({
         ...base,
         status: 'passed',
         traceId: String(response.trace?.traceId || metadata.traceId || '').trim() || undefined,
@@ -460,7 +489,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           textLength: String(response.text || '').trim().length,
           textPreview: trimPreview(String(response.text || '')),
         },
-      };
+      });
     }
 
     const callOptions = await buildRuntimeCallOptions({
@@ -526,7 +555,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         extensions: [],
       };
     const collected = await submitAndCollect(input.runtime, workflowRequest, callOptions.metadata);
-    return {
+    return finalizeReplaySuccess({
       ...base,
       status: 'passed',
       traceId: collected.traceId || callOptions.metadata.traceId,
@@ -536,8 +565,8 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         ...collected.summary,
         voiceAssetId: collected.voiceAssetId,
       },
-    };
+    });
   } catch (error) {
-    return withFailure(base, error);
+    return finalizeReplayFailure(error);
   }
 }

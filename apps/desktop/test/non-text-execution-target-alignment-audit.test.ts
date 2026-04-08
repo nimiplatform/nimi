@@ -34,26 +34,26 @@ function findFilesContaining(pattern: RegExp, rootDir: string): string[] {
     .sort();
 }
 
-test('desktop non-text execution audit: renderer feature tree has no runtime media execution submit surface yet', () => {
+test('desktop non-text execution audit: renderer media execution surface is limited to agent chat image generation', () => {
   const mediaExecutionCallsites = findFilesContaining(
     /\bmedia\.(image|video|tts|stt)\.(generate|stream|synthesize|transcribe)\s*\(|\bmedia\.jobs\.submit\s*\(/,
     rendererFeaturesDir,
   );
-  assert.deepEqual(
-    mediaExecutionCallsites,
-    [],
-    'A real renderer-owned non-text execution surface now exists and must be aligned to target-scoped scheduling before landing.',
-  );
+  assert.deepEqual(mediaExecutionCallsites, [
+    'src/shell/renderer/features/chat/chat-agent-runtime.ts',
+  ]);
 });
 
-test('desktop non-text execution audit: chat execution snapshots remain text-scoped because only text submit surfaces exist', () => {
+test('desktop non-text execution audit: chat execution snapshots use target-scoped scheduling for every executed capability', () => {
   const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-runtime-adapter.ts');
   const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
 
   assert.match(aiAdapterSource, /resolveAIConfigSchedulingTargetForCapability\(input\.aiConfig, 'text\.generate'\)/);
   assert.match(agentHostActionsSource, /resolveAIConfigSchedulingTargetForCapability\(input\.aiConfig, 'text\.generate'\)/);
+  assert.match(agentHostActionsSource, /resolveAIConfigSchedulingTargetForCapability\(input\.aiConfig, 'image\.generate'\)/);
   assert.match(aiAdapterSource, /peekDesktopAISchedulingForEvidence\(\{\s*scopeRef: input\.aiConfig\.scopeRef,\s*target:/s);
   assert.match(agentHostActionsSource, /peekDesktopAISchedulingForEvidence\(\{\s*scopeRef: input\.aiConfig\.scopeRef,\s*target:\s*resolveAIConfigSchedulingTargetForCapability\(input\.aiConfig, 'text\.generate'\)/s);
+  assert.match(agentHostActionsSource, /peekDesktopAISchedulingForEvidence\(\{\s*scopeRef: input\.aiConfig\.scopeRef,\s*target:\s*resolveAIConfigSchedulingTargetForCapability\(input\.aiConfig, 'image\.generate'\)/s);
 });
 
 test('desktop non-text execution audit: human voice inspect is playback-only, not speech synthesis execution', () => {

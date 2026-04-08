@@ -198,22 +198,24 @@ test('image.generate projection fails closed when health is unhealthy', async ()
   assert.equal(projection.reasonCode, 'route_unhealthy');
 });
 
-test('image.generate projection fails closed when image profile ref missing', async () => {
+test('image.generate projection no longer depends on retired image profile refs', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
     { source: 'local', connectorId: '', model: 'sd-xl' },
   );
-  const routeRuntime = createMockRouteRuntime();
+  const routeRuntime = createMockRouteRuntime({
+    resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
+    healthResult: createHealthyResult(),
+  });
   const projection = await buildConversationCapabilityProjection({
     capability: 'image.generate',
     selectionStore: store,
     routeRuntime,
-    requiresImageProfileRef: true,
     requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'profile_ref_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
 });
 
 // --- audio.synthesize projection tests ---
@@ -345,7 +347,7 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
   assert.ok(resolvedCapabilities.includes('voice_workflow.tts_v2v'));
 });
 
-test('buildConversationCapabilityProjectionMap applies IMAGE_PROFILE_REQUIRED for image.generate', async () => {
+test('buildConversationCapabilityProjectionMap keeps image.generate route-ready without image profile refs', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.generate',
@@ -359,10 +361,9 @@ test('buildConversationCapabilityProjectionMap applies IMAGE_PROFILE_REQUIRED fo
     selectionStore: store,
     routeRuntime,
     capabilities: ['image.generate'],
-    requiresImageProfileRefByCapability: { 'image.generate': true },
   });
-  assert.equal(projections['image.generate']!.supported, false);
-  assert.equal(projections['image.generate']!.reasonCode, 'profile_ref_missing');
+  assert.equal(projections['image.generate']!.supported, true);
+  assert.equal(projections['image.generate']!.reasonCode, null);
 });
 
 // --- host_denied fail-close ---
@@ -461,7 +462,7 @@ test('image.edit projection fails closed when selection missing', async () => {
   assert.equal(projection.reasonCode, 'selection_missing');
 });
 
-test('image.edit projection fails closed when image profile ref missing', async () => {
+test('image.edit projection no longer depends on retired image profile refs', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
     'image.edit',
@@ -474,11 +475,10 @@ test('image.edit projection fails closed when image profile ref missing', async 
       resolveResult: createLocalResolvedBinding('image.generate', 'sd-xl'),
       healthResult: createHealthyResult(),
     }),
-    requiresImageProfileRef: true,
     requiresDescribeMetadata: false,
   });
-  assert.equal(projection.supported, false);
-  assert.equal(projection.reasonCode, 'profile_ref_missing');
+  assert.equal(projection.supported, true);
+  assert.equal(projection.reasonCode, null);
 });
 
 test('image.edit and image.generate have independent selection bindings', async () => {
