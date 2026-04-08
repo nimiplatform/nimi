@@ -69,6 +69,12 @@ fn explain_import_error(error: &str) -> String {
     if normalized.contains("unable to extract BVID") {
         return "暂时只支持 Bilibili 视频链接，请换一个包含 BV 号的链接再试。".to_string();
     }
+    if normalized.contains("风控校验失败") || normalized.contains("412 Precondition Failed") {
+        return "Bilibili 这次把博主同步拦下来了。现在已经换成另一条更稳的同步路径；请重开 app 后再试一次。".to_string();
+    }
+    if normalized.contains("请求过于频繁") {
+        return "Bilibili 现在把这次博主同步当成请求过快了。等一会儿再试，通常就会恢复。".to_string();
+    }
     normalized.to_string()
 }
 
@@ -106,6 +112,10 @@ struct CreatorSyncResult {
 
 fn is_active_import_status(status: &str) -> bool {
     matches!(status, "running" | "queued" | "resolving" | "geocoding")
+}
+
+fn should_retry_existing_import_status(status: &str) -> bool {
+    matches!(status, "failed")
 }
 
 fn spawn_import_job(import_id: String, source_url: String) {
@@ -179,6 +189,26 @@ fn video_food_map_import_creator(url: String) -> Result<CreatorSyncResult, Strin
 
     for video in &feed.videos {
         if let Some(existing) = db::lookup_import_by_bvid(&video.bvid)? {
+            if should_retry_existing_import_status(&existing.status) {
+                let queued = db::queue_import(&video.canonical_url, &video.bvid)?;
+                let import_id = queued.record.id.clone();
+                if queued.should_start {
+                    spawn_import_job(import_id.clone(), video.canonical_url.clone());
+                }
+                queued_count += 1;
+                items.push(CreatorSyncItem {
+                    bvid: video.bvid.clone(),
+                    title: video.title.clone(),
+                    canonical_url: video.canonical_url.clone(),
+                    published_at: video.published_at.clone(),
+                    status: "queued_retry".to_string(),
+                    import_id: Some(import_id),
+                    message: "这条视频上次失败了，这次同步已经把它重新加入队列。".to_string(),
+                });
+                continue;
+            }
+
+            db::refresh_import_source_url(&existing.id, &video.canonical_url)?;
             skipped_existing_count += 1;
             items.push(CreatorSyncItem {
                 bvid: video.bvid.clone(),
@@ -190,7 +220,7 @@ fn video_food_map_import_creator(url: String) -> Result<CreatorSyncResult, Strin
                 message: if is_active_import_status(&existing.status) {
                     "这条视频已经在处理中，本次同步先跳过。".to_string()
                 } else {
-                    "这条视频已经在库里了，本次同步不重复跑。".to_string()
+                    "这条视频已经成功在库里了，本次同步不重复跑。".to_string()
                 },
             });
             continue;

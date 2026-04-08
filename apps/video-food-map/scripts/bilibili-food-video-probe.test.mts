@@ -107,6 +107,35 @@ test('resolveConfiguredSttTarget prefers saved local route setting', () => {
   delete process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON;
 });
 
+test('resolveConfiguredSttTarget upgrades stale saved dashscope stt alias to the current concrete model', () => {
+  process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON = JSON.stringify({
+    stt: {
+      routeSource: 'cloud',
+      connectorId: 'sys-cloud-dashscope',
+      model: 'qwen3-asr-flash',
+    },
+    text: {
+      routeSource: 'cloud',
+      connectorId: '',
+      model: '',
+    },
+  });
+  assert.deepEqual(
+    resolveConfiguredSttTarget({
+      durationSec: 120,
+      mergedEnv: {
+        NIMI_LIVE_DASHSCOPE_STT_MODEL_ID: 'qwen3-asr-flash-2026-02-10',
+      },
+    }),
+    {
+      route: 'cloud',
+      connectorId: 'sys-cloud-dashscope',
+      model: 'qwen3-asr-flash-2026-02-10',
+    },
+  );
+  delete process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON;
+});
+
 test('resolveConfiguredTextTarget prefers saved cloud connector route setting', () => {
   process.env.NIMI_VIDEO_FOOD_MAP_SETTINGS_JSON = JSON.stringify({
     stt: {

@@ -314,6 +314,44 @@ function resolveSavedRouteSetting(setting: VideoFoodMapRouteSetting): {
   };
 }
 
+function normalizeSavedSttCloudModel(input: {
+  saved: {
+    route: 'local' | 'cloud';
+    model: string;
+    connectorId?: string;
+  };
+  durationSec: number;
+  mergedEnv: Record<string, string>;
+}): {
+  route: 'local' | 'cloud';
+  model: string;
+  connectorId?: string;
+} {
+  if (input.saved.route !== 'cloud') {
+    return input.saved;
+  }
+  const normalizedModel = String(input.saved.model || '').trim();
+  if (normalizedModel !== DEFAULT_SHORT_AUDIO_STT_MODEL) {
+    return input.saved;
+  }
+
+  const resolved = resolveSttModel({
+    durationSec: input.durationSec,
+    mergedEnv: input.mergedEnv,
+  });
+  const resolvedModel = input.saved.connectorId
+    ? resolved.replace(/^cloud\//u, '')
+    : resolved;
+  if (!resolvedModel || resolvedModel === normalizedModel) {
+    return input.saved;
+  }
+
+  return {
+    ...input.saved,
+    model: resolvedModel,
+  };
+}
+
 export function resolveConfiguredSttTarget(input: {
   durationSec: number;
   mergedEnv: Record<string, string>;
@@ -324,7 +362,11 @@ export function resolveConfiguredSttTarget(input: {
 } {
   const saved = resolveSavedRouteSetting(readRuntimeSettingsFromEnv().stt);
   if (saved) {
-    return saved;
+    return normalizeSavedSttCloudModel({
+      saved,
+      durationSec: input.durationSec,
+      mergedEnv: input.mergedEnv,
+    });
   }
   return {
     route: 'cloud',

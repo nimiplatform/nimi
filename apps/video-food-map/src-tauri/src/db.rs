@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -176,7 +177,10 @@ pub(crate) fn now_iso() -> String {
 }
 
 pub(crate) fn generate_id(prefix: &str) -> String {
-    format!("{prefix}-{}", Utc::now().timestamp_millis())
+    static NEXT_ID_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    let timestamp = Utc::now().timestamp_micros();
+    let sequence = NEXT_ID_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    format!("{prefix}-{timestamp}-{sequence}")
 }
 
 fn app_data_dir() -> Result<PathBuf, String> {
@@ -549,6 +553,32 @@ pub fn retry_import_by_id(import_id: &str) -> Result<QueuedImport, String> {
         record: hydrate_import(&conn, load_import_row(&conn, &queued.id)?)?,
         should_start: queued.should_start,
     })
+}
+
+pub fn refresh_import_source_url(import_id: &str, source_url: &str) -> Result<(), String> {
+    let trimmed = source_url.trim();
+    if trimmed.is_empty() {
+        return Ok(());
+    }
+
+    let conn = open_db()?;
+    conn.execute(
+        "
+        UPDATE imports
+        SET
+          source_url = ?1,
+          source_key = CASE WHEN bvid <> '' THEN source_key ELSE ?2 END,
+          canonical_url = CASE
+            WHEN canonical_url = '' OR canonical_url = source_url THEN ?1
+            ELSE canonical_url
+          END,
+          updated_at = ?3
+        WHERE id = ?4
+        ",
+        params![trimmed, build_source_key(trimmed, ""), now_iso(), import_id],
+    )
+    .map_err(|error| format!("failed to refresh import source url: {error}"))?;
+    Ok(())
 }
 
 pub fn save_creator_sync(
@@ -952,6 +982,7 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
     use std::env;
     use std::ffi::OsString;
     use std::fs;
@@ -962,7 +993,7 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        load_snapshot, now_iso, open_db, queue_import, retry_import_by_id, save_creator_sync,
+        generate_id, load_snapshot, now_iso, open_db, queue_import, retry_import_by_id, save_creator_sync,
         update_import_status_by_id, VenueRecord,
     };
     use crate::db_queries::{
@@ -1264,6 +1295,15 @@ mod tests {
         assert_eq!(retried.record.id, first.record.id);
         assert_eq!(retried.record.status, "queued");
         assert!(retried.record.error_message.is_empty());
+    }
+
+    #[test]
+    fn generate_id_stays_unique_within_the_same_burst() {
+        let mut ids = HashSet::new();
+        for _ in 0..64 {
+            let id = generate_id("venue");
+            assert!(ids.insert(id), "generated duplicate venue id");
+        }
     }
 
     #[test]

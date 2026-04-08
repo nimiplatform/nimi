@@ -1,30 +1,32 @@
 use std::env;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
 
 use chrono::{TimeZone, Utc};
-use md5;
 use reqwest::blocking::Client;
+use reqwest::header::{
+    ACCEPT, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, ORIGIN, REFERER, USER_AGENT,
+};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use url::{form_urlencoded, Url};
+use url::Url;
 
 const GEOCODER_PROVIDER: &str = "amap";
 const AMAP_GEOCODE_ENDPOINT: &str = "https://restapi.amap.com/v3/geocode/geo";
 const AMAP_PLACE_TEXT_ENDPOINT: &str = "https://restapi.amap.com/v3/place/text";
-const BILIBILI_NAV_ENDPOINT: &str = "https://api.bilibili.com/x/web-interface/nav";
-const BILIBILI_CREATOR_VIDEO_LIST_ENDPOINT: &str =
-    "https://api.bilibili.com/x/space/wbi/arc/search";
+const BILIBILI_CREATOR_PROFILE_ENDPOINT: &str = "https://api.bilibili.com/x/space/acc/info";
+const BILIBILI_CREATOR_DYNAMIC_VIDEO_LIST_ENDPOINT: &str =
+    "https://api.bilibili.com/x/polymer/web-dynamic/desktop/v1/feed/space";
 const BILIBILI_VIDEO_PAGE_URL: &str = "https://www.bilibili.com/video/";
 const BILIBILI_CREATOR_PAGE_URL: &str = "https://space.bilibili.com/";
 const BILIBILI_REFERER: &str = "https://www.bilibili.com/";
+const BILIBILI_ORIGIN: &str = "https://www.bilibili.com";
+const BILIBILI_BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
+const BILIBILI_ACCEPT: &str = "application/json, text/plain, */*";
+const BILIBILI_ACCEPT_LANGUAGE: &str = "zh-CN,zh;q=0.9,en;q=0.8";
 const BILIBILI_CREATOR_RECENT_VIDEO_LIMIT: usize = 12;
-const BILIBILI_WBI_MIXIN_KEY_INDEXES: [usize; 64] = [
-    46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29,
-    28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25,
-    54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52,
-];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -123,32 +125,48 @@ struct BilibiliApiEnvelope<T> {
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliNavData {
-    wbi_img: Option<BilibiliWbiImage>,
+struct BilibiliCreatorProfileData {
+    name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliWbiImage {
-    img_url: String,
-    sub_url: String,
+struct BilibiliCreatorDynamicFeedData {
+    items: Option<Vec<BilibiliCreatorDynamicItem>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliCreatorVideoListData {
-    list: Option<BilibiliCreatorVideoListPayload>,
+struct BilibiliCreatorDynamicItem {
+    #[serde(rename = "type")]
+    item_type: Option<String>,
+    modules: Option<Vec<BilibiliCreatorDynamicModule>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliCreatorVideoListPayload {
-    vlist: Option<Vec<BilibiliCreatorVideoRow>>,
+struct BilibiliCreatorDynamicModule {
+    module_author: Option<BilibiliCreatorDynamicAuthorModule>,
+    module_dynamic: Option<BilibiliCreatorDynamicContentModule>,
 }
 
 #[derive(Debug, Deserialize)]
-struct BilibiliCreatorVideoRow {
+struct BilibiliCreatorDynamicAuthorModule {
+    pub_ts: Option<i64>,
+    user: Option<BilibiliCreatorDynamicAuthorUser>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BilibiliCreatorDynamicAuthorUser {
+    name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BilibiliCreatorDynamicContentModule {
+    dyn_archive: Option<BilibiliCreatorDynamicArchive>,
+}
+
+#[derive(Debug, Deserialize)]
+struct BilibiliCreatorDynamicArchive {
     bvid: Option<String>,
     title: Option<String>,
-    author: Option<String>,
-    created: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -235,7 +253,7 @@ pub fn extract_bvid_hint(url: &str) -> String {
 }
 
 fn normalize_bvid_hint(value: &str) -> String {
-    value.trim().to_ascii_uppercase()
+    value.trim().to_string()
 }
 
 fn normalize_bilibili_creator_mid(value: &str) -> String {
@@ -314,10 +332,15 @@ fn published_at_to_iso(timestamp: i64) -> String {
         .unwrap_or_default()
 }
 
-fn request_json<T: DeserializeOwned>(client: &Client, url: &str) -> Result<T, String> {
+fn request_json_with_referer<T: DeserializeOwned>(
+    client: &Client,
+    url: &str,
+    referer: &str,
+) -> Result<T, String> {
     client
         .get(url)
-        .header("Referer", BILIBILI_REFERER)
+        .header(REFERER, referer)
+        .header(ORIGIN, BILIBILI_ORIGIN)
         .send()
         .map_err(|error| format!("request failed: {error}"))?
         .error_for_status()
@@ -326,75 +349,129 @@ fn request_json<T: DeserializeOwned>(client: &Client, url: &str) -> Result<T, St
         .map_err(|error| format!("response decode failed: {error}"))
 }
 
-fn extract_wbi_token_key(value: &str) -> String {
-    value
-        .rsplit('/')
-        .next()
-        .unwrap_or_default()
-        .split('.')
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_string()
+fn normalize_bilibili_api_message(raw: &str) -> String {
+    let normalized = raw.trim();
+    match normalized {
+        "-352" => "风控校验失败".to_string(),
+        "-799" => "请求过于频繁，请稍后再试".to_string(),
+        _ => normalized.to_string(),
+    }
 }
 
-fn load_bilibili_wbi_mixin_key(client: &Client) -> Result<String, String> {
-    let response =
-        request_json::<BilibiliApiEnvelope<BilibiliNavData>>(client, BILIBILI_NAV_ENDPOINT)?;
-    if response.code != 0 && response.code != -101 {
-        return Err(format!(
-            "failed to load bilibili nav data: {}",
-            response
-                .message
-                .unwrap_or_else(|| "unknown error".to_string())
-        ));
-    }
-    let data = response
-        .data
-        .ok_or_else(|| "bilibili nav response missing data".to_string())?;
-    let wbi = data
-        .wbi_img
-        .ok_or_else(|| "bilibili nav response missing wbi image data".to_string())?;
-    let img_key = extract_wbi_token_key(&wbi.img_url);
-    let sub_key = extract_wbi_token_key(&wbi.sub_url);
-    let combined = format!("{img_key}{sub_key}");
-    let chars = combined.chars().collect::<Vec<_>>();
-    let mut mixin = String::with_capacity(32);
-    for index in BILIBILI_WBI_MIXIN_KEY_INDEXES {
-        if let Some(char) = chars.get(index) {
-            mixin.push(*char);
-        }
-        if mixin.len() >= 32 {
-            break;
-        }
-    }
-    if mixin.is_empty() {
-        return Err("bilibili wbi mixin key is empty".to_string());
-    }
-    Ok(mixin)
+fn prime_bilibili_creator_session(client: &Client, source_url: &str) -> Result<(), String> {
+    client
+        .get(source_url)
+        .send()
+        .map_err(|error| format!("request failed: {error}"))?
+        .error_for_status()
+        .map_err(|error| format!("request returned non-success status: {error}"))?;
+    Ok(())
 }
 
-fn build_signed_wbi_query(params: &[(&str, String)], mixin_key: &str) -> String {
-    let mut pairs = params
-        .iter()
-        .map(|(key, value)| {
-            (
-                (*key).to_string(),
-                value.replace(['!', '\'', '(', ')', '*'], ""),
-            )
-        })
-        .collect::<Vec<_>>();
-    pairs.push(("wts".to_string(), Utc::now().timestamp().to_string()));
-    pairs.sort_by(|left, right| left.0.cmp(&right.0));
-    let query = form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(
-            pairs
-                .iter()
-                .map(|(key, value)| (key.as_str(), value.as_str())),
-        )
-        .finish();
-    let digest = format!("{:x}", md5::compute(format!("{query}{mixin_key}")));
-    format!("{query}&w_rid={digest}")
+fn extract_creator_videos_from_dynamic_items(
+    items: &[BilibiliCreatorDynamicItem],
+) -> (Option<String>, Vec<CreatorVideoCandidate>) {
+    let mut creator_name: Option<String> = None;
+    let mut videos = Vec::new();
+
+    for item in items {
+        if item.item_type.as_deref() != Some("DYNAMIC_TYPE_AV") {
+            continue;
+        }
+
+        let mut published_at: Option<i64> = None;
+        let mut item_creator_name: Option<String> = None;
+        let mut bvid = String::new();
+        let mut title = String::new();
+
+        for module in item.modules.as_ref().into_iter().flatten() {
+            if let Some(author) = &module.module_author {
+                if published_at.is_none() {
+                    published_at = author.pub_ts;
+                }
+                if item_creator_name.is_none() {
+                    item_creator_name = author
+                        .user
+                        .as_ref()
+                        .and_then(|user| user.name.as_ref())
+                        .map(|value| value.trim().to_string())
+                        .filter(|value| !value.is_empty());
+                }
+            }
+
+            if let Some(dynamic) = &module.module_dynamic {
+                if let Some(archive) = &dynamic.dyn_archive {
+                    bvid = normalize_bvid_hint(&archive.bvid.clone().unwrap_or_default());
+                    title = archive.title.clone().unwrap_or_default().trim().to_string();
+                }
+            }
+        }
+
+        if creator_name.is_none() {
+            creator_name = item_creator_name.clone();
+        }
+        if bvid.is_empty() {
+            continue;
+        }
+
+        videos.push(CreatorVideoCandidate {
+            canonical_url: format!("{BILIBILI_VIDEO_PAGE_URL}{bvid}/"),
+            bvid,
+            title,
+            published_at: published_at_to_iso(published_at.unwrap_or_default()),
+        });
+    }
+
+    (creator_name, videos)
+}
+
+fn load_creator_dynamic_feed_items(
+    client: &Client,
+    creator_mid: &str,
+    canonical_source_url: &str,
+) -> Result<Vec<BilibiliCreatorDynamicItem>, String> {
+    let mut last_items = Vec::new();
+
+    for attempt in 0..2 {
+        prime_bilibili_creator_session(client, canonical_source_url)?;
+        let response = request_json_with_referer::<BilibiliApiEnvelope<BilibiliCreatorDynamicFeedData>>(
+            client,
+            &format!(
+                "{BILIBILI_CREATOR_DYNAMIC_VIDEO_LIST_ENDPOINT}?host_mid={creator_mid}"
+            ),
+            canonical_source_url,
+        )?;
+
+        if response.code != 0 {
+            return Err(format!(
+                "拉取博主视频列表失败：{}",
+                normalize_bilibili_api_message(
+                    &response
+                        .message
+                        .unwrap_or_else(|| "unknown error".to_string())
+                )
+            ));
+        }
+
+        let items = response
+            .data
+            .and_then(|data| data.items)
+            .unwrap_or_default();
+        if !items.is_empty() {
+            return Ok(items);
+        }
+        last_items = items;
+
+        if attempt == 0 {
+            std::thread::sleep(Duration::from_millis(350));
+        }
+    }
+
+    if last_items.is_empty() {
+        return Err("拉取博主视频列表失败：暂时没有拿到公开视频，可能是平台临时限频，请稍后再试".to_string());
+    }
+
+    Ok(last_items)
 }
 
 pub fn load_bilibili_creator_video_feed(source_url: &str) -> Result<CreatorVideoFeed, String> {
@@ -405,65 +482,43 @@ pub fn load_bilibili_creator_video_feed(source_url: &str) -> Result<CreatorVideo
                 .to_string(),
         );
     }
+    let canonical_source_url = canonicalize_bilibili_creator_url(source_url)?;
 
     let client = build_http_client()?;
-    let mixin_key = load_bilibili_wbi_mixin_key(&client)?;
-    let query = build_signed_wbi_query(
-        &[
-            ("mid", creator_mid.clone()),
-            ("pn", "1".to_string()),
-            ("ps", BILIBILI_CREATOR_RECENT_VIDEO_LIMIT.to_string()),
-            ("order", "pubdate".to_string()),
-            ("tid", "0".to_string()),
-            ("keyword", String::new()),
-        ],
-        &mixin_key,
-    );
-    let response = request_json::<BilibiliApiEnvelope<BilibiliCreatorVideoListData>>(
+    prime_bilibili_creator_session(&client, &canonical_source_url)?;
+
+    let profile_response = request_json_with_referer::<BilibiliApiEnvelope<BilibiliCreatorProfileData>>(
         &client,
-        &format!("{BILIBILI_CREATOR_VIDEO_LIST_ENDPOINT}?{query}"),
+        &format!("{BILIBILI_CREATOR_PROFILE_ENDPOINT}?mid={creator_mid}"),
+        &canonical_source_url,
     )?;
+    let profile_name = if profile_response.code == 0 {
+        profile_response
+            .data
+            .and_then(|data| data.name)
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+    } else {
+        None
+    };
 
-    if response.code != 0 {
-        return Err(format!(
-            "拉取博主视频列表失败：{}",
-            response
-                .message
-                .unwrap_or_else(|| "unknown error".to_string())
-        ));
+    let items = load_creator_dynamic_feed_items(&client, &creator_mid, &canonical_source_url)?;
+    let (feed_creator_name, mut videos) = extract_creator_videos_from_dynamic_items(&items);
+    if videos.is_empty() {
+        return Err(
+            "拉取博主视频列表失败：暂时没有拿到可同步的视频，可能是平台临时限频，请稍后再试"
+                .to_string(),
+        );
     }
-
-    let rows = response
-        .data
-        .and_then(|data| data.list)
-        .and_then(|list| list.vlist)
-        .unwrap_or_default();
-    let creator_name = rows
-        .iter()
-        .find_map(|row| row.author.as_ref())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
+    videos.truncate(BILIBILI_CREATOR_RECENT_VIDEO_LIMIT);
+    let creator_name = profile_name
+        .or(feed_creator_name)
         .unwrap_or_else(|| format!("博主 {creator_mid}"));
-    let videos = rows
-        .into_iter()
-        .filter_map(|row| {
-            let bvid = normalize_bvid_hint(&row.bvid.unwrap_or_default());
-            if bvid.is_empty() {
-                return None;
-            }
-            Some(CreatorVideoCandidate {
-                canonical_url: format!("{BILIBILI_VIDEO_PAGE_URL}{bvid}/"),
-                bvid,
-                title: row.title.unwrap_or_default().trim().to_string(),
-                published_at: published_at_to_iso(row.created.unwrap_or_default()),
-            })
-        })
-        .collect::<Vec<_>>();
 
     Ok(CreatorVideoFeed {
         creator_mid: creator_mid.clone(),
         creator_name,
-        source_url: canonicalize_bilibili_creator_url(source_url)?,
+        source_url: canonical_source_url,
         videos,
     })
 }
@@ -500,8 +555,22 @@ fn amap_default_city() -> String {
 }
 
 fn build_http_client() -> Result<Client, String> {
+    let mut default_headers = HeaderMap::new();
+    default_headers.insert(ACCEPT, HeaderValue::from_static(BILIBILI_ACCEPT));
+    default_headers.insert(
+        ACCEPT_LANGUAGE,
+        HeaderValue::from_static(BILIBILI_ACCEPT_LANGUAGE),
+    );
+    default_headers.insert(ORIGIN, HeaderValue::from_static(BILIBILI_ORIGIN));
+    default_headers.insert(REFERER, HeaderValue::from_static(BILIBILI_REFERER));
+    default_headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static(BILIBILI_BROWSER_USER_AGENT),
+    );
+
     reqwest::blocking::Client::builder()
-        .user_agent("nimi-video-food-map/0.1 (local desktop app)")
+        .cookie_store(true)
+        .default_headers(default_headers)
         .build()
         .map_err(|error| format!("http client build failed: {error}"))
 }
@@ -667,7 +736,9 @@ pub fn path_display(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_signed_wbi_query, canonicalize_bilibili_creator_url, extract_bilibili_creator_mid,
+        canonicalize_bilibili_creator_url, extract_bilibili_creator_mid,
+        extract_creator_videos_from_dynamic_items, BilibiliApiEnvelope,
+        BilibiliCreatorDynamicFeedData,
     };
 
     #[test]
@@ -705,14 +776,47 @@ mod tests {
     }
 
     #[test]
-    fn signed_wbi_query_adds_timestamp_and_signature() {
-        let query = build_signed_wbi_query(
-            &[("mid", "123".to_string()), ("pn", "1".to_string())],
-            "abcdefghijklmnopqrstuvwxyz123456",
+    fn extracts_recent_videos_from_dynamic_feed_items() {
+        let payload = serde_json::from_str::<BilibiliApiEnvelope<BilibiliCreatorDynamicFeedData>>(
+            r#"{
+              "code": 0,
+              "data": {
+                "items": [
+                  {
+                    "type": "DYNAMIC_TYPE_AV",
+                    "modules": [
+                      {
+                        "module_author": {
+                          "pub_ts": 1775556001,
+                          "user": { "name": "JASON刘雨鑫" }
+                        }
+                      },
+                      {
+                        "module_dynamic": {
+                          "dyn_archive": {
+                            "bvid": "BV1en97B3E84",
+                            "title": "湖北襄阳，开在巷子里的人气牛杂，尝尝怎么样"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }"#,
+        )
+        .expect("dynamic feed should parse");
+
+        let items = payload.data.and_then(|data| data.items).unwrap_or_default();
+        let (creator_name, videos) = extract_creator_videos_from_dynamic_items(&items);
+
+        assert_eq!(creator_name.as_deref(), Some("JASON刘雨鑫"));
+        assert_eq!(videos.len(), 1);
+        assert_eq!(videos[0].bvid, "BV1en97B3E84");
+        assert_eq!(
+            videos[0].canonical_url,
+            "https://www.bilibili.com/video/BV1en97B3E84/"
         );
-        assert!(query.contains("mid=123"));
-        assert!(query.contains("pn=1"));
-        assert!(query.contains("wts="));
-        assert!(query.contains("w_rid="));
+        assert_eq!(videos[0].title, "湖北襄阳，开在巷子里的人气牛杂，尝尝怎么样");
     }
 }
