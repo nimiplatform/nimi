@@ -3,8 +3,10 @@ package managedimagebackend
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -89,9 +91,19 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 		grpc.WithBlock(),
 	)
 	if err != nil {
+		slog.Warn("managed image backend dial failed",
+			"operation", "generate",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"error", err,
+		)
 		return fmt.Errorf("dial managed media backend: %w", err)
 	}
 	defer conn.Close()
+	slog.Info("managed image backend dial ready",
+		"operation", "generate",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+	)
 
 	generateReq := dynamicpb.NewMessage(generateImageMessageDescriptor)
 	setInt32Field(generateReq, "width", req.Width)
@@ -106,9 +118,31 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 	setRepeatedStringField(generateReq, "ref_images", req.RefImages)
 
 	generateResp := dynamicpb.NewMessage(resultMessageDescriptor)
+	invokeStartedAt := time.Now()
+	slog.Info("managed image backend invoke start",
+		"operation", "generate",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+		"width", req.Width,
+		"height", req.Height,
+		"step", req.Step,
+	)
 	if err := conn.Invoke(ctx, backendGenerateImageMethod, generateReq, generateResp); err != nil {
+		slog.Warn("managed image backend invoke failed",
+			"operation", "generate",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"model_path", strings.TrimSpace(req.ModelPath),
+			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+			"error", err,
+		)
 		return fmt.Errorf("generate managed media image: %w", err)
 	}
+	slog.Info("managed image backend invoke completed",
+		"operation", "generate",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+		"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+	)
 	if success, message := readResult(generateResp); !success {
 		return fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
 	}
@@ -136,9 +170,19 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 		grpc.WithBlock(),
 	)
 	if err != nil {
+		slog.Warn("managed image backend dial failed",
+			"operation", "load",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"error", err,
+		)
 		return fmt.Errorf("dial managed media backend: %w", err)
 	}
 	defer conn.Close()
+	slog.Info("managed image backend dial ready",
+		"operation", "load",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+	)
 
 	loadReq := dynamicpb.NewMessage(modelOptionsMessageDescriptor)
 	setStringField(loadReq, "ModelPath", req.ModelsRoot)
@@ -148,9 +192,31 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 	setRepeatedStringField(loadReq, "Options", req.Options)
 
 	loadResp := dynamicpb.NewMessage(resultMessageDescriptor)
+	invokeStartedAt := time.Now()
+	slog.Info("managed image backend invoke start",
+		"operation", "load",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+		"options_count", len(req.Options),
+		"cfg_scale", req.CFGScale,
+		"threads", req.Threads,
+	)
 	if err := conn.Invoke(ctx, backendLoadModelMethod, loadReq, loadResp); err != nil {
+		slog.Warn("managed image backend invoke failed",
+			"operation", "load",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"model_path", strings.TrimSpace(req.ModelPath),
+			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+			"error", err,
+		)
 		return fmt.Errorf("load managed media model: %w", err)
 	}
+	slog.Info("managed image backend invoke completed",
+		"operation", "load",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+		"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+	)
 	if success, message := readResult(loadResp); !success {
 		return fmt.Errorf("load managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful load result"))
 	}

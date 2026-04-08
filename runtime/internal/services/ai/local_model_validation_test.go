@@ -751,6 +751,77 @@ func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testi
 	}
 }
 
+func TestValidateLocalModelRequestUnhealthyImageBypassesStartWithDynamicProfileOverrides(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
+	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer loopbackServer.Close()
+
+	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId:         "local-image-unhealthy",
+			AssetId:              "z_image_turbo-Q4_K",
+			Engine:               "media",
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			LocalInvokeProfileId: "invoke",
+			Capabilities:         []string{"image.generate"},
+			Endpoint:             loopbackServer.URL + "/v1",
+			HealthDetail:         "managed local image backend validation failed: stale failure",
+		}},
+	}}}
+	resolver := &fakeLocalImageProfileResolver{
+		alias:          "dynamic-profile",
+		profile:        map[string]any{"name": "dynamic-profile"},
+		backendAddress: "127.0.0.1:50052",
+		modelsRoot:     "/tmp/models",
+		selection: engine.ImageSupervisedMatrixSelection{
+			Matched:        true,
+			EntryID:        "macos-apple-silicon-gguf",
+			ProductState:   engine.ImageProductStateSupported,
+			BackendClass:   engine.ImageBackendClassNativeBinary,
+			BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+			ControlPlane:   engine.ImageControlPlaneRuntime,
+			ExecutionPlane: engine.EngineMedia,
+			Entry: &engine.ImageSupervisedMatrixEntry{
+				EntryID:        "macos-apple-silicon-gguf",
+				ProductState:   engine.ImageProductStateSupported,
+				BackendClass:   engine.ImageBackendClassNativeBinary,
+				BackendFamily:  engine.ImageBackendFamilyStableDiffusionGGML,
+				ControlPlane:   engine.ImageControlPlaneRuntime,
+				ExecutionPlane: engine.EngineMedia,
+			},
+		},
+	}
+	svc.localModel = imageLister
+	svc.localImageProfile = resolver
+
+	err := svc.validateLocalModelRequestWithExtensions(
+		context.Background(),
+		"local/z_image_turbo-Q4_K",
+		nil,
+		runtimev1.Modal_MODAL_IMAGE,
+		map[string]any{
+			"profile_entries": []any{
+				map[string]any{"entryId": "main", "kind": "asset", "capability": "image", "assetId": "z_image_turbo-Q4_K", "assetKind": "image"},
+			},
+			"entry_overrides": []any{
+				map[string]any{"entry_id": "main", "local_asset_id": "local-image-unhealthy"},
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected unhealthy image local model validation to use dynamic profile bypass, got %v", err)
+	}
+	if resolver.resolveProfileCalls != 1 {
+		t.Fatalf("expected dynamic profile resolver to run once, got %d", resolver.resolveProfileCalls)
+	}
+	if imageLister.startCalls != 0 {
+		t.Fatalf("expected unhealthy image local model to bypass StartLocalAsset, got %d", imageLister.startCalls)
+	}
+}
+
 func TestLocalPreferredEnginesPrefersCanonicalEngines(t *testing.T) {
 	models := []*runtimev1.LocalAssetRecord{
 		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama"},

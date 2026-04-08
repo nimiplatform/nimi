@@ -1,15 +1,21 @@
 package managedimagebackend
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -22,6 +28,8 @@ type ServerConfig struct {
 	BackendExecutable string
 	WorkingDir        string
 }
+
+var managedImageBackendGOOS = runtime.GOOS
 
 type backendDriver interface {
 	LoadModel(loadModelState) error
@@ -56,6 +64,7 @@ type managedImageOptions struct {
 	LLMPath            string
 	ClipLPath          string
 	T5XXLPath          string
+	DiffusionFA        *bool
 	OffloadParamsToCPU *bool
 }
 
@@ -284,6 +293,12 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 	if strings.TrimSpace(loaded.Options.Sampler) != "" {
 		args = append(args, "--sampling-method", strings.TrimSpace(loaded.Options.Sampler))
 	}
+	if loaded.Options.DiffusionFA != nil && *loaded.Options.DiffusionFA {
+		args = append(args, "--diffusion-fa")
+	}
+	if loaded.Options.OffloadParamsToCPU != nil && *loaded.Options.OffloadParamsToCPU {
+		args = append(args, "--offload-to-cpu")
+	}
 	if strings.TrimSpace(loaded.Options.VAEPath) != "" {
 		args = append(args, "--vae", strings.TrimSpace(loaded.Options.VAEPath))
 	}
@@ -302,14 +317,61 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 
 	command := exec.CommandContext(ctx, d.executablePath, args...)
 	command.Dir = d.workingDir
-	output, err := command.CombinedOutput()
+	if env := stableDiffusionCPPEnvironment(d.executablePath, os.Environ()); len(env) > 0 {
+		command.Env = env
+	}
+
+	log.Printf("managed image cli start executable=%s model_path=%s dst=%s width=%d height=%d step=%d has_vae=%t has_llm=%t has_clip_l=%t has_t5xxl=%t",
+		strings.TrimSpace(d.executablePath),
+		strings.TrimSpace(loaded.ModelPath),
+		strings.TrimSpace(req.Dst),
+		req.Width,
+		req.Height,
+		req.Step,
+		strings.TrimSpace(loaded.Options.VAEPath) != "",
+		strings.TrimSpace(loaded.Options.LLMPath) != "",
+		strings.TrimSpace(loaded.Options.ClipLPath) != "",
+		strings.TrimSpace(loaded.Options.T5XXLPath) != "",
+	)
+
+	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
-		message := strings.TrimSpace(string(output))
+		return fmt.Errorf("capture stable-diffusion.cpp stdout: %w", err)
+	}
+	stderrPipe, err := command.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("capture stable-diffusion.cpp stderr: %w", err)
+	}
+	startedAt := time.Now()
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("start stable-diffusion.cpp generate: %w", err)
+	}
+
+	var combined bytes.Buffer
+	var streamWG sync.WaitGroup
+	streamWG.Add(2)
+	go streamManagedImageCommandOutput(stdoutPipe, "stdout", &combined, &streamWG)
+	go streamManagedImageCommandOutput(stderrPipe, "stderr", &combined, &streamWG)
+	err = command.Wait()
+	streamWG.Wait()
+	durationMs := time.Since(startedAt).Milliseconds()
+	if err != nil {
+		message := strings.TrimSpace(combined.String())
+		log.Printf("managed image cli failed executable=%s duration_ms=%d error=%v",
+			strings.TrimSpace(d.executablePath),
+			durationMs,
+			err,
+		)
 		if message == "" {
 			return fmt.Errorf("stable-diffusion.cpp generate failed: %w", err)
 		}
 		return fmt.Errorf("stable-diffusion.cpp generate failed: %s", message)
 	}
+	log.Printf("managed image cli completed executable=%s duration_ms=%d dst=%s",
+		strings.TrimSpace(d.executablePath),
+		durationMs,
+		strings.TrimSpace(req.Dst),
+	)
 	info, statErr := os.Stat(strings.TrimSpace(req.Dst))
 	if statErr != nil {
 		return fmt.Errorf("managed image destination unavailable: %w", statErr)
@@ -318,6 +380,100 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		return fmt.Errorf("managed image destination is empty")
 	}
 	return nil
+}
+
+func streamManagedImageCommandOutput(reader io.ReadCloser, stream string, combined *bytes.Buffer, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if reader == nil {
+		return
+	}
+	defer reader.Close()
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	scanner.Split(splitManagedImageLogToken)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		if combined != nil {
+			if combined.Len() > 0 {
+				combined.WriteString("\n")
+			}
+			combined.WriteString(line)
+		}
+		log.Printf("managed image cli output stream=%s line=%s", stream, line)
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("managed image cli output read failed stream=%s error=%v", stream, err)
+	}
+}
+
+func splitManagedImageLogToken(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	for i := 0; i < len(data); i++ {
+		switch data[i] {
+		case '\n':
+			return i + 1, data[:i], nil
+		case '\r':
+			if i+1 < len(data) && data[i+1] == '\n' {
+				return i + 2, data[:i], nil
+			}
+			return i + 1, data[:i], nil
+		}
+	}
+	if atEOF && len(data) > 0 {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
+}
+
+func stableDiffusionCPPEnvironment(executablePath string, base []string) []string {
+	if managedImageBackendGOOS != "darwin" {
+		return nil
+	}
+	executableDir := strings.TrimSpace(filepath.Dir(strings.TrimSpace(executablePath)))
+	if executableDir == "" || executableDir == "." {
+		return nil
+	}
+	env := append([]string(nil), base...)
+	env = upsertPathListEnv(env, "DYLD_LIBRARY_PATH", executableDir)
+	env = upsertPathListEnv(env, "DYLD_FALLBACK_LIBRARY_PATH", executableDir)
+	return env
+}
+
+func upsertPathListEnv(env []string, key string, value string) []string {
+	trimmedKey := strings.TrimSpace(key)
+	trimmedValue := strings.TrimSpace(value)
+	if trimmedKey == "" || trimmedValue == "" {
+		return env
+	}
+	prefix := trimmedKey + "="
+	for index, entry := range env {
+		if !strings.HasPrefix(entry, prefix) {
+			continue
+		}
+		current := strings.TrimSpace(strings.TrimPrefix(entry, prefix))
+		env[index] = prefix + prependPathListValue(current, trimmedValue)
+		return env
+	}
+	return append(env, prefix+trimmedValue)
+}
+
+func prependPathListValue(current string, prepend string) string {
+	trimmedPrepend := strings.TrimSpace(prepend)
+	if trimmedPrepend == "" {
+		return strings.TrimSpace(current)
+	}
+	trimmedCurrent := strings.TrimSpace(current)
+	if trimmedCurrent == "" {
+		return trimmedPrepend
+	}
+	for _, candidate := range strings.Split(trimmedCurrent, string(os.PathListSeparator)) {
+		if strings.TrimSpace(candidate) == trimmedPrepend {
+			return trimmedCurrent
+		}
+	}
+	return trimmedPrepend + string(os.PathListSeparator) + trimmedCurrent
 }
 
 func (d *stableDiffusionCPPDriver) Free(_ loadModelState) error {
@@ -393,6 +549,20 @@ func parseManagedImageOptions(modelsRoot string, options []string) (managedImage
 				parsed.OffloadParamsToCPU = &flag
 			default:
 				return managedImageOptions{}, fmt.Errorf("managed image option offload_params_to_cpu requires true or false")
+			}
+		case "diffusion_fa":
+			if !hasValue {
+				return managedImageOptions{}, fmt.Errorf("managed image option diffusion_fa requires a boolean value")
+			}
+			switch strings.ToLower(strings.TrimSpace(value)) {
+			case "true":
+				flag := true
+				parsed.DiffusionFA = &flag
+			case "false":
+				flag := false
+				parsed.DiffusionFA = &flag
+			default:
+				return managedImageOptions{}, fmt.Errorf("managed image option diffusion_fa requires true or false")
 			}
 		case "sampler":
 			if !hasValue || strings.TrimSpace(value) == "" {

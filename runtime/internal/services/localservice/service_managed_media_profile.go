@@ -38,6 +38,7 @@ func (s *Service) resolveProfileSlots(
 	entries []*runtimev1.LocalProfileEntryDescriptor,
 	capability string,
 	overrides map[string]string,
+	allowUnhealthyMainLocalAssetID string,
 ) (string, map[string]string, error) {
 	var modelPath string
 	engineSlots := make(map[string]string)
@@ -89,7 +90,7 @@ func (s *Service) resolveProfileSlots(
 			if installed == nil {
 				return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 			}
-			if !profileEntryInstalledAssetUsable(installed) {
+			if !profileEntryInstalledMainAssetUsable(installed, allowUnhealthyMainLocalAssetID) {
 				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 					Message:    fmt.Sprintf("main asset %q is not in a usable status", installed.GetLocalAssetId()),
 					ActionHint: "inspect_local_runtime_model_health",
@@ -159,6 +160,20 @@ func profileEntryInstalledAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
 	default:
 		return false
 	}
+}
+
+func profileEntryInstalledMainAssetUsable(asset *runtimev1.LocalAssetRecord, allowUnhealthyMainLocalAssetID string) bool {
+	if profileEntryInstalledAssetUsable(asset) {
+		return true
+	}
+	if asset == nil {
+		return false
+	}
+	if asset.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		return false
+	}
+	return strings.TrimSpace(asset.GetLocalAssetId()) != "" &&
+		strings.TrimSpace(asset.GetLocalAssetId()) == strings.TrimSpace(allowUnhealthyMainLocalAssetID)
 }
 
 // managedMediaProfileEntries extracts profile entries from the scenario
@@ -295,7 +310,7 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	slotPaths := map[string]string{}
 
 	if len(profileEntries) > 0 {
-		resolved, slots, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides)
+		resolved, slots, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides, model.GetLocalAssetId())
 		if resolveErr != nil {
 			return "", nil, nil, resolveErr
 		}
@@ -415,6 +430,7 @@ func managedMediaProfileHasCFGScale(profile map[string]any) bool {
 func managedMediaEnsureImageOptions(options []string) []string {
 	out := make([]string, 0, len(options)+1)
 	hasDiffusionModel := false
+	hasDiffusionFA := false
 	for _, option := range options {
 		trimmed := strings.TrimSpace(option)
 		if trimmed == "" {
@@ -428,10 +444,29 @@ func managedMediaEnsureImageOptions(options []string) []string {
 			out = append(out, "diffusion_model")
 			continue
 		}
+		if strings.EqualFold(trimmed, "diffusion_fa:true") {
+			if hasDiffusionFA {
+				continue
+			}
+			hasDiffusionFA = true
+			out = append(out, "diffusion_fa:true")
+			continue
+		}
+		if strings.EqualFold(trimmed, "diffusion_fa:false") {
+			if hasDiffusionFA {
+				continue
+			}
+			hasDiffusionFA = true
+			out = append(out, "diffusion_fa:false")
+			continue
+		}
 		out = append(out, trimmed)
 	}
 	if !hasDiffusionModel {
 		out = append([]string{"diffusion_model"}, out...)
+	}
+	if !hasDiffusionFA && strings.EqualFold(localRuntimeGOOS, "darwin") && strings.EqualFold(localRuntimeGOARCH, "arm64") {
+		out = append(out, "diffusion_fa:true")
 	}
 	return out
 }
@@ -452,6 +487,7 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 		}
 		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
 			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED &&
+			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY &&
 			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
 			continue
 		}

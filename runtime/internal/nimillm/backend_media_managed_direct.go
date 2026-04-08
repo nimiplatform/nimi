@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"net/http"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -114,6 +116,19 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	step := managedMediaResolveStep(profile, scenarioExtensions)
 
 	destinationPath := filepath.Join(tempDir, "artifact.png")
+	startedAt := time.Now()
+	slog.Info("managed image generate start",
+		"backend_address", strings.TrimSpace(backendAddress),
+		"model_path", modelPath,
+		"width", width,
+		"height", height,
+		"step", step,
+		"cfg_scale", managedMediaResolveCFGScale(profile, scenarioExtensions),
+		"seed", managedMediaClampInt32(spec.GetSeed()),
+		"has_source_image", sourcePath != "",
+		"ref_images_count", len(refImages),
+		"has_mask", maskPath != "",
+	)
 	err = managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
 		BackendAddress: backendAddress,
 		ModelsRoot:     modelsRoot,
@@ -131,7 +146,17 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		EnableParams:   enableParams,
 		RefImages:      refImages,
 	})
+	generateDurationMs := time.Since(startedAt).Milliseconds()
 	if err != nil {
+		slog.Warn("managed image generate failed",
+			"backend_address", strings.TrimSpace(backendAddress),
+			"model_path", modelPath,
+			"width", width,
+			"height", height,
+			"step", step,
+			"duration_ms", generateDurationMs,
+			"error", err,
+		)
 		switch status.Code(err) {
 		case codes.DeadlineExceeded, codes.Unavailable:
 			return nil, nil, nil, MapProviderRequestError(err)
@@ -148,6 +173,14 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 			},
 		)
 	}
+	slog.Info("managed image generate completed",
+		"backend_address", strings.TrimSpace(backendAddress),
+		"model_path", modelPath,
+		"width", width,
+		"height", height,
+		"step", step,
+		"duration_ms", generateDurationMs,
+	)
 
 	payload, err := os.ReadFile(destinationPath)
 	if err != nil || len(payload) == 0 {

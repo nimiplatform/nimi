@@ -85,6 +85,20 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 	if selected == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	if bypassed, err := s.tryBypassUnhealthyManagedImageStartWithDynamicProfile(
+		ctx,
+		selected,
+		requestedModelID,
+		modal,
+		scenarioExtensions,
+	); err != nil {
+		return err
+	} else if bypassed {
+		if modelRequiresInvokeProfile(selected) {
+			return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
+		}
+		return nil
+	}
 	var warmEndpoint string
 	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED && shouldWarmInstalledLocalModel(selected, modal) {
 		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
@@ -121,6 +135,51 @@ func (s *Service) validateLocalModelRequestWithExtensions(ctx context.Context, r
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
 	return nil
+}
+
+func (s *Service) tryBypassUnhealthyManagedImageStartWithDynamicProfile(
+	ctx context.Context,
+	selected *runtimev1.LocalAssetRecord,
+	requestedModelID string,
+	modal runtimev1.Modal,
+	scenarioExtensions map[string]any,
+) (bool, error) {
+	if s == nil || selected == nil || s.localImageProfile == nil {
+		return false, nil
+	}
+	if modal != runtimev1.Modal_MODAL_IMAGE || !shouldRetryUnhealthyLocalModelStart(selected, modal) {
+		return false, nil
+	}
+	if len(scenarioExtensions) == 0 {
+		return false, nil
+	}
+	if _, hasProfileEntries := scenarioExtensions["profile_entries"]; !hasProfileEntries {
+		if _, hasEntryOverrides := scenarioExtensions["entry_overrides"]; !hasEntryOverrides {
+			return false, nil
+		}
+	}
+	selection, err := s.localImageProfile.ResolveCanonicalImageSelection(ctx, requestedModelID)
+	if err != nil {
+		return false, localModelUnavailableError(err.Error())
+	}
+	if !selection.Matched || selection.Conflict || selection.Entry == nil {
+		return false, localModelUnavailableError(strings.TrimSpace(selection.CompatibilityDetail))
+	}
+	if selection.ControlPlane != engine.ImageControlPlaneRuntime ||
+		selection.ExecutionPlane != engine.EngineMedia ||
+		selection.BackendClass != engine.ImageBackendClassNativeBinary {
+		return false, nil
+	}
+	if _, _, _, err := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, requestedModelID, scenarioExtensions); err != nil {
+		return false, localModelUnavailableError(err.Error())
+	}
+	providerID := strings.ToLower(strings.TrimSpace(selected.GetEngine()))
+	endpoint := installedLocalProviderEndpoint(selected, "")
+	if endpoint == "" || !localrouting.IsKnownProvider(providerID) {
+		return false, nil
+	}
+	s.SetLocalProviderEndpoint(providerID, endpoint, "")
+	return true, nil
 }
 
 func (s *Service) primeInstalledLocalModelRequest(ctx context.Context, selected *runtimev1.LocalAssetRecord, requestedModelID string, modal runtimev1.Modal, scenarioExtensions map[string]any) error {

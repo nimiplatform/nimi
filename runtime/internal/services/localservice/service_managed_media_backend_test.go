@@ -243,6 +243,56 @@ func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *te
 	}
 }
 
+func TestResolveManagedMediaImageProfileEnablesDiffusionFAOnAppleSilicon(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+		"options": []any{
+			"diffusion_model",
+			"offload_params_to_cpu:true",
+		},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile on apple silicon: %v", err)
+	}
+	options := valueAsStringSlice(profile["options"])
+	if !containsString(options, "offload_params_to_cpu:true") {
+		t.Fatalf("expected explicit cpu offload option to remain intact, got=%v", options)
+	}
+	if !containsString(options, "diffusion_fa:true") {
+		t.Fatalf("expected apple silicon profile to add diffusion_fa:true, got=%v", options)
+	}
+}
+
 func TestResolveManagedMediaImageProfilePreservesExplicitCFGScale(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -422,6 +472,77 @@ func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
 	}
 	if containsString(options, "llm_path:resolved/nimi/qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected default llm_path to be replaced, got=%v", options)
+	}
+}
+
+func TestResolveManagedMediaImageProfileAllowsSelectedUnhealthyMainOverride(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY
+	svc.mu.Unlock()
+	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
+
+	llmRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "artifact_" + ulid.Make().String(),
+		AssetId:        "qwen3_4b_companion",
+		Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:         "llama",
+		Entry:          "Qwen3-4B-Q4_K_M.gguf",
+		LogicalModelId: "nimi/qwen3_4b_companion",
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:         &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
+	writeManagedAssetEntryFixture(t, modelsRoot, llmRecord, "llm")
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+			{
+				EntryId:    "llm-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "qwen3_4b_companion",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+				Engine:     "llama",
+				EngineSlot: "llm_path",
+			},
+		},
+		"entry_overrides": []any{
+			map[string]any{
+				"entry_id":       "main-image",
+				"local_asset_id": modelResp.GetLocalAssetId(),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile with unhealthy selected main override: %v", err)
+	}
+	parameters := valueAsObject(profile["parameters"])
+	if got := strings.TrimSpace(valueAsString(parameters["model"])); got != "resolved/z_image_turbo/z_image_turbo-Q4_K_M.gguf" {
+		t.Fatalf("unexpected overridden main model path: %q", got)
 	}
 }
 

@@ -130,3 +130,79 @@ func TestParseManagedImageOptionsRejectsUnsupportedKeys(t *testing.T) {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 }
+
+func TestStableDiffusionCPPEnvironmentAddsExecutableDirOnDarwin(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "darwin"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
+		"FOO=bar",
+		"DYLD_LIBRARY_PATH=/opt/lib",
+		"DYLD_FALLBACK_LIBRARY_PATH=/usr/local/lib",
+	})
+
+	if got := envValue(env, "DYLD_LIBRARY_PATH"); got != "/tmp/managed-image:/opt/lib" {
+		t.Fatalf("unexpected DYLD_LIBRARY_PATH: %q", got)
+	}
+	if got := envValue(env, "DYLD_FALLBACK_LIBRARY_PATH"); got != "/tmp/managed-image:/usr/local/lib" {
+		t.Fatalf("unexpected DYLD_FALLBACK_LIBRARY_PATH: %q", got)
+	}
+}
+
+func TestStableDiffusionCPPEnvironmentAvoidsDuplicateExecutableDir(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "darwin"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{
+		"DYLD_LIBRARY_PATH=/tmp/managed-image:/opt/lib",
+	})
+
+	if got := envValue(env, "DYLD_LIBRARY_PATH"); got != "/tmp/managed-image:/opt/lib" {
+		t.Fatalf("unexpected deduplicated DYLD_LIBRARY_PATH: %q", got)
+	}
+}
+
+func TestStableDiffusionCPPEnvironmentSkipsNonDarwin(t *testing.T) {
+	originalGOOS := managedImageBackendGOOS
+	managedImageBackendGOOS = "linux"
+	t.Cleanup(func() {
+		managedImageBackendGOOS = originalGOOS
+	})
+
+	if env := stableDiffusionCPPEnvironment("/tmp/managed-image/sd-cli", []string{"FOO=bar"}); env != nil {
+		t.Fatalf("expected nil environment override on non-darwin host, got %#v", env)
+	}
+}
+
+func TestParseManagedImageOptionsSupportsBooleanAccelerationFlags(t *testing.T) {
+	options, err := parseManagedImageOptions("/tmp/models", []string{
+		"diffusion_model",
+		"offload_params_to_cpu:true",
+		"diffusion_fa:true",
+	})
+	if err != nil {
+		t.Fatalf("parseManagedImageOptions: %v", err)
+	}
+	if options.OffloadParamsToCPU == nil || !*options.OffloadParamsToCPU {
+		t.Fatalf("expected offload_params_to_cpu=true, got %#v", options.OffloadParamsToCPU)
+	}
+	if options.DiffusionFA == nil || !*options.DiffusionFA {
+		t.Fatalf("expected diffusion_fa=true, got %#v", options.DiffusionFA)
+	}
+}
+
+func envValue(env []string, key string) string {
+	prefix := key + "="
+	for _, entry := range env {
+		if strings.HasPrefix(entry, prefix) {
+			return strings.TrimPrefix(entry, prefix)
+		}
+	}
+	return ""
+}

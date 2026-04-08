@@ -265,6 +265,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 		s.managedImageLoadInflight[requestHash] = inflight
 		s.mu.Unlock()
 
+		startedAt := time.Now()
 		s.logger.Info("managed image load ensure",
 			"local_asset_id", localAssetID,
 			"profile_alias", alias,
@@ -272,6 +273,9 @@ func (s *Service) runManagedImageLoadSingleflight(
 			"load_reason", defaultString(strings.TrimSpace(loadReason), "unspecified"),
 			"cache_hit", false,
 			"backend_epoch", backendEpoch,
+			"backend_address", strings.TrimSpace(loadReq.BackendAddress),
+			"model_path", strings.TrimSpace(loadReq.ModelPath),
+			"options_count", len(loadReq.Options),
 		)
 
 		loadFn := s.managedImageLoadModel
@@ -279,6 +283,31 @@ func (s *Service) runManagedImageLoadSingleflight(
 			loadFn = managedimagebackend.LoadModel
 		}
 		loadErr := loadFn(ctx, loadReq)
+		loadDurationMs := time.Since(startedAt).Milliseconds()
+		if loadErr != nil {
+			s.logger.Warn("managed image load failed",
+				"local_asset_id", localAssetID,
+				"profile_alias", alias,
+				"profile_hash", profileHash,
+				"load_reason", defaultString(strings.TrimSpace(loadReason), "unspecified"),
+				"backend_epoch", backendEpoch,
+				"backend_address", strings.TrimSpace(loadReq.BackendAddress),
+				"model_path", strings.TrimSpace(loadReq.ModelPath),
+				"duration_ms", loadDurationMs,
+				"error", loadErr,
+			)
+		} else {
+			s.logger.Info("managed image load ready",
+				"local_asset_id", localAssetID,
+				"profile_alias", alias,
+				"profile_hash", profileHash,
+				"load_reason", defaultString(strings.TrimSpace(loadReason), "unspecified"),
+				"backend_epoch", backendEpoch,
+				"backend_address", strings.TrimSpace(loadReq.BackendAddress),
+				"model_path", strings.TrimSpace(loadReq.ModelPath),
+				"duration_ms", loadDurationMs,
+			)
+		}
 
 		s.mu.Lock()
 		if loadErr == nil {
@@ -394,10 +423,10 @@ func (s *Service) forceReleaseManagedSupervisedImage(
 		return nil
 	}
 	var (
-		shouldFree   bool
-		cachedAlias  string
-		cachedEpoch  uint64
-		cachedLoad   managedimagebackend.LoadModelRequest
+		shouldFree  bool
+		cachedAlias string
+		cachedEpoch uint64
+		cachedLoad  managedimagebackend.LoadModelRequest
 	)
 	s.mu.Lock()
 	if entry, ok := s.managedImageLoadCache[localAssetID]; ok {
