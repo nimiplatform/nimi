@@ -1,9 +1,15 @@
 version: 1
 surfaces:
+  - path: spec/sdk/index.md
+    package_subpath: "@nimiplatform/sdk"
+    role: app_composition_root
+    governed_by: [S-SURFACE-001, S-SURFACE-012, S-RUNTIME-091]
+    note: Root composition surface may host World Evolution Engine app-facing logical facade candidates without implying new daemon RPC parity
   - path: spec/sdk/runtime.md
     package_subpath: "@nimiplatform/sdk/runtime"
     role: runtime_projection
-    governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011]
+    governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011, S-SURFACE-012, S-RUNTIME-091]
+    note: Shared World Evolution Engine app-facing candidate types may be projected here, but logical facades remain consumer-seam-only rather than daemon method-group parity
   - path: spec/sdk/ai-provider.md
     package_subpath: "@nimiplatform/sdk/ai-provider"
     role: ai_provider_projection
@@ -19,7 +25,8 @@ surfaces:
   - path: spec/sdk/mod.md
     package_subpath: "@nimiplatform/sdk/mod"
     role: mod_projection
-    governed_by: [S-SURFACE-004]
+    governed_by: [S-SURFACE-004, S-SURFACE-012, S-MOD-014]
+    note: World Evolution Engine mod-facing candidate families remain host-injected logical facades rather than host bridge passthrough surface
   - path: spec/sdk/types.md
     package_subpath: "@nimiplatform/sdk/types"
     role: types_projection

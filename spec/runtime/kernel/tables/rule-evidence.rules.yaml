@@ -1192,3 +1192,46 @@
 - rule_id: K-SCHED-007
   status: deferred
   evidence_refs: []
+# World Evolution Engine semantic-owner framing (K-WEV-*)
+- rule_id: K-WEV-001
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-002
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-003
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-004
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-005
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-006
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-007
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-010
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-011
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-012
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-013
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-014
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-015
+  status: deferred
+  evidence_refs: []
+- rule_id: K-WEV-016
+  status: deferred
+  evidence_refs: []

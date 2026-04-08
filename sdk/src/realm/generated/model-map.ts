@@ -138,8 +138,6 @@ export type RealmGeneratedModelMap = {
   DeleteAllDyadicMemoriesResponseDto: components['schemas']['DeleteAllDyadicMemoriesResponseDto'];
   DeleteDyadicMemoryResponseDto: components['schemas']['DeleteDyadicMemoryResponseDto'];
   DeleteRelationshipResponseDto: components['schemas']['DeleteRelationshipResponseDto'];
-  DesktopChatRouteRequestDto: components['schemas']['DesktopChatRouteRequestDto'];
-  DesktopChatRouteResultDto: components['schemas']['DesktopChatRouteResultDto'];
   DnaPrimaryType: components['schemas']['DnaPrimaryType'];
   DnaSecondaryTrait: components['schemas']['DnaSecondaryTrait'];
   EditMessageInputDto: components['schemas']['EditMessageInputDto'];

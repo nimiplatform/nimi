@@ -621,28 +621,6 @@ export const CreatorModControlSignatureVerifyMode = {
 
 export type CreatorModControlSignatureVerifyMode = (typeof CreatorModControlSignatureVerifyMode)[keyof typeof CreatorModControlSignatureVerifyMode];
 
-export const DesktopChatRouteChannel = {
-  CLOUD: "CLOUD",
-  PRIVATE: "PRIVATE",
-} as const satisfies Record<string, components['schemas']['DesktopChatRouteResultDto']['channel']>;
-
-export type DesktopChatRouteChannel = (typeof DesktopChatRouteChannel)[keyof typeof DesktopChatRouteChannel];
-
-export const DesktopChatRouteSessionClass = {
-  HUMAN_DIRECT: "HUMAN_DIRECT",
-  AGENT_LOCAL: "AGENT_LOCAL",
-} as const satisfies Record<string, components['schemas']['DesktopChatRouteResultDto']['sessionClass']>;
-
-export type DesktopChatRouteSessionClass = (typeof DesktopChatRouteSessionClass)[keyof typeof DesktopChatRouteSessionClass];
-
-export const DesktopChatRouteTargetType = {
-  CONTACT: "CONTACT",
-  FRIEND: "FRIEND",
-  AGENT: "AGENT",
-} as const satisfies Record<string, components['schemas']['DesktopChatRouteRequestDto']['targetType']>;
-
-export type DesktopChatRouteTargetType = (typeof DesktopChatRouteTargetType)[keyof typeof DesktopChatRouteTargetType];
-
 export const FactionRelationshipType = {
   ALLY: "ALLY",
   NEUTRAL: "NEUTRAL",

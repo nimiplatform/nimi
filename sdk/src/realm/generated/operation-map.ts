@@ -1591,25 +1591,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "DesktopService.desktopControllerResolveChatRoute": {
-    "operationId": "DesktopController_resolveChatRoute",
-    "method": "POST",
-    "path": "/api/desktop/chat/route",
-    "service": "DesktopService",
-    "methodName": "desktopControllerResolveChatRoute",
-    "tag": "Desktop",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "EconomyCurrencyGiftsService.economyControllerAcceptGift": {
     "operationId": "EconomyController_acceptGift",
     "method": "POST",
@@ -5916,9 +5897,6 @@ export const REALM_SERVICE_METHODS = {
     "creatorControllerListKeys": "CreatorService.creatorControllerListKeys",
     "creatorControllerRevokeKey": "CreatorService.creatorControllerRevokeKey",
     "creatorControllerUpdateAgent": "CreatorService.creatorControllerUpdateAgent"
-  },
-  "DesktopService": {
-    "desktopControllerResolveChatRoute": "DesktopService.desktopControllerResolveChatRoute"
   },
   "EconomyCurrencyGiftsService": {
     "economyControllerAcceptGift": "EconomyCurrencyGiftsService.economyControllerAcceptGift",

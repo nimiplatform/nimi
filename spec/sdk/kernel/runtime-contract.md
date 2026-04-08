@@ -147,3 +147,52 @@ SDK runtime 高层文本/embedding/语音与多媒体 convenience surface 必须
 - high-level `Runtime.stream()` 若暴露文本 convenience chunk，也必须保留独立 reasoning chunk 类型；不得为了兼容旧 helper 折叠 reasoning 语义。
 - `Struct` 仅允许出现在 low-level explicit-dynamic scenario/workflow 边界；稳定 product surface 不得把 `Struct` 暴露为默认 app-facing contract。
 - stable helper 缺 typed output、缺 artifact metadata、缺稳定 mime/result 字段时必须 fail-close；不得补默认 `artifactId`、`application/octet-stream`、空 artifact 成功、或 content-type 占位值来伪装成功路径。
+
+## S-RUNTIME-091 World Evolution Engine App-Facing Logical Facade Boundary
+
+World Evolution Engine app-facing typed facade candidates may be published only as SDK logical consumer facades layered on already-admitted projection-visible Runtime shapes.
+
+Allowed app-facing candidate families are limited to:
+
+- observe family
+- selector-read family
+- request family
+
+These candidates must follow `world-evolution-engine-consumer-contract.md` (`S-RUNTIME-085` through `S-RUNTIME-096`) and must remain satisfiable through SDK public surface only.
+Selector-read stable publication is additionally governed by `S-RUNTIME-102`.
+
+They must not:
+
+- be recorded as new daemon top-level RPC method groups
+- imply `new Runtime()` or `@nimiplatform/sdk/runtime` already owns host-specific observation lifecycle or control-plane semantics
+- bypass `S-RUNTIME-079` through `S-RUNTIME-084` projection hardcuts
+- widen Runtime execution semantics beyond `K-WEV-*`
+
+## S-RUNTIME-102 World Evolution Engine App-Facing Selector-Read Publication Profile
+
+App-facing stable selector-read publication may exist only on the SDK public composition surface.
+
+The stable app-facing logical namespace is fixed to `worldEvolution`.
+The stable app-facing logical operations are fixed to:
+
+- `worldEvolution.executionEvents.read(selector)`
+- `worldEvolution.replays.read(selector)`
+- `worldEvolution.checkpoints.read(selector)`
+- `worldEvolution.supervision.read(selector)`
+- `worldEvolution.commitRequests.read(selector)`
+
+These app-facing logical methods must preserve the shared semantic matrix defined by `world-evolution-engine-consumer-contract.md` (`S-RUNTIME-097` through `S-RUNTIME-101`).
+
+`@nimiplatform/sdk/runtime` may share selector, result, rejection, and view type families for these methods, but it must not publish the selector-read methods themselves as:
+
+- `Runtime` class convenience methods
+- runtime-subpath daemon convenience methods
+- new top-level RPC parity claims
+
+App-facing selector-read publication must not add:
+
+- observe or subscribe siblings
+- session or lifecycle siblings
+- effectful request siblings
+- pagination or buffering semantics
+- fallback or re-inference knobs

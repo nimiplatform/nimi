@@ -150,6 +150,38 @@ rules:
   - rule_id: P-ARCH-021
     status: covered
     evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-ARCH-022
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting"
+  - rule_id: P-ARCH-023
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation"
+  - rule_id: P-ARCH-024
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks"
+  - rule_id: P-ARCH-025
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing"
+  - rule_id: P-ARCH-026
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; inadmissible placement rejection still requires future implementation and review enforcement"
+  - rule_id: P-ARCH-027
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation"
+  - rule_id: P-ARCH-028
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; workflow-surface non-promotion still requires later Runtime semantic contract review"
+  - rule_id: P-ARCH-029
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns"
   - rule_id: P-ARCH-030
     status: covered
     evidence_refs: [platform_kernel_consistency]

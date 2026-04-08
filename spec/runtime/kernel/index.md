@@ -21,7 +21,7 @@
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
-  - `AIEXEC` `SCHED`
+  - `AIEXEC` `SCHED` `WEV`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
@@ -61,6 +61,7 @@
 | `proto-governance-contract.md` | `K-PROTO-*` | proto 治理、兼容策略、发布门禁 |
 | `ai-profile-execution-contract.md` | `K-AIEXEC-*` | AIProfile 执行、probe、snapshot、scheduling boundary |
 | `scheduling-contract.md` | `K-SCHED-*` | 调度 five-state preflight judgement、atomic target / aggregate Peek、occupancy、denial |
+| `world-evolution-engine-contract.md` | `K-WEV-*` | World Evolution Engine 的 Runtime-owned event semantics、replay/checkpoint/supervision/effect-stage/commit-request 合同，以及 workflow partial-reuse hardcut |
 
 ## 5. 结构化事实源
 

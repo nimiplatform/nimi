@@ -69,6 +69,18 @@ import type {
   AIScopeRef,
   AISnapshot,
 } from '../runtime/ai-config.js';
+import type {
+  WorldEvolutionCheckpointSelector,
+  WorldEvolutionCheckpointView,
+  WorldEvolutionCommitRequestSelector,
+  WorldEvolutionCommitRequestView,
+  WorldEvolutionExecutionEventSelector,
+  WorldEvolutionExecutionEventView,
+  WorldEvolutionReplaySelector,
+  WorldEvolutionReplayView,
+  WorldEvolutionSupervisionSelector,
+  WorldEvolutionSupervisionView,
+} from '../../runtime/world-evolution-selector-read.js';
 
 export type RuntimeLogMessage = {
   level: 'debug' | 'info' | 'warn' | 'error';
@@ -165,7 +177,26 @@ export type ModLifecycleState =
   | 'frozen'
   | 'discarded';
 
+export type ModWorldEvolutionHost = {
+  executionEvents: {
+    read: (selector: WorldEvolutionExecutionEventSelector) => Promise<WorldEvolutionExecutionEventView[]>;
+  };
+  replays: {
+    read: (selector: WorldEvolutionReplaySelector) => Promise<WorldEvolutionReplayView[]>;
+  };
+  checkpoints: {
+    read: (selector: WorldEvolutionCheckpointSelector) => Promise<WorldEvolutionCheckpointView[]>;
+  };
+  supervision: {
+    read: (selector: WorldEvolutionSupervisionSelector) => Promise<WorldEvolutionSupervisionView[]>;
+  };
+  commitRequests: {
+    read: (selector: WorldEvolutionCommitRequestSelector) => Promise<WorldEvolutionCommitRequestView[]>;
+  };
+};
+
 export type ModSdkHost = {
+  worldEvolution: ModWorldEvolutionHost;
   runtime: {
     checkLocalLlmHealth: (input: RuntimeLlmHealthInput) => Promise<RuntimeLlmHealthResult>;
     executeLocalKernelTurn: (input: RuntimeKernelTurnInput) => Promise<RuntimeKernelTurnResult>;

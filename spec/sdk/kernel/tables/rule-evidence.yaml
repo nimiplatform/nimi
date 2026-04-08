@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 107
+  total_s_rules: 136
   audit_date: "2026-03-23"
   sdk_version: "0.4.0"
 
@@ -269,6 +269,14 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
     test_files: [sdk/test/mod/mod-runtime-local-profiles.test.ts]
+  - rule_id: S-MOD-014
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "World Evolution Engine mod-facing candidate families remain host-injected logical facades and may not degrade into host bridge passthrough or private bypass surface"
+  - rule_id: S-MOD-015
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Mod-facing selector-read stable publication must preserve the same semantic matrix as app-facing publication and may differ only by host-injected access path"
 
   # --- Realm Contract (S-REALM) ---
   - rule_id: S-REALM-010
@@ -394,6 +402,102 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_runtime_stable_ai_output_gate]
     test_files: [sdk/test/runtime/runtime-struct-output-helpers.test.ts, sdk/test/ai-provider/provider.test.ts]
+  - rule_id: S-RUNTIME-079
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Projection-only ownership rule; consistency gate enforces the SDK contract remains downstream of K-WEV authority"
+  - rule_id: S-RUNTIME-080
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World Evolution Engine event projection is constrained to normalized K-WEV envelope fields and may not promote adapter-only or workflow-only fields"
+  - rule_id: S-RUNTIME-081
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Replay/checkpoint/supervision projection rule; SDK contract remains mirror-only and fail-close on unsupported Runtime shapes"
+  - rule_id: S-RUNTIME-082
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Commit-request staging remains an adapter-bound projection and must not become SDK write authority"
+  - rule_id: S-RUNTIME-083
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Workflow substrate leakage hardcut; SDK top-level World Evolution Engine models must stay in K-WEV vocabulary"
+  - rule_id: S-RUNTIME-084
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Private-boundary and no-widening hardcut; SDK may not bypass public surface or reinterpret Runtime semantics"
+  - rule_id: S-RUNTIME-085
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Consumer API lands in SDK kernel as a downstream seam only; Runtime stays semantic owner and SDK projection stays shape owner"
+  - rule_id: S-RUNTIME-086
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Only read/observe and command/request consumer surface families are admissible, and both must compose projection-visible shapes only"
+  - rule_id: S-RUNTIME-087
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Read/observe surface is limited to normalized event, replay, checkpoint, supervision, and adapter-bound commit-request views with fail-close behavior"
+  - rule_id: S-RUNTIME-088
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Command/request surface may accept only projection-visible identifiers and must not create workflow-truth, commit-truth, or fallback-control side channels"
+  - rule_id: S-RUNTIME-089
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Consumer API inadmissible-affordance hardcut blocks workflow substrate leakage, private handles, and semantic reinterpretation of missing evidence"
+  - rule_id: S-RUNTIME-090
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "App/mod delivery path must preserve the same public consumer contract without host-private, app-private, or mod-private implementation assumptions"
+  - rule_id: S-RUNTIME-091
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World Evolution Engine app-facing candidate families remain logical SDK facades layered on projection-visible shapes rather than new daemon RPC parity"
+  - rule_id: S-RUNTIME-092
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "App-facing and mod-facing World Evolution Engine facades share one minimal projection-derived selector and reference vocabulary without creating a second semantic identity model"
+  - rule_id: S-RUNTIME-093
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Observe and selector-read categories are limited to normalized event/evidence views and explicit runtime-local or adapter-bound evidence classes"
+  - rule_id: S-RUNTIME-094
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Request/result/rejection framing is category-only, explicit, and fail-close; it may not add fallback knobs or reinterpret candidate views as canonical truth"
+  - rule_id: S-RUNTIME-095
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World Evolution Engine facade work is admitted only as candidate framing for later implementation design, not as a frozen method list or transport contract"
+  - rule_id: S-RUNTIME-096
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Workflow-control, canonical-mutation, substrate-control, passthrough, and private-bypass candidate shapes remain inadmissible"
+  - rule_id: S-RUNTIME-097
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Selector-read stable method categories are closed to five shared logical read methods and may not widen into observe or effectful method families"
+  - rule_id: S-RUNTIME-098
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Shared selector matrix freezes admitted exact-match and filter-like selector forms and requires fail-close on incomplete, unknown, or non-projection-visible primitives"
+  - rule_id: S-RUNTIME-099
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Shared read-result matrix freezes result-family outer shape and preserves runtime-local or adapter-bound truth boundaries without pagination or transport semantics"
+  - rule_id: S-RUNTIME-100
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Read-only rejection matrix is closed, fail-close, and parity-bound across app-facing and mod-facing publication"
+  - rule_id: S-RUNTIME-101
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_boundary_gate]
+    note: "Selector-read semantic matrix is shared across app and mod publication; publication layers may differ only by access path, not semantics"
+  - rule_id: S-RUNTIME-102
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "App-facing selector-read stable methods live on the SDK composition surface and must not be published as runtime-subpath daemon convenience or RPC parity"
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001
@@ -462,6 +566,14 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_runtime_stable_ai_output_gate]
     note: "Stable runtime AI product surfaces are locked to typed ScenarioOutput/ScenarioStreamDelta consumption and may not regress to Struct or record reparsing"
+  - rule_id: S-SURFACE-012
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "World Evolution Engine logical facades must stay on existing SDK public surfaces and must not be misregistered as a new subpath or runtime RPC method group"
+  - rule_id: S-SURFACE-013
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Selector-read stable methods must remain on existing composition surfaces; no new subpath, runtime-subpath method publication, or RPC parity registration is allowed"
 
   # --- Transport Contract (S-TRANSPORT) ---
   - rule_id: S-TRANSPORT-001

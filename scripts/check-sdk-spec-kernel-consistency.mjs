@@ -14,6 +14,8 @@ const kernelFiles = [
   'spec/sdk/kernel/error-projection.md',
   'spec/sdk/kernel/boundary-contract.md',
   'spec/sdk/kernel/runtime-contract.md',
+  'spec/sdk/kernel/world-evolution-engine-projection-contract.md',
+  'spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
   'spec/sdk/kernel/realm-contract.md',
   'spec/sdk/kernel/ai-provider-contract.md',
   'spec/sdk/kernel/scope-contract.md',

@@ -51,6 +51,14 @@
 | `P-ARCH-011` | `covered` | `platform_kernel_consistency` | structural only; layered boundary enforcement still requires implementation-level integration tests |
 | `P-ARCH-020` | `covered` | `platform_kernel_consistency` | structural only; authority handoff behavior still requires runtime and realm integration validation |
 | `P-ARCH-021` | `covered` | `platform_kernel_consistency` | — |
+| `P-ARCH-022` | `covered` | `platform_kernel_consistency` | structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting |
+| `P-ARCH-023` | `covered` | `platform_kernel_consistency` | structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation |
+| `P-ARCH-024` | `covered` | `platform_kernel_consistency` | structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks |
+| `P-ARCH-025` | `covered` | `platform_kernel_consistency` | structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing |
+| `P-ARCH-026` | `covered` | `platform_kernel_consistency` | structural only; inadmissible placement rejection still requires future implementation and review enforcement |
+| `P-ARCH-027` | `covered` | `platform_kernel_consistency` | structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation |
+| `P-ARCH-028` | `covered` | `platform_kernel_consistency` | structural only; workflow-surface non-promotion still requires later Runtime semantic contract review |
+| `P-ARCH-029` | `covered` | `platform_kernel_consistency` | structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns |
 | `P-ARCH-030` | `covered` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
 | `P-KIT-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-002` | `covered` | `platform_kernel_consistency` | — |

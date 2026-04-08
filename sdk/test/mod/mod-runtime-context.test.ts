@@ -5,7 +5,8 @@ import { ReasonCode } from '../../src/types/index.js';
 import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { createModRuntimeInspector } from '../../src/mod/runtime/inspector.js';
 import { createInterModClient } from '../../src/mod/hook/inter-mod-client.js';
-import { clearModSdkHost } from '../../src/mod/host.js';
+import { worldEvolution } from '../../src/mod/index.js';
+import { clearModSdkHost, setModSdkHost } from '../../src/mod/host.js';
 import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-facade.js';
 import type { RuntimeHookInterModFacade } from '../../src/mod/types/inter-mod.js';
 
@@ -656,4 +657,103 @@ test('inter-mod client register/unregister delegates to runtime facade', async (
 
   const removedAll = client.unregisterHandler();
   assert.equal(removedAll, 2);
+});
+
+test('mod worldEvolution facade fails closed when host is unavailable', async () => {
+  clearModSdkHost();
+
+  await assert.rejects(
+    () => worldEvolution.executionEvents.read({ eventId: 'evt-mod-missing' }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_PERMISSION_DENIED);
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'BOUNDARY_DENIED');
+      return true;
+    },
+  );
+});
+
+test('mod worldEvolution facade delegates through the host-injected namespace', async () => {
+  clearModSdkHost();
+
+  const providerCalls: Array<Record<string, unknown>> = [];
+  setModSdkHost({
+    worldEvolution: {
+      executionEvents: {
+        read: async (selector) => {
+          providerCalls.push(selector as Record<string, unknown>);
+          return [{
+            eventId: 'evt-mod-1',
+            worldId: 'world-mod-1',
+            appId: 'app-mod-1',
+            sessionId: 'session-mod-1',
+            traceId: 'trace-mod-1',
+            tick: 7,
+            timestamp: '2026-04-08T00:00:00.000Z',
+            eventKind: 'EXECUTION_EVENT',
+            stage: 'EFFECT',
+            actorRefs: [{ actorId: 'actor-1', actorType: 'AGENT' }],
+            causation: null,
+            correlation: null,
+            effectClass: 'STATE_ONLY',
+            reason: 'delegated',
+            evidenceRefs: [{ kind: 'event', refId: 'evt-mod-1' }],
+          }];
+        },
+      },
+      replays: { read: async () => [] },
+      checkpoints: { read: async () => [] },
+      supervision: { read: async () => [] },
+      commitRequests: { read: async () => [] },
+    },
+  } as never);
+
+  try {
+    const result = await worldEvolution.executionEvents.read({ eventId: 'evt-mod-1' });
+    assert.equal(result.matchMode, 'exact');
+    assert.equal(result.matches.length, 1);
+    assert.equal(result.matches[0]?.eventId, 'evt-mod-1');
+    assert.equal(providerCalls.length, 1);
+    assert.deepEqual(providerCalls[0], { eventId: 'evt-mod-1' });
+  } finally {
+    clearModSdkHost();
+  }
+});
+
+test('mod worldEvolution replays.read fails closed on unsupported selector replay mode', async () => {
+  clearModSdkHost();
+
+  let providerCalled = false;
+  setModSdkHost({
+    worldEvolution: {
+      executionEvents: { read: async () => [] },
+      replays: {
+        read: async () => {
+          providerCalled = true;
+          return [];
+        },
+      },
+      checkpoints: { read: async () => [] },
+      supervision: { read: async () => [] },
+      commitRequests: { read: async () => [] },
+    },
+  } as never);
+
+  try {
+    await assert.rejects(
+      () => worldEvolution.replays.read({
+        replayRef: { kind: 'replay', refId: 'replay-invalid-mod-selector' },
+        replayMode: 'HYBRID',
+      }),
+      (error: unknown) => {
+        assert.equal(providerCalled, false);
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+        assert.equal((error as { source?: string }).source, 'sdk');
+        assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'INVALID_SELECTOR');
+        assert.equal((error as { details?: { methodId?: string } }).details?.methodId, 'worldEvolution.replays.read');
+        return true;
+      },
+    );
+  } finally {
+    clearModSdkHost();
+  }
 });

@@ -98,6 +98,7 @@ const kernelFiles = [
   // AI profile execution and scheduling
   'spec/runtime/kernel/ai-profile-execution-contract.md',
   'spec/runtime/kernel/scheduling-contract.md',
+  'spec/runtime/kernel/world-evolution-engine-contract.md',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/runtime');

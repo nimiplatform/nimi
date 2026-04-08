@@ -2,6 +2,7 @@ export type * from './llm';
 export type * from './speech';
 export type * from './runtime-mod';
 export type * from '../runtime/types.js';
+export type * from '../../runtime/world-evolution-selector-read.js';
 export type { HookClient } from './runtime-hook';
 export type {
   HookActionClient,

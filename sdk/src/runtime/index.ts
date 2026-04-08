@@ -1,5 +1,6 @@
 export * from './errors.js';
 export * from './types.js';
+export type * from './world-evolution-selector-read.js';
 export * from './method-ids.js';
 export * from './workflow-builder.js';
 export {
@@ -42,7 +43,11 @@ export type {
   DeleteCatalogModelOverlayRequest,
   DeleteCatalogModelOverlayResponse,
 } from './generated/runtime/v1/connector.js';
-export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit.js';
+export {
+  RuntimeHealthStatus,
+  UsageWindow,
+  GetRuntimeHealthResponse,
+} from './generated/runtime/v1/audit.js';
 export type {
   AuditEventRecord,
   ListAuditEventsRequest,
@@ -53,7 +58,6 @@ export type {
   ListUsageStatsRequest,
   ListUsageStatsResponse,
   GetRuntimeHealthRequest,
-  GetRuntimeHealthResponse,
   ListAIProviderHealthRequest,
   ListAIProviderHealthResponse,
   AIProviderHealthSnapshot,

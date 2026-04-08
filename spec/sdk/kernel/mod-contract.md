@@ -102,3 +102,53 @@ mod-facing 本地 AI profile 安装必须通过 host-injected facade 发起“�
   - `runtime.local.getProfileInstallStatus(...)`
 - host 必须保留最终确认权。
 - profile 解析可在内部归一化为执行计划，但执行计划不是 mod manifest 的公开 contract。
+
+## S-MOD-014 World Evolution Engine Host-Injected Facade Boundary
+
+mod-facing World Evolution Engine typed facade candidates may be exposed only through host-injected logical facades that preserve the same downstream consumer seam admitted for apps.
+
+Allowed mod-facing candidate families are limited to:
+
+- observe family
+- selector-read family
+- request family
+
+These candidates must reuse the shared selector / result / rejection framing defined by `world-evolution-engine-consumer-contract.md` (`S-RUNTIME-092` through `S-RUNTIME-095`).
+
+They must not:
+
+- expose host bridge concrete method lists, IPC payloads, or subscription plumbing as stable mod contract
+- expose workflow DAG / task / node / output vocabulary as mod-facing truth
+- expose direct commit authorization, direct history append, or direct canonical world-state mutation success semantics
+- depend on mod-private bypass clients, host-private singletons, or shared renderer state as contract authority
+
+## S-MOD-015 World Evolution Engine Mod-Facing Selector-Read Publication Profile
+
+Mod-facing stable selector-read publication may exist only through a host-injected World Evolution Engine facade or equivalent stable host-injected surface that preserves the same semantic matrix as the app-facing SDK publication.
+
+The stable mod-facing logical namespace is fixed to `worldEvolution`.
+The stable mod-facing logical operations are fixed to:
+
+- `worldEvolution.executionEvents.read(selector)`
+- `worldEvolution.replays.read(selector)`
+- `worldEvolution.checkpoints.read(selector)`
+- `worldEvolution.supervision.read(selector)`
+- `worldEvolution.commitRequests.read(selector)`
+
+These mod-facing logical methods must preserve the shared semantic matrix defined by `world-evolution-engine-consumer-contract.md` (`S-RUNTIME-097` through `S-RUNTIME-101`).
+
+Mod-facing selector-read publication may differ from app-facing publication only by access path and host injection boundary.
+It must not differ by:
+
+- method-category names
+- selector semantics
+- read-result semantics
+- rejection categories
+
+Mod-facing selector-read publication must not add:
+
+- host-only selector primitives
+- host-private rejection categories
+- observe or subscribe siblings
+- effectful request siblings
+- host concrete API semantics or IPC payload contracts

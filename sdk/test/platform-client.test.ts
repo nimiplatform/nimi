@@ -4,7 +4,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { clearPlatformClient, createPlatformClient, getPlatformClient } from '../src/index.js';
+import {
+  clearPlatformClient,
+  createPlatformClient,
+  getPlatformClient,
+  unstable_attachPlatformWorldEvolutionSelectorReadProvider,
+} from '../src/index.js';
 import { GetRuntimeHealthResponse, setNodeGrpcBridge } from '../src/runtime/index.js';
 import { ReasonCode } from '../src/types/index.js';
 
@@ -54,7 +59,140 @@ test('createPlatformClient initializes runtime, realm, and grouped domains', asy
   assert.equal(client.realm.baseUrl, 'https://realm.example');
   assert.equal(typeof client.domains.auth.getCurrentUser, 'function');
   assert.equal(typeof client.domains.runtimeAdmin.listConnectors, 'function');
+  assert.equal(typeof client.worldEvolution.executionEvents.read, 'function');
+  assert.equal(typeof client.worldEvolution.commitRequests.read, 'function');
   assert.equal(getPlatformClient(), client);
+});
+
+test('platform client worldEvolution facade fails closed when no selector-read provider is attached', async () => {
+  clearPlatformClient();
+
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.wee.no-provider',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+
+  await assert.rejects(
+    () => client.worldEvolution.executionEvents.read({ eventId: 'evt-1' }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_PERMISSION_DENIED);
+      assert.equal((error as { source?: string }).source, 'sdk');
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'BOUNDARY_DENIED');
+      return true;
+    },
+  );
+});
+
+test('platform client exposes an unstable bootstrap attachment helper for worldEvolution provider wiring', async () => {
+  clearPlatformClient();
+
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.wee.attach-helper',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+
+  unstable_attachPlatformWorldEvolutionSelectorReadProvider(client, {
+    executionEvents: {
+      read: async () => [],
+    },
+    replays: {
+      read: async () => [],
+    },
+    checkpoints: {
+      read: async () => [],
+    },
+    supervision: {
+      read: async () => [],
+    },
+    commitRequests: {
+      read: async () => [],
+    },
+  });
+
+  const result = await client.worldEvolution.executionEvents.read({ eventId: 'evt-attached' });
+  assert.equal(result.matchMode, 'exact');
+  assert.deepEqual(result.matches, []);
+});
+
+test('platform client worldEvolution replays.read fails closed on unsupported selector replay mode', async () => {
+  clearPlatformClient();
+
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.wee.replay-mode.selector',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+
+  let providerCalled = false;
+  unstable_attachPlatformWorldEvolutionSelectorReadProvider(client, {
+    executionEvents: { read: async () => [] },
+    replays: {
+      read: async () => {
+        providerCalled = true;
+        return [];
+      },
+    },
+    checkpoints: { read: async () => [] },
+    supervision: { read: async () => [] },
+    commitRequests: { read: async () => [] },
+  });
+
+  await assert.rejects(
+    () => client.worldEvolution.replays.read({
+      replayRef: { kind: 'replay', refId: 'replay-invalid-selector' },
+      replayMode: 'HYBRID',
+    }),
+    (error: unknown) => {
+      assert.equal(providerCalled, false);
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      assert.equal((error as { source?: string }).source, 'sdk');
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'INVALID_SELECTOR');
+      assert.equal((error as { details?: { methodId?: string } }).details?.methodId, 'worldEvolution.replays.read');
+      return true;
+    },
+  );
+});
+
+test('platform client worldEvolution replays.read fails closed on unsupported provider replay mode', async () => {
+  clearPlatformClient();
+
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.wee.replay-mode.provider',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+
+  unstable_attachPlatformWorldEvolutionSelectorReadProvider(client, {
+    executionEvents: { read: async () => [] },
+    replays: {
+      read: async () => [{
+        replayRef: { kind: 'replay', refId: 'replay-invalid-provider' },
+        replayMode: 'HYBRID',
+      }],
+    },
+    checkpoints: { read: async () => [] },
+    supervision: { read: async () => [] },
+    commitRequests: { read: async () => [] },
+  });
+
+  await assert.rejects(
+    () => client.worldEvolution.replays.read({
+      replayRef: { kind: 'replay', refId: 'replay-invalid-provider' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      assert.equal((error as { source?: string }).source, 'sdk');
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'UNSUPPORTED_PROJECTION_SHAPE');
+      assert.equal((error as { details?: { methodId?: string } }).details?.methodId, 'worldEvolution.replays.read');
+      return true;
+    },
+  );
 });
 
 test('createPlatformClient supports realm-only consumers with disabled runtime', async () => {

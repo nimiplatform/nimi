@@ -411,6 +411,20 @@
 | `K-SCHED-005` | `deferred` | — |
 | `K-SCHED-006` | `deferred` | — |
 | `K-SCHED-007` | `deferred` | — |
+| `K-WEV-001` | `deferred` | — |
+| `K-WEV-002` | `deferred` | — |
+| `K-WEV-003` | `deferred` | — |
+| `K-WEV-004` | `deferred` | — |
+| `K-WEV-005` | `deferred` | — |
+| `K-WEV-006` | `deferred` | — |
+| `K-WEV-007` | `deferred` | — |
+| `K-WEV-010` | `deferred` | — |
+| `K-WEV-011` | `deferred` | — |
+| `K-WEV-012` | `deferred` | — |
+| `K-WEV-013` | `deferred` | — |
+| `K-WEV-014` | `deferred` | — |
+| `K-WEV-015` | `deferred` | — |
+| `K-WEV-016` | `deferred` | — |
 | `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |

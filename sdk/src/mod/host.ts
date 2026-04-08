@@ -12,6 +12,10 @@ function readHost(): ModSdkHost | null {
   return value as ModSdkHost;
 }
 
+export function peekModSdkHost(): ModSdkHost | null {
+  return readHost();
+}
+
 export function setModSdkHost(host: ModSdkHost): void {
   const current = readHost();
   if (current && current !== host) {

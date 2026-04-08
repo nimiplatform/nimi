@@ -979,3 +979,49 @@ items:
     data binding path 与 inline schema 都在 renderer 入口完成校验与错误回传。
     该条目用于保证 Agent UI 作为可选能力引入后，不放大 desktop/web 的
     当前信任边界。
+- item_id: F-AGRT-001
+  title: World Evolution Engine
+  priority: high
+  category: platform
+  target_layers:
+  - runtime
+  - sdk
+  - desktop
+  status: accepted
+  source_ids:
+  - RESEARCH-AGRT-001
+  - RESEARCH-AGRT-002
+  - RESEARCH-AGRT-003
+  - RESEARCH-AGRT-004
+  complexity: large
+  architecture_notes: >
+    本条目是一个 redesign intake cut，不是 final runtime contract drafting
+    approval，也不是 implementation approval。Authority owner 分工固定为：
+    `spec/future/**` 负责 intake/backlog/graduation framing；
+    `spec/platform/kernel/**` 负责 cross-layer placement、package boundary、
+    consumer-neutral naming 与 admissible/inadmissible placement shape；
+    `spec/runtime/kernel/**` 负责 World Evolution Engine 的 execution
+    semantics、event/checkpoint/replay/supervision semantic ownership；
+    `spec/sdk/kernel/**` 仅在 runtime semantics 稳定后提供 typed projection；
+    `spec/realm/**` 与 narrative-engine spec 继续保留 canonical world/domain
+    truth，不被 shared kernel 接管。唯一允许的 landing order 是：
+    (1) `spec/future/**` intake；(2) `spec/platform/**` placement framing；
+    (3) `spec/runtime/**` semantic-owner framing；(4) `spec/sdk/**`
+    projection framing。Admissible placement shape 只包括 Runtime semantic
+    contract + SDK-mediated consumer seam，以及 Platform boundary text +
+    Runtime semantic contract + optional adapter-driven kit/app helper layer。
+    Inadmissible placement shape 包括：SDK 成为 semantic owner；App/Desktop
+    直连 Runtime/Realm internal；Mod 或 narrative-engine 直接耦合 kernel
+    internal；以及任何依赖 `runtime/internal/**`、Realm private clients
+    或 host bridge internals 的方案。No-parallel-truth boundary 固定为：
+    shared kernel 不得自造第二套 commit authorization、canonical history、
+    canonical world state、runtime audit truth 或 stable event truth。
+    `AGRT-PILOT-005` 继续保留：现有 runtime workflow/event surface 只能
+    partial reuse，不能未经新的 Runtime contract framing 直接升级为 shared
+    kernel semantic truth。因此本条目当前 only ready for intake、placement
+    framing、runtime semantic-owner framing；not ready for direct final runtime
+    contract drafting；not ready for implementation。当前 graduation target
+    framing 是多阶段的：先在 `spec/platform/kernel/architecture-contract.md`
+    冻结 placement/boundary，再在 `spec/runtime/kernel/world-evolution-engine-contract.md`
+    或等价新合同中定义 `K-WEV-*` 规则族，最后才允许在 `spec/sdk/kernel/**`
+    增加 downstream typed projection。

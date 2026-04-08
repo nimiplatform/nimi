@@ -4,6 +4,7 @@
 > Source: `spec/sdk/kernel/tables/sdk-surfaces.yaml`
 | Path | Package Subpath | Role |
 |---|---|---|
+| `spec/sdk/index.md` | `@nimiplatform/sdk` | `app_composition_root` |
 | `spec/sdk/runtime.md` | `@nimiplatform/sdk/runtime` | `runtime_projection` |
 | `spec/sdk/ai-provider.md` | `@nimiplatform/sdk/ai-provider` | `ai_provider_projection` |
 | `spec/sdk/realm.md` | `@nimiplatform/sdk/realm` | `realm_projection` |

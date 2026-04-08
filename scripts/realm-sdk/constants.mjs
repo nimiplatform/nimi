@@ -28,7 +28,6 @@ export const TAG_TO_SERVICE = Object.freeze({
   Auth: 'AuthService',
   Creator: 'CreatorService',
   'Creator Mods Control Plane': 'CreatorModsControlPlaneService',
-  Desktop: 'DesktopService',
   'Economy (Currency & Gifts)': 'EconomyCurrencyGiftsService',
   Explore: 'ExploreService',
   Governance: 'GovernanceService',

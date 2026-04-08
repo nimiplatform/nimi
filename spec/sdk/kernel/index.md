@@ -22,16 +22,18 @@
 
 | 文档 | Domain | 说明 |
 |---|---|---|
-| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组 |
+| `surface-contract.md` | `S-SURFACE-*` | SDK 子路径、导出面、Runtime 方法投影分组、World Evolution Engine logical facade placement 与 selector-read stable placement |
 | `transport-contract.md` | `S-TRANSPORT-*` | Runtime/Realm 传输模型、流行为边界 |
 | `error-projection.md` | `S-ERROR-*` | 错误投影、重试语义、合成码治理 |
 | `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界与禁止路径 |
-| `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线 |
+| `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线、World Evolution Engine app-facing logical facade boundary 与 selector-read publication profile |
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
+| `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
+| `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `realm-contract.md` | `S-REALM-*` | realm 子路径实例隔离、刷新策略、实时边界 |
 | `ai-provider-contract.md` | `S-AIP-*` | ai-provider 子路径适配与投影约束 |
 | `scope-contract.md` | `S-SCOPE-*` | scope 子路径 catalog 与边界语义 |
-| `mod-contract.md` | `S-MOD-*` | mod 子路径 host 注入与 inter-mod 边界 |
+| `mod-contract.md` | `S-MOD-*` | mod 子路径 host 注入、inter-mod 边界、以及 World Evolution Engine host-injected facade / selector-read publication boundary |
 | `testing-gates-contract.md` | `S-GATE-*` | SDK 门禁层次、发布同级策略 |
 
 ## 5. 结构化事实源

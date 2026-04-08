@@ -1062,26 +1062,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/desktop/chat/route": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resolve desktop chat route
-         * @description Returns CLOUD for human direct chats and PRIVATE for agent local chats.
-         */
-        post: operations["DesktopController_resolveChatRoute"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/economy/balances": {
         parameters: {
             query?: never;
@@ -4669,22 +4649,6 @@ export type components = {
         };
         DeleteRelationshipResponseDto: {
             deleted: boolean;
-        };
-        DesktopChatRouteRequestDto: {
-            /** @description Required for AGENT */
-            agentId?: string;
-            /** @description Required for CONTACT/FRIEND */
-            targetAccountId?: string;
-            /** @enum {string} */
-            targetType: "CONTACT" | "FRIEND" | "AGENT";
-        };
-        DesktopChatRouteResultDto: {
-            /** @enum {string} */
-            channel: "CLOUD" | "PRIVATE";
-            providerSelectable: boolean;
-            reason: string;
-            /** @enum {string} */
-            sessionClass: "HUMAN_DIRECT" | "AGENT_LOCAL";
         };
         /**
          * @description Primary DNA personality archetype
@@ -8760,29 +8724,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-        };
-    };
-    DesktopController_resolveChatRoute: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DesktopChatRouteRequestDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DesktopChatRouteResultDto"];
-                };
             };
         };
     };

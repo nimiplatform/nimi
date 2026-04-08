@@ -443,12 +443,14 @@ export const runtimeKernelFiles = [
   'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
   'proto-governance-contract.md',
   'ai-profile-execution-contract.md',
+  'world-evolution-engine-contract.md',
 ];
 
 export const sdkKernelFiles = [
   'surface-contract.md', 'transport-contract.md',
   'error-projection.md', 'boundary-contract.md',
-  'runtime-contract.md', 'realm-contract.md', 'ai-provider-contract.md',
+  'runtime-contract.md', 'world-evolution-engine-projection-contract.md',
+  'realm-contract.md', 'ai-provider-contract.md',
   'scope-contract.md', 'mod-contract.md', 'testing-gates-contract.md',
   'ai-config-surface-contract.md',
 ];

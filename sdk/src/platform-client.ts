@@ -1,4 +1,10 @@
 import { asRecord, normalizeText, type JsonObject } from './internal/utils.js';
+import {
+  createWorldEvolutionSelectorReadFacade,
+  getRuntimeWorldEvolutionSelectorReadProvider,
+  setRuntimeWorldEvolutionSelectorReadProvider,
+  type WorldEvolutionSelectorReadProvider,
+} from './internal/world-evolution-selector-read.js';
 import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
@@ -6,6 +12,18 @@ import { createNimiError } from './runtime/errors.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
 import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+import type {
+  WorldEvolutionCheckpointReadResult,
+  WorldEvolutionCheckpointSelector,
+  WorldEvolutionCommitRequestReadResult,
+  WorldEvolutionCommitRequestSelector,
+  WorldEvolutionExecutionEventReadResult,
+  WorldEvolutionExecutionEventSelector,
+  WorldEvolutionReplayReadResult,
+  WorldEvolutionReplaySelector,
+  WorldEvolutionSupervisionReadResult,
+  WorldEvolutionSupervisionSelector,
+} from './runtime/world-evolution-selector-read.js';
 import { ReasonCode } from './types/index.js';
 
 type PlatformSessionUser = JsonObject | null;
@@ -137,10 +155,29 @@ type PlatformDomains = {
   };
 };
 
+type PlatformWorldEvolution = {
+  executionEvents: {
+    read: (selector: WorldEvolutionExecutionEventSelector) => Promise<WorldEvolutionExecutionEventReadResult>;
+  };
+  replays: {
+    read: (selector: WorldEvolutionReplaySelector) => Promise<WorldEvolutionReplayReadResult>;
+  };
+  checkpoints: {
+    read: (selector: WorldEvolutionCheckpointSelector) => Promise<WorldEvolutionCheckpointReadResult>;
+  };
+  supervision: {
+    read: (selector: WorldEvolutionSupervisionSelector) => Promise<WorldEvolutionSupervisionReadResult>;
+  };
+  commitRequests: {
+    read: (selector: WorldEvolutionCommitRequestSelector) => Promise<WorldEvolutionCommitRequestReadResult>;
+  };
+};
+
 export type PlatformClient = {
   runtime: Runtime;
   realm: Realm;
   domains: PlatformDomains;
+  worldEvolution: PlatformWorldEvolution;
 };
 
 // Single shared client per JS execution context. Call clearPlatformClient()
@@ -434,6 +471,10 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
   };
 }
 
+function createPlatformWorldEvolution(runtime: Runtime): PlatformWorldEvolution {
+  return createWorldEvolutionSelectorReadFacade(() => getRuntimeWorldEvolutionSelectorReadProvider(runtime));
+}
+
 export async function createPlatformClient(input: PlatformClientInput): Promise<PlatformClient> {
   const appId = normalizeText(input.appId) || DEFAULT_PLATFORM_APP_ID;
   const tokenValue = normalizeText(input.accessToken);
@@ -514,6 +555,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     runtime,
     realm,
     domains: createDomains(runtime, realm),
+    worldEvolution: createPlatformWorldEvolution(runtime),
   };
   currentPlatformClient = client;
   return client;
@@ -533,4 +575,17 @@ export function getPlatformClient(): PlatformClient {
 
 export function clearPlatformClient(): void {
   currentPlatformClient = null;
+}
+
+// Bootstrap-only attachment seam for first-party hosts. This is intentionally
+// unstable and does not publish selector-read methods or provider semantics on
+// the Runtime surface itself.
+export function unstable_attachPlatformWorldEvolutionSelectorReadProvider(
+  client: PlatformClient,
+  provider: unknown,
+): void {
+  setRuntimeWorldEvolutionSelectorReadProvider(
+    client.runtime,
+    provider as WorldEvolutionSelectorReadProvider,
+  );
 }

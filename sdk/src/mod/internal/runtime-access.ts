@@ -1,4 +1,5 @@
-import { getModSdkHost } from '../host.js';
+import { getModSdkHost, peekModSdkHost } from '../host.js';
+import type { ModWorldEvolutionHost } from './host-types.js';
 import type {
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,
@@ -15,6 +16,10 @@ import type { RuntimeCanonicalCapability } from '../runtime-route.js';
 
 export function getRuntimeHost(): ModRuntimeHost {
   return getModSdkHost().runtime;
+}
+
+export function getWorldEvolutionHost(): ModWorldEvolutionHost | null {
+  return peekModSdkHost()?.worldEvolution || null;
 }
 
 function resolveRuntimeHost(input?: ModRuntimeContextInput): ModRuntimeHost {
