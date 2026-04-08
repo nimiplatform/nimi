@@ -15,7 +15,7 @@ How should a minimum self-host `nimi-coding` topic be represented?
 
 ## Current Understanding
 
-The topic needs one index, one active baseline, one evidence record, and one finding ledger.
+The topic needs one index, one frozen baseline, one execution packet, one orchestration state, one evidence record, and one finding ledger.
 
 ## Options
 
@@ -28,4 +28,4 @@ Use typed topic artifacts so validators and CLI can consume the topic directly.
 
 ## Open Questions
 
-- Which recommended fields should later become required?
+- Which orchestration-state relations should later become required only for resumable mode?

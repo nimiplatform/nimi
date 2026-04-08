@@ -1,0 +1,49 @@
+id: nimi-coding.execution-packet.v1
+kind: execution-packet
+required:
+  - packet_id
+  - topic_id
+  - status
+  - owner
+  - created_at
+  - updated_at
+  - baseline_ref
+  - entry_phase_id
+  - phases
+  - escalation_policy
+  - notification_settings
+  - resume_policy
+status_enum:
+  - draft
+  - frozen
+  - superseded
+  - archived
+phase_required:
+  - phase_id
+  - goal
+  - authority_refs
+  - write_scope
+  - read_scope
+  - required_checks
+  - completion_criteria
+  - escalation_conditions
+  - next_on_success
+  - stop_on_failure
+phase_stop_on_failure_enum:
+  - pause
+  - stop
+escalation_policy_required:
+  - pause_conditions
+  - manager_decision_required
+notification_settings_required:
+  - on_block
+  - on_final_completion
+  - on_progress
+resume_policy_required:
+  - same_revision_resume_allowed_reasons
+  - new_packet_required_on
+rules:
+  - baseline_ref must resolve to a baseline artifact
+  - entry_phase_id must exist in phases[].phase_id
+  - next_on_success must be null or an existing phase_id
+  - packet must not encode transport secrets, runtime state, or semantic acceptance outcomes

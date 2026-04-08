@@ -1,0 +1,10 @@
+state_id: minimum-topic-run-v1
+topic_id: minimum-topic
+packet_ref: sample.execution-packet.yaml
+run_status: prepared
+current_phase_id: sample-phase
+last_completed_phase_id: null
+awaiting_human_action: dispatch-next-phase
+pause_reason: null
+updated_at: 2026-04-08T16:00:00+08:00
+owner: nimi-coding/samples

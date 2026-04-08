@@ -1,7 +1,7 @@
 # Nimi Coding
 
 > Status: Active
-> Version: 2.2
+> Version: 2.5
 > Maintainer: @snowzane
 > Created: 2026-03-03
 > Last Updated: 2026-04-08
@@ -22,6 +22,8 @@ Its base lifecycle is:
 Its execution-orchestration extension adds:
 
 `Preflight -> Converge -> Phase Freeze -> Dispatch -> Execute -> Verify -> Accept -> Close / Reject / Defer`
+
+For human-converged autonomous delivery, `nimi-coding/**` now formalizes both the frozen execution packet artifact and the orchestration-state artifact. The packet is post-freeze execution authority; the orchestration state is future packet-bound mutable run position. Neither artifact is the autonomous runtime itself.
 
 This document is the public overview only. It does not carry contracts, schemas, protocols, scripts, or CLI surface. Those live in the formal module.
 
@@ -45,8 +47,8 @@ This document is the public overview only. It does not carry contracts, schemas,
 | Directory | Contents |
 |-----------|----------|
 | `nimi-coding/contracts/` | Methodology, artifact model, staged delivery, finding lifecycle |
-| `nimi-coding/schema/` | Typed artifact schemas (topic index, explore, baseline, evidence, finding ledger) |
-| `nimi-coding/protocol/` | Execution protocols (dispatch, worker-output, acceptance, phase-lifecycle, reopen-defer) |
+| `nimi-coding/schema/` | Typed artifact schemas (topic index, explore, baseline, execution packet, orchestration state, evidence, finding ledger) |
+| `nimi-coding/protocol/` | Execution protocols (execution packet, orchestration state, dispatch, worker-output, acceptance, phase-lifecycle, reopen-defer) |
 | `nimi-coding/gates/` | Gate policy and promotion policy |
 | `nimi-coding/scripts/` | Module validators, lifecycle helpers, module-owned repo-wide checks |
 | `nimi-coding/cli/` | Unified command entrypoint |
@@ -67,13 +69,13 @@ The CLI supports a complete staged-delivery lifecycle without manual YAML surger
 
 **Lifecycle commands**: `init-topic`, `set-topic-status`, `set-baseline`, `attach-evidence`, `finding-set-status`
 
-**Validation commands**: `validate-topic`, `validate-doc`, `validate-prompt`, `validate-worker-output`, `validate-acceptance`, `validate-finding-ledger`, `validate-module`
+**Validation commands**: `validate-topic`, `validate-doc`, `validate-execution-packet`, `validate-orchestration-state`, `validate-prompt`, `validate-worker-output`, `validate-acceptance`, `validate-finding-ledger`, `validate-module`
 
 **Manager assist commands**: `topic-summary`, `unresolved-findings`, `prompt-skeleton`, `acceptance-skeleton`
 
-**Batch delivery commands**: `batch-preflight`, `batch-phase-done`
+**Batch delivery commands**: `batch-preflight`, `batch-next-phase`, `batch-phase-done`
 
-Content authoring remains manual markdown writing. The CLI handles topic routing, status transitions, validation, manager assist, and batch delivery orchestration. Batch mode requires a frozen plan (baseline status=frozen) and refuses under-specified or non-frozen topics. It is not autonomous management — the manager still makes all semantic decisions.
+Content authoring remains manual. Execution packets and orchestration states are typed YAML artifacts; other lifecycle and phase artifacts remain structured markdown or YAML as defined by the formal module. The CLI handles topic routing, status transitions, validation, manager assist, and batch delivery orchestration. Batch mode still works in stateless packet-driven form. The new orchestration-state artifact exists only as formal preparation for future resumable autonomous mode. This module still does not implement runner persistence, notification transport, TG integration, worker execution, semantic acceptance automation, or final confirmation.
 
 See `nimi-coding/README.md` for the full command reference and a minimum staged-delivery loop example.
 

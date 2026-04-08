@@ -1,0 +1,15 @@
+id: execution-packet.v1
+purpose: Freeze the minimum post-convergence execution authority surface for bounded autonomous continuation.
+requires:
+  - baseline_ref
+  - entry_phase_id
+  - phases
+  - escalation_policy
+  - notification_settings
+  - resume_policy
+forbids:
+  - notification transport internals
+  - autonomous runner state
+  - semantic acceptance outcomes
+  - finding lifecycle inference
+  - open-ended workflow engine branching

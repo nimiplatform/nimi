@@ -37,7 +37,10 @@ export function main(argv = process.argv.slice(2)) {
     }
     process.exit(1);
   }
-  process.stdout.write(`batch-phase-done: OK phase=${report.phase} disposition=${report.disposition}\n`);
+  const nextPhaseId = report.next_phase ? report.next_phase.phase_id : 'null';
+  process.stdout.write(
+    `batch-phase-done: OK phase=${report.phase} disposition=${report.disposition} terminal=${report.terminal} next_phase=${nextPhaseId} action=${report.required_human_action}\n`,
+  );
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {

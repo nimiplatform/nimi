@@ -1,0 +1,33 @@
+id: nimi-coding.orchestration-state.v1
+kind: orchestration-state
+required:
+  - state_id
+  - topic_id
+  - packet_ref
+  - run_status
+  - current_phase_id
+  - last_completed_phase_id
+  - awaiting_human_action
+  - updated_at
+  - owner
+optional:
+  - pause_reason
+  - notification_refs
+run_status_enum:
+  - prepared
+  - in_progress
+  - paused
+  - awaiting_human
+  - awaiting_final_confirmation
+  - completed
+  - superseded
+notification_ref_required:
+  - event_type
+  - correlation_id
+rules:
+  - packet_ref must resolve to an execution packet artifact
+  - current_phase_id and last_completed_phase_id must be null or existing packet phase ids
+  - paused state requires pause_reason
+  - human-waiting states require awaiting_human_action
+  - resume_token and transport secrets are forbidden
+  - orchestration state must not encode semantic acceptance or finding judgments

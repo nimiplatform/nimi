@@ -2,7 +2,8 @@
 import path from 'node:path';
 import { loadYamlFile, exists } from './lib/doc-utils.mjs';
 import { moduleRootFrom } from './lib/module-paths.mjs';
-import { validateDoc, validateFindingLedger, validateTopic, validatePrompt, validateWorkerOutput, validateAcceptance } from './lib/validators.mjs';
+import { validateDoc, validateExecutionPacket, validateFindingLedger, validateTopic, validatePrompt, validateWorkerOutput, validateAcceptance, validateOrchestrationState } from './lib/validators.mjs';
+import { batchNextPhase, batchPreflight } from './lib/batch-delivery.mjs';
 
 const REQUIRED_FILES = [
   'README.md',
@@ -15,9 +16,13 @@ const REQUIRED_FILES = [
   'schema/baseline-doc.schema.yaml',
   'schema/evidence-doc.schema.yaml',
   'schema/finding-ledger.schema.yaml',
+  'schema/execution-packet.schema.yaml',
+  'schema/orchestration-state.schema.yaml',
   'schema/prompt.schema.yaml',
   'schema/worker-output.schema.yaml',
   'schema/acceptance.schema.yaml',
+  'protocol/execution-packet.protocol.yaml',
+  'protocol/orchestration-state.protocol.yaml',
   'protocol/dispatch.protocol.yaml',
   'protocol/worker-output.protocol.yaml',
   'protocol/acceptance.protocol.yaml',
@@ -28,12 +33,17 @@ const REQUIRED_FILES = [
   'samples/minimum-topic/topic.index.yaml',
   'samples/minimum-topic/overview.explore.md',
   'samples/minimum-topic/methodology.baseline.md',
+  'samples/minimum-topic/sample.execution-packet.yaml',
+  'samples/minimum-topic/sample.orchestration-state.yaml',
   'samples/minimum-topic/audit.evidence.md',
   'samples/minimum-topic/finding-ledger.yaml',
   'samples/minimum-topic/sample-phase.prompt.md',
   'samples/minimum-topic/sample-phase.worker-output.md',
   'samples/minimum-topic/sample-phase.acceptance.md',
   'cli/cli.mjs',
+  'scripts/batch-next-phase.mjs',
+  'scripts/validate-execution-packet.mjs',
+  'scripts/validate-orchestration-state.mjs',
   'scripts/report-ai-hotspots.mjs',
   'scripts/report-ai-structure-hotspots.mjs',
 ];
@@ -44,12 +54,16 @@ const SCHEMA_FILES = [
   'schema/baseline-doc.schema.yaml',
   'schema/evidence-doc.schema.yaml',
   'schema/finding-ledger.schema.yaml',
+  'schema/execution-packet.schema.yaml',
+  'schema/orchestration-state.schema.yaml',
   'schema/prompt.schema.yaml',
   'schema/worker-output.schema.yaml',
   'schema/acceptance.schema.yaml',
 ];
 
 const PROTOCOL_FILES = [
+  'protocol/execution-packet.protocol.yaml',
+  'protocol/orchestration-state.protocol.yaml',
   'protocol/dispatch.protocol.yaml',
   'protocol/worker-output.protocol.yaml',
   'protocol/acceptance.protocol.yaml',
@@ -127,6 +141,22 @@ function checkSample(moduleRoot, errors, warnings) {
   const ledgerReport = validateFindingLedger(path.join(sampleDir, 'finding-ledger.yaml'), { topicDir: sampleDir });
   warnings.push(...ledgerReport.warnings.map((warning) => `sample ledger warning: ${warning}`));
   errors.push(...ledgerReport.errors.map((error) => `sample ledger invalid: ${error}`));
+
+  const executionPacketReport = validateExecutionPacket(path.join(sampleDir, 'sample.execution-packet.yaml'), { topicDir: sampleDir });
+  warnings.push(...executionPacketReport.warnings.map((warning) => `sample execution-packet warning: ${warning}`));
+  errors.push(...executionPacketReport.errors.map((error) => `sample execution-packet invalid: ${error}`));
+
+  const orchestrationStateReport = validateOrchestrationState(path.join(sampleDir, 'sample.orchestration-state.yaml'), { topicDir: sampleDir });
+  warnings.push(...orchestrationStateReport.warnings.map((warning) => `sample orchestration-state warning: ${warning}`));
+  errors.push(...orchestrationStateReport.errors.map((error) => `sample orchestration-state invalid: ${error}`));
+
+  const preflightReport = batchPreflight(sampleDir);
+  warnings.push(...preflightReport.warnings.map((warning) => `sample batch-preflight warning: ${warning}`));
+  errors.push(...preflightReport.errors.map((error) => `sample batch-preflight invalid: ${error}`));
+
+  const nextPhaseReport = batchNextPhase(sampleDir);
+  warnings.push(...nextPhaseReport.warnings.map((warning) => `sample batch-next-phase warning: ${warning}`));
+  errors.push(...nextPhaseReport.errors.map((error) => `sample batch-next-phase invalid: ${error}`));
 
   const promptReport = validatePrompt(path.join(sampleDir, 'sample-phase.prompt.md'));
   warnings.push(...promptReport.warnings.map((warning) => `sample prompt warning: ${warning}`));

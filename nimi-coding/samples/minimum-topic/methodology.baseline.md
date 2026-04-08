@@ -1,8 +1,8 @@
 ---
 title: Minimum Topic Baseline
 doc_type: baseline
-status: active
-reason: This is the current execution truth for the minimum sample topic.
+status: frozen
+reason: This is the frozen execution truth for the minimum sample topic and its execution packet.
 owner: nimi-coding/samples
 updated_at: 2026-04-08T16:00:00+08:00
 phase: sample-baseline
@@ -16,7 +16,7 @@ Represent the minimum self-hosting `nimi-coding` topic.
 
 ## Confirmed State
 
-The sample topic includes a topic index, an explore doc, a baseline doc, an evidence doc, and a finding ledger.
+The sample topic includes a topic index, an explore doc, a frozen baseline doc, an execution packet, an orchestration state, an evidence doc, and a finding ledger.
 
 ## Entry Criteria
 
@@ -36,6 +36,8 @@ The sample topic includes a topic index, an explore doc, a baseline doc, an evid
 
 - `validate-topic`
 - `validate-doc`
+- `validate-execution-packet`
+- `validate-orchestration-state`
 - `validate-finding-ledger`
 
 ## Completion Criteria

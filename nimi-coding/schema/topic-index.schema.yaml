@@ -15,6 +15,8 @@ required:
   - protocol_refs
 optional:
   - finding_ledger_ref
+  - execution_packet_ref
+  - orchestration_state_ref
 status_enum:
   - exploring
   - active
@@ -27,3 +29,10 @@ rules:
   - if final_evidence is non-null, target evidence status must be final
   - active_explores is a list of relative file paths
   - latest_evidence and final_evidence are single relative file paths or null
+  - execution_packet_ref is a single relative file path or null
+  - if execution_packet_ref is present, target must be a valid execution packet
+  - if execution_packet_ref is present, packet baseline_ref must match active_baseline
+  - orchestration_state_ref is a single relative file path or null
+  - if orchestration_state_ref is present, target must be a valid orchestration state
+  - if orchestration_state_ref is present, execution_packet_ref must also be present
+  - if orchestration_state_ref is present, state packet_ref must match execution_packet_ref

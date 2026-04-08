@@ -7,6 +7,7 @@ disposition: complete
 ## Findings
 
 - All promoted artifact types now have canonical samples in the minimum topic.
+- Execution packet coverage is now part of the topic lifecycle sample.
 - Prompt, worker-output, and acceptance validators cover the new samples.
 - Artifact-model contract documents both lifecycle and execution artifact families.
 

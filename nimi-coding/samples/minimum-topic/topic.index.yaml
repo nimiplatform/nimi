@@ -5,6 +5,8 @@ reason: Minimum self-host topic with active baseline and audit evidence.
 owner: nimi-coding/samples
 updated_at: 2026-04-08T16:00:00+08:00
 active_baseline: methodology.baseline.md
+execution_packet_ref: sample.execution-packet.yaml
+orchestration_state_ref: sample.orchestration-state.yaml
 active_explores:
   - overview.explore.md
 latest_evidence: audit.evidence.md
@@ -12,6 +14,8 @@ final_evidence: null
 finding_ledger_ref: finding-ledger.yaml
 spec_rule_refs: []
 protocol_refs:
+  - execution-packet.v1
+  - orchestration-state.v1
   - dispatch.v1
   - worker-output.v1
   - acceptance.v1

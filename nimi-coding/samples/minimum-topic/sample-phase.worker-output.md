@@ -3,7 +3,7 @@
 ## Findings
 
 - The minimum topic was missing prompt, worker-output, and acceptance samples.
-- All existing artifacts (topic-index, explore, baseline, evidence, finding-ledger) are valid.
+- All existing topic lifecycle artifacts (topic-index, explore, baseline, execution-packet, evidence, finding-ledger) are valid.
 
 ## Implementation summary
 

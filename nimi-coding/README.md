@@ -15,8 +15,8 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 | Directory | Responsibility |
 |-----------|---------------|
 | `contracts/` | System contracts: methodology, artifact model, staged delivery, finding lifecycle |
-| `schema/` | Typed artifact schemas: topic index, explore, baseline, evidence, finding ledger |
-| `protocol/` | Execution protocols: dispatch, worker-output, acceptance, phase-lifecycle, reopen-defer |
+| `schema/` | Typed artifact schemas: topic index, explore, baseline, execution packet, orchestration state, evidence, finding ledger |
+| `protocol/` | Execution protocols: execution packet, orchestration state, dispatch, worker-output, acceptance, phase-lifecycle, reopen-defer |
 | `gates/` | Gate policy (hard/soft/advisory gates) and promotion policy (incubator → promoted) |
 | `samples/` | Canonical self-host topic for validation |
 | `scripts/` | Module validators, lifecycle helpers, and module-owned repo-wide checks |
@@ -67,6 +67,8 @@ pnpm nimi-coding:finding-set-status -- <topic-dir> <finding-id> <next-status> --
 ```
 pnpm nimi-coding:validate-topic -- <topic-dir>
 pnpm nimi-coding:validate-doc -- <doc-path>
+pnpm nimi-coding:validate-execution-packet -- <packet-path>
+pnpm nimi-coding:validate-orchestration-state -- <state-path>
 pnpm nimi-coding:validate-prompt -- <prompt-path>
 pnpm nimi-coding:validate-worker-output -- <worker-output-path>
 pnpm nimi-coding:validate-acceptance -- <acceptance-path>
@@ -92,12 +94,35 @@ Skeleton outputs align with `prompt.schema.yaml` and `acceptance.schema.yaml` re
 
 ```
 pnpm nimi-coding:batch-preflight -- <topic-dir>
+pnpm nimi-coding:batch-next-phase -- <topic-dir> [--after <phase-id>]
 pnpm nimi-coding:batch-phase-done -- <topic-dir> --phase <name> --disposition <complete|partial|deferred> --acceptance <rel-path> [--evidence <rel-path>]
 ```
 
-Batch mode requires a **frozen plan**: topic status=active, baseline status=frozen, valid finding ledger, non-empty protocol_refs. `batch-preflight` checks all preconditions and outputs a structured pass/fail report. `batch-phase-done` validates the acceptance artifact, optionally attaches evidence, and re-validates all batch preconditions.
+Batch mode now requires a **packet-driven frozen plan**: topic status=active, baseline status=frozen, valid finding ledger, non-empty protocol_refs including `execution-packet.v1`, and a valid `execution_packet_ref` whose packet route is linear and inspectable. `batch-preflight` checks those preconditions and outputs a structured pass/fail report. `batch-next-phase` prints the packet-declared entry phase or the next phase after a completed phase. `batch-phase-done` validates the acceptance artifact, optionally attaches evidence, re-validates the packet-driven preconditions, and reports the next packet phase or terminal human handoff.
 
-**Batch mode is not autonomous management.** It enforces the frozen-plan gate and handles mechanical artifact routing. The manager still authors all prompts, acceptance decisions, and finding updates. The worker still executes and produces output. Batch mode prevents under-specified or non-frozen topics from entering the delivery loop.
+**Packet-driven orchestration skeleton is not an autonomous runner.** It only validates the packet, inspects the phase graph, selects the next packet-declared phase, and checks artifact-routing consistency. The manager still authors prompts and acceptance. The worker still executes. Final confirmation, semantic acceptance, notification transport, and finding lifecycle judgment all remain outside this cut.
+
+## Orchestration State Formalization
+
+`*.orchestration-state.yaml` is now a formal topic lifecycle artifact.
+
+- It persists the minimum packet-bound mutable run position needed for future resumable autonomous mode.
+- It is routed from `topic.index.yaml` by `orchestration_state_ref` when present.
+- It is not runner implementation, notification transport, or resume runtime.
+- It does not carry semantic acceptance, final confirmation, or finding lifecycle judgment.
+
+Stateless batch mode remains valid. Current `batch-preflight`, `batch-next-phase`, and `batch-phase-done` do not require orchestration state and continue to operate packet-only. The orchestration-state artifact exists so later resumable autonomous mode can be formalized without mutating execution packets or overloading evidence/acceptance artifacts.
+
+## Execution Packet Formalization
+
+`*.execution-packet.yaml` is now a formal topic lifecycle artifact.
+
+- It freezes the minimum post-convergence execution surface for bounded autonomous continuation.
+- It is routed from `topic.index.yaml` by `execution_packet_ref` when present.
+- It is not the autonomous runner itself.
+- It does not contain notification transport configuration, runtime state, semantic acceptance outcomes, or finding inference.
+
+Runner and notification transport implementation are still intentionally out of scope. This module now formalizes packet and orchestration-state artifacts, their protocol surfaces, validator coverage, and sample coverage needed for later bounded implementation cuts.
 
 **Batch delivery loop:**
 
@@ -106,23 +131,26 @@ Batch mode requires a **frozen plan**: topic status=active, baseline status=froz
 # 1. Check frozen-plan preconditions
 pnpm nimi-coding:batch-preflight -- <topic-dir>
 
-# 2. Generate prompt for this phase
+# 2. Inspect the next packet-declared phase
+pnpm nimi-coding:batch-next-phase -- <topic-dir>
+
+# 3. Generate prompt for this phase
 pnpm nimi-coding:prompt-skeleton -- <topic-dir> --phase <name> --goal <text> --output <prompt-path>
 # (manager edits prompt, then validates)
 pnpm nimi-coding:validate-prompt -- <prompt-path>
 
-# 3. Worker executes, produces output (manual)
+# 4. Worker executes, produces output (manual)
 pnpm nimi-coding:validate-worker-output -- <worker-output-path>
 
-# 4. Manager writes acceptance (manual or from skeleton)
+# 5. Manager writes acceptance (manual or from skeleton)
 pnpm nimi-coding:acceptance-skeleton -- --disposition <value> --output <acceptance-path>
 # (manager edits acceptance, then validates)
 pnpm nimi-coding:validate-acceptance -- <acceptance-path>
 
-# 5. Commit phase completion
+# 6. Commit phase completion and inspect next phase / terminal handoff
 pnpm nimi-coding:batch-phase-done -- <topic-dir> --phase <name> --disposition <value> --acceptance <rel-path> --evidence <rel-path>
 
-# 6. Repeat for next phase, or close topic
+# 7. Repeat via batch-next-phase, or stop for final human confirmation
 ```
 
 ### Reports
@@ -165,7 +193,7 @@ pnpm nimi-coding:attach-evidence -- .local/coding/my-topic final.evidence.md --f
 pnpm nimi-coding:set-topic-status -- .local/coding/my-topic closed --reason "All phases complete"
 ```
 
-Content authoring (explore, baseline, prompt, worker-output, acceptance, evidence docs) remains manual markdown writing. The CLI handles topic routing, status transitions, and validation.
+Content authoring remains manual. Markdown docs cover explore/baseline/evidence/prompt/worker-output/acceptance; execution packets are typed YAML artifacts. The CLI handles topic routing, status transitions, and validation.
 
 ## Promotion Rules
 

@@ -11,8 +11,8 @@ Represent the minimum self-hosting nimi-coding topic with full artifact coverage
 
 ## Confirmed State
 
-- The minimum topic already has topic-index, explore, baseline, evidence, and finding-ledger artifacts.
-- Prompt, worker-output, and acceptance artifacts are missing from the sample.
+- The minimum topic already has topic-index, explore, baseline, execution-packet, evidence, and finding-ledger artifacts.
+- Prompt, worker-output, and acceptance artifacts are the remaining phase-execution samples.
 
 ## Hard Constraints
 
@@ -24,7 +24,8 @@ Represent the minimum self-hosting nimi-coding topic with full artifact coverage
 1. Add prompt sample to minimum-topic.
 2. Add worker-output sample to minimum-topic.
 3. Add acceptance sample to minimum-topic.
-4. Ensure all samples pass module validation.
+4. Keep the execution packet aligned to the frozen baseline.
+5. Ensure all samples pass module validation.
 
 ## Explicit Non-Goals
 

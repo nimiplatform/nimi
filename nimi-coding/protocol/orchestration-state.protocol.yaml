@@ -1,0 +1,16 @@
+id: orchestration-state.v1
+purpose: Persist the minimum packet-bound mutable run position for future resumable autonomous mode.
+requires:
+  - packet_ref
+  - run_status
+  - current_phase_id
+  - last_completed_phase_id
+  - awaiting_human_action
+  - updated_at
+  - owner
+forbids:
+  - resume_token
+  - notification transport internals
+  - semantic acceptance outcomes
+  - finding lifecycle judgments
+  - generic workflow-engine state storage

@@ -10,6 +10,13 @@ Its execution-orchestration extension is:
 
 `Preflight -> Converge -> Phase Freeze -> Dispatch -> Execute -> Verify -> Accept -> Close / Reject / Defer`
 
+Its human-converged autonomous delivery posture is:
+
+- human-heavy before freeze
+- automation-heavy after freeze
+- explicit escalation on bounded packet-declared conditions
+- final human confirmation before terminal closeout
+
 ## Core Rules
 
 1. `spec/**` is the only normative product authority.
@@ -17,6 +24,8 @@ Its execution-orchestration extension is:
 3. `nimi-coding/**` is the promoted system layer for reusable `nimi-coding` components.
 4. Any machine-checkable rule should be enforced by validators or gates.
 5. Evidence is required for closeout; assertion is insufficient.
+6. Post-freeze automation may continue only against a frozen execution packet; it must not replace human semantic acceptance or final confirmation.
+7. Resumable autonomous mode may persist orchestration state, but that state remains packet-bound run position only; it does not become semantic authority.
 
 ## Module Ownership
 

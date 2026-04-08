@@ -3,6 +3,8 @@ hard_gates:
   - typed-doc-schema-valid
   - route-target-exists
   - route-target-doc-type-match
+  - execution-packet-ref-target-valid
+  - orchestration-state-ref-target-valid
   - final-evidence-target-final
   - finding-closeout-minimum-rules
   - finding-id-unique-in-ledger

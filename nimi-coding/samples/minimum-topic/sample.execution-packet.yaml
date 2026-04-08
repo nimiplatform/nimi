@@ -1,0 +1,81 @@
+packet_id: minimum-topic-packet-v1
+topic_id: minimum-topic
+status: frozen
+owner: nimi-coding/samples
+created_at: 2026-04-08T16:00:00+08:00
+updated_at: 2026-04-08T16:00:00+08:00
+baseline_ref: methodology.baseline.md
+entry_phase_id: sample-phase
+phases:
+  - phase_id: sample-phase
+    goal: Represent the minimum self-hosting nimi-coding topic with complete formal artifact coverage.
+    authority_refs:
+      - nimi-coding/contracts/artifact-model.contract.md
+      - nimi-coding/contracts/staged-delivery.contract.md
+    write_scope:
+      - nimi-coding/samples/minimum-topic
+    read_scope:
+      - nimi-coding/contracts
+      - nimi-coding/schema
+      - nimi-coding/protocol
+      - nimi-coding/samples/minimum-topic
+    required_checks:
+      - pnpm nimi-coding:validate-module
+    completion_criteria:
+      - Prompt, worker-output, and acceptance samples exist and validate.
+      - Topic lifecycle artifacts remain aligned to the frozen baseline and execution packet.
+    escalation_conditions:
+      - authority conflict
+      - write scope widening
+      - missing or invalid prerequisite artifact
+    next_on_success: sample-closeout
+    stop_on_failure: pause
+  - phase_id: sample-closeout
+    goal: Reach packet-terminal completion and hand control back for final human confirmation.
+    authority_refs:
+      - nimi-coding/contracts/staged-delivery.contract.md
+      - nimi-coding/protocol/execution-packet.protocol.yaml
+    write_scope:
+      - nimi-coding/samples/minimum-topic
+    read_scope:
+      - nimi-coding/contracts
+      - nimi-coding/protocol
+      - nimi-coding/samples/minimum-topic
+    required_checks:
+      - pnpm nimi-coding:validate-module
+    completion_criteria:
+      - Packet route reaches a terminal phase with no further next_on_success target.
+      - The next step is final human confirmation rather than further automatic progression.
+    escalation_conditions:
+      - authority conflict
+      - missing or invalid prerequisite artifact
+      - frozen assumption break
+    next_on_success: null
+    stop_on_failure: pause
+escalation_policy:
+  pause_conditions:
+    - authority conflict
+    - write scope widening
+    - unfixable required-check failure
+    - missing or invalid prerequisite artifact
+    - frozen assumption break
+    - unexpected dirty-worktree conflict
+  manager_decision_required:
+    - semantic acceptance sufficiency
+    - final human confirmation
+    - finding lifecycle closeout
+notification_settings:
+  on_block: true
+  on_final_completion: true
+  on_progress: false
+resume_policy:
+  same_revision_resume_allowed_reasons:
+    - environmental repair
+    - prerequisite artifact repaired without packet changes
+  new_packet_required_on:
+    - authority ref change
+    - read scope widening
+    - write scope widening
+    - completion criteria change
+    - escalation policy change
+    - phase route change
