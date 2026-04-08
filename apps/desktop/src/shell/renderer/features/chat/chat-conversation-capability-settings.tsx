@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { ImageCapabilitySettings } from './chat-image-capability-settings';
 import { VideoCapabilitySettings } from './chat-video-capability-settings';
-import { useQuery } from '@tanstack/react-query';
 import { createModRuntimeClient, type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
   createSnapshotRouteDataProvider,
@@ -20,12 +19,10 @@ import {
   type ConversationCapabilityProjection,
   toRuntimeCanonicalCapability,
   toRuntimeRouteBindingFromPickerSelection,
-  type RuntimeLocalProfileRef,
 } from './conversation-capability';
 import {
   DisabledSettingsNote,
 } from './chat-settings-panel';
-import { RuntimeInspectCard } from './chat-runtime-inspect-content';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
   DEFAULT_IMAGE_PARAMS,
@@ -209,18 +206,6 @@ function supportsImageCapability(value: unknown): boolean {
     || normalized === 'image.edit';
 }
 
-function normalizeProfileRefLabel(profileRef: RuntimeLocalProfileRef | null): string | null {
-  if (!profileRef) {
-    return null;
-  }
-  const modId = normalizeText(profileRef.modId);
-  const profileId = normalizeText(profileRef.profileId);
-  if (!modId || !profileId) {
-    return null;
-  }
-  return `${modId}:${profileId}`;
-}
-
 function useCapabilityModelPickerProvider(capability: string): RouteModelPickerDataProvider | null {
   const keyRef = useRef<string>(capability);
   const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
@@ -313,140 +298,6 @@ function CapabilityRouteSettingCard(props: CapabilityConfig & { localContent?: R
   );
 }
 
-function hasImageCapability(profile: { capabilities: Record<string, unknown> }): boolean {
-  return Object.keys(profile.capabilities).some(supportsImageCapability);
-}
-
-function ImageProfileSelectorCard() {
-  const { t } = useTranslation();
-  // Read the image capability's local profile ref from AIConfig (D-AIPC-008).
-  // This is an internal capability sub-setting, not a top-level product concept.
-  const imageCapabilityLocalRef = useAppStore((state) => (state.aiConfig.capabilities.localProfileRefs['image.generate'] || null) as RuntimeLocalProfileRef | null);
-  const aiConfig = useAppStore((state) => state.aiConfig);
-  const surface = useMemo(() => getDesktopAIConfigService(), []);
-
-  const profileQuery = useQuery({
-    queryKey: ['ai-profiles', 'surface', 'image'],
-    queryFn: () => surface.aiProfile.list(),
-  });
-
-  const profiles = useMemo(
-    () => (profileQuery.data || []).filter(hasImageCapability),
-    [profileQuery.data],
-  );
-  const selectedValue = normalizeText(imageCapabilityLocalRef?.profileId);
-  const selectedExternalLabel = useMemo(() => {
-    const current = normalizeProfileRefLabel(imageCapabilityLocalRef);
-    if (!current) {
-      return null;
-    }
-    const known = profiles.some((profile) => (
-      normalizeText(profile.profileId) === normalizeText(imageCapabilityLocalRef?.profileId)
-    ));
-    return known ? null : current;
-  }, [imageCapabilityLocalRef, profiles]);
-
-  return (
-    <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
-      <div className="space-y-1">
-        <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-          {t('Chat.settingsImageProfileTitle', { defaultValue: 'Local image profile' })}
-        </div>
-        <p className="text-xs text-[var(--nimi-text-muted)]">
-          {t('Chat.settingsImageProfileHint', {
-            defaultValue: 'Selects the local asset bundle for image capabilities within the current AI configuration.',
-          })}
-        </p>
-      </div>
-
-      <RuntimeInspectCard
-        label={t('Chat.settingsSelectedImageProfile', { defaultValue: 'Active profile' })}
-        value={profiles.find((profile) => normalizeText(profile.profileId) === selectedValue)?.title
-          || selectedExternalLabel
-          || t('Chat.settingsImageProfileUnset', { defaultValue: 'No profile selected' })}
-        detail={profiles.find((profile) => normalizeText(profile.profileId) === selectedValue)?.description
-          || (selectedExternalLabel
-            ? t('Chat.settingsExternalImageProfileHint', {
-              defaultValue: 'Using an existing profile ref that is not published by core runtime.',
-            })
-            : t('Chat.settingsImageProfileUnsetHint', {
-              defaultValue: 'Select a profile to enable image.generate and image.edit capabilities.',
-            }))}
-      />
-
-      <label className="block space-y-2">
-        <span className="text-xs font-semibold text-[var(--nimi-text-muted)]">
-          {t('Chat.settingsImageProfileSelect', { defaultValue: 'Profile' })}
-        </span>
-        <select
-          className="h-10 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
-          disabled={profileQuery.isPending || (profiles.length === 0 && !selectedExternalLabel)}
-          value={selectedExternalLabel ? '__external__' : selectedValue}
-          onChange={(event) => {
-            const nextValue = normalizeText(event.target.value);
-            if (!nextValue || nextValue === '__none__') {
-              const nextRefs = { ...aiConfig.capabilities.localProfileRefs };
-              delete nextRefs['image.generate'];
-              delete nextRefs['image.edit'];
-              const nextConfig = {
-                ...aiConfig,
-                capabilities: { ...aiConfig.capabilities, localProfileRefs: nextRefs },
-              };
-              surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
-              return;
-            }
-            if (nextValue === '__external__') {
-              return;
-            }
-            const ref = { modId: CORE_RUNTIME_MOD_ID, profileId: nextValue };
-            const nextConfig = {
-              ...aiConfig,
-              capabilities: {
-                ...aiConfig.capabilities,
-                localProfileRefs: {
-                  ...aiConfig.capabilities.localProfileRefs,
-                  'image.generate': ref,
-                  'image.edit': ref,
-                },
-              },
-            };
-            surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
-          }}
-        >
-          <option value="__none__">
-            {t('Chat.settingsImageProfileNone', { defaultValue: 'No profile' })}
-          </option>
-          {selectedExternalLabel ? (
-            <option value="__external__">
-              {selectedExternalLabel}
-            </option>
-          ) : null}
-          {profiles.map((profile) => (
-            <option key={profile.profileId} value={profile.profileId}>
-              {profile.title}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {profileQuery.isPending ? (
-        <DisabledSettingsNote label={t('Chat.settingsLoading', { defaultValue: 'Loading models...' })} />
-      ) : null}
-      {profileQuery.isError ? (
-        <DisabledSettingsNote
-          label={profileQuery.error instanceof Error
-            ? profileQuery.error.message
-            : t('Chat.settingsImageProfileLoadFailed', { defaultValue: 'Failed to load image profiles.' })}
-        />
-      ) : null}
-      {!profileQuery.isPending && !profileQuery.isError && profiles.length === 0 ? (
-        <DisabledSettingsNote
-          label={t('Chat.settingsNoImageProfiles', { defaultValue: 'No image profiles are published by core runtime.' })}
-        />
-      ) : null}
-    </div>
-  );
-}
 
 export function ConversationCapabilitySettingsSection(
   props: ConversationCapabilitySettingsSectionProps,
@@ -578,7 +429,6 @@ export function ConversationCapabilitySettingsSection(
 
   return (
     <div className="space-y-4">
-      {props.section === 'image' ? <ImageProfileSelectorCard /> : null}
       {capabilities.map((capability) => (
         <CapabilityRouteSettingCard
           key={capability.capability}
