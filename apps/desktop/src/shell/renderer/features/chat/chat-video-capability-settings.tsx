@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   VIDEO_RATIO_OPTIONS,
   VIDEO_MODE_OPTIONS,
-  DEFAULT_VIDEO_PARAMS,
   type VideoParamsState,
   FieldRow,
   FieldInput,
@@ -16,12 +14,17 @@ import {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function VideoCapabilitySettings() {
+type VideoCapabilitySettingsProps = {
+  params: VideoParamsState;
+  onParamsChange: (next: VideoParamsState) => void;
+};
+
+export function VideoCapabilitySettings(props: VideoCapabilitySettingsProps) {
   const { t } = useTranslation();
-  const [params, setParams] = useState<VideoParamsState>(DEFAULT_VIDEO_PARAMS);
+  const { params } = props;
 
   const updateParam = <K extends keyof VideoParamsState>(key: K, value: VideoParamsState[K]) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
+    props.onParamsChange({ ...params, [key]: value });
   };
 
   return (

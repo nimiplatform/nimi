@@ -81,6 +81,9 @@ function normalizeAIConfig(raw: unknown): AIConfig | null {
       localProfileRefs: (c.localProfileRefs && typeof c.localProfileRefs === 'object'
         ? c.localProfileRefs
         : {}) as AIConfig['capabilities']['localProfileRefs'],
+      selectedParams: (c.selectedParams && typeof c.selectedParams === 'object'
+        ? c.selectedParams
+        : {}) as AIConfig['capabilities']['selectedParams'],
     },
     profileOrigin: record.profileOrigin as AIConfig['profileOrigin'] ?? null,
   };

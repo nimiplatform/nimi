@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   COMPANION_SLOTS,
   IMAGE_SIZE_PRESETS,
   IMAGE_RESPONSE_FORMAT_OPTIONS,
-  DEFAULT_IMAGE_PARAMS,
   type ImageParamsState,
   CompanionSlotSelector,
   useLocalAssets,
@@ -19,19 +17,27 @@ import {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ImageCapabilitySettings(_props: { capability: string }) {
+type ImageCapabilitySettingsProps = {
+  capability: string;
+  params: ImageParamsState;
+  companionSlots: Record<string, string>;
+  onParamsChange: (next: ImageParamsState) => void;
+  onCompanionSlotsChange: (next: Record<string, string>) => void;
+};
+
+export function ImageCapabilitySettings(props: ImageCapabilitySettingsProps) {
   const { t } = useTranslation();
-  const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
-  const [params, setParams] = useState<ImageParamsState>(DEFAULT_IMAGE_PARAMS);
+  const { params, companionSlots } = props;
   const assetsQuery = useLocalAssets();
   const assets = assetsQuery.data || [];
 
   const updateSlot = (slot: string, value: string) => {
-    setCompanionSlots((prev) => ({ ...prev, [slot]: value }));
+    const next = { ...companionSlots, [slot]: value };
+    props.onCompanionSlotsChange(next);
   };
 
   const updateParam = <K extends keyof ImageParamsState>(key: K, value: ImageParamsState[K]) => {
-    setParams((prev) => ({ ...prev, [key]: value }));
+    props.onParamsChange({ ...params, [key]: value });
   };
 
   return (

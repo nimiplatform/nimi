@@ -385,9 +385,43 @@ export function ProfileEditor(props: ProfileEditorProps) {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<AIProfile>(() => structuredClone(props.initial));
   const [errors, setErrors] = useState<string[]>([]);
-  const [imageParams, setImageParams] = useState<ImageParamsState>(DEFAULT_IMAGE_PARAMS);
-  const [videoParams, setVideoParams] = useState<VideoParamsState>(DEFAULT_VIDEO_PARAMS);
-  const [companionSlots, setCompanionSlots] = useState<Record<string, string>>({});
+  const [imageParams, setImageParams] = useState<ImageParamsState>(() => {
+    const stored = props.initial.capabilities['image.generate']?.params as Record<string, unknown> | undefined;
+    if (!stored) return DEFAULT_IMAGE_PARAMS;
+    return {
+      size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
+      responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
+      seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_IMAGE_PARAMS.seed,
+      timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_IMAGE_PARAMS.timeoutMs,
+      steps: typeof stored.steps === 'string' ? stored.steps : DEFAULT_IMAGE_PARAMS.steps,
+      cfgScale: typeof stored.cfgScale === 'string' ? stored.cfgScale : DEFAULT_IMAGE_PARAMS.cfgScale,
+      sampler: typeof stored.sampler === 'string' ? stored.sampler : DEFAULT_IMAGE_PARAMS.sampler,
+      scheduler: typeof stored.scheduler === 'string' ? stored.scheduler : DEFAULT_IMAGE_PARAMS.scheduler,
+      optionsText: typeof stored.optionsText === 'string' ? stored.optionsText : DEFAULT_IMAGE_PARAMS.optionsText,
+    };
+  });
+  const [videoParams, setVideoParams] = useState<VideoParamsState>(() => {
+    const stored = props.initial.capabilities['video.generate']?.params as Record<string, unknown> | undefined;
+    if (!stored) return DEFAULT_VIDEO_PARAMS;
+    return {
+      mode: typeof stored.mode === 'string' ? stored.mode : DEFAULT_VIDEO_PARAMS.mode,
+      ratio: typeof stored.ratio === 'string' ? stored.ratio : DEFAULT_VIDEO_PARAMS.ratio,
+      durationSec: typeof stored.durationSec === 'string' ? stored.durationSec : DEFAULT_VIDEO_PARAMS.durationSec,
+      resolution: typeof stored.resolution === 'string' ? stored.resolution : DEFAULT_VIDEO_PARAMS.resolution,
+      fps: typeof stored.fps === 'string' ? stored.fps : DEFAULT_VIDEO_PARAMS.fps,
+      seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_VIDEO_PARAMS.seed,
+      timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_VIDEO_PARAMS.timeoutMs,
+      negativePrompt: typeof stored.negativePrompt === 'string' ? stored.negativePrompt : DEFAULT_VIDEO_PARAMS.negativePrompt,
+      cameraFixed: typeof stored.cameraFixed === 'boolean' ? stored.cameraFixed : DEFAULT_VIDEO_PARAMS.cameraFixed,
+      generateAudio: typeof stored.generateAudio === 'boolean' ? stored.generateAudio : DEFAULT_VIDEO_PARAMS.generateAudio,
+    };
+  });
+  const [companionSlots, setCompanionSlots] = useState<Record<string, string>>(() => {
+    const stored = props.initial.capabilities['image.generate']?.params as Record<string, unknown> | undefined;
+    return (stored?.companionSlots && typeof stored.companionSlots === 'object')
+      ? stored.companionSlots as Record<string, string>
+      : {};
+  });
 
   const updateField = <K extends keyof AIProfile>(key: K, value: AIProfile[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));

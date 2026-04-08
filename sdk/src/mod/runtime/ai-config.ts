@@ -56,6 +56,7 @@ export type AIProfile = {
 /** Traceability reference to the profile that was last applied to an AIConfig. */
 export type AIProfileRef = {
   profileId: string;
+  title: string;
   appliedAt: string;
 };
 
@@ -66,6 +67,7 @@ export type AIProfileRef = {
 export type AIConfigCapabilities = {
   selectedBindings: Partial<Record<string, RuntimeRouteBinding | null>>;
   localProfileRefs: Partial<Record<string, AIRuntimeLocalProfileRef | null>>;
+  selectedParams: Partial<Record<string, Record<string, unknown>>>;
 };
 
 /** Scope-bound live AI configuration. Keyed by AIScopeRef. */
@@ -242,7 +244,7 @@ export function assertCanonicalModAIScopeRef(
 export function createEmptyAIConfig(scopeRef?: AIScopeRef): AIConfig {
   return {
     scopeRef: scopeRef || createDefaultAIScopeRef(),
-    capabilities: { selectedBindings: {}, localProfileRefs: {} },
+    capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
     profileOrigin: null,
   };
 }
@@ -324,6 +326,7 @@ export type AIConfigSDKSurface = {
 export function applyAIProfileToConfig(config: AIConfig, profile: AIProfile): AIConfig {
   const selectedBindings: AIConfigCapabilities['selectedBindings'] = {};
   const localProfileRefs: AIConfigCapabilities['localProfileRefs'] = {};
+  const selectedParams: AIConfigCapabilities['selectedParams'] = {};
 
   for (const [capability, intent] of Object.entries(profile.capabilities)) {
     if (!intent) continue;
@@ -333,13 +336,17 @@ export function applyAIProfileToConfig(config: AIConfig, profile: AIProfile): AI
     if (intent.localProfileRef !== undefined) {
       localProfileRefs[capability] = intent.localProfileRef;
     }
+    if (intent.params !== undefined && intent.params !== null) {
+      selectedParams[capability] = intent.params;
+    }
   }
 
   return {
     scopeRef: config.scopeRef,
-    capabilities: { selectedBindings, localProfileRefs },
+    capabilities: { selectedBindings, localProfileRefs, selectedParams },
     profileOrigin: {
       profileId: profile.profileId,
+      title: profile.title,
       appliedAt: new Date().toISOString(),
     },
   };

@@ -121,6 +121,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
           },
         },
         localProfileRefs: {},
+        selectedParams: {},
       },
     },
   });
@@ -190,6 +191,7 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
           },
         },
         localProfileRefs: {},
+        selectedParams: {},
       },
     },
   });

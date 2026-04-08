@@ -253,7 +253,7 @@ function AIProfilePickerCard() {
           </span>
           {profileOrigin ? (
             <span className="truncate text-[11px] text-[var(--nimi-text-secondary)]">
-              {profileOrigin.profileId}
+              {profileOrigin.title || profileOrigin.profileId}
             </span>
           ) : null}
         </div>

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { ImageCapabilitySettings } from './chat-image-capability-settings';
 import { VideoCapabilitySettings } from './chat-video-capability-settings';
@@ -27,6 +27,12 @@ import {
 } from './chat-settings-panel';
 import { RuntimeInspectCard } from './chat-runtime-inspect-content';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import {
+  DEFAULT_IMAGE_PARAMS,
+  type ImageParamsState,
+  DEFAULT_VIDEO_PARAMS,
+  type VideoParamsState,
+} from './capability-settings-shared';
 
 const CORE_RUNTIME_MOD_ID = 'core:runtime';
 
@@ -235,7 +241,7 @@ function useCapabilityModelPickerProvider(capability: string): RouteModelPickerD
   return providerRef.current;
 }
 
-function CapabilityRouteSettingCard(props: CapabilityConfig & { localContent?: ReactNode }) {
+function CapabilityRouteSettingCard(props: CapabilityConfig & { localContent?: ReactNode; onClear?: () => void }) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const selectedBinding = useAppStore((state) => state.aiConfig.capabilities.selectedBindings[props.capability]) as RuntimeRouteBinding | null | undefined;
@@ -509,9 +515,64 @@ export function ConversationCapabilitySettingsSection(
     ];
   }, [props.section, t]);
 
+  const aiConfig = useAppStore((state) => state.aiConfig);
+  const surface = useMemo(() => getDesktopAIConfigService(), []);
+
+  const updateCapabilityParams = useCallback((capability: string, params: Record<string, unknown>) => {
+    const nextParams = { ...aiConfig.capabilities.selectedParams, [capability]: params };
+    const nextConfig = {
+      ...aiConfig,
+      capabilities: { ...aiConfig.capabilities, selectedParams: nextParams },
+    };
+    surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
+  }, [aiConfig, surface]);
+
   const resolveLocalContent = (capability: string) => {
-    if (props.section === 'image') return <ImageCapabilitySettings capability={capability} />;
-    if (props.section === 'video') return <VideoCapabilitySettings />;
+    if (supportsImageCapability(capability)) {
+      const stored = (aiConfig.capabilities.selectedParams[capability] || {}) as Record<string, unknown>;
+      const companionSlots = (stored.companionSlots || {}) as Record<string, string>;
+      const imageParams: ImageParamsState = {
+        size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
+        responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
+        seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_IMAGE_PARAMS.seed,
+        timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_IMAGE_PARAMS.timeoutMs,
+        steps: typeof stored.steps === 'string' ? stored.steps : DEFAULT_IMAGE_PARAMS.steps,
+        cfgScale: typeof stored.cfgScale === 'string' ? stored.cfgScale : DEFAULT_IMAGE_PARAMS.cfgScale,
+        sampler: typeof stored.sampler === 'string' ? stored.sampler : DEFAULT_IMAGE_PARAMS.sampler,
+        scheduler: typeof stored.scheduler === 'string' ? stored.scheduler : DEFAULT_IMAGE_PARAMS.scheduler,
+        optionsText: typeof stored.optionsText === 'string' ? stored.optionsText : DEFAULT_IMAGE_PARAMS.optionsText,
+      };
+      return (
+        <ImageCapabilitySettings
+          capability={capability}
+          params={imageParams}
+          companionSlots={companionSlots}
+          onParamsChange={(next) => updateCapabilityParams(capability, { ...next, companionSlots })}
+          onCompanionSlotsChange={(next) => updateCapabilityParams(capability, { ...imageParams, companionSlots: next })}
+        />
+      );
+    }
+    if (capability === 'video.generate') {
+      const stored = (aiConfig.capabilities.selectedParams['video.generate'] || {}) as Record<string, unknown>;
+      const videoParams: VideoParamsState = {
+        mode: typeof stored.mode === 'string' ? stored.mode : DEFAULT_VIDEO_PARAMS.mode,
+        ratio: typeof stored.ratio === 'string' ? stored.ratio : DEFAULT_VIDEO_PARAMS.ratio,
+        durationSec: typeof stored.durationSec === 'string' ? stored.durationSec : DEFAULT_VIDEO_PARAMS.durationSec,
+        resolution: typeof stored.resolution === 'string' ? stored.resolution : DEFAULT_VIDEO_PARAMS.resolution,
+        fps: typeof stored.fps === 'string' ? stored.fps : DEFAULT_VIDEO_PARAMS.fps,
+        seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_VIDEO_PARAMS.seed,
+        timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_VIDEO_PARAMS.timeoutMs,
+        negativePrompt: typeof stored.negativePrompt === 'string' ? stored.negativePrompt : DEFAULT_VIDEO_PARAMS.negativePrompt,
+        cameraFixed: typeof stored.cameraFixed === 'boolean' ? stored.cameraFixed : DEFAULT_VIDEO_PARAMS.cameraFixed,
+        generateAudio: typeof stored.generateAudio === 'boolean' ? stored.generateAudio : DEFAULT_VIDEO_PARAMS.generateAudio,
+      };
+      return (
+        <VideoCapabilitySettings
+          params={videoParams}
+          onParamsChange={(next) => updateCapabilityParams('video.generate', next as unknown as Record<string, unknown>)}
+        />
+      );
+    }
     return undefined;
   };
 

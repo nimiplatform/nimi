@@ -37,7 +37,7 @@ vi.mock('@nimiplatform/sdk/mod', () => ({
   }),
   createEmptyAIConfig: (scopeRef?: { kind: string; ownerId: string; surfaceId?: string }) => ({
     scopeRef: scopeRef || { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
-    capabilities: { selectedBindings: {}, localProfileRefs: {} },
+    capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
     profileOrigin: null,
   }),
 }));
@@ -61,7 +61,7 @@ describe('AiConfigSection', () => {
     useAiConfigStore.setState({
       aiConfig: {
         scopeRef: { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
-        capabilities: { selectedBindings: {}, localProfileRefs: {} },
+        capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
         profileOrigin: null,
       },
       runtimeStatus: 'unknown',

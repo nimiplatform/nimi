@@ -19,7 +19,7 @@ vi.mock('@nimiplatform/sdk', () => ({
 vi.mock('@nimiplatform/sdk/mod', () => ({
   createEmptyAIConfig: (scopeRef?: { kind: string; ownerId: string; surfaceId?: string }) => ({
     scopeRef: scopeRef || { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
-    capabilities: { selectedBindings: {}, localProfileRefs: {} },
+    capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
     profileOrigin: null,
   }),
 }));
@@ -31,7 +31,7 @@ function resetStore() {
   useAiConfigStore.setState({
     aiConfig: {
       scopeRef: { kind: 'app', ownerId: 'forge', surfaceId: 'settings' },
-      capabilities: { selectedBindings: {}, localProfileRefs: {} },
+      capabilities: { selectedBindings: {}, localProfileRefs: {}, selectedParams: {} },
       profileOrigin: null,
     },
     runtimeStatus: 'unknown',
@@ -128,6 +128,7 @@ describe('ai-config-store (AIConfig)', () => {
         capabilities: {
           selectedBindings: { 'text.generate': { source: 'cloud', connectorId: 'c1', model: 'gpt-4o' } },
           localProfileRefs: {},
+          selectedParams: {},
         },
         profileOrigin: null,
       },

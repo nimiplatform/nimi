@@ -552,6 +552,7 @@ export function aiConfigFromSelectionStore(
     capabilities: {
       selectedBindings: { ...store.selectedBindings },
       localProfileRefs,
+      selectedParams: {},
     },
     profileOrigin: null,
   };

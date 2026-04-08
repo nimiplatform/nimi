@@ -251,6 +251,7 @@ test('desktop mod aiConfig bridge forwards feasibility and target probes through
           localProfileRefs: {
             'text.generate': { modId: 'core:runtime', profileId: 'text-local' },
           },
+          selectedParams: {},
         },
         profileOrigin: null,
       },
