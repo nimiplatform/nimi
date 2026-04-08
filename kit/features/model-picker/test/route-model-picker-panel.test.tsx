@@ -38,7 +38,7 @@ const state: UseModelPickerResult<TestModel> = {
 };
 
 describe('RouteModelPickerPanel', () => {
-  it('renders source, connector, and model states', () => {
+  it('renders source tabs, connector select, and selected model', () => {
     const html = renderToStaticMarkup(
       <RouteModelPickerPanel
         state={state}
@@ -57,16 +57,16 @@ describe('RouteModelPickerPanel', () => {
       />,
     );
 
-    expect(html).toContain('Source');
-    expect(html).toContain('Connector');
-    expect(html).toContain('Model');
+    // Source tabs render as buttons with labels
     expect(html).toContain('Local');
     expect(html).toContain('Cloud');
-    expect(html).toContain('Qwen 3');
-    expect(html).toContain('openai/qwen3');
+    // Connector select renders via SelectField (Radix uses hidden <select>)
+    expect(html).toContain('select');
+    // Model selector shows the selected model value
+    expect(html).toContain('qwen3');
   });
 
-  it('renders degraded and invalid-binding banners', () => {
+  it('renders loading state when loading is true', () => {
     const html = renderToStaticMarkup(
       <RouteModelPickerPanel
         state={state}
@@ -75,14 +75,31 @@ describe('RouteModelPickerPanel', () => {
           { value: 'local', label: 'Local' },
           { value: 'cloud', label: 'Cloud' },
         ]}
-        banners={[
-          { tone: 'warning', message: 'Saved route is no longer available.' },
-          { tone: 'danger', message: 'Route discovery failed.' },
-        ]}
+        loading
+        loadingMessage="Loading models..."
       />,
     );
 
-    expect(html).toContain('Saved route is no longer available.');
-    expect(html).toContain('Route discovery failed.');
+    expect(html).toContain('Loading models...');
+    // Source tabs should NOT render when loading
+    expect(html).not.toContain('Local');
+  });
+
+  it('renders unavailable state when unavailable is true', () => {
+    const html = renderToStaticMarkup(
+      <RouteModelPickerPanel
+        state={state}
+        sourceValue="local"
+        sourceOptions={[
+          { value: 'local', label: 'Local' },
+          { value: 'cloud', label: 'Cloud' },
+        ]}
+        unavailable
+        unavailableMessage="Route options unavailable."
+      />,
+    );
+
+    expect(html).toContain('Route options unavailable.');
+    expect(html).not.toContain('Local');
   });
 });

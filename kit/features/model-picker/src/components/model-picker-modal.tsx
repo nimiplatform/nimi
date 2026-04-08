@@ -115,10 +115,15 @@ export function ModelPickerModal({
   }, [search, pickerState.models, pickerState.adapter]);
 
   const handleSelect = useCallback((modelId: string) => {
+    // Resolve display label from picker adapter
+    const displayModel = pickerState.models.find((m) => pickerState.adapter.getId(m) === modelId);
+    const modelLabel = displayModel ? pickerState.adapter.getTitle(displayModel) : undefined;
+
     const base: RouteModelPickerSelection = {
       source: selection.source,
       connectorId: selection.connectorId,
       model: modelId,
+      modelLabel,
     };
     if (selection.source === 'local') {
       const localModel = localModels.find((m) => m.localModelId === modelId);
@@ -126,11 +131,12 @@ export function ModelPickerModal({
         base.localModelId = localModel.localModelId;
         base.engine = localModel.engine;
         base.modelId = localModel.modelId;
+        base.modelLabel = modelLabel || localModel.label || localModel.modelId;
       }
     }
     onSelect(base);
     onClose();
-  }, [onClose, onSelect, selection.connectorId, selection.source, localModels]);
+  }, [onClose, onSelect, selection.connectorId, selection.source, localModels, pickerState.models, pickerState.adapter]);
 
   // Reset search when modal opens
   useEffect(() => {

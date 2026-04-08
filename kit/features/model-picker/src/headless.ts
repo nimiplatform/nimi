@@ -11,7 +11,7 @@ export type {
   UseModelPickerResult,
 } from './hooks/use-model-picker.js';
 export {
-  createSdkRouteDataProvider,
+  createSnapshotRouteDataProvider,
   useRouteModelPickerData,
 } from './route-data.js';
 export type {
@@ -19,6 +19,7 @@ export type {
   RouteConnector,
   RouteConnectorModel,
   RouteModelPickerDataProvider,
+  RouteOptionsSnapshot,
   RouteDisplayModel,
   RouteModelPickerSelection,
   RouteModelPickerLabels,

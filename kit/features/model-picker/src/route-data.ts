@@ -5,8 +5,10 @@
  * that manages local model discovery, cloud connector listing, source toggle,
  * and model selection — so apps only need to render RouteModelPickerPanel.
  *
- * Usage (SDK-direct apps like Forge/Tauri):
- *   const provider = createSdkRouteDataProvider(getPlatformClient().runtime);
+ * Usage (Stable capability-first route authority — preferred):
+ *   const provider = createSnapshotRouteDataProvider(
+ *     () => modClient.route.listOptions({ capability: 'text.generate' }),
+ *   );
  *   const state = useRouteModelPickerData({ provider, capability: 'text.generate' });
  *   <RouteModelPickerPanel {...state.panelProps} />
  *
@@ -84,30 +86,105 @@ function mapLocalStatus(raw: number): RouteLocalModel['status'] {
   return STATUS_MAP[raw as LocalModelStatusCode] ?? 'unspecified';
 }
 
+// NOTE: The inventory-based provider (createInventoryRouteDataProvider / createSdkRouteDataProvider)
+// has been removed. All app-facing route selection paths now use createSnapshotRouteDataProvider
+// backed by runtime.route.listOptions(...).
+
+// ---------------------------------------------------------------------------
+// Snapshot-shaped route options (from runtime.route.listOptions)
+// ---------------------------------------------------------------------------
+
 /**
- * Creates a data provider that calls the runtime SDK directly.
- * Use this for Tauri apps where the SDK is available in the renderer.
+ * Shape of the capability-scoped route options snapshot returned by
+ * `runtime.route.listOptions(...)`. This is the authoritative route option
+ * source — the runtime pre-filters local models and cloud connectors by
+ * capability before returning the snapshot.
  *
- * Accepts the SDK runtime client which uses `listLocalAssets` (asset-based model API).
+ * This type mirrors `RuntimeRouteOptionsSnapshot` from the SDK but is declared
+ * here so the kit layer does not import SDK internals directly.
  */
-export function createSdkRouteDataProvider(runtime: {
-  local: { listLocalAssets: (req: any) => Promise<{ assets: any[] }> };
-  connector: {
-    listConnectors: (req: any) => Promise<{ connectors: any[] }>;
-    listConnectorModels: (req: any) => Promise<{ models: any[] }>;
+export type RouteOptionsSnapshot = {
+  capability?: string;
+  selected?: {
+    source: string;
+    connectorId: string;
+    model: string;
+    modelId?: string;
+    provider?: string;
+    localModelId?: string;
+    engine?: string;
+  } | null;
+  local: {
+    models: Array<{
+      localModelId: string;
+      label?: string;
+      engine?: string;
+      model: string;
+      modelId?: string;
+      provider?: string;
+      endpoint?: string;
+      status?: string;
+      capabilities?: string[];
+    }>;
+    defaultEndpoint?: string;
   };
-}): RouteModelPickerDataProvider {
+  connectors: Array<{
+    id: string;
+    label: string;
+    vendor?: string;
+    provider?: string;
+    models: string[];
+    modelCapabilities?: Record<string, string[]>;
+  }>;
+};
+
+/**
+ * Creates a data provider backed by a capability-scoped route options snapshot.
+ *
+ * This is the preferred provider for app-facing route pickers because the
+ * runtime is the single authority for route option availability. The snapshot
+ * already separates local models from cloud connectors and only includes
+ * models that match the requested capability.
+ *
+ * Usage:
+ *   const provider = createSnapshotRouteDataProvider(
+ *     () => modClient.route.listOptions({ capability: 'text.generate' }),
+ *   );
+ */
+export function createSnapshotRouteDataProvider(
+  fetchSnapshot: () => Promise<RouteOptionsSnapshot>,
+): RouteModelPickerDataProvider {
+  // Cache the snapshot for the current fetch cycle so listLocalModels(),
+  // listConnectors(), and listConnectorModels() all read from the same data.
+  let cachedPromise: Promise<RouteOptionsSnapshot> | null = null;
+
+  function getSnapshot(): Promise<RouteOptionsSnapshot> {
+    if (!cachedPromise) {
+      cachedPromise = fetchSnapshot().finally(() => {
+        // Allow refetch on next cycle (e.g. after user-initiated refresh)
+        setTimeout(() => { cachedPromise = null; }, 0);
+      });
+    }
+    return cachedPromise;
+  }
+
   return {
     async listLocalModels() {
-      const response = await runtime.local.listLocalAssets({});
-      return (response.assets || [])
-        .map((a: any) => ({
-          localModelId: (a.localAssetId || a.localModelId) as string,
-          modelId: (a.logicalModelId || a.modelId || a.assetId) as string,
-          label: (a.assetId || a.entry || a.family || a.logicalModelId || a.localAssetId || '') as string,
-          engine: (a.engine || '') as string,
-          status: mapLocalStatus(a.status as number),
-          capabilities: [...(a.capabilities || [])] as string[],
+      const snapshot = await getSnapshot();
+      return (snapshot.local.models || [])
+        .map((m) => ({
+          localModelId: String(m.localModelId || ''),
+          modelId: String(m.modelId || m.model || ''),
+          label: String(m.label || m.model || m.modelId || m.localModelId || ''),
+          engine: String(m.engine || ''),
+          status: mapLocalStatus(
+            m.status === 'active' ? 2
+              : m.status === 'installed' ? 1
+                : m.status === 'unhealthy' ? 3
+                  : m.status === 'removed' ? 4
+                    : 0,
+          ),
+          capabilities: [...(m.capabilities || [])] as string[],
         }))
         .sort((a: RouteLocalModel, b: RouteLocalModel) => {
           const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
@@ -116,22 +193,28 @@ export function createSdkRouteDataProvider(runtime: {
         });
     },
     async listConnectors() {
-      const response = await runtime.connector.listConnectors({});
-      return (response.connectors || []).map((c: any) => ({
-        connectorId: c.connectorId as string,
-        provider: c.provider as string,
-        label: (c.label || c.provider) as string,
-        status: String(c.status),
-      }));
+      const snapshot = await getSnapshot();
+      return (snapshot.connectors || [])
+        .filter((c) => c.id && c.models.length > 0)
+        .map((c) => ({
+          connectorId: String(c.id),
+          provider: String(c.provider || ''),
+          label: String(c.label || c.provider || ''),
+          status: 'active',
+        }));
     },
     async listConnectorModels(connectorId: string) {
-      const response = await runtime.connector.listConnectorModels({ connectorId });
-      return (response.models || []).map((m: any) => ({
-        modelId: m.modelId as string,
-        modelLabel: (m.modelLabel || m.modelId) as string,
-        available: Boolean(m.available),
-        capabilities: [...(m.capabilities || [])] as string[],
-      }));
+      const snapshot = await getSnapshot();
+      const connector = (snapshot.connectors || []).find((c) => c.id === connectorId);
+      if (!connector) return [];
+      return connector.models
+        .filter((modelId) => String(modelId || '').trim())
+        .map((modelId) => ({
+          modelId: String(modelId),
+          modelLabel: String(modelId),
+          available: true,
+          capabilities: connector.modelCapabilities?.[modelId] || [],
+        }));
     },
   };
 }
@@ -154,6 +237,8 @@ export type RouteModelPickerSelection = {
   source: RouteModelPickerSource;
   connectorId: string;
   model: string;
+  /** Human-readable model display name resolved at selection time. */
+  modelLabel?: string;
   /** Local model metadata — populated when source === 'local'. */
   localModelId?: string;
   engine?: string;
@@ -170,11 +255,18 @@ const CAPABILITY_ALIASES: Record<string, readonly string[]> = {
   'text.generate': ['text.generate', 'chat'],
   'chat': ['text.generate', 'chat'],
   'image.generate': ['image.generate', 'image'],
-  'image': ['image.generate', 'image'],
+  'image.edit': ['image.edit', 'image.generate', 'image'],
+  'image': ['image.generate', 'image.edit', 'image'],
   'audio.generate': ['audio.generate', 'music', 'audio'],
   'music': ['audio.generate', 'music', 'audio'],
   'audio.synthesize': ['audio.synthesize', 'tts'],
+  'tts': ['audio.synthesize', 'tts'],
   'audio.transcribe': ['audio.transcribe', 'stt'],
+  'stt': ['audio.transcribe', 'stt'],
+  'voice_workflow.tts_v2v': ['voice_workflow.tts_v2v', 'audio.synthesize', 'tts'],
+  'voice_workflow.tts_t2v': ['voice_workflow.tts_t2v', 'audio.synthesize', 'tts'],
+  'video.generate': ['video.generate', 'video'],
+  'video': ['video.generate', 'video'],
 };
 
 function matchesCapability(modelCapabilities: readonly string[], filter: string): boolean {
@@ -364,19 +456,24 @@ export function useRouteModelPickerData({
   const activeModel = model || availableModels[0]?.id || '';
 
   const buildSelection = useCallback((sel: { source: RouteModelPickerSource; connectorId: string; model: string }): RouteModelPickerSelection => {
+    // Resolve display label from available models
+    const displayMatch = availableModels.find((m) => m.id === sel.model);
+    const modelLabel = displayMatch?.label || undefined;
+
     if (sel.source === 'local' && sel.model) {
       const localModel = localModels.find((m) => m.localModelId === sel.model);
       if (localModel) {
         return {
           ...sel,
+          modelLabel: modelLabel || localModel.label || localModel.modelId,
           localModelId: localModel.localModelId,
           engine: localModel.engine,
           modelId: localModel.modelId,
         };
       }
     }
-    return sel;
-  }, [localModels]);
+    return { ...sel, modelLabel };
+  }, [localModels, availableModels]);
 
   // Sync initial auto-selection to callback when models first become available
   // (e.g. only one model → auto-selected but user never clicks)
