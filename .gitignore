@@ -59,5 +59,8 @@ dev/fixtures/*
 !dev/fixtures/live-audio-fixtures/
 !dev/fixtures/live-audio-fixtures/*.wav
 
+# local AI coding artifacts (never committed)
+.local/
+
 # local scratch outputs
 .tmp/
