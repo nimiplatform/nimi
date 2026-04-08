@@ -21,6 +21,7 @@
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
+  - `AIEXEC` `SCHED`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
@@ -58,6 +59,8 @@
 | `multimodal-provider-contract.md` | `K-MMPROV-*` | canonical 输入、artifact、adapter 与路由约束（含 `MUSIC_GENERATE` iteration 扩展） |
 | `delivery-gates-contract.md` | `K-GATE-*` | 交付门定义与证据路由 |
 | `proto-governance-contract.md` | `K-PROTO-*` | proto 治理、兼容策略、发布门禁 |
+| `ai-profile-execution-contract.md` | `K-AIEXEC-*` | AIProfile 执行、probe、snapshot、scheduling boundary |
+| `scheduling-contract.md` | `K-SCHED-*` | 调度 five-state preflight judgement、atomic target / aggregate Peek、occupancy、denial |
 
 ## 5. 结构化事实源
 

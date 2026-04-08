@@ -561,4 +561,6 @@ method_mappings:
   proto_service: RuntimeAppService
   proto_method: SubscribeAppMessages
   mapping_status: aligned
-excluded_proto_methods: []
+excluded_proto_methods:
+- proto_service: RuntimeAiService
+  proto_method: PeekScheduling

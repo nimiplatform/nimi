@@ -1,10 +1,14 @@
 # Conversation Capability Contract
 
 > Authority: Desktop Kernel
+>
+> Umbrella: This contract is a submodel of `AIConfig` / `AISnapshot` as defined in `ai-profile-config-contract.md` (D-AIPC-010). The rules below remain normative but their owner semantics are subordinate to the three-tier AI configuration authority (D-AIPC-001).
 
 ## Scope
 
 定义 AI / Agent Chat / Runtime Config 共用的 conversation capability selection、projection、agent overlay、execution snapshot 与 host bootstrap authority。
+
+本契约中的四层 authority 在 `AIProfile / AIConfig / AISnapshot` 体系（D-AIPC-001）下作为 conversation-capability submodel 保留，不作为独立 peer authority 与三段式并列。具体映射见 D-AIPC-010。
 
 ## D-LLM-015 — Authority Map And Bootstrap Home
 

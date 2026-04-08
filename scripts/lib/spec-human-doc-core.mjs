@@ -442,6 +442,7 @@ export const runtimeKernelFiles = [
   'config-contract.md', 'connector-contract.md',
   'nimillm-contract.md', 'multimodal-provider-contract.md', 'delivery-gates-contract.md',
   'proto-governance-contract.md',
+  'ai-profile-execution-contract.md',
 ];
 
 export const sdkKernelFiles = [
@@ -449,6 +450,7 @@ export const sdkKernelFiles = [
   'error-projection.md', 'boundary-contract.md',
   'runtime-contract.md', 'realm-contract.md', 'ai-provider-contract.md',
   'scope-contract.md', 'mod-contract.md', 'testing-gates-contract.md',
+  'ai-config-surface-contract.md',
 ];
 
 export const desktopKernelFiles = [
@@ -458,6 +460,7 @@ export const desktopKernelFiles = [
   'error-boundary-contract.md', 'telemetry-contract.md', 'network-contract.md',
   'security-contract.md', 'streaming-consumption-contract.md', 'offline-degradation-contract.md',
   'codegen-contract.md', 'testing-gates-contract.md',
+  'ai-profile-config-contract.md', 'conversation-capability-contract.md',
 ];
 
 export const futureKernelFiles = [
@@ -469,6 +472,7 @@ export const platformKernelFiles = [
   'architecture-contract.md',
   'ai-last-mile-contract.md',
   'governance-contract.md',
+  'ai-scope-contract.md',
 ];
 
 export const realmKernelFiles = [

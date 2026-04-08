@@ -95,6 +95,9 @@ const kernelFiles = [
   'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
   'spec/runtime/kernel/tables/config-schema.yaml',
   'spec/runtime/kernel/tables/rule-evidence.yaml',
+  // AI profile execution and scheduling
+  'spec/runtime/kernel/ai-profile-execution-contract.md',
+  'spec/runtime/kernel/scheduling-contract.md',
 ];
 
 const domainFiles = listDomainMarkdownFiles('spec/runtime');

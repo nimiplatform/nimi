@@ -43,3 +43,8 @@
 | `localModelsPath` | `string` | `~/.nimi/data/models` | `restart` | 本地模型存储路径 | `K-LOCAL-016` |
 | `modelCatalogCustomDir` | `string` | `~/.nimi/runtime/model-catalog/providers` | `restart` | 本地自定义 provider 目录路径 | `K-MCAT-005` |
 | `allowLoopbackProviderEndpoint` | `bool` | `false` | `restart` | 是否允许 loopback 地址的 HTTP provider endpoint | `K-SEC-002` |
+| `scheduling.diskDenialThresholdBytes` | `int` | `524288000` | `hot` | 磁盘可用空间低于此值触发 scheduling denied（字节） | `K-SCHED-004` |
+| `scheduling.slowdownRamThresholdBytes` | `int` | `2147483648` | `hot` | 可用 RAM 低于此值触发 slowdown_risk（字节，默认 2 GB） | `K-SCHED-005` |
+| `scheduling.slowdownVramThresholdBytes` | `int` | `1073741824` | `hot` | 可用 VRAM 低于此值触发 slowdown_risk（字节，默认 1 GB） | `K-SCHED-005` |
+| `scheduling.slowdownDiskThresholdBytes` | `int` | `2147483648` | `hot` | 磁盘可用空间低于此值触发 slowdown_risk（字节，默认 2 GB；高于 denial 阈值） | `K-SCHED-005` |
+| `scheduling.preemptionOccupancyPercent` | `int` | `75` | `hot` | 全局 slot 占用率超过此百分比触发 preemption_risk（0-100） | `K-SCHED-005` |

@@ -1154,3 +1154,41 @@
 - rule_id: K-LOCAL-033
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+# AI profile execution (K-AIEXEC-*)
+- rule_id: K-AIEXEC-001
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AIEXEC-002
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AIEXEC-003
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AIEXEC-004
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AIEXEC-005
+  status: deferred
+  evidence_refs: []
+# Scheduling five-state judgement (K-SCHED-*)
+- rule_id: K-SCHED-001
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-002
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-003
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-004
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-005
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-006
+  status: deferred
+  evidence_refs: []
+- rule_id: K-SCHED-007
+  status: deferred
+  evidence_refs: []

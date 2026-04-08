@@ -399,6 +399,18 @@
 | `K-LOCAL-031` | `covered` | `runtime_kernel_consistency` |
 | `K-LOCAL-032` | `covered` | `runtime_kernel_consistency` |
 | `K-LOCAL-033` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-AIEXEC-001` | `deferred` | — |
+| `K-AIEXEC-002` | `deferred` | — |
+| `K-AIEXEC-003` | `deferred` | — |
+| `K-AIEXEC-004` | `deferred` | — |
+| `K-AIEXEC-005` | `deferred` | — |
+| `K-SCHED-001` | `deferred` | — |
+| `K-SCHED-002` | `deferred` | — |
+| `K-SCHED-003` | `deferred` | — |
+| `K-SCHED-004` | `deferred` | — |
+| `K-SCHED-005` | `deferred` | — |
+| `K-SCHED-006` | `deferred` | — |
+| `K-SCHED-007` | `deferred` | — |
 | `K-MMPROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |

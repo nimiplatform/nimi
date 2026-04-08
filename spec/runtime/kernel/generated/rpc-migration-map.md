@@ -128,3 +128,4 @@
 
 | Proto Service | Proto Method | Reason |
 |---|---|---|
+| `RuntimeAiService` | `PeekScheduling` | `—` |
