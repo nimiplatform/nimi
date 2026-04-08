@@ -1,0 +1,24 @@
+id: notification-payload.v1
+purpose: Formalize transport-agnostic continuous-run notification emissions without promoting them to canonical topic or orchestration ownership.
+requires:
+  - event
+  - correlation_id
+  - topic_id
+  - run_id
+  - packet_ref
+  - phase_id
+  - run_status
+  - reason
+  - required_human_action
+  - artifact_refs
+  - emitted_at
+forbids:
+  - transport routing addresses
+  - transport credentials or secrets
+  - notification delivery receipts as canonical run truth
+  - semantic acceptance or finding lifecycle judgments
+rules:
+  - current notification events are limited to run_paused, run_failed, and awaiting_final_confirmation
+  - notification payloads must be derivable from frozen packet plus current topic/run artifacts
+  - notification emission may be logged locally, but the log is not the canonical owner of topic or orchestration state
+  - final confirmation payloads may request human closeout, but they must not imply automatic topic semantic closure

@@ -17,6 +17,7 @@ Staged delivery is enabled by audit routing, not by task labels.
   - consume only a frozen execution packet plus existing topic artifacts
   - validate, route, and pause on declared escalation conditions
   - must not perform semantic acceptance, final confirmation, or finding inference
+  - may invoke only admitted module-owned provider execution surfaces and consume only module-owned worker runner signals
 
 ## Required Outcomes
 
@@ -47,5 +48,6 @@ Autonomous mode is a staged-delivery specialization, not a new authority model.
 - Resumable autonomous mode may additionally persist orchestration state as packet-bound run position.
 - Stateless batch skeleton remains valid and does not require orchestration state.
 - It does not replace manager semantic authority.
-- It does not auto-accept phases, close topics, or infer finding status changes.
+- It may write packet-declared mechanical acceptance records for `complete` or `deferred`, but it must not perform semantic acceptance, infer `partial`, close topics, or infer finding status changes.
 - It must pause on packet-declared escalation conditions rather than continue through ambiguity.
+- Provider execution inside autonomous mode remains operational worker invocation only; it must not rewrite orchestration semantics or turn automation into a general orchestration marketplace.

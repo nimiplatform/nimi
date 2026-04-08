@@ -1,10 +1,22 @@
 state_id: minimum-topic-run-v1
 topic_id: minimum-topic
 packet_ref: sample.execution-packet.yaml
-run_status: prepared
-current_phase_id: sample-phase
+run_status: superseded
+current_phase_id: null
 last_completed_phase_id: null
-awaiting_human_action: dispatch-next-phase
+awaiting_human_action: null
 pause_reason: null
+current_prompt_ref: null
+latest_worker_output_ref: null
+latest_acceptance_ref: null
+latest_evidence_refs: []
+notification_refs:
+  - event: run_paused
+    correlation_id: minimum-topic-run-v1:run_paused:1
+    emitted_at: 2026-04-08T16:00:00+08:00
+  - event: awaiting_final_confirmation
+    correlation_id: minimum-topic-run-v1:awaiting_final_confirmation:2
+    emitted_at: 2026-04-08T16:10:00+08:00
+started_at: 2026-04-08T16:00:00+08:00
 updated_at: 2026-04-08T16:00:00+08:00
 owner: nimi-coding/samples

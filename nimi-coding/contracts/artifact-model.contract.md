@@ -65,6 +65,12 @@ The orchestration state does not replace packet, acceptance, evidence, or findin
 - `*.execution-packet.yaml` must reference one frozen baseline and may be routed from `topic.index.yaml` by `execution_packet_ref`
 - `*.orchestration-state.yaml` must reference one execution packet and may be routed from `topic.index.yaml` by `orchestration_state_ref`
 - `*.orchestration-state.yaml` may reference notification correlation ids, but must not carry transport secrets or runtime lease state
+- transport-agnostic notification payload logs live at `.nimi-coding/notifications/<run_id>.jsonl`; they may reference topic/run artifacts for local emission and readback, but they are not routed from `topic.index.yaml` and are not canonical state owners
+- `notification-handoff.v1` is protocol-only readback semantics derived from notification-log append order; it is not a stored artifact and must not become transport-owned topic state
+- `provider-worker-execution.v1` is protocol-only worker invocation authority for admitted providers; it is not a stored artifact and must not persist provider session or transport state into topic artifacts
+- `worker-runner-signal.v1` is protocol-only machine-readable runner handoff derived from worker-authored output; it is not a separate topic artifact and must not be inferred from provider stdout alone
+- transport-local ack checkpoints live at `.nimi-coding/transport-state/<consumer_id>/<run_id>.checkpoint.yaml`; they are operational persistence for one consumer stream and must not become canonical topic or orchestration state
+- external adapter side effects such as file-sink, webhook, or Telegram deliveries are transport-owned operational outputs; they consume handoff entries and checkpoints but are not topic artifacts or canonical notification truth
 - `*.prompt.md` may be derived from a packet-declared phase, but packet presence does not delegate semantic acceptance to automation
 
 ## Non-Rules
@@ -75,3 +81,4 @@ The orchestration state does not replace packet, acceptance, evidence, or findin
 4. Phase execution artifacts are not indexed in `topic.index.yaml` — they are phase-scoped, not topic-state-scoped.
 5. Execution packets are not runtime implementations, notification transports, or general workflow engines.
 6. Orchestration states are not generic workflow stores, runner processes, or semantic closeout artifacts.
+7. Provider execution and worker runner signals are protocol-only operational surfaces; they do not create a third execution artifact family.

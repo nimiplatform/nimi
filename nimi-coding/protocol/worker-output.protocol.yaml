@@ -6,6 +6,7 @@ requires:
   - files changed
   - checks run
   - remaining gaps / risks
+  - machine-readable runner signal when the output participates in provider-backed continuous execution
 forbids:
   - completion without checks
   - narrative-only output

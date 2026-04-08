@@ -13,21 +13,29 @@ required:
 optional:
   - pause_reason
   - notification_refs
+  - current_prompt_ref
+  - latest_worker_output_ref
+  - latest_acceptance_ref
+  - latest_evidence_refs
+  - started_at
 run_status_enum:
-  - prepared
-  - in_progress
+  - running
   - paused
-  - awaiting_human
-  - awaiting_final_confirmation
+  - awaiting_confirmation
   - completed
+  - failed
   - superseded
 notification_ref_required:
-  - event_type
+  - event
   - correlation_id
 rules:
   - packet_ref must resolve to an execution packet artifact
   - current_phase_id and last_completed_phase_id must be null or existing packet phase ids
-  - paused state requires pause_reason
-  - human-waiting states require awaiting_human_action
+  - running state requires current_phase_id
+  - paused state requires current_phase_id, pause_reason, and awaiting_human_action
+  - awaiting_confirmation state requires current_phase_id and awaiting_human_action
+  - failed state requires awaiting_human_action
+  - completed state requires last_completed_phase_id and must not carry awaiting_human_action or pause_reason
   - resume_token and transport secrets are forbidden
+  - notification_refs entries may track event/correlation emission refs, but they must not become notification log state ownership
   - orchestration state must not encode semantic acceptance or finding judgments

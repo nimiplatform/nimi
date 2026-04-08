@@ -1,0 +1,19 @@
+event: awaiting_final_confirmation
+correlation_id: minimum-topic-run-v1:awaiting_final_confirmation:1
+topic_id: minimum-topic
+run_id: minimum-topic-run-v1
+packet_ref: sample.execution-packet.yaml
+phase_id: sample-closeout
+run_status: awaiting_confirmation
+reason: terminal packet phase completed mechanically
+required_human_action: final-confirmation
+artifact_refs:
+  baseline_ref: methodology.baseline.md
+  packet_ref: sample.execution-packet.yaml
+  state_ref: sample.orchestration-state.yaml
+  prompt_ref: sample-phase.prompt.md
+  worker_output_ref: sample-phase.worker-output.md
+  acceptance_ref: sample-phase.acceptance.md
+  evidence_refs:
+    - audit.evidence.md
+emitted_at: 2026-04-08T16:00:00+08:00

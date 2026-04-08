@@ -1,0 +1,18 @@
+id: notification-telegram-adapter.v1
+purpose: Define the minimum Telegram Bot API adapter contract for delivering notification handoff entries to one Telegram chat while preserving at-least-once delivery and transport-local checkpoint ownership.
+requires:
+  - one explicit consumer_id for one Telegram transport stream
+  - explicit env loading from repository root .env followed by nimi-coding/.env only
+  - required Telegram keys TG_BOT_TOKEN and TG_CHAT_ID after merge, with nimi-coding/.env overriding root .env by key
+  - one plain-text message rendered mechanically from the original notification payload for each handoff entry
+  - checkpoint advance only after a successful Telegram Bot API sendMessage delivery
+forbids:
+  - topic-local env files, cwd scanning, .env.local, .env.development, or implicit dotenv discovery
+  - fan-out, subscription, queue, or broker semantics
+  - canonical writeback into topic.index.yaml or orchestration-state
+  - semantic reinterpretation of notification payload meaning
+rules:
+  - the Telegram adapter must consume notification-handoff.v1 readback and notification-ack-checkpoint.v1 checkpoint state without mutating their semantics
+  - missing env files, missing required keys, empty required values, malformed Telegram credentials, malformed handoff input, Telegram API failure, and ack failure must all fail-close with no checkpoint advance for the failed entry
+  - Telegram credentials are local operational configuration only and must not be persisted into topic artifacts, notification logs, checkpoints, or evidence documents
+  - message rendering must remain mechanical and plain-text only in the first cut; it may include existing payload metadata and artifact refs, but it must not summarize, infer urgency, or add semantic interpretation

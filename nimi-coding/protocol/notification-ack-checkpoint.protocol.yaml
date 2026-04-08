@@ -1,0 +1,17 @@
+id: notification-ack-checkpoint.v1
+purpose: Define the minimum transport-local checkpoint persistence contract for future notification consumers without promoting ack state into topic or orchestration canonical ownership.
+requires:
+  - topic-local operational persistence under .nimi-coding/transport-state/<consumer_id>/<run_id>.checkpoint.yaml
+  - checkpoint fields protocol, consumer_id, run_id, last_acked_cursor, and updated_at
+  - monotonic non-regressing ack progression per consumer_id and run_id
+  - validation against the current notification-handoff.v1 max cursor for the same run
+forbids:
+  - persistence inside topic.index.yaml, orchestration-state artifacts, finding-ledger, or evidence documents
+  - semantic acceptance, finding lifecycle, or human-receipt meaning
+  - queue ownership, fan-out orchestration, or external transport configuration
+rules:
+  - checkpoint persistence is transport-local operational state only and must not become canonical topic truth
+  - one checkpoint file tracks one consumer_id and one run_id stream
+  - last_acked_cursor means only that the consumer processed all handoff entries up to that cursor
+  - missing checkpoint files are operationally valid and imply last_acked_cursor=0 for that consumer and run
+  - malformed checkpoint state, cursor regression, unknown run_id, or last_acked_cursor greater than the current max cursor must fail-close

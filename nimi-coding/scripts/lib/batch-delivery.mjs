@@ -107,7 +107,7 @@ function inspectPacketRoute(packet) {
   };
 }
 
-function loadBatchContext(topicDir) {
+function loadBatchContext(topicDir, options = {}) {
   const errors = [];
   const warnings = [];
   const topicPath = path.join(topicDir, 'topic.index.yaml');
@@ -118,7 +118,7 @@ function loadBatchContext(topicDir) {
 
   const topic = loadYamlFile(topicPath) || {};
 
-  if (topic.status !== 'active') {
+  if (options.requireActiveTopic !== false && topic.status !== 'active') {
     errors.push(`batch requires topic status=active, got ${topic.status}`);
   }
 
@@ -379,3 +379,10 @@ export function batchPhaseDone(topicDir, options = {}) {
       : 'dispatch-next-phase',
   };
 }
+
+export {
+  inspectPacketRoute,
+  loadBatchContext,
+  normalizeNextPhaseId,
+  phaseView,
+};

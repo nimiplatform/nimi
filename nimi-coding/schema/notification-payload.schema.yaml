@@ -1,0 +1,38 @@
+id: nimi-coding.notification-payload.v1
+kind: notification-payload
+required:
+  - event
+  - correlation_id
+  - topic_id
+  - run_id
+  - packet_ref
+  - phase_id
+  - run_status
+  - reason
+  - required_human_action
+  - artifact_refs
+  - emitted_at
+artifact_refs_required:
+  - baseline_ref
+  - packet_ref
+  - state_ref
+  - prompt_ref
+  - worker_output_ref
+  - acceptance_ref
+  - evidence_refs
+event_enum:
+  - run_paused
+  - run_failed
+  - awaiting_final_confirmation
+run_status_enum:
+  - paused
+  - failed
+  - awaiting_confirmation
+rules:
+  - notification payloads are transport-agnostic operational outputs and must not become canonical topic or run state
+  - packet_ref must equal artifact_refs.packet_ref
+  - artifact_refs.baseline_ref must resolve to a baseline artifact
+  - artifact_refs.state_ref must resolve to an orchestration-state artifact
+  - artifact_refs.prompt_ref, worker_output_ref, and acceptance_ref must validate when present
+  - artifact_refs.evidence_refs must resolve to evidence artifacts when present
+  - run_paused, run_failed, and awaiting_final_confirmation require explicit required_human_action

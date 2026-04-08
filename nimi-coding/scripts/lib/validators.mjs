@@ -1,4 +1,5 @@
 import path from 'node:path';
+import YAML from 'yaml';
 import {
   exists,
   fail,
@@ -55,13 +56,17 @@ const FINDING_STATUS = new Set(['active', 'fixed', 'deferred', 'invalid', 'super
 const EXECUTION_PACKET_STATUS = new Set(['draft', 'frozen', 'superseded', 'archived']);
 const EXECUTION_PACKET_STOP_ON_FAILURE = new Set(['pause', 'stop']);
 const ORCHESTRATION_STATE_RUN_STATUS = new Set([
-  'prepared',
-  'in_progress',
+  'running',
   'paused',
-  'awaiting_human',
-  'awaiting_final_confirmation',
+  'awaiting_confirmation',
   'completed',
+  'failed',
   'superseded',
+]);
+const NOTIFICATION_EVENTS = new Map([
+  ['run_paused', 'paused'],
+  ['run_failed', 'failed'],
+  ['awaiting_final_confirmation', 'awaiting_confirmation'],
 ]);
 const PROMPT_BLOCKS = [
   'Task Goal',
@@ -81,6 +86,7 @@ const WORKER_OUTPUT_BLOCKS = [
   'Files changed',
   'Checks run',
   'Remaining gaps / risks',
+  'Runner Signal',
 ];
 
 const ACCEPTANCE_BLOCKS = [
@@ -90,6 +96,234 @@ const ACCEPTANCE_BLOCKS = [
 ];
 
 const ACCEPTANCE_DISPOSITIONS = new Set(['complete', 'partial', 'deferred']);
+const WORKER_RUNNER_SIGNAL_RESULT_KINDS = new Set(['complete', 'escalate', 'fail']);
+export const VALIDATOR_NATIVE_REFUSAL_CODES = Object.freeze({
+  WORKER_OUTPUT_MISSING: 'WORKER_OUTPUT_MISSING',
+  WORKER_OUTPUT_INVALID: 'WORKER_OUTPUT_INVALID',
+  RUNNER_SIGNAL_MISSING: 'RUNNER_SIGNAL_MISSING',
+  RUNNER_SIGNAL_INVALID: 'RUNNER_SIGNAL_INVALID',
+  RUNNER_SIGNAL_ARTIFACT_MISMATCH: 'RUNNER_SIGNAL_ARTIFACT_MISMATCH',
+});
+
+function makeValidatorRefusal(code, message) {
+  return { code, message };
+}
+
+function inferTopicDir(filePath) {
+  let cursor = path.dirname(filePath);
+  while (true) {
+    if (exists(path.join(cursor, 'topic.index.yaml'))) {
+      return cursor;
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      return path.dirname(filePath);
+    }
+    cursor = parent;
+  }
+}
+
+function extractMarkdownSection(body, heading) {
+  const lines = body.split(/\r?\n/u);
+  let start = -1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^##\s+(.+?)\s*$/u);
+    if (match && match[1] === heading) {
+      start = index + 1;
+      break;
+    }
+  }
+  if (start < 0) {
+    return null;
+  }
+  let end = lines.length;
+  for (let index = start; index < lines.length; index += 1) {
+    if (/^##\s+/u.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n').trim();
+}
+
+function parseYamlFence(sectionText, label, errors) {
+  const trimmed = String(sectionText || '').trim();
+  const match = trimmed.match(/^```yaml\r?\n([\s\S]*?)\r?\n```\s*$/u);
+  if (!match) {
+    fail(`${label} must contain exactly one fenced yaml block`, errors);
+    return null;
+  }
+  try {
+    const parsed = YAML.parse(match[1]) || {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      fail(`${label} yaml must parse to a mapping`, errors);
+      return null;
+    }
+    return parsed;
+  } catch (error) {
+    fail(`${label} yaml is invalid: ${String(error.message || error)}`, errors);
+    return null;
+  }
+}
+
+export function readWorkerRunnerSignal(filePath, options = {}) {
+  const errors = [];
+  const warnings = [];
+  if (!exists(filePath)) {
+    return {
+      ok: false,
+      errors: [`missing file: ${filePath}`],
+      warnings,
+      signal: null,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.WORKER_OUTPUT_MISSING,
+        'worker-output artifact is missing',
+      ),
+    };
+  }
+  const topicDir = options.topicDir || inferTopicDir(filePath);
+  const doc = loadMarkdownDoc(filePath);
+  const section = extractMarkdownSection(doc.body, 'Runner Signal');
+  if (!section) {
+    fail('missing worker-output block: Runner Signal', errors);
+    return {
+      ok: false,
+      errors,
+      warnings,
+      signal: null,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.RUNNER_SIGNAL_MISSING,
+        'worker-output artifact is missing the required Runner Signal block',
+      ),
+    };
+  }
+  const parsed = parseYamlFence(section, 'Runner Signal', errors);
+  if (!parsed) {
+    return {
+      ok: false,
+      errors,
+      warnings,
+      signal: null,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.RUNNER_SIGNAL_INVALID,
+        'Runner Signal must be exactly one valid fenced yaml mapping',
+      ),
+    };
+  }
+
+  const resultKind = String(parsed.result_kind || '');
+  if (!WORKER_RUNNER_SIGNAL_RESULT_KINDS.has(resultKind)) {
+    fail(`invalid worker runner signal result_kind: ${resultKind || '(missing)'}`, errors);
+  }
+
+  const workerOutputRef = parsed.worker_output_ref ? normalizeRel(parsed.worker_output_ref) : '';
+  if (!workerOutputRef) {
+    fail('worker runner signal worker_output_ref must be a non-empty string', errors);
+  }
+
+  const expectedWorkerOutputRef = options.expectedWorkerOutputRef
+    ? normalizeRel(options.expectedWorkerOutputRef)
+    : normalizeRel(path.relative(topicDir, filePath));
+  if (workerOutputRef && expectedWorkerOutputRef && workerOutputRef !== expectedWorkerOutputRef) {
+    fail(`worker runner signal worker_output_ref must match the current artifact path: ${expectedWorkerOutputRef}`, errors);
+  }
+
+  const evidenceRefs = parsed.evidence_refs === undefined ? [] : parsed.evidence_refs;
+  if (!Array.isArray(evidenceRefs)) {
+    fail('worker runner signal evidence_refs must be an array when present', errors);
+  } else {
+    for (const ref of evidenceRefs) {
+      if (typeof ref !== 'string' || ref.length === 0) {
+        fail('worker runner signal evidence_refs entries must be non-empty strings', errors);
+        continue;
+      }
+      const relRef = normalizeRel(ref);
+      const evidencePath = resolveTopicPath(topicDir, relRef);
+      if (!exists(evidencePath)) {
+        fail(`worker runner signal evidence_ref does not exist: ${relRef}`, errors);
+        continue;
+      }
+      const report = validateDoc(evidencePath);
+      for (const error of report.errors) {
+        fail(`worker runner signal evidence_ref invalid (${relRef}): ${error}`, errors);
+      }
+      if (report.doc?.frontmatter?.doc_type !== 'evidence') {
+        fail(`worker runner signal evidence_ref must target doc_type=evidence: ${relRef}`, errors);
+      }
+    }
+  }
+
+  const escalationReasons = parsed.escalation_reasons === undefined ? [] : parsed.escalation_reasons;
+  if (!Array.isArray(escalationReasons)) {
+    fail('worker runner signal escalation_reasons must be an array when present', errors);
+  } else {
+    for (const reason of escalationReasons) {
+      if (typeof reason !== 'string' || reason.length === 0) {
+        fail('worker runner signal escalation_reasons entries must be non-empty strings', errors);
+      }
+    }
+  }
+
+  const failReason = parsed.fail_reason;
+  if (!(failReason === undefined || failReason === null || failReason === '' || typeof failReason === 'string')) {
+    fail('worker runner signal fail_reason must be a string or null', errors);
+  }
+
+  if (resultKind === 'complete') {
+    if (Array.isArray(escalationReasons) && escalationReasons.length > 0) {
+      fail('worker runner signal result_kind=complete must not carry escalation_reasons', errors);
+    }
+    if (typeof failReason === 'string' && failReason.length > 0) {
+      fail('worker runner signal result_kind=complete must not carry fail_reason', errors);
+    }
+  }
+  if (resultKind === 'escalate') {
+    if (!Array.isArray(escalationReasons) || escalationReasons.length === 0) {
+      fail('worker runner signal result_kind=escalate requires escalation_reasons', errors);
+    }
+    if (typeof failReason === 'string' && failReason.length > 0) {
+      fail('worker runner signal result_kind=escalate must not carry fail_reason', errors);
+    }
+  }
+  if (resultKind === 'fail') {
+    if (!(typeof failReason === 'string' && failReason.length > 0)) {
+      fail('worker runner signal result_kind=fail requires fail_reason', errors);
+    }
+    if (Array.isArray(escalationReasons) && escalationReasons.length > 0) {
+      fail('worker runner signal result_kind=fail must not carry escalation_reasons', errors);
+    }
+  }
+
+  let refusal = null;
+  if (errors.length > 0) {
+    const mismatchError = errors.find((error) => error.includes('worker runner signal worker_output_ref must match the current artifact path'));
+    refusal = mismatchError
+      ? makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.RUNNER_SIGNAL_ARTIFACT_MISMATCH,
+        'worker runner signal must point at the current worker-output artifact path',
+      )
+      : makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.RUNNER_SIGNAL_INVALID,
+        'worker-output artifact contains an invalid Runner Signal payload',
+      );
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    refusal,
+    signal: errors.length === 0
+      ? {
+        result_kind: resultKind,
+        worker_output_ref: workerOutputRef,
+        evidence_refs: Array.isArray(evidenceRefs) ? evidenceRefs.map((ref) => normalizeRel(ref)) : [],
+        escalation_reasons: Array.isArray(escalationReasons) ? escalationReasons : [],
+        fail_reason: typeof failReason === 'string' && failReason.length > 0 ? failReason : null,
+      }
+      : null,
+  };
+}
 
 function validateExecutionPacketData(filePath, doc = {}, options = {}) {
   const errors = [];
@@ -227,7 +461,7 @@ export function validateExecutionPacket(filePath, options = {}) {
   return validateExecutionPacketData(filePath, doc, { ...options, topicDir });
 }
 
-function validateOrchestrationStateData(filePath, doc = {}, options = {}) {
+export function validateOrchestrationStateData(filePath, doc = {}, options = {}) {
   const errors = [];
   const warnings = [];
   const topicDir = options.topicDir || path.dirname(filePath);
@@ -288,6 +522,11 @@ function validateOrchestrationStateData(filePath, doc = {}, options = {}) {
   if (!(pauseReason === undefined || pauseReason === null || pauseReason === '' || typeof pauseReason === 'string')) {
     fail('orchestration state pause_reason must be a string or null', errors);
   }
+  if (runStatus === 'running') {
+    if (!(typeof doc.current_phase_id === 'string' && doc.current_phase_id.length > 0)) {
+      fail('running orchestration state requires current_phase_id', errors);
+    }
+  }
   if (runStatus === 'paused') {
     if (!(typeof pauseReason === 'string' && pauseReason.length > 0)) {
       fail('paused orchestration state requires pause_reason', errors);
@@ -295,19 +534,38 @@ function validateOrchestrationStateData(filePath, doc = {}, options = {}) {
     if (!(typeof awaitingHumanAction === 'string' && awaitingHumanAction.length > 0)) {
       fail('paused orchestration state requires awaiting_human_action', errors);
     }
+    if (!(typeof doc.current_phase_id === 'string' && doc.current_phase_id.length > 0)) {
+      fail('paused orchestration state requires current_phase_id', errors);
+    }
   }
-  if (runStatus === 'prepared' || runStatus === 'awaiting_human' || runStatus === 'awaiting_final_confirmation') {
+  if (runStatus === 'awaiting_confirmation' || runStatus === 'failed') {
     if (!(typeof awaitingHumanAction === 'string' && awaitingHumanAction.length > 0)) {
       fail(`orchestration state run_status=${runStatus} requires awaiting_human_action`, errors);
     }
   }
-  if ((runStatus === 'in_progress' || runStatus === 'completed' || runStatus === 'superseded')
+  if ((runStatus === 'running' || runStatus === 'completed' || runStatus === 'superseded')
     && typeof awaitingHumanAction === 'string' && awaitingHumanAction.length > 0) {
-    fail(`orchestration state run_status=${runStatus} must not carry awaiting_human_action`, errors);
+      fail(`orchestration state run_status=${runStatus} must not carry awaiting_human_action`, errors);
   }
-  if ((runStatus === 'in_progress' || runStatus === 'completed' || runStatus === 'superseded')
+  if ((runStatus === 'running' || runStatus === 'completed' || runStatus === 'superseded' || runStatus === 'awaiting_confirmation')
     && typeof pauseReason === 'string' && pauseReason.length > 0) {
-    fail(`orchestration state run_status=${runStatus} must not carry pause_reason`, errors);
+      fail(`orchestration state run_status=${runStatus} must not carry pause_reason`, errors);
+  }
+  if (runStatus === 'awaiting_confirmation') {
+    if (!(typeof doc.current_phase_id === 'string' && doc.current_phase_id.length > 0)) {
+      fail('awaiting_confirmation orchestration state requires current_phase_id', errors);
+    }
+    if (!(typeof doc.last_completed_phase_id === 'string' && doc.last_completed_phase_id.length > 0)) {
+      fail('awaiting_confirmation orchestration state requires last_completed_phase_id', errors);
+    }
+  }
+  if (runStatus === 'completed') {
+    if (!(doc.current_phase_id === null || doc.current_phase_id === '')) {
+      fail('completed orchestration state must not carry current_phase_id', errors);
+    }
+    if (!(typeof doc.last_completed_phase_id === 'string' && doc.last_completed_phase_id.length > 0)) {
+      fail('completed orchestration state requires last_completed_phase_id', errors);
+    }
   }
   if (packet && typeof doc.current_phase_id === 'string' && doc.current_phase_id.length > 0
     && typeof doc.last_completed_phase_id === 'string' && doc.last_completed_phase_id.length > 0) {
@@ -322,10 +580,16 @@ function validateOrchestrationStateData(filePath, doc = {}, options = {}) {
         fail('orchestration state notification_refs entries must be mappings', errors);
         continue;
       }
-      for (const key of ['event_type', 'correlation_id']) {
+      for (const key of ['event', 'correlation_id']) {
         if (!row[key] || typeof row[key] !== 'string') {
           fail(`orchestration state notification_refs entry missing string field: ${key}`, errors);
         }
+      }
+      if (row.event && !NOTIFICATION_EVENTS.has(row.event)) {
+        fail(`orchestration state notification_refs entry has invalid event: ${row.event}`, errors);
+      }
+      if (row.emitted_at && typeof row.emitted_at !== 'string') {
+        fail('orchestration state notification_refs entry emitted_at must be a string when present', errors);
       }
     }
   } else if (Object.prototype.hasOwnProperty.call(doc, 'notification_refs') && doc.notification_refs !== null) {
@@ -341,6 +605,210 @@ export function validateOrchestrationState(filePath, options = {}) {
   const topicDir = options.topicDir || path.dirname(filePath);
   const doc = loadYamlFile(filePath) || {};
   return validateOrchestrationStateData(filePath, doc, { ...options, topicDir });
+}
+
+function validateBaselineRef(topicDir, relPath, errors, label) {
+  const absPath = resolveTopicPath(topicDir, relPath);
+  if (!exists(absPath)) {
+    fail(`${label} target does not exist: ${relPath}`, errors);
+    return null;
+  }
+  const report = validateDoc(absPath);
+  for (const error of report.errors) {
+    fail(`${label} target invalid: ${error}`, errors);
+  }
+  if (report.doc?.frontmatter?.doc_type !== 'baseline') {
+    fail(`${label} target must be doc_type=baseline: ${relPath}`, errors);
+  }
+  return report;
+}
+
+function validatePromptTarget(topicDir, relPath, errors, label) {
+  const absPath = resolveTopicPath(topicDir, relPath);
+  if (!exists(absPath)) {
+    fail(`${label} target does not exist: ${relPath}`, errors);
+    return;
+  }
+  const report = validatePrompt(absPath);
+  for (const error of report.errors) {
+    fail(`${label} target invalid: ${error}`, errors);
+  }
+}
+
+function validateWorkerOutputTarget(topicDir, relPath, errors, label) {
+  const absPath = resolveTopicPath(topicDir, relPath);
+  if (!exists(absPath)) {
+    fail(`${label} target does not exist: ${relPath}`, errors);
+    return;
+  }
+  const report = validateWorkerOutput(absPath);
+  for (const error of report.errors) {
+    fail(`${label} target invalid: ${error}`, errors);
+  }
+}
+
+function validateAcceptanceTarget(topicDir, relPath, errors, label) {
+  const absPath = resolveTopicPath(topicDir, relPath);
+  if (!exists(absPath)) {
+    fail(`${label} target does not exist: ${relPath}`, errors);
+    return;
+  }
+  const report = validateAcceptance(absPath);
+  for (const error of report.errors) {
+    fail(`${label} target invalid: ${error}`, errors);
+  }
+}
+
+export function validateNotificationPayloadData(filePath, doc = {}, options = {}) {
+  const errors = [];
+  const warnings = [];
+  const topicDir = options.topicDir || path.dirname(filePath);
+  for (const key of [
+    'event',
+    'correlation_id',
+    'topic_id',
+    'run_id',
+    'packet_ref',
+    'phase_id',
+    'run_status',
+    'reason',
+    'required_human_action',
+    'artifact_refs',
+    'emitted_at',
+  ]) {
+    if (!(key in doc)) {
+      fail(`missing notification payload field: ${key}`, errors);
+    }
+  }
+  const event = String(doc.event || '');
+  if (event && !NOTIFICATION_EVENTS.has(event)) {
+    fail(`invalid notification event: ${event}`, errors);
+  }
+  for (const key of ['correlation_id', 'topic_id', 'run_id', 'packet_ref', 'phase_id', 'emitted_at']) {
+    if (!doc[key] || typeof doc[key] !== 'string') {
+      fail(`notification payload ${key} must be a non-empty string`, errors);
+    }
+  }
+  const runStatus = String(doc.run_status || '');
+  if (runStatus && !ORCHESTRATION_STATE_RUN_STATUS.has(runStatus)) {
+    fail(`invalid notification payload run_status: ${runStatus}`, errors);
+  }
+  if (event && NOTIFICATION_EVENTS.has(event) && runStatus && NOTIFICATION_EVENTS.get(event) !== runStatus) {
+    fail(`notification payload event ${event} requires run_status=${NOTIFICATION_EVENTS.get(event)}`, errors);
+  }
+  for (const key of ['reason', 'required_human_action']) {
+    const value = doc[key];
+    if (!(value === null || value === '' || typeof value === 'string')) {
+      fail(`notification payload ${key} must be a string or null`, errors);
+    }
+  }
+  if (event && !(typeof doc.required_human_action === 'string' && doc.required_human_action.length > 0)) {
+    fail(`notification payload event ${event} requires required_human_action`, errors);
+  }
+  if ((event === 'run_paused' || event === 'run_failed' || event === 'awaiting_final_confirmation')
+    && !(typeof doc.reason === 'string' && doc.reason.length > 0)) {
+    fail(`notification payload event ${event} requires reason`, errors);
+  }
+
+  const packetRef = doc.packet_ref ? normalizeRel(doc.packet_ref) : null;
+  if (packetRef) {
+    const packetPath = resolveTopicPath(topicDir, packetRef);
+    const report = validateExecutionPacket(packetPath, { topicDir });
+    for (const error of report.errors) {
+      fail(`notification payload packet_ref invalid: ${error}`, errors);
+    }
+    if (report.doc?.topic_id && doc.topic_id && report.doc.topic_id !== doc.topic_id) {
+      fail('notification payload packet_ref topic_id must match topic_id', errors);
+    }
+    const phaseIds = new Set(Array.isArray(report.doc?.phases) ? report.doc.phases.map((phase) => String(phase.phase_id)) : []);
+    if (doc.phase_id && !phaseIds.has(String(doc.phase_id))) {
+      fail(`notification payload phase_id does not exist in packet phases: ${doc.phase_id}`, errors);
+    }
+  }
+
+  if (!doc.artifact_refs || typeof doc.artifact_refs !== 'object' || Array.isArray(doc.artifact_refs)) {
+    fail('notification payload artifact_refs must be a mapping', errors);
+  } else {
+    for (const key of ['baseline_ref', 'packet_ref', 'state_ref', 'prompt_ref', 'worker_output_ref', 'acceptance_ref', 'evidence_refs']) {
+      if (!(key in doc.artifact_refs)) {
+        fail(`notification payload artifact_refs missing field: ${key}`, errors);
+      }
+    }
+    const baselineRef = doc.artifact_refs.baseline_ref ? normalizeRel(doc.artifact_refs.baseline_ref) : null;
+    if (!baselineRef || typeof doc.artifact_refs.baseline_ref !== 'string') {
+      fail('notification payload artifact_refs.baseline_ref must be a non-empty string', errors);
+    } else {
+      validateBaselineRef(topicDir, baselineRef, errors, 'notification artifact_refs.baseline_ref');
+    }
+
+    const artifactPacketRef = doc.artifact_refs.packet_ref ? normalizeRel(doc.artifact_refs.packet_ref) : null;
+    if (!artifactPacketRef || typeof doc.artifact_refs.packet_ref !== 'string') {
+      fail('notification payload artifact_refs.packet_ref must be a non-empty string', errors);
+    } else if (packetRef && artifactPacketRef !== packetRef) {
+      fail('notification payload artifact_refs.packet_ref must match packet_ref', errors);
+    }
+
+    const stateRef = doc.artifact_refs.state_ref ? normalizeRel(doc.artifact_refs.state_ref) : null;
+    if (!stateRef || typeof doc.artifact_refs.state_ref !== 'string') {
+      fail('notification payload artifact_refs.state_ref must be a non-empty string', errors);
+    } else {
+      const statePath = resolveTopicPath(topicDir, stateRef);
+      const stateReport = validateOrchestrationState(statePath, { topicDir });
+      for (const error of stateReport.errors) {
+        fail(`notification payload artifact_refs.state_ref invalid: ${error}`, errors);
+      }
+      if (stateReport.doc?.topic_id && doc.topic_id && stateReport.doc.topic_id !== doc.topic_id) {
+        fail('notification payload artifact_refs.state_ref topic_id must match topic_id', errors);
+      }
+      if (stateReport.doc?.packet_ref && packetRef && normalizeRel(stateReport.doc.packet_ref) !== packetRef) {
+        fail('notification payload artifact_refs.state_ref packet_ref must match packet_ref', errors);
+      }
+    }
+
+    const promptRef = doc.artifact_refs.prompt_ref;
+    if (!(promptRef === null || promptRef === '' || typeof promptRef === 'string')) {
+      fail('notification payload artifact_refs.prompt_ref must be a string or null', errors);
+    } else if (typeof promptRef === 'string' && promptRef.length > 0) {
+      validatePromptTarget(topicDir, normalizeRel(promptRef), errors, 'notification artifact_refs.prompt_ref');
+    }
+
+    const workerOutputRef = doc.artifact_refs.worker_output_ref;
+    if (!(workerOutputRef === null || workerOutputRef === '' || typeof workerOutputRef === 'string')) {
+      fail('notification payload artifact_refs.worker_output_ref must be a string or null', errors);
+    } else if (typeof workerOutputRef === 'string' && workerOutputRef.length > 0) {
+      validateWorkerOutputTarget(topicDir, normalizeRel(workerOutputRef), errors, 'notification artifact_refs.worker_output_ref');
+    }
+
+    const acceptanceRef = doc.artifact_refs.acceptance_ref;
+    if (!(acceptanceRef === null || acceptanceRef === '' || typeof acceptanceRef === 'string')) {
+      fail('notification payload artifact_refs.acceptance_ref must be a string or null', errors);
+    } else if (typeof acceptanceRef === 'string' && acceptanceRef.length > 0) {
+      validateAcceptanceTarget(topicDir, normalizeRel(acceptanceRef), errors, 'notification artifact_refs.acceptance_ref');
+    }
+
+    if (!Array.isArray(doc.artifact_refs.evidence_refs)) {
+      fail('notification payload artifact_refs.evidence_refs must be an array', errors);
+    } else {
+      for (const relPath of doc.artifact_refs.evidence_refs) {
+        if (typeof relPath !== 'string' || relPath.length === 0) {
+          fail('notification payload artifact_refs.evidence_refs entries must be non-empty strings', errors);
+          continue;
+        }
+        validateEvidenceTarget(topicDir, normalizeRel(relPath), errors, 'notification artifact_refs.evidence_refs');
+      }
+    }
+  }
+
+  return { ok: errors.length === 0, errors, warnings, doc };
+}
+
+export function validateNotificationPayload(filePath, options = {}) {
+  if (!exists(filePath)) {
+    return { ok: false, errors: [`missing file: ${filePath}`], warnings: [] };
+  }
+  const topicDir = options.topicDir || inferTopicDir(filePath);
+  const doc = loadYamlFile(filePath) || {};
+  return validateNotificationPayloadData(filePath, doc, { ...options, topicDir });
 }
 
 export function validateDoc(filePath) {
@@ -393,20 +861,51 @@ export function validatePrompt(filePath) {
   return { ok: errors.length === 0, errors, warnings };
 }
 
-export function validateWorkerOutput(filePath) {
+export function validateWorkerOutput(filePath, options = {}) {
   const errors = [];
   const warnings = [];
   if (!exists(filePath)) {
-    return { ok: false, errors: [`missing file: ${filePath}`], warnings };
+    return {
+      ok: false,
+      errors: [`missing file: ${filePath}`],
+      warnings,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.WORKER_OUTPUT_MISSING,
+        'worker-output artifact is missing',
+      ),
+    };
   }
   const text = loadMarkdownDoc(filePath).body;
   const headings = new Set(listMarkdownHeadings(text));
+  const missingBlocks = [];
   for (const block of WORKER_OUTPUT_BLOCKS) {
     if (!headings.has(block)) {
+      missingBlocks.push(block);
       fail(`missing worker-output block: ${block}`, errors);
     }
   }
-  return { ok: errors.length === 0, errors, warnings };
+  const signalReport = readWorkerRunnerSignal(filePath, options);
+  errors.push(...signalReport.errors);
+  warnings.push(...signalReport.warnings);
+  const refusal = signalReport.refusal
+    || (missingBlocks.length > 0
+      ? makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.WORKER_OUTPUT_INVALID,
+        'worker-output artifact is missing one or more required sections',
+      )
+      : (errors.length > 0
+        ? makeValidatorRefusal(
+          VALIDATOR_NATIVE_REFUSAL_CODES.WORKER_OUTPUT_INVALID,
+          'worker-output artifact is invalid',
+        )
+        : null));
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    refusal,
+    signal: signalReport.signal,
+  };
 }
 
 export function validateAcceptance(filePath) {

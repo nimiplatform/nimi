@@ -6,6 +6,7 @@ required_blocks:
   - Files changed
   - Checks run
   - Remaining gaps / risks
+  - Runner Signal
 optional_blocks:
   - Chosen decision
   - Authority / spec impact

@@ -2,6 +2,19 @@
 import path from 'node:path';
 import { validateWorkerOutput } from './lib/validators.mjs';
 
+function buildCliReport(filePath, report) {
+  return {
+    contract: 'validator-cli-result.v1',
+    validator: 'validate-worker-output',
+    target_ref: filePath,
+    ok: Boolean(report.ok),
+    refusal: report.refusal || null,
+    errors: report.errors || [],
+    warnings: report.warnings || [],
+    signal: report.signal || null,
+  };
+}
+
 export function main(argv = process.argv.slice(2)) {
   const normalizedArgv = argv[0] === '--' ? argv.slice(1) : argv;
   const [filePath] = normalizedArgv;
@@ -9,17 +22,13 @@ export function main(argv = process.argv.slice(2)) {
     process.stderr.write('usage: validate-worker-output <path>\n');
     process.exit(1);
   }
-  const report = validateWorkerOutput(path.resolve(filePath));
-  for (const warning of report.warnings) {
-    process.stderr.write(`WARN: ${warning}\n`);
-  }
+  const targetPath = path.resolve(filePath);
+  const report = validateWorkerOutput(targetPath);
+  const cliReport = buildCliReport(targetPath, report);
+  process.stdout.write(`${JSON.stringify(cliReport, null, 2)}\n`);
   if (!report.ok) {
-    for (const error of report.errors) {
-      process.stderr.write(`ERROR: ${error}\n`);
-    }
     process.exit(1);
   }
-  process.stdout.write(`validate-worker-output: OK ${filePath}\n`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {

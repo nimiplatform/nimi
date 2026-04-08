@@ -1,0 +1,20 @@
+id: worker-runner-signal.v1
+purpose: Define the minimum machine-readable handoff the continuous runner must read after one provider-backed worker execution cycle so that pause, fail, and continue decisions do not depend on manual escalate flags or stdout relay.
+requires:
+  - one machine-readable execution result kind with exactly one of complete, escalate, or fail
+  - one explicit worker_output_ref pointing to the phase-scoped worker-output artifact written inside the topic workspace
+  - optional evidence_refs only when evidence artifacts were actually written
+  - escalation_reasons as a non-empty declared list when execution result kind is escalate
+  - fail_reason as a non-empty explicit reason when execution result kind is fail
+forbids:
+  - stdout-only success, escalate, or fail signaling
+  - inferring runner signal from provider prose when the machine-readable signal is missing or malformed
+  - silent success without a resolvable worker_output_ref
+  - provider-authored orchestration-state mutation, semantic acceptance, or finding lifecycle judgment
+rules:
+  - worker-runner-signal.v1 is protocol-only and defines runner handoff semantics; it does not create a new stored topic artifact separate from the worker-output artifact
+  - the signal must be mechanically readable from the worker-authored output surface chosen by nimi-coding implementation; until implementation lands, provider stdout and stderr are operational logs only
+  - execution result kind complete means the worker claims bounded phase execution finished and required worker artifacts were written; the continuous runner must still validate artifacts and run packet-declared checks before continuing
+  - execution result kind escalate means the worker requests pause on declared packet escalation conditions only; undeclared escalation reasons are malformed signal and must fail-close
+  - execution result kind fail means the worker requests terminal failure for this cycle and must provide explicit fail_reason; the runner still owns mapping that request to run_status according to packet policy
+  - missing worker_output_ref, missing required signal fields, invalid evidence_refs, undeclared escalation reasons, or any other malformed signal must be treated as contract failure rather than salvaged from prose or stdout

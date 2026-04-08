@@ -40,7 +40,7 @@ The topic is small, structured, and directly consumable by validators and CLI he
 
 ## Remaining Risks or Gaps
 
-- This sample does not cover final evidence routing.
+- This sample still does not cover external notification transport.
 
 ## Next Action or Reopen Condition
 

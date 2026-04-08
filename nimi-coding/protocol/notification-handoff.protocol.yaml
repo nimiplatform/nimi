@@ -1,0 +1,19 @@
+id: notification-handoff.v1
+purpose: Define the minimum protocol-only handoff boundary for replayable transport consumption of run-scoped notification logs without introducing a new stored artifact or transport-owned state inside topic artifacts.
+requires:
+  - stable cursor defined as the 1-based append ordinal within one run-scoped notification log
+  - replay-from-cursor semantics that return entries where cursor is greater than the supplied after_cursor
+  - at-least-once delivery expectation for future transport consumers
+  - ack meaning limited to future transport-consumer progress for one consumer_id and one run_id stream
+forbids:
+  - exactly-once delivery guarantees
+  - ack persistence inside topic.index.yaml, orchestration-state artifacts, notification payloads, or notification log lines
+  - mutation of payload, cursor, or append-order semantics by transport consumers
+  - promotion of handoff state into canonical orchestration or topic ownership
+rules:
+  - notification-handoff.v1 is protocol-only and must not create a new topic artifact family
+  - each handoff entry is mechanically derived from one validated notification-log.v1 line and contains the stable cursor plus the original notification-payload.v1 data
+  - cursor ordering is per-run, monotonic, and replayable; cursor 1 is the first appended line in .nimi-coding/notifications/<run_id>.jsonl
+  - replay-from-cursor returns only entries where cursor is greater than after_cursor
+  - future consumer ack means only that the consumer has processed all entries up to cursor N for one run stream; it must not imply topic mutation, human receipt, or log truncation
+  - future transports may consume handoff entries at-least-once and may deduplicate by run_id plus correlation_id, but they must not rewrite local log or payload semantics

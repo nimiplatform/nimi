@@ -17,5 +17,7 @@ protocol_refs:
   - execution-packet.v1
   - orchestration-state.v1
   - dispatch.v1
+  - provider-worker-execution.v1
   - worker-output.v1
+  - worker-runner-signal.v1
   - acceptance.v1

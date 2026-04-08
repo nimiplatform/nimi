@@ -1,0 +1,18 @@
+id: notification-log.v1
+purpose: Define the minimal append-only local notification log and readback contract for packet-bound continuous runs without promoting the log to canonical state ownership.
+requires:
+  - run-scoped log path identity at .nimi-coding/notifications/<run_id>.jsonl
+  - one notification-payload.v1 JSON object per non-empty line
+  - append-order readback semantics
+  - fail-close parser behavior for malformed or invalid lines
+forbids:
+  - transport routing or delivery metadata
+  - event-bus subscription semantics
+  - canonical ownership of topic or orchestration state
+  - semantic acceptance or finding lifecycle judgments
+rules:
+  - the notification log is an operational output indexed by run_id, not a topic lifecycle artifact
+  - line order is append order and readback must preserve file order
+  - each non-empty line must parse as one notification-payload.v1 object for the same run_id
+  - readback may report a missing log file as an operational miss, but malformed, unreadable, or invalid lines must refuse
+  - correlation ids are expected to be unique and monotonically append-numbered within one log file

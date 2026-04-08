@@ -28,3 +28,13 @@
 ## Remaining gaps / risks
 
 - Phase execution artifacts are not routed through `topic.index.yaml` — this is by design, not a gap.
+
+## Runner Signal
+
+```yaml
+result_kind: complete
+worker_output_ref: sample-phase.worker-output.md
+evidence_refs: []
+escalation_reasons: []
+fail_reason: null
+```

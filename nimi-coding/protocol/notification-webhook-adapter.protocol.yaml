@@ -1,0 +1,17 @@
+id: notification-webhook-adapter.v1
+purpose: Define the minimum generic webhook adapter contract for posting notification handoff entries to one HTTP endpoint while preserving at-least-once delivery and transport-local checkpoint ownership.
+requires:
+  - one explicit consumer_id for one webhook transport stream
+  - one explicit http or https endpoint URL
+  - POST of a JSON envelope containing consumer_id, run_id, cursor, and the original notification payload
+  - checkpoint advance only after a successful 2xx webhook delivery
+forbids:
+  - TG-specific transport semantics
+  - fan-out, subscription, queue, or broker semantics
+  - canonical writeback into topic.index.yaml or orchestration-state
+  - semantic reinterpretation of notification payload meaning
+rules:
+  - the webhook adapter must consume notification-handoff.v1 readback and notification-ack-checkpoint.v1 checkpoint state without mutating their semantics
+  - static transport headers may be supplied by the caller, but they are operational input only and must not be persisted into canonical topic artifacts
+  - network errors, non-2xx responses, malformed JSON responses declared as application/json, and ack failures must all fail-close with no checkpoint advance for the failed entry
+  - retries are external to one invocation; replay after failure comes from the next run-notifications --after-ack cycle for the same consumer_id and run_id

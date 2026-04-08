@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ensureDir, loadYamlFile, timestampNow, writeYamlFile } from './doc-utils.mjs';
-import { validateFindingLedgerData, validateTopicData } from './validators.mjs';
+import { validateFindingLedgerData, validateOrchestrationStateData, validateTopicData } from './validators.mjs';
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -23,6 +23,16 @@ function validateAndWriteLedger(topicDir, nextLedger) {
     return report;
   }
   writeYamlFile(ledgerPath, nextLedger);
+  return report;
+}
+
+function validateAndWriteState(topicDir, stateRelPath, nextState) {
+  const statePath = path.join(topicDir, stateRelPath);
+  const report = validateOrchestrationStateData(statePath, nextState, { topicDir });
+  if (!report.ok) {
+    return report;
+  }
+  writeYamlFile(statePath, nextState);
   return report;
 }
 
@@ -91,6 +101,18 @@ export function attachEvidence(topicDir, evidenceRelPath, options = {}) {
   return validateAndWriteTopic(topicDir, topic);
 }
 
+export function closeTopic(topicDir, options = {}) {
+  const topic = clone(loadYamlFile(path.join(topicDir, 'topic.index.yaml')));
+  topic.status = 'closed';
+  topic.latest_evidence = options.finalEvidenceRef;
+  topic.final_evidence = options.finalEvidenceRef;
+  if (options.reason) {
+    topic.reason = options.reason;
+  }
+  topic.updated_at = timestampNow();
+  return validateAndWriteTopic(topicDir, topic);
+}
+
 export function setTopicStatus(topicDir, status, options = {}) {
   const topic = clone(loadYamlFile(path.join(topicDir, 'topic.index.yaml')));
   topic.status = status;
@@ -132,4 +154,23 @@ export function setFindingStatus(topicDir, findingId, nextStatus, options = {}) 
   finding.updated_at = now;
   ledger.updated_at = now;
   return validateAndWriteLedger(topicDir, ledger);
+}
+
+export function setOrchestrationState(topicDir, stateRelPath, nextState) {
+  const topic = clone(loadYamlFile(path.join(topicDir, 'topic.index.yaml')));
+  const stateReport = validateAndWriteState(topicDir, stateRelPath, nextState);
+  if (!stateReport.ok) {
+    return stateReport;
+  }
+  topic.orchestration_state_ref = stateRelPath;
+  topic.updated_at = timestampNow();
+  const topicReport = validateAndWriteTopic(topicDir, topic);
+  if (!topicReport.ok) {
+    return topicReport;
+  }
+  return {
+    ok: true,
+    errors: [],
+    warnings: [...stateReport.warnings, ...topicReport.warnings],
+  };
 }

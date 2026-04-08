@@ -39,6 +39,7 @@ Represent the minimum self-hosting nimi-coding topic with full artifact coverage
 
 ## Required Final Output Format
 
+0. Add a `## Runner Signal` section with one fenced `yaml` block containing `result_kind`, `worker_output_ref`, `evidence_refs`, `escalation_reasons`, and `fail_reason`.
 1. Findings
 2. Implementation summary
 3. Files changed
