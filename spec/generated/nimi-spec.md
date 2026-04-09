@@ -2070,6 +2070,20 @@ Desktop 的应用状态采用 Zustand slice 架构。为什么不用 Redux 或 C
 
 `runtimeFields` 的 route-related 字段在 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）下只允许作为 execution projection / transient input；不得继续承担 selection truth、projection truth 或 thread-global route owner 语义。
 
+若 Desktop 持久化 Agent chat settings，仅允许持久化
+`agent-chat-behavior-contract.md`（`D-LLM-023`）定义的
+`AgentChatExperienceSettings` product-facing preference truth。`runtimeFields`、
+slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
+`ResolvedExperiencePolicy`、`resolvedTurnMode`、`resolvedBeatPlan` 的 canonical
+语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
+
+若 Desktop 为 delayed beat 建立 pending entry、为 modality action 建立执行投影或
+历史记录，这些字段也只能承载
+`agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
+projection / lifecycle evidence。store、hydration、migration、timer recovery、或
+UI state 不得决定 delayed beat 是否存在、是否继续有效、是否应被 delivery、或
+`promptPayload` 应是什么；缺失合法 resolved beat/action outputs 时必须 fail-close。
+
 **D-STATE-003 — Mod Workspace Slice**
 
 `createModWorkspaceSlice` 管理 mod 工作区：

@@ -5,9 +5,9 @@
 
 Contract: `TRUTH-CONTRACT-001`
 Domain: `truth`
-Version: `2026-03-23`
+Version: `2026-04-01`
 
-Rules: 8
+Rules: 10
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
@@ -19,6 +19,8 @@ Rules: 8
 | R-TRUTH-006 | must | truth-app-independent | Realm truth remains app-independent and cannot be owned by a single app, renderer, or model route. |
 | R-TRUTH-007 | must | oasis-is-system-main-world | OASIS is the unique system main world in Realm truth, cannot be creator-owned, and cannot be replaced by creator convention. |
 | R-TRUTH-008 | must | oasis-read-surface-formal | GET /api/world/oasis is a formal Realm truth read surface for the system main world and not a legacy browse shortcut. |
+| R-TRUTH-009 | must | public-projection-aggregates-not-truth | Public read surfaces (e.g. detail-with-agents) may expose computed aggregates derived from truth (activeRuleCount, agentRuleSummary byLayer) but must not expose AgentRule content; aggregates are projection, not truth writes. |
+| R-TRUTH-010 | must | world-scenes-public-read-surface | GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity (id, name, description, activeEntities) for a world; it does not modify truth state. |
 
 Entities: 4
 
@@ -29,7 +31,7 @@ Entities: 4
 | AgentRule | AgentRule | id, agentId, ruleKey, title, statement, layer, hardness, scope, status, version | structured, dependsOn, conflictsWith |
 | WorldRelease | WorldRelease | id, worldId, versionTag, worldRuleChecksum, agentRuleChecksum | metadata |
 
-Required operations: 14
+Required operations: 15
 - GET /api/world/oasis
 - GET /api/world/by-id/{worldId}/rules
 - POST /api/world/by-id/{worldId}/rules
@@ -42,9 +44,11 @@ Required operations: 14
 - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate
 - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive
 - GET /api/world/by-id/{id}
+- GET /api/world/by-id/{id}/detail-with-agents
 - GET /api/world/by-id/{id}/worldview
 - GET /api/world/by-id/{id}/lorebooks
 
-Secondary operations: 2
+Secondary operations: 3
 - GET /api/world
-- GET /api/world/by-id/{id}/resource-bindings
+- GET /api/world/by-id/{id}/bindings
+- GET /api/world/by-id/{id}/scenes

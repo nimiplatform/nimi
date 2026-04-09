@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-TRUTH-001
 title: Realm Truth Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-04-01
 ---
 
 # Truth Contract
@@ -46,3 +46,11 @@ Realm truth must remain app-independent. No single app, renderer, or model route
 ## R-TRUTH-008
 
 `GET /api/world/oasis` is a formal Realm truth read surface for the system main world. It is not a legacy browse shortcut or app-local alias.
+
+## R-TRUTH-009
+
+Public read surfaces (e.g. `GET /api/world/by-id/{id}/detail-with-agents`) may expose computed aggregates derived from truth (`activeRuleCount`, `agentRuleSummary` byLayer) but must not expose AgentRule content. These aggregates are projection, not truth writes.
+
+## R-TRUTH-010
+
+`GET /api/world/by-id/{id}/scenes` is a public read surface exposing Scene identity (`id`, `name`, `description`, `activeEntities`) for a world. It does not modify truth state.

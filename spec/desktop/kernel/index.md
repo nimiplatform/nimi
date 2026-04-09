@@ -25,20 +25,22 @@
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged desktop 自更新、bundled runtime staging 与 release 真值契约 |
-| `state-contract.md` | `D-STATE-*` | Zustand slices 与持久化策略 |
+| `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending beat / action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
 | `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
-| `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot |
+| `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 delayed beat / modality action truth |
+| `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、multi-beat ordering / turn-mode / experience-policy authority；不拥有 delayed beat / modality action truth |
+| `agent-chat-beat-action-contract.md` | `D-LLM-*` | Agent chat delayed beat / pending invalidation / modality action envelope authority、model-generated modality prompt semantics、proactive and richer assistant expansion defer boundary |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志与消息格式 |
 | `network-contract.md` | `D-NET-*` | 重试、退避、实时传输边界 |
 | `security-contract.md` | `D-SEC-*` | CSP、凭据委托、OAuth、端点安全 |
-| `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费、取消与恢复语义 |
+| `streaming-consumption-contract.md` | `D-STRM-*` | 流式消费、取消与恢复语义；只消费 beat/action outputs，不拥有其 product semantics |
 | `offline-degradation-contract.md` | `D-OFFLINE-*` | Runtime/Realm 离线降级、缓存与重连冲突策略 |
 | `codegen-contract.md` | `D-CODEGEN-*` | mod codegen 规则、预检、门禁与回滚 |
 | `testing-gates-contract.md` | `D-GATE-*` | Desktop 测试治理、E2E 风险分层与发布门禁 |

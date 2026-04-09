@@ -8,6 +8,7 @@ Generated files:
 - `spec/realm/kernel/generated/agent-memory-contract.md`
 - `spec/realm/kernel/generated/asset-contract.md`
 - `spec/realm/kernel/generated/attachment-contract.md`
+- `spec/realm/kernel/generated/binding-contract.md`
 - `spec/realm/kernel/generated/bundle-contract.md`
 - `spec/realm/kernel/generated/chat-contract.md`
 - `spec/realm/kernel/generated/commit-authorization-matrix.md`

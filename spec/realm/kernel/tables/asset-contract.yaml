@@ -27,20 +27,18 @@ rules:
   - rule_id: R-ASSET-104
     level: must
     title: ownable-asset-consumption-boundary-safe
-    statement: 'Apps may bind or bundle OwnableAsset objects but cannot usurp asset ownership, lifecycle, policy, or lineage truth.'
+    statement: 'Formal asset use is expressed only through Binding kind USE with objectType ASSET, while bundle membership or app usage must not usurp asset ownership, lifecycle, policy, or lineage truth.'
   - rule_id: R-ASSET-105
     level: must
     title: explicit-preview-truth-does-not-change-ownership-truth
-    statement: 'OwnableAsset.resourceRefs defines composition only; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.'
+    statement: 'OwnableAsset.resourceRefs defines composition only and must reference real, undeleted, attachable Resource objects that the current actor is allowed to reference; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.'
 entities:
   - name: OwnableAsset
     prisma_model: OwnableAsset
-    required_fields: [id, kind, ownerId, authorId, status, originKind, transferPolicy, clonePolicy]
-    json_fields: [resourceRefs]
-  - name: AssetBinding
-    prisma_model: AssetBinding
-    required_fields: [id, assetId, targetType, targetId, createdBy]
-    json_fields: []
+    required_fields:
+      [id, kind, ownerId, authorId, status, originKind, transferPolicy, clonePolicy]
+    required_json_fields: [usePolicy]
+    json_fields: [resourceRefs, usePolicy]
 api_surface:
   required_operations:
     - GET /api/assets

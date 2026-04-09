@@ -12,7 +12,7 @@ updated: 2026-03-26
 
 - `kernel/truth-contract.md`: `R-TRUTH-001..008`
 - `kernel/agent-memory-contract.md`: `R-MEM-001..006`
-- `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅导入当前共享状态投影边界；`R-WSTATE-005..006` 的 app 授权矩阵属于 world-state 写入治理，不在 Agent 域内重述）
+- `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅引用与 Agent 可见共享当前状态相关的子集，不引入 World State 全量写入边界）
 
 ## Scope
 

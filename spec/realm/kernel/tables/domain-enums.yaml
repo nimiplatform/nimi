@@ -1,7 +1,6 @@
 version: 1
 updated_at: 2026-03-26
-owner: '@team'
-scope_note: Binding-facing enum rows remain blocked legacy placeholders until upstream R-BIND material is mirrored. Do not rename or extend them locally before blocker U4 is resolved.
+owner: "@team"
 enums:
   - enum_id: STATE-SCOPE
     domain: world-state
@@ -31,6 +30,7 @@ enums:
     domain: resource
     values: [IMAGE, VIDEO, AUDIO, TEXT]
     source_rules: [R-RSRC-002]
+    notes: "VOICE remains explicitly deferred; see under-spec U3."
   - enum_id: RESOURCE-STATUS
     domain: resource
     values: [PENDING, READY, FAILED, DELETED]
@@ -38,16 +38,21 @@ enums:
   - enum_id: RESOURCE-DELIVERY-ACCESS
     domain: resource
     values: [PUBLIC, SIGNED]
-    source_rules: [R-RSRC-001, R-RSRC-003]
-  - enum_id: RESOURCE-BINDING-TARGET
-    domain: resource
+    source_rules: [R-RSRC-005, R-RSRC-006]
+  - enum_id: BINDING-OBJECT-TYPE
+    domain: binding
+    values: [RESOURCE, ASSET, BUNDLE]
+    source_rules: [R-BIND-002]
+  - enum_id: BINDING-HOST-TYPE
+    domain: binding
     values: [WORLD, AGENT, SCENE, WORLD_EVENT, WORLDVIEW]
-    source_rules: [R-RSRC-004]
-    status: blocked-legacy
-    blocker_id: U4
-    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
-  - enum_id: RESOURCE-BINDING-SLOT
-    domain: resource
+    source_rules: [R-BIND-002]
+  - enum_id: BINDING-KIND
+    domain: binding
+    values: [PRESENTATION, USE, IMPORT]
+    source_rules: [R-BIND-003, R-BIND-004]
+  - enum_id: BINDING-POINT
+    domain: binding
     values:
       [
         WORLD_ICON,
@@ -66,10 +71,7 @@ enums:
         AGENT_CANDIDATE,
         AGENT_VOICE_SAMPLE,
       ]
-    source_rules: [R-RSRC-004]
-    status: blocked-legacy
-    blocker_id: U4
-    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
+    source_rules: [R-BIND-003, R-BIND-004]
   - enum_id: ATTACHMENT-TARGET-TYPE
     domain: attachment
     values: [RESOURCE, ASSET, BUNDLE]
@@ -89,18 +91,11 @@ enums:
   - enum_id: OWNABLE-ASSET-ORIGIN
     domain: asset
     values: [ORIGINAL, CLONE, DERIVED]
-    source_rules: [R-ASSET-101]
+    source_rules: [R-ASSET-101, R-ASSET-103]
   - enum_id: OWNABLE-ASSET-POLICY
     domain: asset
     values: [ALLOW, DENY, INHERIT]
     source_rules: [R-ASSET-101, R-ASSET-103]
-  - enum_id: ASSET-BINDING-TARGET
-    domain: asset
-    values: [WORLD, AGENT, SCENE, WORKSPACE]
-    source_rules: [R-ASSET-104]
-    status: blocked-legacy
-    blocker_id: U4
-    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
   - enum_id: BUNDLE-STATUS
     domain: bundle
     values: [DRAFT, PUBLISHED, ARCHIVED]

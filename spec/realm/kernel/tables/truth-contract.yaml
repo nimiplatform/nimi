@@ -1,7 +1,7 @@
 contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
-version: 2026-03-23
+version: 2026-04-01
 owner: '@team'
 sources:
   human_spec: ../truth-contract.md
@@ -47,6 +47,14 @@ rules:
     level: must
     title: oasis-read-surface-formal
     statement: "GET /api/world/oasis is a formal Realm truth read surface for the system main world and not a legacy browse shortcut."
+  - rule_id: R-TRUTH-009
+    level: must
+    title: public-projection-aggregates-not-truth
+    statement: "Public read surfaces (e.g. detail-with-agents) may expose computed aggregates derived from truth (activeRuleCount, agentRuleSummary byLayer) but must not expose AgentRule content; aggregates are projection, not truth writes."
+  - rule_id: R-TRUTH-010
+    level: must
+    title: world-scenes-public-read-surface
+    statement: "GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity (id, name, description, activeEntities) for a world; it does not modify truth state."
 entities:
   - name: World
     prisma_model: World
@@ -77,8 +85,10 @@ api_surface:
     - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate
     - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive
     - GET /api/world/by-id/{id}
+    - GET /api/world/by-id/{id}/detail-with-agents
     - GET /api/world/by-id/{id}/worldview
     - GET /api/world/by-id/{id}/lorebooks
   secondary_operations:
     - GET /api/world
-    - GET /api/world/by-id/{id}/resource-bindings
+    - GET /api/world/by-id/{id}/bindings
+    - GET /api/world/by-id/{id}/scenes

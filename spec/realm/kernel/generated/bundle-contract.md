@@ -11,26 +11,25 @@ Rules: 4
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
-| R-BNDL-001 | must | bundle-composition-and-market-unit | Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and market/import semantics. |
+| R-BNDL-001 | must | bundle-composition-and-import-unit | Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and import semantics. |
 | R-BNDL-002 | must | bundle-members-ownable-asset-only | Bundle members must be OwnableAsset references only and raw Resource objects must not appear as direct bundle members. |
-| R-BNDL-003 | must | explicit-idempotent-bundle-lifecycle | Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, acquire, and import are first-class lifecycle or event transitions. |
-| R-BNDL-004 | must | bundle-preview-chain-and-runtime-binding-boundary | Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and bundle acquisition or import still does not imply runtime binding. |
+| R-BNDL-003 | must | explicit-idempotent-bundle-lifecycle | Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, and import are first-class lifecycle or event transitions. |
+| R-BNDL-004 | must | bundle-preview-chain-and-runtime-binding-boundary | Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and Binding kind IMPORT with objectType BUNDLE does not imply member Binding kind USE with objectType ASSET. |
 
 Entities: 2
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
-| Bundle | Bundle | id, ownerId, coverAssetId, title, description, price, version, status | tags, compatibleApps, importTargets |
+| Bundle | Bundle | id, ownerId, coverAssetId, title, description, version, status | tags, compatibleApps, importPolicy |
 | BundleMember | BundleMember | id, bundleId, assetId, sortOrder |  |
 
-Required operations: 7
+Required operations: 6
 - GET /api/bundles
 - POST /api/bundles
 - GET /api/bundles/{bundleId}
 - PATCH /api/bundles/{bundleId}
 - POST /api/bundles/{bundleId}/publish
 - POST /api/bundles/{bundleId}/archive
-- POST /api/bundles/{bundleId}/acquire
 
 Secondary operations: 1
 - GET /api/assets

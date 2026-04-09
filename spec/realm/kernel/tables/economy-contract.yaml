@@ -54,9 +54,9 @@ api_surface:
     - GET /api/economy/gifts/received
     - GET /api/economy/gifts/sent
     - POST /api/economy/reviews
-  secondary_operations:
-    - GET /api/economy/balances
-    - GET /api/economy/reviews
     - GET /api/economy/revenue-share/config
     - GET /api/economy/revenue-share/agent-origin/{agentId}
     - POST /api/economy/revenue-share/preview
+  secondary_operations:
+    - GET /api/economy/balances
+    - GET /api/economy/reviews

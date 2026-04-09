@@ -14,16 +14,15 @@ Rules: 6
 | R-RSRC-001 | must | typed-content-carrier-model | Realm Resource objects are typed content carriers with stable identity, storage, delivery, status, and controller semantics, not independent ownership semantics. |
 | R-RSRC-002 | must | fixed-active-resource-type-set | Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model. |
 | R-RSRC-003 | must | explicit-idempotent-resource-lifecycle | Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions. |
-| R-RSRC-004 | must | resource-attachment-and-binding-boundary | Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default. |
+| R-RSRC-004 | must | resource-attachment-and-binding-boundary | Resource objects may participate in attachment or binding relations without promoting them into OwnableAsset by default, but Binding kind PRESENTATION with objectType RESOURCE is the only active formal resource-binding shape in Realm. |
 | R-RSRC-005 | must | delivery-access-does-not-grant-viewer-auth | Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone. |
 | R-RSRC-006 | must | upload-preparation-defaults-to-signed | Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources. |
 
-Entities: 2
+Entities: 1
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
 | Resource | Resource | id, uploaderAccountId, resourceType, provider, storageRef, status, deliveryAccess | metadata |
-| ResourceBinding | ResourceBinding | id, resourceId, targetType, targetId, slot, scopeWorldId, createdBy | conditions |
 
 Required operations: 9
 - POST /api/resources/images/direct-upload
@@ -36,6 +35,4 @@ Required operations: 9
 - POST /api/resources/{resourceId}/finalize
 - DELETE /api/resources/{resourceId}
 
-Secondary operations: 2
-- GET /api/world/by-id/{id}/resource-bindings
-- GET /api/worlds/{worldId}/resource-bindings
+Secondary operations: 0

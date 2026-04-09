@@ -5,7 +5,7 @@
 
 Version: `1`
 Updated: `2026-03-26`
-Scope note: Binding-facing enum rows remain blocked legacy placeholders until upstream R-BIND material is mirrored. Do not rename or extend them locally before blocker U4 is resolved.
+Scope note: n/a
 
 | Enum ID | Domain | Values | Source Rules | Status | Blocker | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -15,16 +15,17 @@ Scope note: Binding-facing enum rows remain blocked legacy placeholders until up
 | APP-RUN-MODE | realm-shared | REPLAY, PRIVATE_CONTINUITY, CANON_MUTATION | R-WHIST-004, R-WSTATE-005, R-MEM-006 | active |  |  |
 | WORLD-TYPE | truth | OASIS, CREATOR | R-TRUTH-007 | active |  |  |
 | TRANSIT-STATUS | transit | PENDING, ACTIVE, COMPLETED, ABANDONED | R-TRANSIT-003 | active |  |  |
-| RESOURCE-TYPE | resource | IMAGE, VIDEO, AUDIO, TEXT | R-RSRC-002 | active |  |  |
+| RESOURCE-TYPE | resource | IMAGE, VIDEO, AUDIO, TEXT | R-RSRC-002 | active |  | VOICE remains explicitly deferred; see under-spec U3. |
 | RESOURCE-STATUS | resource | PENDING, READY, FAILED, DELETED | R-RSRC-003 | active |  |  |
-| RESOURCE-DELIVERY-ACCESS | resource | PUBLIC, SIGNED | R-RSRC-001, R-RSRC-003 | active |  |  |
-| RESOURCE-BINDING-TARGET | resource | WORLD, AGENT, SCENE, WORLD_EVENT, WORLDVIEW | R-RSRC-004 | blocked-legacy | U4 | Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change. |
-| RESOURCE-BINDING-SLOT | resource | WORLD_ICON, WORLD_BANNER, WORLD_GALLERY, WORLD_THEME_AUDIO, WORLD_TRAILER_VIDEO, SCENE_BACKGROUND, SCENE_AMBIENT_AUDIO, EVENT_CG, WORLDVIEW_REFERENCE, AGENT_AVATAR, AGENT_PORTRAIT, AGENT_EXPRESSION, AGENT_OUTFIT, AGENT_CANDIDATE, AGENT_VOICE_SAMPLE | R-RSRC-004 | blocked-legacy | U4 | Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change. |
+| RESOURCE-DELIVERY-ACCESS | resource | PUBLIC, SIGNED | R-RSRC-005, R-RSRC-006 | active |  |  |
+| BINDING-OBJECT-TYPE | binding | RESOURCE, ASSET, BUNDLE | R-BIND-002 | active |  |  |
+| BINDING-HOST-TYPE | binding | WORLD, AGENT, SCENE, WORLD_EVENT, WORLDVIEW | R-BIND-002 | active |  |  |
+| BINDING-KIND | binding | PRESENTATION, USE, IMPORT | R-BIND-003, R-BIND-004 | active |  |  |
+| BINDING-POINT | binding | WORLD_ICON, WORLD_BANNER, WORLD_GALLERY, WORLD_THEME_AUDIO, WORLD_TRAILER_VIDEO, SCENE_BACKGROUND, SCENE_AMBIENT_AUDIO, EVENT_CG, WORLDVIEW_REFERENCE, AGENT_AVATAR, AGENT_PORTRAIT, AGENT_EXPRESSION, AGENT_OUTFIT, AGENT_CANDIDATE, AGENT_VOICE_SAMPLE | R-BIND-003, R-BIND-004 | active |  |  |
 | ATTACHMENT-TARGET-TYPE | attachment | RESOURCE, ASSET, BUNDLE | R-ATTACH-002 | active |  |  |
 | ATTACHMENT-DISPLAY-KIND | attachment | IMAGE, VIDEO, AUDIO, TEXT, CARD | R-ATTACH-004 | active |  |  |
 | OWNABLE-ASSET-KIND | asset | WORK, ITEM | R-ASSET-101 | active |  |  |
 | OWNABLE-ASSET-STATUS | asset | DRAFT, READY, ARCHIVED, DELETED | R-ASSET-103 | active |  |  |
-| OWNABLE-ASSET-ORIGIN | asset | ORIGINAL, CLONE, DERIVED | R-ASSET-101 | active |  |  |
+| OWNABLE-ASSET-ORIGIN | asset | ORIGINAL, CLONE, DERIVED | R-ASSET-101, R-ASSET-103 | active |  |  |
 | OWNABLE-ASSET-POLICY | asset | ALLOW, DENY, INHERIT | R-ASSET-101, R-ASSET-103 | active |  |  |
-| ASSET-BINDING-TARGET | asset | WORLD, AGENT, SCENE, WORKSPACE | R-ASSET-104 | blocked-legacy | U4 | Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change. |
 | BUNDLE-STATUS | bundle | DRAFT, PUBLISHED, ARCHIVED | R-BNDL-001, R-BNDL-003 | active |  |  |

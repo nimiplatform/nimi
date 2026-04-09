@@ -1,0 +1,63 @@
+contract_id: BINDING-CONTRACT-001
+domain: binding
+status: ACTIVE
+version: 2026-03-26
+owner: '@team'
+sources:
+  human_spec: ../binding-contract.md
+  openapi:
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
+  services:
+    - ../../nimi-backend/libs/domains/binding/src/binding.service.ts
+    - ../../nimi-backend/libs/domains/world/src/world-control.service.ts
+rule_id_prefix: R-BIND-
+rules:
+  - rule_id: R-BIND-001
+    level: must
+    title: binding-is-only-durable-object-to-host-relation
+    statement: 'Realm Binding is the only formal durable relation used to attach Realm objects to Realm hosts for presentation, use, or import semantics; Attachment remains a display envelope only.'
+  - rule_id: R-BIND-002
+    level: must
+    title: fixed-active-binding-object-and-host-types
+    statement: 'Active binding object types are RESOURCE, ASSET, and BUNDLE; active binding host types are WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW; WORKSPACE is outside the active backend binding model until a host contract exists.'
+  - rule_id: R-BIND-003
+    level: must
+    title: allow-matrix-fail-close
+    statement: 'Binding legality is fail-close and matrix-governed; only declared bindingKind, objectType, hostType, and bindingPoint combinations are valid, and all undeclared combinations must be rejected.'
+  - rule_id: R-BIND-004
+    level: must
+    title: typed-conditions-and-import-version-pin
+    statement: 'PRESENTATION bindings may carry flat string-map conditions and explicit binding points; USE and IMPORT bindings must not carry conditions; IMPORT bindings must pin the imported bundle version and do not imply member USE bindings.'
+  - rule_id: R-BIND-005
+    level: must
+    title: explicit-idempotent-world-scoped-binding-writes
+    statement: 'Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.'
+entities:
+  - name: Binding
+    prisma_model: Binding
+    required_fields:
+      [
+        id,
+        objectType,
+        objectId,
+        hostType,
+        hostId,
+        bindingKind,
+        priority,
+        conditionHash,
+        scopeWorldId,
+        createdBy,
+      ]
+    nullable_fields: [bindingPoint]
+    json_fields: [conditions]
+api_surface:
+  required_operations:
+    - GET /api/world/by-id/{id}/bindings
+    - GET /api/worlds/{worldId}/bindings
+    - POST /api/worlds/{worldId}/bindings
+    - DELETE /api/worlds/{worldId}/bindings/{bindingId}
+  secondary_operations:
+    - GET /api/resources/{resourceId}
+    - GET /api/assets/{assetId}
+    - GET /api/bundles/{bundleId}

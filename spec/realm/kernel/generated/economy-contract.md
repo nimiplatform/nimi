@@ -25,15 +25,15 @@ Entities: 4
 | Review | Review | id, giftTransactionId, reviewerId, revieweeId, rating |  |
 | CurrencyTransaction | CurrencyTransaction | id, humanProfileId, currencyType, amount, balanceAfter, type |  |
 
-Required operations: 4
+Required operations: 7
 - GET /api/economy/subscription
 - GET /api/economy/gifts/received
 - GET /api/economy/gifts/sent
 - POST /api/economy/reviews
-
-Secondary operations: 5
-- GET /api/economy/balances
-- GET /api/economy/reviews
 - GET /api/economy/revenue-share/config
 - GET /api/economy/revenue-share/agent-origin/{agentId}
 - POST /api/economy/revenue-share/preview
+
+Secondary operations: 2
+- GET /api/economy/balances
+- GET /api/economy/reviews

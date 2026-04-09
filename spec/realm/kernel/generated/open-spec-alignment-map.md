@@ -4,7 +4,7 @@
 # Open Spec Alignment Map (Generated)
 
 Version: `1`
-Updated: `2026-03-25`
+Updated: `2026-03-26`
 
 | External ID | Type | External Path | Local Anchor | Coverage |
 | --- | --- | --- | --- | --- |
@@ -62,11 +62,6 @@ Updated: `2026-03-25`
 | R-ASSET-103 | kernel_rule | nimi/spec/realm/kernel/asset-contract.md#R-ASSET-103 | spec/realm/asset.md#Reading Path | mapped |
 | R-ASSET-104 | kernel_rule | nimi/spec/realm/kernel/asset-contract.md#R-ASSET-104 | spec/realm/asset.md#Reading Path | mapped |
 | R-ASSET-105 | kernel_rule | nimi/spec/realm/kernel/asset-contract.md#R-ASSET-105 | spec/realm/asset.md#Reading Path | mapped |
-| R-BIND-001 | kernel_rule | nimi/spec/realm/kernel/binding-contract.md#R-BIND-001 | spec/realm/kernel/index.md#Blocked External Bindings | blocked |
-| R-BIND-002 | kernel_rule | nimi/spec/realm/kernel/binding-contract.md#R-BIND-002 | spec/realm/kernel/index.md#Blocked External Bindings | blocked |
-| R-BIND-003 | kernel_rule | nimi/spec/realm/kernel/binding-contract.md#R-BIND-003 | spec/realm/kernel/index.md#Blocked External Bindings | blocked |
-| R-BIND-004 | kernel_rule | nimi/spec/realm/kernel/binding-contract.md#R-BIND-004 | spec/realm/kernel/index.md#Blocked External Bindings | blocked |
-| R-BIND-005 | kernel_rule | nimi/spec/realm/kernel/binding-contract.md#R-BIND-005 | spec/realm/kernel/index.md#Blocked External Bindings | blocked |
 | R-BNDL-001 | kernel_rule | nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-001 | spec/realm/asset.md#Scope | mapped |
 | R-BNDL-002 | kernel_rule | nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-002 | spec/realm/asset.md#Reading Path | mapped |
 | R-BNDL-003 | kernel_rule | nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-003 | spec/realm/asset.md#Reading Path | mapped |

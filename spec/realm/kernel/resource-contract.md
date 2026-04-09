@@ -29,7 +29,7 @@ Resource lifecycle mutation is explicit, idempotent, and auditable. Upload prepa
 
 ## R-RSRC-004
 
-Resource consumption by apps remains binding-safe. Posts, chat attachment envelopes, world presentation, scene presentation, and agent presentation may reference resources through attachment or binding relations without upgrading them into ownable assets by default.
+Resource consumption by apps remains binding-safe. `Resource` objects may participate in attachment or binding relations without upgrading them into ownable assets by default, but `Binding(kind=PRESENTATION, objectType=RESOURCE)` is the only active formal resource-binding shape in Realm.
 
 ## R-RSRC-005
 

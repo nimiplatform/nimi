@@ -1,11 +1,6 @@
 version: 1
 updated_at: 2026-03-26
 owner: '@team'
-omission_notes:
-  - domain: agent-memory
-    why_omitted: Agent memory currently defines record classes and explicit write provenance, but no public multi-state lifecycle beyond create/delete surfaces.
-  - domain: social
-    why_omitted: Friendship is modeled as canonical admission fact rows rather than a separate lifecycle state machine in the active hard cut.
 state_machines:
   - machine_id: WORLD-STATE-COMMIT
     domain: world-state
@@ -65,3 +60,4 @@ state_machines:
       - { from: DRAFT, to: PUBLISHED, event: publish }
       - { from: PUBLISHED, to: ARCHIVED, event: archive }
     source_rules: [R-BNDL-003]
+    notes: "ARCHIVED is the terminal active state; bundles do not have a DELETED lifecycle state in the current contract."

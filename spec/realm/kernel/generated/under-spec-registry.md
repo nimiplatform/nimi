@@ -11,4 +11,5 @@ Updated: `2026-03-26`
 | U1 | R-WSTATE-003 | under-spec | acknowledged | medium | World State relation scope shape remains intentionally narrow |
 | U2 | R-WHIST-003 | under-spec | acknowledged | high | canonical happened-fact taxonomy still needs a common event catalog |
 | U3 | R-RSRC-002 | hard-cut-deferral | acknowledged | medium | VOICE resource type remains intentionally deferred after the Resource cutover |
-| U4 | R-BIND-* | external-blocker | blocked | high | Binding contract sync is blocked on upstream authoritative text |
+| U4 | R-BIND-002 | hard-cut-deferral | acknowledged | medium | WORKSPACE is intentionally excluded from the active binding host set |
+| U5 | R-BIND-003 | hard-cut-deferral | acknowledged | medium | USE and IMPORT bindingPoint expansion remains intentionally deferred |

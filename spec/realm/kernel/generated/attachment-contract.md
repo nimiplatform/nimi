@@ -23,11 +23,15 @@ Entities: 2
 | PostAttachment | PostAttachment | id, postId, targetType, targetId, sortOrder, createdAt |  |
 | ChatAttachmentEnvelope |  | targetType, targetId |  |
 
-Required operations: 6
+Required operations: 10
 - POST /api/world/posts
 - GET /api/world/posts
 - GET /api/world/posts/by-id/{id}
+- GET /api/human/chats
 - POST /api/human/chats
+- GET /api/human/chats/{chatId}
+- GET /api/human/chats/{chatId}/messages
+- GET /api/human/chats/{chatId}/sync
 - POST /api/human/chats/{chatId}/messages
 - PATCH /api/human/chats/{chatId}/messages/{messageId}
 

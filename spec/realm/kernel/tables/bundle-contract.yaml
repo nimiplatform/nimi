@@ -14,8 +14,8 @@ rule_id_prefix: R-BNDL-
 rules:
   - rule_id: R-BNDL-001
     level: must
-    title: bundle-composition-and-market-unit
-    statement: 'Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and market/import semantics.'
+    title: bundle-composition-and-import-unit
+    statement: 'Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and import semantics.'
   - rule_id: R-BNDL-002
     level: must
     title: bundle-members-ownable-asset-only
@@ -23,16 +23,17 @@ rules:
   - rule_id: R-BNDL-003
     level: must
     title: explicit-idempotent-bundle-lifecycle
-    statement: 'Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, acquire, and import are first-class lifecycle or event transitions.'
+    statement: 'Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, and import are first-class lifecycle or event transitions.'
   - rule_id: R-BNDL-004
     level: must
     title: bundle-preview-chain-and-runtime-binding-boundary
-    statement: 'Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and bundle acquisition or import still does not imply runtime binding.'
+    statement: 'Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and Binding kind IMPORT with objectType BUNDLE does not imply member Binding kind USE with objectType ASSET.'
 entities:
   - name: Bundle
     prisma_model: Bundle
-    required_fields: [id, ownerId, coverAssetId, title, description, price, version, status]
-    json_fields: [tags, compatibleApps, importTargets]
+    required_fields: [id, ownerId, coverAssetId, title, description, version, status]
+    required_json_fields: [importPolicy]
+    json_fields: [tags, compatibleApps, importPolicy]
   - name: BundleMember
     prisma_model: BundleMember
     required_fields: [id, bundleId, assetId, sortOrder]
@@ -45,6 +46,5 @@ api_surface:
     - PATCH /api/bundles/{bundleId}
     - POST /api/bundles/{bundleId}/publish
     - POST /api/bundles/{bundleId}/archive
-    - POST /api/bundles/{bundleId}/acquire
   secondary_operations:
     - GET /api/assets

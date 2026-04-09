@@ -1,7 +1,7 @@
 version: 1
 updated_at: 2026-03-26
 owner: '@team'
-description: Registry of acknowledged under-specified items after the hard-cut realm refactor.
+description: Registry of acknowledged under-specified items after the hard-cut realm refactor. Only high-impact intentional gaps that can change reader or implementation boundary judgment are listed here.
 under_spec:
   - id: U1
     rule_id: R-WSTATE-003
@@ -31,11 +31,20 @@ under_spec:
     resolution: introduce VOICE only with a dedicated typed storage, delivery, and binding contract instead of overloading the current AUDIO model
     deferred_to: resource-voice-contract
   - id: U4
-    rule_id: R-BIND-*
-    category: external-blocker
-    status: blocked
-    summary: Binding contract sync is blocked on upstream authoritative text
-    detail: Binding-facing rule catalog rows, enums, alignment maps, and write authorization facts are intentionally not inferred from local artifacts. They must be mirrored only after the upstream R-BIND source text is provided.
-    impact: high
-    resolution: import upstream binding contract text and regenerate dependent tables in one change
-    deferred_to: upstream-realm-binding-contract
+    rule_id: R-BIND-002
+    category: hard-cut-deferral
+    status: acknowledged
+    summary: WORKSPACE is intentionally excluded from the active binding host set
+    detail: The active backend binding model only covers WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW hosts. WORKSPACE remains intentionally out of scope until a real backend workspace host contract and persistence model exist.
+    impact: medium
+    resolution: introduce a dedicated workspace host contract before widening Binding host enums or allow-matrix coverage
+    deferred_to: workspace-binding-host-contract
+  - id: U5
+    rule_id: R-BIND-003
+    category: hard-cut-deferral
+    status: acknowledged
+    summary: USE and IMPORT bindingPoint expansion remains intentionally deferred
+    detail: The active v1 legality matrix keeps USE and IMPORT as null-only binding forms even though the shared BINDING-POINT enum exists. Future point-bearing USE or IMPORT shapes require an explicit legality matrix extension rather than implicit reuse of presentation slots.
+    impact: medium
+    resolution: extend binding allow-matrix only after concrete host/object semantics justify non-null USE or IMPORT binding points
+    deferred_to: binding-use-import-point-expansion

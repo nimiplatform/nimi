@@ -1,26 +1,5 @@
 id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
 generated_at: '2026-03-25T00:00:00Z'
-blocked_rules:
-  - rule_id: R-BIND-001
-    status: blocked
-    blocker_id: U4
-    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
-  - rule_id: R-BIND-002
-    status: blocked
-    blocker_id: U4
-    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
-  - rule_id: R-BIND-003
-    status: blocked
-    blocker_id: U4
-    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
-  - rule_id: R-BIND-004
-    status: blocked
-    blocker_id: U4
-    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
-  - rule_id: R-BIND-005
-    status: blocked
-    blocker_id: U4
-    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
@@ -61,6 +40,16 @@ rules:
     domain: truth
     level: must
     statement: GET /api/world/oasis is a formal Realm truth read surface for the system main world.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-009
+    domain: truth
+    level: must
+    statement: Public read surfaces may expose computed aggregates derived from truth but must not expose AgentRule content; aggregates are projection not truth writes.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-010
+    domain: truth
+    level: must
+    statement: GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity for a world; it does not modify truth state.
     source: spec/realm/kernel/truth-contract.md
   - rule_id: R-WSTATE-001
     domain: world-state
@@ -235,27 +224,42 @@ rules:
   - rule_id: R-RSRC-004
     domain: resource
     level: must
-    statement: Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default.
+    statement: Resource objects may participate in attachment or binding relations without promoting them into OwnableAsset by default, but Binding kind PRESENTATION with objectType RESOURCE is the only active formal resource-binding shape in Realm.
     source: spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-005
-    domain: resource
+  - rule_id: R-BIND-001
+    domain: binding
     level: must
-    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
-    source: spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-006
-    domain: resource
+    statement: Realm Binding is the only formal durable relation used to attach Realm objects to Realm hosts for presentation, use, or import semantics; Attachment remains a display envelope only.
+    source: spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-002
+    domain: binding
     level: must
-    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
-    source: spec/realm/kernel/resource-contract.md
+    statement: Active binding object types are RESOURCE, ASSET, and BUNDLE; active binding host types are WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW; WORKSPACE is outside the active backend binding model until a host contract exists.
+    source: spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-003
+    domain: binding
+    level: must
+    statement: Binding legality is fail-close and matrix-governed; only declared bindingKind, objectType, hostType, and bindingPoint combinations are valid, and all undeclared combinations must be rejected.
+    source: spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-004
+    domain: binding
+    level: must
+    statement: PRESENTATION bindings may carry flat string-map conditions and explicit binding points; USE and IMPORT bindings must not carry conditions; IMPORT bindings must pin the imported bundle version and do not imply member USE bindings.
+    source: spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-005
+    domain: binding
+    level: must
+    statement: Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.
+    source: spec/realm/kernel/binding-contract.md
   - rule_id: R-ATTACH-001
     domain: attachment
     level: must
-    statement: Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, or Bundle.
+    statement: Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, Bundle, or Binding.
     source: spec/realm/kernel/attachment-contract.md
   - rule_id: R-ATTACH-002
     domain: attachment
     level: must
-    statement: Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; write surfaces persist target references only and read surfaces may resolve display metadata.
+    statement: Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; attachment target enums are independent from binding object enums even when values overlap, write surfaces persist target references only, and read surfaces may resolve display metadata.
     source: spec/realm/kernel/attachment-contract.md
   - rule_id: R-ATTACH-003
     domain: attachment
@@ -267,6 +271,16 @@ rules:
     level: must
     statement: Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts.
     source: spec/realm/kernel/attachment-contract.md
+  - rule_id: R-RSRC-005
+    domain: resource
+    level: must
+    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-006
+    domain: resource
+    level: must
+    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
+    source: spec/realm/kernel/resource-contract.md
   - rule_id: R-ASSET-101
     domain: asset
     level: must
@@ -285,17 +299,17 @@ rules:
   - rule_id: R-ASSET-104
     domain: asset
     level: must
-    statement: Apps may bind or bundle OwnableAsset objects but cannot usurp asset ownership, lifecycle, policy, or lineage truth.
+    statement: Formal asset use is expressed only through Binding kind USE with objectType ASSET, while bundle membership or app usage must not usurp asset ownership, lifecycle, policy, or lineage truth.
     source: spec/realm/kernel/asset-contract.md
   - rule_id: R-ASSET-105
     domain: asset
     level: must
-    statement: OwnableAsset.resourceRefs defines composition only; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.
+    statement: OwnableAsset.resourceRefs defines composition only and must reference real, undeleted, attachable Resource objects that the current actor is allowed to reference; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.
     source: spec/realm/kernel/asset-contract.md
   - rule_id: R-BNDL-001
     domain: bundle
     level: must
-    statement: Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and market/import semantics.
+    statement: Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and import semantics.
     source: spec/realm/kernel/bundle-contract.md
   - rule_id: R-BNDL-002
     domain: bundle
@@ -305,12 +319,12 @@ rules:
   - rule_id: R-BNDL-003
     domain: bundle
     level: must
-    statement: Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, acquire, and import are first-class lifecycle or event transitions.
+    statement: Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, and import are first-class lifecycle or event transitions.
     source: spec/realm/kernel/bundle-contract.md
   - rule_id: R-BNDL-004
     domain: bundle
     level: must
-    statement: Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and bundle acquisition or import still does not imply runtime binding.
+    statement: Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and Binding kind IMPORT with objectType BUNDLE does not imply member Binding kind USE with objectType ASSET.
     source: spec/realm/kernel/bundle-contract.md
   - rule_id: R-TRANSIT-001
     domain: transit

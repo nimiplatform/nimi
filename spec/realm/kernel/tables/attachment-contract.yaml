@@ -9,9 +9,11 @@ sources:
     - ../../nimi-backend/api-nimi.yaml
   prisma: ../../nimi-backend/prisma/schema.prisma
   services:
+    - ../../nimi-backend/libs/domains/resource/src/attachment-read-model.ts
     - ../../nimi-backend/libs/domains/content/src/domains/post.service.ts
     - ../../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
     - ../../nimi-backend/libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
+    - ../../nimi-backend/apps/api/src/modules/@admin/moderation/admin-moderation.service.ts
 rule_id_prefix: R-ATTACH-
 rules:
   - rule_id: R-ATTACH-001
@@ -43,7 +45,11 @@ api_surface:
     - POST /api/world/posts
     - GET /api/world/posts
     - GET /api/world/posts/by-id/{id}
+    - GET /api/human/chats
     - POST /api/human/chats
+    - GET /api/human/chats/{chatId}
+    - GET /api/human/chats/{chatId}/messages
+    - GET /api/human/chats/{chatId}/sync
     - POST /api/human/chats/{chatId}/messages
     - PATCH /api/human/chats/{chatId}/messages/{messageId}
   secondary_operations:

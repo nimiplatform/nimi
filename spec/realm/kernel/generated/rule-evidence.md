@@ -3,22 +3,24 @@
 
 # Rule Evidence Map (Generated)
 
-Version: `2026-03-26`
+Version: `2026-04-01`
 Owner: `@team`
 
-Profiles: 11
-Rules mapped: 64
+Profiles: 13
+Rules mapped: 71
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
-| R-TRUTH-001 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-002 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-003 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-004 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-005 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-006 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-007 | truth | 7 | 6 | 4 | 4 |
-| R-TRUTH-008 | truth | 7 | 6 | 4 | 4 |
+| R-TRUTH-001 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-002 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-003 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-004 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-005 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-006 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-007 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-008 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-009 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-010 | truth | 9 | 7 | 4 | 4 |
 | R-WSTATE-001 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-002 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-003 | world-state | 2 | 1 | 3 | 3 |
@@ -42,6 +44,11 @@ Rules mapped: 64
 | R-CHAT-003 | chat | 9 | 2 | 2 | 3 |
 | R-CHAT-004 | chat | 9 | 2 | 2 | 3 |
 | R-CHAT-005 | chat | 9 | 2 | 2 | 3 |
+| R-BIND-001 | binding | 4 | 1 | 3 | 3 |
+| R-BIND-002 | binding | 4 | 1 | 3 | 3 |
+| R-BIND-003 | binding | 4 | 1 | 3 | 3 |
+| R-BIND-004 | binding | 4 | 1 | 3 | 3 |
+| R-BIND-005 | binding | 4 | 1 | 3 | 3 |
 | R-SOC-001 | social | 6 | 1 | 2 | 4 |
 | R-SOC-002 | social | 6 | 1 | 2 | 4 |
 | R-SOC-003 | social | 6 | 1 | 2 | 4 |
@@ -50,25 +57,25 @@ Rules mapped: 64
 | R-ECON-002 | economy | 7 | 4 | 4 | 7 |
 | R-ECON-003 | economy | 7 | 4 | 4 | 7 |
 | R-ECON-004 | economy | 7 | 4 | 4 | 7 |
-| R-RSRC-001 | resource | 11 | 3 | 2 | 3 |
-| R-RSRC-002 | resource | 11 | 3 | 2 | 3 |
-| R-RSRC-003 | resource | 11 | 3 | 2 | 3 |
-| R-RSRC-004 | resource | 11 | 3 | 2 | 3 |
-| R-RSRC-005 | resource | 11 | 3 | 2 | 3 |
-| R-RSRC-006 | resource | 11 | 3 | 2 | 3 |
-| R-ATTACH-001 | attachment | 11 | 3 | 2 | 3 |
-| R-ATTACH-002 | attachment | 11 | 3 | 2 | 3 |
-| R-ATTACH-003 | attachment | 20 | 5 | 4 | 6 |
-| R-ATTACH-004 | attachment | 20 | 5 | 4 | 6 |
-| R-ASSET-101 | asset | 5 | 2 | 1 | 2 |
-| R-ASSET-102 | asset | 5 | 2 | 1 | 2 |
-| R-ASSET-103 | asset | 5 | 2 | 1 | 2 |
-| R-ASSET-104 | asset | 5 | 2 | 1 | 2 |
-| R-ASSET-105 | asset | 16 | 5 | 3 | 5 |
-| R-BNDL-001 | bundle | 7 | 2 | 1 | 2 |
-| R-BNDL-002 | bundle | 7 | 2 | 1 | 2 |
-| R-BNDL-003 | bundle | 7 | 2 | 1 | 2 |
-| R-BNDL-004 | bundle | 7 | 2 | 1 | 2 |
+| R-RSRC-001 | resource | 9 | 1 | 2 | 3 |
+| R-RSRC-002 | resource | 9 | 1 | 2 | 3 |
+| R-RSRC-003 | resource | 9 | 1 | 2 | 3 |
+| R-RSRC-004 | resource | 9 | 1 | 2 | 3 |
+| R-RSRC-005 | resource | 9 | 1 | 2 | 3 |
+| R-RSRC-006 | resource | 9 | 1 | 2 | 3 |
+| R-ATTACH-001 | attachment | 12 | 2 | 5 | 4 |
+| R-ATTACH-002 | attachment | 12 | 2 | 5 | 4 |
+| R-ATTACH-003 | attachment | 12 | 2 | 5 | 4 |
+| R-ATTACH-004 | attachment | 12 | 2 | 5 | 4 |
+| R-ASSET-101 | asset | 5 | 1 | 1 | 2 |
+| R-ASSET-102 | asset | 5 | 1 | 1 | 2 |
+| R-ASSET-103 | asset | 5 | 1 | 1 | 2 |
+| R-ASSET-104 | asset | 5 | 1 | 1 | 2 |
+| R-ASSET-105 | asset | 14 | 2 | 3 | 5 |
+| R-BNDL-001 | bundle | 6 | 2 | 1 | 2 |
+| R-BNDL-002 | bundle | 6 | 2 | 1 | 2 |
+| R-BNDL-003 | bundle | 6 | 2 | 1 | 2 |
+| R-BNDL-004 | bundle | 6 | 2 | 1 | 2 |
 | R-TRANSIT-001 | transit | 4 | 1 | 1 | 2 |
 | R-TRANSIT-002 | transit | 4 | 1 | 1 | 2 |
 | R-TRANSIT-003 | transit | 4 | 1 | 1 | 2 |

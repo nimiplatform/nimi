@@ -4,11 +4,10 @@
 # Commit Authorization Matrix (Generated)
 
 ```yaml
-version: 2026-03-26
-updated_at: '2026-03-26'
+version: 2026-03-22
+updated_at: '2026-03-22'
 owner: '@team'
-description: Explicit run-mode authorization matrix for Realm commit envelopes only.
-scope_note: Resource, OwnableAsset, and Bundle lifecycle writes are governed by object-write-authorization.yaml; binding write authorization remains deferred until upstream R-BIND material is mirrored into this repo.
+description: Explicit run-mode authorization matrix for Realm commit envelopes.
 run_modes:
   - run_mode: REPLAY
     allow_state_commit: false
@@ -60,4 +59,4 @@ app_policies:
     source_rules: [R-MEM-004, R-MEM-006]
 ```
 
-Top-level keys: version, updated_at, owner, description, scope_note, run_modes, app_policies
+Top-level keys: version, updated_at, owner, description, run_modes, app_policies

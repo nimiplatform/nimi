@@ -14,15 +14,14 @@ Rules: 5
 | R-ASSET-101 | must | independently-ownable-formal-object-model | Realm OwnableAsset objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics. |
 | R-ASSET-102 | must | ownable-asset-not-resource-or-core-archive | OwnableAsset is distinct from Resource, truth, history, and memory; raw content carriers and app-private archives must not masquerade as ownable realm assets. |
 | R-ASSET-103 | must | explicit-idempotent-ownable-asset-mutation | OwnableAsset mutations are explicit, idempotent, and auditable; create, update, clone, and lifecycle transitions are first-class state changes. |
-| R-ASSET-104 | must | ownable-asset-consumption-boundary-safe | Apps may bind or bundle OwnableAsset objects but cannot usurp asset ownership, lifecycle, policy, or lineage truth. |
-| R-ASSET-105 | must | explicit-preview-truth-does-not-change-ownership-truth | OwnableAsset.resourceRefs defines composition only; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth. |
+| R-ASSET-104 | must | ownable-asset-consumption-boundary-safe | Formal asset use is expressed only through Binding kind USE with objectType ASSET, while bundle membership or app usage must not usurp asset ownership, lifecycle, policy, or lineage truth. |
+| R-ASSET-105 | must | explicit-preview-truth-does-not-change-ownership-truth | OwnableAsset.resourceRefs defines composition only and must reference real, undeleted, attachable Resource objects that the current actor is allowed to reference; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth. |
 
-Entities: 2
+Entities: 1
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
-| OwnableAsset | OwnableAsset | id, kind, ownerId, authorId, status, originKind, transferPolicy, clonePolicy | resourceRefs |
-| AssetBinding | AssetBinding | id, assetId, targetType, targetId, createdBy |  |
+| OwnableAsset | OwnableAsset | id, kind, ownerId, authorId, status, originKind, transferPolicy, clonePolicy | resourceRefs, usePolicy |
 
 Required operations: 5
 - GET /api/assets
