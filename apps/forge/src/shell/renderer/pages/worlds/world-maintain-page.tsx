@@ -9,7 +9,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { MaintainWorkbench } from '@world-engine/ui/maintain/maintain-workbench.js';
 import type {
   EventNodeDraft,
@@ -17,10 +16,6 @@ import type {
 } from '@world-engine/contracts.js';
 import type {
   WorldStudioActionsSlice,
-  WorldStudioLayoutSlice,
-  WorldStudioMainSlice,
-  WorldStudioStatusSlice,
-  WorldStudioWorkflowSlice,
 } from '@world-engine/controllers/world-studio-screen-model.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
@@ -44,12 +39,19 @@ import {
   rollbackWorldRelease,
   retryOfficialFactoryBatchRun,
 } from '@renderer/data/world-data-client.js';
-import { ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
-import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
-import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
+import { ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import {
+  WorldMaintainGovernancePanels,
+  type CompareAnchor,
+} from './world-maintain-governance-panels.js';
+import {
+  WorldMaintainAlerts,
+  WorldMaintainHeader,
+  WorldMaintainTruthPanelSection,
+} from './world-maintain-shell-sections.js';
+import { buildWorldMaintainWorkbenchState } from './world-maintain-workbench-state.js';
 import {
   asRecord,
-  getTimeFlowRatioFromWorldviewPatch,
   getWorkspaceStateDraft,
   requireWorkspaceSessionId,
   requireWorkspaceStateRef,
@@ -64,38 +66,6 @@ type WorldMaintainPageViewProps = {
   backTo?: string;
   title?: string;
 };
-
-type CompareAnchor = {
-  lineageKey: string;
-  releaseId: string | null;
-  runId: string | null;
-};
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) {
-    return 'Not recorded';
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(parsed);
-}
-
-function formatActorLabel(value: string | null | undefined): string {
-  const normalized = String(value || '').trim();
-  return normalized ? normalized.slice(0, 12) : 'unknown';
-}
-
-function releaseStatusTone(status: string): 'success' | 'warning' | 'info' | 'neutral' {
-  if (status === 'PUBLISHED') return 'success';
-  if (status === 'FROZEN') return 'warning';
-  if (status === 'DRAFT') return 'info';
-  return 'neutral';
-}
 
 export function WorldMaintainPageView({
   embedded = false,
@@ -141,7 +111,6 @@ export function WorldMaintainPageView({
     if (userId) persistForUser(userId);
   }, [persistForUser, snapshot, userId]);
 
-  // Queries
   const {
     stateQuery,
     historyQuery,
@@ -170,7 +139,6 @@ export function WorldMaintainPageView({
   const [activeCompareAnchor, setActiveCompareAnchor] = useState<CompareAnchor | null>(null);
   const releaseCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const batchRunCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const eventSyncMode = 'merge' as const;
 
   const worldTruthQuery = useQuery({
     queryKey: ['forge', 'world', 'truth', effectiveWorldId],
@@ -257,7 +225,6 @@ export function WorldMaintainPageView({
     });
   }, [lorebooksQuery.data, patchWorkspaceSnapshot]);
 
-  // Tab management
   const activeSection = snapshot.panel.activeSection;
   const activeTab: MaintainTab = activeSection === 'WORLDVIEW'
     ? 'WORLDVIEW'
@@ -411,7 +378,6 @@ export function WorldMaintainPageView({
     }));
   }, []);
 
-  // Derived
   const working = commitActions.saveMaintenanceMutation.isPending
     || commitActions.syncEventsMutation.isPending
     || commitActions.syncResourceBindingsMutation.isPending;
@@ -543,96 +509,17 @@ export function WorldMaintainPageView({
     }
   }, [activeCompareAnchor]);
 
-  const layout: WorldStudioLayoutSlice = {
-    title: 'Forge World Maintenance',
-    subtitle: 'Maintain the selected world',
-    currentObjectLabel: effectiveWorldId || 'World',
-    dirtySummary: {
-      hasDirty: dirtyLabels.length > 0,
-      count: dirtyLabels.length,
-      labels: dirtyLabels,
-      shortLabel: dirtyLabels.length > 0 ? `${dirtyLabels.length} dirty` : 'Saved',
-    },
-    settingsDrawerOpen: false,
-    setSettingsDrawerOpen: () => undefined,
-    toggleSettingsDrawer: () => undefined,
-  };
-
-  const workflow: WorldStudioWorkflowSlice = {
-    landing: { target: 'MAINTAIN', worldId: effectiveWorldId || null, reason: null },
-    landingTarget: 'MAINTAIN',
-    worlds: [],
-    drafts: [],
-    primaryWorld: null,
-    latestDraft: null,
-    selectedWorldId: effectiveWorldId,
-    selectedDraftId: '',
-    createDisplayStage: 'IMPORT',
-    createStageAccess: {
-      IMPORT: { enabled: true, reason: null },
-      CURATE: { enabled: true, reason: null },
-      GENERATE: { enabled: true, reason: null },
-      REVIEW: { enabled: true, reason: null },
-    },
-    activeDomain: 'WORLD',
-    activeSection: activeTab === 'WORLD'
-      ? 'BASE'
-      : activeTab === 'EVENTS'
-        ? 'WORLD_EVENTS'
-        : activeTab,
-    selectedAgentId: '',
-  };
-
-  const main: WorldStudioMainSlice = {
-    snapshot,
-    phase1: null,
-    phase2: null,
-    sourceMode: 'TEXT',
-    sourceEncoding: 'utf-8',
-    filePreviewText: '',
-    retryWithFineRoute: false,
-    retryScope: 'all',
-    retryConcurrency: 1,
-    retryErrorCode: null,
-    routeOptions: null,
-    eventSyncMode,
-    selectedAgentSyncCharacters: workspaceSnapshot.agentSync.selectedCharacterIds,
-    truthDerivedAgentDraftsByCharacter: workspaceSnapshot.agentSync.draftsByCharacter,
-    eventsGraph: workspaceSnapshot.eventsDraft,
-    timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(workspaceSnapshot.worldviewPatch),
-    importSubview: 'PREPARE',
-    reviewSubview: 'EDIT',
-    working,
-    creatorAgents: [],
-    selectedCreatorAgent: null,
-    resourceBindings: [],
-  };
-
-  const status: WorldStudioStatusSlice = {
-    landingLoading: false,
-    activeTask: workspaceSnapshot.taskState.activeTask,
-    recentTasks: workspaceSnapshot.taskState.recentTasks,
-    expertMode: workspaceSnapshot.taskState.expertMode,
-    localWorkspaceSavedAt: null,
-    notice,
+  const { layout, workflow, main, status } = buildWorldMaintainWorkbenchState({
+    activeTab,
+    dirtyLabels,
+    effectiveWorldId,
     error,
-    conflictReloadSummary: null,
-    hasMaintenanceConflict: false,
-    maintenanceEditorSnapshotVersion: workspaceSnapshot.workspaceVersion,
-    mutations: mutationsList,
-    storyProjectionCount: 0,
-    storyProjectionMissingContextCount: 0,
-    storyProjectionLatestAt: '',
-    primaryEventCount: workspaceSnapshot.eventsDraft.primary.length,
-    secondaryEventCount: workspaceSnapshot.eventsDraft.secondary.length,
-    missingPrimaryEvidenceCount: 0,
-    eventCharacterCoverage: 0,
-    eventLocationCoverage: 0,
-    terminalChunkSuccess: 0,
-    terminalChunkTotal: 0,
-    terminalChunkFailed: 0,
-    terminalTopFailure: null,
-  };
+    mutationsList,
+    notice,
+    snapshot,
+    working,
+    workspaceSnapshot,
+  });
 
   const actions: WorldStudioActionsSlice = {
     workflow: {
@@ -785,25 +672,12 @@ export function WorldMaintainPageView({
     <div className="flex h-full flex-col">
       {/* Header */}
       {!embedded ? (
-        <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              tone="ghost"
-              size="sm"
-              onClick={() => navigate(backTo)}
-            >
-              &larr; {t('worlds.backToList', 'Back')}
-            </Button>
-            <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
-              {title || t('pages.worldMaintain', 'Maintain World')}
-            </h1>
-            <span className="text-xs text-[var(--nimi-text-muted)]">{effectiveWorldId.slice(0, 8)}</span>
-          </div>
-          <Button
-            tone="primary"
-            size="sm"
-            disabled={working || truthWorking}
-            onClick={async () => {
+        <WorldMaintainHeader
+          backTo={backTo}
+          effectiveWorldId={effectiveWorldId}
+          onBack={() => navigate(backTo)}
+          onSave={() => {
+            void (async () => {
               if (!effectiveWorldId) return;
               try {
                 await commitActions.saveMaintenanceMutation.mutateAsync({
@@ -818,333 +692,49 @@ export function WorldMaintainPageView({
               } catch (err) {
                 setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
               }
-            }}
-          >
-            {t('maintain.save', 'Save')}
-          </Button>
-        </div>
+            })();
+          }}
+          title={title}
+          translate={t}
+          working={working || truthWorking}
+        />
       ) : null}
 
       {/* Notice/Error banners */}
-      {error && (
-        <div className="flex items-center justify-between border-b border-[var(--nimi-status-danger)]/20 bg-[var(--nimi-status-danger)]/10 px-4 py-2 text-sm text-[var(--nimi-status-danger)]">
-          <span>{error}</span>
-          <Button tone="ghost" size="sm" onClick={() => setError(null)}>&times;</Button>
-        </div>
-      )}
-      {notice && !error && (
-        <div className="flex items-center justify-between border-b border-[var(--nimi-status-success)]/20 bg-[var(--nimi-status-success)]/10 px-4 py-2 text-sm text-[var(--nimi-status-success)]">
-          <span>{notice}</span>
-          <Button tone="ghost" size="sm" onClick={() => setNotice(null)}>&times;</Button>
-        </div>
-      )}
+      <WorldMaintainAlerts
+        error={error}
+        notice={notice}
+        onClearError={() => setError(null)}
+        onClearNotice={() => setNotice(null)}
+      />
 
-      <div className="grid gap-4 border-b border-[var(--nimi-border-subtle)] px-4 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Surface tone="card" padding="md" className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Official Releases</h2>
-              <p className="text-xs text-[var(--nimi-text-muted)]">
-                Governed publish history and rollback surface for this world.
-              </p>
-            </div>
-            <span className="text-xs text-[var(--nimi-text-muted)]">{releaseItems.length} tracked</span>
-          </div>
-          {releasesQuery.isLoading ? (
-            <ForgeLoadingSpinner />
-          ) : releaseItems.length === 0 ? (
-            <ForgeEmptyState message="No official releases yet." />
-          ) : (
-            <div className="space-y-2">
-              {releaseItems.slice(0, 5).map((release) => {
-                const isCurrent = latestReleaseId === release.id;
-                const detailsExpanded = Boolean(expandedReleases[release.id]);
-                const publishedAt = release.publishedAt ?? release.createdAt;
-                const summaryText = release.diffSummary?.summaryText ?? release.description ?? 'No change summary.';
-                const highlighted = activeCompareAnchor?.releaseId === release.id;
-                return (
-                  <div
-                    key={release.id}
-                    ref={(node) => {
-                      releaseCardRefs.current[release.id] = node;
-                    }}
-                    className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
-                      highlighted
-                        ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
-                        : 'border-[var(--nimi-border-subtle)]'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-                            v{release.version} {release.tag ? `· ${release.tag}` : ''}
-                          </p>
-                          <ForgeStatusBadge domain="generic" status={release.status} tone={releaseStatusTone(release.status)} />
-                          <ForgeStatusBadge domain="generic" status={release.releaseType} tone="neutral" />
-                        </div>
-                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                          {summaryText}
-                        </p>
-                        <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-                          Published {formatDateTime(publishedAt)} · pkg {release.packageVersion ?? 'n/a'} · actor {formatActorLabel(release.publishActorId ?? release.createdBy)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          tone="ghost"
-                          size="sm"
-                          onClick={() => toggleReleaseDetails(release.id)}
-                        >
-                          {detailsExpanded ? 'Hide Details' : 'Show Details'}
-                        </Button>
-                        <Button
-                          tone={isCurrent ? 'ghost' : 'secondary'}
-                          size="sm"
-                          disabled={isCurrent || rollbackingReleaseId !== null}
-                          onClick={() => void onRollbackRelease(release.id, release.version)}
-                        >
-                          {rollbackingReleaseId === release.id ? 'Rolling back…' : isCurrent ? 'Current' : 'Rollback'}
-                        </Button>
-                      </div>
-                    </div>
-                    {detailsExpanded ? (
-                      <div className="mt-3 space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Release Diff
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            world rules {release.diffSummary?.worldRuleDelta ?? 0} · agent snapshots {release.diffSummary?.agentRuleSnapshotDelta ?? 0} · worldview {release.diffSummary?.worldviewChanged ? 'changed' : 'stable'} · lorebook {release.diffSummary?.lorebookChanged ? 'changed' : 'stable'}
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            previous {release.diffSummary?.previousReleaseId ?? 'none'} · rollback target {release.diffSummary?.rollbackTargetReleaseId ?? 'none'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Governance
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            owner {formatActorLabel(release.officialOwnerId)} · editor {formatActorLabel(release.editorialOperatorId)} · reviewer {formatActorLabel(release.reviewerId)}
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            publisher {formatActorLabel(release.publisherId)} · actor {formatActorLabel(release.publishActorId ?? release.createdBy)} · verdict {release.reviewVerdict ?? 'n/a'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Release Lineage
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            source {release.sourceProvenance ?? 'n/a'} · supersedes {release.supersedesReleaseId ?? 'none'} · rollback from {release.rollbackFromReleaseId ?? 'none'}
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            checksum {release.ruleChecksum} · worldview {release.worldviewChecksum ?? 'n/a'} · lorebook {release.lorebookChecksum ?? 'n/a'}
-                          </p>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Surface>
+      <WorldMaintainGovernancePanels
+        activeCompareAnchor={activeCompareAnchor}
+        batchRunsLoading={batchRunsQuery.isLoading}
+        expandedBatchRuns={expandedBatchRuns}
+        expandedReleases={expandedReleases}
+        latestReleaseId={latestReleaseId}
+        registerBatchRunCard={(runId, node) => {
+          batchRunCardRefs.current[runId] = node;
+        }}
+        registerReleaseCard={(releaseId, node) => {
+          releaseCardRefs.current[releaseId] = node;
+        }}
+        releaseItems={releaseItems}
+        releasesLoading={releasesQuery.isLoading}
+        relevantBatchRuns={relevantBatchRuns}
+        retryingBatchRunId={retryingBatchRunId}
+        rollbackingReleaseId={rollbackingReleaseId}
+        titleLineageItems={titleLineageItems}
+        titleLineageLoading={titleLineageQuery.isLoading}
+        onOpenLineageAnchor={onOpenLineageAnchor}
+        onRetryBatchRun={(runId) => void onRetryBatchRun(runId)}
+        onRollbackRelease={(releaseId, releaseVersion) => void onRollbackRelease(releaseId, releaseVersion)}
+        onToggleBatchRunDetails={toggleBatchRunDetails}
+        onToggleReleaseDetails={toggleReleaseDetails}
+      />
 
-        <Surface tone="card" padding="md" className="space-y-3">
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Title Lineage</h2>
-            <p className="text-xs text-[var(--nimi-text-muted)]">
-              Canonical title tracking for compare and release operations.
-            </p>
-          </div>
-          {titleLineageQuery.isLoading ? (
-            <ForgeLoadingSpinner />
-          ) : titleLineageItems.length === 0 ? (
-            <ForgeEmptyState message="No title lineage records yet." />
-          ) : (
-            <div className="space-y-2">
-              {titleLineageItems.slice(0, 5).map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
-                    activeCompareAnchor?.lineageKey === entry.titleLineageKey
-                      ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
-                      : 'border-[var(--nimi-border-subtle)]'
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{entry.canonicalTitle}</p>
-                      <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                        source {entry.sourceTitle} · pkg {entry.packageVersion ?? 'n/a'}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                        anchor release {entry.releaseId ?? 'n/a'} · run {entry.runId ?? 'n/a'} · item {entry.itemId ?? 'n/a'}
-                      </p>
-                      <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-                        {entry.reason ?? 'Recorded from official publish flow.'}
-                      </p>
-                      <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-                        {formatDateTime(entry.createdAt)} · actor {formatActorLabel(entry.recordedBy)}
-                      </p>
-                    </div>
-                    <Button
-                      tone="ghost"
-                      size="sm"
-                      onClick={() => onOpenLineageAnchor(entry)}
-                    >
-                      Open Related
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Surface>
-      </div>
-
-      <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-4">
-        <Surface tone="card" padding="md" className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Factory Runs</h2>
-              <p className="text-xs text-[var(--nimi-text-muted)]">
-                Official batch execution records linked to this world.
-              </p>
-            </div>
-            <span className="text-xs text-[var(--nimi-text-muted)]">{relevantBatchRuns.length} tracked</span>
-          </div>
-          {batchRunsQuery.isLoading ? (
-            <ForgeLoadingSpinner />
-          ) : relevantBatchRuns.length === 0 ? (
-            <ForgeEmptyState message="No official factory batch runs for this world yet." />
-          ) : (
-            <div className="space-y-2">
-              {relevantBatchRuns.slice(0, 4).map((run) => {
-                const retryable = run.items.some((item) => item.status === 'FAILED' || item.status === 'SKIPPED');
-                const detailsExpanded = Boolean(expandedBatchRuns[run.id]);
-                const highlighted = activeCompareAnchor?.runId === run.id;
-                return (
-                  <div
-                    key={run.id}
-                    ref={(node) => {
-                      batchRunCardRefs.current[run.id] = node;
-                    }}
-                    className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
-                      highlighted
-                        ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
-                        : 'border-[var(--nimi-border-subtle)]'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{run.name}</p>
-                          <ForgeStatusBadge domain="generic" status={run.status} />
-                          {run.qualityGateStatus ? (
-                            <ForgeStatusBadge domain="generic" status={run.qualityGateStatus} />
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                          {run.pipelineStages.join(' -> ')}
-                        </p>
-                        <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
-                          success {run.successCount} · failed {run.failureCount} · retry {run.retryCount}/{run.retryLimit}
-                        </p>
-                        {run.lastError ? (
-                          <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{run.lastError}</p>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          tone="ghost"
-                          size="sm"
-                          onClick={() => toggleBatchRunDetails(run.id)}
-                        >
-                          {detailsExpanded ? 'Hide Details' : 'Show Details'}
-                        </Button>
-                        <Button
-                          tone="secondary"
-                          size="sm"
-                          disabled={!retryable || retryingBatchRunId !== null}
-                          onClick={() => void onRetryBatchRun(run.id)}
-                        >
-                          {retryingBatchRunId === run.id ? 'Retrying…' : 'Retry Failed'}
-                        </Button>
-                      </div>
-                    </div>
-                    {detailsExpanded ? (
-                      <div className="mt-3 space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Pipeline Stages
-                          </p>
-                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                            {run.pipelineStages.join(' -> ')}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Quality Findings
-                          </p>
-                          {run.qualityGateSummary?.findings?.length ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {run.qualityGateSummary.findings.map((finding) => (
-                                <span
-                                  key={finding}
-                                  className="rounded-full border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-muted)]"
-                                >
-                                  {finding}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                              No quality findings recorded.
-                            </p>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
-                            Item Lineage
-                          </p>
-                          <div className="mt-2 space-y-2">
-                            {run.items.map((item) => (
-                              <div
-                                key={`${run.id}-${item.id}`}
-                                className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3"
-                              >
-                                <p className="text-xs text-[var(--nimi-text-muted)]">
-                                  {item.canonicalTitle} · slug {item.slug} · source {item.sourceMode}
-                                </p>
-                                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                                  package {item.packageVersion ?? 'pending'} · release {item.releaseId ?? 'pending'}
-                                </p>
-                                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-                                  lineage {item.titleLineageKey} · started {item.startedAt ?? 'not-started'} · finished {item.finishedAt ?? 'not-finished'}
-                                </p>
-                                {item.lastError ? (
-                                  <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">
-                                    {item.lastError}
-                                  </p>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Surface>
-      </div>
-
-      <WorldRuleTruthPanel
+      <WorldMaintainTruthPanelSection
         worldRules={Array.isArray(worldRulesQuery.data) ? worldRulesQuery.data : []}
         worldRulesLoading={worldRulesQuery.isLoading}
         worldAgents={worldOwnedAgents}
