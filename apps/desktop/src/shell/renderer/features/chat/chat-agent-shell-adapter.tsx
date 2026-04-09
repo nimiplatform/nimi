@@ -43,6 +43,12 @@ import {
   getChatThinkingUnsupportedCopy,
   resolveAgentThinkingSupportFromProjection,
 } from './chat-thinking';
+import {
+  loadStoredAgentChatExperienceSettings,
+  persistStoredAgentChatExperienceSettings,
+  type AgentChatExperienceSettings,
+} from './chat-settings-storage';
+import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
@@ -81,8 +87,6 @@ export function useAgentConversationModeHost(
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
-  const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
-  const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
   const agentAdapterAiConfig = useAppStore((state) => state.aiConfig);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
@@ -92,6 +96,9 @@ export function useAgentConversationModeHost(
   );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
+  const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
+    () => loadStoredAgentChatExperienceSettings(),
+  );
   const schedulingJudgement = useSchedulingFeasibility();
   const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
     Record<string, {
@@ -128,6 +135,10 @@ export function useAgentConversationModeHost(
     () => resolveAgentThinkingSupportFromProjection(textCapabilityProjection),
     [textCapabilityProjection],
   );
+  const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
+    persistStoredAgentChatExperienceSettings(nextSettings);
+    setBehaviorSettingsState(nextSettings);
+  }, []);
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
       return null;
@@ -357,7 +368,11 @@ export function useAgentConversationModeHost(
           ) as Record<string, unknown> | null,
           runtimeConfigState: input.runtimeConfigState,
           runtimeFields: input.runtimeFields,
-          reasoningPreference: chatThinkingPreference,
+          reasoningPreference: behaviorSettings.thinkingPreference,
+          resolvedBehavior: resolveAgentChatBehavior({
+            userText: turnInput.userMessage.text,
+            settings: behaviorSettings,
+          }),
         },
       },
     }),
@@ -402,14 +417,15 @@ export function useAgentConversationModeHost(
     renderMessageContent,
     schedulingJudgement,
     selectedTargetId: activeTarget?.agentId || null,
-    setChatThinkingPreference,
+    behaviorSettings,
+    setBehaviorSettings,
     setupState,
     streamState,
     submittingThreadId,
     t,
     targetSummariesInput: { targets, threads },
     targetsPending: targetsQuery.isPending,
-    thinkingPreference: chatThinkingPreference,
+    thinkingPreference: behaviorSettings.thinkingPreference,
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
     agentRouteReady,

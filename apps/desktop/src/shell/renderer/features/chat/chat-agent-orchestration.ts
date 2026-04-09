@@ -1,10 +1,10 @@
 import type {
   ConversationContinuityAdapter,
   ConversationProjectionRebuildResult,
+  ConversationRuntimeTextMessage,
   ConversationRuntimeTextStreamPart,
   ConversationTurnError,
   ConversationTurnEvent,
-  ConversationTurnHistoryMessage,
   ConversationTurnInput,
   ConversationOrchestrationProvider,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -25,13 +25,25 @@ import {
   streamChatAgentRuntime,
   toChatAgentRuntimeError,
 } from './chat-agent-runtime';
-import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 import type { ChatThinkingPreference } from './chat-thinking';
 import type {
   AgentEffectiveCapabilityResolution,
   AISnapshot,
 } from './conversation-capability';
 import { getStreamState } from '../turns/stream-controller';
+import { buildAgentLocalChatExecutionTextRequest } from './chat-ai-execution-engine';
+import type {
+  AgentResolvedBeat,
+  AgentResolvedBeatActionEnvelope,
+  AgentResolvedBehavior,
+  AgentResolvedModalityAction,
+} from './chat-agent-behavior';
+import {
+  buildAgentResolvedOutputText,
+  parseAgentResolvedBeatActionEnvelope,
+} from './chat-agent-behavior-resolver';
+
+export { buildAgentLocalChatPrompt } from './chat-ai-execution-engine';
 
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
@@ -50,7 +62,9 @@ type AgentLocalChatStoreClient = Pick<
 
 export type AgentLocalChatRuntimeRequest = {
   agentId: string;
-  prompt: string;
+  prompt?: string;
+  messages?: readonly ConversationRuntimeTextMessage[];
+  systemPrompt?: string | null;
   threadId: string;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   textExecutionSnapshot: AISnapshot | null;
@@ -89,6 +103,7 @@ export type AgentLocalChatProviderMetadata = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
+  resolvedBehavior?: AgentResolvedBehavior | null;
 };
 
 type AgentLocalChatImageState =
@@ -136,6 +151,7 @@ type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
     events: readonly ConversationTurnEvent[];
     signal?: AbortSignal;
     imageState?: AgentLocalChatImageState;
+    textBeatStates?: readonly AgentLocalTextBeatState[];
   }) => Promise<AgentLocalCommitTurnResult>;
 };
 
@@ -149,6 +165,13 @@ type AgentLocalTextBeatState = {
   beatIndex: number;
   projectionMessageId: string;
   text: string;
+};
+
+type AgentLocalPlannedTextBeat = Pick<
+  AgentLocalTextBeatState,
+  'beatId' | 'beatIndex' | 'projectionMessageId'
+> & {
+  deliveryPhase: AgentResolvedBeat['deliveryPhase'];
 };
 
 function normalizeText(value: unknown): string {
@@ -182,10 +205,6 @@ export function createAgentTailAbortSignal(
   return controller.signal;
 }
 
-function stringifyJson(value: unknown): string {
-  return JSON.stringify(value, null, 2);
-}
-
 function requireProviderMetadata(metadata: Record<string, unknown> | undefined): AgentLocalChatProviderMetadata {
   const record = metadata?.agentLocalChat;
   if (!record || typeof record !== 'object') {
@@ -211,6 +230,7 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,
+    resolvedBehavior: (nextRecord.resolvedBehavior ?? null) as AgentResolvedBehavior | null,
   };
 }
 
@@ -234,396 +254,135 @@ function isAbortLikeError(error: unknown): boolean {
     || message.includes('canceled');
 }
 
-const AGENT_IMAGE_MARKER_RE = /\[\[IMG:([\s\S]*?)\]\]/giu;
-const AGENT_IMAGE_REQUEST_RE = /\b(?:image|picture|photo|illustration|artwork|portrait|wallpaper)\b|(?:图片|图|照片|插画|头像|壁纸)/iu;
-const AGENT_IMAGE_VERB_RE = /\b(?:send|show|make|create|generate|draw|render|give)\b|(?:发|给|来|做|生成|画|出|整|弄)/iu;
-const AGENT_IMAGE_DIRECT_REQUEST_RE = /\b(?:can you|could you|please|send me|show me|make me|create me|generate me|draw me|render me)\b|(?:给我|帮我|替我|发我|来个|来一|来张|发张|做张|整点|生成张|画张)/iu;
-const AGENT_IMAGE_NEGATION_RE = /\b(?:don't|do not|no need to|not now|stop)\b|(?:不要|别|不用|先别|不必|暂时别|别再)/iu;
-const AGENT_NSFW_RE = /\b(?:nude|naked|sex|porn|nsfw|explicit)\b|(?:裸体|裸照|色情|成人视频|成人图)/iu;
-const AGENT_IMAGE_PLANNER_TIMEOUT_MS = 4_000;
-
-function normalizeWhitespace(value: string): string {
-  return String(value || '')
-    .replace(/\r/g, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+function createAbortError(): Error {
+  const error = new Error('aborted');
+  error.name = 'AbortError';
+  return error;
 }
 
-function hasNegativeAgentImageRequest(text: string): boolean {
-  const normalized = normalizeWhitespace(text);
-  if (!normalized || !AGENT_IMAGE_NEGATION_RE.test(normalized)) {
-    return false;
-  }
-  return (
-    /(?:不要|别|不用|先别|不必|暂时别).{0,12}(?:发|给|来|做|生成|画|出|整|弄).{0,12}(?:图|图片|照片|插画|头像|壁纸)/iu.test(normalized)
-    || /(?:不要|别|不用|先别|不必|暂时别).{0,8}(?:图|图片|照片|插画|头像|壁纸)/iu.test(normalized)
-    || /(?:don't|do not|no need to|not now|stop).{0,16}(?:send|show|make|create|generate|draw|render|give).{0,16}(?:image|picture|photo|illustration|artwork|portrait|wallpaper)/iu.test(normalized)
-  );
-}
-
-function sanitizeExplicitAgentImagePrompt(text: string): string {
-  return normalizeWhitespace(
-    text
-      .replace(/[!?！？]+$/g, '')
-      .replace(/^(?:能不能|可以|可不可以|麻烦|请|please\s+)/iu, '')
-      .replace(/^(?:给我|帮我|替我|发我)\s*/iu, ''),
-  );
-}
-
-function parseExplicitAgentImageRequest(text: string): string | null {
-  const normalized = normalizeWhitespace(text);
-  if (!normalized) {
-    return null;
-  }
-  if (hasNegativeAgentImageRequest(normalized)) {
-    return null;
-  }
-  if (!AGENT_IMAGE_REQUEST_RE.test(normalized)) {
-    return null;
-  }
-  if (!AGENT_IMAGE_VERB_RE.test(normalized) && !AGENT_IMAGE_DIRECT_REQUEST_RE.test(normalized)) {
-    return null;
-  }
-  return sanitizeExplicitAgentImagePrompt(normalized) || normalized;
-}
-
-function parseAgentImageMarker(input: {
-  assistantText: string;
-  userText: string;
-}): { cleanedText: string; prompt: string | null } {
-  const source = String(input.assistantText || '');
-  let prompt: string | null = null;
-  const cleanedText = normalizeWhitespace(source.replace(AGENT_IMAGE_MARKER_RE, (_match, markerPrompt) => {
-    const nextPrompt = normalizeWhitespace(String(markerPrompt || ''));
-    if (nextPrompt && !prompt) {
-      prompt = nextPrompt;
-    }
-    return '';
-  }));
-  if (prompt) {
-    return { cleanedText, prompt };
-  }
-  return {
-    cleanedText: normalizeWhitespace(source),
-    prompt: null,
-  };
-}
-
-function buildAgentRecentMediaSummary(context: AgentLocalTurnContext): string {
-  const now = Date.now();
-  const pending = context.recentBeats.some((beat) => beat.modality === 'image' && beat.status !== 'delivered');
-  const recentDelivered = [...context.recentBeats]
-    .reverse()
-    .find((beat) => beat.modality === 'image' && beat.status === 'delivered');
-  if (!recentDelivered) {
-    return pending ? 'recentImage=none · pending=yes' : 'recentImage=none · pending=no';
-  }
-  const minutes = Math.max(0, Math.round((now - recentDelivered.createdAtMs) / 60000));
-  return `recentImage=${minutes}m · pending=${pending ? 'yes' : 'no'}`;
-}
-
-function hasRecentImageCooldown(context: AgentLocalTurnContext): boolean {
-  const recentImageBeat = [...context.recentBeats]
-    .reverse()
-    .find((beat) => beat.modality === 'image' && beat.status === 'delivered');
-  if (!recentImageBeat) {
-    return false;
-  }
-  return Date.now() - recentImageBeat.createdAtMs < 10 * 60 * 1000;
-}
-
-function isPromptLikelyNsfw(text: string): boolean {
-  return AGENT_NSFW_RE.test(normalizeWhitespace(text));
-}
-
-function buildAgentImagePlannerPrompt(input: {
-  userText: string;
-  assistantText: string;
-  targetSnapshot: AgentLocalTargetSnapshot;
-  context: AgentLocalTurnContext;
-}): string {
-  return [
-    'You are deciding whether an agent reply should also generate an image.',
-    'Return strict JSON only.',
-    'Choose "image" only when the dialogue strongly implies a visual deliverable or scene enhancement.',
-    'Never choose image for simple greetings, plain Q&A, or when the user explicitly asked not to send an image.',
-    'If kind="image", provide concrete visual fields instead of generic wording.',
-    'Schema: {"kind":"none|image","trigger":"scene-enhancement|assistant-offer|none","confidence":0,"subject":"string","scene":"string","styleIntent":"string","mood":"string","negativeCues":["string"],"continuityRefs":["string"],"reason":"string","nsfwIntent":"none|suggested"}',
-    `Target: ${stringifyJson({
-      displayName: input.targetSnapshot.displayName,
-      handle: input.targetSnapshot.handle,
-      worldName: input.targetSnapshot.worldName,
-      bio: input.targetSnapshot.bio,
-      ownershipType: input.targetSnapshot.ownershipType,
-    })}`,
-    `RecentContinuity: ${buildContinuitySummary(input.context)}`,
-    `RecentMedia: ${buildAgentRecentMediaSummary(input.context)}`,
-    `User: ${input.userText || '-'}`,
-    `Assistant: ${input.assistantText || '-'}`,
-  ].join('\n');
-}
-
-function parseAgentImagePlannerDecision(text: string): {
-  kind: 'none' | 'image';
-  trigger: 'scene-enhancement' | 'assistant-offer' | 'none';
-  subject: string;
-  scene: string;
-  styleIntent: string;
-  mood: string;
-  negativeCues: string[];
-  continuityRefs: string[];
-  reason: string;
-  confidence: number;
-  nsfwIntent: 'none' | 'suggested';
-} {
-  const normalized = normalizeText(text);
-  const parsed = JSON.parse(normalized) as Record<string, unknown>;
-  const kind = normalizeText(parsed.kind);
-  if (kind !== 'none' && kind !== 'image') {
-    throw new Error('AGENT_IMAGE_PLANNER_INVALID_KIND');
-  }
-  const trigger = normalizeText(parsed.trigger);
-  const negativeCues = Array.isArray(parsed.negativeCues)
-    ? parsed.negativeCues.map((value) => normalizeWhitespace(String(value || ''))).filter(Boolean)
-    : [];
-  const continuityRefs = Array.isArray(parsed.continuityRefs)
-    ? parsed.continuityRefs.map((value) => normalizeWhitespace(String(value || ''))).filter(Boolean)
-    : [];
-  return {
-    kind,
-    trigger: trigger === 'assistant-offer' || trigger === 'scene-enhancement' ? trigger : 'none',
-    subject: normalizeWhitespace(String(parsed.subject || '')),
-    scene: normalizeWhitespace(String(parsed.scene || '')),
-    styleIntent: normalizeWhitespace(String(parsed.styleIntent || '')),
-    mood: normalizeWhitespace(String(parsed.mood || '')),
-    negativeCues,
-    continuityRefs,
-    reason: normalizeWhitespace(String(parsed.reason || '')),
-    confidence: Number(parsed.confidence || 0),
-    nsfwIntent: normalizeText(parsed.nsfwIntent) === 'suggested' ? 'suggested' : 'none',
-  };
-}
-
-function compileAgentPlannerImagePrompt(input: {
-  subject: string;
-  scene: string;
-  styleIntent: string;
-  mood: string;
-  negativeCues: string[];
-  continuityRefs: string[];
-}): string {
-  const lines = [
-    input.subject ? `subject: ${input.subject}` : '',
-    input.scene ? `scene: ${input.scene}` : '',
-    input.styleIntent ? `style: ${input.styleIntent}` : '',
-    input.mood ? `mood: ${input.mood}` : '',
-    input.continuityRefs.length > 0 ? `continuity: ${input.continuityRefs.join(', ')}` : '',
-    input.negativeCues.length > 0 ? `avoid: ${input.negativeCues.join(', ')}` : '',
-  ].filter(Boolean);
-  return normalizeWhitespace(lines.join('\n'));
-}
-
-async function decideAgentImageState(input: {
-  runtimeAdapter: AgentLocalChatRuntimeAdapter;
-  agentId: string;
-  threadId: string;
-  turnId: string;
-  userText: string;
-  assistantText: string;
-  targetSnapshot: AgentLocalTargetSnapshot;
-  context: AgentLocalTurnContext;
-  agentResolution: AgentEffectiveCapabilityResolution | null;
-  textExecutionSnapshot: AISnapshot | null;
-  imageExecutionSnapshot: AISnapshot | null;
-  runtimeConfigState: RuntimeConfigStateV11 | null;
-  runtimeFields: RuntimeFieldMap;
-  reasoningPreference: ChatThinkingPreference;
+function waitForResolvedDelay(input: {
+  delayMs: number;
   signal?: AbortSignal;
-}): Promise<AgentLocalChatImageState> {
-  const cleanedAssistant = parseAgentImageMarker({
-    assistantText: input.assistantText,
-    userText: input.userText,
-  });
-  if (hasNegativeAgentImageRequest(input.userText)) {
-    return { status: 'none' };
+  threadId: string;
+}): Promise<void> {
+  if (!Number.isFinite(input.delayMs) || input.delayMs <= 0) {
+    throw new Error(`Resolved delayed beat requires a positive delayMs, received ${String(input.delayMs)}`);
   }
-  const explicitPrompt = parseExplicitAgentImageRequest(input.userText);
-  const requestedPrompt = cleanedAssistant.prompt || explicitPrompt;
+  if (input.signal?.aborted) {
+    return Promise.reject(createAbortError());
+  }
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, input.delayMs);
+    const keepaliveIntervalId = setInterval(() => {
+      feedStreamEvent(input.threadId, { type: 'keepalive' });
+    }, 10_000);
+    const onAbort = () => {
+      cleanup();
+      reject(createAbortError());
+    };
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      clearInterval(keepaliveIntervalId);
+      input.signal?.removeEventListener('abort', onAbort);
+    };
+    input.signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+const AGENT_NSFW_RE = /\b(?:nude|naked|sex|porn|nsfw|explicit)\b|(?:裸体|裸照|色情|成人视频|成人图)/iu;
+function isPromptLikelyNsfw(text: string): boolean {
+  return AGENT_NSFW_RE.test(normalizeText(text));
+}
+
+function resolvePlannedTextBeatsFromEnvelope(input: {
+  turnId: string;
+  envelope: AgentResolvedBeatActionEnvelope;
+}): AgentLocalPlannedTextBeat[] {
+  return input.envelope.beats.map((beat) => ({
+    beatId: beat.beatId,
+    beatIndex: beat.beatIndex,
+    projectionMessageId: `${input.turnId}:message:${beat.beatIndex}`,
+    deliveryPhase: beat.deliveryPhase,
+  }));
+}
+
+function resolveCompletedTextBeatStatesFromEnvelope(input: {
+  turnId: string;
+  envelope: AgentResolvedBeatActionEnvelope;
+}): AgentLocalTextBeatState[] {
+  return input.envelope.beats.map((beat) => ({
+    beatId: beat.beatId,
+    beatIndex: beat.beatIndex,
+    projectionMessageId: `${input.turnId}:message:${beat.beatIndex}`,
+    text: beat.text,
+  }));
+}
+
+function findSingleExecutableImageAction(
+  envelope: AgentResolvedBeatActionEnvelope,
+): AgentResolvedModalityAction | null {
+  const imageActions = envelope.actions.filter((action) => action.modality === 'image');
+  if (imageActions.length === 0) {
+    return null;
+  }
+  if (imageActions.length > 1) {
+    throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
+  }
+  return imageActions[0] || null;
+}
+
+function resolveImageStateFromResolvedAction(input: {
+  turnId: string;
+  action: AgentResolvedModalityAction;
+  textBeatCount: number;
+  agentResolution: AgentEffectiveCapabilityResolution | null;
+  imageExecutionSnapshot: AISnapshot | null;
+}): AgentLocalChatImageState {
+  const beatIndex = input.textBeatCount + input.action.actionIndex;
+  const projectionMessageId = `${input.turnId}:message:${beatIndex}`;
+  const prompt = input.action.promptPayload.kind === 'image-prompt'
+    ? input.action.promptPayload.promptText
+    : '';
+
+  if (!prompt) {
+    throw new Error(`image action ${input.action.actionId} is missing a promptText payload`);
+  }
+  if (isPromptLikelyNsfw(prompt)) {
+    return {
+      status: 'error',
+      beatId: input.action.actionId,
+      beatIndex,
+      projectionMessageId,
+      prompt,
+      message: 'Image generation was blocked by the current safety policy.',
+    };
+  }
+
   const imageProjection = input.agentResolution?.imageProjection || null;
   const imageReady = input.agentResolution?.imageReady === true;
-
-  const blockedMessage = !imageProjection?.selectedBinding
-    ? 'Image generation is unavailable because no image route is configured.'
-    : 'Image generation is unavailable because the image runtime is not ready.';
-
-  if (requestedPrompt) {
-    if (!imageReady || !input.imageExecutionSnapshot) {
-      return {
-        status: 'error',
-        beatId: `${input.turnId}:beat:1`,
-        beatIndex: 1,
-        projectionMessageId: `${input.turnId}:message:1`,
-        prompt: requestedPrompt,
-        message: blockedMessage,
-      };
-    }
-    if (isPromptLikelyNsfw(requestedPrompt)) {
-      return {
-        status: 'error',
-        beatId: `${input.turnId}:beat:1`,
-        beatIndex: 1,
-        projectionMessageId: `${input.turnId}:message:1`,
-        prompt: requestedPrompt,
-        message: 'Image generation was blocked by the current safety policy.',
-      };
-    }
+  if (!imageReady || !input.imageExecutionSnapshot) {
     return {
-      status: 'generate',
-      beatId: `${input.turnId}:beat:1`,
-      beatIndex: 1,
-      projectionMessageId: `${input.turnId}:message:1`,
-      prompt: requestedPrompt,
+      status: 'error',
+      beatId: input.action.actionId,
+      beatIndex,
+      projectionMessageId,
+      prompt,
+      message: !imageProjection?.selectedBinding
+        ? 'Image generation is unavailable because no image route is configured.'
+        : 'Image generation is unavailable because the image runtime is not ready.',
     };
   }
 
-  if (!imageReady || !input.imageExecutionSnapshot || hasRecentImageCooldown(input.context)) {
-    return { status: 'none' };
-  }
-
-  const plannerController = new AbortController();
-  const plannerTimer = globalThis.setTimeout(() => plannerController.abort(), AGENT_IMAGE_PLANNER_TIMEOUT_MS);
-  try {
-    const plannerResult = await input.runtimeAdapter.invokeText({
-      agentId: input.agentId,
-      prompt: buildAgentImagePlannerPrompt({
-        userText: input.userText,
-        assistantText: cleanedAssistant.cleanedText,
-        targetSnapshot: input.targetSnapshot,
-        context: input.context,
-      }),
-      threadId: input.threadId,
-      agentResolution: input.agentResolution,
-      textExecutionSnapshot: input.textExecutionSnapshot,
-      runtimeConfigState: input.runtimeConfigState,
-      runtimeFields: input.runtimeFields,
-      reasoningPreference: input.reasoningPreference,
-      signal: plannerController.signal,
-    });
-    const decision = parseAgentImagePlannerDecision(plannerResult.text);
-    const compiledPrompt = compileAgentPlannerImagePrompt({
-      subject: decision.subject,
-      scene: decision.scene,
-      styleIntent: decision.styleIntent,
-      mood: decision.mood,
-      negativeCues: decision.negativeCues,
-      continuityRefs: decision.continuityRefs,
-    });
-    if (decision.kind !== 'image' || !compiledPrompt || decision.confidence < 0.82) {
-      return { status: 'none' };
-    }
-    if (decision.nsfwIntent === 'suggested' || isPromptLikelyNsfw(compiledPrompt)) {
-      return {
-        status: 'error',
-        beatId: `${input.turnId}:beat:1`,
-        beatIndex: 1,
-        projectionMessageId: `${input.turnId}:message:1`,
-        prompt: compiledPrompt,
-        message: 'Image generation was blocked by the current safety policy.',
-      };
-    }
-    return {
-      status: 'generate',
-      beatId: `${input.turnId}:beat:1`,
-      beatIndex: 1,
-      projectionMessageId: `${input.turnId}:message:1`,
-      prompt: compiledPrompt,
-    };
-  } catch {
-    return { status: 'none' };
-  } finally {
-    globalThis.clearTimeout(plannerTimer);
-  }
-}
-
-function formatHistoryLine(message: ConversationTurnHistoryMessage): string {
-  const speaker = message.role === 'assistant'
-    ? 'Assistant'
-    : message.role === 'user'
-      ? 'User'
-      : message.role === 'system'
-        ? 'Preset'
-        : 'Tool';
-  return `${speaker}: ${message.text}`;
-}
-
-function buildContinuitySummary(context: AgentLocalTurnContext): string {
-  return stringifyJson({
-    interactionSnapshot: context.interactionSnapshot
-      ? {
-        version: context.interactionSnapshot.version,
-        relationshipState: context.interactionSnapshot.relationshipState,
-        emotionalTemperature: context.interactionSnapshot.emotionalTemperature,
-        assistantCommitments: context.interactionSnapshot.assistantCommitmentsJson,
-        userPrefs: context.interactionSnapshot.userPrefsJson,
-        openLoops: context.interactionSnapshot.openLoopsJson,
-      }
-      : null,
-    relationMemorySlots: context.relationMemorySlots.map((slot) => ({
-      slotType: slot.slotType,
-      summary: slot.summary,
-      score: slot.score,
-    })),
-    recallEntries: context.recallEntries.map((entry) => ({
-      summary: entry.summary,
-      searchText: entry.searchText,
-    })),
-    recentTurns: context.recentTurns.map((turn) => ({
-      role: turn.role,
-      status: turn.status,
-      startedAtMs: turn.startedAtMs,
-      completedAtMs: turn.completedAtMs,
-      abortedAtMs: turn.abortedAtMs,
-    })),
-    recentBeats: context.recentBeats.map((beat) => ({
-      beatIndex: beat.beatIndex,
-      modality: beat.modality,
-      status: beat.status,
-      textShadow: beat.textShadow,
-    })),
-  });
-}
-
-export function buildAgentLocalChatPrompt(input: {
-  systemPrompt: string | null;
-  targetSnapshot: AgentLocalTargetSnapshot;
-  history: readonly ConversationTurnHistoryMessage[];
-  userText: string;
-  context: AgentLocalTurnContext;
-}): string {
-  const transcript = input.history
-    .filter((message) => message.role !== 'system' && normalizeText(message.text))
-    .map((message) => formatHistoryLine(message))
-    .join('\n');
-  const sections = [
-    input.systemPrompt ? `Preset:\n${input.systemPrompt}` : null,
-    `Target:\n${stringifyJson({
-      agentId: input.targetSnapshot.agentId,
-      displayName: input.targetSnapshot.displayName,
-      handle: input.targetSnapshot.handle,
-      bio: input.targetSnapshot.bio,
-      worldId: input.targetSnapshot.worldId,
-      worldName: input.targetSnapshot.worldName,
-      ownershipType: input.targetSnapshot.ownershipType,
-    })}`,
-    `Continuity:\n${buildContinuitySummary(input.context)}`,
-    transcript ? `Transcript:\n${transcript}` : null,
-    `UserMessage:\nUser: ${input.userText}`,
-    buildDesktopChatOutputContractSection(),
-    'Instruction:\nReply as the target agent. Use continuity as background truth. Keep internal planning private.',
-  ].filter(Boolean);
-  return sections.join('\n\n');
+  return {
+    status: 'generate',
+    beatId: input.action.actionId,
+    beatIndex,
+    projectionMessageId,
+    prompt,
+  };
 }
 
 export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChatRuntimeAdapter {
@@ -632,6 +391,8 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
       const result = await streamChatAgentRuntime({
         agentId: request.agentId,
         prompt: request.prompt,
+        messages: request.messages,
+        systemPrompt: request.systemPrompt,
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
         agentResolution: request.agentResolution,
@@ -648,6 +409,8 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
       return invokeChatAgentRuntime({
         agentId: request.agentId,
         prompt: request.prompt,
+        messages: request.messages,
+        systemPrompt: request.systemPrompt,
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
         agentResolution: request.agentResolution,
@@ -712,10 +475,15 @@ export function createAgentLocalChatContinuityAdapter(
     });
     const committedAtMs = now();
     const thread = context.thread;
-    const textBeat = resolveTextBeatState(input.events, input.turnId);
+    const textBeats = resolveTextBeatStates({
+      events: input.events,
+      turnId: input.turnId,
+      outputText: input.outputText,
+      textBeatStates: input.textBeatStates,
+    });
     const imageState = input.imageState || { status: 'none' as const };
     const projectionMessages = [
-      ...(textBeat ? [buildTextProjectionMessage(thread, textBeat, input, committedAtMs)] : []),
+      ...buildTextProjectionMessages(thread, textBeats, input, committedAtMs),
       ...((imageState.status === 'complete' || imageState.status === 'error')
         ? [buildImageProjectionMessage(thread, imageState, committedAtMs)]
         : []),
@@ -735,22 +503,20 @@ export function createAgentLocalChatContinuityAdapter(
         abortedAtMs: input.outcome === 'canceled' ? committedAtMs : null,
       },
       beats: [
-        ...(textBeat
-          ? [{
-            id: textBeat.beatId,
-            turnId: input.turnId,
-            beatIndex: textBeat.beatIndex,
-            modality: 'text' as const,
-            status: mapOutcomeToBeatStatus(input.outcome),
-            textShadow: normalizeText(input.outputText) || textBeat.text || null,
-            artifactId: null,
-            mimeType: 'text/plain',
-            mediaUrl: null,
-            projectionMessageId: textBeat.projectionMessageId,
-            createdAtMs: committedAtMs,
-            deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
-          }]
-          : []),
+        ...textBeats.map((textBeat) => ({
+          id: textBeat.beatId,
+          turnId: input.turnId,
+          beatIndex: textBeat.beatIndex,
+          modality: 'text' as const,
+          status: mapOutcomeToBeatStatus(input.outcome),
+          textShadow: textBeat.text || null,
+          artifactId: null,
+          mimeType: 'text/plain',
+          mediaUrl: null,
+          projectionMessageId: textBeat.projectionMessageId,
+          createdAtMs: committedAtMs,
+          deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
+        })),
         ...(imageState.status === 'none' || imageState.status === 'generate'
           ? []
           : [{
@@ -817,6 +583,7 @@ export function createAgentLocalChatContinuityAdapter(
 function resolveTextBeatState(
   events: readonly ConversationTurnEvent[],
   turnId: string,
+  outputText?: string,
 ): AgentLocalTextBeatState | null {
   const plannedTextBeats = events.filter((
     event,
@@ -850,8 +617,21 @@ function resolveTextBeatState(
     beatId: plannedBeat.beatId,
     beatIndex: plannedBeat.beatIndex,
     projectionMessageId: deliveredBeat?.projectionMessageId || `${turnId}:message:${plannedBeat.beatIndex}`,
-    text: sealedBeat?.text || '',
+    text: normalizeText(outputText) || sealedBeat?.text || '',
   };
+}
+
+function resolveTextBeatStates(input: {
+  events: readonly ConversationTurnEvent[];
+  turnId: string;
+  outputText?: string;
+  textBeatStates?: readonly AgentLocalTextBeatState[] | undefined;
+}): AgentLocalTextBeatState[] {
+  if (input.textBeatStates) {
+    return [...input.textBeatStates];
+  }
+  const textBeat = resolveTextBeatState(input.events, input.turnId, input.outputText);
+  return textBeat ? [textBeat] : [];
 }
 
 function mapOutcomeToTurnStatus(outcome: 'completed' | 'failed' | 'canceled') {
@@ -908,9 +688,9 @@ function resolveTerminalPromptTraceId(events: readonly ConversationTurnEvent[]):
   return null;
 }
 
-function buildTextProjectionMessage(
+function buildTextProjectionMessages(
   thread: AgentLocalThreadRecord,
-  textBeat: AgentLocalTextBeatState,
+  textBeats: readonly AgentLocalTextBeatState[],
   input: {
     outcome: 'completed' | 'failed' | 'canceled';
     outputText?: string;
@@ -930,23 +710,23 @@ function buildTextProjectionMessage(
         ? 'Generation stopped.'
         : normalizeText(input.error?.message) || 'Agent response failed',
     };
-  return {
+  return textBeats.map((textBeat, index) => ({
     id: textBeat.projectionMessageId,
     threadId: thread.id,
     role: 'assistant' as const,
     status: input.outcome === 'completed' ? 'complete' as const : 'error' as const,
     kind: 'text' as const,
-    contentText: normalizeText(input.outputText) || textBeat.text,
+    contentText: textBeat.text,
     reasoningText: null,
     error,
     traceId: resolveTerminalTraceId(input.events),
-    parentMessageId: null,
+    parentMessageId: index > 0 ? textBeats[index - 1]?.projectionMessageId || null : null,
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
     createdAtMs: committedAtMs,
     updatedAtMs: committedAtMs,
-  };
+  }));
 }
 
 function buildImageProjectionMessage(
@@ -988,6 +768,7 @@ async function commitProviderOutcome(input: {
   reasoningText: string;
   error?: ConversationTurnError;
   imageState?: AgentLocalChatImageState;
+  textBeatStates?: readonly AgentLocalTextBeatState[];
 }): Promise<AgentLocalCommitTurnResult> {
   return input.continuityAdapter.commitAgentTurnResult({
     modeId: 'agent-local-chat-v1',
@@ -1003,6 +784,7 @@ async function commitProviderOutcome(input: {
     ],
     signal: input.baseInput.signal,
     imageState: input.imageState,
+    textBeatStates: input.textBeatStates,
   });
 }
 
@@ -1027,12 +809,13 @@ export function createAgentLocalChatConversationProvider(
         turnId: input.turnId,
         signal: input.signal,
       });
-      const prompt = buildAgentLocalChatPrompt({
+      const executionRequest = buildAgentLocalChatExecutionTextRequest({
         systemPrompt: normalizeText(input.systemPrompt) || null,
         targetSnapshot: metadata.targetSnapshot,
         history: input.history,
         userText,
         context: turnContext,
+        resolvedBehavior: metadata.resolvedBehavior,
       });
 
       const emittedEvents: ConversationTurnEvent[] = [];
@@ -1045,32 +828,25 @@ export function createAgentLocalChatConversationProvider(
       emittedEvents.push(turnStarted);
       yield turnStarted;
 
+      let rawModelOutput = '';
       let outputText = '';
+      let firstBeatText = '';
       let reasoningText = '';
       let textBeatEmitted = false;
       let terminalEventEmitted = false;
-      const beatId = `${input.turnId}:beat:0`;
-      const projectionMessageId = `${input.turnId}:message:0`;
+      let completedTextBeatStates: AgentLocalTextBeatState[] | undefined;
+      let primaryTextBeat: AgentLocalPlannedTextBeat | null = null;
 
       const emitFirstBeat = async function* () {
-        if (textBeatEmitted || !outputText) {
+        if (textBeatEmitted || !firstBeatText || !primaryTextBeat) {
           return;
         }
-        const plannedEvent: ConversationTurnEvent = {
-          type: 'beat-planned',
-          turnId: input.turnId,
-          beatId,
-          beatIndex: 0,
-          modality: 'text',
-        };
-        emittedEvents.push(plannedEvent);
-        yield plannedEvent;
 
         const sealedEvent: ConversationTurnEvent = {
           type: 'first-beat-sealed',
           turnId: input.turnId,
-          beatId,
-          text: outputText,
+          beatId: primaryTextBeat.beatId,
+          text: firstBeatText,
         };
         emittedEvents.push(sealedEvent);
         yield sealedEvent;
@@ -1080,7 +856,9 @@ export function createAgentLocalChatConversationProvider(
       try {
         const runtimeResult = await runtimeAdapter.streamText({
           agentId: metadata.agentId,
-          prompt,
+          prompt: executionRequest.prompt,
+          messages: executionRequest.messages,
+          systemPrompt: executionRequest.systemPrompt,
           threadId: input.threadId,
           agentResolution: metadata.agentResolution,
           textExecutionSnapshot: metadata.textExecutionSnapshot,
@@ -1106,59 +884,89 @@ export function createAgentLocalChatConversationProvider(
               break;
             }
             case 'text-delta': {
-              outputText += part.textDelta;
-              for await (const beatEvent of emitFirstBeat()) {
-                yield beatEvent;
-              }
-              const textEvent: ConversationTurnEvent = {
-                type: 'text-delta',
-                turnId: input.turnId,
-                textDelta: part.textDelta,
-              };
-              emittedEvents.push(textEvent);
-              yield textEvent;
+              rawModelOutput += part.textDelta;
               break;
             }
             case 'finish': {
-              if (!normalizeText(outputText)) {
+              if (!normalizeText(rawModelOutput)) {
                 throw new Error('agent-local-chat-v1 runtime stream completed without output text');
               }
-              const cleanedAssistant = parseAgentImageMarker({
-                assistantText: outputText,
-                userText,
+              const resolvedEnvelope = parseAgentResolvedBeatActionEnvelope(rawModelOutput);
+              const plannedTextBeats = resolvePlannedTextBeatsFromEnvelope({
+                turnId: input.turnId,
+                envelope: resolvedEnvelope,
               });
-              outputText = cleanedAssistant.cleanedText || outputText;
+              primaryTextBeat = plannedTextBeats[0] || null;
+              completedTextBeatStates = resolveCompletedTextBeatStatesFromEnvelope({
+                turnId: input.turnId,
+                envelope: resolvedEnvelope,
+              });
+              outputText = buildAgentResolvedOutputText(resolvedEnvelope);
+              firstBeatText = completedTextBeatStates[0]?.text || outputText;
+
+              for (const plannedTextBeat of plannedTextBeats) {
+                const plannedEvent: ConversationTurnEvent = {
+                  type: 'beat-planned',
+                  turnId: input.turnId,
+                  beatId: plannedTextBeat.beatId,
+                  beatIndex: plannedTextBeat.beatIndex,
+                  modality: 'text',
+                };
+                emittedEvents.push(plannedEvent);
+                yield plannedEvent;
+              }
               for await (const beatEvent of emitFirstBeat()) {
                 yield beatEvent;
               }
-              if (textBeatEmitted) {
+              if (textBeatEmitted && primaryTextBeat) {
                 const deliveredEvent: ConversationTurnEvent = {
                   type: 'beat-delivered',
                   turnId: input.turnId,
-                  beatId,
-                  projectionMessageId,
+                  beatId: primaryTextBeat.beatId,
+                  projectionMessageId: primaryTextBeat.projectionMessageId,
                 };
                 emittedEvents.push(deliveredEvent);
                 yield deliveredEvent;
               }
+              if (completedTextBeatStates && completedTextBeatStates.length > 1) {
+                for (const textBeatState of completedTextBeatStates.slice(1)) {
+                  const resolvedBeat = resolvedEnvelope.beats[textBeatState.beatIndex];
+                  if (!resolvedBeat || resolvedBeat.deliveryPhase !== 'tail' || resolvedBeat.delayMs === undefined) {
+                    throw new Error(`Delayed tail beat ${textBeatState.beatId} is missing resolved wait fields`);
+                  }
+                  await waitForResolvedDelay({
+                    delayMs: resolvedBeat.delayMs,
+                    signal: input.signal,
+                    threadId: input.threadId,
+                  });
+                  const deliveryStartedEvent: ConversationTurnEvent = {
+                    type: 'beat-delivery-started',
+                    turnId: input.turnId,
+                    beatId: textBeatState.beatId,
+                  };
+                  emittedEvents.push(deliveryStartedEvent);
+                  yield deliveryStartedEvent;
+                  const deliveredEvent: ConversationTurnEvent = {
+                    type: 'beat-delivered',
+                    turnId: input.turnId,
+                    beatId: textBeatState.beatId,
+                    projectionMessageId: textBeatState.projectionMessageId,
+                  };
+                  emittedEvents.push(deliveredEvent);
+                  yield deliveredEvent;
+                }
+              }
               let imageState: AgentLocalChatImageState = { status: 'none' };
-              const imageDecision = await decideAgentImageState({
-                runtimeAdapter,
-                agentId: metadata.agentId,
-                threadId: input.threadId,
-                turnId: input.turnId,
-                userText,
-                assistantText: outputText,
-                targetSnapshot: metadata.targetSnapshot,
-                context: turnContext,
-                agentResolution: metadata.agentResolution,
-                textExecutionSnapshot: metadata.textExecutionSnapshot,
-                imageExecutionSnapshot: metadata.imageExecutionSnapshot,
-                runtimeConfigState: metadata.runtimeConfigState,
-                runtimeFields: metadata.runtimeFields,
-                reasoningPreference: metadata.reasoningPreference,
-                signal: input.signal,
-              });
+              const imageAction = findSingleExecutableImageAction(resolvedEnvelope);
+              const imageDecision = imageAction
+                ? resolveImageStateFromResolvedAction({
+                  turnId: input.turnId,
+                  action: imageAction,
+                  textBeatCount: resolvedEnvelope.beats.length,
+                  agentResolution: metadata.agentResolution,
+                  imageExecutionSnapshot: metadata.imageExecutionSnapshot,
+                })
+                : { status: 'none' as const };
               if (imageDecision.status !== 'none') {
                 const imagePlannedEvent: ConversationTurnEvent = {
                   type: 'beat-planned',
@@ -1174,7 +982,7 @@ export function createAgentLocalChatConversationProvider(
                   const imageDeliveryStarted: ConversationTurnEvent = {
                     type: 'beat-delivery-started',
                     turnId: input.turnId,
-                    beatId: `${input.turnId}:beat:1`,
+                    beatId: imageDecision.beatId,
                   };
                   emittedEvents.push(imageDeliveryStarted);
                   yield imageDeliveryStarted;
@@ -1196,9 +1004,9 @@ export function createAgentLocalChatConversationProvider(
                     }
                     imageState = {
                       status: 'complete',
-                      beatId: `${input.turnId}:beat:1`,
-                      beatIndex: 1,
-                      projectionMessageId: `${input.turnId}:message:1`,
+                      beatId: imageDecision.beatId,
+                      beatIndex: imageDecision.beatIndex,
+                      projectionMessageId: imageDecision.projectionMessageId,
                       prompt: imageDecision.prompt,
                       mediaUrl: generatedImage.mediaUrl,
                       mimeType: generatedImage.mimeType,
@@ -1225,9 +1033,9 @@ export function createAgentLocalChatConversationProvider(
                   } catch (imageError) {
                     imageState = {
                       status: 'error',
-                      beatId: `${input.turnId}:beat:1`,
-                      beatIndex: 1,
-                      projectionMessageId: `${input.turnId}:message:1`,
+                      beatId: imageDecision.beatId,
+                      beatIndex: imageDecision.beatIndex,
+                      projectionMessageId: imageDecision.projectionMessageId,
                       prompt: imageDecision.prompt,
                       message: toChatAgentRuntimeError(imageError).message,
                     };
@@ -1254,6 +1062,7 @@ export function createAgentLocalChatConversationProvider(
                 outputText,
                 reasoningText,
                 imageState,
+                textBeatStates: completedTextBeatStates,
               });
               yield {
                 type: 'projection-rebuilt',
@@ -1281,6 +1090,7 @@ export function createAgentLocalChatConversationProvider(
                 outputText,
                 reasoningText,
                 error: part.error,
+                textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
               });
               yield {
                 type: 'projection-rebuilt',
@@ -1319,6 +1129,7 @@ export function createAgentLocalChatConversationProvider(
               code: 'OPERATION_ABORTED',
               message: toAbortLikeErrorMessage(error),
             },
+            textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
           });
           yield {
             type: 'projection-rebuilt',
@@ -1345,6 +1156,7 @@ export function createAgentLocalChatConversationProvider(
           outputText,
           reasoningText,
           error: runtimeError,
+          textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
         });
         yield {
           type: 'projection-rebuilt',

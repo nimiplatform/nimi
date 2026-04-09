@@ -144,6 +144,50 @@ function authoritativeBundle(): AgentLocalThreadBundle {
   };
 }
 
+function authoritativeMultiBeatBundle(): AgentLocalThreadBundle {
+  return {
+    thread: {
+      ...sampleThread(),
+      updatedAtMs: 1001,
+      lastMessageAtMs: 1001,
+    },
+    messages: [
+      createAgentTextMessage({
+        id: 'user-1',
+        threadId: 'thread-1',
+        role: 'user',
+        status: 'complete',
+        contentText: 'hello',
+        createdAtMs: 100,
+        updatedAtMs: 100,
+      }),
+      createAgentTextMessage({
+        id: 'assistant-1',
+        threadId: 'thread-1',
+        role: 'assistant',
+        status: 'complete',
+        contentText: 'First beat.',
+        traceId: 'trace-authoritative',
+        parentMessageId: 'user-1',
+        createdAtMs: 101,
+        updatedAtMs: 1000,
+      }),
+      createAgentTextMessage({
+        id: 'assistant-1:message:1',
+        threadId: 'thread-1',
+        role: 'assistant',
+        status: 'complete',
+        contentText: 'Follow-up beat.',
+        traceId: 'trace-authoritative',
+        parentMessageId: 'assistant-1',
+        createdAtMs: 102,
+        updatedAtMs: 1001,
+      }),
+    ],
+    draft: null,
+  };
+}
+
 function createSubmitSession() {
   return createInitialAgentSubmitDriverState({
     fallbackThread: sampleThread(),
@@ -369,6 +413,96 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.pendingFirstBeat, false);
     assert.equal(consumerSnapshot.hostSnapshot.transcriptProps?.footerContent, null);
     assert.equal(consumerSnapshot.hostSnapshot.stagePanelProps?.footerContent, null);
+  } finally {
+    closeAgentHostHarness(threadId);
+  }
+});
+
+test('agent host submit harness converges a planned tail text beat to authoritative multi-message projection', () => {
+  const threadId = 'thread-1';
+  const harness = createAgentHostHarness({
+    threadId,
+    initialBundle: baseUserBundle(),
+  });
+  let submitSession = createSubmitSession();
+  beginAgentHostSubmit(harness, {
+    threadId,
+    submittedText: 'retry this',
+  });
+
+  try {
+    submitSession = applySubmitDriverEventToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      event: {
+        type: 'beat-planned',
+        turnId: 'turn-1',
+        beatId: 'turn-1:beat:1',
+        beatIndex: 1,
+        modality: 'text',
+      },
+      updatedAtMs: 125,
+    });
+    assert.equal(harness.bundles[threadId]?.messages.some((message) => message.id.endsWith(':message:1')), true);
+
+    submitSession = applySubmitDriverEventToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      event: {
+        type: 'first-beat-sealed',
+        turnId: 'turn-1',
+        beatId: 'beat-1',
+        text: 'First beat.',
+      },
+      updatedAtMs: 130,
+    });
+    submitSession = applySubmitDriverEventToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      event: {
+        type: 'projection-rebuilt',
+        threadId,
+        projectionVersion: 'truth:11:t1',
+      },
+      updatedAtMs: 140,
+    });
+    submitSession = applyProjectionRefreshToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      requestedProjectionVersion: 'truth:11:t1',
+      refreshedBundle: authoritativeMultiBeatBundle(),
+      draftText: '',
+    });
+    submitSession = applySubmitDriverEventToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      event: {
+        type: 'turn-completed',
+        turnId: 'turn-1',
+        outputText: 'First beat. Follow-up beat.',
+        trace: {
+          traceId: 'trace-done',
+          promptTraceId: 'prompt-done',
+        },
+      },
+      updatedAtMs: 150,
+    });
+    applyCompletedCheckpointToHarness({
+      state: harness,
+      submitSession,
+      threadId,
+      refreshedBundle: authoritativeMultiBeatBundle(),
+    });
+    finishAgentHostSubmit(harness);
+
+    assert.equal(harness.bundles[threadId]?.messages.at(-1)?.contentText, 'Follow-up beat.');
+    assert.equal(harness.bundles[threadId]?.messages.at(-1)?.parentMessageId, 'assistant-1');
+    assert.equal(harness.bundles[threadId]?.messages.filter((message) => message.role === 'assistant').length, 2);
   } finally {
     closeAgentHostHarness(threadId);
   }

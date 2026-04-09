@@ -124,6 +124,23 @@ type UseAgentConversationHostActionsInput = {
   threadsReady: boolean;
 };
 
+type ActiveAgentSubmit = {
+  threadId: string;
+  turnId: string;
+  interruptible: boolean;
+  overrideRequested: boolean;
+  abort: () => void;
+  promise: Promise<void>;
+};
+
+function isAbortLikeSubmitError(error: unknown): boolean {
+  const message = toErrorMessage(error).toLowerCase();
+  return message.includes('aborted')
+    || message.includes('cancelled')
+    || message.includes('canceled')
+    || message.includes('generation stopped');
+}
+
 export async function assertAgentSubmitSchedulingAllowed(input: {
   aiConfig: AIConfig;
   t: TFunction;
@@ -229,6 +246,8 @@ export function useAgentConversationHostActions(
   }, [input]);
 
   const creatingThreadForAgentIdRef = useRef<string | null>(null);
+  const activeSubmitRef = useRef<ActiveAgentSubmit | null>(null);
+  const submittingLockTokenRef = useRef(0);
   useEffect(() => {
     if (!input.targetsReady || !input.threadsReady) {
       return;
@@ -299,7 +318,8 @@ export function useAgentConversationHostActions(
 
   const handleSubmit = useCallback(async (text: string) => {
     try {
-      if (!input.activeTarget) {
+      const activeTarget = input.activeTarget;
+      if (!activeTarget) {
         throw new Error(input.t('Chat.agentSubmitMissingThread', {
           defaultValue: 'Select an agent friend before sending a message.',
         }));
@@ -322,8 +342,25 @@ export function useAgentConversationHostActions(
       let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.selectedThreadRecord;
       let effectiveThreadId = input.activeThreadId;
       if (!effectiveThreadId || !effectiveThreadRecord) {
-        effectiveThreadRecord = await createOrRestoreThreadForTarget(input.activeTarget);
+        effectiveThreadRecord = await createOrRestoreThreadForTarget(activeTarget);
         effectiveThreadId = effectiveThreadRecord.id;
+      }
+
+      const existingSubmit = activeSubmitRef.current;
+      if (
+        existingSubmit
+        && existingSubmit.threadId === effectiveThreadId
+        && existingSubmit.interruptible
+      ) {
+        existingSubmit.overrideRequested = true;
+        existingSubmit.abort();
+        try {
+          await existingSubmit.promise;
+        } catch (error) {
+          if (!isAbortLikeSubmitError(error)) {
+            throw error;
+          }
+        }
       }
 
       const userTurnId = randomIdV11('agent-turn-user');
@@ -367,6 +404,8 @@ export function useAgentConversationHostActions(
       };
 
       input.currentDraftTextRef.current = submittedText;
+      const submittingLockToken = submittingLockTokenRef.current + 1;
+      submittingLockTokenRef.current = submittingLockToken;
       input.setSubmittingThreadId(effectiveThreadId);
       input.setFooterHostState(effectiveThreadId, null);
       let projectionRefreshPromise: Promise<void> | null = null;
@@ -423,7 +462,7 @@ export function useAgentConversationHostActions(
             updatedAtMs: createdAtMs,
             lastMessageAtMs: createdAtMs,
             archivedAtMs: effectiveThreadRecord.archivedAtMs,
-            targetSnapshot: input.activeTarget,
+            targetSnapshot: activeTarget,
           },
           messages: [userMessage],
           draft: null,
@@ -500,8 +539,19 @@ export function useAgentConversationHostActions(
         effectiveThreadId,
         resolveAgentTurnTotalTimeoutMs(input.aiConfig),
       );
+      let delayedTailPending = false;
+      let submittingReleasedForPendingTail = false;
+      const activeSubmit: ActiveAgentSubmit = {
+        threadId: effectiveThreadId,
+        turnId: assistantTurnId,
+        interruptible: false,
+        overrideRequested: false,
+        abort: () => abortController.abort(),
+        promise: Promise.resolve(),
+      };
+      activeSubmitRef.current = activeSubmit;
       const history = toConversationHistoryMessages(userBundle.messages);
-      try {
+      const submitRunPromise = (async () => {
         for await (const event of input.runAgentTurn({
           threadId: effectiveThreadId,
           turnId: assistantTurnId,
@@ -515,8 +565,22 @@ export function useAgentConversationHostActions(
           agentResolution: effectiveAgentResolution,
           textExecutionSnapshot,
           imageExecutionSnapshot,
-          target: input.activeTarget,
+          target: activeTarget,
         })) {
+          if (event.type === 'beat-planned' && event.modality === 'text' && event.beatIndex > 0) {
+            delayedTailPending = true;
+          }
+          if (
+            event.type === 'first-beat-sealed'
+            && delayedTailPending
+            && !submittingReleasedForPendingTail
+          ) {
+            submittingReleasedForPendingTail = true;
+            activeSubmit.interruptible = true;
+            if (submittingLockTokenRef.current === submittingLockToken) {
+              input.setSubmittingThreadId(null);
+            }
+          }
           matchConversationTurnEvent(event, {
             'turn-started': () => undefined,
             'reasoning-delta': (nextEvent) => {
@@ -618,9 +682,16 @@ export function useAgentConversationHostActions(
           throw toStructuredProviderError(submitSession.lifecycle.error);
         }
         if (submitSession.lifecycle.terminal === 'canceled') {
+          if (activeSubmit.overrideRequested) {
+            return;
+          }
           throw toAbortError(input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }));
         }
         assertAgentTurnLifecycleCompleted(submitSession.lifecycle);
+      })();
+      activeSubmit.promise = submitRunPromise;
+      try {
+        await submitRunPromise;
       } catch (error) {
         const streamSnapshot = getStreamState(effectiveThreadId);
         const runtimeError = streamSnapshot.cancelSource === 'user'
@@ -629,6 +700,9 @@ export function useAgentConversationHostActions(
             message: input.t('Chat.agentGenerationStopped', { defaultValue: 'Generation stopped.' }),
           }
           : toChatAgentRuntimeError(error);
+        if (activeSubmit.overrideRequested && runtimeError.code === 'OPERATION_ABORTED') {
+          return;
+        }
         const draftUpdatedAtMs = Date.now();
         const draft = await chatAgentStoreClient.putDraft({
           threadId: effectiveThreadId,
@@ -649,7 +723,12 @@ export function useAgentConversationHostActions(
         }));
         throw new Error(runtimeError.message, { cause: error });
       } finally {
-        input.setSubmittingThreadId(null);
+        if (activeSubmitRef.current === activeSubmit) {
+          activeSubmitRef.current = null;
+        }
+        if (submittingLockTokenRef.current === submittingLockToken) {
+          input.setSubmittingThreadId(null);
+        }
       }
     } catch (error) {
       input.reportHostError(error);

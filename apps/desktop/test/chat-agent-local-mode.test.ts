@@ -7,6 +7,7 @@ import {
   CORE_CHAT_AGENT_MOD_ID,
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
+  streamChatAgentRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
@@ -28,6 +29,16 @@ import { createEmptyAIConfig } from '@nimiplatform/sdk/mod';
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
+
+type CapturedRuntimeTextStreamInput = {
+  input: Array<{
+    role: string;
+    content: string;
+    name?: string | undefined;
+  }>;
+  system?: string | null;
+  reasoning?: unknown;
+};
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
   const targets = toAgentFriendTargetsFromSocialSnapshot({
@@ -324,6 +335,97 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
   });
 
   assert.equal(result.text, 'hi cloud');
+});
+
+test('agent runtime stream admits structured messages and system prompt', async () => {
+  const runtimeFields = {
+    targetType: '',
+    targetAccountId: '',
+    agentId: '',
+    targetId: '',
+    worldId: '',
+    provider: 'llama',
+    runtimeModelType: 'chat',
+    localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    localProviderModel: 'llama3',
+    localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+    connectorId: '',
+    mode: 'STORY' as const,
+    turnIndex: 1,
+    userConfirmedUpload: false,
+  };
+  let capturedStreamInput: CapturedRuntimeTextStreamInput | null = null;
+
+  const result = await streamChatAgentRuntime({
+    agentId: 'agent-1',
+    messages: [
+      { role: 'assistant', text: 'We should summarize the plan.' },
+      { role: 'user', text: 'What should we do next?' },
+    ],
+    systemPrompt: 'Be warm and concise.',
+    threadId: 'thread-structured',
+    reasoningPreference: 'off',
+    agentResolution: null,
+    executionSnapshot: null,
+    runtimeConfigState: null,
+    runtimeFields,
+  }, {
+    resolveRouteInputImpl: async () => ({
+      modId: CORE_CHAT_AGENT_MOD_ID,
+      provider: 'llama',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+      localProviderModel: 'llama3',
+      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+    }),
+    ensureRuntimeLocalModelWarmImpl: async () => undefined,
+    buildRuntimeStreamOptionsImpl: async () => ({
+      idempotencyKey: 'runtime-idem-1',
+      timeoutMs: 120000,
+      signal: undefined,
+      metadata: {
+        traceId: 'prompt-trace-structured',
+        callerKind: 'desktop-core',
+        callerId: CORE_CHAT_AGENT_MOD_ID,
+        surfaceId: 'desktop.renderer',
+      },
+    }),
+    getRuntimeClientImpl: () => ({
+      ai: {
+        text: {
+          stream: async (input: CapturedRuntimeTextStreamInput) => {
+            capturedStreamInput = input;
+            async function* stream() {
+              yield { type: 'start' as const };
+            }
+            return { stream: stream() };
+          },
+        },
+      },
+    }) as never,
+  });
+
+  assert.equal(result.promptTraceId, 'prompt-trace-structured');
+  const streamInput = capturedStreamInput as CapturedRuntimeTextStreamInput | null;
+  if (!streamInput) {
+    throw new Error('structured stream input was not captured');
+  }
+  assert.deepEqual(streamInput.input, [
+    {
+      role: 'assistant',
+      content: 'We should summarize the plan.',
+      name: undefined,
+    },
+    {
+      role: 'user',
+      content: 'What should we do next?',
+      name: undefined,
+    },
+  ]);
+  assert.equal(streamInput.system, 'Be warm and concise.');
+  assert.deepEqual(
+    streamInput.reasoning,
+    resolveChatThinkingConfig('off', resolveAgentChatThinkingSupport()),
+  );
 });
 
 test('agent local runtime invoke falls back to resolved endpoint when provider-specific endpoints are absent', async () => {
@@ -922,10 +1024,11 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionsSource, /resolveAgentSubmitDriverProjectionRefresh/);
   assert.match(hostActionsSource, /resolveAuthoritativeAgentThreadBundle/);
   assert.match(hostActionsSource, /assertAgentTurnLifecycleCompleted/);
-  assert.match(hostActionsSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(input\.activeTarget\);/);
+  assert.match(hostActionsSource, /const activeTarget = input\.activeTarget;/);
+  assert.match(hostActionsSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(activeTarget\);/);
   assert.match(hostActionsSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionsSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
-  assert.match(hostActionsSource, /finally\s*\{\s*input\.setSubmittingThreadId\(null\);/);
+  assert.match(hostActionsSource, /finally\s*\{[\s\S]*input\.setSubmittingThreadId\(null\);/);
   assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
   assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\);/);
   assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);

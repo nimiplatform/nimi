@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
+import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import {
   buildDesktopChatOutputContractSection,
   composeDesktopChatSystemPrompt,
@@ -12,19 +13,25 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-test('desktop chat output contract helper exposes valid markdown or plain text fallback rules', () => {
+test('desktop chat output contract helper exposes beat-action envelope rules', () => {
   const section = buildDesktopChatOutputContractSection();
 
   assert.match(section, /^Output Contract:/m);
-  assert.match(section, /Only output the user-visible reply body/);
-  assert.match(section, /You may use standard Markdown only when it remains fully valid/);
-  assert.match(section, /fall back to plain text instead of partial Markdown/);
-  assert.match(section, /Headings must be on their own line and must include a space after the # markers/);
-  assert.match(section, /List items must stay one item per line/);
-  assert.match(section, /do not proactively use fenced code blocks, tables, or HTML/);
-  assert.match(section, /fenced code blocks are allowed, but they must be properly closed/);
-  assert.match(section, /leave a blank line before the table and after the table/);
-  assert.match(section, /Do not put table titles or summary labels on the same line as the table header row/);
+  assert.match(section, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
+  assert.match(section, /Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object/);
+  assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
+  assert.match(section, /Put all user-visible assistant text inside ordered "beats\[\*\]\.text" fields/);
+  assert.match(section, /Every beat must include a unique "beatId" string/);
+  assert.match(section, /Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request"/);
+  assert.match(section, /The first visible reply beat must be "beatIndex": 0 and "deliveryPhase": "primary"/);
+  assert.match(section, /Any delayed follow-up beat must stay in the same "beats" array, use "deliveryPhase": "tail", and include a positive "delayMs"/);
+  assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
+  assert.match(section, /Every action must include "actionId", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling"/);
+  assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video"/);
+  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}/);
+  assert.match(section, /If no modality action exists, return "actions": \[\]/);
+  assert.doesNotMatch(section, /Only output the user-visible reply body/);
+  assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);
 });
 
 test('desktop chat output contract helper appends contract after existing system prompt', () => {
@@ -32,7 +39,8 @@ test('desktop chat output contract helper appends contract after existing system
 
   assert.match(prompt, /^Be concise\./);
   assert.match(prompt, /\n\nOutput Contract:\n/);
-  assert.match(prompt, /fall back to plain text instead of partial Markdown/);
+  assert.match(prompt, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
+  assert.doesNotMatch(prompt, /fall back to plain text instead of partial Markdown/);
 });
 
 test('desktop AI host injects the shared output contract into simple-ai systemPrompt resolution', () => {

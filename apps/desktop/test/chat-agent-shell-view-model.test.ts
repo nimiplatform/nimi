@@ -10,6 +10,7 @@ import type {
   AgentLocalTargetSnapshot,
   AgentLocalThreadSummary,
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
+import { resolveAgentChatBehavior as resolveAgentChatBehaviorFromResolver } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 
 function sampleTargets(): AgentLocalTargetSnapshot[] {
   return [{
@@ -172,4 +173,39 @@ test('agent shell view model resolves selected target id fail-close', () => {
     selectionAgentId: null,
     activeTargetId: null,
   }), null);
+});
+
+test('agent behavior resolver produces a canonical resolved behavior object from feature-local settings', () => {
+  const resolved = resolveAgentChatBehaviorFromResolver({
+    userText: '我今天有点难过，想你了',
+    settings: {
+      thinkingPreference: 'on',
+      deliveryStyle: 'natural',
+      allowMultiReply: true,
+    },
+  });
+
+  assert.equal(resolved.settings.thinkingPreference, 'on');
+  assert.equal(resolved.resolvedTurnMode, 'intimate');
+  assert.equal(resolved.resolvedExperiencePolicy.deliveryPolicy.style, 'natural');
+  assert.equal(resolved.resolvedExperiencePolicy.deliveryPolicy.allowMultiReply, true);
+  assert.equal(resolved.resolvedBeatPlan.beats.length, 2);
+  assert.equal(resolved.resolvedBeatPlan.beats[0]?.deliveryPhase, 'primary');
+  assert.equal(resolved.resolvedBeatPlan.beats[1]?.deliveryPhase, 'tail');
+});
+
+test('agent behavior resolver stays single-beat when multi-reply is disabled', () => {
+  const resolved = resolveAgentChatBehaviorFromResolver({
+    userText: '发张图给我看看',
+    settings: {
+      thinkingPreference: 'off',
+      deliveryStyle: 'compact',
+      allowMultiReply: false,
+    },
+  });
+
+  assert.equal(resolved.resolvedTurnMode, 'explicit-media');
+  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
+  assert.equal(resolved.resolvedBeatPlan.beats.length, 1);
+  assert.equal(resolved.resolvedBeatPlan.beats[0]?.intent, 'media-request');
 });

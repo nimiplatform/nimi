@@ -18,6 +18,15 @@ import {
   createAgentLocalChatConversationProvider,
   type AgentLocalChatRuntimeAdapter,
 } from '../src/shell/renderer/features/chat/chat-agent-orchestration.js';
+import {
+  AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION,
+  AI_CHAT_EXECUTION_ENGINE_ID,
+  assessAiChatExecutionEngineReuseReadiness,
+  buildAgentLocalChatExecutionTextRequest,
+  inspectAgentLocalChatPromptDiagnostics,
+} from '../src/shell/renderer/features/chat/chat-ai-execution-engine.js';
+import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import { resolveAgentChatBehavior } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
 import {
   clearAllStreams,
@@ -31,6 +40,7 @@ import {
 } from './helpers/agent-chat-record-fixtures.js';
 
 type AgentCommitInput = Parameters<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitAgentTurnResult']>[0];
+type AgentRuntimeStreamRequest = Parameters<AgentLocalChatRuntimeAdapter['streamText']>[0];
 
 function installBrowserGlobals(): () => void {
   const previousWindow = globalThis.window;
@@ -74,22 +84,46 @@ function installFakeTimers(): {
   restore: () => void;
   runTimer: (id: number) => void;
   getTimerIds: () => number[];
+  getTimerDelay: (id: number) => number | null;
 } {
   const previousSetTimeout = globalThis.setTimeout;
   const previousClearTimeout = globalThis.clearTimeout;
+  const previousSetInterval = globalThis.setInterval;
+  const previousClearInterval = globalThis.clearInterval;
   let nextId = 1;
-  const timers = new Map<number, () => void>();
+  const timers = new Map<number, { callback: () => void; delayMs: number; repeat: boolean }>();
 
   Object.defineProperty(globalThis, 'setTimeout', {
-    value: ((callback: TimerHandler) => {
+    value: ((callback: TimerHandler, delayMs?: number) => {
       const id = nextId++;
-      timers.set(id, () => {
-        if (typeof callback === 'function') {
-          callback();
-        }
+      timers.set(id, {
+        callback: () => {
+          if (typeof callback === 'function') {
+            callback();
+          }
+        },
+        delayMs: Number(delayMs || 0),
+        repeat: false,
       });
       return id;
     }) as typeof setTimeout,
+    configurable: true,
+  });
+
+  Object.defineProperty(globalThis, 'setInterval', {
+    value: ((callback: TimerHandler, delayMs?: number) => {
+      const id = nextId++;
+      timers.set(id, {
+        callback: () => {
+          if (typeof callback === 'function') {
+            callback();
+          }
+        },
+        delayMs: Number(delayMs || 0),
+        repeat: true,
+      });
+      return id;
+    }) as typeof setInterval,
     configurable: true,
   });
 
@@ -97,6 +131,13 @@ function installFakeTimers(): {
     value: ((id: ReturnType<typeof setTimeout>) => {
       timers.delete(Number(id));
     }) as typeof clearTimeout,
+    configurable: true,
+  });
+
+  Object.defineProperty(globalThis, 'clearInterval', {
+    value: ((id: ReturnType<typeof setInterval>) => {
+      timers.delete(Number(id));
+    }) as typeof clearInterval,
     configurable: true,
   });
 
@@ -110,16 +151,27 @@ function installFakeTimers(): {
         value: previousClearTimeout,
         configurable: true,
       });
+      Object.defineProperty(globalThis, 'setInterval', {
+        value: previousSetInterval,
+        configurable: true,
+      });
+      Object.defineProperty(globalThis, 'clearInterval', {
+        value: previousClearInterval,
+        configurable: true,
+      });
     },
     runTimer: (id: number) => {
-      const callback = timers.get(id);
-      if (!callback) {
+      const timer = timers.get(id);
+      if (!timer) {
         return;
       }
-      timers.delete(id);
-      callback();
+      if (!timer.repeat) {
+        timers.delete(id);
+      }
+      timer.callback();
     },
     getTimerIds: () => [...timers.keys()],
+    getTimerDelay: (id: number) => timers.get(id)?.delayMs ?? null,
   };
 }
 
@@ -156,6 +208,60 @@ function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>):
     },
     ...overrides,
   };
+}
+
+function createBeatActionEnvelopeText(input: {
+  beats: Array<{
+    beatId?: string;
+    beatIndex: number;
+    intent?: 'reply' | 'follow-up' | 'comfort' | 'checkin' | 'media-request' | 'voice-request';
+    deliveryPhase?: 'primary' | 'tail';
+    text: string;
+    delayMs?: number;
+  }>;
+  actions?: Array<{
+    actionId?: string;
+    actionIndex: number;
+    modality: 'image' | 'voice' | 'video';
+    operation?: string;
+    promptText: string;
+    sourceBeatId: string;
+    sourceBeatIndex: number;
+    deliveryCoupling?: 'after-source-beat' | 'with-source-beat';
+  }>;
+}): string {
+  const beats = input.beats.map((beat) => ({
+    beatId: beat.beatId ?? `beat-${beat.beatIndex}`,
+    beatIndex: beat.beatIndex,
+    beatCount: input.beats.length,
+    intent: beat.intent ?? (beat.beatIndex === 0 ? 'reply' : 'follow-up'),
+    deliveryPhase: beat.deliveryPhase ?? (beat.beatIndex === 0 ? 'primary' : 'tail'),
+    text: beat.text,
+    ...(beat.delayMs !== undefined ? { delayMs: beat.delayMs } : {}),
+  }));
+  const actions = (input.actions || []).map((action) => ({
+    actionId: action.actionId ?? `action-${action.actionIndex}`,
+    actionIndex: action.actionIndex,
+    actionCount: (input.actions || []).length,
+    modality: action.modality,
+    operation: action.operation ?? 'generate',
+    promptPayload: {
+      kind: action.modality === 'image'
+        ? 'image-prompt'
+        : action.modality === 'voice'
+          ? 'voice-prompt'
+          : 'video-prompt',
+      promptText: action.promptText,
+    },
+    sourceBeatId: action.sourceBeatId,
+    sourceBeatIndex: action.sourceBeatIndex,
+    deliveryCoupling: action.deliveryCoupling ?? 'after-source-beat',
+  }));
+  return JSON.stringify({
+    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
+    beats,
+    actions,
+  });
 }
 
 let restoreBrowserGlobals: () => void = () => {};
@@ -391,25 +497,249 @@ test('agent local chat prompt includes continuity and transcript context', () =>
   assert.match(prompt, /Preset:/);
   assert.match(prompt, /Continuity:/);
   assert.match(prompt, /User prefers concise answers/);
-  assert.match(prompt, /Transcript:/);
-  assert.match(prompt, /We should summarize the plan/);
   assert.match(prompt, /What should we do next/);
   assert.match(prompt, /Output Contract:/);
-  assert.match(prompt, /fall back to plain text instead of partial Markdown/);
-  assert.match(prompt, /do not proactively use fenced code blocks, tables, or HTML/);
+  assert.match(prompt, /Return exactly one JSON object/);
+  assert.match(prompt, new RegExp(AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(prompt, new RegExp(buildDesktopChatOutputContractSection().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
+test('agent local chat execution seam shapes system prompt and transcript messages', () => {
+  const resolvedBehavior = resolveAgentChatBehavior({
+    userText: 'What should we do next?',
+    settings: {
+      thinkingPreference: 'off',
+      deliveryStyle: 'natural',
+      allowMultiReply: true,
+    },
+  });
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: sampleTurnInput().history,
+    userText: 'What should we do next?',
+    context: sampleTurnContext(),
+    resolvedBehavior,
+  });
+
+  assert.match(request.systemPrompt || '', /Preset:/);
+  assert.match(request.systemPrompt || '', /Continuity:/);
+  assert.match(request.systemPrompt || '', /ResolvedBehavior:/);
+  assert.match(request.systemPrompt || '', /User prefers concise answers/);
+  assert.match(request.systemPrompt || '', /"resolvedTurnMode": "information"/);
+  assert.match(request.systemPrompt || '', /"allowMultiReply": true/);
+  assert.match(request.systemPrompt || '', /Output Contract:/);
+  assert.match(request.systemPrompt || '', /Return exactly one JSON object/);
+  assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
+  assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
+  assert.equal(request.diagnostics.firstConsumerId, 'agent-local-chat-v1');
+  assert.equal(request.diagnostics.contextWindowSource, 'default');
+  assert.equal(request.diagnostics.budget.modelContextTokens, 4096);
+  assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
+  assert.equal(request.diagnostics.continuity.snapshotIncluded, true);
+  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 1);
+  assert.equal(request.diagnostics.continuity.retainedRecallEntries, 1);
+  assert.equal(request.diagnostics.transcript.retainedHistoryMessages, 0);
+  assert.equal(request.diagnostics.transcript.emittedMessages, 1);
+  assert.equal(request.diagnostics.transcript.trimmedLeadingAssistantMessages, 1);
+  assert.equal(request.messages.length, 1);
+  assert.deepEqual(request.messages[0], {
+    role: 'user',
+    text: 'What should we do next?',
+  });
+  assert.doesNotMatch(request.prompt, /Transcript:/);
+  assert.match(request.prompt, /UserMessage:/);
+});
+
+test('agent local chat execution seam compacts continuity and packs history by budget', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Stay in character.',
+    targetSnapshot: {
+      ...sampleTarget(),
+      bio: `Long bio ${'detail '.repeat(120)}`,
+    },
+    history: [
+      {
+        id: 'history-user-1',
+        role: 'user',
+        text: `Old question ${'alpha '.repeat(120)}`,
+      },
+      {
+        id: 'history-assistant-1',
+        role: 'assistant',
+        text: `Old answer ${'beta '.repeat(120)}`,
+      },
+      {
+        id: 'history-assistant-2',
+        role: 'assistant',
+        text: `Latest assistant context ${'gamma '.repeat(80)}`,
+      },
+    ],
+    userText: 'What should we do next?',
+    context: {
+      ...sampleTurnContext(),
+      relationMemorySlots: [
+        ...sampleTurnContext().relationMemorySlots,
+        {
+          id: 'memory-2',
+          threadId: 'thread-1',
+          slotType: 'preference',
+          summary: 'User prefers concise answers',
+          sourceTurnId: 'turn-prev-1',
+          sourceBeatId: 'beat-prev-1',
+          score: 0.8,
+          updatedAtMs: 16,
+        },
+        {
+          id: 'memory-3',
+          threadId: 'thread-1',
+          slotType: 'context',
+          summary: 'The user is planning a summary reply',
+          sourceTurnId: 'turn-prev-1',
+          sourceBeatId: 'beat-prev-1',
+          score: 0.7,
+          updatedAtMs: 17,
+        },
+      ],
+      recallEntries: [
+        ...sampleTurnContext().recallEntries,
+        {
+          id: 'recall-2',
+          threadId: 'thread-1',
+          sourceTurnId: 'turn-prev-1',
+          sourceBeatId: 'beat-prev-1',
+          summary: 'Summarize the plan',
+          searchText: 'duplicate search text should not leak',
+          updatedAtMs: 18,
+        },
+      ],
+      recentBeats: [
+        ...sampleTurnContext().recentBeats,
+        {
+          ...createAgentTurnBeat({
+            id: 'beat-image-1',
+            turnId: 'turn-prev-2',
+            beatIndex: 1,
+            modality: 'image',
+            status: 'delivered',
+            textShadow: 'duplicate transcript shadow',
+            artifactId: 'artifact-image-1',
+            mimeType: 'image/png',
+            projectionMessageId: 'message-image-1',
+            createdAtMs: 21,
+            deliveredAtMs: 22,
+          }),
+        },
+      ],
+    },
+    modelContextTokens: 1200,
+  });
+
+  assert.equal(request.diagnostics.contextWindowSource, 'explicit');
+  assert.equal(request.diagnostics.budget.modelContextTokens, 1200);
+  assert.ok(request.diagnostics.estimate.droppedHistoryMessages > 0);
+  assert.ok(request.diagnostics.estimate.droppedRecallEntries > 0);
+  assert.ok(request.diagnostics.estimate.historyTokens <= request.diagnostics.budget.historyBudgetTokens);
+  assert.equal(request.messages.at(-1)?.role, 'user');
+  assert.equal(request.messages.at(-1)?.text, 'What should we do next?');
+  assert.equal(request.messages[0]?.role, 'user');
+  assert.ok(!request.systemPrompt?.includes('searchText'));
+  assert.ok(!request.systemPrompt?.includes('textShadow'));
+  assert.ok(
+    (request.systemPrompt?.includes('artifact=artifact-image-1') || request.diagnostics.estimate.droppedArtifactFacts > 0),
+  );
+  const preferenceMentions = (request.systemPrompt?.match(/User prefers concise answers/g) || []).length;
+  assert.ok(preferenceMentions <= 1);
+  assert.ok(preferenceMentions === 1 || request.diagnostics.estimate.droppedMemoryEntries > 0);
+  assert.ok(!request.prompt.includes(`Old question ${'alpha '.repeat(120)}`));
+  assert.ok(request.diagnostics.continuity.bioCharLimit <= 480);
+  assert.equal(request.diagnostics.transcript.emittedMessages, request.messages.length);
+});
+
+test('agent local chat diagnostics inspection returns a stable copy surface', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: sampleTurnInput().history,
+    userText: 'What should we do next?',
+    context: sampleTurnContext(),
+  });
+
+  const inspection = inspectAgentLocalChatPromptDiagnostics(request.diagnostics);
+  inspection.budget.modelContextTokens = 1;
+  inspection.estimate.droppedHistoryMessages = 99;
+  inspection.continuity.retainedMemoryEntries = 0;
+  inspection.transcript.emittedMessages = 0;
+
+  assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
+  assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
+  assert.equal(request.diagnostics.budget.modelContextTokens, 4096);
+  assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
+  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 1);
+  assert.equal(request.diagnostics.transcript.emittedMessages, 1);
+});
+
+test('ai chat execution engine reuse readiness requires text scope and existing consumer ownership', () => {
+  const ready = assessAiChatExecutionEngineReuseReadiness({
+    consumerId: 'desktop-ai-chat',
+    modality: 'text-chat',
+    consumerOwnsSemantics: true,
+    consumerSuppliesContinuityInputs: true,
+    acceptsStructuredMessages: true,
+  });
+
+  assert.equal(ready.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
+  assert.equal(ready.status, 'ready');
+  assert.equal(ready.admitted, true);
+  assert.deepEqual(ready.reasons, [
+    'consumer_scope_text_chat',
+    'consumer_owns_semantics',
+    'consumer_supplies_continuity_inputs',
+    'consumer_accepts_structured_messages',
+  ]);
+
+  const preflight = assessAiChatExecutionEngineReuseReadiness({
+    consumerId: 'voice-agent-chat',
+    modality: 'voice-chat',
+    consumerOwnsSemantics: false,
+    consumerSuppliesContinuityInputs: true,
+    acceptsStructuredMessages: false,
+    requiresBehaviorAuthorityChange: true,
+    requiresPolicyAuthorityChange: true,
+  });
+
+  assert.equal(preflight.status, 'preflight_required');
+  assert.equal(preflight.admitted, false);
+  assert.ok(preflight.reasons.includes('voice_or_video_scope_not_admitted'));
+  assert.ok(preflight.reasons.includes('shared_authority_change_required'));
+  assert.ok(preflight.reasons.includes('behavior_authority_change_required'));
+  assert.ok(preflight.reasons.includes('policy_authority_change_required'));
+});
+
 test('agent local chat provider emits first-beat before terminal and commits completed turn', async () => {
-  const runtimeCalls: string[] = [];
+  const runtimeCalls: Array<{
+    prompt?: string;
+    systemPrompt?: string | null;
+    messages?: AgentRuntimeStreamRequest['messages'];
+  }> = [];
   const runtimeAdapter = createRuntimeAdapter({
     async streamText(request) {
-      runtimeCalls.push(request.prompt);
+      const envelopeText = createBeatActionEnvelopeText({
+        beats: [{
+          beatIndex: 0,
+          text: 'hello world',
+        }],
+      });
+      runtimeCalls.push({
+        prompt: request.prompt,
+        systemPrompt: request.systemPrompt,
+        messages: request.messages,
+      });
       async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
         yield { type: 'start' };
         yield { type: 'reasoning-delta', textDelta: 'thinking' };
-        yield { type: 'text-delta', textDelta: 'hello ' };
-        yield { type: 'text-delta', textDelta: 'world' };
+        yield { type: 'text-delta', textDelta: envelopeText.slice(0, 18) };
+        yield { type: 'text-delta', textDelta: envelopeText.slice(18) };
         yield {
           type: 'finish',
           finishReason: 'stop',
@@ -432,7 +762,14 @@ test('agent local chat provider emits first-beat before terminal and commits com
   const eventTypes = events.map((event) => event.type);
 
   assert.equal(runtimeCalls.length, 1);
-  assert.match(runtimeCalls[0] ?? '', /User prefers concise answers/);
+  assert.match(runtimeCalls[0]?.prompt || '', /User prefers concise answers/);
+  assert.match(runtimeCalls[0]?.systemPrompt || '', /Output Contract:/);
+  assert.deepEqual(runtimeCalls[0]?.messages, [
+    {
+      role: 'user',
+      text: 'What should we do next?',
+    },
+  ]);
   assert.deepEqual(
     eventTypes,
     [
@@ -440,8 +777,6 @@ test('agent local chat provider emits first-beat before terminal and commits com
       'reasoning-delta',
       'beat-planned',
       'first-beat-sealed',
-      'text-delta',
-      'text-delta',
       'beat-delivered',
       'projection-rebuilt',
       'turn-completed',
@@ -453,14 +788,14 @@ test('agent local chat provider emits first-beat before terminal and commits com
   assert.equal(events.at(-1)?.type, 'turn-completed');
 });
 
-test('agent local chat provider commits canceled turns with tail scope after first beat', async () => {
+test('agent local chat provider commits canceled turns with turn scope before the envelope resolves', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
       async streamText() {
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: 'partial answer' };
+          yield { type: 'text-delta', textDelta: '{"schemaId":"nimi.agent.chat.beat-action.v1"' };
           throw Object.assign(new Error('aborted'), { name: 'AbortError' });
         }
         return { stream: stream() };
@@ -475,17 +810,130 @@ test('agent local chat provider commits canceled turns with tail scope after fir
   assert.equal(committed[0]?.outcome, 'canceled');
   const canceledEvent = events.at(-1);
   assert.equal(canceledEvent?.type, 'turn-canceled');
-  assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'tail');
+  assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'turn');
 });
 
-test('agent local chat provider can emit a second image beat after text when the user explicitly asks for an image', async () => {
+test('agent local chat provider resolves delayed follow-up beats from the model envelope', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  try {
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter: createRuntimeAdapter({
+        async streamText() {
+          const envelopeText = createBeatActionEnvelopeText({
+            beats: [
+              {
+                beatId: 'beat-primary',
+                beatIndex: 0,
+                text: '先给你一句短答。',
+              },
+              {
+                beatId: 'beat-follow-up',
+                beatIndex: 1,
+                text: '过一会儿我再补一句跟进。',
+                delayMs: 400,
+              },
+            ],
+          });
+          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+            yield { type: 'start' };
+            yield { type: 'text-delta', textDelta: envelopeText };
+            yield {
+              type: 'finish',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'trace-follow-up-turn',
+                promptTraceId: 'prompt-follow-up-turn',
+              },
+            };
+          }
+          return { stream: stream() };
+        },
+      }),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
+    });
+
+    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
+    const firstFiveEvents = [
+      await iterator.next(),
+      await iterator.next(),
+      await iterator.next(),
+      await iterator.next(),
+      await iterator.next(),
+    ].map((entry) => entry.value);
+    assert.deepEqual(
+      firstFiveEvents.map((event) => event.type),
+      [
+        'turn-started',
+        'beat-planned',
+        'beat-planned',
+        'first-beat-sealed',
+        'beat-delivered',
+      ],
+    );
+
+    const pendingTailStart = iterator.next();
+    await Promise.resolve();
+
+    const timerIds = fakeTimers.getTimerIds();
+    const delayTimerId = timerIds.find((id) => fakeTimers.getTimerDelay(id) === 400);
+    assert.ok(delayTimerId, 'expected delay timer from resolved wait field');
+
+    let settled = false;
+    void pendingTailStart.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    assert.equal(settled, false);
+
+    fakeTimers.runTimer(delayTimerId);
+
+    const remainingEvents = [
+      (await pendingTailStart).value,
+      (await iterator.next()).value,
+      (await iterator.next()).value,
+      (await iterator.next()).value,
+    ];
+    assert.deepEqual(
+      remainingEvents.map((event) => event.type),
+      [
+        'beat-delivery-started',
+        'beat-delivered',
+        'projection-rebuilt',
+        'turn-completed',
+      ],
+    );
+    assert.equal(committed[0]?.textBeatStates?.length, 2);
+    assert.equal(committed[0]?.textBeatStates?.[0]?.text, '先给你一句短答。');
+    assert.equal(committed[0]?.textBeatStates?.[1]?.text, '过一会儿我再补一句跟进。');
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat provider can emit a second image beat from the resolved model action envelope', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
       async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-primary',
+            beatIndex: 0,
+            text: 'Here is the scene.',
+          }],
+          actions: [{
+            actionId: 'action-image-1',
+            actionIndex: 0,
+            modality: 'image',
+            promptText: '一张图片',
+            sourceBeatId: 'beat-primary',
+            sourceBeatIndex: 0,
+          }],
+        });
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: 'Here is the scene.' };
+          yield { type: 'text-delta', textDelta: envelopeText };
           yield {
             type: 'finish',
             finishReason: 'stop',
@@ -547,7 +995,6 @@ test('agent local chat provider can emit a second image beat after text when the
       'turn-started',
       'beat-planned',
       'first-beat-sealed',
-      'text-delta',
       'beat-delivered',
       'beat-planned',
       'beat-delivery-started',
@@ -560,6 +1007,90 @@ test('agent local chat provider can emit a second image beat after text when the
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.imageState?.status, 'complete');
   assert.equal(committed[0]?.imageState?.mediaUrl, 'https://cdn.nimi.test/agent-image.png');
+});
+
+test('agent local chat provider uses the resolved image prompt payload verbatim', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-selfie',
+            beatIndex: 0,
+            text: '给你看。',
+          }],
+          actions: [{
+            actionId: 'action-selfie',
+            actionIndex: 0,
+            modality: 'image',
+            promptText: '自拍照，柔和自然光，近景',
+            sourceBeatId: 'beat-selfie',
+            sourceBeatIndex: 0,
+          }],
+        });
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-selfie-turn',
+              promptTraceId: 'prompt-selfie-turn',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async generateImage(request) {
+        assert.equal(request.prompt, '自拍照，柔和自然光，近景');
+        return {
+          mediaUrl: 'https://cdn.nimi.test/selfie-image.png',
+          mimeType: 'image/png',
+          artifactId: 'artifact-selfie-1',
+          traceId: 'trace-selfie-image',
+        };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:152:t1:b2:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '能发一张自拍照吗？',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: {
+          capability: 'image.generate',
+          selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+          resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageReady: true,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      imageExecutionSnapshot: { executionId: 'image-snapshot' },
+    },
+  }));
+
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), true);
+  assert.equal(committed.length, 1);
+  assert.equal(committed[0]?.imageState?.status, 'complete');
+  assert.equal(committed[0]?.imageState?.mediaUrl, 'https://cdn.nimi.test/selfie-image.png');
 });
 
 test('agent local chat image tail signal ignores text stream idle timeout', () => {
@@ -601,14 +1132,20 @@ test('agent local chat image tail signal still propagates user cancellation', ()
   }
 });
 
-test('agent local chat provider ignores explicit negative image requests', async () => {
+test('agent local chat provider does not generate an image when the resolved envelope has no image action', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
       async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatIndex: 0,
+            text: '那我先不发图。',
+          }],
+        });
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: '那我先不发图。' };
+          yield { type: 'text-delta', textDelta: envelopeText };
           yield {
             type: 'finish',
             finishReason: 'stop',
@@ -620,11 +1157,8 @@ test('agent local chat provider ignores explicit negative image requests', async
         }
         return { stream: stream() };
       },
-      async invokeText() {
-        throw new Error('planner should not run after an explicit negative image request');
-      },
       async generateImage() {
-        throw new Error('image generation should not run after an explicit negative image request');
+        throw new Error('image generation should not run without a resolved image action');
       },
     }),
     continuityAdapter: createContinuityAdapter(committed, 'truth:150:t1:b1:s0:m0:r0'),
@@ -665,17 +1199,96 @@ test('agent local chat provider ignores explicit negative image requests', async
   assert.equal(committed[0]?.imageState?.status, 'none');
 });
 
-test('agent local chat provider can trigger planner-driven image generation after text first-beat', async () => {
+test('agent local chat provider leaves voice and video actions unapplied in phase 1', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
-      async streamText(request) {
-        if (request.prompt.includes('Return strict JSON only.')) {
-          throw new Error('planner decision should use invokeText, not streamText');
-        }
+      async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-voice-video',
+            beatIndex: 0,
+            text: '我先只用文字回复你。',
+          }],
+          actions: [{
+            actionId: 'action-voice-1',
+            actionIndex: 0,
+            modality: 'voice',
+            promptText: '一段轻声回应',
+            sourceBeatId: 'beat-voice-video',
+            sourceBeatIndex: 0,
+          }, {
+            actionId: 'action-video-1',
+            actionIndex: 1,
+            modality: 'video',
+            promptText: '镜头缓慢推进的夜景',
+            sourceBeatId: 'beat-voice-video',
+            sourceBeatIndex: 0,
+          }],
+        });
         async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
           yield { type: 'start' };
-          yield { type: 'text-delta', textDelta: '她抬头看了你一眼。' };
+          yield { type: 'text-delta', textDelta: envelopeText };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-voice-video-turn',
+              promptTraceId: 'prompt-voice-video-turn',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async generateImage() {
+        throw new Error('image generation should stay unopened for voice/video-only actions');
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '你能用声音或者视频回复我吗？',
+  }));
+
+  assert.deepEqual(
+    events.map((event) => event.type),
+    [
+      'turn-started',
+      'beat-planned',
+      'first-beat-sealed',
+      'beat-delivered',
+      'projection-rebuilt',
+      'turn-completed',
+    ],
+  );
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
+  assert.equal(committed[0]?.imageState?.status, 'none');
+});
+
+test('agent local chat provider consumes typed image prompt payloads from the model envelope', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-innkeeper',
+            beatIndex: 0,
+            text: '她抬头看了你一眼。',
+          }],
+          actions: [{
+            actionId: 'action-innkeeper-image',
+            actionIndex: 0,
+            modality: 'image',
+            promptText: 'subject: 客栈老板娘\nscene: 抬头看向来客的瞬间\nstyle: 写实电影感插画\nmood: 克制、略带审视\ncontinuity: 古风客栈, 夜色室内\navoid: 不要多余人物, 不要夸张表情',
+            sourceBeatId: 'beat-innkeeper',
+            sourceBeatIndex: 0,
+          }],
+        });
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText };
           yield {
             type: 'finish',
             finishReason: 'stop',
@@ -686,14 +1299,6 @@ test('agent local chat provider can trigger planner-driven image generation afte
           };
         }
         return { stream: stream() };
-      },
-      async invokeText(request) {
-        assert.match(request.prompt, /Return strict JSON only/);
-        return {
-          text: '{"kind":"image","trigger":"scene-enhancement","confidence":0.95,"subject":"客栈老板娘","scene":"抬头看向来客的瞬间","styleIntent":"写实电影感插画","mood":"克制、略带审视","negativeCues":["不要多余人物","不要夸张表情"],"continuityRefs":["古风客栈","夜色室内"],"reason":"scene enhancement","nsfwIntent":"none"}',
-          traceId: 'trace-planner',
-          promptTraceId: 'prompt-planner',
-        };
       },
       async generateImage(request) {
         assert.match(request.prompt, /subject: 客栈老板娘/);

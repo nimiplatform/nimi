@@ -1,8 +1,10 @@
 import {
   asNimiError,
   createNimiError,
+  type TextMessage,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
+import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { buildLocalProfileExtensions } from '@nimiplatform/sdk/mod';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
@@ -28,7 +30,9 @@ import type {
 
 export type ChatAgentRuntimeInvokeInput = {
   agentId: string;
-  prompt: string;
+  prompt?: string;
+  messages?: readonly ConversationRuntimeTextMessage[];
+  systemPrompt?: string | null;
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
   agentResolution: AgentEffectiveCapabilityResolution | null;
@@ -73,8 +77,20 @@ export type ChatAgentRuntimeInvokeDeps = {
   resolveInvokeInputImpl?: (input: ChatAgentRuntimeInvokeInput) => Promise<InvokeModLlmInput>;
 };
 
+type ResolvedAgentRuntimeRouteInput = {
+  modId: string;
+  provider: string;
+  localProviderEndpoint?: string;
+  localProviderModel?: string;
+  localOpenAiEndpoint?: string;
+  connectorId?: string;
+};
+
 export type ChatAgentRuntimeStreamDeps = {
-  resolveInvokeInputImpl?: (input: ChatAgentRuntimeInvokeInput) => Promise<InvokeModLlmInput>;
+  resolveRouteInputImpl?: (input: ChatAgentRuntimeInvokeInput) => Promise<ResolvedAgentRuntimeRouteInput>;
+  buildRuntimeStreamOptionsImpl?: typeof buildRuntimeStreamOptions;
+  ensureRuntimeLocalModelWarmImpl?: typeof ensureRuntimeLocalModelWarm;
+  getRuntimeClientImpl?: typeof getRuntimeClient;
 };
 
 export const CORE_CHAT_AGENT_MOD_ID = 'core.chat-agent';
@@ -92,6 +108,34 @@ const AGENT_CHAT_LOCAL_IMAGE_SLOT_DEFS = [
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function requirePrompt(value: unknown): string {
+  const prompt = normalizeText(value);
+  if (!prompt) {
+    throw createNimiError({
+      message: 'agent text prompt is required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'provide_text_prompt',
+      source: 'runtime',
+    });
+  }
+  return prompt;
+}
+
+function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
+  return {
+    role: message.role,
+    content: message.text,
+    name: normalizeText(message.name) || undefined,
+  };
+}
+
+function resolveRuntimeTextInput(input: ChatAgentRuntimeInvokeInput): string | TextMessage[] {
+  if (Array.isArray(input.messages) && input.messages.length > 0) {
+    return input.messages.map((message) => toSdkTextMessage(message));
+  }
+  return requirePrompt(input.prompt);
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -286,6 +330,22 @@ function encodeBytesAsDataUrl(mimeType: string, bytes: Uint8Array): string {
 async function resolveInvokeInput(
   input: ChatAgentRuntimeInvokeInput,
 ): Promise<InvokeModLlmInput> {
+  const routeInput = await resolveRouteInput(input);
+  return {
+    ...routeInput,
+    prompt: requirePrompt(input.prompt),
+    agentId: requireValue(
+      input.agentId,
+      ReasonCode.AI_INPUT_INVALID,
+      'select_runtime_route_binding',
+      'agentId is missing',
+    ),
+  };
+}
+
+async function resolveRouteInput(
+  input: ChatAgentRuntimeInvokeInput,
+): Promise<ResolvedAgentRuntimeRouteInput> {
   if (!input.agentResolution || !input.agentResolution.ready) {
     throw createNimiError({
       message: `agent capability resolution not ready: ${input.agentResolution?.reason || 'projection_unavailable'}`,
@@ -306,13 +366,6 @@ async function resolveInvokeInput(
         'select_runtime_route_binding',
         'agent local route provider is missing',
       ),
-      prompt: input.prompt,
-      agentId: requireValue(
-        input.agentId,
-        ReasonCode.AI_INPUT_INVALID,
-        'select_runtime_route_binding',
-        'agentId is missing',
-      ),
       localProviderEndpoint: normalizeText(resolved.localProviderEndpoint) || normalizeText(resolved.endpoint) || undefined,
       localProviderModel: requireValue(
         resolved.modelId || resolved.model || resolved.localModelId,
@@ -332,13 +385,6 @@ async function resolveInvokeInput(
         ReasonCode.AI_INPUT_INVALID,
         'select_runtime_route_binding',
         'agent cloud route provider is missing',
-      ),
-      prompt: input.prompt,
-      agentId: requireValue(
-        input.agentId,
-        ReasonCode.AI_INPUT_INVALID,
-        'select_runtime_route_binding',
-        'agentId is missing',
       ),
       connectorId: requireValue(
         resolved.connectorId,
@@ -375,12 +421,12 @@ export async function streamChatAgentRuntime(
   input: ChatAgentRuntimeInvokeInput,
   deps: ChatAgentRuntimeStreamDeps = {},
 ): Promise<ChatAgentRuntimeStreamResult> {
-  const invokeInput = await (deps.resolveInvokeInputImpl || resolveInvokeInput)(input);
-  const resolved = resolveSourceAndModel(invokeInput);
+  const routeInput = await (deps.resolveRouteInputImpl || resolveRouteInput)(input);
+  const resolved = resolveSourceAndModel(routeInput);
   const timeoutMs = 120_000;
 
-  await ensureRuntimeLocalModelWarm({
-    modId: invokeInput.modId,
+  await (deps.ensureRuntimeLocalModelWarmImpl || ensureRuntimeLocalModelWarm)({
+    modId: routeInput.modId,
     source: resolved.source,
     modelId: resolved.modelId,
     engine: resolved.provider,
@@ -388,19 +434,20 @@ export async function streamChatAgentRuntime(
     timeoutMs,
   });
 
-  const callOptions = await buildRuntimeStreamOptions({
-    modId: invokeInput.modId,
+  const callOptions = await (deps.buildRuntimeStreamOptionsImpl || buildRuntimeStreamOptions)({
+    modId: routeInput.modId,
     timeoutMs,
     signal: input.signal,
     source: resolved.source,
-    connectorId: invokeInput.connectorId,
+    connectorId: routeInput.connectorId,
     providerEndpoint: resolved.endpoint,
   });
-  const streamOutput = await getRuntimeClient().ai.text.stream({
+  const streamOutput = await (deps.getRuntimeClientImpl || getRuntimeClient)().ai.text.stream({
     model: resolved.modelId,
     route: resolved.source,
-    connectorId: invokeInput.connectorId,
-    input: invokeInput.prompt,
+    connectorId: routeInput.connectorId,
+    input: resolveRuntimeTextInput(input),
+    system: normalizeText(input.systemPrompt) || undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
       resolveAgentChatThinkingSupport(),

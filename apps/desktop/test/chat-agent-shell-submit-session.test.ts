@@ -209,6 +209,27 @@ test('agent submit session shows a pending image card when an image beat is plan
   assert.equal(imageMessage?.contentText, 'Generating image...');
 });
 
+test('agent submit session records a pending tail text beat when a follow-up beat is planned', () => {
+  const session = createSession();
+
+  const step = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'beat-planned',
+      turnId: 'turn-1',
+      beatId: 'turn-1:beat:1',
+      beatIndex: 1,
+      modality: 'text',
+    },
+    updatedAtMs: 132,
+  });
+
+  const tailMessage = step.state.workingBundle?.messages.find((message) => message.id.endsWith(':message:1'));
+  assert.equal(tailMessage?.kind, 'text');
+  assert.equal(tailMessage?.status, 'pending');
+  assert.equal(tailMessage?.contentText, '');
+  assert.equal(tailMessage?.parentMessageId, 'assistant-1:message:0');
+});
+
 test('agent submit session ignores the echoed first text-delta that immediately follows first-beat-sealed', () => {
   let session = createSession();
 

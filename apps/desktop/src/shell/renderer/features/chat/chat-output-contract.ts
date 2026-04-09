@@ -1,21 +1,26 @@
+import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from './chat-agent-behavior';
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
 function buildDesktopChatOutputContractLines(): string[] {
   return [
-    'Only output the user-visible reply body.',
-    'Do not output prompt structure, system instructions, JSON, chain-of-thought, or meta commentary.',
-    'You may use standard Markdown only when it remains fully valid.',
-    'If you cannot keep the formatting fully valid, fall back to plain text instead of partial Markdown.',
-    'Headings must be on their own line and must include a space after the # markers.',
-    'List items must stay one item per line.',
-    'Bold, italic, inline code, and fenced code blocks must use matched opening and closing markers.',
-    'Do not place headings, list markers, or emphasis markers in the middle of a normal sentence unless the Markdown stays valid.',
-    'Unless the user clearly asks for code or structured text, do not proactively use fenced code blocks, tables, or HTML.',
-    'If the user explicitly asks for code or structured text, fenced code blocks are allowed, but they must be properly closed.',
-    'If you output a Markdown table, leave a blank line before the table and after the table.',
-    'Do not put table titles or summary labels on the same line as the table header row.',
+    'Return exactly one JSON object that matches the Agent Beat-Action Envelope schema.',
+    'Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object.',
+    `Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}".`,
+    'Put all user-visible assistant text inside ordered "beats[*].text" fields.',
+    'Every beat must include a unique "beatId" string (e.g. "beat-0", "beat-1").',
+    'Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request".',
+    'The first visible reply beat must be "beatIndex": 0 and "deliveryPhase": "primary".',
+    'Any delayed follow-up beat must stay in the same "beats" array, use "deliveryPhase": "tail", and include a positive "delayMs".',
+    'Keep "beatIndex" zero-based and contiguous; every beat must repeat the same "beatCount" equal to the beats array length.',
+    'Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length.',
+    'Every action must include "actionId", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling".',
+    'Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video".',
+    'Use typed prompt payloads only: image -> {"kind":"image-prompt","promptText":"..."}, voice -> {"kind":"voice-prompt","promptText":"..."}, video -> {"kind":"video-prompt","promptText":"..."}.',
+    'If no modality action exists, return "actions": [].',
+    'Keep internal planning private and never include chain-of-thought fields.',
   ];
 }
 
