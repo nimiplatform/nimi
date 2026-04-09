@@ -39,7 +39,7 @@ function validateAndWriteState(topicDir, stateRelPath, nextState) {
 export function initTopic(dirPath, options = {}) {
   const topicId = options.topicId || path.basename(dirPath);
   const title = options.title || topicId;
-  const owner = options.owner || 'coding';
+  const owner = options.owner || 'nimi-coding/local';
   const now = timestampNow();
 
   ensureDir(dirPath);

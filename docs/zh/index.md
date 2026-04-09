@@ -32,10 +32,10 @@ features:
     details: "推荐入口是 @nimiplatform/sdk 的 createPlatformClient()，从同一个根包获得 typed runtime 与 realm 能力。"
     link: /zh/app-dev/
     linkText: 开始开发
-  - title: Nimi 编码方法论
-    details: 面向 AI 可读的权威治理体系，包含分层合约、结构化事实与漂移检查。
+  - title: Nimi Coding
+    details: 面向 AI 可读的权威治理体系，以及正式 execution system 的 overview，涵盖 contracts、validators、CLI 与 execution workflows。
     link: /zh/nimi-coding
-    linkText: 了解方法论
+    linkText: 了解系统
 ---
 
 ::: warning 极速开发阶段

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { loadYamlFile, exists } from './lib/doc-utils.mjs';
+import { loadYamlFile, exists, timestampNow } from './lib/doc-utils.mjs';
 import { moduleRootFrom } from './lib/module-paths.mjs';
 import { ackNotificationCheckpoint, readNotificationCheckpoint, readNotificationsAfterAck } from './lib/notification-checkpoint.mjs';
 import { runNotifyFileSink } from './lib/notification-file-sink.mjs';
@@ -531,6 +531,10 @@ function runNimiCodingCli(moduleRoot, command, args = []) {
     stderr: String(result.stderr || '').trim(),
     parsed,
   };
+}
+
+function offsetTimestamp(isoTimestamp, offsetMs) {
+  return new Date(Date.parse(isoTimestamp) + offsetMs).toISOString();
 }
 
 async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
@@ -1490,19 +1494,20 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     errors.push(`scheduler smoke lease-blocked run-start: ${(schedulerLeaseBlockedStart.errors || []).join('; ')}`);
     return;
   }
+  const leaseBlockedBaseNow = timestampNow();
   const leaseBlockedAcquire = acquireSchedulerLease(schedulerLeaseBlockedDir, {
     topicId: 'minimum-topic',
     runId: 'scheduler-lease-blocked-run',
     holderId: 'scheduler-smoke-holder-a',
     ttlMs: 60000,
-    now: '2026-04-09T00:00:00.000Z',
+    now: leaseBlockedBaseNow,
   });
   if (!leaseBlockedAcquire.ok) {
     errors.push(`scheduler smoke lease-blocked acquire: ${(leaseBlockedAcquire.errors || []).join('; ')}`);
     return;
   }
   const schedulerLeaseBlocked = runScheduleStatus(schedulerLeaseBlockedDir, {
-    now: '2026-04-09T00:00:30.000Z',
+    now: offsetTimestamp(leaseBlockedBaseNow, 30000),
   });
   if (
     schedulerLeaseBlocked.eligible !== false
@@ -1513,7 +1518,7 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     return;
   }
   const schedulerLeaseBlockedOnce = runScheduleOnce(schedulerLeaseBlockedDir, {
-    now: '2026-04-09T00:00:30.000Z',
+    now: offsetTimestamp(leaseBlockedBaseNow, 30000),
     leaseHolderId: 'scheduler-smoke-holder-b',
   });
   if (
@@ -1531,19 +1536,20 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     errors.push(`scheduler smoke stale run-start: ${(schedulerStaleStart.errors || []).join('; ')}`);
     return;
   }
+  const staleLeaseBaseNow = timestampNow();
   const staleAcquire = acquireSchedulerLease(schedulerStaleDir, {
     topicId: 'minimum-topic',
     runId: 'scheduler-stale-run',
     holderId: 'scheduler-stale-holder',
     ttlMs: 1000,
-    now: '2026-04-09T00:00:00.000Z',
+    now: staleLeaseBaseNow,
   });
   if (!staleAcquire.ok) {
     errors.push(`scheduler smoke stale acquire: ${(staleAcquire.errors || []).join('; ')}`);
     return;
   }
   const schedulerStaleStatus = runScheduleStatus(schedulerStaleDir, {
-    now: '2026-04-09T00:00:05.000Z',
+    now: offsetTimestamp(staleLeaseBaseNow, 5000),
   });
   if (
     schedulerStaleStatus.eligible !== true
@@ -1812,12 +1818,13 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     errors.push(`automation smoke lease-blocked run-start: ${(automationLeaseBlockedStart.errors || []).join('; ')}`);
     return;
   }
+  const automationLeaseBaseNow = timestampNow();
   const automationLeaseAcquire = acquireSchedulerLease(automationLeaseBlockedDir, {
     topicId: 'minimum-topic',
     runId: 'automation-cli-lease-blocked-run',
     holderId: 'automation-cli-preexisting-holder',
     ttlMs: 60000,
-    now: '2026-04-09T00:00:00.000Z',
+    now: automationLeaseBaseNow,
   });
   if (!automationLeaseAcquire.ok) {
     errors.push(`automation smoke lease-blocked acquire: ${(automationLeaseAcquire.errors || []).join('; ')}`);

@@ -13,8 +13,8 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 `nimi-coding/**` is the promoted, repo-tracked execution system. It owns:
 
 - **Contracts** (`contracts/`) — methodology, artifact model, staged delivery, finding lifecycle
-- **Schemas** (`schema/`) — typed artifact schemas for topic index, explore, baseline, evidence, finding ledger
-- **Protocols** (`protocol/`) — dispatch, worker-output, acceptance, phase-lifecycle, reopen-defer
+- **Schemas** (`schema/`) — typed artifact schemas for topic index, explore, baseline, execution packet, orchestration state, evidence, finding ledger, and phase-execution markdown requirements
+- **Protocols** (`protocol/`) — dispatch, provider-worker-execution, worker-output, worker-runner-signal, acceptance, phase-lifecycle, reopen-defer, and notification transport boundaries
 - **Gates** (`gates/`) — gate policy and promotion policy
 - **Scripts** (`scripts/`) — module validators, lifecycle helpers, and module-owned repo-wide checks
 - **CLI** (`cli/`) — command entrypoint wrapping scripts into a unified interface
@@ -26,6 +26,7 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 - **Repo-wide collaboration hygiene** — checks like `check:agents-freshness`, `check:no-legacy-doc-contracts`, `check:no-absolute-user-paths` live in root `scripts/` because they govern the whole repository
 - **Topic workspace content** — `.local/coding/**` is the local-only incubator for methodology research and trial artifacts; this module does not manage or modify topic content
 - **Runtime / SDK / Desktop / Web code** — those modules have their own AGENTS and ownership
+- **Semantic authority** — scheduler state, automation bridge state, provider execution logs, notification logs, and transport checkpoints remain operational surfaces only; they do not replace packet, orchestration, acceptance, evidence, or finding ownership
 
 ## Script Ownership Tiers
 
@@ -41,6 +42,14 @@ Located in `nimi-coding/scripts/`, invoked directly or through `nimi-coding/cli/
 - `init-topic.mjs` — initialize a new topic directory
 - `attach-evidence.mjs` — attach evidence to a topic
 - `finding-set-status.mjs` — transition a finding status
+
+This tier now also includes the promoted execution-system runtime surfaces:
+
+- packet-bound continuous run commands
+- provider-backed foreground loop commands
+- foreground scheduler + operational lease commands
+- one-topic Codex setup / upsert / bridge commands
+- notification handoff / checkpoint / adapter commands
 
 ### Tier 2: Module-owned repo-wide checks
 
@@ -70,24 +79,39 @@ These live only in root `scripts/` and have no counterpart in `nimi-coding/scrip
 - Topic content is never committed to the repository
 - Promotion from `.local/coding/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`
 
+## Current Execution-System Surface
+
+`nimi-coding/**` is no longer a staged prototype or CLI MVP. Align changes to the current promoted surface:
+
+- packet-bound continuous loop with strict mechanical closeout
+- provider-backed foreground loop with Codex backend binding
+- stable validator CLI result surface for the promoted validators
+- foreground scheduler with operational single-flight lease
+- one-topic Codex automation setup / upsert / bridge flow
+- notification payload / log / handoff / checkpoint substrate
+- narrow file-sink, webhook, and Telegram adapters
+
+These are already promoted module capabilities. Do not describe the module as if protocol completion, CLI workflow MVP, or notification transport are still future-only work.
+
+## Alignment Rules
+
+1. Keep `spec/**` as the only product authority.
+2. Keep packet, orchestration state, acceptance, evidence, and finding-ledger as the semantic execution truth.
+3. Keep provider execution logs, scheduler leases, automation bridge results, notification logs, and transport checkpoints as operational state only.
+4. Treat validator CLI JSON output as a stable machine-readable result surface, not a semantic judge.
+5. Treat Codex backend binding and one-topic automation setup/upsert/bridge as admitted execution-system surfaces, but not as new owners of scheduling, acceptance, or finding semantics.
+6. Do not reintroduce phased-rollout prose that understates the current promoted surface.
+7. Do not claim phase-2 semantic automation, generalized automation orchestration, or transport-manager behavior is complete when it is not.
+
 ## Workflow Rules
 
 1. Read contracts before modifying schemas or protocols
 2. Run `pnpm nimi-coding:validate-module` after any module change
 3. Run `pnpm nimi-coding:validate-topic -- <dir>` after modifying topic structure
-4. Do not add new CLI commands, protocols, or schema types without completing the relevant phase in the implementation baseline
-5. Do not pull repo-wide hygiene checks into this module unless they are naturally owned by the nimi-coding execution system
-
-## Phase Boundaries
-
-The implementation baseline at `.local/coding/20260409-spec-gated-manager-worker-delivery-methodology/nimi-coding-implementation.baseline.md` defines the phased rollout. Do not mix work across phases:
-
-- **Phase 1** (current): Module hardening — boundaries, ownership, docs
-- **Phase 2**: Protocol and artifact completion
-- **Phase 3**: Gate and validator expansion
-- **Phase 4**: CLI workflow MVP
-- **Phase 5**: Search / query / manager assist
-- **Phase 6**: Batch frozen-plan delivery
+4. Align AGENTS, README, docs, CLI help, and validator expectations to the current promoted module surface when they drift
+5. Do not add new CLI commands, protocols, or schema types unless they fit the current promoted execution-system authority and do not create parallel truth
+6. Do not pull repo-wide hygiene checks into this module unless they are naturally owned by the nimi-coding execution system
+7. Treat the current module state as execution-system core closure: operational looping, scheduling, transport handoff, and Codex automation binding exist, but semantic automation and generalized orchestration do not
 
 ## Verification Commands
 

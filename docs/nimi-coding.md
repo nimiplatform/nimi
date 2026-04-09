@@ -7,13 +7,15 @@
 > Last Updated: 2026-04-09
 > Scope: Nimi public overview
 > Language: English
-> Legacy Alias: Oriented-AI Spec Coding
+> Historical Note: Earlier repo discussions used `Oriented-AI Spec Coding`; that alias is retired and `nimi-coding` is the formal current name.
 
 ---
 
 ## Overview
 
 **Nimi Coding** is the engineering methodology used in this repository for AI-first, authority-driven delivery.
+
+`nimi-coding` is the formal module and methodology name used in this repository today. Earlier references to `Oriented-AI Spec Coding` are historical only and should not be treated as an active parallel name.
 
 Its base lifecycle is:
 

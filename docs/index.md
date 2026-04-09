@@ -33,9 +33,9 @@ features:
     link: /app-dev/
     linkText: Start building
   - title: Nimi Coding
-    details: AI-readable source-of-truth governance with layered contracts, structured facts, and drift checks.
+    details: AI-readable source-of-truth governance plus the formal execution system overview for contracts, validators, CLI, and execution workflows.
     link: /nimi-coding
-    linkText: Learn the methodology
+    linkText: Learn the system
 ---
 
 ::: warning Rapid Development Phase
