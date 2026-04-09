@@ -1,5 +1,4 @@
 import type {
-  ConversationContinuityAdapter,
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextStreamPart,
   ConversationTurnEvent,
@@ -27,7 +26,6 @@ import type {
 import { getStreamState } from '../turns/stream-controller';
 import { buildAgentLocalChatExecutionTextRequest } from './chat-ai-execution-engine';
 import type {
-  AgentResolvedBeatActionEnvelope,
   AgentResolvedBehavior,
 } from './chat-agent-behavior';
 import {
