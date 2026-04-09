@@ -38,6 +38,8 @@ type fakeLocalImageProfileResolver struct {
 	releaseCalls        int
 	lastLoadReason      string
 	lastReleaseReason   string
+	lastEnsureAlias     string
+	lastReleaseAlias    string
 	lastEnsureExt       map[string]any
 	lastReleaseExt      map[string]any
 	resolveProfileCalls int
@@ -68,19 +70,21 @@ func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context
 	return f.selection, nil
 }
 
-func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
+func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
 	f.ensureLoadCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastLoadReason = loadReason
+	f.lastEnsureAlias = alias
 	f.lastEnsureExt = scenarioExtensions
 	f.profile = profile
 	return nil
 }
 
-func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
+func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
 	f.releaseCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastReleaseReason = releaseReason
+	f.lastReleaseAlias = alias
 	f.lastReleaseExt = scenarioExtensions
 	f.profile = profile
 	return nil
@@ -207,8 +211,14 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	if resolver.lastLoadReason != "generate_request" {
 		t.Fatalf("expected generate load reason, got %q", resolver.lastLoadReason)
 	}
+	if resolver.lastEnsureAlias != resolver.alias {
+		t.Fatalf("expected generate ensure alias %q, got %q", resolver.alias, resolver.lastEnsureAlias)
+	}
 	if resolver.lastReleaseReason != "generate_request_cleanup" {
 		t.Fatalf("expected generate release reason, got %q", resolver.lastReleaseReason)
+	}
+	if resolver.lastReleaseAlias != resolver.alias {
+		t.Fatalf("expected generate release alias %q, got %q", resolver.alias, resolver.lastReleaseAlias)
 	}
 	if resolver.lastEnsureExt["mode"] != "euler" || resolver.lastEnsureExt["step"] != 25 {
 		t.Fatalf("unexpected ensure extensions: %#v", resolver.lastEnsureExt)
@@ -221,8 +231,8 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 		t.Fatal("expected artifact metadata")
 	}
 	applied := metadataStringList(metadata, "local.applied_options")
-	if len(applied) != 2 || applied[0] != "step" || applied[1] != "mode" {
-		t.Fatalf("local.applied_options = %v, want [step mode]", applied)
+	if len(applied) != 3 || applied[0] != "step" || applied[1] != "mode" || applied[2] != "default.scheduler" {
+		t.Fatalf("local.applied_options = %v, want [step mode default.scheduler]", applied)
 	}
 	ignored := metadataStringList(metadata, "local.ignored_options")
 	if len(ignored) != 3 || ignored[0] != "guidance_scale" || ignored[1] != "strength" || ignored[2] != "clip_skip" {

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -17,15 +18,16 @@ import (
 )
 
 type fakeLocalModelLister struct {
-	responses  []*runtimev1.ListLocalAssetsResponse
-	err        error
-	calls      int
-	warmErr    error
-	warmCalls  int
-	startErr   error
-	startCalls int
-	startResp  *runtimev1.StartLocalAssetResponse
-	leaseCalls []string
+	responses    []*runtimev1.ListLocalAssetsResponse
+	err          error
+	calls        int
+	warmErr      error
+	warmCalls    int
+	startErr     error
+	startCalls   int
+	startResp    *runtimev1.StartLocalAssetResponse
+	leaseCalls   []string
+	acquireDelay time.Duration
 }
 
 func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, _ *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
@@ -60,6 +62,9 @@ func (f *fakeLocalModelLister) StartLocalAsset(_ context.Context, _ *runtimev1.S
 }
 
 func (f *fakeLocalModelLister) AcquireLocalAssetLease(_ context.Context, localAssetID string, reason string) error {
+	if f.acquireDelay > 0 {
+		time.Sleep(f.acquireDelay)
+	}
 	f.leaseCalls = append(f.leaseCalls, "acquire:"+strings.TrimSpace(localAssetID)+":"+strings.TrimSpace(reason))
 	return nil
 }

@@ -277,11 +277,19 @@ func (s *Service) runResidencySweep(ctx context.Context) {
 		s.clearWarmCacheForAsset(localAssetID)
 	}
 	for _, engineName := range targets.engines {
+		if normalizeManagedEngineName(engineName) == managedImageBackendEngineName {
+			continue
+		}
+		// Mark assets idle BEFORE stopping the engine so that concurrent
+		// requests see INSTALLED status and take the warm/restart path
+		// instead of routing to a dead endpoint.  Without this ordering,
+		// a request can observe ACTIVE status, skip warm-up, and hit the
+		// killed engine process — producing AI_PROVIDER_TIMEOUT.
+		s.markAssetsIdleForEngine(engineName)
 		if err := s.stopManagedEngineIfIdle(engineName); err != nil {
 			s.logger.Warn("idle engine stop failed", "engine", engineName, "error", err)
 			continue
 		}
-		s.markAssetsIdleForEngine(engineName)
 	}
 }
 

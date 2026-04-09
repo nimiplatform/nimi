@@ -308,8 +308,9 @@ func managedMediaResolveCFGScale(profile map[string]any, scenarioExtensions map[
 }
 
 type managedMediaLoadOverrides struct {
-	CFGScale float32
-	Sampler  string
+	CFGScale  float32
+	Sampler   string
+	Scheduler string
 }
 
 func managedMediaClampInt32(value int64) int32 {
@@ -333,13 +334,56 @@ func managedMediaResolveSampler(profile map[string]any, scenarioExtensions map[s
 			return sampler
 		}
 	}
-	return ""
+	return "euler"
 }
 
 func managedMediaResolveLoadOverrides(profile map[string]any, scenarioExtensions map[string]any) managedMediaLoadOverrides {
 	return managedMediaLoadOverrides{
-		CFGScale: managedMediaResolveCFGScale(profile, scenarioExtensions),
-		Sampler:  managedMediaResolveSampler(profile, scenarioExtensions),
+		CFGScale:  managedMediaResolveCFGScale(profile, scenarioExtensions),
+		Sampler:   managedMediaResolveSampler(profile, scenarioExtensions),
+		Scheduler: managedMediaResolveScheduler(profile, scenarioExtensions),
+	}
+}
+
+func managedMediaResolveScheduler(profile map[string]any, scenarioExtensions map[string]any) string {
+	for _, value := range []any{
+		scenarioExtensions["scheduler"],
+		profile["scheduler"],
+		MapField(profile["parameters"], "scheduler"),
+	} {
+		if scheduler := managedMediaCanonicalScheduler(ValueAsString(value)); scheduler != "" {
+			return scheduler
+		}
+	}
+	return "discrete"
+}
+
+func managedMediaCanonicalScheduler(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "default", "discrete":
+		return "discrete"
+	case "karras":
+		return "karras"
+	case "exponential":
+		return "exponential"
+	case "ays":
+		return "ays"
+	case "gits":
+		return "gits"
+	case "smoothstep":
+		return "smoothstep"
+	case "sgm_uniform":
+		return "sgm_uniform"
+	case "simple":
+		return "simple"
+	case "kl_optimal":
+		return "kl_optimal"
+	case "lcm":
+		return "lcm"
+	case "bong_tangent":
+		return "bong_tangent"
+	default:
+		return ""
 	}
 }
 
@@ -391,6 +435,15 @@ func managedMediaAppliedOptions(profile map[string]any, scenarioExtensions map[s
 			applied = append(applied, "profile.mode")
 		} else if method := strings.TrimSpace(ValueAsString(profile["sampling_method"])); method != "" {
 			applied = append(applied, "profile.sampling_method->mode")
+		}
+	}
+	if loadOverrides.Scheduler != "" {
+		if scheduler := strings.TrimSpace(ValueAsString(scenarioExtensions["scheduler"])); scheduler != "" {
+			applied = append(applied, "scheduler")
+		} else if scheduler := strings.TrimSpace(ValueAsString(profile["scheduler"])); scheduler != "" {
+			applied = append(applied, "profile.scheduler")
+		} else {
+			applied = append(applied, "default.scheduler")
 		}
 	}
 	if cfgScale := loadOverrides.CFGScale; cfgScale > 0 {

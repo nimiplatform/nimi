@@ -16,8 +16,8 @@ func TestAITimeoutDefaultsMatchSpec(t *testing.T) {
 	}{
 		// ExecuteScenario_text_generate → 120 000 ms
 		{name: "defaultGenerateTimeout", got: defaultGenerateTimeout, wantMS: 120_000},
-		// StreamScenario_first_packet → 10 000 ms
-		{name: "defaultStreamFirstTimeout", got: defaultStreamFirstTimeout, wantMS: 10_000},
+		// StreamScenario_first_packet → 60 000 ms
+		{name: "defaultStreamFirstTimeout", got: defaultStreamFirstTimeout, wantMS: 60_000},
 		// StreamScenario_total → 120 000 ms
 		{name: "defaultStreamTotalTimeout", got: defaultStreamTotalTimeout, wantMS: 120_000},
 		// ExecuteScenario_text_embed → 20 000 ms

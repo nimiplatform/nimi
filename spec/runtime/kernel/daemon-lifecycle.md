@@ -94,7 +94,7 @@ AI 执行路径使用双层信号量控制并发：
 - **饥饿检测**：等待时间超过阈值（默认 30s）时，`AcquireResult.Starved=true`。
 - **空 AppID 处理**：归入 `_default` 键。
 
-> **参数选取依据**：全局并发上限 8 ≈ 典型桌面端 CPU 核数（4-8 核），避免 AI 推理独占全部计算资源。Per-app 上限 2 保证至少 4 个 app 可同时发起推理（8 / 2 = 4），防止单个 app 独占全部 slot。饥饿检测 30s 对应 StreamScenario 的首包超时 10s + 总超时 120s 之间的中间值，确保在流式请求超时前有机会检测到调度饥饿。
+> **参数选取依据**：全局并发上限 8 ≈ 典型桌面端 CPU 核数（4-8 核），避免 AI 推理独占全部计算资源。Per-app 上限 2 保证至少 4 个 app 可同时发起推理（8 / 2 = 4），防止单个 app 独占全部 slot。饥饿检测 30s 仍早于 StreamScenario 的首包超时 60s 和总超时 120s，确保在流式请求进入 provider timeout 前有机会检测到调度饥饿。
 
 ## K-DAEMON-008 AI 超时层次
 
@@ -103,7 +103,7 @@ AI 执行路径使用双层信号量控制并发：
 | 操作 | 默认超时 |
 |---|---|
 | ExecuteScenario(TEXT_GENERATE) | 30s |
-| StreamScenario（首包） | 10s |
+| StreamScenario（首包） | 60s |
 | StreamScenario（总） | 120s |
 | ExecuteScenario(TEXT_EMBED) | 20s |
 | SubmitScenarioJob(image) | 120s |

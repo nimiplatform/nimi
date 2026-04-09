@@ -1183,6 +1183,41 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 	if !spec.Supported {
 		t.Fatalf("expected darwin managed image backend package to be supported, got %#v", spec)
 	}
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalLocalAIDerived {
+		t.Fatalf("expected canonical LocalAI-derived package source, got %q", spec.PackageSource)
+	}
+	if spec.PackageFormat != managedImageBackendPackageFormatOCIPayload {
+		t.Fatalf("expected OCI payload package format, got %q", spec.PackageFormat)
+	}
+	if spec.LaunchMode != managedImageBackendLaunchModePackageEntrypoint {
+		t.Fatalf("expected package entrypoint launch mode, got %q", spec.LaunchMode)
+	}
+	if got := strings.TrimSpace(spec.ImageRef); got == "" {
+		t.Fatal("expected OCI image ref for darwin managed image backend package")
+	}
+	if strings.TrimSpace(spec.ArchiveURL) != "" {
+		t.Fatalf("expected no archive URL for canonical darwin package, got %q", spec.ArchiveURL)
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOfficialSource(t *testing.T) {
+	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
+		"stablediffusion-ggml",
+		string(managedImageBackendPackageSourceExperimentalOfficialSDCPP),
+		"darwin",
+		"arm64",
+		"apple",
+		false,
+	)
+	if !ok {
+		t.Fatal("expected darwin apple host to resolve the experimental official managed image backend package")
+	}
+	if !spec.Supported {
+		t.Fatalf("expected experimental darwin managed image backend package to be supported, got %#v", spec)
+	}
+	if spec.PackageSource != managedImageBackendPackageSourceExperimentalOfficialSDCPP {
+		t.Fatalf("expected experimental official package source, got %q", spec.PackageSource)
+	}
 	if spec.PackageFormat != managedImageBackendPackageFormatDirectArchive {
 		t.Fatalf("expected direct archive package format, got %q", spec.PackageFormat)
 	}
@@ -1193,13 +1228,26 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 		t.Fatalf("unexpected wrapper driver: %q", got)
 	}
 	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
-		t.Fatal("expected archive URL for darwin managed image backend package")
+		t.Fatal("expected archive URL for experimental darwin managed image backend package")
 	}
 	if got := strings.TrimSpace(spec.ArchiveSHA256); got == "" {
-		t.Fatal("expected archive SHA256 for darwin managed image backend package")
+		t.Fatal("expected archive SHA256 for experimental darwin managed image backend package")
 	}
 	if len(spec.ExecutableCandidates) != 1 || spec.ExecutableCandidates[0] != "sd-cli" {
 		t.Fatalf("unexpected darwin executable candidates: %#v", spec.ExecutableCandidates)
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostUnknownSourceFailsClosed(t *testing.T) {
+	if spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
+		"stablediffusion-ggml",
+		"unknown_source",
+		"darwin",
+		"arm64",
+		"apple",
+		false,
+	); ok {
+		t.Fatalf("expected unknown package source to fail closed, got %#v", spec)
 	}
 }
 

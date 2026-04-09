@@ -393,6 +393,13 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 			return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_STREAM_BROKEN)
 		}
 		if len(chunk.Choices) > 0 {
+			if onDelta != nil {
+				// Count any valid provider SSE chunk as streaming activity even when
+				// the chunk carries role/tool-call metadata instead of text content.
+				if err := onDelta(""); err != nil {
+					return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+				}
+			}
 			delta := chunk.Choices[0].Delta.Content
 			if delta != "" {
 				outputBuilder.WriteString(delta)

@@ -149,13 +149,18 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	installStartedAt := time.Now()
 	installRequired := false
 	if normalized.Mode == ManagedImageBackendOfficial {
-		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHost(normalized.BackendName); ok {
+		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource); ok {
 			attrs := []any{
 				"backend", normalized.BackendName,
 				"mode", normalized.Mode,
+				"package_source", strings.TrimSpace(string(spec.PackageSource)),
 				"package_format", spec.PackageFormat,
+				"launch_mode", spec.LaunchMode,
 				"install_dir", spec.InstallDirName,
 				"backends_path", backendsPath,
+			}
+			if driver := strings.TrimSpace(spec.WrapperDriver); driver != "" {
+				attrs = append(attrs, "wrapper_driver", driver)
 			}
 			if source := managedImageBackendInstallSource(spec); source != "" {
 				attrs = append(attrs, "source", source)
@@ -174,12 +179,14 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 		return err
 	}
 	if normalized.Mode == ManagedImageBackendOfficial && installRequired {
-		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHost(normalized.BackendName); ok {
+		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource); ok {
 			m.logger.Info(
 				"managed image backend package installed",
 				"backend", normalized.BackendName,
 				"mode", normalized.Mode,
+				"package_source", strings.TrimSpace(string(spec.PackageSource)),
 				"package_format", spec.PackageFormat,
+				"launch_mode", spec.LaunchMode,
 				"install_dir", spec.InstallDirName,
 				"backends_path", backendsPath,
 				"duration_ms", time.Since(installStartedAt).Milliseconds(),

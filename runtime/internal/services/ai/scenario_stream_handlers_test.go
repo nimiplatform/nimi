@@ -528,6 +528,135 @@ func TestStreamCloseModeTerminalEventOnError(t *testing.T) {
 	}
 }
 
+func TestStreamTextFirstPacketTimeoutStartsAfterStreamEstablished(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		chunks := []string{
+			`data: {"choices":[{"delta":{"content":"Hello world response text here!"},"finish_reason":null}]}` + "\n\n",
+			`data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":8}}` + "\n\n",
+			"data: [DONE]\n\n",
+		}
+		for _, chunk := range chunks {
+			_, _ = w.Write([]byte(chunk))
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
+	})
+	svc.streamFirstPacketTimeout = 20 * time.Millisecond
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		acquireDelay: 40 * time.Millisecond,
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "local_qwen",
+				AssetId:      "qwen",
+				Engine:       "llama",
+				Capabilities: []string{"chat"},
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			}},
+		}},
+	})
+
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     500,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "hi"}},
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario: %v", err)
+	}
+	if len(stream.events) < 2 {
+		t.Fatalf("expected started + terminal events, got=%d", len(stream.events))
+	}
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+		t.Fatalf("expected completed terminal event, got %v", last.GetEventType())
+	}
+}
+
+func TestStreamTextFirstPacketTimeoutTreatsToolCallChunksAsActivity(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"role":"assistant"},"finish_reason":null}]}` + "\n\n"))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(40 * time.Millisecond)
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":5,"completion_tokens":0,"total_tokens":5}}` + "\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
+	})
+	svc.streamFirstPacketTimeout = 20 * time.Millisecond
+
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen2.5",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     500,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{{Role: "user", Content: "call tool"}},
+				},
+			},
+		},
+	}
+
+	if err := svc.StreamScenario(req, stream); err != nil {
+		t.Fatalf("stream scenario: %v", err)
+	}
+	if len(stream.events) < 2 {
+		t.Fatalf("expected started + completed events, got=%d", len(stream.events))
+	}
+	last := stream.events[len(stream.events)-1]
+	if last.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
+		t.Fatalf("expected completed terminal event, got %v", last.GetEventType())
+	}
+	if last.GetCompleted().GetFinishReason() != runtimev1.FinishReason_FINISH_REASON_TOOL_CALL {
+		t.Fatalf("unexpected finish reason: %v", last.GetCompleted().GetFinishReason())
+	}
+	for _, event := range stream.events {
+		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_FAILED {
+			t.Fatalf("unexpected failed terminal event: %#v", event.GetFailed())
+		}
+	}
+}
+
 func TestStreamChunkMinBytes(t *testing.T) {
 	// K-STREAM-006: minimum 32 bytes before flushing a text delta.
 	if minStreamChunkBytes != 32 {

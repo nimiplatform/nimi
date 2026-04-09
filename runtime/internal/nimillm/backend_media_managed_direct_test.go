@@ -161,7 +161,7 @@ func TestManagedMediaIgnoredOptions(t *testing.T) {
 }
 
 func TestManagedMediaResolveLoadOverrides(t *testing.T) {
-	t.Run("scenario overrides drive sampler and cfg_scale", func(t *testing.T) {
+	t.Run("scenario overrides drive sampler scheduler and cfg_scale", func(t *testing.T) {
 		got := managedMediaResolveLoadOverrides(
 			map[string]any{
 				"mode":      "heun",
@@ -169,6 +169,7 @@ func TestManagedMediaResolveLoadOverrides(t *testing.T) {
 			},
 			map[string]any{
 				"method":    "dpm++2m",
+				"scheduler": "karras",
 				"cfg_scale": "7.5",
 			},
 		)
@@ -177,6 +178,9 @@ func TestManagedMediaResolveLoadOverrides(t *testing.T) {
 		}
 		if got.Sampler != "dpmpp2m" {
 			t.Fatalf("Sampler = %q, want dpmpp2m", got.Sampler)
+		}
+		if got.Scheduler != "karras" {
+			t.Fatalf("Scheduler = %q, want karras", got.Scheduler)
 		}
 	})
 
@@ -187,6 +191,9 @@ func TestManagedMediaResolveLoadOverrides(t *testing.T) {
 		)
 		if got.Sampler != "euler_a" {
 			t.Fatalf("Sampler = %q, want euler_a", got.Sampler)
+		}
+		if got.Scheduler != "discrete" {
+			t.Fatalf("Scheduler = %q, want discrete", got.Scheduler)
 		}
 		if got.CFGScale != 0 {
 			t.Fatalf("CFGScale = %f, want 0", got.CFGScale)

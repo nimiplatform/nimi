@@ -412,6 +412,16 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
 		t.Fatalf("create test runtime dir: %v", err)
 	}
+	managedBackendDir := filepath.Join(homeDir, ".nimi", "runtime", "managed-image-backends", "metal-stablediffusion-ggml")
+	if err := os.MkdirAll(managedBackendDir, 0o755); err != nil {
+		t.Fatalf("create managed image backend dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(managedBackendDir, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write managed image backend run.sh: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(managedBackendDir, "metadata.json"), []byte(`{"name":"metal-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
+		t.Fatalf("write managed image backend metadata: %v", err)
+	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
 	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")

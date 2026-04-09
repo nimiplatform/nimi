@@ -120,7 +120,7 @@ func executeBackendSyncMedia(
 		case imageSelection.ControlPlane == engine.ImageControlPlaneRuntime &&
 			imageSelection.ExecutionPlane == engine.EngineMedia &&
 			imageSelection.BackendClass == engine.ImageBackendClassNativeBinary:
-			_, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
+			alias, profile, forwardedExtensions, managedErr := s.localImageProfile.ResolveManagedMediaImageProfile(ctx, backendModelID, scenarioExtensions)
 			if managedErr != nil {
 				return nil, nil, "", managedErr
 			}
@@ -140,12 +140,12 @@ func executeBackendSyncMedia(
 					grpcerr.ReasonOptions{Message: "managed image backend target is unavailable"},
 				)
 			}
-			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, profile, scenarioExtensions, "generate_request"); err != nil {
+			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request"); err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err
 			}
 			defer func() {
-				if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
+				if releaseErr := s.localImageProfile.ReleaseManagedMediaImage(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request_cleanup"); releaseErr != nil && logger != nil {
 					logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
 				}
 			}()

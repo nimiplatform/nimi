@@ -150,13 +150,19 @@ func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string
 		return nil, fmt.Errorf("create managed image backends path: %w", err)
 	}
 
-	packageSpec, ok := resolveManagedImageBackendPackageSpecForCurrentHost(normalized.BackendName)
+	packageSpec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource)
 	if !ok {
+		if source := strings.TrimSpace(normalized.PackageSource); source != "" {
+			return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s with package source %q", normalized.BackendName, currentGOOS(), currentGOARCH(), source)
+		}
 		return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s", normalized.BackendName, currentGOOS(), currentGOARCH())
 	}
 	if !packageSpec.Supported {
 		if strings.TrimSpace(packageSpec.Detail) != "" {
 			return nil, fmt.Errorf("%s", strings.TrimSpace(packageSpec.Detail))
+		}
+		if source := strings.TrimSpace(normalized.PackageSource); source != "" {
+			return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s with package source %q", normalized.BackendName, currentGOOS(), currentGOARCH(), source)
 		}
 		return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s", normalized.BackendName, currentGOOS(), currentGOARCH())
 	}

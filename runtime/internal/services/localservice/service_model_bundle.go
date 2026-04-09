@@ -508,16 +508,20 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return "", false, nil
 	}
-	if normalizeRuntimeMode(s.modelRuntimeMode(model.GetLocalAssetId())) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	mode := s.modelRuntimeMode(model.GetLocalAssetId())
+	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return "", false, nil
 	}
+	shouldSyncManagedLlamaAssets := isManagedSupervisedLlamaModel(model, mode)
 
 	modelsRoot := s.resolvedLocalModelsPath()
 	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
 	if err == nil {
 		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr == nil {
-			if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-				return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+			if shouldSyncManagedLlamaAssets {
+				if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
+					return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+				}
 			}
 			return entryPath, false, nil
 		} else {
@@ -534,8 +538,10 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr != nil {
 			return "", true, fmt.Errorf("validate repaired managed local model entry: %w", validateErr)
 		}
-		if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-			return "", true, fmt.Errorf("sync managed llama assets: %w", syncErr)
+		if shouldSyncManagedLlamaAssets {
+			if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
+				return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+			}
 		}
 		return entryPath, true, nil
 	}

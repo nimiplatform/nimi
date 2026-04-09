@@ -5,13 +5,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
+	"google.golang.org/grpc/codes"
 )
+
+const managedImageLoadTimeout = 45 * time.Second
 
 type managedImageProfileState struct {
 	Alias   string
@@ -93,7 +98,7 @@ func (s *Service) clearManagedMediaImageLoadCache(localAssetID string) {
 	s.mu.Unlock()
 }
 
-func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
+func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
 	if s == nil {
 		return nil
 	}
@@ -101,10 +106,10 @@ func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID
 	if model == nil {
 		return nil
 	}
-	return s.releaseManagedSupervisedImage(ctx, model, "", profile, scenarioExtensions, releaseReason)
+	return s.releaseManagedSupervisedImage(ctx, model, alias, profile, scenarioExtensions, releaseReason)
 }
 
-func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
+func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
 	if s == nil {
 		return fmt.Errorf("managed local image is unavailable")
 	}
@@ -112,7 +117,7 @@ func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedMo
 	if model == nil {
 		return fmt.Errorf("managed local image is unavailable")
 	}
-	return s.ensureManagedSupervisedImageLoaded(ctx, model, "", profile, scenarioExtensions, loadReason)
+	return s.ensureManagedSupervisedImageLoaded(ctx, model, alias, profile, scenarioExtensions, loadReason)
 }
 
 func (s *Service) ensureManagedSupervisedImageLoaded(
@@ -140,6 +145,12 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 		resolvedAlias = cached.Alias
 		resolvedProfile = cached.Profile
 	} else {
+		if resolvedAlias == "" {
+			if cached, ok := s.cachedManagedMediaImageProfile(localAssetID); ok && len(cached.Profile) > 0 &&
+				managedImageLoadHash(cached.Profile) == managedImageLoadHash(resolvedProfile) {
+				resolvedAlias = cached.Alias
+			}
+		}
 		s.cacheManagedMediaImageProfile(localAssetID, resolvedAlias, resolvedProfile)
 	}
 
@@ -276,14 +287,23 @@ func (s *Service) runManagedImageLoadSingleflight(
 			"backend_address", strings.TrimSpace(loadReq.BackendAddress),
 			"model_path", strings.TrimSpace(loadReq.ModelPath),
 			"options_count", len(loadReq.Options),
+			"timeout_ms", managedImageLoadTimeout.Milliseconds(),
 		)
 
 		loadFn := s.managedImageLoadModel
 		if loadFn == nil {
 			loadFn = managedimagebackend.LoadModel
 		}
-		loadErr := loadFn(ctx, loadReq)
+		loadCtx, cancel := managedImageLoadContext(ctx, managedImageLoadTimeout)
+		loadErr := loadFn(loadCtx, loadReq)
+		cancel()
 		loadDurationMs := time.Since(startedAt).Milliseconds()
+		if errors.Is(loadErr, context.DeadlineExceeded) {
+			loadErr = grpcerr.WithReasonCodeOptions(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, grpcerr.ReasonOptions{
+				Message:    "managed image backend load timed out while waiting for resident readiness",
+				ActionHint: "inspect_local_runtime_model_health",
+			})
+		}
 		if loadErr != nil {
 			s.logger.Warn("managed image load failed",
 				"local_asset_id", localAssetID,
@@ -348,6 +368,132 @@ func (s *Service) freeManagedMediaImageOnIdle(ctx context.Context, localAssetID 
 	return s.forceReleaseManagedSupervisedImage(ctx, model, cached.Alias, cached.Profile, releaseReason)
 }
 
+func (s *Service) releaseIdleManagedMediaImagesForText(ctx context.Context, releaseReason string) {
+	if s == nil {
+		return
+	}
+	type candidate struct {
+		localAssetID string
+		alias        string
+	}
+	candidates := make([]candidate, 0)
+	reclaimedAssetIDs := make([]string, 0)
+	enginesToStop := make(map[string]struct{})
+	s.mu.RLock()
+	for localAssetID, entry := range s.managedImageLoadCache {
+		if entry.HoldCount > 0 {
+			continue
+		}
+		candidates = append(candidates, candidate{
+			localAssetID: strings.TrimSpace(localAssetID),
+			alias:        strings.TrimSpace(entry.Alias),
+		})
+	}
+	s.mu.RUnlock()
+
+	for _, candidate := range candidates {
+		if candidate.localAssetID == "" {
+			continue
+		}
+		model := s.modelByID(candidate.localAssetID)
+		if model == nil {
+			s.clearManagedMediaImageLoadCache(candidate.localAssetID)
+			continue
+		}
+		if !isManagedSupervisedImageModel(model, s.modelRuntimeMode(candidate.localAssetID)) {
+			continue
+		}
+		if err := s.forceReleaseManagedSupervisedImage(ctx, model, candidate.alias, nil, releaseReason); err != nil {
+			if s.logger != nil {
+				s.logger.Warn(
+					"managed image release before text lease failed",
+					"local_asset_id", candidate.localAssetID,
+					"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+					"error", err,
+				)
+			}
+			continue
+		}
+		if _, err := s.ensureModelInstalled(candidate.localAssetID, managedLocalImagePendingValidationDetail("resident released for text generation")); err != nil && s.logger != nil {
+			s.logger.Warn(
+				"managed image status update after text reclaim failed",
+				"local_asset_id", candidate.localAssetID,
+				"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+				"error", err,
+			)
+		}
+		reclaimedAssetIDs = append(reclaimedAssetIDs, candidate.localAssetID)
+		s.clearLocalAssetResidency(candidate.localAssetID)
+		for _, engineName := range residencyEnginesForModel(model, s.modelRuntimeMode(candidate.localAssetID)) {
+			if normalizeManagedEngineName(engineName) == managedImageBackendEngineName {
+				continue
+			}
+			if s.markManagedEngineReclaimable(engineName) {
+				enginesToStop[normalizeManagedEngineName(engineName)] = struct{}{}
+			}
+		}
+	}
+
+	for engineName := range enginesToStop {
+		if engineName == "" {
+			continue
+		}
+		s.markAssetsIdleForEngine(engineName)
+		if err := s.stopManagedEngineIfIdle(engineName); err != nil && s.logger != nil {
+			s.logger.Warn(
+				"managed image engine reclaim before text lease failed",
+				"engine", engineName,
+				"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+				"error", err,
+			)
+		}
+	}
+	for _, localAssetID := range reclaimedAssetIDs {
+		if _, err := s.ensureModelInstalled(localAssetID, managedLocalImagePendingValidationDetail("resident released for text generation")); err != nil && s.logger != nil {
+			s.logger.Warn(
+				"managed image reclaim detail restore failed",
+				"local_asset_id", localAssetID,
+				"release_reason", defaultString(strings.TrimSpace(releaseReason), "unspecified"),
+				"error", err,
+			)
+		}
+	}
+}
+
+func (s *Service) clearLocalAssetResidency(localAssetID string) {
+	if s == nil {
+		return
+	}
+	trimmed := strings.TrimSpace(localAssetID)
+	if trimmed == "" {
+		return
+	}
+	s.mu.Lock()
+	delete(s.assetResidency, trimmed)
+	s.mu.Unlock()
+}
+
+func (s *Service) markManagedEngineReclaimable(engineName string) bool {
+	if s == nil {
+		return false
+	}
+	trimmed := normalizeManagedEngineName(engineName)
+	if trimmed == "" {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	state, ok := s.engineResidency[trimmed]
+	if ok && state.HoldCount > 0 {
+		return false
+	}
+	if !ok {
+		return false
+	}
+	delete(s.engineResidency, trimmed)
+	return true
+}
+
 func (s *Service) releaseManagedSupervisedImage(
 	ctx context.Context,
 	model *runtimev1.LocalAssetRecord,
@@ -372,6 +518,11 @@ func (s *Service) releaseManagedSupervisedImage(
 		}
 		resolvedAlias = cached.Alias
 		resolvedProfile = cached.Profile
+	} else if resolvedAlias == "" {
+		if cached, ok := s.cachedManagedMediaImageProfile(localAssetID); ok && len(cached.Profile) > 0 &&
+			managedImageLoadHash(cached.Profile) == managedImageLoadHash(resolvedProfile) {
+			resolvedAlias = cached.Alias
+		}
 	}
 
 	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
@@ -479,6 +630,16 @@ func managedImageCleanupContext(ctx context.Context, timeout time.Duration) (con
 		return context.WithTimeout(context.Background(), timeout)
 	}
 	return context.WithTimeout(context.WithoutCancel(ctx), timeout)
+}
+
+func managedImageLoadContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if timeout <= 0 {
+		timeout = managedImageLoadTimeout
+	}
+	if ctx == nil {
+		return context.WithTimeout(context.Background(), timeout)
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
 func managedImageLoadHash(value any) string {

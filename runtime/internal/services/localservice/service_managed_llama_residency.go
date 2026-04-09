@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -30,6 +31,7 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 	if model == nil || !isManagedSupervisedLlamaModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
 		return model, nil
 	}
+	startedAt := time.Now()
 
 	s.managedLlamaLoadMu.Lock()
 	defer s.managedLlamaLoadMu.Unlock()
@@ -80,17 +82,37 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 			)
 		}
 	}
+	s.releaseIdleManagedMediaImagesForText(ctx, "text_lease_reclaim")
 
 	engineInfo, hasEngine := managedLlamaEngineInfo(mgr)
 	if currentLoaded == "" && hasEngine {
 		if matched, err := s.tryAdoptManagedLlamaResident(ctx, current, registration, engineInfo.Endpoint); err != nil {
 			return nil, err
 		} else if matched != nil {
+			if s.logger != nil {
+				s.logger.Info(
+					"managed llama lease adopted resident worker",
+					"local_asset_id", localAssetID,
+					"requested_reason", strings.TrimSpace(reason),
+					"endpoint", strings.TrimSpace(engineInfo.Endpoint),
+					"duration_ms", time.Since(startedAt).Milliseconds(),
+				)
+			}
 			return matched, nil
 		}
 	}
 
 	mustStart := currentLoaded != localAssetID || !hasEngine
+	if s.logger != nil {
+		s.logger.Info(
+			"managed llama lease evaluated",
+			"local_asset_id", localAssetID,
+			"loaded_local_asset_id", currentLoaded,
+			"requested_reason", strings.TrimSpace(reason),
+			"restart_required", mustStart,
+			"engine_healthy", hasEngine,
+		)
+	}
 	if mustStart {
 		if _, err := s.updateModelWarmState(localAssetID, runtimev1.LocalWarmState_LOCAL_WARM_STATE_WARMING, "managed local model loading"); err != nil {
 			return nil, err
@@ -107,6 +129,14 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 			}
 		}
 		s.setCurrentManagedLlamaLoadedLocalAssetID("")
+		if s.logger != nil {
+			s.logger.Info(
+				"managed llama lease restarting worker",
+				"from_local_asset_id", currentLoaded,
+				"to_local_asset_id", localAssetID,
+				"requested_reason", strings.TrimSpace(reason),
+			)
+		}
 		if err := stopManagedLlamaEngineIfRunning(mgr); err != nil {
 			return nil, err
 		}
@@ -143,6 +173,15 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 		return nil, err
 	}
 	s.setCurrentManagedLlamaLoadedLocalAssetID(localAssetID)
+	if s.logger != nil {
+		s.logger.Info(
+			"managed llama lease ready",
+			"local_asset_id", localAssetID,
+			"requested_reason", strings.TrimSpace(reason),
+			"endpoint", strings.TrimSpace(endpoint),
+			"duration_ms", time.Since(startedAt).Milliseconds(),
+		)
+	}
 	return readyModel, nil
 }
 

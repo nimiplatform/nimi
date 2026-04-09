@@ -366,4 +366,5 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 - `POST /v1/media/image/generate` is still the only canonical app-facing execution surface; callers must never observe a second image control-plane API.
 - If `proxy_execution` cannot connect the request to the managed image backend direct contract, it must fail-close instead of forwarding through llama or any legacy management route.
 - Supported native-binary tuples may be backed by a runtime-owned package entrypoint or a runtime-owned wrapper around the published backend binary, but both variants must preserve the same managed image backend gRPC contract and fail-close semantics.
+- Package-source selection inside the managed native-binary path is runtime-private. Choosing a canonical or experimental package source must not change the public request path, response envelope, or any app-visible provider/model contract.
 - Unsupported managed-image package tuples must fail-close before provider execution begins, using `AI_LOCAL_MODEL_UNAVAILABLE` rather than a generic provider internal error.

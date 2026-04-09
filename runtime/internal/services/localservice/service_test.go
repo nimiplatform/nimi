@@ -2804,6 +2804,12 @@ func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *t
 		t.Fatalf("expected supervised runtime mode after import, got %s", got)
 	}
 	cacheManagedImageProfileForTest(t, svc, imported.GetLocalAssetId())
+	mgr.startConfigCalls = 0
+	mgr.startCalls = 0
+	mgr.startEngines = nil
+	mgr.startConfigs = nil
+	mgr.lastStartEngine = ""
+	mgr.lastStartConfig = engine.EngineConfig{}
 
 	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
 		LocalAssetId: imported.GetLocalAssetId(),
@@ -2939,6 +2945,69 @@ func TestManagedImageExplicitHealthLoadsAndMarksActive(t *testing.T) {
 	}
 }
 
+func TestManagedImageStartLocalAssetPreloadReusesCanonicalAliasForGenerate(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	loadCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		loadCalls++
+		return nil
+	}
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-start-preload-reuse")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: asset.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("StartLocalAsset: %v", err)
+	}
+	if started.GetAsset() == nil || started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active asset after StartLocalAsset, got %#v", started.GetAsset())
+	}
+	if loadCalls != 1 {
+		t.Fatalf("expected one preload load during StartLocalAsset, got %d", loadCalls)
+	}
+
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
+		t.Fatalf("EnsureManagedMediaImageLoaded(generate_request): %v", err)
+	}
+	if loadCalls != 1 {
+		t.Fatalf("expected generate_request to reuse preloaded resident load, got %d loads", loadCalls)
+	}
+}
+
+func TestEnsureManagedMediaImageLoadedUsesBoundedLoadTimeout(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-load-timeout")
+	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
+
+	svc.managedImageLoadModel = func(ctx context.Context, _ managedimagebackend.LoadModelRequest) error {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			t.Fatal("expected managed image load context to carry a deadline")
+		}
+		if remaining := time.Until(deadline); remaining <= 0 || remaining > managedImageLoadTimeout {
+			t.Fatalf("unexpected managed image load timeout window: %s", remaining)
+		}
+		return nil
+	}
+
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
+		t.Fatalf("EnsureManagedMediaImageLoaded(generate_request): %v", err)
+	}
+}
+
 func TestManagedImageRecoverySweepSkipsBackgroundLoad(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
@@ -2985,23 +3054,23 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 	asset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-cache-reuse")
 	profile := cacheManagedImageProfileForTest(t, svc, asset.GetLocalAssetId())
 
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
 		t.Fatalf("first EnsureManagedMediaImageLoaded: %v", err)
 	}
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
 		t.Fatalf("second EnsureManagedMediaImageLoaded: %v", err)
 	}
 	if loadCalls != 1 {
 		t.Fatalf("expected cache hit on second explicit load, got %d calls", loadCalls)
 	}
 
-	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request_cleanup"); err != nil {
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request_cleanup"); err != nil {
 		t.Fatalf("first ReleaseManagedMediaImage: %v", err)
 	}
 	if freeCalls != 0 {
 		t.Fatalf("expected held model to stay resident after first release, got free_calls=%d", freeCalls)
 	}
-	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request_cleanup"); err != nil {
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request_cleanup"); err != nil {
 		t.Fatalf("second ReleaseManagedMediaImage: %v", err)
 	}
 	if freeCalls != 0 {
@@ -3010,7 +3079,7 @@ func TestManagedImageLoadCacheReusesExplicitLoadUntilBackendEpochChanges(t *test
 
 	svc.SetManagedImageBackendHealth(false, "backend restarting")
 	svc.SetManagedImageBackendHealth(true, "backend restarted")
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
 		t.Fatalf("third EnsureManagedMediaImageLoaded after backend epoch bump: %v", err)
 	}
 	if loadCalls != 2 {
@@ -3046,15 +3115,16 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	overrideB := map[string]any{
 		"cfg_scale": float64(9),
 		"method":    "dpm++2m",
+		"scheduler": "karras",
 	}
 
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, overrideA, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, overrideA, "generate_request"); err != nil {
 		t.Fatalf("first EnsureManagedMediaImageLoaded: %v", err)
 	}
-	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, overrideA, "generate_request_cleanup"); err != nil {
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), "", profile, overrideA, "generate_request_cleanup"); err != nil {
 		t.Fatalf("first ReleaseManagedMediaImage: %v", err)
 	}
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, overrideA, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, overrideA, "generate_request"); err != nil {
 		t.Fatalf("second EnsureManagedMediaImageLoaded with same override: %v", err)
 	}
 	if len(loadRequests) != 1 {
@@ -3063,6 +3133,9 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	if !strings.Contains(strings.Join(loadRequests[0].Options, ","), "sampler:euler") {
 		t.Fatalf("first load options = %v, want sampler:euler", loadRequests[0].Options)
 	}
+	if !containsString(loadRequests[0].Options, "scheduler:discrete") {
+		t.Fatalf("first load options = %v, want scheduler:discrete", loadRequests[0].Options)
+	}
 	if !containsString(loadRequests[0].Options, "diffusion_model") {
 		t.Fatalf("first load options = %v, want diffusion_model retained", loadRequests[0].Options)
 	}
@@ -3070,7 +3143,7 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 		t.Fatalf("first load CFGScale = %f, want 7.5", loadRequests[0].CFGScale)
 	}
 
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, overrideB, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, overrideB, "generate_request"); err != nil {
 		t.Fatalf("third EnsureManagedMediaImageLoaded with different override: %v", err)
 	}
 	if len(loadRequests) != 2 {
@@ -3079,16 +3152,19 @@ func TestManagedImageLoadCacheReloadsWhenRequestOverridesChange(t *testing.T) {
 	if !containsString(loadRequests[1].Options, "sampler:dpmpp2m") {
 		t.Fatalf("second load options = %v, want sampler:dpmpp2m", loadRequests[1].Options)
 	}
+	if !containsString(loadRequests[1].Options, "scheduler:karras") {
+		t.Fatalf("second load options = %v, want scheduler:karras", loadRequests[1].Options)
+	}
 	for _, option := range loadRequests[1].Options {
-		if option == "sampler:heun" {
-			t.Fatalf("second load options = %v, stale sampler must be replaced", loadRequests[1].Options)
+		if option == "sampler:heun" || option == "scheduler:discrete" {
+			t.Fatalf("second load options = %v, stale sampler/scheduler must be replaced", loadRequests[1].Options)
 		}
 	}
 	if !almostEqualFloat32(loadRequests[1].CFGScale, 9) {
 		t.Fatalf("second load CFGScale = %f, want 9", loadRequests[1].CFGScale)
 	}
 
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, overrideB, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, overrideB, "generate_request"); err != nil {
 		t.Fatalf("fourth EnsureManagedMediaImageLoaded with same override: %v", err)
 	}
 	if len(loadRequests) != 2 {
@@ -3123,10 +3199,10 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	if err := svc.AcquireLocalAssetLease(context.Background(), asset.GetLocalAssetId(), "generate_request"); err != nil {
 		t.Fatalf("AcquireLocalAssetLease: %v", err)
 	}
-	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request"); err != nil {
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
 		t.Fatalf("EnsureManagedMediaImageLoaded: %v", err)
 	}
-	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), profile, nil, "generate_request_cleanup"); err != nil {
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+asset.GetAssetId(), "", profile, nil, "generate_request_cleanup"); err != nil {
 		t.Fatalf("ReleaseManagedMediaImage: %v", err)
 	}
 	if err := svc.ReleaseLocalAssetLease(context.Background(), asset.GetLocalAssetId(), "generate_request_cleanup"); err != nil {
@@ -3142,12 +3218,108 @@ func TestManagedImageIdleSweepFreesBackendAndStopsIdleEngines(t *testing.T) {
 	if !containsString(engineMgr.stopEngines, "media") {
 		t.Fatalf("expected media engine idle-stop, got %#v", engineMgr.stopEngines)
 	}
-	if !containsString(engineMgr.stopEngines, managedImageBackendEngineName) {
-		t.Fatalf("expected managed image backend idle-stop, got %#v", engineMgr.stopEngines)
+	if containsString(engineMgr.stopEngines, managedImageBackendEngineName) {
+		t.Fatalf("managed image backend should stay running for later image reuse, got %#v", engineMgr.stopEngines)
 	}
 	updated := svc.modelByID(asset.GetLocalAssetId())
 	if updated == nil || updated.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("expected managed image to return to installed after idle sweep, got %#v", updated)
+	}
+}
+
+func TestAcquireLocalAssetLeaseReclaimsIdleManagedImageResidentBeforeText(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe mocked healthy",
+			probeURL:  endpoint,
+			models:    []string{"beta-model"},
+		}
+	})
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	svc.SetManagedImageBackendConfig(true, "127.0.0.1:50052")
+	svc.SetManagedImageBackendHealth(true, "image backend active")
+
+	freeCalls := 0
+	svc.managedImageLoadModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		return nil
+	}
+	svc.managedImageFreeModel = func(_ context.Context, _ managedimagebackend.LoadModelRequest) error {
+		freeCalls++
+		return nil
+	}
+	svc.SetEngineManager(&mockEngineManager{
+		status: &EngineInfo{
+			Engine:   "llama",
+			Version:  engine.DefaultLlamaConfig().Version,
+			Status:   "healthy",
+			Port:     1234,
+			Endpoint: defaultLocalEndpoint,
+		},
+	})
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, true)
+
+	imageAsset := mustImportManagedImageAssetForTest(t, svc, "nimi/image-before-text")
+	profile := cacheManagedImageProfileForTest(t, svc, imageAsset.GetLocalAssetId())
+	if err := svc.AcquireLocalAssetLease(context.Background(), imageAsset.GetLocalAssetId(), "scenario_media_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease(image): %v", err)
+	}
+	if err := svc.EnsureManagedMediaImageLoaded(context.Background(), "media/"+imageAsset.GetAssetId(), "", profile, nil, "generate_request"); err != nil {
+		t.Fatalf("EnsureManagedMediaImageLoaded: %v", err)
+	}
+	if err := svc.ReleaseManagedMediaImage(context.Background(), "media/"+imageAsset.GetAssetId(), "", profile, nil, "generate_request_cleanup"); err != nil {
+		t.Fatalf("ReleaseManagedMediaImage: %v", err)
+	}
+	if err := svc.ReleaseLocalAssetLease(context.Background(), imageAsset.GetLocalAssetId(), "scenario_media_request_cleanup"); err != nil {
+		t.Fatalf("ReleaseLocalAssetLease(image): %v", err)
+	}
+	if err := svc.UpdateManagedMediaImageExecutionStatus(context.Background(), "media/"+imageAsset.GetAssetId(), true, ""); err != nil {
+		t.Fatalf("UpdateManagedMediaImageExecutionStatus: %v", err)
+	}
+
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID(beta.GetLocalAssetId())
+
+	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "stream_text_generate_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease: %v", err)
+	}
+	if freeCalls != 1 {
+		t.Fatalf("expected text lease to reclaim idle managed image resident once, got %d", freeCalls)
+	}
+	engineMgr := svc.engineManagerOrNil()
+	if engineMgr == nil {
+		t.Fatal("expected engine manager")
+	}
+	mockMgr, ok := engineMgr.(*mockEngineManager)
+	if !ok {
+		t.Fatalf("expected mock engine manager, got %T", engineMgr)
+	}
+	if !containsString(mockMgr.stopEngines, "media") {
+		t.Fatalf("expected text reclaim to stop media engine, got %#v", mockMgr.stopEngines)
+	}
+	if containsString(mockMgr.stopEngines, managedImageBackendEngineName) {
+		t.Fatalf("managed image backend should remain running during text reclaim, got %#v", mockMgr.stopEngines)
+	}
+	updatedImage := svc.modelByID(imageAsset.GetLocalAssetId())
+	if updatedImage == nil {
+		t.Fatal("expected managed image asset")
+	}
+	if got := updatedImage.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("managed image status = %v, want INSTALLED", got)
+	}
+	if got := updatedImage.GetHealthDetail(); !strings.Contains(got, "resident released for text generation") {
+		t.Fatalf("managed image health detail = %q, want text generation reclaim detail", got)
 	}
 }
 

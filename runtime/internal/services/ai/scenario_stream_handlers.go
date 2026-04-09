@@ -86,7 +86,10 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		firstTimeout = totalTimeout
 	}
 	var firstPacketTimer *time.Timer
-	if firstTimeout > 0 {
+	startFirstPacketTimer := func() {
+		if firstTimeout <= 0 || firstPacketTimer != nil {
+			return
+		}
 		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
 			if firstPacketSeen.Load() {
 				return
@@ -94,9 +97,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 			firstPacketTimedOut.Store(true)
 			requestCancel()
 		})
-	}
-	if firstPacketTimer != nil {
-		defer firstPacketTimer.Stop()
 	}
 	idleTimeout := s.streamIdleTimeout
 	if totalTimeout > 0 && totalTimeout < idleTimeout {
@@ -215,6 +215,10 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		},
 	}); err != nil {
 		return err
+	}
+	startFirstPacketTimer()
+	if firstPacketTimer != nil {
+		defer firstPacketTimer.Stop()
 	}
 
 	inputText := nimillm.ComposeInputText(resolved.spec.GetSystemPrompt(), resolved.spec.GetInput())

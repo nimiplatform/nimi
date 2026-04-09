@@ -297,9 +297,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	managedImageBackendConfigured := false
 	if managedImageLoopback {
 		if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
-			Mode:        engine.ManagedImageBackendOfficial,
-			BackendName: "stablediffusion-ggml",
-			Address:     "127.0.0.1:50052",
+			Mode:          engine.ManagedImageBackendOfficial,
+			BackendName:   "stablediffusion-ggml",
+			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+			Address:       "127.0.0.1:50052",
 		}); err != nil {
 			detail := fmt.Sprintf("start managed image backend: %v", err)
 			d.setDegradedStatus(detail)

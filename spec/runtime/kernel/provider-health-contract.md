@@ -139,5 +139,6 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 ## K-PROV-007 Managed Image Health Admission
 
 - `tables/managed-image-backend-packages.yaml` gates whether a recognized `native_binary + stablediffusion-ggml` tuple may ever become healthy.
+- When multiple package sources exist for one host tuple, provider health must use the tuple's canonical `product_state=supported` package source by default. Runtime-private experimental package sources must not affect health unless that source was explicitly selected inside runtime configuration.
 - If the matrix recognizes the topology but the managed image backend package table marks the tuple unsupported, provider health must report recognized-but-unsupported detail and keep the asset unavailable.
 - Health attribution for supported native-binary tuples must be based on the managed image backend gRPC target plus `local-media` execution readiness, not on llama management routes.

@@ -536,7 +536,7 @@ func newEngineDownloadHTTPClient(sourceURL string, base *http.Client, fallbackTi
 			client.Timeout = fallbackTimeout
 		}
 	}
-	if transport := cloneEngineDownloadTransport(client.Transport); transport != nil {
+	if transport := cloneEngineDownloadTransport(sourceURL, client.Transport); transport != nil {
 		client.Transport = transport
 	}
 	baseCheckRedirect := client.CheckRedirect
@@ -555,18 +555,31 @@ func newEngineDownloadHTTPClient(sourceURL string, base *http.Client, fallbackTi
 	return client
 }
 
-func cloneEngineDownloadTransport(base http.RoundTripper) *http.Transport {
+func cloneEngineDownloadTransport(sourceURL string, base http.RoundTripper) *http.Transport {
+	disableHTTP2 := shouldDisableHTTP2ForEngineDownload(sourceURL)
 	if typed, ok := base.(*http.Transport); ok && typed != nil {
 		cloned := typed.Clone()
-		cloned.ForceAttemptHTTP2 = false
+		cloned.ForceAttemptHTTP2 = !disableHTTP2
 		return cloned
 	}
 	if typed, ok := http.DefaultTransport.(*http.Transport); ok && typed != nil {
 		cloned := typed.Clone()
-		cloned.ForceAttemptHTTP2 = false
+		cloned.ForceAttemptHTTP2 = !disableHTTP2
 		return cloned
 	}
 	return nil
+}
+
+func shouldDisableHTTP2ForEngineDownload(sourceURL string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(sourceURL))
+	if err != nil {
+		return true
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if host == "quay.io" || strings.HasSuffix(host, ".quay.io") {
+		return false
+	}
+	return true
 }
 
 func isRetryableEngineDownloadError(err error) bool {

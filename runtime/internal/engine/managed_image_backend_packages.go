@@ -22,8 +22,18 @@ type managedImageBackendArchiveSource struct {
 	SHA256 string
 }
 
+type managedImageBackendPackageSource string
+
+const (
+	managedImageBackendPackageSourceCanonicalLocalAIDerived   managedImageBackendPackageSource = "canonical_localai_derived"
+	managedImageBackendPackageSourceExperimentalOfficialSDCPP managedImageBackendPackageSource = "experimental_official_sdcpp"
+	managedImageBackendPackageSourceCanonicalRuntimeWrapper   managedImageBackendPackageSource = "canonical_runtime_wrapper"
+	managedImageBackendPackageSourceCanonicalUnavailable      managedImageBackendPackageSource = "canonical_unavailable"
+)
+
 type managedImageBackendPackageSpec struct {
 	BackendName          string
+	PackageSource        managedImageBackendPackageSource
 	OS                   string
 	Arch                 string
 	GPUVendor            string
@@ -44,10 +54,23 @@ type managedImageBackendPackageSpec struct {
 var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 	{
 		BackendName:    "stablediffusion-ggml",
+		PackageSource:  managedImageBackendPackageSourceCanonicalLocalAIDerived,
 		OS:             "darwin",
 		Arch:           "arm64",
 		GPUVendor:      "apple",
 		InstallDirName: "metal-stablediffusion-ggml",
+		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
+		ImageRef:       "quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml",
+		LaunchMode:     managedImageBackendLaunchModePackageEntrypoint,
+		Supported:      true,
+	},
+	{
+		BackendName:    "stablediffusion-ggml",
+		PackageSource:  managedImageBackendPackageSourceExperimentalOfficialSDCPP,
+		OS:             "darwin",
+		Arch:           "arm64",
+		GPUVendor:      "apple",
+		InstallDirName: "metal-stablediffusion-ggml-official-sdcpp",
 		PackageFormat:  managedImageBackendPackageFormatDirectArchive,
 		ArchiveURL:     "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip",
 		ArchiveSHA256:  "f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1",
@@ -60,6 +83,7 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 	},
 	{
 		BackendName:    "stablediffusion-ggml",
+		PackageSource:  managedImageBackendPackageSourceCanonicalRuntimeWrapper,
 		OS:             "windows",
 		Arch:           "amd64",
 		GPUVendor:      "nvidia",
@@ -81,6 +105,7 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 	},
 	{
 		BackendName:   "stablediffusion-ggml",
+		PackageSource: managedImageBackendPackageSourceCanonicalUnavailable,
 		OS:            "linux",
 		Arch:          "amd64",
 		GPUVendor:     "nvidia",
@@ -92,8 +117,13 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (managedImageBackendPackageSpec, bool) {
-	return resolveManagedImageBackendPackageSpecForHost(
+	return resolveManagedImageBackendPackageSpecForCurrentHostWithSource(backendName, "")
+}
+
+func resolveManagedImageBackendPackageSpecForCurrentHostWithSource(backendName string, source string) (managedImageBackendPackageSpec, bool) {
+	return resolveManagedImageBackendPackageSpecForHostWithSource(
 		backendName,
+		source,
 		currentGOOS(),
 		currentGOARCH(),
 		detectLocalGPUVendor(),
@@ -102,9 +132,19 @@ func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (ma
 }
 
 func resolveManagedImageBackendPackageSpecForHost(backendName string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
+	return resolveManagedImageBackendPackageSpecForHostWithSource(backendName, "", goos, goarch, gpuVendor, cudaReady)
+}
+
+func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, source string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
 	normalizedBackend := strings.ToLower(strings.TrimSpace(backendName))
+	rawSource := strings.TrimSpace(source)
+	normalizedSource := normalizeManagedImageBackendPackageSource(source)
+	if rawSource != "" && normalizedSource == "" {
+		return managedImageBackendPackageSpec{}, false
+	}
 	hostGPUVendor := strings.ToLower(strings.TrimSpace(gpuVendor))
 	hostCUDAReady := cudaReady
+	candidates := make([]managedImageBackendPackageSpec, 0, len(managedImageBackendPackageSpecs))
 	for _, entry := range managedImageBackendPackageSpecs {
 		if !strings.EqualFold(strings.TrimSpace(entry.BackendName), normalizedBackend) {
 			continue
@@ -121,7 +161,45 @@ func resolveManagedImageBackendPackageSpecForHost(backendName string, goos strin
 		if entry.CUDARequired && !hostCUDAReady {
 			continue
 		}
-		return entry, true
+		candidates = append(candidates, entry)
 	}
-	return managedImageBackendPackageSpec{}, false
+	if len(candidates) == 0 {
+		return managedImageBackendPackageSpec{}, false
+	}
+	for _, entry := range candidates {
+		if entry.PackageSource != "" && entry.PackageSource == normalizedSource {
+			return entry, true
+		}
+	}
+	for _, entry := range candidates {
+		if entry.PackageSource == "" {
+			return entry, true
+		}
+	}
+	if normalizedSource == "" {
+		for _, entry := range candidates {
+			if entry.PackageSource == managedImageBackendPackageSourceCanonicalLocalAIDerived {
+				return entry, true
+			}
+		}
+	}
+	if normalizedSource != "" {
+		return managedImageBackendPackageSpec{}, false
+	}
+	return candidates[0], true
+}
+
+func normalizeManagedImageBackendPackageSource(raw string) managedImageBackendPackageSource {
+	switch managedImageBackendPackageSource(strings.ToLower(strings.TrimSpace(raw))) {
+	case managedImageBackendPackageSourceCanonicalLocalAIDerived:
+		return managedImageBackendPackageSourceCanonicalLocalAIDerived
+	case managedImageBackendPackageSourceExperimentalOfficialSDCPP:
+		return managedImageBackendPackageSourceExperimentalOfficialSDCPP
+	case managedImageBackendPackageSourceCanonicalRuntimeWrapper:
+		return managedImageBackendPackageSourceCanonicalRuntimeWrapper
+	case managedImageBackendPackageSourceCanonicalUnavailable:
+		return managedImageBackendPackageSourceCanonicalUnavailable
+	default:
+		return ""
+	}
 }

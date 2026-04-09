@@ -114,3 +114,50 @@ func TestBackendGenerateTextUsesFlexibleMessageExtraction(t *testing.T) {
 		t.Fatalf("text mismatch: got=%q want=%q", got, want)
 	}
 }
+
+func TestBackendStreamGenerateTextCountsNonContentChunksAsActivity(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{"role":"assistant"},"finish_reason":null}]}` + "\n\n"))
+		_, _ = w.Write([]byte(`data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":5,"completion_tokens":0,"total_tokens":5}}` + "\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+	}))
+	defer server.Close()
+
+	backend := NewBackend("openai", server.URL, "", 5*time.Second)
+	if backend == nil {
+		t.Fatal("expected backend")
+	}
+
+	callbacks := make([]string, 0, 2)
+	usage, finish, err := backend.StreamGenerateText(
+		context.Background(),
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "hello"}},
+		"",
+		0,
+		0,
+		0,
+		func(part string) error {
+			callbacks = append(callbacks, part)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected streaming error: %v", err)
+	}
+	if finish != runtimev1.FinishReason_FINISH_REASON_TOOL_CALL {
+		t.Fatalf("unexpected finish reason: %v", finish)
+	}
+	if usage == nil || usage.GetInputTokens() != 5 || usage.GetOutputTokens() != 0 {
+		t.Fatalf("unexpected usage: %+v", usage)
+	}
+	if len(callbacks) < 2 {
+		t.Fatalf("expected callbacks for non-content stream chunks, got=%d", len(callbacks))
+	}
+	for i, part := range callbacks {
+		if part != "" {
+			t.Fatalf("callback %d should be empty activity-only chunk, got=%q", i, part)
+		}
+	}
+}

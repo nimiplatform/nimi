@@ -5,7 +5,7 @@
 | Operation | Default (ms) | Overridable | Source |
 |---|---:|---|---|
 | `ExecuteScenario_text_generate` | 120000 | `true` | `K-DAEMON-008` |
-| `StreamScenario_first_packet` | 30000 | `false` | `K-DAEMON-008` |
+| `StreamScenario_first_packet` | 60000 | `false` | `K-DAEMON-008` |
 | `StreamScenario_total` | 120000 | `true` | `K-DAEMON-008` |
 | `ExecuteScenario_text_embed` | 20000 | `true` | `K-DAEMON-008` |
 | `SubmitScenarioJob_image` | 120000 | `true` | `K-DAEMON-008` |

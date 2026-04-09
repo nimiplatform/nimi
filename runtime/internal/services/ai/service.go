@@ -26,7 +26,7 @@ const (
 	// streaming text delta to the client. (K-STREAM-006)
 	minStreamChunkBytes         = 32
 	defaultGenerateTimeout      = 120 * time.Second
-	defaultStreamFirstTimeout   = 10 * time.Second
+	defaultStreamFirstTimeout   = 60 * time.Second
 	defaultStreamIdleTimeout    = 30 * time.Second
 	defaultStreamTotalTimeout   = 120 * time.Second
 	defaultEmbedTimeout         = 20 * time.Second

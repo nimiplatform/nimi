@@ -1,16 +1,38 @@
 version: 1
 
 entries:
-  - entry_id: macos-apple-silicon-stablediffusion-ggml
+  - entry_id: macos-apple-silicon-stablediffusion-ggml-canonical
     host_match:
       os: darwin
       arch: arm64
       gpu_vendor: apple
     backend_family: stablediffusion-ggml
+    package_source: canonical_localai_derived
     package_format: oci_payload
     install_dir_name: metal-stablediffusion-ggml
     image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
     product_state: supported
+
+  - entry_id: macos-apple-silicon-stablediffusion-ggml-official-sdcpp
+    host_match:
+      os: darwin
+      arch: arm64
+      gpu_vendor: apple
+    backend_family: stablediffusion-ggml
+    package_source: experimental_official_sdcpp
+    package_format: direct_archive
+    install_dir_name: metal-stablediffusion-ggml-official-sdcpp
+    image_ref: ""
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip
+    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1
+    executable_candidates: [sd-cli]
+    launch_mode: runtime_wrapper
+    wrapper_driver: stable-diffusion.cpp
+    product_state: proposed
+    detail: >-
+      Runtime-private experimental source only. It may be selected explicitly for
+      diagnostic comparison, but it is not the canonical supported macOS package
+      source and must never be auto-selected or used as an implicit fallback.
 
   - entry_id: windows-x64-nvidia-stablediffusion-ggml
     host_match:
@@ -19,6 +41,7 @@ entries:
       gpu_vendor: nvidia
       cuda_ready: true
     backend_family: stablediffusion-ggml
+    package_source: canonical_runtime_wrapper
     package_format: direct_archive
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml
     image_ref: ""
@@ -39,6 +62,7 @@ entries:
       gpu_vendor: nvidia
       cuda_ready: true
     backend_family: stablediffusion-ggml
+    package_source: canonical_unavailable
     package_format: none
     install_dir_name: ""
     image_ref: ""

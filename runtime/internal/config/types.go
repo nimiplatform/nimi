@@ -131,6 +131,10 @@ type Config struct {
 	// Default: 8321. (K-LENG-004)
 	EngineMediaPort int
 
+	// EngineManagedImageBackendSource is a runtime-private selector for the
+	// managed image backend package source. Empty means canonical source.
+	EngineManagedImageBackendSource string
+
 	// EngineSpeechEnabled enables the supervised speech engine.
 	// Default: false. (K-LENG-004)
 	EngineSpeechEnabled bool
@@ -211,11 +215,11 @@ type FileConfig struct {
 
 // FileConfigScheduling holds scheduling risk threshold configuration.
 type FileConfigScheduling struct {
-	DiskDenialThresholdBytes      *int `json:"diskDenialThresholdBytes,omitempty"`
-	SlowdownRamThresholdBytes     *int `json:"slowdownRamThresholdBytes,omitempty"`
-	SlowdownVramThresholdBytes    *int `json:"slowdownVramThresholdBytes,omitempty"`
-	SlowdownDiskThresholdBytes    *int `json:"slowdownDiskThresholdBytes,omitempty"`
-	PreemptionOccupancyPercent    *int `json:"preemptionOccupancyPercent,omitempty"`
+	DiskDenialThresholdBytes   *int `json:"diskDenialThresholdBytes,omitempty"`
+	SlowdownRamThresholdBytes  *int `json:"slowdownRamThresholdBytes,omitempty"`
+	SlowdownVramThresholdBytes *int `json:"slowdownVramThresholdBytes,omitempty"`
+	SlowdownDiskThresholdBytes *int `json:"slowdownDiskThresholdBytes,omitempty"`
+	PreemptionOccupancyPercent *int `json:"preemptionOccupancyPercent,omitempty"`
 }
 
 // FileConfigEngines holds supervised engine configuration in the config file.

@@ -192,21 +192,22 @@ func managedImageCFGScale(profile map[string]any, scenarioExtensions map[string]
 func managedImageEffectiveOptions(profile map[string]any, scenarioExtensions map[string]any) []string {
 	options := valueAsStringSlice(profile["options"])
 	sampler := managedImageSamplerOption(profile, scenarioExtensions)
-	if sampler == "" {
-		return options
-	}
-	out := make([]string, 0, len(options)+1)
+	scheduler := managedImageSchedulerOption(profile, scenarioExtensions)
+	out := make([]string, 0, len(options)+2)
 	for _, option := range options {
 		trimmed := strings.TrimSpace(option)
 		if trimmed == "" {
 			continue
 		}
-		if managedImageOptionKey(trimmed) == "sampler" {
+		switch managedImageOptionKey(trimmed) {
+		case "sampler", "scheduler":
 			continue
 		}
 		out = append(out, trimmed)
 	}
-	return append(out, "sampler:"+sampler)
+	out = append(out, "sampler:"+sampler)
+	out = append(out, "scheduler:"+scheduler)
+	return out
 }
 
 func managedImageSamplerOption(profile map[string]any, scenarioExtensions map[string]any) string {
@@ -220,7 +221,7 @@ func managedImageSamplerOption(profile map[string]any, scenarioExtensions map[st
 			return sampler
 		}
 	}
-	return ""
+	return "euler"
 }
 
 func managedImageCanonicalSampler(raw string) string {
@@ -245,6 +246,48 @@ func managedImageCanonicalSampler(raw string) string {
 		return "ipndm_v"
 	case "lcm":
 		return "lcm"
+	default:
+		return ""
+	}
+}
+
+func managedImageSchedulerOption(profile map[string]any, scenarioExtensions map[string]any) string {
+	for _, value := range []any{
+		scenarioExtensions["scheduler"],
+		profile["scheduler"],
+		valueAsObject(profile["parameters"])["scheduler"],
+	} {
+		if scheduler := managedImageCanonicalScheduler(valueAsString(value)); scheduler != "" {
+			return scheduler
+		}
+	}
+	return "discrete"
+}
+
+func managedImageCanonicalScheduler(raw string) string {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "default", "discrete":
+		return "discrete"
+	case "karras":
+		return "karras"
+	case "exponential":
+		return "exponential"
+	case "ays":
+		return "ays"
+	case "gits":
+		return "gits"
+	case "smoothstep":
+		return "smoothstep"
+	case "sgm_uniform":
+		return "sgm_uniform"
+	case "simple":
+		return "simple"
+	case "kl_optimal":
+		return "kl_optimal"
+	case "lcm":
+		return "lcm"
+	case "bong_tangent":
+		return "bong_tangent"
 	default:
 		return ""
 	}

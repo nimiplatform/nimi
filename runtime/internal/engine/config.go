@@ -51,11 +51,15 @@ const (
 type ManagedImageBackendConfig struct {
 	Mode        ManagedImageBackendMode
 	BackendName string
-	Address     string
-	Command     string
-	Args        []string
-	Env         map[string]string
-	WorkingDir  string
+	// PackageSource is a runtime-private selector for the managed backend
+	// package source. Empty means use the canonical supported source for the
+	// current host tuple.
+	PackageSource string
+	Address       string
+	Command       string
+	Args          []string
+	Env           map[string]string
+	WorkingDir    string
 
 	StartupTimeout  time.Duration
 	HealthInterval  time.Duration
@@ -81,6 +85,7 @@ func cloneManagedImageBackendConfig(input *ManagedImageBackendConfig) *ManagedIm
 	cloned := &ManagedImageBackendConfig{
 		Mode:            input.Mode,
 		BackendName:     input.BackendName,
+		PackageSource:   input.PackageSource,
 		Address:         input.Address,
 		Command:         input.Command,
 		Args:            append([]string(nil), input.Args...),
