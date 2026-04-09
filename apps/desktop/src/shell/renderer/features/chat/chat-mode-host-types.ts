@@ -36,6 +36,7 @@ export type DesktopConversationModeHost = {
     CanonicalStagePanelProps,
     'messages' | 'characterData' | 'anchorViewportRef' | 'cardAnchorOffsetPx' | 'onIntentOpenHistory'
   >;
+  topContent?: ReactNode;
   composerContent?: ReactNode;
   auxiliaryOverlayContent?: ReactNode;
   /** Thinking toggle state for the header icon. */

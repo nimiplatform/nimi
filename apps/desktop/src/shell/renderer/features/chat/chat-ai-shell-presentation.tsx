@@ -146,6 +146,7 @@ export function useAiConversationPresentation(
     ),
     settingsDrawerTitle: input.t('Chat.settingsTitle', { defaultValue: 'Settings' }),
     settingsDrawerSubtitle: input.t('Chat.settingsSubtitle', { defaultValue: 'Global interaction preferences' }),
+    topContent: schedulingFeedbackNode,
     transcriptProps: {
       loading: input.isBundleLoading,
       error: input.bundleError instanceof Error ? input.bundleError.message : input.bundleError ? String(input.bundleError) : null,
@@ -165,7 +166,6 @@ export function useAiConversationPresentation(
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
-          {schedulingFeedbackNode}
           {hostFeedbackNode}
           <CanonicalComposer
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}

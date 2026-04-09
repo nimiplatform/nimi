@@ -257,6 +257,8 @@ export type CanonicalTranscriptViewProps = {
   emptyTitle?: string;
   emptyDescription?: string;
   historyIntro?: string | null;
+  /** Non-blocking banner rendered above the message list (does not replace messages). */
+  bannerContent?: ReactNode;
   content?: ReactNode;
   widthClassName?: string;
   onNearBottomChange?: (value: boolean) => void;
@@ -287,6 +289,7 @@ export function CanonicalTranscriptView({
   emptyTitle = 'Start the first turn',
   emptyDescription = 'The transcript stays empty until the first exchange is created.',
   historyIntro = null,
+  bannerContent,
   content,
   widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
   onNearBottomChange,
@@ -375,6 +378,10 @@ export function CanonicalTranscriptView({
           <div className="flex min-h-[320px] items-center justify-center rounded-[30px] border border-red-200 bg-red-50/70 px-6 py-7 text-center text-sm text-red-600 shadow-[0_20px_52px_rgba(239,68,68,0.08)]">
             {error}
           </div>
+        ) : null}
+
+        {!loading && !error && bannerContent ? (
+          <div className="sticky top-0 z-10">{bannerContent}</div>
         ) : null}
 
         {!loading && !error && showEmptyState ? (

@@ -26,7 +26,8 @@ test('desktop chat output contract helper exposes beat-action envelope rules', (
   assert.match(section, /The first visible reply beat must be "beatIndex": 0 and "deliveryPhase": "primary"/);
   assert.match(section, /Any delayed follow-up beat must stay in the same "beats" array, use "deliveryPhase": "tail", and include a positive "delayMs"/);
   assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
-  assert.match(section, /Every action must include "actionId", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling"/);
+  assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling"/);
+  assert.match(section, /"deliveryCoupling" must be "after-source-beat".*or "with-source-beat"/);
   assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video"/);
   assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}/);
   assert.match(section, /If no modality action exists, return "actions": \[\]/);

@@ -349,10 +349,10 @@ export function useAgentConversationPresentation(
         />
       </div>
     ),
+    topContent: schedulingFeedbackNode,
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">
-          {schedulingFeedbackNode}
           {hostFeedbackNode}
           <CanonicalComposer
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}

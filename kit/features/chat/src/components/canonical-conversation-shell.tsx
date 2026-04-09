@@ -66,6 +66,7 @@ export type CanonicalConversationShellProps = {
     CanonicalStagePanelProps,
     'messages' | 'characterData' | 'anchorViewportRef' | 'cardAnchorOffsetPx' | 'onIntentOpenHistory'
   >;
+  topContent?: ReactNode;
   composer?: ReactNode;
   settingsDrawer?: ReactNode;
   settingsDrawerTitle?: string;
@@ -264,6 +265,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 setSettingsOpen(true);
                 setProfileOpen(false);
               } : undefined}
+              topContent={props.topContent}
               stagePanel={(
                 <CanonicalStagePanel
                   {...props.stagePanelProps}

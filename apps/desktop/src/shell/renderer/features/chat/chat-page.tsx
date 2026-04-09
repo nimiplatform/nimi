@@ -392,6 +392,7 @@ export function ChatPage() {
         messages={canonicalMessages}
         transcriptProps={activeHost.transcriptProps}
         stagePanelProps={activeHost.stagePanelProps}
+        topContent={activeHost.topContent}
         composer={activeHost.composerContent}
         auxiliaryOverlayContent={activeHost.auxiliaryOverlayContent}
       />

@@ -10,6 +10,7 @@ export type CanonicalConversationPaneProps = {
   onBackToTargets: () => void;
   onViewModeChange: (mode: ConversationViewMode) => void;
   onOpenSettings?: () => void;
+  topContent?: ReactNode;
   stagePanel: ReactNode;
   transcript: ReactNode;
   composer?: ReactNode;
@@ -24,6 +25,13 @@ export function CanonicalConversationPane(props: CanonicalConversationPaneProps)
       style={{ background: themeBackground }}
     >
       <div className="flex min-h-0 flex-1 flex-col">
+        {props.topContent ? (
+          <div className="shrink-0 px-6 pt-5">
+            <div className="mx-auto w-full max-w-[min(1240px,calc(100vw-520px))]">
+              {props.topContent}
+            </div>
+          </div>
+        ) : null}
         <div key={props.viewMode} className="flex min-h-0 flex-1 flex-col animate-[conv-fade-in_280ms_ease-out]">
           {props.viewMode === 'stage' ? props.stagePanel : props.transcript}
         </div>
