@@ -76,7 +76,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. Active execution topics live under `nimi-coding/.local/**`; active shared execution reports live under `nimi-coding/.local/report/**`. `dev/config/**` and `dev/fixtures/**` remain repo-owned exceptions. `dev/**` is not an active execution-doc surface beyond those exceptions.
+- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; active execution topics and local reports live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -93,8 +93,10 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`.
-- Skip: `_external/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`.
+- Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
+
+`nimi-coding/.local/**` is the only active local execution workspace. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
 
 ## Repo-Wide Verification
 

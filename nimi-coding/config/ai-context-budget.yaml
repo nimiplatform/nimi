@@ -21,6 +21,8 @@ profiles:
 classifiers:
   tests_and_scripts:
     - "scripts/**"
+    - "nimi-coding/scripts/**"
+    - "nimi-coding/cli/**"
     - "**/*.test.ts"
     - "**/*.test.tsx"
     - "**/*.spec.ts"
@@ -43,10 +45,12 @@ classifiers:
 
 exclude:
   - "_external/**"
-  - "dev/plan/**"
-  - "dev/report/**"
+  - ".cache/**"
+  - ".iterate/**"
+  - "archive/**"
   - "docs/**"
-  - "dev/fixtures/live-audio-fixtures/**"
+  - "nimi-coding/.local/**"
+  - "nimi-coding/fixtures/live-audio-fixtures/**"
   - "**/generated/**"
   - "**/gen/**"
   - "runtime/**/*.pb.go"

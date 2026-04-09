@@ -96,7 +96,7 @@ type PlayerV2ApiResponse = { code?: number; message?: string; data?: { subtitle?
 type SubtitlePayload = { body?: Array<{ content?: string }> };
 type ReplyApiResponse = { code?: number; message?: string; data?: { replies?: ReplyApiItem[]; top?: ReplyApiItem | null; upper?: { top?: ReplyApiItem | null } } };
 
-const DEFAULT_PROFILE_PATH = path.resolve(process.cwd(), 'dev/config/dashscope-gold-path.env');
+const DEFAULT_PROFILE_PATH = path.resolve(process.cwd(), 'nimi-coding/config/dashscope-gold-path.env');
 const DEFAULT_ENV_FILE_PATH = path.resolve(process.cwd(), '.env');
 const DEFAULT_OUTPUT_ROOT = path.resolve(process.cwd(), '.tmp/bilibili-food-video-probe');
 const LONG_AUDIO_THRESHOLD_SEC = 300;

@@ -3,7 +3,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
-const DOC_ROOTS = ['nimi-coding/.local'];
+const DEFAULT_DOC_ROOTS = ['nimi-coding/.local'];
 const HIGH_RISK_NAME_PATTERNS = [
   /design/iu,
   /audit/iu,
@@ -111,6 +111,9 @@ function walkMarkdownFiles(dirPath) {
 
 export function evaluateHighRiskDocMetadata(options = {}) {
   const repoRoot = options.repoRoot || process.cwd();
+  const docRoots = Array.isArray(options.docRoots) && options.docRoots.length > 0
+    ? options.docRoots
+    : DEFAULT_DOC_ROOTS;
   const exemptionsPath = options.exemptionsPath
     || path.join(repoRoot, 'scripts/config/high-risk-doc-metadata-exemptions.yaml');
   const exemptionsDoc = fs.existsSync(exemptionsPath) ? (readYamlWithFragments(exemptionsPath) || {}) : {};
@@ -123,7 +126,7 @@ export function evaluateHighRiskDocMetadata(options = {}) {
   const scanned = [];
   const failures = [];
 
-  for (const rootRel of DOC_ROOTS) {
+  for (const rootRel of docRoots) {
     const absRoot = path.join(repoRoot, rootRel);
     if (!fs.existsSync(absRoot)) {
       continue;

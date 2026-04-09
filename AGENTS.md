@@ -9,7 +9,7 @@
 - `spec/AGENTS.md` is authoritative for anything under `spec/**`.
 
 ## Hard Boundaries
-- `spec/**` is the only normative contract source. Active execution topics live under `nimi-coding/.local/**`; active shared execution reports live under `nimi-coding/.local/report/**`. `dev/config/**` and `dev/fixtures/**` remain repo-owned exceptions. `dev/**` is not an active execution-doc surface beyond those exceptions.
+- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; active execution topics and local reports live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
 - High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
 - `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
 - Debug/fix by layer order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`.
@@ -24,8 +24,8 @@
 - No file/directory collisions, no forwarding shells outside `index.ts`, max 3-hop debug trace. Structure depth measured from layer source root.
 
 ## Retrieval Defaults
-- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`.
-- Skip: `_external/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
+- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`.
+- Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Verification Commands
 - Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:nimi-coding-module`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.

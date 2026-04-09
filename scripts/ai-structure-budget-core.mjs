@@ -242,7 +242,7 @@ function compareRows(left, right) {
 
 export function evaluateAiStructureBudget(options = {}) {
   const cwd = options.cwd || process.cwd();
-  const configRelativePath = options.configRelativePath || 'dev/config/ai-structure-budget.yaml';
+  const configRelativePath = options.configRelativePath || 'nimi-coding/config/ai-structure-budget.yaml';
   const { parsed, configPath } = loadBudgetConfig(cwd, configRelativePath);
   const excludeMatchers = compileMatchers(parsed.exclude || []);
   const compiledRules = (parsed.rules || []).map((rule) => ({

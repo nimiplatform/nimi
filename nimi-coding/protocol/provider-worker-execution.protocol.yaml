@@ -16,6 +16,6 @@ forbids:
 rules:
   - provider-worker-execution.v1 is protocol-only and must not create a new topic artifact family or persist provider session internals into execution-packet or orchestration-state artifacts
   - the external provider-reference is implementation reference only; admitted-provider authority, success semantics, failure semantics, and timeout semantics remain module-owned by nimi-coding
-  - the runner must invoke the provider headlessly against a generated prompt artifact and require topic-local worker artifact writeback rather than prompt relay or output relay through a human
+  - the runner must invoke the provider headlessly against a generated prompt artifact and must capture or validate topic-local worker artifact writeback without relying on human copy/paste or manager salvage
   - provider process start failure, missing binary, non-zero exit, timeout, missing required worker artifacts, or malformed worker artifacts are all fail-close conditions at the provider-execution boundary
-  - provider execution may request no semantic state transition directly; only the continuous runner may map provider results into paused, failed, awaiting_confirmation, or continued packet progression
+  - provider execution may request no semantic state transition directly; only the continuous runner may map provider results into paused, failed, completed, legacy awaiting_confirmation, or continued packet progression

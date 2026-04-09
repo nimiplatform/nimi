@@ -88,6 +88,7 @@ const REQUIRED_FILES = [
   'cli/commands/run-notify-telegram.mjs',
   'cli/commands/run-notify-webhook.mjs',
   'cli/commands/run-notifications.mjs',
+  'cli/commands/run-review.mjs',
   'cli/commands/run-resume.mjs',
   'cli/commands/run-confirm.mjs',
   'cli/commands/validate-notification-payload.mjs',
@@ -110,6 +111,7 @@ const REQUIRED_FILES = [
   'scripts/run-notify-telegram.mjs',
   'scripts/run-notify-webhook.mjs',
   'scripts/run-notifications.mjs',
+  'scripts/run-review.mjs',
   'scripts/run-resume.mjs',
   'scripts/run-confirm.mjs',
   'scripts/lib/continuous-delivery.mjs',
@@ -1155,17 +1157,17 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     return;
   }
   const invalidSignal = runLoopOnce(invalidSignalDir, {
-    providerInvoker: createProviderInvoker(({ workerOutputAbsPath }) => {
+    providerInvoker: createProviderInvoker(({ workerOutputAbsPath, workerOutputRef }) => {
       writeWorkerOutputWithSignal(workerOutputAbsPath, {
         title: 'Provider Invalid Signal Output',
         findings: ['Runner Signal uses an invalid result_kind.'],
         implementationSummary: ['This should be refused as RUNNER_SIGNAL_INVALID.'],
-        filesChanged: ['`sample-phase.worker-output.md`'],
+        filesChanged: [`\`${workerOutputRef}\``],
         checksRun: ['`pnpm nimi-coding:validate-topic -- <invalid-signal-dir>`'],
         remainingGaps: ['The Runner Signal payload is invalid.'],
         signal: {
           result_kind: 'bogus',
-          worker_output_ref: 'sample-phase.worker-output.md',
+          worker_output_ref: workerOutputRef,
           evidence_refs: [],
           escalation_reasons: [],
           fail_reason: null,
@@ -1190,12 +1192,12 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     return;
   }
   const mismatchSignal = runLoopOnce(mismatchSignalDir, {
-    providerInvoker: createProviderInvoker(({ workerOutputAbsPath }) => {
+    providerInvoker: createProviderInvoker(({ workerOutputAbsPath, workerOutputRef }) => {
       writeWorkerOutputWithSignal(workerOutputAbsPath, {
         title: 'Provider Signal Mismatch Output',
         findings: ['worker_output_ref intentionally mismatches the current artifact path.'],
         implementationSummary: ['This should be refused as RUNNER_SIGNAL_ARTIFACT_MISMATCH.'],
-        filesChanged: ['`sample-phase.worker-output.md`'],
+        filesChanged: [`\`${workerOutputRef}\``],
         checksRun: ['`pnpm nimi-coding:validate-topic -- <mismatch-signal-dir>`'],
         remainingGaps: ['The runner must fail-close on artifact mismatch.'],
         signal: {
@@ -1248,10 +1250,10 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
         writeWorkerOutputWithSignal(workerOutputAbsPath, {
           title: 'Provider Until Awaiting Closeout Output',
           findings: ['Terminal packet phase completed mechanically.'],
-          implementationSummary: ['Returned complete for the terminal phase to reach awaiting_confirmation.'],
+          implementationSummary: ['Returned complete for the terminal phase to reach completed.'],
           filesChanged: [`\`${workerOutputRef}\``],
           checksRun: ['`pnpm nimi-coding:validate-topic -- <until-awaiting-dir>`'],
-          remainingGaps: ['Final human confirmation remains intentionally manual.'],
+          remainingGaps: ['Optional final topic closeout remains separate from phase completion.'],
           signal: {
             result_kind: 'complete',
             worker_output_ref: workerOutputRef,
@@ -1263,28 +1265,30 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
       },
     }),
   });
-  warnings.push(...(untilAwaiting.warnings || []).map((warning) => `provider-backed smoke run-until-blocked awaiting_confirmation: ${warning}`));
+  warnings.push(...(untilAwaiting.warnings || []).map((warning) => `provider-backed smoke run-until-blocked completed: ${warning}`));
   if (!untilAwaiting.ok) {
-    errors.push(`provider-backed smoke run-until-blocked awaiting_confirmation: ${(untilAwaiting.errors || []).join('; ')}`);
+    errors.push(`provider-backed smoke run-until-blocked completed: ${(untilAwaiting.errors || []).join('; ')}`);
     return;
   }
-  if (untilAwaiting.run_status !== 'awaiting_confirmation' || untilAwaiting.stop_reason !== 'awaiting_confirmation' || untilAwaiting.step_count !== 2) {
-    errors.push('provider-backed smoke run-until-blocked awaiting_confirmation expected two steps ending in awaiting_confirmation');
+  if (untilAwaiting.run_status !== 'completed' || untilAwaiting.stop_reason !== 'completed' || untilAwaiting.step_count !== 2) {
+    errors.push('provider-backed smoke run-until-blocked completed expected two steps ending in completed');
     return;
   }
   const untilAwaitingLogPath = path.join(untilAwaitingDir, '.nimi-coding', 'provider-execution', 'provider-until-awaiting-run.jsonl');
   const untilAwaitingLogLines = fs.readFileSync(untilAwaitingLogPath, 'utf8').trim().split('\n').filter(Boolean);
   if (untilAwaitingLogLines.length !== 2) {
-    errors.push(`provider-backed smoke run-until-blocked awaiting_confirmation expected 2 provider log entries, got ${untilAwaitingLogLines.length}`);
+    errors.push(`provider-backed smoke run-until-blocked completed expected 2 provider log entries, got ${untilAwaitingLogLines.length}`);
     return;
   }
   const untilAwaitingFirstLog = JSON.parse(untilAwaitingLogLines[0]);
+  const phasePromptRefPattern = /^sample-phase(?:\.attempt-\d{3})?\.prompt\.md$/u;
+  const phaseWorkerOutputRefPattern = /^sample-phase(?:\.attempt-\d{3})?\.worker-output\.md$/u;
   if (
     untilAwaitingFirstLog.run_id !== 'provider-until-awaiting-run'
     || untilAwaitingFirstLog.phase_id !== 'sample-phase'
     || untilAwaitingFirstLog.provider !== 'codex exec'
-    || untilAwaitingFirstLog.prompt_ref !== 'sample-phase.prompt.md'
-    || untilAwaitingFirstLog.worker_output_ref !== 'sample-phase.worker-output.md'
+    || !phasePromptRefPattern.test(untilAwaitingFirstLog.prompt_ref || '')
+    || !phaseWorkerOutputRefPattern.test(untilAwaitingFirstLog.worker_output_ref || '')
     || untilAwaitingFirstLog.signal_result_kind !== 'complete'
     || typeof untilAwaitingFirstLog.started_at !== 'string'
     || typeof untilAwaitingFirstLog.finished_at !== 'string'
@@ -1293,11 +1297,11 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     || typeof untilAwaitingFirstLog.status_summary?.outcome !== 'string'
     || typeof untilAwaitingFirstLog.transcript?.policy?.max_chars_per_stream !== 'number'
   ) {
-    errors.push('provider-backed smoke run-until-blocked awaiting_confirmation expected provider execution log entry with the required audit fields');
+    errors.push('provider-backed smoke run-until-blocked completed expected provider execution log entry with the required audit fields');
     return;
   }
-  if (untilAwaiting.summary?.outcome !== 'stopped' || untilAwaiting.summary?.stop_reason !== 'awaiting_confirmation') {
-    errors.push('provider-backed smoke run-until-blocked awaiting_confirmation expected stable stopped summary');
+  if (untilAwaiting.summary?.outcome !== 'stopped' || untilAwaiting.summary?.stop_reason !== 'completed') {
+    errors.push('provider-backed smoke run-until-blocked completed expected stable stopped summary');
     return;
   }
 
@@ -1589,11 +1593,11 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
       'sample-closeout': ({ workerOutputAbsPath, workerOutputRef }) => {
         writeWorkerOutputWithSignal(workerOutputAbsPath, {
           title: 'Scheduler Success Closeout Output',
-          findings: ['Foreground scheduler reached awaiting_confirmation.'],
+          findings: ['Foreground scheduler reached completed.'],
           implementationSummary: ['Returned a complete signal for the terminal phase.'],
           filesChanged: [`\`${workerOutputRef}\``],
           checksRun: ['`pnpm nimi-coding:validate-topic -- <scheduler-success-dir>`'],
-          remainingGaps: ['Final confirmation remains manual.'],
+          remainingGaps: ['Optional final topic closeout remains manual.'],
           signal: {
             result_kind: 'complete',
             worker_output_ref: workerOutputRef,
@@ -1609,11 +1613,11 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     !schedulerSuccess.ok
     || schedulerSuccess.contract !== 'scheduler-result.v1'
     || schedulerSuccess.scheduler_outcome !== 'invoked'
-    || schedulerSuccess.loop_summary?.stop_reason !== 'awaiting_confirmation'
+    || schedulerSuccess.loop_summary?.stop_reason !== 'completed'
     || schedulerSuccess.loop_summary?.step_count !== 2
     || schedulerSuccess.lease.released !== true
   ) {
-    errors.push('scheduler smoke success path expected invoked scheduler-result.v1 ending in awaiting_confirmation with released lease');
+    errors.push('scheduler smoke success path expected invoked scheduler-result.v1 ending in completed with released lease');
     return;
   }
   const schedulerSuccessLeasePath = path.join(
@@ -2042,8 +2046,8 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     errors.push(`continuous smoke notification log after terminal ingest: ${(finalLogReport.errors || []).join('; ')}`);
     return;
   }
-  if (finalLogReport.entry_count !== 2 || finalLogReport.entries[1]?.payload?.event !== 'awaiting_final_confirmation') {
-    errors.push('continuous smoke expected awaiting_final_confirmation as the second notification');
+  if (finalLogReport.entry_count !== 2 || finalLogReport.entries[1]?.payload?.event !== 'run_completed') {
+    errors.push('continuous smoke expected run_completed as the second notification');
     return;
   }
 
@@ -2646,8 +2650,8 @@ async function checkContinuousRunSmoke(moduleRoot, errors, warnings) {
     errors.push(`continuous smoke awaiting status: ${(awaitingStatus.errors || []).join('; ')}`);
     return;
   }
-  if (awaitingStatus.run_status !== 'awaiting_confirmation') {
-    errors.push(`continuous smoke expected awaiting_confirmation after refusal, got ${awaitingStatus.run_status}`);
+  if (awaitingStatus.run_status !== 'completed') {
+    errors.push(`continuous smoke expected completed after refusal, got ${awaitingStatus.run_status}`);
     return;
   }
 

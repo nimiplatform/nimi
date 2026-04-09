@@ -66,6 +66,7 @@ const ORCHESTRATION_STATE_RUN_STATUS = new Set([
 const NOTIFICATION_EVENTS = new Map([
   ['run_paused', 'paused'],
   ['run_failed', 'failed'],
+  ['run_completed', 'completed'],
   ['awaiting_final_confirmation', 'awaiting_confirmation'],
 ]);
 const PROMPT_BLOCKS = [
@@ -702,10 +703,11 @@ export function validateNotificationPayloadData(filePath, doc = {}, options = {}
       fail(`notification payload ${key} must be a string or null`, errors);
     }
   }
-  if (event && !(typeof doc.required_human_action === 'string' && doc.required_human_action.length > 0)) {
+  if ((event === 'run_paused' || event === 'run_failed' || event === 'awaiting_final_confirmation')
+    && !(typeof doc.required_human_action === 'string' && doc.required_human_action.length > 0)) {
     fail(`notification payload event ${event} requires required_human_action`, errors);
   }
-  if ((event === 'run_paused' || event === 'run_failed' || event === 'awaiting_final_confirmation')
+  if ((event === 'run_paused' || event === 'run_failed' || event === 'awaiting_final_confirmation' || event === 'run_completed')
     && !(typeof doc.reason === 'string' && doc.reason.length > 0)) {
     fail(`notification payload event ${event} requires reason`, errors);
   }

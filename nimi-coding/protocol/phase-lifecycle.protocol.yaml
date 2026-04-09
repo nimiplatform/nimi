@@ -1,11 +1,16 @@
 id: phase-lifecycle.v1
-purpose: Define the standard staged delivery phase lifecycle.
+purpose: Define the standard staged delivery phase lifecycle, including same-phase iterative execution attempts.
 steps:
   - Preflight
   - Converge
   - Phase Freeze
-  - Dispatch
-  - Execute
-  - Verify
-  - Accept
-  - Close / Reject / Defer
+  - Dispatch Attempt
+  - Execute Attempt
+  - Verify Attempt
+  - Accept Attempt
+  - Iterate Same Phase | Close / Advance / Defer / Reopen
+rules:
+  - one frozen phase may contain multiple bounded execution attempts
+  - partial acceptance closes the current attempt and routes to another dispatch attempt in the same frozen phase
+  - complete closes the current frozen phase and may advance to the next frozen phase or terminal confirmation
+  - deferred closes the current attempt and requires pause, blocker handling, or explicit reopen/defer handling

@@ -7,5 +7,6 @@ requires:
   - evidence_ref when closeout is evidence-backed
 rules:
   - deferred is not failure
+  - deferred does not imply phase completion as complete; it pauses or reroutes the current frozen phase after one closed attempt
   - reopen must be explicit
   - old findings or phases are not reopened by silent state overwrite

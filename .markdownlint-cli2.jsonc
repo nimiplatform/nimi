@@ -10,8 +10,8 @@
     "!**/node_modules/**",
     "!**/.git/**",
     "!_external/**",
-    "!dev/report/**",
-    "!dev/plan/**",
+    "!archive/**",
+    "!nimi-coding/.local/**",
     "!**/dist/**",
     "!**/target/**",
     "!**/coverage/**"

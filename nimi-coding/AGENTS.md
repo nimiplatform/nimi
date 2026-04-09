@@ -8,6 +8,12 @@
 
 Applies to all files under `nimi-coding/**`. This module is the formal execution system for the nimi-coding methodology.
 
+## Hard Boundaries
+
+- `spec/**` remains the only product authority; this module must not create parallel product truth.
+- `nimi-coding/.local/**` is local-only working state. Validate it when needed, but do not treat it as promoted module content.
+- Keep packet, orchestration, acceptance, evidence, and finding lifecycle as semantic truth; keep leases, logs, notifications, and checkpoints operational only.
+
 ## What This Module Owns
 
 `nimi-coding/**` is the promoted, repo-tracked execution system. It owns:
@@ -78,6 +84,13 @@ These live only in root `scripts/` and have no counterpart in `nimi-coding/scrip
 - Topics in `nimi-coding/.local/**` are validated by this module's scripts but are not part of the module itself
 - Topic content is never committed to the repository
 - Promotion from `nimi-coding/.local/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`
+
+## Retrieval Defaults
+
+- Start with `README.md`, `contracts/`, `schema/`, `protocol/`, `gates/`, then `scripts/` or `cli/` as needed.
+- Skip `archive/**`, `docs/_archive/**`, `.cache/**`, and `.iterate/**` when traversing from the workspace root; they are historical or operational noise, not active module authority.
+- Skip `.local/**` unless the task explicitly needs active local topics or validation targets.
+- `nimi-coding/.local/**` is the only active local execution workspace; do not substitute `.iterate/**` or `.cache/**` as planning or progress state.
 
 ## Current Execution-System Surface
 

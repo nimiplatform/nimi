@@ -23,10 +23,12 @@ artifact_refs_required:
 event_enum:
   - run_paused
   - run_failed
+  - run_completed
   - awaiting_final_confirmation
 run_status_enum:
   - paused
   - failed
+  - completed
   - awaiting_confirmation
 rules:
   - notification payloads are transport-agnostic operational outputs and must not become canonical topic or run state
@@ -36,3 +38,4 @@ rules:
   - artifact_refs.prompt_ref, worker_output_ref, and acceptance_ref must validate when present
   - artifact_refs.evidence_refs must resolve to evidence artifacts when present
   - run_paused, run_failed, and awaiting_final_confirmation require explicit required_human_action
+  - run_completed records manager-owned terminal phase closeout and must not become user-phase gating

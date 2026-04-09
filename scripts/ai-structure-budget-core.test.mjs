@@ -14,7 +14,7 @@ function writeFile(targetPath, source) {
 test('evaluateAiStructureBudget computes depth from depth_base when configured', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-ai-structure-budget-'));
 
-  writeFile(path.join(tempDir, 'dev/config/ai-structure-budget.yaml'), `
+  writeFile(path.join(tempDir, 'nimi-coding/config/ai-structure-budget.yaml'), `
 version: 1
 allowed_forwarding_shells:
   - index.ts
@@ -53,7 +53,7 @@ waivers: []
 test('evaluateAiStructureBudget falls back to repo-relative depth when no depth_base is configured', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-ai-structure-budget-'));
 
-  writeFile(path.join(tempDir, 'dev/config/ai-structure-budget.yaml'), `
+  writeFile(path.join(tempDir, 'nimi-coding/config/ai-structure-budget.yaml'), `
 version: 1
 allowed_forwarding_shells:
   - index.ts
@@ -84,7 +84,7 @@ waivers: []
 test('evaluateAiStructureBudget reports analyzed files even when no rows breach thresholds', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-ai-structure-budget-'));
 
-  writeFile(path.join(tempDir, 'dev/config/ai-structure-budget.yaml'), `
+  writeFile(path.join(tempDir, 'nimi-coding/config/ai-structure-budget.yaml'), `
 version: 1
 allowed_forwarding_shells:
   - index.ts

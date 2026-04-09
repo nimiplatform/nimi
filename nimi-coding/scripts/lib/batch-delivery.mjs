@@ -359,9 +359,14 @@ export function batchPhaseDone(topicDir, options = {}) {
     };
   }
 
-  const nextPhaseId = disposition === 'complete' ? normalizeNextPhaseId(currentPhase.next_on_success) : null;
+  const samePhaseRepeat = disposition === 'partial';
+  const nextPhaseId = disposition === 'complete'
+    ? normalizeNextPhaseId(currentPhase.next_on_success)
+    : samePhaseRepeat
+      ? currentPhase.phase_id
+      : null;
   const nextPhase = nextPhaseId ? context.route.phaseById.get(nextPhaseId) : null;
-  const terminal = nextPhaseId === null;
+  const terminal = disposition === 'complete' && nextPhaseId === null;
 
   return {
     ok: true,
@@ -376,7 +381,9 @@ export function batchPhaseDone(topicDir, options = {}) {
       : null,
     required_human_action: terminal
       ? (disposition === 'complete' ? 'final-confirmation' : 'manager-review')
-      : 'dispatch-next-phase',
+      : samePhaseRepeat
+        ? 'redispatch-same-phase'
+        : 'dispatch-next-phase',
   };
 }
 

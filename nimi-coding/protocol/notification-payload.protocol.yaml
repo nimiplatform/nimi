@@ -18,7 +18,8 @@ forbids:
   - notification delivery receipts as canonical run truth
   - semantic acceptance or finding lifecycle judgments
 rules:
-  - current notification events are limited to run_paused, run_failed, and awaiting_final_confirmation
+  - current notification events are limited to run_paused, run_failed, run_completed, and legacy awaiting_final_confirmation
   - notification payloads must be derivable from frozen packet plus current topic/run artifacts
   - notification emission may be logged locally, but the log is not the canonical owner of topic or orchestration state
-  - final confirmation payloads may request human closeout, but they must not imply automatic topic semantic closure
+  - run_completed records manager-owned terminal phase closeout; it must not be used as a user gate for per-phase progression
+  - legacy awaiting_final_confirmation payloads may request human closeout, but they must not imply automatic topic semantic closure

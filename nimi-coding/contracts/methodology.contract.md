@@ -15,7 +15,8 @@ Its human-converged autonomous delivery posture is:
 - human-heavy before freeze
 - automation-heavy after freeze
 - explicit escalation on bounded packet-declared conditions
-- final human confirmation before terminal closeout
+- manager-owned phase and terminal run closeout
+- optional final human overall acceptance before topic closeout
 
 ## Core Rules
 
@@ -24,7 +25,7 @@ Its human-converged autonomous delivery posture is:
 3. `nimi-coding/**` is the promoted system layer for reusable `nimi-coding` components.
 4. Any machine-checkable rule should be enforced by validators or gates.
 5. Evidence is required for closeout; assertion is insufficient.
-6. Post-freeze automation may continue only against a frozen execution packet; it must not replace human semantic acceptance or final confirmation.
+6. Post-freeze automation may continue only against a frozen execution packet; it must not replace manager semantic acceptance, and it must not confuse per-phase closeout with optional final human overall acceptance.
 7. Resumable autonomous mode may persist orchestration state, but that state remains packet-bound run position only; it does not become semantic authority.
 8. Provider-backed worker invocation and worker runner signaling may be formalized as protocol-only operational surfaces, but they must not become product authority, semantic acceptance authority, or topic-state ownership.
 

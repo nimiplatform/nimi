@@ -1,5 +1,5 @@
 id: acceptance.v1
-purpose: Standardize manager acceptance ordering and output.
+purpose: Standardize manager acceptance ordering, output, and phase-close semantics.
 requires:
   - authority check
   - phase closure check
@@ -10,3 +10,8 @@ dispositions:
   - complete
   - partial
   - deferred
+rules:
+  - manager acceptance is the phase-close gate rather than a per-run execution gate
+  - complete closes the current frozen phase and may advance the route or finish a terminal run under manager ownership
+  - partial closes the current attempt but keeps the same frozen phase active for another worker attempt
+  - deferred closes the current attempt and records pause, blocker, or reopen handling instead of silent continuation

@@ -41,24 +41,10 @@ nimi-mods/
 _external/
 .claude/settings.local.json
 
-# AI session artifacts (plans, reports, research)
+# legacy execution-doc roots are archive/local-only
 dev/
-!dev/
-dev/*
-!dev/config/
-dev/config/*
-# checked-in dev baselines/templates required by repo scripts
-!dev/config/ai-context-budget.yaml
-!dev/config/dashscope-gold-path.env
-!dev/config/live-gate-baseline.yaml
-!dev/live-test.env.example
-!dev/fixtures/
-dev/fixtures/*
-!dev/fixtures/ai-gold-path/
-!dev/fixtures/ai-gold-path/*.yaml
-!dev/fixtures/live-audio-fixtures/
-!dev/fixtures/live-audio-fixtures/*.wav
-archive/dev/
+
+# repo-tracked execution support inputs live under nimi-coding/config and nimi-coding/fixtures
 nimi-coding/.local/report/release/
 
 # local AI coding artifacts (never committed)

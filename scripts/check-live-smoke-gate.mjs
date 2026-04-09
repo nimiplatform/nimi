@@ -14,7 +14,7 @@ import {
 
 const repoRoot = resolveRepoRoot(import.meta.url);
 const defaultReportPath = path.join(repoRoot, 'nimi-coding/.local/report/live-test-coverage.yaml');
-const defaultBaselinePath = path.join(repoRoot, 'dev/config/live-gate-baseline.yaml');
+const defaultBaselinePath = path.join(repoRoot, 'nimi-coding/config/live-gate-baseline.yaml');
 const providerTargetingSmokeFiles = new Set([
   'runtime/internal/services/ai/live_provider_smoke_test.go',
   'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
@@ -288,9 +288,9 @@ function detectChangedProvidersFromGit(providerUniverse) {
     'runtime/internal/services/ai/live_provider_smoke_test.go',
     'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
     'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
-    'dev/live-test.env.example',
+    'nimi-coding/config/live-test.env.example',
     'spec/runtime/kernel/tables/provider-catalog.yaml',
-    'dev/config/live-gate-baseline.yaml',
+    'nimi-coding/config/live-gate-baseline.yaml',
   ];
 
   function detectFromDiff(diffRefArgs) {

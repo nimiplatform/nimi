@@ -18,6 +18,7 @@ import { run as runNotify } from './commands/run-notify.mjs';
 import { run as runNotifyTelegram } from './commands/run-notify-telegram.mjs';
 import { run as runNotifyWebhook } from './commands/run-notify-webhook.mjs';
 import { run as runNotifications } from './commands/run-notifications.mjs';
+import { run as runReview } from './commands/run-review.mjs';
 import { run as runResume } from './commands/run-resume.mjs';
 import { run as runScheduleOnce } from './commands/run-schedule-once.mjs';
 import { run as runScheduleCodexBridge } from './commands/run-schedule-codex-bridge.mjs';
@@ -62,6 +63,7 @@ const COMMANDS = {
   'run-notify-telegram': runNotifyTelegram,
   'run-notify-webhook': runNotifyWebhook,
   'run-notifications': runNotifications,
+  'run-review': runReview,
   'run-resume': runResume,
   'run-schedule-once': runScheduleOnce,
   'run-schedule-codex-bridge': runScheduleCodexBridge,
@@ -123,7 +125,7 @@ function usage() {
       '  run-status              Show packet-bound run status (or conceptual idle when no run exists)',
       '  run-next-prompt         Generate the current phase prompt from frozen packet + topic state',
       '  run-loop-once          Generate prompt, invoke codex exec, ingest worker signal/output, and emit a stable structured summary for one running phase',
-      '  run-until-blocked      Keep executing provider-backed phases until pause/fail/awaiting_confirmation/completed/superseded or loop guard refusal, with stable structured summary output',
+      '  run-until-blocked      Keep executing provider-backed phases until pause/fail/completed/superseded or loop guard refusal, with stable structured summary output',
       '  run-schedule-status    Inspect one topic for foreground scheduler eligibility, operational lease state, and refusal/preflight status',
       '  run-schedule-once      Acquire an operational lease, invoke run-until-blocked once in the foreground, release on normal exit, and emit a stable scheduler result',
       '  run-schedule-codex-bridge Compose one-topic Codex automation setup + create/update into one assistant/UI-facing bridge result; convenience only, not a scheduler owner',
@@ -137,8 +139,9 @@ function usage() {
       '  run-notify-telegram     Deliver handoff entries to one Telegram chat and ack only after each successful Telegram send',
       '  run-notify-webhook      POST handoff entries to one webhook endpoint and ack only after each successful 2xx delivery',
       '  run-notifications       Read one run-scoped local notification log as cursor-annotated handoff entries, optionally replaying after a cursor or consumer ack',
+      '  run-review              Manager-reviewed phase attempt closeout: validate worker output + acceptance, record complete/partial/deferred, and keep or advance the frozen phase route',
       '  run-resume              Resume a paused run when packet resume_policy allows it',
-      '  run-confirm             Confirm terminal completion and mechanically close the topic when strict closeout conditions pass',
+      '  run-confirm             Optionally attach final evidence and close the topic after manager-owned terminal completion',
       '',
       'Batch:',
       '  batch-preflight         Validate frozen-plan preconditions for batch delivery',

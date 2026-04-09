@@ -21,11 +21,17 @@ Staged delivery is enabled by audit routing, not by task labels.
 
 ## Required Outcomes
 
-Each phase must close as exactly one of:
+Each execution attempt inside a frozen phase must close as exactly one of:
 
 - `complete`
 - `partial`
 - `deferred`
+
+Outcome semantics are:
+
+- `complete`: current frozen phase is closed and may advance
+- `partial`: current attempt is closed but the same frozen phase remains active for another worker attempt
+- `deferred`: current attempt is closed and requires pause, blocker handling, or explicit reopen/defer handling
 
 ## Required Inputs
 
@@ -51,3 +57,12 @@ Autonomous mode is a staged-delivery specialization, not a new authority model.
 - It may write packet-declared mechanical acceptance records for `complete` or `deferred`, but it must not perform semantic acceptance, infer `partial`, close topics, or infer finding status changes.
 - It must pause on packet-declared escalation conditions rather than continue through ambiguity.
 - Provider execution inside autonomous mode remains operational worker invocation only; it must not rewrite orchestration semantics or turn automation into a general orchestration marketplace.
+
+## Manager Review Boundary
+
+Manager review is the phase-close gate, not a per-run execution gate.
+
+- A frozen phase may contain multiple worker attempts before manager closes that phase as `complete`.
+- Manager review may issue findings and return `partial`, keeping the same frozen phase active.
+- Worker reruns after `partial` remain inside the same frozen phase and must not require a fresh freeze cycle unless authority changes.
+- Terminal phase closure is still manager-owned; user confirmation belongs to overall acceptance or topic closeout, not per-phase progression.

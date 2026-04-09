@@ -16,6 +16,7 @@ forbids:
   - generic workflow-engine state storage
 rules:
   - idle is conceptual pre-start state and is represented by the absence of an active orchestration-state artifact
-  - persisted run states are limited to running, paused, awaiting_confirmation, completed, failed, and superseded
+  - persisted run states are limited to running, paused, completed, failed, superseded, and legacy awaiting_confirmation
+  - terminal phase closure after manager complete should land in completed rather than awaiting_confirmation
   - orchestration state may reference prompt, worker-output, acceptance, evidence, and notification event/correlation refs, but it must remain packet-bound run position only
   - notification emission logs are transport-agnostic operational outputs and must not become orchestration-state ownership

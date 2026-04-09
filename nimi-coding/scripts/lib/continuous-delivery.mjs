@@ -108,16 +108,44 @@ function toTopicRelPath(topicDir, filePath, defaultRelPath) {
   };
 }
 
-function phasePromptRelPath(phaseId) {
-  return `${phaseId}.prompt.md`;
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function phaseAcceptanceRelPath(phaseId) {
-  return `${phaseId}.acceptance.md`;
+function nextPhaseArtifactDefaultRelPath(topicDir, phaseId, artifactKind) {
+  const baseName = `${phaseId}.${artifactKind}.md`;
+  const basePath = path.join(topicDir, baseName);
+  let maxAttempt = exists(basePath) ? 1 : 0;
+  const attemptPattern = new RegExp(`^${escapeRegExp(phaseId)}\\.attempt-(\\d+)\\.${escapeRegExp(artifactKind)}\\.md$`);
+  for (const entry of fs.readdirSync(topicDir, { withFileTypes: true })) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const match = entry.name.match(attemptPattern);
+    if (!match) {
+      continue;
+    }
+    const attempt = Number(match[1]);
+    if (Number.isInteger(attempt) && attempt > maxAttempt) {
+      maxAttempt = attempt;
+    }
+  }
+  if (maxAttempt === 0) {
+    return baseName;
+  }
+  return `${phaseId}.attempt-${String(maxAttempt + 1).padStart(3, '0')}.${artifactKind}.md`;
 }
 
-function phaseWorkerOutputRelPath(phaseId) {
-  return `${phaseId}.worker-output.md`;
+function phasePromptRelPath(topicDir, phaseId) {
+  return nextPhaseArtifactDefaultRelPath(topicDir, phaseId, 'prompt');
+}
+
+function phaseAcceptanceRelPath(topicDir, phaseId) {
+  return nextPhaseArtifactDefaultRelPath(topicDir, phaseId, 'acceptance');
+}
+
+function phaseWorkerOutputRelPath(topicDir, phaseId) {
+  return nextPhaseArtifactDefaultRelPath(topicDir, phaseId, 'worker-output');
 }
 
 function providerExecutionLogRelPath(runId) {
@@ -407,6 +435,9 @@ function shouldEmitNotification(packet, eventType) {
   if (eventType === 'run_paused' || eventType === 'run_failed') {
     return Boolean(packet.notification_settings?.on_block);
   }
+  if (eventType === 'run_completed') {
+    return Boolean(packet.notification_settings?.on_final_completion);
+  }
   if (eventType === 'awaiting_final_confirmation') {
     return Boolean(packet.notification_settings?.on_final_completion);
   }
@@ -436,7 +467,7 @@ function emitNotification(topicDir, context, stateRelPath, state, eventType, opt
     topic_id: context.topic.topic_id,
     run_id: state.state_id,
     packet_ref: state.packet_ref,
-    phase_id: state.current_phase_id,
+    phase_id: options.phaseId ?? state.current_phase_id ?? state.last_completed_phase_id ?? null,
     run_status: state.run_status,
     reason: options.reason || null,
     required_human_action: options.requiredHumanAction || null,
@@ -603,8 +634,8 @@ function buildProviderExecutionPrompt(options) {
     REQUIRED_PROVIDER_PROMPT_PREAMBLE,
     '',
     `Read the phase dispatch from this file: ${options.promptAbsPath}`,
-    `Write the final worker output markdown to this exact file path: ${options.workerOutputAbsPath}`,
-    `Inside that file, set worker_output_ref exactly to: ${options.workerOutputRef}`,
+    `Your final response will be captured as the worker output artifact at: ${options.workerOutputAbsPath}`,
+    `Inside that final response, set worker_output_ref exactly to: ${options.workerOutputRef}`,
     `Use evidence_refs only for evidence files that you actually wrote inside the topic workspace.`,
     '',
     'Required runner signal shape:',
@@ -615,12 +646,12 @@ function buildProviderExecutionPrompt(options) {
     '- Read files directly from the repository.',
     '- Stay inside the packet-declared write scope.',
     '- Do not modify execution packet, orchestration-state semantics, finding lifecycle, or final confirmation state.',
-    '- Do not treat stdout as the worker output artifact.',
+    '- Your final response is the worker output artifact body; do not rely on separate ad hoc writeback paths for that artifact.',
     '- If blocked, set result_kind: escalate and use only packet-declared escalation reasons.',
     '- If execution cannot complete safely, set result_kind: fail and provide a concrete fail_reason.',
     `Allowed escalation reasons: ${escalationConditions.join('; ') || '(none declared)'}`,
     '',
-    'After writing the required worker artifact(s), exit.',
+    'Write any repository edits and optional evidence files first, then emit the worker output artifact as your final response and exit.',
   ].join('\n');
 }
 
@@ -629,15 +660,18 @@ function invokeCodexProvider(options) {
     'exec',
     '--model',
     'gpt-5.4',
-    '--full-auto',
-    '--cd',
+    '--dangerously-bypass-approvals-and-sandbox',
+    '-C',
     REPO_ROOT,
-    buildProviderExecutionPrompt(options),
+    '-o',
+    options.workerOutputAbsPath,
+    '-',
   ];
   const result = spawnSync('codex', args, {
     cwd: REPO_ROOT,
     encoding: 'utf8',
     timeout: options.timeoutMs || DEFAULT_PROVIDER_TIMEOUT_MS,
+    input: buildProviderExecutionPrompt(options),
   });
 
   const base = {
@@ -735,16 +769,17 @@ function validateRunConfirmPreconditions(topicDir, context, state, finalEvidence
   if (context.topic.status !== 'active') {
     errors.push(`run-confirm requires topic status=active before closeout, got ${context.topic.status}`);
   }
-  if (!state.current_phase_id) {
-    errors.push('run-confirm requires current_phase_id on awaiting_confirmation state');
+  const terminalPhaseId = state.current_phase_id || state.last_completed_phase_id;
+  if (!terminalPhaseId) {
+    errors.push('run-confirm requires a terminal phase id from current_phase_id or last_completed_phase_id');
     return errors;
   }
-  const phase = phaseLookup(context.route, state.current_phase_id);
+  const phase = phaseLookup(context.route, terminalPhaseId);
   if (normalizeNextPhaseId(phase.next_on_success) !== null) {
     errors.push(`run-confirm requires packet terminal phase, got next_on_success=${phase.next_on_success}`);
   }
-  if (state.last_completed_phase_id !== state.current_phase_id) {
-    errors.push('run-confirm requires last_completed_phase_id to equal the terminal current_phase_id');
+  if (state.last_completed_phase_id !== terminalPhaseId) {
+    errors.push('run-confirm requires last_completed_phase_id to equal the terminal phase');
   }
   if (!state.latest_acceptance_ref) {
     errors.push('run-confirm requires latest_acceptance_ref from the terminal phase');
@@ -838,7 +873,7 @@ function renderAcceptance(options) {
 }
 
 function writeAcceptance(topicDir, phaseId, content, outputPath) {
-  const { absPath, relPath } = toTopicRelPath(topicDir, outputPath, phaseAcceptanceRelPath(phaseId));
+  const { absPath, relPath } = toTopicRelPath(topicDir, outputPath, phaseAcceptanceRelPath(topicDir, phaseId));
   ensureDir(path.dirname(absPath));
   fs.writeFileSync(absPath, content, 'utf8');
   return { absPath, relPath };
@@ -859,6 +894,11 @@ function attachLatestEvidence(topicDir, evidenceRefs) {
   if (!report.ok) {
     throw new Error(report.errors.join('; '));
   }
+}
+
+function readAcceptanceDisposition(acceptancePath) {
+  const acceptanceDoc = loadMarkdownDoc(acceptancePath);
+  return String(acceptanceDoc.frontmatter?.disposition || '').trim();
 }
 
 function resolveOutcome(phase, options, validationErrors, checkReport) {
@@ -1033,7 +1073,7 @@ export function runNextPrompt(topicDir, options = {}) {
 
   let promptTarget;
   try {
-    promptTarget = toTopicRelPath(topicDir, options.output, phasePromptRelPath(phase.phase_id));
+    promptTarget = toTopicRelPath(topicDir, options.output, phasePromptRelPath(topicDir, phase.phase_id));
     ensureDir(path.dirname(promptTarget.absPath));
     fs.writeFileSync(promptTarget.absPath, prompt, 'utf8');
   } catch (error) {
@@ -1228,9 +1268,10 @@ export function runIngest(topicDir, options = {}) {
     state.awaiting_human_action = null;
     state.pause_reason = null;
   } else if (outcome.kind === 'success') {
-    state.run_status = 'awaiting_confirmation';
-    state.current_phase_id = phase.phase_id;
-    state.awaiting_human_action = 'final-confirmation';
+    state.run_status = 'completed';
+    state.current_phase_id = null;
+    state.last_completed_phase_id = phase.phase_id;
+    state.awaiting_human_action = null;
     state.pause_reason = null;
   } else if (outcome.kind === 'pause') {
     state.run_status = 'paused';
@@ -1270,10 +1311,10 @@ export function runIngest(topicDir, options = {}) {
       acceptanceRef: acceptanceTarget.relPath,
       evidenceRefs: acceptedEvidenceRefs,
     });
-  } else if (state.run_status === 'awaiting_confirmation') {
-    notification = emitNotification(topicDir, context, stateRelPath, state, 'awaiting_final_confirmation', {
+  } else if (state.run_status === 'completed') {
+    notification = emitNotification(topicDir, context, stateRelPath, state, 'run_completed', {
       reason: 'terminal packet phase completed mechanically',
-      requiredHumanAction: 'final-confirmation',
+      requiredHumanAction: null,
       promptRef: executedPromptRef,
       workerOutputRef: acceptedWorkerOutputRef,
       acceptanceRef: acceptanceTarget.relPath,
@@ -1320,6 +1361,273 @@ export function runIngest(topicDir, options = {}) {
     evidence_refs: state.latest_evidence_refs,
     checks_run: checkReport.results,
     notification,
+    required_human_action: state.awaiting_human_action,
+  };
+}
+
+export function runReview(topicDir, options = {}) {
+  const context = loadRunContext(topicDir, { requireState: true });
+  if (!context.ok) {
+    return context;
+  }
+
+  const state = clone(context.state);
+  if (state.run_status !== 'running') {
+    return {
+      ok: false,
+      errors: [`run-review requires run_status=running, got ${state.run_status}`],
+      warnings: context.warnings,
+    };
+  }
+  if (!state.current_prompt_ref) {
+    return {
+      ok: false,
+      errors: ['run-review requires current_prompt_ref; generate prompt first'],
+      warnings: context.warnings,
+    };
+  }
+  if (!options.workerOutput) {
+    return {
+      ok: false,
+      errors: ['run-review requires --worker-output'],
+      warnings: context.warnings,
+    };
+  }
+  if (!options.acceptance) {
+    return {
+      ok: false,
+      errors: ['run-review requires --acceptance'],
+      warnings: context.warnings,
+    };
+  }
+  if (!options.disposition) {
+    return {
+      ok: false,
+      errors: ['run-review requires --disposition'],
+      warnings: context.warnings,
+    };
+  }
+
+  const validDispositions = new Set(['complete', 'partial', 'deferred']);
+  if (!validDispositions.has(options.disposition)) {
+    return {
+      ok: false,
+      errors: [`invalid disposition: ${options.disposition}`],
+      warnings: context.warnings,
+    };
+  }
+  if (options.disposition === 'deferred') {
+    if (!options.awaitingHumanAction) {
+      return {
+        ok: false,
+        errors: ['run-review disposition=deferred requires --awaiting-human-action'],
+        warnings: context.warnings,
+      };
+    }
+    if (!options.deferReason) {
+      return {
+        ok: false,
+        errors: ['run-review disposition=deferred requires --defer-reason'],
+        warnings: context.warnings,
+      };
+    }
+  }
+
+  const phase = phaseLookup(context.route, state.current_phase_id);
+  const stateRelPath = context.topic.orchestration_state_ref;
+  const executedPromptRef = state.current_prompt_ref;
+  const errors = [];
+
+  const promptPath = resolveTopicPath(topicDir, executedPromptRef);
+  const promptReport = validatePrompt(promptPath);
+  if (!promptReport.ok) {
+    errors.push(...promptReport.errors.map((error) => `prompt invalid: ${error}`));
+  }
+
+  let workerOutputTarget = null;
+  try {
+    workerOutputTarget = toTopicRelPath(topicDir, options.workerOutput, options.workerOutput);
+  } catch (error) {
+    errors.push(error.message);
+  }
+  if (workerOutputTarget && !exists(workerOutputTarget.absPath)) {
+    errors.push(`missing worker-output file: ${workerOutputTarget.relPath}`);
+  }
+  const workerOutputReport = workerOutputTarget
+    ? validateWorkerOutput(workerOutputTarget.absPath, {
+      topicDir,
+      expectedWorkerOutputRef: workerOutputTarget.relPath,
+    })
+    : { ok: false, errors: [], warnings: [] };
+  if (workerOutputTarget && !workerOutputReport.ok) {
+    errors.push(...workerOutputReport.errors.map((error) => `worker-output invalid: ${error}`));
+  }
+
+  let acceptanceTarget = null;
+  try {
+    acceptanceTarget = toTopicRelPath(topicDir, options.acceptance, options.acceptance);
+  } catch (error) {
+    errors.push(error.message);
+  }
+  if (acceptanceTarget && !exists(acceptanceTarget.absPath)) {
+    errors.push(`missing acceptance file: ${acceptanceTarget.relPath}`);
+  }
+  const acceptanceReport = acceptanceTarget
+    ? validateAcceptance(acceptanceTarget.absPath)
+    : { ok: false, errors: [], warnings: [] };
+  if (acceptanceTarget && !acceptanceReport.ok) {
+    errors.push(...acceptanceReport.errors.map((error) => `acceptance invalid: ${error}`));
+  }
+  if (acceptanceTarget && acceptanceReport.ok) {
+    const acceptanceDisposition = readAcceptanceDisposition(acceptanceTarget.absPath);
+    if (acceptanceDisposition && acceptanceDisposition !== options.disposition) {
+      errors.push(`acceptance disposition mismatch: frontmatter=${acceptanceDisposition} cli=${options.disposition}`);
+    }
+  }
+
+  const evidenceReport = validateEvidenceRefs(topicDir, options.evidenceRefs || []);
+  if (!evidenceReport.ok) {
+    errors.push(...evidenceReport.errors);
+  }
+
+  const checkReport = errors.length === 0
+    ? runRequiredChecks(phase)
+    : { ok: false, results: [] };
+  if (options.disposition === 'complete' && !checkReport.ok) {
+    errors.push('run-review disposition=complete requires all packet-declared checks to pass');
+  }
+
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      errors,
+      warnings: [
+        ...context.warnings,
+        ...(promptReport.warnings || []),
+        ...(workerOutputReport.warnings || []),
+        ...(acceptanceReport.warnings || []),
+      ],
+    };
+  }
+
+  const nextPhaseId = options.disposition === 'complete'
+    ? normalizeNextPhaseId(phase.next_on_success)
+    : options.disposition === 'partial'
+      ? phase.phase_id
+      : null;
+
+  state.latest_worker_output_ref = workerOutputTarget.relPath;
+  state.latest_acceptance_ref = acceptanceTarget.relPath;
+  state.latest_evidence_refs = evidenceReport.refs;
+  state.current_prompt_ref = null;
+
+  if (options.disposition === 'complete' && nextPhaseId !== null) {
+    state.run_status = 'running';
+    state.current_phase_id = nextPhaseId;
+    state.last_completed_phase_id = phase.phase_id;
+    state.awaiting_human_action = null;
+    state.pause_reason = null;
+  } else if (options.disposition === 'complete') {
+    state.run_status = 'completed';
+    state.current_phase_id = null;
+    state.last_completed_phase_id = phase.phase_id;
+    state.awaiting_human_action = null;
+    state.pause_reason = null;
+  } else if (options.disposition === 'partial') {
+    state.run_status = 'running';
+    state.current_phase_id = phase.phase_id;
+    state.awaiting_human_action = null;
+    state.pause_reason = null;
+  } else {
+    state.run_status = 'paused';
+    state.current_phase_id = phase.phase_id;
+    state.awaiting_human_action = options.awaitingHumanAction;
+    state.pause_reason = options.deferReason;
+  }
+  state.updated_at = timestampNow();
+
+  let notification = {
+    ok: true,
+    emitted: false,
+    payload: null,
+    log_rel_path: notificationLogRelPath(state.state_id),
+    errors: [],
+  };
+  if (state.run_status === 'paused') {
+    notification = emitNotification(topicDir, context, stateRelPath, state, 'run_paused', {
+      reason: options.deferReason,
+      requiredHumanAction: options.awaitingHumanAction,
+      promptRef: executedPromptRef,
+      workerOutputRef: workerOutputTarget.relPath,
+      acceptanceRef: acceptanceTarget.relPath,
+      evidenceRefs: evidenceReport.refs,
+    });
+  } else if (state.run_status === 'completed') {
+    notification = emitNotification(topicDir, context, stateRelPath, state, 'run_completed', {
+      reason: 'terminal phase accepted as complete by manager review',
+      requiredHumanAction: null,
+      promptRef: executedPromptRef,
+      workerOutputRef: workerOutputTarget.relPath,
+      acceptanceRef: acceptanceTarget.relPath,
+      evidenceRefs: evidenceReport.refs,
+    });
+  }
+  if (!notification.ok) {
+    return {
+      ok: false,
+      errors: notification.errors,
+      warnings: [
+        ...context.warnings,
+        ...(promptReport.warnings || []),
+        ...(workerOutputReport.warnings || []),
+        ...(acceptanceReport.warnings || []),
+      ],
+    };
+  }
+
+  try {
+    attachLatestEvidence(topicDir, evidenceReport.refs);
+    setStateAndValidate(topicDir, stateRelPath, state);
+  } catch (error) {
+    return {
+      ok: false,
+      errors: [error.message],
+      warnings: [
+        ...context.warnings,
+        ...(promptReport.warnings || []),
+        ...(workerOutputReport.warnings || []),
+        ...(acceptanceReport.warnings || []),
+      ],
+    };
+  }
+
+  return {
+    ok: true,
+    errors: [],
+    warnings: [
+      ...context.warnings,
+      ...(promptReport.warnings || []),
+      ...(workerOutputReport.warnings || []),
+      ...(acceptanceReport.warnings || []),
+    ],
+    topic_id: context.topic.topic_id,
+    packet_id: context.packet.packet_id,
+    run_id: state.state_id,
+    state_ref: stateRelPath,
+    run_status: state.run_status,
+    phase_id: phase.phase_id,
+    next_phase: nextPhaseId ? phaseView(
+      context.packet,
+      phaseLookup(context.route, nextPhaseId),
+      context.route.orderedPhaseIds.indexOf(nextPhaseId),
+    ) : null,
+    prompt_ref: executedPromptRef,
+    worker_output_ref: state.latest_worker_output_ref,
+    acceptance_ref: state.latest_acceptance_ref,
+    evidence_refs: state.latest_evidence_refs,
+    checks_run: checkReport.results,
+    notification,
+    disposition: options.disposition,
     required_human_action: state.awaiting_human_action,
   };
 }
@@ -1387,7 +1695,7 @@ export function runLoopOnce(topicDir, options = {}) {
     workerOutputTarget = toTopicRelPath(
       topicDir,
       options.workerOutput,
-      phaseWorkerOutputRelPath(phase.phase_id),
+      phaseWorkerOutputRelPath(topicDir, phase.phase_id),
     );
   } catch (error) {
     return refusalReport({
@@ -1640,8 +1948,10 @@ export function runLoopOnce(topicDir, options = {}) {
       ? refusal.summary
       : ingestReport?.run_status === 'running'
         ? `phase advanced to ${ingestReport.next_phase?.phase_id || '(unknown)'}`
-        : ingestReport?.run_status === 'awaiting_confirmation'
-          ? 'packet reached awaiting_confirmation'
+        : ingestReport?.run_status === 'completed'
+          ? 'packet completed'
+          : ingestReport?.run_status === 'awaiting_confirmation'
+            ? 'packet reached awaiting_confirmation'
           : ingestReport?.run_status === 'paused'
             ? `run paused: ${ingestReport.required_human_action || 'human action required'}`
             : ingestReport?.run_status === 'failed'
@@ -1977,10 +2287,10 @@ export function runConfirm(topicDir, options = {}) {
   }
 
   const state = clone(context.state);
-  if (state.run_status !== 'awaiting_confirmation') {
+  if (state.run_status !== 'completed' && state.run_status !== 'awaiting_confirmation') {
     return {
       ok: false,
-      errors: [`run-confirm requires run_status=awaiting_confirmation, got ${state.run_status}`],
+      errors: [`run-confirm requires run_status=completed or awaiting_confirmation, got ${state.run_status}`],
       warnings: context.warnings,
     };
   }
@@ -2013,11 +2323,13 @@ export function runConfirm(topicDir, options = {}) {
   }
 
   const originalState = clone(state);
-  state.run_status = 'completed';
-  state.current_phase_id = null;
-  state.awaiting_human_action = null;
-  state.pause_reason = null;
-  state.updated_at = timestampNow();
+  if (state.run_status !== 'completed') {
+    state.run_status = 'completed';
+    state.current_phase_id = null;
+    state.awaiting_human_action = null;
+    state.pause_reason = null;
+    state.updated_at = timestampNow();
+  }
 
   try {
     setStateAndValidate(topicDir, context.topic.orchestration_state_ref, state);

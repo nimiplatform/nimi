@@ -146,6 +146,7 @@
     "nimi-coding:run-notify-telegram": "node nimi-coding/cli/cli.mjs run-notify-telegram",
     "nimi-coding:run-notify-webhook": "node nimi-coding/cli/cli.mjs run-notify-webhook",
     "nimi-coding:run-notifications": "node nimi-coding/cli/cli.mjs run-notifications",
+    "nimi-coding:run-review": "node nimi-coding/cli/cli.mjs run-review",
     "nimi-coding:run-resume": "node nimi-coding/cli/cli.mjs run-resume",
     "nimi-coding:run-confirm": "node nimi-coding/cli/cli.mjs run-confirm",
     "nimi-coding:topic-summary": "node nimi-coding/cli/cli.mjs topic-summary",

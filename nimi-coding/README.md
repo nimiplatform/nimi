@@ -134,7 +134,7 @@ pnpm nimi-coding:batch-next-phase -- <topic-dir> [--after <phase-id>]
 pnpm nimi-coding:batch-phase-done -- <topic-dir> --phase <name> --disposition <complete|partial|deferred> --acceptance <rel-path> [--evidence <rel-path>]
 ```
 
-Batch mode now requires a **packet-driven frozen plan**: topic status=active, baseline status=frozen, valid finding ledger, non-empty protocol_refs including `execution-packet.v1`, and a valid `execution_packet_ref` whose packet route is linear and inspectable. `batch-preflight` checks those preconditions and outputs a structured pass/fail report. `batch-next-phase` prints the packet-declared entry phase or the next phase after a completed phase. `batch-phase-done` validates the acceptance artifact, optionally attaches evidence, re-validates the packet-driven preconditions, and reports the next packet phase or terminal human handoff.
+Batch mode now requires a **packet-driven frozen plan**: topic status=active, baseline status=frozen, valid finding ledger, non-empty protocol_refs including `execution-packet.v1`, and a valid `execution_packet_ref` whose packet route is linear and inspectable. `batch-preflight` checks those preconditions and outputs a structured pass/fail report. `batch-next-phase` prints the packet-declared entry phase or the next phase after a completed phase. `batch-phase-done` validates the acceptance artifact, optionally attaches evidence, re-validates the packet-driven preconditions, and reports one of three bounded outcomes: next frozen phase, same frozen phase redispatch after `partial`, or terminal human handoff after terminal `complete`.
 
 **Packet-driven orchestration remains mechanically bounded.** It consumes only the frozen packet plus existing topic artifacts. Semantic acceptance and finding lifecycle judgment remain outside the current batch cut; notification transports are layered separately on top of the continuous-run handoff surface.
 
@@ -153,6 +153,7 @@ pnpm nimi-coding:run-schedule-codex-once -- <topic-dir> [--timeout-ms <ms>] [--m
 pnpm nimi-coding:run-schedule-codex-setup -- <topic-dir>
 pnpm nimi-coding:run-schedule-codex-automation-upsert -- <topic-dir> [--codex-home <path>] [--rrule <rrule>] [--status <ACTIVE|PAUSED>] [--name <name>] [--model <model>] [--reasoning-effort <effort>] [--execution-environment <local|worktree>]
 pnpm nimi-coding:run-ingest -- <topic-dir> --worker-output <topic-local-path> [--evidence <topic-local-path>]... [--acceptance <topic-local-path>] [--escalate <reason>]... [--fail <reason>]
+pnpm nimi-coding:run-review -- <topic-dir> --worker-output <topic-local-path> --acceptance <topic-local-path> --disposition <complete|partial|deferred> [--evidence <topic-local-path>]... [--awaiting-human-action <action>] [--defer-reason <reason>]
 pnpm nimi-coding:run-ack-status -- <topic-dir> --consumer <consumer-id> [--run-id <run-id>]
 pnpm nimi-coding:run-ack -- <topic-dir> --consumer <consumer-id> --cursor <n> [--run-id <run-id>]
 pnpm nimi-coding:run-notify -- <topic-dir> --consumer <consumer-id> --sink-dir <sink-dir> [--run-id <run-id>]
@@ -167,8 +168,8 @@ Continuous run is the first packet-bound autonomous orchestration cut.
 
 - `run-start` creates a `running` orchestration state for a frozen packet.
 - `run-next-prompt` generates a formal `*.prompt.md` artifact from the current packet phase and topic state.
-- `run-loop-once` is the single-step provider-backed execution cut. It generates the current prompt, invokes `codex exec` headlessly from repository root, requires worker-output writeback with a machine-readable `Runner Signal` block, and then routes that signal through the existing ingest/state-progression path. Provider invocation failure, missing worker output, malformed signal, and signal/artifact mismatch all fail-close and return structured refusal.
-- `run-until-blocked` is the foreground continuous loop cut. It repeats the same provider-backed step until the run becomes `paused`, `failed`, `awaiting_confirmation`, `completed`, or `superseded`. It never loops silently: `--max-steps` is a hard guard, and guard exhaustion returns structured refusal.
+- `run-loop-once` is the single-step provider-backed execution cut. It generates the current prompt, invokes `codex exec` headlessly from repository root, captures the final worker-output artifact directly at the packet-bound topic path, requires a machine-readable `Runner Signal` block, and then routes that signal through the existing ingest/state-progression path. Provider invocation failure, missing worker output, malformed signal, and signal/artifact mismatch all fail-close and return structured refusal.
+- `run-until-blocked` is the foreground continuous loop cut. It repeats the same provider-backed step until the run becomes `paused`, `failed`, `completed`, `superseded`, or legacy `awaiting_confirmation`. It never loops silently: `--max-steps` is a hard guard, and guard exhaustion returns structured refusal.
 - `run-schedule-status` is the first scheduler preflight/status surface. It does not mutate topic truth. It reports one topic as `eligible`, `blocked_by_active_lease`, `run_terminal`, `run_blocked`, or missing required provider-backed prerequisites, and it includes machine-readable lease/refusal state for future automation backends.
 - `run-schedule-once` is the first foreground scheduler cut. It runs scheduler preflight, acquires a local operational lease, invokes `run-until-blocked`, then releases the lease on normal exit and emits `scheduler-result.v1`. It is still a foreground command, not a daemon and not an automation backend.
 - `run-schedule-codex-bridge` is the first assistant/UI-facing convenience bridge. It composes `codex-automation-setup.v1` and the one-topic automation upsert flow into one `codex-automation-bridge-result.v1` record with setup summary, upsert action, automation identity, topic target, and scheduler command binding. It is convenience only; setup/upsert contracts remain authoritative.
@@ -176,7 +177,8 @@ Continuous run is the first packet-bound autonomous orchestration cut.
 - `run-schedule-codex-setup` is the first actual automation setup surface. It emits `codex-automation-setup.v1` for one explicit topic only: target path, repository cwd, exact scheduler commands, expected result contracts, and a suggested Codex automation prompt. It does not scan for topics and it does not invent another scheduler contract.
 - `run-schedule-codex-automation-upsert` is the first actual create/update flow. It consumes the same one-topic setup contract, derives one stable automation identity for that explicit topic, and writes or updates one Codex automation instance without creating duplicates for the same target. It does not broaden into repo scanning or multi-topic orchestration.
 - The bridge does not become an owner. Scheduler outputs, setup payloads, and upsert results remain the authoritative control surfaces. The bridge only makes those surfaces easier for an assistant or UI to consume and display.
-- `run-ingest` validates worker output, runs packet-declared checks, writes mechanical `complete` or `deferred` acceptance, updates orchestration state, and emits transport-agnostic local notifications for `run_paused`, `run_failed`, and `awaiting_final_confirmation`.
+- `run-ingest` validates worker output, runs packet-declared checks, writes mechanical `complete` or `deferred` acceptance, updates orchestration state, and emits transport-agnostic local notifications for `run_paused`, `run_failed`, and `run_completed`. It is the autonomous/mechanical path and must not infer `partial`.
+- `run-review` is the manager-reviewed closeout path for one execution attempt inside the current frozen phase. It validates prompt continuity, worker output, acceptance, and evidence refs, refuses `complete` when packet-declared checks fail, records `complete | partial | deferred`, and either advances, redispatches the same frozen phase, pauses, or completes a terminal run under manager ownership.
 - Notification payloads are now formalized by `notification-payload.v1` and can be validated independently from transport.
 - `.nimi-coding/notifications/<run_id>.jsonl` is now a run-scoped append-only operational log. Each non-empty line must be one `notification-payload.v1` JSON object for that run, and readback preserves file order.
 - `.nimi-coding/provider-execution/<run_id>.jsonl` is now the minimum provider-backed operational audit surface. Each line records one provider-backed step with `run_id`, `phase_id`, `provider`, `prompt_ref`, `worker_output_ref`, `signal_result_kind`, `started_at`, `finished_at`, `exit_status`, `refusal_code`, bounded `stdout/stderr` transcript capture, and a structured `status_summary`. It is runtime-only and not canonical topic truth.
@@ -195,7 +197,7 @@ Continuous run is the first packet-bound autonomous orchestration cut.
 - `run-notify-webhook` is the first real transport cut. It POSTs one minimal HTTP envelope per handoff entry to a single webhook endpoint and only advances the checkpoint after each successful `2xx` delivery. Non-`2xx`, network errors, malformed JSON responses declared as `application/json`, and ack failures all fail-close with no checkpoint advance for the failed entry.
 - Adapter consumer identity is explicit and transport-local. Use a stable adapter-specific id such as `notify-file-primary`; the checkpoint and replay boundary are keyed by that consumer id plus run id.
 - `run-resume` allows same-packet continuation only when the packet `resume_policy` explicitly allows the supplied reason.
-- `run-confirm` is still human-only, but it now performs the minimum mechanical closeout when strict preconditions pass: terminal phase completed, latest acceptance disposition=`complete`, final evidence exists with `status=final`, and the topic remains validator-clean. It closes the topic and marks the run `completed` without mutating finding lifecycle or inferring semantic acceptance.
+- `run-confirm` is now the optional human final closeout step after a run is already `completed` under manager ownership. When strict preconditions pass, it attaches final evidence, closes the topic, and preserves the already-completed run without mutating finding lifecycle or inferring semantic acceptance.
 - The notification layer is still operational only. It is not external transport, not a generic event bus, and not canonical topic or orchestration state.
 - `provider-worker-execution.v1` and `worker-runner-signal.v1` are now the module-owned authority boundary for the first provider-backed worker invocation cut.
 - The current admitted provider set for that future provider-backed boundary is intentionally limited to `codex exec`; `claude`, `gemini`, and `kimi` are not admitted in the first cut.
@@ -241,7 +243,7 @@ Automation should treat outputs this way:
 
 - `run-schedule-status` with `contract=scheduler-preflight.v1` and `eligible=true`: topic is schedulable now.
 - `run-schedule-status` or `run-schedule-codex-once` with `ok=false`: structured refusal. Read `refusal.code`, `refusal.message`, and `preflight.scheduler_status`; do not guess from stderr or inspect topic files directly.
-- `run-schedule-codex-once` with `ok=true`: scheduler invocation succeeded. Read `loop_summary.stop_reason` to see whether the run stopped at `paused`, `failed`, `awaiting_confirmation`, `completed`, or `superseded`.
+- `run-schedule-codex-once` with `ok=true`: scheduler invocation succeeded. Read `loop_summary.stop_reason` to see whether the run stopped at `paused`, `failed`, `completed`, `superseded`, or legacy `awaiting_confirmation`.
 - `failed` inside `loop_summary.stop_reason` is still a successful command invocation with a mechanically failed run, not an automation transport failure.
 
 Automation should schedule these commands and consume their JSON output only. It must not become the semantic owner, and it must not redefine stop or retry semantics.
@@ -298,7 +300,7 @@ This cut still does **not** implement fan-out runtime, semantic acceptance autom
 
 `*.orchestration-state.yaml` is now a formal topic lifecycle artifact for continuous packet-bound execution.
 
-- It persists the minimum packet-bound mutable run position for `running`, `paused`, `awaiting_confirmation`, `completed`, `failed`, and `superseded`.
+- It persists the minimum packet-bound mutable run position for `running`, `paused`, `completed`, `failed`, `superseded`, and legacy `awaiting_confirmation`.
 - It is routed from `topic.index.yaml` by `orchestration_state_ref` when present.
 - It is not runner implementation, notification transport, or resume runtime.
 - It does not carry semantic acceptance, final confirmation, or finding lifecycle judgment.
@@ -339,10 +341,33 @@ pnpm nimi-coding:acceptance-skeleton -- --disposition <value> --output <acceptan
 # (manager edits acceptance, then validates)
 pnpm nimi-coding:validate-acceptance -- <acceptance-path>
 
-# 6. Commit phase completion and inspect next phase / terminal handoff
+# 6. Commit phase completion and inspect next phase / terminal manager closeout
 pnpm nimi-coding:batch-phase-done -- <topic-dir> --phase <name> --disposition <value> --acceptance <rel-path> --evidence <rel-path>
 
-# 7. Repeat via batch-next-phase, or stop for final human confirmation
+# 7. If disposition=partial, redispatch the same frozen phase. If disposition=complete, inspect next phase or finish the terminal run under manager ownership.
+```
+
+**Manager-reviewed continuous loop:**
+
+```bash
+# 0. Start one packet-bound run
+pnpm nimi-coding:run-start -- <topic-dir>
+
+# 1. Generate the current frozen phase prompt
+pnpm nimi-coding:run-next-prompt -- <topic-dir> --output <prompt-path>
+
+# 2. Worker executes outside nimi-coding and writes output
+pnpm nimi-coding:validate-worker-output -- <worker-output-path>
+
+# 3. Manager writes acceptance for this attempt and validates it
+pnpm nimi-coding:validate-acceptance -- <acceptance-path>
+
+# 4. Close one attempt
+pnpm nimi-coding:run-review -- <topic-dir> --worker-output <worker-output-path> --acceptance <acceptance-path> --disposition <value> [--evidence <rel-path>]
+
+# 5. If disposition=partial, repeat run-next-prompt for the same frozen phase.
+#    If disposition=complete, the run advances or completes terminally under manager ownership.
+#    If disposition=deferred, the run pauses with explicit human action.
 ```
 
 ### Reports
@@ -367,22 +392,27 @@ pnpm nimi-coding:validate-doc -- nimi-coding/.local/my-topic/overview.explore.md
 pnpm nimi-coding:set-baseline -- nimi-coding/.local/my-topic methodology.baseline.md
 pnpm nimi-coding:set-topic-status -- nimi-coding/.local/my-topic active --reason "Baseline ready"
 
-# 4. Author prompt (manual), validate, dispatch to worker
-pnpm nimi-coding:validate-prompt -- nimi-coding/.local/my-topic/phase-1.prompt.md
+# 4. Freeze a packet-driven route and start a run or batch loop
+pnpm nimi-coding:batch-preflight -- nimi-coding/.local/my-topic
 
-# 5. Worker executes, produces output (manual), validate
+# 5. Generate a prompt for the current frozen phase, dispatch to worker
+pnpm nimi-coding:run-start -- nimi-coding/.local/my-topic
+pnpm nimi-coding:run-next-prompt -- nimi-coding/.local/my-topic
+
+# 6. Worker executes, produces output (manual), validate
 pnpm nimi-coding:validate-worker-output -- nimi-coding/.local/my-topic/phase-1.worker-output.md
 
-# 6. Manager writes acceptance (manual), validate
+# 7. Manager writes acceptance for this attempt (manual), validate, and review
 pnpm nimi-coding:validate-acceptance -- nimi-coding/.local/my-topic/phase-1.acceptance.md
+pnpm nimi-coding:run-review -- nimi-coding/.local/my-topic --worker-output phase-1.worker-output.md --acceptance phase-1.acceptance.md --disposition partial
 
-# 7. Record evidence, update findings
+# 8. If partial, repeat the same frozen phase. Record evidence and findings as needed.
 pnpm nimi-coding:attach-evidence -- nimi-coding/.local/my-topic phase-1.evidence.md
 pnpm nimi-coding:finding-set-status -- nimi-coding/.local/my-topic F-001 fixed --reason "Resolved" --evidence-ref phase-1.evidence.md
 
-# 8. Close topic with final evidence
+# 9. Optionally close topic with final evidence after terminal manager completion
 pnpm nimi-coding:attach-evidence -- nimi-coding/.local/my-topic final.evidence.md --final
-pnpm nimi-coding:set-topic-status -- nimi-coding/.local/my-topic closed --reason "All phases complete"
+pnpm nimi-coding:run-confirm -- nimi-coding/.local/my-topic --final-evidence final.evidence.md
 ```
 
 Content authoring remains manual. Markdown docs cover explore/baseline/evidence/prompt/worker-output/acceptance; execution packets are typed YAML artifacts. The CLI handles topic routing, status transitions, and validation.

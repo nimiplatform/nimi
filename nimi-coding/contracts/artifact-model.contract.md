@@ -43,7 +43,15 @@ topic.index.yaml
 *.execution-packet.yaml -> dispatch (protocol) -> *.prompt.md -> worker executes -> *.worker-output.md -> manager reviews -> *.acceptance.md
 ```
 
-Each phase execution produces at most one prompt, one worker-output, and one acceptance. The acceptance disposition (complete / partial / deferred) determines the next phase or topic state transition.
+One frozen phase may contain multiple bounded execution attempts.
+
+Each execution attempt produces exactly one prompt, one worker-output, and one acceptance.
+
+Acceptance semantics are:
+
+- `complete` closes the current phase attempt and may advance to the next frozen phase or terminal manager-owned run completion
+- `partial` closes the current attempt but keeps the same frozen phase open for another attempt
+- `deferred` closes the current attempt and pauses or reroutes due to blocker, escalation, or unresolved ambiguity
 
 The execution packet does not replace prompt, acceptance, or evidence artifacts:
 
@@ -61,7 +69,7 @@ The orchestration state does not replace packet, acceptance, evidence, or findin
 
 - `finding-ledger.yaml` findings may reference `evidence_ref`, `baseline_ref`, and `protocol_ref`
 - `*.evidence.md` may reference findings by ID in its Resolved/Invalidated/Deferred/Superseded Findings sections
-- `*.acceptance.md` disposition feeds back into topic lifecycle: `complete` may advance the baseline, `deferred` may update finding status
+- `*.acceptance.md` disposition feeds back into topic lifecycle: `complete` may advance the phase route, `partial` keeps the same frozen phase active, and `deferred` may update finding status or pause the run
 - `*.execution-packet.yaml` must reference one frozen baseline and may be routed from `topic.index.yaml` by `execution_packet_ref`
 - `*.orchestration-state.yaml` must reference one execution packet and may be routed from `topic.index.yaml` by `orchestration_state_ref`
 - `*.orchestration-state.yaml` may reference notification correlation ids, but must not carry transport secrets or runtime lease state
