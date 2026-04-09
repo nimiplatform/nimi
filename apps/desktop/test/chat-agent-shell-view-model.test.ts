@@ -180,27 +180,21 @@ test('agent behavior resolver produces a canonical resolved behavior object from
     userText: '我今天有点难过，想你了',
     settings: {
       thinkingPreference: 'on',
-      deliveryStyle: 'natural',
-      allowMultiReply: true,
     },
   });
 
   assert.equal(resolved.settings.thinkingPreference, 'on');
   assert.equal(resolved.resolvedTurnMode, 'intimate');
-  assert.equal(resolved.resolvedExperiencePolicy.deliveryPolicy.style, 'natural');
-  assert.equal(resolved.resolvedExperiencePolicy.deliveryPolicy.allowMultiReply, true);
   assert.equal(resolved.resolvedBeatPlan.beats.length, 2);
   assert.equal(resolved.resolvedBeatPlan.beats[0]?.deliveryPhase, 'primary');
   assert.equal(resolved.resolvedBeatPlan.beats[1]?.deliveryPhase, 'tail');
 });
 
-test('agent behavior resolver stays single-beat when multi-reply is disabled', () => {
+test('agent behavior resolver keeps explicit-media turns single-beat without user toggles', () => {
   const resolved = resolveAgentChatBehaviorFromResolver({
     userText: '发张图给我看看',
     settings: {
       thinkingPreference: 'off',
-      deliveryStyle: 'compact',
-      allowMultiReply: false,
     },
   });
 

@@ -56,14 +56,9 @@ export function resolveAgentTurnMode(userText: string): AgentResolvedTurnMode {
 }
 
 export function resolveAgentExperiencePolicy(input: {
-  settings: AgentChatExperienceSettings;
   turnMode: AgentResolvedTurnMode;
 }): AgentResolvedExperiencePolicy {
   return {
-    deliveryPolicy: {
-      style: input.settings.deliveryStyle,
-      allowMultiReply: input.settings.allowMultiReply,
-    },
     contentBoundary: input.turnMode === 'explicit-media' ? 'explicit-media-request' : 'default',
     autonomyPolicy: 'guarded',
   };
@@ -84,6 +79,22 @@ function createBeat(input: {
     deliveryPhase: input.deliveryPhase,
     ...(input.delayMs ? { delayMs: input.delayMs } : {}),
   };
+}
+
+function resolvePrimaryBeatIntent(turnMode: AgentResolvedTurnMode): AgentResolvedBeat['intent'] {
+  if (turnMode === 'explicit-media') {
+    return 'media-request';
+  }
+  if (turnMode === 'explicit-voice') {
+    return 'voice-request';
+  }
+  if (turnMode === 'emotional') {
+    return 'comfort';
+  }
+  if (turnMode === 'checkin') {
+    return 'checkin';
+  }
+  return 'reply';
 }
 
 function parseRecord(value: unknown, label: string): Record<string, unknown> {
@@ -328,13 +339,12 @@ export function buildAgentResolvedOutputText(envelope: AgentResolvedBeatActionEn
 
 export function resolveAgentBeatPlan(input: {
   turnMode: AgentResolvedTurnMode;
-  policy: AgentResolvedExperiencePolicy;
 }): AgentResolvedBeatPlan {
-  if (input.policy.deliveryPolicy.allowMultiReply && (
+  if (
     input.turnMode === 'emotional'
     || input.turnMode === 'intimate'
     || input.turnMode === 'checkin'
-  )) {
+  ) {
     return {
       beats: [
         createBeat({
@@ -358,15 +368,7 @@ export function resolveAgentBeatPlan(input: {
       createBeat({
         beatIndex: 0,
         beatCount: 1,
-        intent: input.turnMode === 'explicit-media'
-          ? 'media-request'
-          : input.turnMode === 'explicit-voice'
-            ? 'voice-request'
-            : input.turnMode === 'emotional'
-              ? 'comfort'
-              : input.turnMode === 'checkin'
-                ? 'checkin'
-                : 'reply',
+        intent: resolvePrimaryBeatIntent(input.turnMode),
         deliveryPhase: 'primary',
       }),
     ],
@@ -379,7 +381,6 @@ export function resolveAgentChatBehavior(input: {
 }): AgentResolvedBehavior {
   const resolvedTurnMode = resolveAgentTurnMode(input.userText);
   const resolvedExperiencePolicy = resolveAgentExperiencePolicy({
-    settings: input.settings,
     turnMode: resolvedTurnMode,
   });
   return {
@@ -388,7 +389,6 @@ export function resolveAgentChatBehavior(input: {
     resolvedExperiencePolicy,
     resolvedBeatPlan: resolveAgentBeatPlan({
       turnMode: resolvedTurnMode,
-      policy: resolvedExperiencePolicy,
     }),
   };
 }

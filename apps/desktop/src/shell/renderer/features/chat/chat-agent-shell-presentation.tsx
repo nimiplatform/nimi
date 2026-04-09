@@ -263,85 +263,11 @@ export function useAgentConversationPresentation(
       }
       : null,
   }), [input.bundle, input.handleSubmit, input.messages, input.setupState, input.targetSummariesInput.threads, schedulingGuard.disabled, schedulingGuard.disabledReason, surfaceState.composer]);
-  const behaviorSettingsContent = (
-    <section className="rounded-3xl border border-slate-200/70 bg-white/80 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-900">
-            {input.t('Chat.agentBehaviorSettingsTitle', { defaultValue: 'Agent behavior' })}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            {input.t('Chat.agentBehaviorSettingsHint', {
-              defaultValue: 'These settings shape resolved delivery policy before submit. They do not admit proactive contact, voice, or video behavior.',
-            })}
-          </p>
-        </div>
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-            {input.t('Chat.agentDeliveryStyleLabel', { defaultValue: 'Delivery style' })}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {(['compact', 'natural'] as const).map((style) => (
-              <button
-                key={style}
-                type="button"
-                className={[
-                  'rounded-2xl border px-3 py-2 text-sm font-medium transition-colors',
-                  input.behaviorSettings.deliveryStyle === style
-                    ? 'border-emerald-400 bg-emerald-500 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700',
-                ].join(' ')}
-                onClick={() => input.setBehaviorSettings({
-                  ...input.behaviorSettings,
-                  deliveryStyle: style,
-                })}
-              >
-                {style === 'compact'
-                  ? input.t('Chat.agentDeliveryStyleCompact', { defaultValue: 'Compact' })
-                  : input.t('Chat.agentDeliveryStyleNatural', { defaultValue: 'Natural' })}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-3">
-          <div>
-            <p className="text-sm font-medium text-slate-900">
-              {input.t('Chat.agentAllowMultiReplyLabel', { defaultValue: 'Allow multi-beat replies' })}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              {input.t('Chat.agentAllowMultiReplyHint', {
-                defaultValue: 'Lets the resolver produce a tail beat for emotional, intimate, and check-in turns.',
-              })}
-            </p>
-          </div>
-          <button
-            type="button"
-            className={[
-              'inline-flex h-8 min-w-[72px] items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors',
-              input.behaviorSettings.allowMultiReply
-                ? 'border-emerald-400 bg-emerald-500 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700',
-            ].join(' ')}
-            onClick={() => input.setBehaviorSettings({
-              ...input.behaviorSettings,
-              allowMultiReply: !input.behaviorSettings.allowMultiReply,
-            })}
-          >
-            {input.behaviorSettings.allowMultiReply
-              ? input.t('Chat.settingOn', { defaultValue: 'On' })
-              : input.t('Chat.settingOff', { defaultValue: 'Off' })}
-          </button>
-        </div>
-      </div>
-    </section>
-  );
-
   return useMemo(() => ({
     ...hostSnapshot,
     adapter,
     settingsContent: (
       <div className="space-y-4">
-        {behaviorSettingsContent}
         <ChatSettingsPanel
           onModelSelectionChange={input.onModelSelectionChange}
           initialModelSelection={input.initialModelSelection}
@@ -379,7 +305,6 @@ export function useAgentConversationPresentation(
     }),
   }), [
     adapter,
-    behaviorSettingsContent,
     diagnosticsContent,
     hostFeedbackNode,
     schedulingFeedbackNode,

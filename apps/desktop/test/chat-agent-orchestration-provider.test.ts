@@ -509,8 +509,6 @@ test('agent local chat execution seam shapes system prompt and transcript messag
     userText: 'What should we do next?',
     settings: {
       thinkingPreference: 'off',
-      deliveryStyle: 'natural',
-      allowMultiReply: true,
     },
   });
   const request = buildAgentLocalChatExecutionTextRequest({
@@ -527,7 +525,8 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.match(request.systemPrompt || '', /ResolvedBehavior:/);
   assert.match(request.systemPrompt || '', /User prefers concise answers/);
   assert.match(request.systemPrompt || '', /"resolvedTurnMode": "information"/);
-  assert.match(request.systemPrompt || '', /"allowMultiReply": true/);
+  assert.doesNotMatch(request.systemPrompt || '', /"allowMultiReply":/);
+  assert.doesNotMatch(request.systemPrompt || '', /"deliveryPolicy":/);
   assert.match(request.systemPrompt || '', /Output Contract:/);
   assert.match(request.systemPrompt || '', /Return exactly one JSON object/);
   assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);

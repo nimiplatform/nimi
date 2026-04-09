@@ -3,23 +3,13 @@ import { normalizeChatThinkingPreference, type ChatThinkingPreference } from './
 export const CHAT_THINKING_PREFERENCE_STORAGE_KEY = 'nimi.chat.settings.thinking.v1';
 export const AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY = 'nimi.chat.settings.agent.behavior.v1';
 
-export type AgentChatDeliveryStyle = 'compact' | 'natural';
-
 export type AgentChatExperienceSettings = {
   thinkingPreference: ChatThinkingPreference;
-  deliveryStyle: AgentChatDeliveryStyle;
-  allowMultiReply: boolean;
 };
 
 const DEFAULT_AGENT_CHAT_EXPERIENCE_SETTINGS: AgentChatExperienceSettings = {
   thinkingPreference: 'off',
-  deliveryStyle: 'compact',
-  allowMultiReply: false,
 };
-
-export function normalizeAgentChatDeliveryStyle(value: unknown): AgentChatDeliveryStyle {
-  return value === 'natural' ? 'natural' : 'compact';
-}
 
 export function normalizeAgentChatExperienceSettings(value: unknown): AgentChatExperienceSettings {
   if (!value || typeof value !== 'object') {
@@ -28,8 +18,6 @@ export function normalizeAgentChatExperienceSettings(value: unknown): AgentChatE
   const record = value as Record<string, unknown>;
   return {
     thinkingPreference: normalizeChatThinkingPreference(record.thinkingPreference),
-    deliveryStyle: normalizeAgentChatDeliveryStyle(record.deliveryStyle),
-    allowMultiReply: record.allowMultiReply === true,
   };
 }
 

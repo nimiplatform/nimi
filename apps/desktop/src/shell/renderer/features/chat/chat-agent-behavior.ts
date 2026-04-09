@@ -12,10 +12,6 @@ export type AgentResolvedTurnMode =
   | 'explicit-voice';
 
 export type AgentResolvedExperiencePolicy = {
-  deliveryPolicy: {
-    style: AgentChatExperienceSettings['deliveryStyle'];
-    allowMultiReply: boolean;
-  };
   contentBoundary: 'default' | 'explicit-media-request';
   autonomyPolicy: 'guarded';
 };
