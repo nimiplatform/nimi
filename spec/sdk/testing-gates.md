@@ -42,12 +42,12 @@
 - 测试门集合：`kernel/tables/sdk-testing-gates.yaml`。
 - 规则证据映射：`kernel/tables/rule-evidence.yaml`。
 - Provider 名称对齐基线：`spec/runtime/kernel/tables/provider-catalog.yaml`。
-- Live smoke 证据：`dev/report/live-test-coverage.yaml`。
+- Live smoke 证据：`nimi-coding/.local/report/live-test-coverage.yaml`。
 
 ## 4. 执行材料位置
 
-- 计划：`dev/plan/*`。
-- 报告与审计：`dev/report/*`。
+- topic 工件：`nimi-coding/.local/<topic-id>/**`。
+- 报告与审计：`nimi-coding/.local/report/*`。
 
 ## 5. 非目标
 

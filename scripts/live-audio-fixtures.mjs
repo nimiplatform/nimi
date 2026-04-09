@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUTPUT_DIR = path.join(REPO_ROOT, 'dev', 'report', 'live-audio-fixtures');
+const OUTPUT_DIR = path.join(REPO_ROOT, 'nimi-coding', '.local', 'report', 'live-audio-fixtures');
 const PREBUILT_DIR = path.join(REPO_ROOT, 'dev', 'fixtures', 'live-audio-fixtures');
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 18456;

@@ -1,6 +1,6 @@
 # Realm Drift — Feature Matrix
 # Authoritative source for feature phasing, priority, and dependencies.
-# Referenced by: kernel contracts, dev/plan/execution-plan.md (non-normative)
+# Referenced by: kernel contracts, nimi-coding/.local/<topic-id>/** (non-normative execution material)
 
 features:
   # ── Phase 1: App Shell ───────────────────────────────────

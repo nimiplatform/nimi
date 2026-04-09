@@ -24,7 +24,7 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 
 - **Product spec authority** — `spec/**` is the only normative product source
 - **Repo-wide collaboration hygiene** — checks like `check:agents-freshness`, `check:no-legacy-doc-contracts`, `check:no-absolute-user-paths` live in root `scripts/` because they govern the whole repository
-- **Topic workspace content** — `.local/coding/**` is the local-only incubator for methodology research and trial artifacts; this module does not manage or modify topic content
+- **Topic workspace content** — `nimi-coding/.local/**` is the local-only incubator for methodology research and trial artifacts; this module does not manage or modify topic content
 - **Runtime / SDK / Desktop / Web code** — those modules have their own AGENTS and ownership
 - **Semantic authority** — scheduler state, automation bridge state, provider execution logs, notification logs, and transport checkpoints remain operational surfaces only; they do not replace packet, orchestration, acceptance, evidence, or finding ownership
 
@@ -72,12 +72,12 @@ These live only in root `scripts/` and have no counterpart in `nimi-coding/scrip
 - `check-no-absolute-user-paths` — hardcoded user path detection
 - All runtime, SDK, desktop, web, and mod-specific checks
 
-## `.local/coding/**` Boundary
+## `nimi-coding/.local/**` Boundary
 
-- `.local/coding/**` is the topic workspace for methodology research and trial delivery
-- Topics in `.local/coding/**` are validated by this module's scripts but are not part of the module itself
+- `nimi-coding/.local/**` is the topic workspace for methodology research and trial delivery
+- Topics in `nimi-coding/.local/**` are validated by this module's scripts but are not part of the module itself
 - Topic content is never committed to the repository
-- Promotion from `.local/coding/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`
+- Promotion from `nimi-coding/.local/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`
 
 ## Current Execution-System Surface
 

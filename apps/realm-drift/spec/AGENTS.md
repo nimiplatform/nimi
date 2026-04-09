@@ -21,7 +21,7 @@ spec/
 ```
 
 Implementation plans live outside the spec tree:
-- `dev/plan/execution-plan.md` — phased implementation guide (non-normative)
+- `nimi-coding/.local/<topic-id>/**` — phased implementation guides and execution evidence (non-normative)
 
 ## Rule ID Format
 

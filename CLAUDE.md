@@ -76,7 +76,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. Evidence → `dev/report/**`; plans → `dev/plan/**`.
+- `spec/**` is the only normative contract source. Active execution topics live under `nimi-coding/.local/**`; active shared execution reports live under `nimi-coding/.local/report/**`. `dev/config/**` and `dev/fixtures/**` remain repo-owned exceptions. `dev/**` is not an active execution-doc surface beyond those exceptions.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -94,7 +94,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 ## Retrieval Defaults
 
 - Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`.
-- Skip: `_external/**`, `dev/plan/**`, `dev/report/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
+- Skip: `_external/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Repo-Wide Verification
 

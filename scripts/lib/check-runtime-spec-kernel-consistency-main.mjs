@@ -312,8 +312,8 @@ function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
 
   for (const gate of ['G3', 'G5', 'G7']) {
     const evidenceRoute = String(gateMap.get(gate)?.evidence_route || '').trim();
-    if (evidenceRoute !== 'dev/report/live-test-coverage.yaml') {
-      fail(`${tablePath} gate ${gate} must use evidence_route dev/report/live-test-coverage.yaml`);
+    if (evidenceRoute !== 'nimi-coding/.local/report/live-test-coverage.yaml') {
+      fail(`${tablePath} gate ${gate} must use evidence_route nimi-coding/.local/report/live-test-coverage.yaml`);
     }
   }
 }

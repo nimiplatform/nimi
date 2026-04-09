@@ -1,4 +1,4 @@
-local_incubator_root: .local/coding
+local_incubator_root: nimi-coding/.local
 promoted_root: nimi-coding
 never_promote:
   - ad hoc audit notes

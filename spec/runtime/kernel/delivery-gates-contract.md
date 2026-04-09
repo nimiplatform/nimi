@@ -63,8 +63,8 @@ provider 覆盖矩阵、runtime Go statements coverage、catalog/source drift、
 
 证据路由：
 
-- `dev/report/live-test-coverage.yaml`
-- `dev/report/*`
+- `nimi-coding/.local/report/live-test-coverage.yaml`
+- `nimi-coding/.local/report/*`
 
 ## K-GATE-050 G4 Workflow Async Gate
 
@@ -85,7 +85,7 @@ external async 事件与任务语义必须一致可追溯。
 
 证据路由：
 
-- `dev/report/live-test-coverage.yaml`
+- `nimi-coding/.local/report/live-test-coverage.yaml`
 
 ## K-GATE-070 G6 Observability Gate
 
@@ -113,4 +113,4 @@ external async 事件与任务语义必须一致可追溯。
 
 ## K-GATE-090 Evidence Routing
 
-执行计划写 `dev/plan/*`，执行证据写 `dev/report/*`，spec 不承载运行快照。
+topic-bound 执行计划与冻结工件写 `nimi-coding/.local/<topic-id>/**`，共享执行证据写 `nimi-coding/.local/report/*`，spec 不承载运行快照。

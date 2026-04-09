@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import YAML from 'yaml';
 import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
-const DOC_ROOTS = ['dev/research', 'dev/plan'];
+const DOC_ROOTS = ['nimi-coding/.local'];
 const HIGH_RISK_NAME_PATTERNS = [
   /design/iu,
   /audit/iu,
@@ -43,6 +44,16 @@ function readFileSafe(filePath) {
 }
 
 function detectMetadata(content) {
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u);
+  if (frontmatterMatch) {
+    const doc = YAML.parse(frontmatterMatch[1]) || {};
+    return new Map([
+      ['Spec Status', String(doc?.spec_status || '').trim()],
+      ['Authority Owner', String(doc?.authority_owner || '').trim()],
+      ['Work Type', String(doc?.work_type || '').trim()],
+      ['Parallel Truth', String(doc?.parallel_truth || '').trim()],
+    ]);
+  }
   const lines = content.split(/\r?\n/u).slice(0, 20);
   const found = new Map();
   for (const key of REQUIRED_METADATA_KEYS) {
@@ -70,8 +81,14 @@ function validateMetadata(meta) {
     failures.push('Parallel Truth must be "yes" or "no"');
   }
   const specStatus = meta.get('Spec Status') || '';
-  if (specStatus && specStatus !== 'aligned' && specStatus !== 'requires spec change') {
-    failures.push('Spec Status must be "aligned" or "requires spec change"');
+  const validSpecStatuses = new Set([
+    'aligned',
+    'requires spec change',
+    'requires_change',
+    'preflight-required',
+  ]);
+  if (specStatus && !validSpecStatuses.has(specStatus)) {
+    failures.push('Spec Status must be one of: aligned, requires spec change, requires_change, preflight-required');
   }
   return failures;
 }

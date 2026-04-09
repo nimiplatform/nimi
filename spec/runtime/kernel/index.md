@@ -113,7 +113,7 @@ Runtime provider model/voice default data is maintained outside `spec/` at:
 
 - kernel 表 `source_rule` 仅允许 `K-*`。
 - domain 文档 Section 0 的导入必须在正文显式落到至少一个具体 Rule ID。
-- 执行态内容不得进入 `spec/**`，计划/证据分别写入 `dev/plan/*`、`dev/report/*`。
+- 执行态内容不得进入 `spec/**`；topic-bound 计划、baseline、packet 与 evidence 写入 `nimi-coding/.local/<topic-id>/**`，共享执行报告写入 `nimi-coding/.local/report/**`。
 
 ## 8. 跨域状态机术语映射
 

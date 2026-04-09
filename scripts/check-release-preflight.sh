@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-LOG_DIR="${PROJECT_ROOT}/dev/release"
+LOG_DIR="${PROJECT_ROOT}/nimi-coding/.local/report/release"
 LOG_STAMP="$(date '+%Y%m%d-%H%M%S')"
 LOG_FILE_DEFAULT="${LOG_DIR}/preflight-${LOG_STAMP}.log"
 LOG_FILE="${NIMI_RELEASE_PREFLIGHT_LOG_FILE:-${LOG_FILE_DEFAULT}}"

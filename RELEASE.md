@@ -29,7 +29,7 @@ The SDK, Dev Tools, Runtime, and Proto versions must be aligned within the same 
 pnpm check:release-preflight
 ```
 
-该命令会将完整输出持久化到 `dev/release/preflight-YYYYMMDD-HHMMSS.log`。
+该命令会将完整输出持久化到 `nimi-coding/.local/report/release/preflight-YYYYMMDD-HHMMSS.log`。
 终端默认只显示阶段、命令和通过/失败摘要，完整 stdout/stderr 只写入日志。
 如果中途失败，脚本会打印失败的 `section`、`command`、日志路径，以及日志尾部片段。
 如需自定义日志文件，可设置 `NIMI_RELEASE_PREFLIGHT_LOG_FILE=/abs/path/to.log`。

@@ -9,7 +9,7 @@
 - `spec/AGENTS.md` is authoritative for anything under `spec/**`.
 
 ## Hard Boundaries
-- `spec/**` is the only normative contract source. Evidence → `dev/report/**`; plans → `dev/plan/**`.
+- `spec/**` is the only normative contract source. Active execution topics live under `nimi-coding/.local/**`; active shared execution reports live under `nimi-coding/.local/report/**`. `dev/config/**` and `dev/fixtures/**` remain repo-owned exceptions. `dev/**` is not an active execution-doc surface beyond those exceptions.
 - High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
 - `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
 - Debug/fix by layer order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`.
@@ -25,7 +25,7 @@
 
 ## Retrieval Defaults
 - Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`.
-- Skip: `_external/**`, `dev/plan/**`, `dev/report/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
+- Skip: `_external/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Verification Commands
 - Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:nimi-coding-module`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.

@@ -514,7 +514,7 @@ function checkProviderNameAlignment() {
   // Verify testing-gates S-GATE-070 references provider-catalog or has a name mapping
   const testingGatesPath = 'spec/sdk/testing-gates.md';
   const providerCatalogPath = 'spec/runtime/kernel/tables/provider-catalog.yaml';
-  const mappingReportPath = 'dev/report/sdk-provider-compatibility.md';
+  const mappingReportPath = 'nimi-coding/.local/report/sdk-provider-compatibility.md';
 
   if (!fs.existsSync(path.join(cwd, testingGatesPath))) return;
   if (!fs.existsSync(path.join(cwd, providerCatalogPath))) return;
@@ -530,7 +530,7 @@ function checkProviderNameAlignment() {
   if (fs.existsSync(path.join(cwd, mappingReportPath))) {
     const mappingReport = read(mappingReportPath);
     if (!mappingReport.includes('provider-catalog.yaml')) {
-      fail('dev/report/sdk-provider-compatibility.md must reference provider-catalog.yaml');
+      fail('nimi-coding/.local/report/sdk-provider-compatibility.md must reference provider-catalog.yaml');
     }
   }
 }

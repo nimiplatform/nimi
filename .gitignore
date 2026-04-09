@@ -58,6 +58,8 @@ dev/fixtures/*
 !dev/fixtures/ai-gold-path/*.yaml
 !dev/fixtures/live-audio-fixtures/
 !dev/fixtures/live-audio-fixtures/*.wav
+archive/dev/
+nimi-coding/.local/report/release/
 
 # local AI coding artifacts (never committed)
 .local/

@@ -36,7 +36,7 @@ const providerCatalogFile = path.join(
   repoRoot,
   'spec/runtime/kernel/tables/provider-catalog.yaml',
 );
-const reportDir = path.join(repoRoot, 'dev', 'report');
+const reportDir = path.join(repoRoot, 'nimi-coding', '.local', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
 const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
 const baseLiveEnv = buildMergedEnv({

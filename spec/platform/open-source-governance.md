@@ -20,8 +20,8 @@
 
 ## 3. 执行材料位置
 
-- 计划与排期：`dev/plan/*`。
-- 审计与结果证据：`dev/report/*`。
+- topic-bound 计划与排期：`nimi-coding/.local/<topic-id>/**`。
+- 审计与结果证据：`nimi-coding/.local/report/*`。
 
 ## 4. 非目标
 

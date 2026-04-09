@@ -5,54 +5,54 @@ gates:
     objective: freeze spec authority and rule ids
     command: pnpm check:ai-scenario-hardcut-drift && pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift
     blocking: hard_block
-    evidence_route: dev/plan/*,dev/report/*
+    evidence_route: nimi-coding/.local/<topic-id>/*,nimi-coding/.local/report/*
     source_rule: K-GATE-010
   - gate: G1
     name: proto_chain
     objective: lint breaking generate drift and proto-spec linkage all pass
     command: pnpm proto:lint && pnpm proto:generate && pnpm proto:breaking && pnpm proto:drift-check && pnpm check:runtime-proto-spec-linkage
     blocking: hard_block
-    evidence_route: dev/report/*
+    evidence_route: nimi-coding/.local/report/*
     source_rule: K-GATE-020
   - gate: G2
     name: sdk_alignment
     objective: sdk projection, boundary checks, and runtime-aligned mod or hook hard-cuts pass
     command: pnpm check:sdk-spec-kernel-consistency && pnpm check:sdk-spec-kernel-docs-drift && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-mod-hook-hardcut
     blocking: hard_block
-    evidence_route: dev/report/*
+    evidence_route: nimi-coding/.local/report/*
     source_rule: K-GATE-030
   - gate: G3
     name: provider_coverage
     objective: provider routing, catalog drift, canonicalization, endpoint ssot, and runtime service coverage baselines verified
     command: pnpm check:runtime-go-coverage && pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants && pnpm check:runtime-catalog-drift && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-alias-hardcut && pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-endpoint-ssot && pnpm check:runtime-provider-yaml-first-hardcut && pnpm check:runtime-video-capability-block-enforcement
     blocking: hard_block
-    evidence_route: dev/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
     source_rule: K-GATE-040
   - gate: G4
     name: workflow_async
     objective: external async events align with scenario job states
     command: cd runtime && go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1
     blocking: hard_block
-    evidence_route: dev/report/*
+    evidence_route: nimi-coding/.local/report/*
     source_rule: K-GATE-050
   - gate: G5
     name: matrix_tests
     objective: multimodal matrix baseline satisfied
     command: node scripts/run-live-test-matrix.mjs
     blocking: pr_skip_safe_nightly_release_hard_block
-    evidence_route: dev/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
     source_rule: K-GATE-060
   - gate: G6
     name: observability
     objective: audit and logs are complete
     command: cd runtime && go run ./cmd/runtime-compliance --gate
     blocking: hard_block
-    evidence_route: dev/report/*
+    evidence_route: nimi-coding/.local/report/*
     source_rule: K-GATE-070
   - gate: G7
     name: release_candidate
     objective: release checks all green
     command: pnpm check:live-smoke-gate --require-release
     blocking: release_hard_block
-    evidence_route: dev/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
     source_rule: K-GATE-080

@@ -13,7 +13,7 @@ import {
 } from './live-provider-utils.mjs';
 
 const repoRoot = resolveRepoRoot(import.meta.url);
-const defaultReportPath = path.join(repoRoot, 'dev/report/live-test-coverage.yaml');
+const defaultReportPath = path.join(repoRoot, 'nimi-coding/.local/report/live-test-coverage.yaml');
 const defaultBaselinePath = path.join(repoRoot, 'dev/config/live-gate-baseline.yaml');
 const providerTargetingSmokeFiles = new Set([
   'runtime/internal/services/ai/live_provider_smoke_test.go',

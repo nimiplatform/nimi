@@ -13,8 +13,18 @@ function writeFile(filePath, content) {
 test('fails high-risk design docs without authority metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'dev/research/example-design.md'),
-    '# Example Design\n\ncontent\n',
+    path.join(repoRoot, 'nimi-coding/.local/example-topic/example-design.md'),
+    [
+      '---',
+      'title: Example Design',
+      'doc_type: explore',
+      '---',
+      '',
+      '# Example Design',
+      '',
+      'content',
+      '',
+    ].join('\n'),
   );
 
   const report = evaluateHighRiskDocMetadata({
@@ -29,14 +39,47 @@ test('fails high-risk design docs without authority metadata', () => {
 test('passes high-risk design docs with required metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'dev/research/example-design.md'),
+    path.join(repoRoot, 'nimi-coding/.local/example-topic/example-design.md'),
     [
+      '---',
+      'title: Example Design',
+      'doc_type: explore',
+      'spec_status: aligned',
+      'authority_owner: runtime authority',
+      'work_type: alignment',
+      'parallel_truth: no',
+      '---',
+      '',
       '# Example Design',
       '',
-      '> **Spec Status**: aligned',
-      '> **Authority Owner**: runtime authority',
-      '> **Work Type**: alignment',
-      '> **Parallel Truth**: no',
+      'content',
+      '',
+    ].join('\n'),
+  );
+
+  const report = evaluateHighRiskDocMetadata({
+    repoRoot,
+    exemptionsPath: path.join(repoRoot, 'scripts/config/high-risk-doc-metadata-exemptions.yaml'),
+  });
+
+  assert.equal(report.failures.length, 0);
+});
+
+test('accepts preflight-required spec status in nimi-coding frontmatter docs', () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
+  writeFile(
+    path.join(repoRoot, 'nimi-coding/.local/example-topic/migration-design.md'),
+    [
+      '---',
+      'title: Migration Design',
+      'doc_type: explore',
+      'spec_status: preflight-required',
+      'authority_owner: desktop authority',
+      'work_type: redesign',
+      'parallel_truth: no',
+      '---',
+      '',
+      '# Migration Design',
       '',
       'content',
       '',
@@ -54,8 +97,18 @@ test('passes high-risk design docs with required metadata', () => {
 test('treats refactor plans as high-risk docs that require authority metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'dev/plan/desktop-chat-refactor.md'),
-    '# Desktop Chat Refactor\n\ncontent\n',
+    path.join(repoRoot, 'nimi-coding/.local/example-topic/desktop-chat-refactor.md'),
+    [
+      '---',
+      'title: Desktop Chat Refactor',
+      'doc_type: baseline',
+      '---',
+      '',
+      '# Desktop Chat Refactor',
+      '',
+      'content',
+      '',
+    ].join('\n'),
   );
 
   const report = evaluateHighRiskDocMetadata({
@@ -70,12 +123,12 @@ test('treats refactor plans as high-risk docs that require authority metadata', 
 test('skips exempted legacy docs', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'dev/research/legacy-design.md'),
+    path.join(repoRoot, 'archive/legacy-design.md'),
     '# Legacy Design\n',
   );
   writeFile(
     path.join(repoRoot, 'scripts/config/high-risk-doc-metadata-exemptions.yaml'),
-    'version: 1\nexempt_paths:\n  - dev/research/legacy-design.md\n',
+    'version: 1\nexempt_paths:\n  - archive/legacy-design.md\n',
   );
 
   const report = evaluateHighRiskDocMetadata({ repoRoot });

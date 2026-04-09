@@ -31,11 +31,11 @@ Its human-converged autonomous delivery posture is:
 ## Module Ownership
 
 - `nimi-coding/**` is the formal execution system module with its own `AGENTS.md` defining ownership, script tiers, and workflow rules.
-- `.local/coding/**` is the topic workspace. Topics there are validated by this module's scripts but are not part of the module.
-- Promotion from `.local/coding/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`.
+- `nimi-coding/.local/**` is the topic workspace. Topics there are validated by this module's scripts but are not part of the module.
+- Promotion from `nimi-coding/.local/**` into `nimi-coding/**` follows `gates/promotion-policy.yaml`.
 
 ## Explicit Non-Goals
 
 - `nimi-coding/**` does not own repo-wide collaboration hygiene (e.g., `AGENTS.md` freshness, legacy doc alias policing).
 - Those checks remain in root `scripts/` even when they are adjacent to `nimi-coding` practice.
-- `nimi-coding/**` does not own or modify topic workspace content in `.local/coding/**`.
+- `nimi-coding/**` does not own or modify topic workspace content in `nimi-coding/.local/**`.

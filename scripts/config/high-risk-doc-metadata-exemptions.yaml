@@ -1,21 +1,2 @@
 version: 1
-exempt_paths:
-  - dev/research/ai-chat-session-shell-design-2026-04-05.md
-  - dev/research/architecture-internals.md
-  - dev/research/desktop-design-audit.md
-  - dev/research/ltx-desktop-integration-audit-2026-03-16.md
-  - dev/research/multimodal-provider-audit-2026-02-24.md
-  - dev/research/subscription-plan-integration-2026-03-19.md
-  - dev/plan/0402-runtime-image-refactory.md
-  - dev/plan/2026-03-23-nimi-audit-remediation-plan.md
-  - dev/plan/2026-03-27-audit-remediation-plan.md
-  - dev/plan/desktop-chat-orchestration-platform-implementation-plan-2026-04-05.md
-  - dev/plan/desktop-chat-unified-conversation-implementation-plan-2026-04-04.md
-  - dev/plan/local-runtime-native-model-architecture-2026-03-17.md
-  - dev/plan/runtime-gemma4-kv-quantization-implementation-plan-2026-04-03.md
-  - dev/plan/runtime-gemma4-turboquant-audit-and-design-2026-04-03.md
-  - dev/plan/runtime-image-safetensors-routing-implementation-plan-2026-04-03.md
-  - dev/plan/runtime-image-supervised-matrix-architecture-2026-04-02.md
-  - dev/plan/runtime-image-supervised-matrix-implementation-plan-2026-04-02.md
-  - dev/plan/runtime-ollama-style-llama-residency-audit-and-design-2026-04-03.md
-  - dev/plan/runtime-ollama-style-llama-residency-implementation-plan-2026-04-03.md
+exempt_paths: []

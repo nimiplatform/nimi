@@ -42,7 +42,7 @@ This document is the public overview only. It does not carry contracts, schemas,
 | Public overview | `docs/nimi-coding.md` (this file) | High-level model for readers |
 | Formal execution system | `nimi-coding/**` | Contracts, schemas, protocols, gates, scripts, CLI, samples |
 | Module AGENTS | `nimi-coding/AGENTS.md` | Module-local ownership, workflow rules, script tiers |
-| Topic workspace | `.local/coding/**` | Local-only incubator for methodology research and trial artifacts |
+| Topic workspace | `nimi-coding/.local/**` | Local-only incubator for methodology research and trial artifacts |
 
 ## Formal Module Structure
 
@@ -121,5 +121,5 @@ See `nimi-coding/README.md` for the full command reference and a minimum staged-
 3. Read `nimi-coding/contracts/` for authoritative system semantics.
 4. Read `nimi-coding/schema/` and `nimi-coding/protocol/` for typed execution artifacts.
 5. Use `pnpm nimi-coding:cli -- --help` for the full command surface.
-6. Use `.local/coding/**` only for incubating new patterns before promotion.
+6. Use `nimi-coding/.local/**` only for incubating new patterns before promotion.
 7. Run `pnpm nimi-coding:check` to validate the promoted module itself.

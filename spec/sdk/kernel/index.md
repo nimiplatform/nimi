@@ -56,4 +56,4 @@
 
 - kernel 表 `source_rule` 仅允许 `S-*`。
 - domain 文档只引用 kernel Rule ID，不定义本地规则体系。
-- 执行态计划与证据写入 `dev/plan/*`、`dev/report/*`。
+- 执行态 topic 工件写入 `nimi-coding/.local/<topic-id>/**`，共享执行证据写入 `nimi-coding/.local/report/**`。

@@ -8,7 +8,7 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 
 - `spec/**` is the only normative product authority. This module does not redefine product truth.
 - `nimi-coding/**` is the promoted execution system. Only stable, reusable, decision-complete assets belong here.
-- `.local/coding/**` is the local-only topic workspace for methodology research and trial artifacts. It is never committed. Promotion into this module follows `gates/promotion-policy.yaml`.
+- `nimi-coding/.local/**` is the local-only topic workspace for methodology research and trial artifacts. It is never committed. Promotion into this module follows `gates/promotion-policy.yaml`.
 
 ## What This Module Owns
 
@@ -26,7 +26,7 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 
 - Product spec authority (`spec/**`)
 - Repo-wide collaboration hygiene (e.g., `check:agents-freshness`, `check:no-legacy-doc-contracts`)
-- Topic workspace content (`.local/coding/**`)
+- Topic workspace content (`nimi-coding/.local/**`)
 - Runtime, SDK, desktop, web, or mod code
 
 See `AGENTS.md` for the full script ownership tier breakdown.
@@ -358,31 +358,31 @@ A single topic can be driven through a complete lifecycle using CLI commands:
 
 ```
 # 1. Initialize topic
-pnpm nimi-coding:init-topic -- .local/coding/my-topic
+pnpm nimi-coding:init-topic -- nimi-coding/.local/my-topic
 
 # 2. Author explore doc (manual), then validate
-pnpm nimi-coding:validate-doc -- .local/coding/my-topic/overview.explore.md
+pnpm nimi-coding:validate-doc -- nimi-coding/.local/my-topic/overview.explore.md
 
 # 3. Author baseline doc (manual), set it as active, promote topic
-pnpm nimi-coding:set-baseline -- .local/coding/my-topic methodology.baseline.md
-pnpm nimi-coding:set-topic-status -- .local/coding/my-topic active --reason "Baseline ready"
+pnpm nimi-coding:set-baseline -- nimi-coding/.local/my-topic methodology.baseline.md
+pnpm nimi-coding:set-topic-status -- nimi-coding/.local/my-topic active --reason "Baseline ready"
 
 # 4. Author prompt (manual), validate, dispatch to worker
-pnpm nimi-coding:validate-prompt -- .local/coding/my-topic/phase-1.prompt.md
+pnpm nimi-coding:validate-prompt -- nimi-coding/.local/my-topic/phase-1.prompt.md
 
 # 5. Worker executes, produces output (manual), validate
-pnpm nimi-coding:validate-worker-output -- .local/coding/my-topic/phase-1.worker-output.md
+pnpm nimi-coding:validate-worker-output -- nimi-coding/.local/my-topic/phase-1.worker-output.md
 
 # 6. Manager writes acceptance (manual), validate
-pnpm nimi-coding:validate-acceptance -- .local/coding/my-topic/phase-1.acceptance.md
+pnpm nimi-coding:validate-acceptance -- nimi-coding/.local/my-topic/phase-1.acceptance.md
 
 # 7. Record evidence, update findings
-pnpm nimi-coding:attach-evidence -- .local/coding/my-topic phase-1.evidence.md
-pnpm nimi-coding:finding-set-status -- .local/coding/my-topic F-001 fixed --reason "Resolved" --evidence-ref phase-1.evidence.md
+pnpm nimi-coding:attach-evidence -- nimi-coding/.local/my-topic phase-1.evidence.md
+pnpm nimi-coding:finding-set-status -- nimi-coding/.local/my-topic F-001 fixed --reason "Resolved" --evidence-ref phase-1.evidence.md
 
 # 8. Close topic with final evidence
-pnpm nimi-coding:attach-evidence -- .local/coding/my-topic final.evidence.md --final
-pnpm nimi-coding:set-topic-status -- .local/coding/my-topic closed --reason "All phases complete"
+pnpm nimi-coding:attach-evidence -- nimi-coding/.local/my-topic final.evidence.md --final
+pnpm nimi-coding:set-topic-status -- nimi-coding/.local/my-topic closed --reason "All phases complete"
 ```
 
 Content authoring remains manual. Markdown docs cover explore/baseline/evidence/prompt/worker-output/acceptance; execution packets are typed YAML artifacts. The CLI handles topic routing, status transitions, and validation.
@@ -396,4 +396,4 @@ Only promoted, reusable, decision-complete assets belong in this module:
 - Reusable validators and helpers
 - Self-hosting samples
 
-Active research, audit notes, and trial topics stay in `.local/coding/**` until they meet the promotion requirements in `gates/promotion-policy.yaml`.
+Active research, audit notes, and trial topics stay in `nimi-coding/.local/**` until they meet the promotion requirements in `gates/promotion-policy.yaml`.

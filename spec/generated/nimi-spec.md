@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-08
+> 生成时间: 2026-04-09
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -3132,8 +3132,8 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 ```
 追溯链
 ─────────────────────────────────────────────────
-Research Report        Backlog Item           Spec Document
-(dev/research/*.md)    (backlog-items.yaml)   (spec/**/*.md)
+Research Topic Doc     Backlog Item           Spec Document
+(nimi-coding/.local/<topic-id>/*.md) (backlog-items.yaml)   (spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │
@@ -4442,11 +4442,11 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 | Source ID | 标题 | 路径 |
 |---|---|---|
-| RESEARCH-AUI-001 | A2UI 对比校准执行记录（现存替代来源） | dev/report/archive/a2ui-future-spec-update-2026-03-14.md |
-| RESEARCH-AGRT-001 | World Evolution Engine Spec Landing Design | dev/plan/agent-runtime-kernel-spec-landing-design-2026-04-08.md |
-| RESEARCH-AGRT-002 | World Evolution Engine Reuse-Conflict Matrix | .local/coding/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/reuse-conflict-matrix-20260408.evidence.md |
-| RESEARCH-AGRT-003 | World Evolution Engine P-ARCH-002 Derived Constraints | .local/coding/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/p-arch-002-derived-constraints-20260408.evidence.md |
-| RESEARCH-AGRT-004 | World Evolution Engine Spec Intake Readiness | .local/coding/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/spec-intake-readiness-20260408.evidence.md |
+| RESEARCH-AUI-001 | A2UI 对比校准执行记录（现存替代来源） | nimi-coding/.local/report/a2ui-future-spec-update-2026-03-14.md |
+| RESEARCH-AGRT-001 | World Evolution Engine Spec Landing Design | nimi-coding/.local/report/agent-runtime-kernel-spec-landing-design-2026-04-08.md |
+| RESEARCH-AGRT-002 | World Evolution Engine Reuse-Conflict Matrix | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/reuse-conflict-matrix-20260408.evidence.md |
+| RESEARCH-AGRT-003 | World Evolution Engine P-ARCH-002 Derived Constraints | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/p-arch-002-derived-constraints-20260408.evidence.md |
+| RESEARCH-AGRT-004 | World Evolution Engine Spec Intake Readiness | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/spec-intake-readiness-20260408.evidence.md |
 
 ### 12.28 Future — Graduation Log
 

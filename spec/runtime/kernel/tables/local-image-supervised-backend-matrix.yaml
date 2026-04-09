@@ -100,7 +100,7 @@ entries:
     admission_gate: apple-mps-image-poc
     detail: >-
       recognized topology; becomes supported only after admission contract passes.
-      Requires dev/report/apple-mps-image-poc.md evidence and concurrent spec revision
+      Requires nimi-coding/.local/report/apple-mps-image-poc.md evidence and concurrent spec revision
       of K-LENG-* / K-MMPROV-* / K-PROV-* rules.
 
   - entry_id: windows-x64-nvidia-gguf
