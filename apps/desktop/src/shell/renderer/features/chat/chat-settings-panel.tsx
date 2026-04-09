@@ -15,7 +15,7 @@ import {
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import {
-  schedulingDetailKey,
+  schedulingDetailKeyForJudgement,
   schedulingTitleKey,
   useSchedulingFeasibility,
 } from './chat-execution-scheduling-guard';
@@ -132,7 +132,7 @@ export function SchedulingWarningBanner(props: { judgement: AISchedulingJudgemen
         {t(schedulingTitleKey(state))}
       </div>
       <div className={`text-[11px] ${style.text} opacity-80`}>
-        {t(schedulingDetailKey(state), { detail: detail || '' })}
+        {t(schedulingDetailKeyForJudgement(props.judgement), { detail: detail || '' })}
       </div>
       {occupancy ? (
         <div className={`text-[10px] ${style.icon}`}>

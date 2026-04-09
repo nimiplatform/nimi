@@ -63,6 +63,7 @@ test('SchedulingWarningBanner: consumes detail from judgement, not hardcoded', (
   const source = readSource('src/shell/renderer/features/chat/chat-settings-panel.tsx');
   // detail must be passed to the i18n function, not fabricated
   assert.match(source, /detail:\s*detail/);
+  assert.match(source, /schedulingDetailKeyForJudgement/);
 });
 
 test('SchedulingWarningBanner: consumes occupancy when present', () => {
@@ -190,6 +191,7 @@ for (const locale of ['en', 'zh'] as const) {
     'schedulingPreemptionRiskDetail',
     'schedulingSlowdownRiskTitle',
     'schedulingSlowdownRiskDetail',
+    'schedulingSlowdownRiskBusyDetail',
     'schedulingUnknownTitle',
     'schedulingUnknownDetail',
     'schedulingResourceWarning',

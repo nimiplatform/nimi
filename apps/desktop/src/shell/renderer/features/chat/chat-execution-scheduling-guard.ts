@@ -19,6 +19,8 @@ export type ExecutionSchedulingGuardDecision = {
   feedback: InlineFeedbackState | null;
 };
 
+const ACTIVE_EXECUTION_SLOWDOWN_WARNING = 'active local executions currently occupy scheduler slots';
+
 export function schedulingTitleKey(state: AISchedulingState): string {
   switch (state) {
     case 'denied': return 'Chat.schedulingDeniedTitle';
@@ -39,11 +41,23 @@ export function schedulingDetailKey(state: AISchedulingState): string {
   }
 }
 
+export function isBusySlowdownRisk(judgement: AISchedulingJudgement): boolean {
+  return judgement.state === 'slowdown_risk'
+    && judgement.resourceWarnings.includes(ACTIVE_EXECUTION_SLOWDOWN_WARNING);
+}
+
+export function schedulingDetailKeyForJudgement(judgement: AISchedulingJudgement): string {
+  if (isBusySlowdownRisk(judgement)) {
+    return 'Chat.schedulingSlowdownRiskBusyDetail';
+  }
+  return schedulingDetailKey(judgement.state);
+}
+
 function formatSchedulingDetail(
   t: TFunction,
   judgement: AISchedulingJudgement,
 ): string {
-  return t(schedulingDetailKey(judgement.state), { detail: judgement.detail || '' });
+  return t(schedulingDetailKeyForJudgement(judgement), { detail: judgement.detail || '' });
 }
 
 export function resolveExecutionSchedulingGuardDecision(input: {

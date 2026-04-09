@@ -454,6 +454,9 @@ func TestPeekSlowdownRiskLowRAM(t *testing.T) {
 	if j.State != StateSlowdownRisk {
 		t.Fatalf("expected slowdown_risk for low RAM, got=%s", j.State)
 	}
+	if !strings.Contains(j.Detail, slowdownRiskDetailLowResources) {
+		t.Fatalf("expected baseline slowdown detail, got=%q", j.Detail)
+	}
 }
 
 func TestPeekSlowdownRiskLowDisk(t *testing.T) {
@@ -466,6 +469,36 @@ func TestPeekSlowdownRiskLowDisk(t *testing.T) {
 	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{})
 	if j.State != StateSlowdownRisk {
 		t.Fatalf("expected slowdown_risk for low disk, got=%s", j.State)
+	}
+}
+
+func TestPeekSlowdownRiskMarksBusyDeviceWhenExecutionsRunning(t *testing.T) {
+	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 4})
+	snap := healthyResourceSnapshot()
+	snap.AvailableRAMBytes = 1_000_000_000 // below 2 GB threshold
+	s.SetResourceAssessor(func() *ResourceSnapshot { return snap })
+	s.SetRiskThresholds(RiskThresholds{
+		SlowdownRAMBytes:         2_000_000_000,
+		SlowdownVRAMBytes:        1,
+		SlowdownDiskBytes:        1,
+		PreemptionOccupancyRatio: 0.99,
+	})
+
+	release, _, err := s.Acquire(context.Background(), "app-a")
+	if err != nil {
+		t.Fatalf("acquire running execution: %v", err)
+	}
+	defer release()
+
+	j := peekSingleTarget(s, "app-b", SchedulingEvaluationTarget{})
+	if j.State != StateSlowdownRisk {
+		t.Fatalf("expected slowdown_risk for busy low-resource device, got=%s", j.State)
+	}
+	if !strings.Contains(j.Detail, slowdownRiskDetailBusyDevice) {
+		t.Fatalf("expected busy slowdown detail, got=%q", j.Detail)
+	}
+	if len(j.ResourceWarnings) == 0 || j.ResourceWarnings[0] != slowdownRiskBusyWarning {
+		t.Fatalf("expected busy warning first, got=%v", j.ResourceWarnings)
 	}
 }
 

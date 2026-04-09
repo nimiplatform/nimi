@@ -10,7 +10,9 @@ import {
 } from '@nimiplatform/sdk/mod';
 import { getDesktopAIConfigService } from '../src/shell/renderer/app-shell/providers/desktop-ai-config-service.js';
 import {
+  isBusySlowdownRisk,
   resolveExecutionSchedulingGuardDecision,
+  schedulingDetailKeyForJudgement,
 } from '../src/shell/renderer/features/chat/chat-execution-scheduling-guard.js';
 import {
   assertAiSubmitSchedulingAllowed,
@@ -30,6 +32,8 @@ function t(key: string, options?: Record<string, unknown>): string {
       return `Preemption risk. ${detail}`.trim();
     case 'Chat.schedulingSlowdownRiskDetail':
       return `Slowdown risk. ${detail}`.trim();
+    case 'Chat.schedulingSlowdownRiskBusyDetail':
+      return `Device busy. ${detail}`.trim();
     case 'Chat.schedulingUnknownDetail':
       return `Scheduling assessment unavailable. ${detail}`.trim();
     default:
@@ -149,6 +153,26 @@ test('execution scheduling guard: advisory states stay submittable with typed fe
   assert.equal(unknownDecision.disabled, false);
   assert.equal(unknownDecision.feedback?.kind, 'warning');
   assert.match(unknownDecision.feedback?.message || '', /Scheduling assessment unavailable/);
+});
+
+test('execution scheduling guard: busy slowdown risk uses busy-specific detail key', () => {
+  const judgement = {
+    ...createJudgement('slowdown_risk', 'active local executions are consuming device resources; execution may be slow'),
+    resourceWarnings: [
+      'active local executions currently occupy scheduler slots',
+      'available RAM 1000000000 bytes below threshold 2147483648 bytes',
+    ],
+  };
+
+  assert.equal(isBusySlowdownRisk(judgement), true);
+  assert.equal(schedulingDetailKeyForJudgement(judgement), 'Chat.schedulingSlowdownRiskBusyDetail');
+
+  const decision = resolveExecutionSchedulingGuardDecision({
+    judgement,
+    t: translate,
+  });
+  assert.equal(decision.feedback?.kind, 'warning');
+  assert.match(decision.feedback?.message || '', /Device busy/);
 });
 
 test('AI submit: denied scheduling judgement blocks execution before submit proceeds', async () => {

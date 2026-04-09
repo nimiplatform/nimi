@@ -146,6 +146,12 @@ type appSemaphore struct {
 	refs int
 }
 
+const (
+	slowdownRiskDetailLowResources = "device resources are low; execution may be slow"
+	slowdownRiskDetailBusyDevice   = "active local executions are consuming device resources; execution may be slow"
+	slowdownRiskBusyWarning        = "active local executions currently occupy scheduler slots"
+)
+
 func New(cfg Config) *Scheduler {
 	global := cfg.GlobalConcurrency
 	if global <= 0 {
@@ -434,9 +440,14 @@ func (s *Scheduler) peekTarget(
 	}
 
 	if len(slowdownWarnings) > 0 {
+		detail := slowdownRiskDetailLowResources
+		if occupancy.GlobalUsed > 0 {
+			detail = slowdownRiskDetailBusyDevice
+			slowdownWarnings = append([]string{slowdownRiskBusyWarning}, slowdownWarnings...)
+		}
 		return SchedulingJudgement{
 			State:            StateSlowdownRisk,
-			Detail:           "device resources are low; execution may be slow",
+			Detail:           detail,
 			Occupancy:        occupancy,
 			ResourceWarnings: slowdownWarnings,
 		}
