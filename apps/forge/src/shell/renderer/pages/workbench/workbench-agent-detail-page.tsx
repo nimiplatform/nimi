@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
 import { useRuntimeChatSession } from '@nimiplatform/nimi-kit/features/chat/runtime';
+import { ForgePage, ForgeEmptyState } from '@renderer/components/page-layout.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
+import { LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
 function buildDraftSystemPrompt(input: {
@@ -34,15 +38,11 @@ export default function WorkbenchAgentDetailPage() {
   if (!snapshot || !agentDraft) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-neutral-400">Agent draft not found.</p>
-          <button
-            onClick={() => navigate(`/workbench/${workspaceId}?panel=AGENTS`)}
-            className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-          >
-            Back to Workbench
-          </button>
-        </div>
+        <ForgeEmptyState
+          message="Agent draft not found."
+          action="Back to Workbench"
+          onAction={() => navigate(`/workbench/${workspaceId}?panel=AGENTS`)}
+        />
       </div>
     );
   }
@@ -71,124 +71,114 @@ export default function WorkbenchAgentDetailPage() {
   const resetMessages = session.resetMessages;
 
   return (
-    <div className="h-full overflow-auto p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(`/workbench/${workspaceId}?panel=AGENTS`)}
-            className="text-sm text-neutral-400 transition-colors hover:text-white"
-          >
-            &larr; Back to Workbench
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-white">{agentDraft.displayName}</h1>
-            <p className="mt-1 text-xs text-neutral-500">@{agentDraft.handle}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <section className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-300">Agent Truth</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">Display Name</span>
-                <input
-                  value={agentDraft.displayName}
-                  onChange={(event) => updateAgentDraft(workspaceId, agentId, { displayName: event.target.value })}
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">Handle</span>
-                <input
-                  value={agentDraft.handle}
-                  onChange={(event) => updateAgentDraft(workspaceId, agentId, { handle: event.target.value })}
-                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
-                />
-              </label>
-            </div>
-            <label className="mt-4 block space-y-2">
-              <span className="text-xs uppercase tracking-[0.14em] text-neutral-500">Concept</span>
-              <textarea
-                rows={4}
-                value={agentDraft.concept}
-                onChange={(event) => updateAgentDraft(workspaceId, agentId, { concept: event.target.value })}
-                className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
-              />
-            </label>
-
-            <div className="mt-6 space-y-3">
-              {(bundle?.rules || []).map((rule, index) => (
-                <div key={rule.ruleKey} className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <code className="text-xs text-neutral-500">{rule.ruleKey}</code>
-                    <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-neutral-300">
-                      {rule.layer}
-                    </span>
-                  </div>
-                  <input
-                    value={rule.title}
-                    onChange={(event) => updateReviewAgentRule(workspaceId, agentId, index, {
-                      title: event.target.value,
-                    })}
-                    className="mt-3 w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
-                  />
-                  <textarea
-                    rows={3}
-                    value={rule.statement}
-                    onChange={(event) => updateReviewAgentRule(workspaceId, agentId, index, {
-                      statement: event.target.value,
-                    })}
-                    className="mt-3 w-full rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white"
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-300">Personality Preview</h2>
-                <p className="mt-2 text-sm text-neutral-500">
-                  Preview uses the local draft concept and agent rules without requiring a persisted backend agent.
-                </p>
-              </div>
-              <button
-                onClick={() => resetMessages([])}
-                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
-              >
-                {t('agentDetail.resetChat', 'Reset')}
-              </button>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-neutral-500">System Prompt</p>
-              <pre className="mt-3 whitespace-pre-wrap text-xs leading-6 text-neutral-400">{systemPrompt}</pre>
-            </div>
-
-            <RuntimeChatPanel
-              session={session}
-              className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-950/80 shadow-none"
-              messagesClassName="h-80"
-              userMessageBubbleClassName="max-w-[85%] rounded-2xl bg-white text-black"
-              assistantMessageBubbleClassName="max-w-[85%] rounded-2xl bg-neutral-800 text-white"
-              composerClassName="border-neutral-800"
-              placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
-              sendLabel={t('agentDetail.send', 'Send')}
-              streamingLabel={t('agentDetail.streaming', 'Streaming...')}
-              cancelLabel={t('agentDetail.cancel', 'Cancel')}
-              resetLabel={t('agentDetail.resetChat', 'Reset')}
-              onReset={() => resetMessages([])}
-              emptyState={(
-                <p className="py-8 text-center text-sm text-neutral-500">
-                  No preview messages yet.
-                </p>
-              )}
-            />
-          </section>
+    <ForgePage maxWidth="max-w-5xl">
+      <div className="flex items-center gap-3">
+        <Button
+          tone="ghost"
+          size="sm"
+          onClick={() => navigate(`/workbench/${workspaceId}?panel=AGENTS`)}
+        >
+          &larr; Back to Workbench
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">{agentDraft.displayName}</h1>
+          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">@{agentDraft.handle}</p>
         </div>
       </div>
-    </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        {/* Agent Truth */}
+        <Surface tone="card" padding="md">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Agent Truth</h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <LabeledTextField
+              label="Display Name"
+              value={agentDraft.displayName}
+              onChange={(value) => updateAgentDraft(workspaceId, agentId, { displayName: value })}
+            />
+            <LabeledTextField
+              label="Handle"
+              value={agentDraft.handle}
+              onChange={(value) => updateAgentDraft(workspaceId, agentId, { handle: value })}
+            />
+          </div>
+          <LabeledTextareaField
+            label="Concept"
+            value={agentDraft.concept}
+            onChange={(value) => updateAgentDraft(workspaceId, agentId, { concept: value })}
+            rows={4}
+            className="mt-4"
+          />
+
+          <div className="mt-6 space-y-3">
+            {(bundle?.rules || []).map((rule, index) => (
+              <Surface key={rule.ruleKey} tone="card" padding="sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <code className="text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey}</code>
+                  <ForgeStatusBadge domain="generic" status={rule.layer} tone="neutral" />
+                </div>
+                <LabeledTextField
+                  label=""
+                  value={rule.title}
+                  onChange={(value) => updateReviewAgentRule(workspaceId, agentId, index, {
+                    title: value,
+                  })}
+                  className="mt-3"
+                />
+                <LabeledTextareaField
+                  label=""
+                  value={rule.statement}
+                  onChange={(value) => updateReviewAgentRule(workspaceId, agentId, index, {
+                    statement: value,
+                  })}
+                  rows={3}
+                  className="mt-3"
+                />
+              </Surface>
+            ))}
+          </div>
+        </Surface>
+
+        {/* Personality Preview */}
+        <Surface tone="card" padding="md">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Personality Preview</h2>
+              <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
+                Preview uses the local draft concept and agent rules without requiring a persisted backend agent.
+              </p>
+            </div>
+            <Button tone="secondary" size="sm" onClick={() => resetMessages([])}>
+              {t('agentDetail.resetChat', 'Reset')}
+            </Button>
+          </div>
+
+          <Surface tone="card" padding="sm" className="mt-5">
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">System Prompt</p>
+            <pre className="mt-3 whitespace-pre-wrap text-xs leading-6 text-[var(--nimi-text-secondary)]">{systemPrompt}</pre>
+          </Surface>
+
+          <RuntimeChatPanel
+            session={session}
+            className="mt-5 rounded-[var(--nimi-radius-card)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] shadow-none"
+            messagesClassName="h-80"
+            userMessageBubbleClassName="max-w-[85%] rounded-2xl bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]"
+            assistantMessageBubbleClassName="max-w-[85%] rounded-2xl bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-primary)]"
+            composerClassName="border-[var(--nimi-border-subtle)]"
+            placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
+            sendLabel={t('agentDetail.send', 'Send')}
+            streamingLabel={t('agentDetail.streaming', 'Streaming...')}
+            cancelLabel={t('agentDetail.cancel', 'Cancel')}
+            resetLabel={t('agentDetail.resetChat', 'Reset')}
+            onReset={() => resetMessages([])}
+            emptyState={(
+              <p className="py-8 text-center text-sm text-[var(--nimi-text-muted)]">
+                No preview messages yet.
+              </p>
+            )}
+          />
+        </Surface>
+      </div>
+    </ForgePage>
   );
 }

@@ -9,7 +9,7 @@ describe('ForgeAppStore', () => {
       bootstrapReady: false,
       bootstrapError: null,
       runtimeDefaults: null,
-      creatorAccess: { checked: false, hasAccess: false },
+      creatorAccess: { checked: false, hasAccess: false, canCreateWorld: false, canMaintainWorld: false, records: [] },
       sidebarCollapsed: false,
     });
   });
@@ -25,7 +25,7 @@ describe('ForgeAppStore', () => {
 
     it('setAuthSession transitions to authenticated', () => {
       const user = { id: 'u1', displayName: 'Test User', email: 'test@example.com' };
-      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true } });
+      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true, canCreateWorld: true, canMaintainWorld: true, records: [] } });
       useAppStore.getState().setAuthSession(user, 'tok123', 'ref456');
 
       const state = useAppStore.getState();
@@ -33,20 +33,32 @@ describe('ForgeAppStore', () => {
       expect(state.auth.user).toEqual(user);
       expect(state.auth.token).toBe('tok123');
       expect(state.auth.refreshToken).toBe('ref456');
-      expect(state.creatorAccess).toEqual({ checked: false, hasAccess: false });
+      expect(state.creatorAccess).toEqual({
+        checked: false,
+        hasAccess: false,
+        canCreateWorld: false,
+        canMaintainWorld: false,
+        records: [],
+      });
     });
 
     it('clearAuthSession transitions to unauthenticated', () => {
       const user = { id: 'u1', displayName: 'Test' };
       useAppStore.getState().setAuthSession(user, 'tok', 'ref');
-      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true } });
+      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true, canCreateWorld: true, canMaintainWorld: true, records: [] } });
       useAppStore.getState().clearAuthSession();
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('unauthenticated');
       expect(state.auth.user).toBeNull();
       expect(state.auth.token).toBe('');
-      expect(state.creatorAccess).toEqual({ checked: false, hasAccess: false });
+      expect(state.creatorAccess).toEqual({
+        checked: false,
+        hasAccess: false,
+        canCreateWorld: false,
+        canMaintainWorld: false,
+        records: [],
+      });
     });
   });
 
@@ -76,17 +88,30 @@ describe('ForgeAppStore', () => {
     });
 
     it('setCreatorAccess marks checked and sets access', () => {
-      useAppStore.getState().setCreatorAccess(true);
+      useAppStore.getState().setCreatorAccess({
+        hasAccess: true,
+        canCreateWorld: true,
+        canMaintainWorld: true,
+        records: [{ id: 'r1', userId: 'u1', scopeType: 'CREATE', canCreateWorld: true, canMaintainWorld: true, maintainRole: 'OWNER', status: 'ACTIVE', expiresAt: null }],
+      });
       const state = useAppStore.getState();
       expect(state.creatorAccess.checked).toBe(true);
       expect(state.creatorAccess.hasAccess).toBe(true);
+      expect(state.creatorAccess.canCreateWorld).toBe(true);
+      expect(state.creatorAccess.records).toHaveLength(1);
     });
 
-    it('setCreatorAccess with false marks checked without access', () => {
-      useAppStore.getState().setCreatorAccess(false);
+    it('setCreatorAccess with no access marks checked without access', () => {
+      useAppStore.getState().setCreatorAccess({
+        hasAccess: false,
+        canCreateWorld: false,
+        canMaintainWorld: false,
+        records: [],
+      });
       const state = useAppStore.getState();
       expect(state.creatorAccess.checked).toBe(true);
       expect(state.creatorAccess.hasAccess).toBe(false);
+      expect(state.creatorAccess.records).toHaveLength(0);
     });
   });
 

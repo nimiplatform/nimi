@@ -28,9 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (bootstrapError) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
         <div className="text-center space-y-4">
-          <p className="text-red-400 text-lg">{t('bootstrap.error', { message: bootstrapError })}</p>
+          <p className="text-[var(--nimi-status-danger)] text-lg">{t('bootstrap.error', { message: bootstrapError })}</p>
         </div>
       </div>
     );
@@ -38,10 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (!bootstrapReady || authStatus === 'bootstrapping') {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
         <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-          <p className="text-neutral-400">{t('bootstrap.loading')}</p>
+          <div className="w-8 h-8 border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-text-primary)] rounded-full animate-spin mx-auto" />
+          <p className="text-[var(--nimi-text-muted)]">{t('bootstrap.loading')}</p>
         </div>
       </div>
     );

@@ -12,6 +12,10 @@ import {
   createWorldDraft,
   updateWorldDraft,
   publishWorldDraft,
+  publishWorldPackage,
+  createOfficialFactoryBatchRun,
+  retryOfficialFactoryBatchRun,
+  reportOfficialFactoryBatchItemFailure,
   commitWorldState,
   listWorldRules,
   createWorldRule,
@@ -29,10 +33,14 @@ import {
   type ForgeBatchUpsertWorldResourceBindingsInput,
   type ForgeBatchCreateCreatorAgentsInput,
   type ForgeAppendWorldHistoryInput,
+  type ForgeCreateOfficialFactoryBatchRunInput,
   type ForgeCreateAgentRuleInput,
   type ForgeCreateWorldDraftInput,
   type ForgeCreateWorldRuleInput,
   type ForgePublishWorldDraftInput,
+  type ForgePublishWorldPackageInput,
+  type ForgeReportOfficialFactoryBatchItemFailureInput,
+  type ForgeOfficialFactoryBatchRun,
   type ForgeUpdateAgentRuleInput,
   type ForgeUpdateWorldDraftInput,
   type ForgeUpdateWorldRuleInput,
@@ -72,6 +80,32 @@ export function useWorldCommitActions() {
       const payload: ForgePublishWorldDraftInput = { reason: input.reason };
       return await publishWorldDraft(input.draftId, payload);
     },
+  });
+
+  const publishPackageMutation = useMutation({
+    mutationFn: async (input: ForgePublishWorldPackageInput) =>
+      await publishWorldPackage(input),
+  });
+
+  const createBatchRunMutation = useMutation({
+    mutationFn: async (input: ForgeCreateOfficialFactoryBatchRunInput) =>
+      await createOfficialFactoryBatchRun(input),
+  });
+
+  const reportBatchItemFailureMutation = useMutation({
+    mutationFn: async (input: {
+      runId: string;
+      itemId: string;
+      payload: ForgeReportOfficialFactoryBatchItemFailureInput;
+    }) => await reportOfficialFactoryBatchItemFailure(input.runId, input.itemId, input.payload),
+  });
+
+  const retryBatchRunMutation = useMutation({
+    mutationFn: async (input: {
+      runId: string;
+      reason?: string;
+    }): Promise<ForgeOfficialFactoryBatchRun> =>
+      await retryOfficialFactoryBatchRun(input.runId, { reason: input.reason }),
   });
 
   const saveMaintenanceMutation = useMutation({
@@ -223,6 +257,10 @@ export function useWorldCommitActions() {
   return {
     saveDraftMutation,
     publishDraftMutation,
+    publishPackageMutation,
+    createBatchRunMutation,
+    reportBatchItemFailureMutation,
+    retryBatchRunMutation,
     saveMaintenanceMutation,
     listWorldRulesMutation,
     createWorldRuleMutation,

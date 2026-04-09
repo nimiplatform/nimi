@@ -6,7 +6,17 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, StatusBadge, Surface, useNimiTheme } from '@nimiplatform/nimi-kit/ui';
+import {
+  Button,
+  StatusBadge,
+  Surface,
+  SettingsPageShell,
+  SettingsCard,
+  SettingsSectionTitle,
+  useNimiTheme,
+} from '@nimiplatform/nimi-kit/ui';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
+import { ToggleRow } from '@renderer/components/form-fields.js';
 import { AiConfigSection } from './ai-config-section.js';
 
 type ThemeOption = 'light' | 'dark';
@@ -70,122 +80,96 @@ export default function SettingsPage() {
   }
 
   return (
-    <Surface tone="canvas" padding="none" className="h-full overflow-auto rounded-none border-0 p-6">
-      <div className="mx-auto max-w-2xl space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-[color:var(--nimi-text-primary)]">{t('pages.settingsPage')}</h1>
-          <p className="mt-1 text-sm text-[color:var(--nimi-text-muted)]">
-            {t('settings.subtitle', 'Configure your Forge experience')}
-          </p>
-        </div>
-
-        {/* Appearance */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
-            {t('settings.appearance', 'Appearance')}
-          </h2>
-
-          <SettingRow
-            label={t('settings.theme', 'Theme')}
-            description={t('settings.themeDesc', 'Choose color scheme')}
-          >
-            <div className="flex gap-2">
-              {(['light', 'dark'] as const).map((option) => (
-                <Button
-                  key={option}
-                  onClick={() => update('theme', option)}
-                  tone={settings.theme === option ? 'primary' : 'secondary'}
-                  size="sm"
-                >
-                  {option === 'dark' ? t('settings.themeDark', 'Dark') : t('settings.themeLight', 'Light')}
-                </Button>
-              ))}
-            </div>
-          </SettingRow>
-
-          <SettingRow
-            label={t('settings.language', 'Language')}
-            description={t('settings.languageDesc', 'Interface language')}
-          >
-            <div className="flex gap-2">
-              {(['en', 'zh'] as const).map((lang) => (
-                <Button
-                  key={lang}
-                  onClick={() => update('language', lang)}
-                  tone={settings.language === lang ? 'primary' : 'secondary'}
-                  size="sm"
-                >
-                  {lang === 'en' ? 'English' : '中文'}
-                </Button>
-              ))}
-            </div>
-          </SettingRow>
-
-          <SettingRow
-            label={t('settings.sidebarDefault', 'Sidebar Default')}
-            description={t('settings.sidebarDefaultDesc', 'Sidebar state on app launch')}
-          >
-            <div className="flex gap-2">
-              <Button
-                onClick={() => update('sidebarCollapsed', false)}
-                tone={!settings.sidebarCollapsed ? 'primary' : 'secondary'}
-                size="sm"
-              >
-                {t('settings.expanded', 'Expanded')}
-              </Button>
-              <Button
-                onClick={() => update('sidebarCollapsed', true)}
-                tone={settings.sidebarCollapsed ? 'primary' : 'secondary'}
-                size="sm"
-              >
-                {t('settings.collapsed', 'Collapsed')}
-              </Button>
-            </div>
-          </SettingRow>
-        </section>
-
-        {/* Notifications */}
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
-            {t('settings.notifications', 'Notifications')}
-          </h2>
-
-          <SettingRow
-            label={t('settings.enableNotifications', 'Enable Notifications')}
-            description={t('settings.enableNotificationsDesc', 'Show desktop notifications for important events')}
-          >
-            <Button
-              onClick={() => update('notificationsEnabled', !settings.notificationsEnabled)}
-              tone={settings.notificationsEnabled ? 'primary' : 'secondary'}
-              size="sm"
-              className="min-w-24 justify-center"
-            >
-              {settings.notificationsEnabled
-                ? t('Common.enabled', 'Enabled')
-                : t('Common.disabled', 'Disabled')}
-            </Button>
-          </SettingRow>
-        </section>
-
-        {/* AI Configuration */}
-        <AiConfigSection />
-
-        {/* About */}
-        <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
-            {t('settings.about', 'About')}
-          </h2>
-          <Surface tone="card" elevation="base" className="px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-[color:var(--nimi-text-secondary)]">
-                {t('app.name')} — {t('settings.version', 'Version')} 0.1.0
-              </p>
-              <StatusBadge tone="info">{`nimi-${scheme}`}</StatusBadge>
-            </div>
-          </Surface>
-        </section>
+    <SettingsPageShell
+      scrollClassName="!bg-[var(--nimi-surface-canvas)]"
+      viewportClassName="!bg-[var(--nimi-surface-canvas)]"
+    >
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--nimi-text-primary)]">{t('pages.settingsPage')}</h1>
+        <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">
+          {t('settings.subtitle', 'Configure your Forge experience')}
+        </p>
       </div>
-    </Surface>
+
+      {/* Appearance */}
+      <section className="space-y-3">
+        <SettingsSectionTitle description={t('settings.appearanceDesc', 'Theme, language, and layout preferences')}>
+          {t('settings.appearance', 'Appearance')}
+        </SettingsSectionTitle>
+
+        <SettingsCard>
+          <div className="divide-y divide-[var(--nimi-border-subtle)]">
+            <SettingRow label={t('settings.theme', 'Theme')} description={t('settings.themeDesc', 'Choose color scheme')}>
+              <ForgeSegmentControl
+                options={[
+                  { value: 'light' as const, label: t('settings.themeLight', 'Light') },
+                  { value: 'dark' as const, label: t('settings.themeDark', 'Dark') },
+                ]}
+                value={settings.theme}
+                onChange={(v) => update('theme', v)}
+              />
+            </SettingRow>
+
+            <SettingRow label={t('settings.language', 'Language')} description={t('settings.languageDesc', 'Interface language')}>
+              <ForgeSegmentControl
+                options={[
+                  { value: 'en' as const, label: 'English' },
+                  { value: 'zh' as const, label: '中文' },
+                ]}
+                value={settings.language}
+                onChange={(v) => update('language', v)}
+              />
+            </SettingRow>
+
+            <SettingRow label={t('settings.sidebarDefault', 'Sidebar Default')} description={t('settings.sidebarDefaultDesc', 'Sidebar state on app launch')}>
+              <ForgeSegmentControl
+                options={[
+                  { value: 'expanded' as const, label: t('settings.expanded', 'Expanded') },
+                  { value: 'collapsed' as const, label: t('settings.collapsed', 'Collapsed') },
+                ]}
+                value={settings.sidebarCollapsed ? 'collapsed' : 'expanded'}
+                onChange={(v) => update('sidebarCollapsed', v === 'collapsed')}
+              />
+            </SettingRow>
+          </div>
+        </SettingsCard>
+      </section>
+
+      {/* Notifications */}
+      <section className="space-y-3">
+        <SettingsSectionTitle description={t('settings.notificationsDesc', 'Control desktop notification behavior')}>
+          {t('settings.notifications', 'Notifications')}
+        </SettingsSectionTitle>
+
+        <SettingsCard>
+          <div className="px-4">
+            <ToggleRow
+              label={t('settings.enableNotifications', 'Enable Notifications')}
+              description={t('settings.enableNotificationsDesc', 'Show desktop notifications for important events')}
+              checked={settings.notificationsEnabled}
+              onChange={(v) => update('notificationsEnabled', v)}
+            />
+          </div>
+        </SettingsCard>
+      </section>
+
+      {/* AI Configuration */}
+      <AiConfigSection />
+
+      {/* About */}
+      <section className="space-y-3">
+        <SettingsSectionTitle>{t('settings.about', 'About')}</SettingsSectionTitle>
+        <SettingsCard>
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm text-[var(--nimi-text-secondary)]">
+              {t('app.name')} — {t('settings.version', 'Version')} 0.1.0
+            </p>
+            <StatusBadge tone="info">{`nimi-${scheme}`}</StatusBadge>
+          </div>
+        </SettingsCard>
+      </section>
+    </SettingsPageShell>
   );
 }
 
@@ -199,12 +183,12 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <Surface tone="card" elevation="base" className="flex items-center justify-between px-4 py-3">
+    <div className="flex items-center justify-between px-4 py-3">
       <div>
-        <p className="text-sm font-medium text-[color:var(--nimi-text-primary)]">{label}</p>
-        <p className="mt-0.5 text-xs text-[color:var(--nimi-text-muted)]">{description}</p>
+        <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{label}</p>
+        <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{description}</p>
       </div>
       {children}
-    </Surface>
+    </div>
   );
 }

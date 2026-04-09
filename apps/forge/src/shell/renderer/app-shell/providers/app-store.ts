@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { RuntimeDefaults } from '@renderer/bridge/types.js';
+import type { ForgeWorldAccessRecord } from '@renderer/data/world-data-client.js';
 
 export type AuthUser = {
   id: string;
@@ -9,6 +10,22 @@ export type AuthUser = {
 };
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
+
+export type CreatorAccessState = {
+  checked: boolean;
+  hasAccess: boolean;
+  canCreateWorld: boolean;
+  canMaintainWorld: boolean;
+  records: ForgeWorldAccessRecord[];
+};
+
+const EMPTY_CREATOR_ACCESS: CreatorAccessState = {
+  checked: false,
+  hasAccess: false,
+  canCreateWorld: false,
+  canMaintainWorld: false,
+  records: [],
+};
 
 export interface ForgeAppStore {
   auth: {
@@ -20,10 +37,7 @@ export interface ForgeAppStore {
   bootstrapReady: boolean;
   bootstrapError: string | null;
   runtimeDefaults: RuntimeDefaults | null;
-  creatorAccess: {
-    checked: boolean;
-    hasAccess: boolean;
-  };
+  creatorAccess: CreatorAccessState;
   sidebarCollapsed: boolean;
 
   setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
@@ -31,7 +45,12 @@ export interface ForgeAppStore {
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(error: string | null): void;
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
-  setCreatorAccess(hasAccess: boolean): void;
+  setCreatorAccess(access: {
+    hasAccess: boolean;
+    canCreateWorld: boolean;
+    canMaintainWorld: boolean;
+    records: ForgeWorldAccessRecord[];
+  }): void;
   toggleSidebar(): void;
 }
 
@@ -45,23 +64,20 @@ export const useAppStore = create<ForgeAppStore>((set) => ({
   bootstrapReady: false,
   bootstrapError: null,
   runtimeDefaults: null,
-  creatorAccess: {
-    checked: false,
-    hasAccess: false,
-  },
+  creatorAccess: { ...EMPTY_CREATOR_ACCESS },
   sidebarCollapsed: false,
 
   setAuthSession(user, token, refreshToken) {
     set({
       auth: { status: 'authenticated', user, token, refreshToken },
-      creatorAccess: { checked: false, hasAccess: false },
+      creatorAccess: { ...EMPTY_CREATOR_ACCESS },
     });
   },
 
   clearAuthSession() {
     set({
       auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
-      creatorAccess: { checked: false, hasAccess: false },
+      creatorAccess: { ...EMPTY_CREATOR_ACCESS },
     });
   },
 
@@ -77,8 +93,16 @@ export const useAppStore = create<ForgeAppStore>((set) => ({
     set({ runtimeDefaults: defaults });
   },
 
-  setCreatorAccess(hasAccess) {
-    set({ creatorAccess: { checked: true, hasAccess } });
+  setCreatorAccess(access) {
+    set({
+      creatorAccess: {
+        checked: true,
+        hasAccess: access.hasAccess,
+        canCreateWorld: access.canCreateWorld,
+        canMaintainWorld: access.canMaintainWorld,
+        records: access.records,
+      },
+    });
   },
 
   toggleSidebar() {

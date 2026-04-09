@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import {
   createCreatorAgent,
   deleteAgent,
+  updateAgent,
   updateAgentDna,
   updateAgentSoulPrime,
   createCreatorKey,
@@ -25,6 +26,11 @@ export function useAgentMutations() {
   const deleteAgentMutation = useMutation({
     mutationFn: async (agentId: string) =>
       await deleteAgent(agentId),
+  });
+
+  const updateAgentMutation = useMutation({
+    mutationFn: async (input: { agentId: string; payload: { displayName?: string; bio?: string; avatarUrl?: string } }) =>
+      await updateAgent(input.agentId, input.payload),
   });
 
   const updateDnaMutation = useMutation({
@@ -54,6 +60,7 @@ export function useAgentMutations() {
   return {
     createAgentMutation,
     deleteAgentMutation,
+    updateAgentMutation,
     updateDnaMutation,
     updateSoulPrimeMutation,
     createKeyMutation,

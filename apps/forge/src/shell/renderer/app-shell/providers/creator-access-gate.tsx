@@ -1,7 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from './app-store.js';
 import { getMyWorldAccess } from '@renderer/data/world-data-client.js';
+import { ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
 
 export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
@@ -15,10 +17,20 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
 
     async function checkAccess() {
       try {
-        const response = await getMyWorldAccess();
-        setCreatorAccess(Boolean(response.hasAccess));
+        const result = await getMyWorldAccess();
+        setCreatorAccess({
+          hasAccess: result.hasAccess,
+          canCreateWorld: result.canCreateWorld,
+          canMaintainWorld: result.canMaintainWorld,
+          records: result.records,
+        });
       } catch {
-        setCreatorAccess(false);
+        setCreatorAccess({
+          hasAccess: false,
+          canCreateWorld: false,
+          canMaintainWorld: false,
+          records: [],
+        });
       }
     }
 
@@ -26,7 +38,6 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
   }, [creatorAccess.checked, setCreatorAccess]);
 
   const handleRetryCheck = useCallback(() => {
-    useAppStore.getState().setCreatorAccess(false);
     useAppStore.setState((s) => ({
       creatorAccess: { ...s.creatorAccess, checked: false },
     }));
@@ -34,10 +45,10 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
 
   if (!creatorAccess.checked) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
         <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-          <p className="text-neutral-400">{t('auth.loading')}</p>
+          <ForgeLoadingSpinner />
+          <p className="text-[var(--nimi-text-muted)]">{t('auth.loading')}</p>
         </div>
       </div>
     );
@@ -45,18 +56,15 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
 
   if (!creatorAccess.hasAccess) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
         <div className="text-center space-y-6 max-w-sm">
-          <p className="text-neutral-300 text-lg">{t('auth.creatorAccessRequired')}</p>
-          <p className="text-sm text-neutral-400">
+          <p className="text-[var(--nimi-text-secondary)] text-lg">{t('auth.creatorAccessRequired')}</p>
+          <p className="text-sm text-[var(--nimi-text-muted)]">
             {t('auth.applyUnavailable', 'Creator access is managed outside Forge right now. Ask an admin to grant access, then re-check here.')}
           </p>
-          <button
-            onClick={handleRetryCheck}
-            className="px-6 py-2 border border-neutral-600 text-neutral-300 rounded-lg font-medium hover:bg-neutral-800 transition-colors"
-          >
+          <Button tone="secondary" onClick={handleRetryCheck}>
             {t('auth.recheckAccess', 'Check Again')}
-          </button>
+          </Button>
         </div>
       </div>
     );

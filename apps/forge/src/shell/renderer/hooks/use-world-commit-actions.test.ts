@@ -9,6 +9,10 @@ const mockWorldDataClient = vi.hoisted(() => ({
   createWorldDraft: vi.fn(),
   updateWorldDraft: vi.fn(),
   publishWorldDraft: vi.fn(),
+  publishWorldPackage: vi.fn(),
+  createOfficialFactoryBatchRun: vi.fn(),
+  retryOfficialFactoryBatchRun: vi.fn(),
+  reportOfficialFactoryBatchItemFailure: vi.fn(),
   commitWorldState: vi.fn(),
   listWorldRules: vi.fn(),
   createWorldRule: vi.fn(),
@@ -90,6 +94,10 @@ describe('useWorldCommitActions', () => {
 
     expect(result.current).toHaveProperty('saveDraftMutation');
     expect(result.current).toHaveProperty('publishDraftMutation');
+    expect(result.current).toHaveProperty('publishPackageMutation');
+    expect(result.current).toHaveProperty('createBatchRunMutation');
+    expect(result.current).toHaveProperty('reportBatchItemFailureMutation');
+    expect(result.current).toHaveProperty('retryBatchRunMutation');
     expect(result.current).toHaveProperty('saveMaintenanceMutation');
     expect(result.current).toHaveProperty('listWorldRulesMutation');
     expect(result.current).toHaveProperty('createWorldRuleMutation');
@@ -154,6 +162,208 @@ describe('useWorldCommitActions', () => {
 
     await expect(result.current.deleteEventMutation.mutateAsync()).rejects.toThrow(
       /WORLD_HISTORY_APPEND_ONLY/,
+    );
+  });
+
+  it('publishPackageMutation calls publishWorldPackage', async () => {
+    mockWorldDataClient.publishWorldPackage.mockResolvedValue({
+      slug: 'realm',
+      worldId: 'world-1',
+      worldName: 'Realm',
+      packageVersion: 'forge-ws-1',
+      mode: 'upsert-sync',
+      actionCount: 8,
+      publishedBy: 'admin-1',
+      release: {
+        id: 'release-1',
+        worldId: 'world-1',
+        version: 1,
+        releaseType: 'PUBLISH',
+        status: 'PUBLISHED',
+        ruleCount: 1,
+        ruleChecksum: 'checksum-1',
+        createdAt: '2026-04-09T21:40:00.000Z',
+        createdBy: 'admin-1',
+      },
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
+
+    await expect(
+      result.current.publishPackageMutation.mutateAsync({
+        package: {
+          slug: 'realm',
+          meta: {
+            sourceTitle: 'Realm',
+            sourceMode: 'forge-official',
+            generatedBy: 'world-agent-package-factory',
+            version: 'forge-ws-1',
+          },
+          slicePolicy: {
+            timeSlice: 'start-1',
+            forbiddenTerms: [],
+          },
+          world: {
+            id: 'world-1',
+            creatorId: 'user-1',
+            name: 'Realm',
+            tagline: 'Tag',
+            motto: null,
+            overview: null,
+            description: 'Desc',
+            genre: 'fantasy',
+            themes: ['fantasy'],
+            era: null,
+            contentRating: 'UNRATED',
+            type: 'CREATOR',
+            status: 'ACTIVE',
+            nativeCreationState: 'OPEN',
+            nativeAgentLimit: 0,
+            transitInLimit: 16,
+            lorebookEntryLimit: 0,
+            level: 1,
+            scoreQ: 0,
+            scoreC: 0,
+            scoreA: 0,
+            scoreE: 0,
+            scoreEwma: 0,
+          },
+          worldviewMetadata: {
+            id: 'wv-1',
+            worldId: 'world-1',
+            version: 1,
+            lifecycle: 'ACTIVE',
+          },
+          worldRules: [{
+            ruleKey: 'axiom:time:flow',
+            title: 'Time flows',
+            statement: 'Time moves forward.',
+            category: 'DEFINITION',
+            domain: 'AXIOM',
+            hardness: 'HARD',
+            scope: 'WORLD',
+          }],
+          agentBlueprints: [],
+          agentRelationships: [],
+          scenes: [],
+          worldLorebooks: [],
+          agentLorebooks: [],
+          resources: [],
+          bindings: [],
+          worldDrafts: [],
+        },
+        governance: {
+          officialOwnerId: 'user-1',
+          editorialOperatorId: 'user-1',
+          reviewerId: 'user-1',
+          publisherId: 'user-1',
+          publishActorId: 'user-1',
+          sourceProvenance: 'forge-text-source',
+          reviewVerdict: 'approved',
+        },
+      }),
+    ).resolves.toMatchObject({
+      worldId: 'world-1',
+    });
+
+    expect(mockWorldDataClient.publishWorldPackage).toHaveBeenCalledWith(expect.objectContaining({
+      package: expect.objectContaining({
+        slug: 'realm',
+      }),
+    }));
+  });
+
+  it('createBatchRunMutation calls createOfficialFactoryBatchRun', async () => {
+    mockWorldDataClient.createOfficialFactoryBatchRun.mockResolvedValue({
+      id: 'run-1',
+      name: 'Batch 1',
+      requestedBy: 'admin-1',
+      status: 'QUEUED',
+      pipelineStages: ['ingest', 'validate'],
+      retryLimit: 1,
+      retryCount: 0,
+      batchItemCount: 1,
+      successCount: 0,
+      failureCount: 0,
+      createdAt: '2026-04-09T22:00:00.000Z',
+      updatedAt: '2026-04-09T22:00:00.000Z',
+      items: [],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
+
+    await expect(
+      result.current.createBatchRunMutation.mutateAsync({
+        name: 'Batch 1',
+        pipelineStages: ['ingest', 'validate'],
+        items: [{ slug: 'realm', sourceTitle: 'Realm Source', canonicalTitle: 'Realm', sourceMode: 'forge-official' }],
+      }),
+    ).resolves.toMatchObject({
+      id: 'run-1',
+      status: 'QUEUED',
+    });
+
+    expect(mockWorldDataClient.createOfficialFactoryBatchRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Batch 1',
+        pipelineStages: ['ingest', 'validate'],
+      }),
+    );
+  });
+
+  it('reportBatchItemFailureMutation calls reportOfficialFactoryBatchItemFailure', async () => {
+    mockWorldDataClient.reportOfficialFactoryBatchItemFailure.mockResolvedValue({
+      id: 'run-1',
+      failureCount: 1,
+      items: [],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
+
+    await expect(
+      result.current.reportBatchItemFailureMutation.mutateAsync({
+        runId: 'run-1',
+        itemId: 'item-1',
+        payload: { reason: 'publish failed' },
+      }),
+    ).resolves.toMatchObject({
+      id: 'run-1',
+      failureCount: 1,
+    });
+
+    expect(mockWorldDataClient.reportOfficialFactoryBatchItemFailure).toHaveBeenCalledWith(
+      'run-1',
+      'item-1',
+      { reason: 'publish failed' },
+    );
+  });
+
+  it('retryBatchRunMutation calls retryOfficialFactoryBatchRun', async () => {
+    mockWorldDataClient.retryOfficialFactoryBatchRun.mockResolvedValue({
+      id: 'run-1',
+      retryCount: 1,
+      items: [],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
+
+    await expect(
+      result.current.retryBatchRunMutation.mutateAsync({
+        runId: 'run-1',
+        reason: 'retry from create page',
+      }),
+    ).resolves.toMatchObject({
+      id: 'run-1',
+      retryCount: 1,
+    });
+
+    expect(mockWorldDataClient.retryOfficialFactoryBatchRun).toHaveBeenCalledWith(
+      'run-1',
+      { reason: 'retry from create page' },
     );
   });
 

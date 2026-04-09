@@ -1,19 +1,17 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useEffect, useState } from 'react';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { AgentSummary } from '@renderer/hooks/use-agent-queries.js';
+import { LabeledTextField, LabeledTextareaField, LabeledSelectField } from '@renderer/components/form-fields.js';
 import { AgentRuleEditor, WorldRuleEditor } from './world-rule-truth-panel-editors.js';
 import {
-  AGENT_RULE_LAYERS,
-  AGENT_RULE_SCOPES,
-  RULE_CATEGORIES,
-  RULE_HARDNESS,
-  WORLD_RULE_DOMAINS,
-  WORLD_RULE_SCOPES,
-  TruthField,
-  TruthInput,
-  TruthSelect,
-  TruthTextarea,
+  WORLD_RULE_DOMAIN_OPTIONS,
+  WORLD_RULE_SCOPE_OPTIONS,
+  AGENT_RULE_LAYER_OPTIONS,
+  AGENT_RULE_SCOPE_OPTIONS,
+  RULE_CATEGORY_OPTIONS,
+  RULE_HARDNESS_OPTIONS,
   buildAgentRulePayload,
   buildWorldRulePayload,
   createAgentRuleForm,
@@ -81,146 +79,133 @@ export function WorldRuleTruthPanel({
     }
   }, [onSelectedAgentIdChange, selectedAgentId, worldAgents]);
 
+  const agentOptions = worldAgents.length === 0
+    ? [{ value: '', label: 'No world-owned agents' }]
+    : worldAgents.map((agent) => ({
+      value: agent.id,
+      label: agent.displayName || agent.handle || agent.id,
+    }));
+
   return (
-    <section className="border-b border-neutral-800 bg-neutral-950/60 px-4 py-4">
+    <section className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] px-4 py-4">
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-300">Rule Truth</h2>
-          <p className="mt-1 max-w-3xl text-sm text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Rule Truth</h2>
+          <p className="mt-1 max-w-3xl text-sm text-[var(--nimi-text-muted)]">
             Worldview and lorebooks below are projection previews. Creator writes now go directly through WorldRule and AgentRule CRUD.
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/70 p-4">
+        <Surface tone="panel" padding="md" className="rounded-xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-white">World Rules</h3>
-              <p className="text-xs text-neutral-500">Canonical truth for worldview projection.</p>
+              <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">World Rules</h3>
+              <p className="text-xs text-[var(--nimi-text-muted)]">Canonical truth for worldview projection.</p>
             </div>
-            <span className="rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-300">{worldRules.length} active</span>
+            <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{worldRules.length} active</span>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <TruthField label="Rule Key">
-              <TruthInput
-                value={worldForm.ruleKey}
-                onChange={(event) => setWorldForm((state) => ({ ...state, ruleKey: event.target.value }))}
-                placeholder="axiom:time:flow"
-              />
-            </TruthField>
-            <TruthField label="Domain">
-              <TruthSelect
-                value={worldForm.domain}
-                onChange={(event) => setWorldForm((state) => ({ ...state, domain: event.target.value as WorldRuleFormState['domain'] }))}
-              >
-                {WORLD_RULE_DOMAINS.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Title">
-              <TruthInput
-                value={worldForm.title}
-                onChange={(event) => setWorldForm((state) => ({ ...state, title: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Scope">
-              <TruthSelect
-                value={worldForm.scope}
-                onChange={(event) => setWorldForm((state) => ({ ...state, scope: event.target.value as WorldRuleFormState['scope'] }))}
-              >
-                {WORLD_RULE_SCOPES.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
+            <LabeledTextField
+              label="Rule Key"
+              value={worldForm.ruleKey}
+              onChange={(value) => setWorldForm((state) => ({ ...state, ruleKey: value }))}
+              placeholder="axiom:time:flow"
+            />
+            <LabeledSelectField
+              label="Domain"
+              value={worldForm.domain}
+              options={WORLD_RULE_DOMAIN_OPTIONS}
+              onChange={(value) => setWorldForm((state) => ({ ...state, domain: value as WorldRuleFormState['domain'] }))}
+            />
+            <LabeledTextField
+              label="Title"
+              value={worldForm.title}
+              onChange={(value) => setWorldForm((state) => ({ ...state, title: value }))}
+            />
+            <LabeledSelectField
+              label="Scope"
+              value={worldForm.scope}
+              options={WORLD_RULE_SCOPE_OPTIONS}
+              onChange={(value) => setWorldForm((state) => ({ ...state, scope: value as WorldRuleFormState['scope'] }))}
+            />
           </div>
 
-          <div className="mt-3">
-            <TruthField label="Statement">
-              <TruthTextarea
-                rows={3}
-                value={worldForm.statement}
-                onChange={(event) => setWorldForm((state) => ({ ...state, statement: event.target.value }))}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Statement"
+            value={worldForm.statement}
+            onChange={(value) => setWorldForm((state) => ({ ...state, statement: value }))}
+            rows={3}
+            className="mt-3"
+          />
 
           <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <TruthField label="Category">
-              <TruthSelect
-                value={worldForm.category}
-                onChange={(event) => setWorldForm((state) => ({ ...state, category: event.target.value as WorldRuleFormState['category'] }))}
-              >
-                {RULE_CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Hardness">
-              <TruthSelect
-                value={worldForm.hardness}
-                onChange={(event) => setWorldForm((state) => ({ ...state, hardness: event.target.value as WorldRuleFormState['hardness'] }))}
-              >
-                {RULE_HARDNESS.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Priority">
-              <TruthInput
-                value={worldForm.priority}
-                onChange={(event) => setWorldForm((state) => ({ ...state, priority: event.target.value }))}
-              />
-            </TruthField>
+            <LabeledSelectField
+              label="Category"
+              value={worldForm.category}
+              options={RULE_CATEGORY_OPTIONS}
+              onChange={(value) => setWorldForm((state) => ({ ...state, category: value as WorldRuleFormState['category'] }))}
+            />
+            <LabeledSelectField
+              label="Hardness"
+              value={worldForm.hardness}
+              options={RULE_HARDNESS_OPTIONS}
+              onChange={(value) => setWorldForm((state) => ({ ...state, hardness: value as WorldRuleFormState['hardness'] }))}
+            />
+            <LabeledTextField
+              label="Priority"
+              value={worldForm.priority}
+              onChange={(value) => setWorldForm((state) => ({ ...state, priority: value }))}
+            />
           </div>
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <TruthField label="Depends On">
-              <TruthInput
-                value={worldForm.dependsOn}
-                onChange={(event) => setWorldForm((state) => ({ ...state, dependsOn: event.target.value }))}
-                placeholder="axiom:time:origin, physics:causality:limit"
-              />
-            </TruthField>
-            <TruthField label="Conflicts With">
-              <TruthInput
-                value={worldForm.conflictsWith}
-                onChange={(event) => setWorldForm((state) => ({ ...state, conflictsWith: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Overrides">
-              <TruthInput
-                value={worldForm.overrides}
-                onChange={(event) => setWorldForm((state) => ({ ...state, overrides: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Source Ref">
-              <TruthInput
-                value={worldForm.sourceRef}
-                onChange={(event) => setWorldForm((state) => ({ ...state, sourceRef: event.target.value }))}
-              />
-            </TruthField>
+            <LabeledTextField
+              label="Depends On"
+              value={worldForm.dependsOn}
+              onChange={(value) => setWorldForm((state) => ({ ...state, dependsOn: value }))}
+              placeholder="axiom:time:origin, physics:causality:limit"
+            />
+            <LabeledTextField
+              label="Conflicts With"
+              value={worldForm.conflictsWith}
+              onChange={(value) => setWorldForm((state) => ({ ...state, conflictsWith: value }))}
+            />
+            <LabeledTextField
+              label="Overrides"
+              value={worldForm.overrides}
+              onChange={(value) => setWorldForm((state) => ({ ...state, overrides: value }))}
+            />
+            <LabeledTextField
+              label="Source Ref"
+              value={worldForm.sourceRef}
+              onChange={(value) => setWorldForm((state) => ({ ...state, sourceRef: value }))}
+            />
           </div>
 
-          <div className="mt-3">
-            <TruthField label="Reasoning">
-              <TruthTextarea
-                rows={2}
-                value={worldForm.reasoning}
-                onChange={(event) => setWorldForm((state) => ({ ...state, reasoning: event.target.value }))}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Reasoning"
+            value={worldForm.reasoning}
+            onChange={(value) => setWorldForm((state) => ({ ...state, reasoning: value }))}
+            rows={2}
+            className="mt-3"
+          />
 
-          <div className="mt-3">
-            <TruthField label="Structured JSON">
-              <TruthTextarea
-                rows={5}
-                value={worldForm.structuredText}
-                onChange={(event) => setWorldForm((state) => ({ ...state, structuredText: event.target.value }))}
-                placeholder={'{\n  "timeModel": {\n    "timeFlowRatio": 1\n  }\n}'}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Structured JSON"
+            value={worldForm.structuredText}
+            onChange={(value) => setWorldForm((state) => ({ ...state, structuredText: value }))}
+            rows={5}
+            placeholder={'{\n  "timeModel": {\n    "timeFlowRatio": 1\n  }\n}'}
+            className="mt-3"
+          />
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Button
+              tone="primary"
+              size="sm"
               disabled={working}
               onClick={async () => {
                 setError(null);
@@ -237,55 +222,55 @@ export function WorldRuleTruthPanel({
                   setError(error instanceof Error ? error.message : 'Failed to create world rule.');
                 }
               }}
-              className="rounded-md bg-white px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
             >
               Create World Rule
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              tone="secondary"
+              size="sm"
               disabled={working}
               onClick={() => setWorldForm(createWorldRuleForm())}
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
             >
               Reset
-            </button>
+            </Button>
           </div>
 
           <div className="mt-4 space-y-3">
             {worldRulesLoading ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-4 text-sm text-neutral-500">Loading world rules…</div>
+              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading world rules...</Surface>
             ) : worldRules.length === 0 ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-4 text-sm text-neutral-500">No active world rules yet.</div>
+              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active world rules yet.</Surface>
             ) : (
               worldRules.map((rule) => {
                 const editing = editingWorldRuleId === rule.id;
                 const form = editing ? toWorldRuleUpdateForm(rule) : null;
                 return (
-                  <div key={rule.id} className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                  <Surface key={rule.id} tone="card" padding="sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-white">{rule.title}</span>
-                          <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-neutral-300">{rule.domain}</span>
-                          <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-neutral-300">{rule.scope}</span>
+                          <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{rule.title}</span>
+                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.domain}</span>
+                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
                         </div>
-                        <div className="mt-1 text-xs text-neutral-500">{rule.ruleKey} · priority {rule.priority} · updated {formatTimestamp(rule.updatedAt)}</div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-300">{rule.statement}</p>
+                        <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey} · priority {rule.priority} · updated {formatTimestamp(rule.updatedAt)}</div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-secondary)]">{rule.statement}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           disabled={working}
                           onClick={() => {
                             setEditingWorldRuleId(editing ? null : rule.id);
                             setNotice(null);
                           }}
-                          className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
                         >
                           {editing ? 'Close' : 'Edit'}
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           disabled={working}
                           onClick={async () => {
                             try {
@@ -295,12 +280,12 @@ export function WorldRuleTruthPanel({
                               setError(error instanceof Error ? error.message : 'Failed to deprecate world rule.');
                             }
                           }}
-                          className="rounded-md border border-amber-700/60 px-2 py-1 text-xs text-amber-300 transition-colors hover:border-amber-500 hover:text-amber-200 disabled:opacity-50"
                         >
                           Deprecate
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          tone="danger"
+                          size="sm"
                           disabled={working}
                           onClick={async () => {
                             try {
@@ -310,10 +295,9 @@ export function WorldRuleTruthPanel({
                               setError(error instanceof Error ? error.message : 'Failed to archive world rule.');
                             }
                           }}
-                          className="rounded-md border border-red-700/60 px-2 py-1 text-xs text-red-300 transition-colors hover:border-red-500 hover:text-red-200 disabled:opacity-50"
                         >
                           Archive
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -353,157 +337,132 @@ export function WorldRuleTruthPanel({
                         }}
                       />
                     ) : null}
-                  </div>
+                  </Surface>
                 );
               })
             )}
           </div>
-        </div>
+        </Surface>
 
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/70 p-4">
+        <Surface tone="panel" padding="md" className="rounded-xl">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-white">Agent Rules</h3>
-              <p className="text-xs text-neutral-500">Direct truth for world-owned agent DNA, behavior, and display projection.</p>
+              <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Agent Rules</h3>
+              <p className="text-xs text-[var(--nimi-text-muted)]">Direct truth for world-owned agent DNA, behavior, and display projection.</p>
             </div>
-            <span className="rounded bg-neutral-800 px-2 py-1 text-xs text-neutral-300">{agentRules.length} active</span>
+            <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)]">{agentRules.length} active</span>
           </div>
 
-          <TruthField label="World Agent">
-            <TruthSelect value={selectedAgentId} onChange={(event) => onSelectedAgentIdChange(event.target.value)}>
-              {worldAgents.length === 0 ? <option value="">No world-owned agents</option> : null}
-              {worldAgents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.displayName || agent.handle || agent.id}
-                </option>
-              ))}
-            </TruthSelect>
-          </TruthField>
+          <LabeledSelectField
+            label="World Agent"
+            value={selectedAgentId}
+            options={agentOptions}
+            onChange={onSelectedAgentIdChange}
+          />
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <TruthField label="Rule Key">
-              <TruthInput
-                value={agentForm.ruleKey}
-                onChange={(event) => setAgentForm((state) => ({ ...state, ruleKey: event.target.value }))}
-                placeholder="identity:self:core"
-              />
-            </TruthField>
-            <TruthField label="Layer">
-              <TruthSelect
-                value={agentForm.layer}
-                onChange={(event) => setAgentForm((state) => ({ ...state, layer: event.target.value as AgentRuleFormState['layer'] }))}
-              >
-                {AGENT_RULE_LAYERS.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Title">
-              <TruthInput
-                value={agentForm.title}
-                onChange={(event) => setAgentForm((state) => ({ ...state, title: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Scope">
-              <TruthSelect
-                value={agentForm.scope}
-                onChange={(event) => setAgentForm((state) => ({ ...state, scope: event.target.value as AgentRuleFormState['scope'] }))}
-              >
-                {AGENT_RULE_SCOPES.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
+            <LabeledTextField
+              label="Rule Key"
+              value={agentForm.ruleKey}
+              onChange={(value) => setAgentForm((state) => ({ ...state, ruleKey: value }))}
+              placeholder="identity:self:core"
+            />
+            <LabeledSelectField
+              label="Layer"
+              value={agentForm.layer}
+              options={AGENT_RULE_LAYER_OPTIONS}
+              onChange={(value) => setAgentForm((state) => ({ ...state, layer: value as AgentRuleFormState['layer'] }))}
+            />
+            <LabeledTextField
+              label="Title"
+              value={agentForm.title}
+              onChange={(value) => setAgentForm((state) => ({ ...state, title: value }))}
+            />
+            <LabeledSelectField
+              label="Scope"
+              value={agentForm.scope}
+              options={AGENT_RULE_SCOPE_OPTIONS}
+              onChange={(value) => setAgentForm((state) => ({ ...state, scope: value as AgentRuleFormState['scope'] }))}
+            />
           </div>
 
-          <div className="mt-3">
-            <TruthField label="Statement">
-              <TruthTextarea
-                rows={3}
-                value={agentForm.statement}
-                onChange={(event) => setAgentForm((state) => ({ ...state, statement: event.target.value }))}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Statement"
+            value={agentForm.statement}
+            onChange={(value) => setAgentForm((state) => ({ ...state, statement: value }))}
+            rows={3}
+            className="mt-3"
+          />
 
           <div className="mt-3 grid gap-3 md:grid-cols-4">
-            <TruthField label="Category">
-              <TruthSelect
-                value={agentForm.category}
-                onChange={(event) => setAgentForm((state) => ({ ...state, category: event.target.value as AgentRuleFormState['category'] }))}
-              >
-                {RULE_CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Hardness">
-              <TruthSelect
-                value={agentForm.hardness}
-                onChange={(event) => setAgentForm((state) => ({ ...state, hardness: event.target.value as AgentRuleFormState['hardness'] }))}
-              >
-                {RULE_HARDNESS.map((item) => <option key={item} value={item}>{item}</option>)}
-              </TruthSelect>
-            </TruthField>
-            <TruthField label="Priority">
-              <TruthInput
-                value={agentForm.priority}
-                onChange={(event) => setAgentForm((state) => ({ ...state, priority: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Importance">
-              <TruthInput
-                value={agentForm.importance}
-                onChange={(event) => setAgentForm((state) => ({ ...state, importance: event.target.value }))}
-              />
-            </TruthField>
+            <LabeledSelectField
+              label="Category"
+              value={agentForm.category}
+              options={RULE_CATEGORY_OPTIONS}
+              onChange={(value) => setAgentForm((state) => ({ ...state, category: value as AgentRuleFormState['category'] }))}
+            />
+            <LabeledSelectField
+              label="Hardness"
+              value={agentForm.hardness}
+              options={RULE_HARDNESS_OPTIONS}
+              onChange={(value) => setAgentForm((state) => ({ ...state, hardness: value as AgentRuleFormState['hardness'] }))}
+            />
+            <LabeledTextField
+              label="Priority"
+              value={agentForm.priority}
+              onChange={(value) => setAgentForm((state) => ({ ...state, priority: value }))}
+            />
+            <LabeledTextField
+              label="Importance"
+              value={agentForm.importance}
+              onChange={(value) => setAgentForm((state) => ({ ...state, importance: value }))}
+            />
           </div>
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <TruthField label="Depends On">
-              <TruthInput
-                value={agentForm.dependsOn}
-                onChange={(event) => setAgentForm((state) => ({ ...state, dependsOn: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Conflicts With">
-              <TruthInput
-                value={agentForm.conflictsWith}
-                onChange={(event) => setAgentForm((state) => ({ ...state, conflictsWith: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="World Rule Ref">
-              <TruthInput
-                value={agentForm.worldRuleRef}
-                onChange={(event) => setAgentForm((state) => ({ ...state, worldRuleRef: event.target.value }))}
-              />
-            </TruthField>
-            <TruthField label="Source Ref">
-              <TruthInput
-                value={agentForm.sourceRef}
-                onChange={(event) => setAgentForm((state) => ({ ...state, sourceRef: event.target.value }))}
-              />
-            </TruthField>
+            <LabeledTextField
+              label="Depends On"
+              value={agentForm.dependsOn}
+              onChange={(value) => setAgentForm((state) => ({ ...state, dependsOn: value }))}
+            />
+            <LabeledTextField
+              label="Conflicts With"
+              value={agentForm.conflictsWith}
+              onChange={(value) => setAgentForm((state) => ({ ...state, conflictsWith: value }))}
+            />
+            <LabeledTextField
+              label="World Rule Ref"
+              value={agentForm.worldRuleRef}
+              onChange={(value) => setAgentForm((state) => ({ ...state, worldRuleRef: value }))}
+            />
+            <LabeledTextField
+              label="Source Ref"
+              value={agentForm.sourceRef}
+              onChange={(value) => setAgentForm((state) => ({ ...state, sourceRef: value }))}
+            />
           </div>
 
-          <div className="mt-3">
-            <TruthField label="Reasoning">
-              <TruthTextarea
-                rows={2}
-                value={agentForm.reasoning}
-                onChange={(event) => setAgentForm((state) => ({ ...state, reasoning: event.target.value }))}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Reasoning"
+            value={agentForm.reasoning}
+            onChange={(value) => setAgentForm((state) => ({ ...state, reasoning: value }))}
+            rows={2}
+            className="mt-3"
+          />
 
-          <div className="mt-3">
-            <TruthField label="Structured JSON">
-              <TruthTextarea
-                rows={5}
-                value={agentForm.structuredText}
-                onChange={(event) => setAgentForm((state) => ({ ...state, structuredText: event.target.value }))}
-                placeholder={'{\n  "persona": {\n    "tone": "calm"\n  }\n}'}
-              />
-            </TruthField>
-          </div>
+          <LabeledTextareaField
+            label="Structured JSON"
+            value={agentForm.structuredText}
+            onChange={(value) => setAgentForm((state) => ({ ...state, structuredText: value }))}
+            rows={5}
+            placeholder={'{\n  "persona": {\n    "tone": "calm"\n  }\n}'}
+            className="mt-3"
+          />
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
+            <Button
+              tone="primary"
+              size="sm"
               disabled={working || !selectedAgentId}
               onClick={async () => {
                 setError(null);
@@ -524,57 +483,57 @@ export function WorldRuleTruthPanel({
                   setError(error instanceof Error ? error.message : 'Failed to create agent rule.');
                 }
               }}
-              className="rounded-md bg-white px-3 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
             >
               Create Agent Rule
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              tone="secondary"
+              size="sm"
               disabled={working}
               onClick={() => setAgentForm(createAgentRuleForm())}
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
             >
               Reset
-            </button>
+            </Button>
           </div>
 
           <div className="mt-4 space-y-3">
             {agentRulesLoading ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-4 text-sm text-neutral-500">Loading agent rules…</div>
+              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Loading agent rules...</Surface>
             ) : !selectedAgentId ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-4 text-sm text-neutral-500">Select a world-owned agent to manage agent rules.</div>
+              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">Select a world-owned agent to manage agent rules.</Surface>
             ) : agentRules.length === 0 ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-4 text-sm text-neutral-500">No active agent rules for this agent yet.</div>
+              <Surface tone="card" padding="sm" className="text-sm text-[var(--nimi-text-muted)]">No active agent rules for this agent yet.</Surface>
             ) : (
               agentRules.map((rule) => {
                 const editing = editingAgentRuleId === rule.id;
                 const form = editing ? toAgentRuleUpdateForm(rule) : null;
                 return (
-                  <div key={rule.id} className="rounded-lg border border-neutral-800 bg-neutral-950 p-3">
+                  <Surface key={rule.id} tone="card" padding="sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-white">{rule.title}</span>
-                          <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-neutral-300">{rule.layer}</span>
-                          <span className="rounded bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-neutral-300">{rule.scope}</span>
+                          <span className="text-sm font-medium text-[var(--nimi-text-primary)]">{rule.title}</span>
+                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.layer}</span>
+                          <span className="rounded bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--nimi-text-secondary)]">{rule.scope}</span>
                         </div>
-                        <div className="mt-1 text-xs text-neutral-500">{rule.ruleKey} · importance {rule.importance} · updated {formatTimestamp(rule.updatedAt)}</div>
-                        <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-300">{rule.statement}</p>
+                        <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{rule.ruleKey} · importance {rule.importance} · updated {formatTimestamp(rule.updatedAt)}</div>
+                        <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-secondary)]">{rule.statement}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           disabled={working}
                           onClick={() => {
                             setEditingAgentRuleId(editing ? null : rule.id);
                             setNotice(null);
                           }}
-                          className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition-colors hover:border-neutral-500 hover:text-white disabled:opacity-50"
                         >
                           {editing ? 'Close' : 'Edit'}
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          tone="ghost"
+                          size="sm"
                           disabled={working || !selectedAgentId}
                           onClick={async () => {
                             try {
@@ -584,12 +543,12 @@ export function WorldRuleTruthPanel({
                               setError(error instanceof Error ? error.message : 'Failed to deprecate agent rule.');
                             }
                           }}
-                          className="rounded-md border border-amber-700/60 px-2 py-1 text-xs text-amber-300 transition-colors hover:border-amber-500 hover:text-amber-200 disabled:opacity-50"
                         >
                           Deprecate
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          tone="danger"
+                          size="sm"
                           disabled={working || !selectedAgentId}
                           onClick={async () => {
                             try {
@@ -599,10 +558,9 @@ export function WorldRuleTruthPanel({
                               setError(error instanceof Error ? error.message : 'Failed to archive agent rule.');
                             }
                           }}
-                          className="rounded-md border border-red-700/60 px-2 py-1 text-xs text-red-300 transition-colors hover:border-red-500 hover:text-red-200 disabled:opacity-50"
                         >
                           Archive
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -644,12 +602,12 @@ export function WorldRuleTruthPanel({
                         }}
                       />
                     ) : null}
-                  </div>
+                  </Surface>
                 );
               })
             )}
           </div>
-        </div>
+        </Surface>
       </div>
     </section>
   );

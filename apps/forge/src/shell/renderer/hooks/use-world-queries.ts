@@ -7,12 +7,19 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
+  listOfficialFactoryBatchRuns,
   listMyWorlds,
   listWorldDrafts,
   listWorldHistory,
+  listWorldReleases,
   getWorldState,
+  getWorldDetail,
   listWorldLorebooks,
   listWorldResourceBindings,
+  listWorldTitleLineage,
+  type ForgeOfficialFactoryBatchRun,
+  type ForgeOfficialWorldTitleLineage,
+  type ForgeWorldRelease,
 } from '@renderer/data/world-data-client.js';
 
 type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
@@ -123,6 +130,10 @@ export type WorldHistorySummary = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type WorldReleaseSummary = ForgeWorldRelease;
+export type WorldBatchRunSummary = ForgeOfficialFactoryBatchRun;
+export type WorldTitleLineageSummary = ForgeOfficialWorldTitleLineage;
 
 function toDraftSummaryList(payload: WorldDraftListPayload): WorldDraftSummary[] {
   const items = payload.items ?? [];
@@ -268,6 +279,24 @@ function toMaintenanceTimeline(
   );
 }
 
+function sortWorldReleases(releases: ForgeWorldRelease[]): WorldReleaseSummary[] {
+  return [...releases].sort(
+    (left, right) => right.version - left.version || right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id),
+  );
+}
+
+function sortWorldTitleLineage(entries: ForgeOfficialWorldTitleLineage[]): WorldTitleLineageSummary[] {
+  return [...entries].sort(
+    (left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id),
+  );
+}
+
+function sortWorldBatchRuns(entries: ForgeOfficialFactoryBatchRun[]): WorldBatchRunSummary[] {
+  return [...entries].sort(
+    (left, right) => right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id),
+  );
+}
+
 export function useWorldResourceQueries(input: {
   enabled: boolean;
   worldId: string;
@@ -317,6 +346,27 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => await listWorldResourceBindings(input.worldId),
   });
 
+  const releasesQuery = useQuery({
+    queryKey: ['forge', 'world', 'releases', input.worldId],
+    enabled: input.enabled && Boolean(input.worldId),
+    retry: false,
+    queryFn: async () => sortWorldReleases(await listWorldReleases(input.worldId)),
+  });
+
+  const titleLineageQuery = useQuery({
+    queryKey: ['forge', 'world', 'title-lineage', input.worldId],
+    enabled: input.enabled && Boolean(input.worldId),
+    retry: false,
+    queryFn: async () => sortWorldTitleLineage(await listWorldTitleLineage(input.worldId)),
+  });
+
+  const batchRunsQuery = useQuery({
+    queryKey: ['forge', 'world', 'batch-runs', input.worldId],
+    enabled: input.enabled && Boolean(input.worldId),
+    retry: false,
+    queryFn: async () => sortWorldBatchRuns(await listOfficialFactoryBatchRuns()),
+  });
+
   return {
     draftsQuery,
     worldsQuery,
@@ -325,5 +375,58 @@ export function useWorldResourceQueries(input: {
     maintenanceTimeline: toMaintenanceTimeline(stateQuery.data, historyQuery.data),
     lorebooksQuery,
     resourceBindingsQuery,
+    releasesQuery,
+    titleLineageQuery,
+    batchRunsQuery,
   };
+}
+
+// ── World Detail (includes bannerUrl, iconUrl) ──────────────
+
+export type WorldDetail = {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  bannerUrl: string | null;
+  iconUrl: string | null;
+  genre: string | null;
+  era: string | null;
+  motto: string | null;
+  overview: string | null;
+  contentRating: string;
+  agentCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function toWorldDetail(payload: unknown): WorldDetail {
+  const item = payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? payload as Record<string, unknown>
+    : {};
+  return {
+    id: String(item.id || ''),
+    name: String(item.name || ''),
+    description: toStringOrNull(item.description as string | null | undefined),
+    status: String(item.status || 'DRAFT'),
+    bannerUrl: toStringOrNull(item.bannerUrl as string | null | undefined),
+    iconUrl: toStringOrNull(item.iconUrl as string | null | undefined),
+    genre: toStringOrNull(item.genre as string | null | undefined),
+    era: toStringOrNull(item.era as string | null | undefined),
+    motto: toStringOrNull(item.motto as string | null | undefined),
+    overview: toStringOrNull(item.overview as string | null | undefined),
+    contentRating: String(item.contentRating || 'UNRATED'),
+    agentCount: Number(item.agentCount) || 0,
+    createdAt: String(item.createdAt || ''),
+    updatedAt: String(item.updatedAt || ''),
+  };
+}
+
+export function useWorldDetailQuery(worldId: string) {
+  return useQuery({
+    queryKey: ['forge', 'world', 'detail', worldId],
+    enabled: Boolean(worldId),
+    retry: false,
+    queryFn: async () => toWorldDetail(await getWorldDetail(worldId)),
+  });
 }

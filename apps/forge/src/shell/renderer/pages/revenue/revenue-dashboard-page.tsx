@@ -7,6 +7,18 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeStatCard,
+  ForgeLoadingSpinner,
+  ForgeEmptyState,
+} from '@renderer/components/page-layout.js';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
+import { ForgeListCard } from '@renderer/components/card-list.js';
+import { formatDate } from '@renderer/components/format-utils.js';
 import {
   useBalancesQuery,
   useSparkHistoryQuery,
@@ -20,17 +32,15 @@ import { useRevenueMutations } from '@renderer/hooks/use-revenue-mutations.js';
 
 type TimeRange = '7d' | '30d' | '90d' | '1y';
 
+const TIME_RANGE_OPTIONS = [
+  { value: '7d' as const, label: '7d' },
+  { value: '30d' as const, label: '30d' },
+  { value: '90d' as const, label: '90d' },
+  { value: '1y' as const, label: '1y' },
+];
+
 function formatCurrency(amount: number): string {
   return amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
 }
 
 function daysAgo(days: number): Date {
@@ -100,205 +110,166 @@ export default function RevenueDashboardPage() {
     }
   }
 
+  const connectTone = connect?.status === 'connected' ? 'success'
+    : connect?.status === 'onboarding' ? 'warning'
+    : connect?.status === 'restricted' ? 'danger'
+    : 'neutral';
+
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('pages.revenueDashboard')}</h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              {t('revenue.subtitle', 'Track your earnings and manage payouts')}
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/revenue/withdrawals')}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
-          >
+    <ForgePage maxWidth="max-w-5xl">
+      <ForgePageHeader
+        title={t('pages.revenueDashboard')}
+        subtitle={t('revenue.subtitle', 'Track your earnings and manage payouts')}
+        actions={
+          <Button tone="primary" size="md" onClick={() => navigate('/revenue/withdrawals')}>
             {t('revenue.withdrawals', 'Withdrawals')}
-          </button>
+          </Button>
+        }
+      />
+
+      {/* KPI Cards */}
+      {loading ? (
+        <ForgeLoadingSpinner />
+      ) : (
+        <div className="grid grid-cols-4 gap-4">
+          <ForgeStatCard
+            label={t('revenue.sparkBalance', 'Spark Balance')}
+            value={formatCurrency(balances?.sparkBalance || 0)}
+          />
+          <ForgeStatCard
+            label={t('revenue.gemBalance', 'Gem Balance')}
+            value={formatCurrency(balances?.gemBalance || 0)}
+          />
+          <ForgeStatCard
+            label={t('revenue.earningsRange', `${timeRange} Earnings`)}
+            value={formatCurrency(rangeTotal)}
+          />
+          <ForgeStatCard
+            label={t('revenue.pendingWithdrawal', 'Withdrawable')}
+            value={formatCurrency(Number(withdrawable?.amount ?? 0))}
+          />
         </div>
+      )}
 
-        {/* KPI Cards */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-4">
-            <KpiCard
-              label={t('revenue.sparkBalance', 'Spark Balance')}
-              value={formatCurrency(balances?.sparkBalance || 0)}
-              color="text-yellow-400"
-            />
-            <KpiCard
-              label={t('revenue.gemBalance', 'Gem Balance')}
-              value={formatCurrency(balances?.gemBalance || 0)}
-              color="text-purple-400"
-            />
-            <KpiCard
-              label={t('revenue.earningsRange', `${timeRange} Earnings`)}
-              value={formatCurrency(rangeTotal)}
-              color="text-green-400"
-            />
-            <KpiCard
-              label={t('revenue.pendingWithdrawal', 'Withdrawable')}
-              value={formatCurrency(Number(withdrawable?.amount ?? 0))}
-              color="text-cyan-400"
-            />
-          </div>
-        )}
-
-        {/* Connect Status */}
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">
-                {t('revenue.stripeConnect', 'Stripe Connect')}
-              </p>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                {connect?.status === 'connected'
-                  ? t('revenue.connectConnected', 'Your payout account is connected')
-                  : t('revenue.connectNotConnected', 'Set up payouts to withdraw your earnings')}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                connect?.status === 'connected' ? 'bg-green-500/20 text-green-400' :
-                connect?.status === 'onboarding' ? 'bg-yellow-500/20 text-yellow-400' :
-                connect?.status === 'restricted' ? 'bg-red-500/20 text-red-400' :
-                'bg-neutral-700 text-neutral-400'
-              }`}>
-                {connect?.status || 'unknown'}
-              </span>
-              {connect?.status === 'connected' ? (
-                <button
-                  onClick={() => void handleOpenDashboard()}
-                  disabled={mutations.connectDashboardMutation.isPending}
-                  className="rounded px-3 py-1.5 text-xs font-medium text-white bg-neutral-800 hover:bg-neutral-700 transition-colors"
-                >
-                  {t('revenue.openDashboard', 'Open Dashboard')}
-                </button>
-              ) : (
-                <button
-                  onClick={() => void handleConnectOnboarding()}
-                  disabled={mutations.connectOnboardingMutation.isPending}
-                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-black hover:bg-neutral-200 transition-colors"
-                >
-                  {t('revenue.setupPayouts', 'Set Up Payouts')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Time range selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-500">{t('revenue.timeRange', 'Time Range')}:</span>
-          {(['7d', '30d', '90d', '1y'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                timeRange === range
-                  ? 'bg-white text-black'
-                  : 'bg-neutral-800 text-neutral-400 hover:text-white'
-              }`}
+      {/* Connect Status */}
+      <ForgeListCard
+        title={t('revenue.stripeConnect', 'Stripe Connect')}
+        subtitle={connect?.status === 'connected'
+          ? t('revenue.connectConnected', 'Your payout account is connected')
+          : t('revenue.connectNotConnected', 'Set up payouts to withdraw your earnings')}
+        badges={
+          <ForgeStatusBadge
+            domain="generic"
+            status={connect?.status || 'unknown'}
+            tone={connectTone as 'success' | 'warning' | 'danger' | 'neutral'}
+          />
+        }
+        actions={
+          connect?.status === 'connected' ? (
+            <Button
+              tone="secondary"
+              size="sm"
+              onClick={() => void handleOpenDashboard()}
+              disabled={mutations.connectDashboardMutation.isPending}
             >
-              {range}
-            </button>
-          ))}
-        </div>
-
-        {/* Earnings chart placeholder */}
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5">
-          <h3 className="text-sm font-semibold text-white mb-3">
-            {t('revenue.earningsChart', 'Earnings Over Time')}
-          </h3>
-          <div className="h-48 flex items-center justify-center">
-            {filteredSpark.length === 0 ? (
-              <p className="text-sm text-neutral-500">
-                {t('revenue.noData', 'No earnings data for this period')}
-              </p>
-            ) : (
-              <MiniChart data={filteredSpark} />
-            )}
-          </div>
-        </div>
-
-        {/* Revenue share config */}
-        {revenueConfig.data && (
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-5 py-4">
-            <h3 className="text-sm font-semibold text-white mb-2">
-              {t('revenue.revenueShare', 'Revenue Share Configuration')}
-            </h3>
-            <div className="flex gap-6 text-xs text-neutral-400">
-              <span>Creator: <strong className="text-white">{String(revenueConfig.data.creatorPercent ?? '—')}%</strong></span>
-              <span>Platform: <strong className="text-white">{String(revenueConfig.data.platformPercent ?? '—')}%</strong></span>
-            </div>
-          </div>
-        )}
-
-        {/* Transaction table */}
-        <div>
-          <h3 className="text-sm font-semibold text-white mb-3">
-            {t('revenue.recentTransactions', 'Recent Transactions')}
-          </h3>
-          {filteredSpark.length === 0 ? (
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-              <p className="text-sm text-neutral-500">
-                {t('revenue.noTransactions', 'No transactions found.')}
-              </p>
-            </div>
+              {t('revenue.openDashboard', 'Open Dashboard')}
+            </Button>
           ) : (
-            <div className="rounded-lg border border-neutral-800 overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-800 bg-neutral-900">
-                    <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Date</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Type</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Amount</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSpark.slice(0, 20).map((entry) => (
-                    <tr key={entry.id} className="border-b border-neutral-800/50 hover:bg-neutral-800/30">
-                      <td className="px-4 py-2 text-neutral-400">{formatDate(entry.createdAt)}</td>
-                      <td className="px-4 py-2">
-                        <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300">
-                          {entry.type}
-                        </span>
-                      </td>
-                      <td className={`px-4 py-2 text-right font-medium ${entry.amount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {entry.amount >= 0 ? '+' : ''}{formatCurrency(entry.amount)}
-                      </td>
-                      <td className="px-4 py-2 text-neutral-500 truncate max-w-[200px]">{entry.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Button
+              tone="primary"
+              size="sm"
+              onClick={() => void handleConnectOnboarding()}
+              disabled={mutations.connectOnboardingMutation.isPending}
+            >
+              {t('revenue.setupPayouts', 'Set Up Payouts')}
+            </Button>
+          )
+        }
+      />
+
+      {/* Time range selector */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-[var(--nimi-text-muted)]">{t('revenue.timeRange', 'Time Range')}:</span>
+        <ForgeSegmentControl
+          options={TIME_RANGE_OPTIONS}
+          value={timeRange}
+          onChange={setTimeRange}
+        />
+      </div>
+
+      {/* Earnings chart placeholder */}
+      <Surface tone="card" padding="md">
+        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('revenue.earningsChart', 'Earnings Over Time')}
+        </h3>
+        <div className="flex h-48 items-center justify-center">
+          {filteredSpark.length === 0 ? (
+            <p className="text-sm text-[var(--nimi-text-muted)]">
+              {t('revenue.noData', 'No earnings data for this period')}
+            </p>
+          ) : (
+            <MiniChart data={filteredSpark} />
           )}
         </div>
-      </div>
-    </div>
-  );
-}
+      </Surface>
 
-function KpiCard({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
-      <p className="text-xs text-neutral-500">{label}</p>
-      <p className={`text-xl font-bold mt-1 ${color}`}>{value}</p>
-    </div>
+      {/* Revenue share config */}
+      {revenueConfig.data && (
+        <Surface tone="card" padding="md">
+          <h3 className="mb-2 text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('revenue.revenueShare', 'Revenue Share Configuration')}
+          </h3>
+          <div className="flex gap-6 text-xs text-[var(--nimi-text-muted)]">
+            <span>Creator: <strong className="text-[var(--nimi-text-primary)]">{String(revenueConfig.data.creatorPercent ?? '—')}%</strong></span>
+            <span>Platform: <strong className="text-[var(--nimi-text-primary)]">{String(revenueConfig.data.platformPercent ?? '—')}%</strong></span>
+          </div>
+        </Surface>
+      )}
+
+      {/* Transaction table */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('revenue.recentTransactions', 'Recent Transactions')}
+        </h3>
+        {filteredSpark.length === 0 ? (
+          <ForgeEmptyState message={t('revenue.noTransactions', 'No transactions found.')} />
+        ) : (
+          <Surface tone="card" padding="none" className="overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Date</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Type</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-[var(--nimi-text-muted)]">Amount</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSpark.slice(0, 20).map((entry) => (
+                  <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[var(--nimi-surface-panel)]/30">
+                    <td className="px-4 py-2 text-[var(--nimi-text-muted)]">{formatDate(entry.createdAt)}</td>
+                    <td className="px-4 py-2">
+                      <ForgeStatusBadge domain="generic" status={entry.type} tone="neutral" />
+                    </td>
+                    <td className={`px-4 py-2 text-right font-medium ${entry.amount >= 0 ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-status-danger)]'}`}>
+                      {entry.amount >= 0 ? '+' : ''}{formatCurrency(entry.amount)}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-2 text-[var(--nimi-text-muted)]">{entry.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Surface>
+        )}
+      </div>
+    </ForgePage>
   );
 }
 
 function MiniChart({ data }: { data: HistoryEntry[] }) {
   // Simple inline SVG sparkline chart
   if (data.length < 2) {
-    return <p className="text-sm text-neutral-500">Insufficient data</p>;
+    return <p className="text-sm text-[var(--nimi-text-muted)]">Insufficient data</p>;
   }
 
   const w = 600;
@@ -316,18 +287,18 @@ function MiniChart({ data }: { data: HistoryEntry[] }) {
   });
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full">
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full">
       <polyline
         points={points.join(' ')}
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
-        className="text-green-400"
+        className="text-[var(--nimi-status-success)]"
       />
       {values.map((v, i) => {
         const x = padding + (i / (values.length - 1)) * (w - padding * 2);
         const y = h - padding - (v / maxVal) * (h - padding * 2);
-        return <circle key={i} cx={x} cy={y} r="3" className="fill-green-400" />;
+        return <circle key={i} cx={x} cy={y} r="3" className="fill-[var(--nimi-status-success)]" />;
       })}
     </svg>
   );

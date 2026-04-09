@@ -1,11 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { JsonObject } from '@renderer/bridge/types.js';
-import type {
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
-} from 'react';
 
 type AgentRuleDto = RealmModel<'AgentRuleDto'>;
 type WorldRuleDto = RealmModel<'WorldRuleDto'>;
@@ -228,44 +222,10 @@ export function formatTimestamp(value: string): string {
   }
 }
 
-export function TruthField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] uppercase tracking-[0.12em] text-neutral-500">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-export function TruthInput(props: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none ${props.className || ''}`.trim()}
-    />
-  );
-}
-
-export function TruthSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={`w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none ${props.className || ''}`.trim()}
-    />
-  );
-}
-
-export function TruthTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      {...props}
-      className={`w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-neutral-500 focus:outline-none ${props.className || ''}`.trim()}
-    />
-  );
-}
+/** Select field option helpers for rule enums */
+export const WORLD_RULE_DOMAIN_OPTIONS = WORLD_RULE_DOMAINS.map((v) => ({ value: v, label: v }));
+export const WORLD_RULE_SCOPE_OPTIONS = WORLD_RULE_SCOPES.map((v) => ({ value: v, label: v }));
+export const AGENT_RULE_LAYER_OPTIONS = AGENT_RULE_LAYERS.map((v) => ({ value: v, label: v }));
+export const AGENT_RULE_SCOPE_OPTIONS = AGENT_RULE_SCOPES.map((v) => ({ value: v, label: v }));
+export const RULE_CATEGORY_OPTIONS = RULE_CATEGORIES.map((v) => ({ value: v, label: v }));
+export const RULE_HARDNESS_OPTIONS = RULE_HARDNESS.map((v) => ({ value: v, label: v }));

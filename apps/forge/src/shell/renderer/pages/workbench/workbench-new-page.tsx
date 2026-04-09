@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
 const DEFAULT_NEW_WORLD_WORKSPACE_TITLE = 'New World Workspace';
@@ -18,7 +19,7 @@ export default function WorkbenchNewPage() {
 
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+      <ForgeLoadingSpinner />
     </div>
   );
 }

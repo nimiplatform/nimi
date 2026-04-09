@@ -33,7 +33,10 @@ import {
   toReviewSubview,
 } from './world-create-page-helpers';
 import { useWorldCreatePageDraftPersistence } from './world-create-page-draft-persistence';
-import { useWorldCreatePageGeneration } from './world-create-page-generation';
+import {
+  useWorldCreatePageGeneration,
+  type ForgeCreatePublishOperationState,
+} from './world-create-page-generation';
 import { useWorldCreatePageSource } from './world-create-page-source';
 
 type UseWorldCreatePageModelInput = {
@@ -52,6 +55,8 @@ export function useWorldCreatePageModel({
   actions: WorldStudioActionsSlice;
   clearNotice: () => void;
   main: WorldStudioMainSlice;
+  publishOperation: ForgeCreatePublishOperationState;
+  retryPublishOperation: () => Promise<void>;
   routing: WorldStudioRoutingSlice;
   status: WorldStudioStatusSlice;
   workflow: WorldStudioWorkflowSlice;
@@ -236,7 +241,9 @@ export function useWorldCreatePageModel({
     persistDraft,
     phase1,
     phase2,
+    publishOperation,
     publishDraft,
+    retryPublishOperation,
   } = useWorldCreatePageGeneration({
     activeDraftId,
     commitActions,
@@ -252,6 +259,7 @@ export function useWorldCreatePageModel({
     sourceChunksRef,
     sourceMode,
     sourceRawTextRef,
+    userId,
   });
 
   const activeTask = snapshot.taskState.activeTask;
@@ -490,6 +498,8 @@ export function useWorldCreatePageModel({
   return {
     workflow,
     main,
+    publishOperation,
+    retryPublishOperation,
     routing,
     status,
     actions,

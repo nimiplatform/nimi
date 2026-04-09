@@ -7,8 +7,10 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useCharacterCardImport } from '@renderer/features/import/hooks/use-character-card-import.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
+import { ForgePage, ForgePageHeader, ForgeLoadingSpinner, ForgeErrorBanner } from '@renderer/components/page-layout.js';
 
 export default function CharacterCardImportPage() {
   const { t } = useTranslation();
@@ -77,81 +79,77 @@ export default function CharacterCardImportPage() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <p className="text-sm text-neutral-400">Character Card import requires an active workspace.</p>
-          <button
-            onClick={() => navigate('/workbench')}
-            className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-          >
+          <p className="text-sm text-[var(--nimi-text-secondary)]">Character Card import requires an active workspace.</p>
+          <Button tone="primary" size="sm" onClick={() => navigate('/workbench')} className="mt-3">
             Back to Workbench
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(`/workbench/${workspaceId}?panel=IMPORT`)}
-            className="text-sm text-neutral-400 hover:text-white"
-          >
+    <ForgePage maxWidth="max-w-3xl">
+      <ForgePageHeader
+        title={t('import.characterCard')}
+        actions={
+          <Button tone="ghost" size="sm" onClick={() => navigate(`/workbench/${workspaceId}?panel=IMPORT`)}>
             Back to Workspace
-          </button>
-          <h1 className="text-xl font-semibold text-white">{t('import.characterCard')}</h1>
-        </div>
+          </Button>
+        }
+      />
 
-        <div className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-sky-300">Workspace Import</p>
-          <h2 className="mt-3 text-lg font-semibold text-white">Character Card flows into workspace review.</h2>
-          <p className="mt-2 text-sm text-neutral-400">
-            Raw JSON, source fidelity evidence, weak world seeds, and agent truth drafts are written into the current workspace.
-            Review and publish happen in the workbench, not on this page.
-          </p>
-        </div>
+      <Surface tone="card" padding="md">
+        <p className="text-xs uppercase tracking-[0.18em] text-[var(--nimi-status-info)]">Workspace Import</p>
+        <h2 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary)]">Character Card flows into workspace review.</h2>
+        <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
+          Raw JSON, source fidelity evidence, weak world seeds, and agent truth drafts are written into the current workspace.
+          Review and publish happen in the workbench, not on this page.
+        </p>
+      </Surface>
 
-        <div
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={handleDrop}
-          className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-neutral-700 bg-neutral-900/40 p-12 text-center transition-colors hover:border-neutral-500"
-        >
-          {loading ? (
-            <>
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-              <p className="mt-4 text-sm text-neutral-400">{handoffMessage || 'Preparing workspace review draft.'}</p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-neutral-300">{t('import.dropJson')}</p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-3 rounded-md bg-neutral-700 px-4 py-1.5 text-sm text-white hover:bg-neutral-600"
-              >
-                {t('import.browseFiles')}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </>
-          )}
-        </div>
+      <Surface
+        tone="card"
+        padding="lg"
+        className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
+        onDragOver={(event: React.DragEvent) => event.preventDefault()}
+        onDrop={handleDrop}
+      >
+        {loading ? (
+          <>
+            <ForgeLoadingSpinner />
+            <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{handoffMessage || 'Preparing workspace review draft.'}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropJson')}</p>
+            <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
+              {t('import.browseFiles')}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </>
+        )}
+      </Surface>
 
-        {validation && !validation.valid ? (
-          <div className="rounded-md border border-red-800 bg-red-900/20 p-4">
-            <p className="text-sm font-medium text-red-400">{t('import.validationFailed')}</p>
-            <ul className="mt-2 space-y-1">
-              {validation.errors.map((error, index) => (
-                <li key={index} className="text-sm text-red-300">- {error}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-    </div>
+      {validation && !validation.valid ? (
+        <ForgeErrorBanner message={t('import.validationFailed')} />
+      ) : null}
+
+      {validation && !validation.valid ? (
+        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-danger)]">
+          <ul className="space-y-1">
+            {validation.errors.map((error, index) => (
+              <li key={index} className="text-sm text-[var(--nimi-status-danger)]">- {error}</li>
+            ))}
+          </ul>
+        </Surface>
+      ) : null}
+    </ForgePage>
   );
 }

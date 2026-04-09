@@ -25,6 +25,7 @@ const TemplateDetailPage = lazy(() => import('@renderer/pages/templates/template
 const AdvisorHubPage = lazy(() => import('@renderer/pages/advisors/advisor-hub-page.js'));
 const AnalyticsDashboardPage = lazy(() => import('@renderer/pages/analytics/analytics-dashboard-page.js'));
 const SettingsPage = lazy(() => import('@renderer/pages/settings/settings-page.js'));
+const WorldDetailPage = lazy(() => import('@renderer/pages/worlds/world-detail-page.js'));
 const CharacterCardImportPage = lazy(() => import('@renderer/pages/import/character-card-import-page.js'));
 const NovelImportPage = lazy(() => import('@renderer/pages/import/novel-import-page.js'));
 
@@ -57,6 +58,7 @@ export function AppRoutes() {
 
           {/* Worlds */}
           <Route path="worlds/library" element={<PageSuspense><WorldsPage /></PageSuspense>} />
+          <Route path="worlds/:worldId" element={<PageSuspense><WorldDetailPage /></PageSuspense>} />
 
           {/* Agents */}
           <Route path="agents/library" element={<PageSuspense><AgentsPage /></PageSuspense>} />

@@ -4,12 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 
 const mockWorldDataClient = vi.hoisted(() => ({
+  listOfficialFactoryBatchRuns: vi.fn(),
   listMyWorlds: vi.fn(),
   listWorldDrafts: vi.fn(),
   listWorldHistory: vi.fn(),
+  listWorldReleases: vi.fn(),
   getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
   listWorldResourceBindings: vi.fn(),
+  listWorldTitleLineage: vi.fn(),
 }));
 
 vi.mock('@renderer/data/world-data-client.js', () => mockWorldDataClient);
@@ -32,6 +35,9 @@ describe('useWorldResourceQueries', () => {
     mockWorldDataClient.listWorldLorebooks.mockResolvedValue({ worldId: 'w1', items: [] });
     mockWorldDataClient.listWorldResourceBindings.mockResolvedValue({ worldId: 'w1', items: [] });
     mockWorldDataClient.listWorldHistory.mockResolvedValue({ worldId: 'w1', version: 'history-v1', items: [] });
+    mockWorldDataClient.listWorldReleases.mockResolvedValue([]);
+    mockWorldDataClient.listWorldTitleLineage.mockResolvedValue([]);
+    mockWorldDataClient.listOfficialFactoryBatchRuns.mockResolvedValue([]);
   });
 
   it('returns all expected query objects', () => {
@@ -48,6 +54,9 @@ describe('useWorldResourceQueries', () => {
     expect(result.current).toHaveProperty('maintenanceTimeline');
     expect(result.current).toHaveProperty('lorebooksQuery');
     expect(result.current).toHaveProperty('resourceBindingsQuery');
+    expect(result.current).toHaveProperty('releasesQuery');
+    expect(result.current).toHaveProperty('titleLineageQuery');
+    expect(result.current).toHaveProperty('batchRunsQuery');
   });
 
   it('when enabled=false, queries do not fetch', async () => {
@@ -66,6 +75,9 @@ describe('useWorldResourceQueries', () => {
     expect(mockWorldDataClient.listWorldHistory).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldLorebooks).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldResourceBindings).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listWorldReleases).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listWorldTitleLineage).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listOfficialFactoryBatchRuns).not.toHaveBeenCalled();
   });
 
   it('draftsQuery normalizes { items: [...] } payload via toDraftSummaryList', async () => {
@@ -242,5 +254,121 @@ describe('useWorldResourceQueries', () => {
         }),
       ]),
     );
+  });
+
+  it('releasesQuery and titleLineageQuery expose sorted governed surfaces', async () => {
+    mockWorldDataClient.listWorldReleases.mockResolvedValue([
+      {
+        id: 'release-1',
+        worldId: 'w1',
+        version: 1,
+        releaseType: 'PUBLISH',
+        status: 'PUBLISHED',
+        ruleCount: 1,
+        ruleChecksum: 'checksum-1',
+        createdAt: '2026-04-09T00:00:00Z',
+        createdBy: 'admin-1',
+      },
+      {
+        id: 'release-2',
+        worldId: 'w1',
+        version: 2,
+        releaseType: 'ROLLBACK',
+        status: 'PUBLISHED',
+        ruleCount: 1,
+        ruleChecksum: 'checksum-2',
+        createdAt: '2026-04-10T00:00:00Z',
+        createdBy: 'admin-1',
+      },
+    ]);
+    mockWorldDataClient.listWorldTitleLineage.mockResolvedValue([
+      {
+        id: 'lineage-1',
+        worldId: 'w1',
+        slug: 'realm',
+        sourceTitle: 'Realm Source',
+        canonicalTitle: 'Realm',
+        titleLineageKey: 'realm:realm',
+        packageVersion: 'forge-ws-1',
+        releaseId: 'release-1',
+        runId: 'run-1',
+        itemId: 'item-1',
+        recordedBy: 'admin-1',
+        reason: 'Older',
+        createdAt: '2026-04-09T00:00:00Z',
+      },
+      {
+        id: 'lineage-2',
+        worldId: 'w1',
+        slug: 'realm',
+        sourceTitle: 'Realm Source',
+        canonicalTitle: 'Realm',
+        titleLineageKey: 'realm:realm',
+        packageVersion: 'forge-ws-2',
+        releaseId: 'release-2',
+        runId: 'run-2',
+        itemId: 'item-2',
+        recordedBy: 'admin-1',
+        reason: 'Newer',
+        createdAt: '2026-04-10T00:00:00Z',
+      },
+    ]);
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => useWorldResourceQueries({ enabled: true, worldId: 'w1' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.releasesQuery.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.titleLineageQuery.isSuccess).toBe(true));
+
+    expect(result.current.releasesQuery.data?.map((item) => item.id)).toEqual(['release-2', 'release-1']);
+    expect(result.current.titleLineageQuery.data?.map((item) => item.id)).toEqual(['lineage-2', 'lineage-1']);
+  });
+
+  it('batchRunsQuery exposes sorted official factory runs', async () => {
+    mockWorldDataClient.listOfficialFactoryBatchRuns.mockResolvedValue([
+      {
+        id: 'run-1',
+        name: 'Older Run',
+        requestedBy: 'admin-1',
+        status: 'FAILED',
+        pipelineStages: ['validate'],
+        retryLimit: 1,
+        retryCount: 0,
+        batchItemCount: 1,
+        successCount: 0,
+        failureCount: 1,
+        createdAt: '2026-04-09T00:00:00Z',
+        updatedAt: '2026-04-09T00:00:00Z',
+        items: [],
+      },
+      {
+        id: 'run-2',
+        name: 'Newer Run',
+        requestedBy: 'admin-1',
+        status: 'SUCCEEDED',
+        pipelineStages: ['validate'],
+        retryLimit: 1,
+        retryCount: 0,
+        batchItemCount: 1,
+        successCount: 1,
+        failureCount: 0,
+        createdAt: '2026-04-10T00:00:00Z',
+        updatedAt: '2026-04-10T00:00:00Z',
+        items: [],
+      },
+    ]);
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => useWorldResourceQueries({ enabled: true, worldId: 'w1' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.batchRunsQuery.isSuccess).toBe(true));
+
+    expect(result.current.batchRunsQuery.data?.map((item) => item.id)).toEqual(['run-2', 'run-1']);
   });
 });

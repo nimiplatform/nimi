@@ -9,6 +9,9 @@ import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { formatDate } from '@renderer/components/format-utils.js';
 
 type UploadedVideo = {
   id: string;
@@ -157,132 +160,125 @@ export default function VideoStudioPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.videoStudio')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {t('videoStudio.subtitle', 'Upload and manage video content')}
-          </p>
-        </div>
+    <ForgePage>
+      <ForgePageHeader
+        title={t('pages.videoStudio')}
+        subtitle={t('videoStudio.subtitle', 'Upload and manage video content')}
+      />
 
-        {/* Upload zone */}
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          className={`rounded-lg border-2 border-dashed p-12 text-center transition-colors ${
-            dragOver
-              ? 'border-white bg-white/5'
-              : 'border-neutral-700 bg-neutral-900/50 hover:border-neutral-500'
-          }`}
-        >
-          {uploading ? (
-            <div className="space-y-3">
-              <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-white">{t('videoStudio.uploading', { progress: uploadProgress })}</p>
-              <div className="w-64 mx-auto bg-neutral-800 rounded-full h-1.5">
-                <div
-                  className="bg-white h-1.5 rounded-full transition-all"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
-              <button
-                onClick={() => { xhrRef.current?.abort(); }}
-                className="rounded px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                {t('videoStudio.cancel', 'Cancel')}
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="text-4xl text-neutral-700">📹</div>
-              <p className="text-sm text-neutral-400">
-                {t('videoStudio.dropzone', 'Drag and drop video files here, or click to browse')}
-              </p>
-              <p className="text-xs text-neutral-600">
-                {t('videoStudio.formatHint', 'MP4, MOV, WebM')}
-              </p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
-              >
-                {t('videoStudio.browse', 'Browse Files')}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/mp4,video/quicktime,video/webm"
-                className="hidden"
-                onChange={(e) => void handleFiles(e.target.files)}
+      {/* Upload zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`rounded-[var(--nimi-radius-md)] border-2 border-dashed p-12 text-center transition-colors ${
+          dragOver
+            ? 'border-[var(--nimi-border-strong)] bg-[var(--nimi-surface-active)]'
+            : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] hover:border-[var(--nimi-border-strong)]'
+        }`}
+      >
+        {uploading ? (
+          <div className="space-y-3">
+            <div className="w-8 h-8 border-2 border-[var(--nimi-border-subtle)] border-t-[var(--nimi-text-primary)] rounded-full animate-spin mx-auto" />
+            <p className="text-sm text-[var(--nimi-text-primary)]">{t('videoStudio.uploading', { progress: uploadProgress })}</p>
+            <div className="w-64 mx-auto bg-[var(--nimi-surface-canvas)] rounded-full h-1.5">
+              <div
+                className="bg-[var(--nimi-action-primary-bg)] h-1.5 rounded-full transition-all"
+                style={{ width: `${uploadProgress}%` }}
               />
             </div>
-          )}
-        </div>
-
-        {/* Upload error */}
-        {uploadError && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3">
-            <p className="text-xs text-red-400">{uploadError}</p>
+            <Button
+              tone="danger"
+              size="sm"
+              onClick={() => { xhrRef.current?.abort(); }}
+            >
+              {t('videoStudio.cancel', 'Cancel')}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-[var(--nimi-text-muted)]">
+              {t('videoStudio.dropzone', 'Drag and drop video files here, or click to browse')}
+            </p>
+            <p className="text-xs text-[var(--nimi-text-muted)]">
+              {t('videoStudio.formatHint', 'MP4, MOV, WebM')}
+            </p>
+            <Button
+              tone="primary"
+              size="md"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t('videoStudio.browse', 'Browse Files')}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm"
+              className="hidden"
+              onChange={(e) => void handleFiles(e.target.files)}
+            />
           </div>
         )}
-
-        {/* Video list */}
-        <div>
-          <h3 className="text-sm font-semibold text-white mb-3">
-            {t('videoStudio.uploads', 'Uploaded Videos')}
-            {videos.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-neutral-500">({videos.length})</span>
-            )}
-          </h3>
-          {videos.length === 0 ? (
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-              <p className="text-sm text-neutral-500">
-                {t('videoStudio.noVideos', 'No videos uploaded yet.')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {videos.map((video) => (
-                <div
-                  key={video.id}
-                  className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {video.storageRef ? (
-                      <div className="h-10 w-14 flex-shrink-0 rounded bg-neutral-800 overflow-hidden">
-                        <iframe
-                          src={`https://iframe.videodelivery.net/${video.storageRef}`}
-                          className="h-full w-full"
-                          allow="autoplay; fullscreen"
-                          title={video.name}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-10 w-14 flex-shrink-0 rounded bg-neutral-800 flex items-center justify-center">
-                        <span className="text-xs text-neutral-500">▶</span>
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{video.name}</p>
-                      <p className="text-xs text-neutral-500">
-                        {formatFileSize(video.size)} · {new Date(video.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setVideos((v) => v.filter((item) => item.id !== video.id))}
-                    className="rounded px-3 py-1 text-xs font-medium text-red-400/70 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                  >
-                    {t('videoStudio.remove', 'Remove')}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+
+      {/* Upload error */}
+      {uploadError && (
+        <ForgeErrorBanner message={uploadError} />
+      )}
+
+      {/* Video list */}
+      <div>
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
+          {t('videoStudio.uploads', 'Uploaded Videos')}
+          {videos.length > 0 && (
+            <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">({videos.length})</span>
+          )}
+        </h3>
+        {videos.length === 0 ? (
+          <ForgeEmptyState message={t('videoStudio.noVideos', 'No videos uploaded yet.')} />
+        ) : (
+          <div className="space-y-2">
+            {videos.map((video) => (
+              <Surface
+                key={video.id}
+                tone="card"
+                padding="sm"
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {video.storageRef ? (
+                    <div className="h-10 w-14 flex-shrink-0 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-canvas)] overflow-hidden">
+                      <iframe
+                        src={`https://iframe.videodelivery.net/${video.storageRef}`}
+                        className="h-full w-full"
+                        allow="autoplay; fullscreen"
+                        title={video.name}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-14 flex-shrink-0 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-canvas)] flex items-center justify-center">
+                      <span className="text-xs text-[var(--nimi-text-muted)]">&#9654;</span>
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[var(--nimi-text-primary)] truncate">{video.name}</p>
+                    <p className="text-xs text-[var(--nimi-text-muted)]">
+                      {formatFileSize(video.size)} · {formatDate(video.uploadedAt)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  tone="danger"
+                  size="sm"
+                  onClick={() => setVideos((v) => v.filter((item) => item.id !== video.id))}
+                >
+                  {t('videoStudio.remove', 'Remove')}
+                </Button>
+              </Surface>
+            ))}
+          </div>
+        )}
+      </div>
+    </ForgePage>
   );
 }

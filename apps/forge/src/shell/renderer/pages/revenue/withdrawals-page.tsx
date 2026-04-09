@@ -8,6 +8,17 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import {
+  ForgePage,
+  ForgePageHeader,
+  ForgeStatCard,
+  ForgeLoadingSpinner,
+  ForgeEmptyState,
+} from '@renderer/components/page-layout.js';
+import { LabeledTextField } from '@renderer/components/form-fields.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
+import { formatDate } from '@renderer/components/format-utils.js';
 import {
   useCanWithdrawQuery,
   useWithdrawalConfigQuery,
@@ -19,15 +30,6 @@ import { useRevenueMutations } from '@renderer/hooks/use-revenue-mutations.js';
 
 function formatCurrency(amount: number): string {
   return amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
-
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
 }
 
 export default function WithdrawalsPage() {
@@ -52,13 +54,6 @@ export default function WithdrawalsPage() {
 
   const loading = canWithdraw.isLoading || historyQuery.isLoading;
 
-  const statusColors: Record<string, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-400',
-    processing: 'bg-blue-500/20 text-blue-400',
-    completed: 'bg-green-500/20 text-green-400',
-    failed: 'bg-red-500/20 text-red-400',
-  };
-
   async function handleWithdraw() {
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -71,143 +66,140 @@ export default function WithdrawalsPage() {
     }
   }
 
+  function withdrawalTone(status: string): 'warning' | 'info' | 'success' | 'danger' | 'neutral' {
+    const map: Record<string, 'warning' | 'info' | 'success' | 'danger'> = {
+      pending: 'warning',
+      processing: 'info',
+      completed: 'success',
+      failed: 'danger',
+    };
+    return map[status.toLowerCase()] ?? 'neutral';
+  }
+
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/revenue')}
-            className="rounded px-2 py-1 text-sm text-neutral-400 hover:text-white transition-colors"
-          >
+    <ForgePage>
+      <ForgePageHeader
+        title={t('pages.withdrawals')}
+        actions={
+          <Button tone="ghost" size="sm" onClick={() => navigate('/revenue')}>
             &larr; {t('withdrawals.back', 'Back')}
-          </button>
-          <h1 className="text-2xl font-bold text-white">{t('pages.withdrawals')}</h1>
-        </div>
+          </Button>
+        }
+      />
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          </div>
-        ) : (
-          <>
-            {/* Connect warning */}
-            {!isConnected && (
-              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-                <p className="text-sm text-yellow-400">
-                  {t('withdrawals.connectRequired', 'Stripe Connect must be set up before you can withdraw.')}
-                </p>
-                <button
-                  onClick={() => navigate('/revenue')}
-                  className="mt-2 rounded bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-400 hover:bg-yellow-500/30 transition-colors"
-                >
-                  {t('withdrawals.goToRevenue', 'Go to Revenue Dashboard')}
-                </button>
-              </div>
-            )}
+      {loading ? (
+        <ForgeLoadingSpinner />
+      ) : (
+        <>
+          {/* Connect warning */}
+          {!isConnected && (
+            <Surface tone="card" padding="sm" className="border-[var(--nimi-status-warning)]">
+              <p className="text-sm text-[var(--nimi-status-warning)]">
+                {t('withdrawals.connectRequired', 'Stripe Connect must be set up before you can withdraw.')}
+              </p>
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => navigate('/revenue')}
+                className="mt-2"
+              >
+                {t('withdrawals.goToRevenue', 'Go to Revenue Dashboard')}
+              </Button>
+            </Surface>
+          )}
 
-            {/* Withdrawal calculator */}
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                {t('withdrawals.calculator', 'Withdrawal Calculator')}
-              </h3>
+          {/* Withdrawal calculator */}
+          <Surface tone="card" padding="md" className="space-y-4">
+            <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {t('withdrawals.calculator', 'Withdrawal Calculator')}
+            </h3>
 
-              <div className="grid grid-cols-3 gap-4 text-xs text-neutral-400">
-                <div>
-                  <p>Withdrawable</p>
-                  <p className="text-lg font-bold text-white mt-1">
-                    {formatCurrency(Number(eligible?.amount ?? 0))}
-                  </p>
-                </div>
-                <div>
-                  <p>Min Amount</p>
-                  <p className="text-lg font-bold text-white mt-1">
-                    {formatCurrency(Number(config?.minimumAmount ?? 0))}
-                  </p>
-                </div>
-                <div>
-                  <p>Fees</p>
-                  <p className="text-lg font-bold text-white mt-1">
-                    {calculation?.fee ? formatCurrency(Number(calculation.fee)) : '—'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="Amount"
-                  min="0"
-                  className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-                />
-                <button
-                  onClick={() => void handleWithdraw()}
-                  disabled={
-                    mutations.createWithdrawalMutation.isPending ||
-                    !isConnected ||
-                    !withdrawAmount ||
-                    parseFloat(withdrawAmount) <= 0
-                  }
-                  className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-                >
-                  {mutations.createWithdrawalMutation.isPending
-                    ? t('withdrawals.processing', 'Processing...')
-                    : t('withdrawals.withdraw', 'Withdraw')}
-                </button>
-              </div>
+            <div className="grid grid-cols-3 gap-4">
+              <ForgeStatCard
+                label="Withdrawable"
+                value={formatCurrency(Number(eligible?.amount ?? 0))}
+              />
+              <ForgeStatCard
+                label="Min Amount"
+                value={formatCurrency(Number(config?.minimumAmount ?? 0))}
+              />
+              <ForgeStatCard
+                label="Fees"
+                value={calculation?.fee ? formatCurrency(Number(calculation.fee)) : '—'}
+              />
             </div>
 
-            {/* History */}
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-3">
-                {t('withdrawals.history', 'Withdrawal History')}
-              </h3>
-              {history.length === 0 ? (
-                <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-                  <p className="text-sm text-neutral-500">
-                    {t('withdrawals.noHistory', 'No withdrawals yet.')}
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-neutral-800 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-neutral-800 bg-neutral-900">
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Date</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Amount</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Status</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Completed</th>
+            <div className="flex gap-3">
+              <LabeledTextField
+                label=""
+                type="number"
+                value={withdrawAmount}
+                onChange={setWithdrawAmount}
+                placeholder="Amount"
+                className="flex-1"
+              />
+              <Button
+                tone="primary"
+                size="md"
+                onClick={() => void handleWithdraw()}
+                disabled={
+                  mutations.createWithdrawalMutation.isPending ||
+                  !isConnected ||
+                  !withdrawAmount ||
+                  parseFloat(withdrawAmount) <= 0
+                }
+              >
+                {mutations.createWithdrawalMutation.isPending
+                  ? t('withdrawals.processing', 'Processing...')
+                  : t('withdrawals.withdraw', 'Withdraw')}
+              </Button>
+            </div>
+          </Surface>
+
+          {/* History */}
+          <div>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {t('withdrawals.history', 'Withdrawal History')}
+            </h3>
+            {history.length === 0 ? (
+              <ForgeEmptyState message={t('withdrawals.noHistory', 'No withdrawals yet.')} />
+            ) : (
+              <Surface tone="card" padding="none" className="overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]">
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Date</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-[var(--nimi-text-muted)]">Amount</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Status</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-[var(--nimi-text-muted)]">Completed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((entry) => (
+                      <tr key={entry.id} className="border-b border-[var(--nimi-border-subtle)]/50 hover:bg-[var(--nimi-surface-panel)]/30">
+                        <td className="px-4 py-2 text-[var(--nimi-text-muted)]">{formatDate(entry.createdAt)}</td>
+                        <td className="px-4 py-2 text-right font-medium text-[var(--nimi-text-primary)]">
+                          {formatCurrency(entry.amount)}
+                        </td>
+                        <td className="px-4 py-2">
+                          <ForgeStatusBadge
+                            domain="generic"
+                            status={entry.status}
+                            tone={withdrawalTone(entry.status)}
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-[var(--nimi-text-muted)]">
+                          {entry.completedAt ? formatDate(entry.completedAt) : '—'}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((entry) => (
-                        <tr key={entry.id} className="border-b border-neutral-800/50 hover:bg-neutral-800/30">
-                          <td className="px-4 py-2 text-neutral-400">{formatDate(entry.createdAt)}</td>
-                          <td className="px-4 py-2 text-right font-medium text-white">
-                            {formatCurrency(entry.amount)}
-                          </td>
-                          <td className="px-4 py-2">
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              statusColors[entry.status.toLowerCase()] || 'bg-neutral-700 text-neutral-300'
-                            }`}>
-                              {entry.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-neutral-500">
-                            {entry.completedAt ? formatDate(entry.completedAt) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+                    ))}
+                  </tbody>
+                </table>
+              </Surface>
+            )}
+          </div>
+        </>
+      )}
+    </ForgePage>
   );
 }

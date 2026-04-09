@@ -12,6 +12,10 @@ import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { LabeledTextField, LabeledTextareaField, LabeledSelectField, ToggleRow } from '@renderer/components/form-fields.js';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 
 const MUSIC_TEMPLATES = [
   { id: 'opening', label: 'Opening Theme' },
@@ -21,12 +25,20 @@ const MUSIC_TEMPLATES = [
   { id: 'trailer', label: 'Trailer Music' },
 ] as const;
 
+const TEMPLATE_OPTIONS = [
+  { value: '', label: 'Custom' },
+  ...MUSIC_TEMPLATES.map((tmpl) => ({ value: tmpl.id, label: tmpl.label })),
+];
+
 const MUSIC_STYLES = ['pop', 'orchestral', 'electronic', 'folk', 'cinematic', 'lo-fi'] as const;
+const STYLE_OPTIONS = MUSIC_STYLES.map((s) => ({ value: s, label: s }));
+
 const DURATIONS = [
-  { value: 30, label: '30s' },
-  { value: 60, label: '1 min' },
-  { value: 120, label: '2 min' },
+  { value: '30', label: '30s' },
+  { value: '60', label: '1 min' },
+  { value: '120', label: '2 min' },
 ] as const;
+const DURATION_OPTIONS = DURATIONS.map((d) => ({ value: d.value, label: d.label }));
 
 type GeneratedTrack = {
   id: string;
@@ -208,213 +220,159 @@ export default function MusicStudioPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.musicStudio')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {t('musicStudio.subtitle', 'Generate AI music for your worlds and characters')}
-          </p>
-        </div>
+    <ForgePage maxWidth="max-w-5xl">
+      <ForgePageHeader
+        title={t('pages.musicStudio')}
+        subtitle={t('musicStudio.subtitle', 'Generate AI music for your worlds and characters')}
+      />
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left: Composer */}
-          <div className="col-span-1 space-y-5">
-            {/* Template */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('musicStudio.template', 'Template')}
-              </label>
-              <select
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none"
-              >
-                <option value="">{t('musicStudio.customTemplate', 'Custom')}</option>
-                {MUSIC_TEMPLATES.map((tmpl) => (
-                  <option key={tmpl.id} value={tmpl.id}>{t(`musicStudio.template${tmpl.id.charAt(0).toUpperCase()}${tmpl.id.slice(1)}`, tmpl.label)}</option>
-                ))}
-              </select>
-            </div>
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left: Composer */}
+        <div className="col-span-1 space-y-5">
+          {/* Template */}
+          <LabeledSelectField
+            label={t('musicStudio.template', 'Template')}
+            value={template}
+            options={TEMPLATE_OPTIONS}
+            onChange={setTemplate}
+          />
 
-            {/* Title */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('musicStudio.title', 'Title')}
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('musicStudio.titlePlaceholder', 'Track title...')}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-              />
-            </div>
+          {/* Title */}
+          <LabeledTextField
+            label={t('musicStudio.title', 'Title')}
+            value={title}
+            onChange={setTitle}
+            placeholder={t('musicStudio.titlePlaceholder', 'Track title...')}
+          />
 
-            {/* Prompt */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('musicStudio.prompt', 'Prompt')}
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={3}
-                placeholder={t('musicStudio.promptPlaceholder', 'Describe the mood and feel of the music...')}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
-              />
-            </div>
+          {/* Prompt */}
+          <LabeledTextareaField
+            label={t('musicStudio.prompt', 'Prompt')}
+            value={prompt}
+            onChange={setPrompt}
+            rows={3}
+            placeholder={t('musicStudio.promptPlaceholder', 'Describe the mood and feel of the music...')}
+          />
 
-            {/* Lyrics */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs text-neutral-400">
-                  {t('musicStudio.lyrics', 'Lyrics')}
-                </label>
-                <button
-                  onClick={() => setInstrumental(!instrumental)}
-                  className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                    instrumental
-                      ? 'bg-white text-black'
-                      : 'bg-neutral-800 text-neutral-400'
-                  }`}
-                >
-                  {instrumental ? t('musicStudio.instrumental', 'Instrumental') : t('musicStudio.vocal', 'Vocal')}
-                </button>
-              </div>
-              <textarea
-                value={lyrics}
-                onChange={(e) => setLyrics(e.target.value)}
-                rows={4}
-                disabled={instrumental}
-                placeholder={instrumental ? t('musicStudio.instrumentalPlaceholder', 'Instrumental mode — no lyrics needed') : t('musicStudio.lyricsPlaceholder', 'Write or paste lyrics...')}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none disabled:opacity-50"
-              />
-            </div>
-
-            {/* Style */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('musicStudio.style', 'Style')}
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {MUSIC_STYLES.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStyle(s)}
-                    className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
-                      style === s
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Duration */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('musicStudio.duration', 'Duration')}
-              </label>
-              <div className="flex gap-1.5">
-                {DURATIONS.map((d) => (
-                  <button
-                    key={d.value}
-                    onClick={() => setDuration(d.value)}
-                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                      duration === d.value
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Generate */}
-            <button
-              onClick={() => void handleGenerate()}
-              disabled={generating || !prompt.trim()}
-              className="w-full rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-            >
-              {generating
-                ? t('musicStudio.generating', 'Generating...')
-                : t('musicStudio.generate', 'Generate Track')}
-            </button>
-
-            {error && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5">
-                <p className="text-xs text-red-400">{error}</p>
-              </div>
-            )}
+          {/* Lyrics / Instrumental toggle */}
+          <div>
+            <ToggleRow
+              label={t('musicStudio.instrumental', 'Instrumental')}
+              description={instrumental
+                ? t('musicStudio.instrumentalHint', 'No lyrics needed')
+                : t('musicStudio.vocalHint', 'Vocal mode — add lyrics below')}
+              checked={instrumental}
+              onChange={setInstrumental}
+            />
+            <LabeledTextareaField
+              label={t('musicStudio.lyrics', 'Lyrics')}
+              value={lyrics}
+              onChange={setLyrics}
+              rows={4}
+              placeholder={instrumental
+                ? t('musicStudio.instrumentalPlaceholder', 'Instrumental mode — no lyrics needed')
+                : t('musicStudio.lyricsPlaceholder', 'Write or paste lyrics...')}
+            />
           </div>
 
-          {/* Right: Audition Queue */}
-          <div className="col-span-2">
-            <h3 className="text-sm font-semibold text-white mb-3">
-              {t('musicStudio.auditionQueue', 'Audition Queue')}
-              {tracks.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-neutral-500">
-                  ({tracks.length})
-                </span>
-              )}
-            </h3>
-            {tracks.length === 0 ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 flex items-center justify-center h-96">
-                <div className="text-center">
-                  <div className="text-4xl text-neutral-700 mb-2">🎵</div>
-                  <p className="text-sm text-neutral-500">
-                    {t('musicStudio.emptyQueue', 'Generated tracks will appear here')}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {tracks.map((track) => (
-                  <div
-                    key={track.id}
-                    className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">{track.title || 'Untitled'}</p>
-                        <p className="text-xs text-neutral-500">
-                          {track.style} · {track.duration}s · {new Date(track.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => void handleSaveTrack(track.id)}
-                          disabled={savingTrackId === track.id}
-                          className="rounded bg-white px-3 py-1 text-xs font-medium text-black disabled:opacity-50"
-                        >
-                          {savingTrackId === track.id ? t('musicStudio.saving', 'Saving...') : t('musicStudio.save', 'Save')}
-                        </button>
-                        <button
-                          onClick={() => removeTrack(track.id)}
-                          className="rounded bg-neutral-800 px-3 py-1 text-xs font-medium text-neutral-400 hover:text-white"
-                        >
-                          {t('musicStudio.discard', 'Discard')}
-                        </button>
-                      </div>
+          {/* Style */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              {t('musicStudio.style', 'Style')}
+            </label>
+            <ForgeSegmentControl
+              options={STYLE_OPTIONS}
+              value={style}
+              onChange={setStyle}
+              className="grid grid-cols-3"
+            />
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              {t('musicStudio.duration', 'Duration')}
+            </label>
+            <ForgeSegmentControl
+              options={DURATION_OPTIONS}
+              value={String(duration)}
+              onChange={(v) => setDuration(Number(v))}
+            />
+          </div>
+
+          {/* Generate */}
+          <Button
+            tone="primary"
+            size="md"
+            fullWidth
+            onClick={() => void handleGenerate()}
+            disabled={generating || !prompt.trim()}
+          >
+            {generating
+              ? t('musicStudio.generating', 'Generating...')
+              : t('musicStudio.generate', 'Generate Track')}
+          </Button>
+
+          {error && (
+            <ForgeErrorBanner message={error} />
+          )}
+        </div>
+
+        {/* Right: Audition Queue */}
+        <div className="col-span-2">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
+            {t('musicStudio.auditionQueue', 'Audition Queue')}
+            {tracks.length > 0 && (
+              <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">
+                ({tracks.length})
+              </span>
+            )}
+          </h3>
+          {tracks.length === 0 ? (
+            <ForgeEmptyState message={t('musicStudio.emptyQueue', 'Generated tracks will appear here')} />
+          ) : (
+            <div className="space-y-2">
+              {tracks.map((track) => (
+                <Surface
+                  key={track.id}
+                  tone="card"
+                  padding="sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{track.title || 'Untitled'}</p>
+                      <p className="text-xs text-[var(--nimi-text-muted)]">
+                        {track.style} · {track.duration}s · {new Date(track.timestamp).toLocaleTimeString()}
+                      </p>
                     </div>
-                    {/* Waveform placeholder */}
-                    <div className="mt-2 h-8 rounded bg-neutral-800 flex items-center justify-center">
-                      <span className="text-[10px] text-neutral-600">{t('musicStudio.waveformPreview', 'Waveform preview')}</span>
+                    <div className="flex gap-2">
+                      <Button
+                        tone="primary"
+                        size="sm"
+                        onClick={() => void handleSaveTrack(track.id)}
+                        disabled={savingTrackId === track.id}
+                      >
+                        {savingTrackId === track.id ? t('musicStudio.saving', 'Saving...') : t('musicStudio.save', 'Save')}
+                      </Button>
+                      <Button
+                        tone="ghost"
+                        size="sm"
+                        onClick={() => removeTrack(track.id)}
+                      >
+                        {t('musicStudio.discard', 'Discard')}
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  {/* Waveform placeholder */}
+                  <div className="mt-2 h-8 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-canvas)] flex items-center justify-center">
+                    <span className="text-[10px] text-[var(--nimi-text-muted)]">{t('musicStudio.waveformPreview', 'Waveform preview')}</span>
+                  </div>
+                </Surface>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </ForgePage>
   );
 }

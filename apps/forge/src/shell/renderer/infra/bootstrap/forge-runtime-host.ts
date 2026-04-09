@@ -265,7 +265,11 @@ export function buildForgeRuntimeHost() {
 // Registration
 // ---------------------------------------------------------------------------
 
+let registered = false;
+
 export function registerForgeModSdkHost(): void {
+  if (registered) return;
+  registered = true;
   const host = buildForgeRuntimeHost();
   setModSdkHost(host as any);
 }

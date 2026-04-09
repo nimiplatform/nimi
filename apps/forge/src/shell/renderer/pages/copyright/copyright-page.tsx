@@ -7,6 +7,9 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeStatCard } from '@renderer/components/page-layout.js';
+import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
 
 type CopyrightTab = 'registrations' | 'licenses' | 'attributions' | 'infringements';
 
@@ -33,58 +36,37 @@ export default function CopyrightPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<CopyrightTab>('registrations');
 
-  const tabs: { id: CopyrightTab; label: string }[] = [
-    { id: 'registrations', label: t('copyright.tabRegistrations', 'Registrations') },
-    { id: 'licenses', label: t('copyright.tabLicenses', 'Licenses') },
-    { id: 'attributions', label: t('copyright.tabAttributions', 'Attributions') },
-    { id: 'infringements', label: t('copyright.tabInfringements', 'Infringements') },
+  const tabs: ForgeTab<CopyrightTab>[] = [
+    { value: 'registrations', label: t('copyright.tabRegistrations', 'Registrations') },
+    { value: 'licenses', label: t('copyright.tabLicenses', 'Licenses') },
+    { value: 'attributions', label: t('copyright.tabAttributions', 'Attributions') },
+    { value: 'infringements', label: t('copyright.tabInfringements', 'Infringements') },
   ];
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.copyrightManagement')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {t('copyright.subtitle', 'Register, license, and protect your creative works')}
-          </p>
-        </div>
+    <ForgePage>
+      <ForgePageHeader
+        title={t('pages.copyrightManagement')}
+        subtitle={t('copyright.subtitle', 'Register, license, and protect your creative works')}
+      />
 
-        {/* Scope notice */}
-        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-          <p className="text-sm text-yellow-400 font-medium mb-1">
-            {t('copyright.backendNotice', 'Copyright Deferred')}
-          </p>
-          <p className="text-xs text-yellow-400/70">
-            {t('copyright.backendNoticeDetail', 'Copyright is not part of the current Forge delivery scope. This page remains a placeholder until a smaller extension is explicitly approved.')}
-          </p>
-        </div>
+      {/* Scope notice */}
+      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+        <p className="text-sm font-medium text-[var(--nimi-status-warning)]">
+          {t('copyright.backendNotice', 'Copyright Deferred')}
+        </p>
+        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+          {t('copyright.backendNoticeDetail', 'Copyright is not part of the current Forge delivery scope. This page remains a placeholder until a smaller extension is explicitly approved.')}
+        </p>
+      </Surface>
 
-        {/* Tabs */}
-        <div className="flex border-b border-neutral-800">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                activeTab === tab.id
-                  ? 'border-white text-white'
-                  : 'border-transparent text-neutral-500 hover:text-neutral-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <ForgeTabBar tabs={tabs} value={activeTab} onChange={setActiveTab} />
 
-        {/* Tab content */}
-        {activeTab === 'registrations' && <RegistrationsTab />}
-        {activeTab === 'licenses' && <LicensesTab />}
-        {activeTab === 'attributions' && <AttributionsTab />}
-        {activeTab === 'infringements' && <InfringementsTab />}
-      </div>
-    </div>
+      {activeTab === 'registrations' && <RegistrationsTab />}
+      {activeTab === 'licenses' && <LicensesTab />}
+      {activeTab === 'attributions' && <AttributionsTab />}
+      {activeTab === 'infringements' && <InfringementsTab />}
+    </ForgePage>
   );
 }
 
@@ -95,51 +77,42 @@ function RegistrationsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-[var(--nimi-text-muted)]">
           {t('copyright.registrationsHint', 'Register your original content with verifiable timestamps and content hashes.')}
         </p>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          disabled
-          className="rounded-lg bg-white/30 px-4 py-2 text-sm font-medium text-white/50 cursor-not-allowed"
-        >
+        <Button tone="primary" size="sm" disabled onClick={() => setShowForm(!showForm)}>
           {t('copyright.register', 'Register Content')}
-        </button>
+        </Button>
       </div>
 
       {showForm && (
-        <div className="rounded-lg border border-neutral-700 bg-neutral-900 p-4 space-y-3">
+        <Surface tone="card" padding="md" className="space-y-3">
           <div>
-            <label className="block text-xs text-neutral-400 mb-1">Content Type</label>
+            <label className="mb-1.5 block text-xs text-[var(--nimi-text-secondary)]">Content Type</label>
             <div className="flex flex-wrap gap-1.5">
               {CONTENT_TYPES.map((ct) => (
-                <button
+                <span
                   key={ct.value}
-                  className="rounded px-3 py-1.5 text-xs font-medium bg-neutral-800 text-neutral-400"
+                  className="rounded-[var(--nimi-radius-action)] bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]"
                 >
                   {ct.label}
-                </button>
+                </span>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs text-neutral-400 mb-1">Title</label>
+            <label className="mb-1.5 block text-xs text-[var(--nimi-text-secondary)]">Title</label>
             <input
               type="text"
               disabled
               placeholder="Registration title..."
-              className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:outline-none disabled:opacity-50"
+              className="w-full rounded-[var(--nimi-radius-action)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-1.5 text-sm text-[var(--nimi-text-primary)] placeholder-[var(--nimi-text-muted)] focus:outline-none disabled:opacity-50"
             />
           </div>
-        </div>
+        </Surface>
       )}
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-        <div className="text-3xl text-neutral-700 mb-2">📜</div>
-        <p className="text-sm text-neutral-500">
-          {t('copyright.noRegistrations', 'No copyright registrations yet.')}
-        </p>
-      </div>
+      <ForgeEmptyState message={t('copyright.noRegistrations', 'No copyright registrations yet.')} />
     </div>
   );
 }
@@ -149,28 +122,20 @@ function LicensesTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-[var(--nimi-text-muted)]">
         {t('copyright.licensesHint', 'Assign usage licenses to your registered works.')}
       </p>
 
-      {/* License type preview */}
       <div className="grid grid-cols-3 gap-2">
         {LICENSE_TYPES.map((lt) => (
-          <div
-            key={lt.value}
-            className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2.5"
-          >
-            <p className="text-xs font-medium text-white">{lt.short}</p>
-            <p className="text-[10px] text-neutral-500 mt-0.5">{lt.label}</p>
-          </div>
+          <Surface key={lt.value} tone="card" padding="sm">
+            <p className="text-xs font-medium text-[var(--nimi-text-primary)]">{lt.short}</p>
+            <p className="mt-0.5 text-[10px] text-[var(--nimi-text-muted)]">{lt.label}</p>
+          </Surface>
         ))}
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-        <p className="text-sm text-neutral-500">
-          {t('copyright.noLicenses', 'No licenses configured yet. Register content first.')}
-        </p>
-      </div>
+      <ForgeEmptyState message={t('copyright.noLicenses', 'No licenses configured yet. Register content first.')} />
     </div>
   );
 }
@@ -180,29 +145,21 @@ function AttributionsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-[var(--nimi-text-muted)]">
         {t('copyright.attributionsHint', 'Track attribution chains between original and derivative works.')}
       </p>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5 text-center">
-          <p className="text-sm font-medium text-white mb-1">
-            {t('copyright.incoming', 'Incoming')}
-          </p>
-          <p className="text-xs text-neutral-500">
-            {t('copyright.incomingHint', 'Others referencing your work')}
-          </p>
-          <p className="text-2xl font-bold text-neutral-600 mt-3">0</p>
-        </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5 text-center">
-          <p className="text-sm font-medium text-white mb-1">
-            {t('copyright.outgoing', 'Outgoing')}
-          </p>
-          <p className="text-xs text-neutral-500">
-            {t('copyright.outgoingHint', 'Your references to others')}
-          </p>
-          <p className="text-2xl font-bold text-neutral-600 mt-3">0</p>
-        </div>
+        <ForgeStatCard
+          label={t('copyright.incoming', 'Incoming')}
+          value={0}
+          detail={t('copyright.incomingHint', 'Others referencing your work')}
+        />
+        <ForgeStatCard
+          label={t('copyright.outgoing', 'Outgoing')}
+          value={0}
+          detail={t('copyright.outgoingHint', 'Your references to others')}
+        />
       </div>
     </div>
   );
@@ -214,23 +171,15 @@ function InfringementsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-[var(--nimi-text-muted)]">
           {t('copyright.infringementsHint', 'Report and track content infringement cases.')}
         </p>
-        <button
-          disabled
-          className="rounded-lg bg-white/30 px-4 py-2 text-sm font-medium text-white/50 cursor-not-allowed"
-        >
+        <Button tone="primary" size="sm" disabled>
           {t('copyright.reportInfringement', 'Report Infringement')}
-        </button>
+        </Button>
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-        <div className="text-3xl text-neutral-700 mb-2">🛡️</div>
-        <p className="text-sm text-neutral-500">
-          {t('copyright.noInfringements', 'No infringement reports.')}
-        </p>
-      </div>
+      <ForgeEmptyState message={t('copyright.noInfringements', 'No infringement reports.')} />
     </div>
   );
 }

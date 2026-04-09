@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
 import {
   useRuntimeChatSession,
@@ -14,6 +15,15 @@ import type {
   AgentDetail,
   CreatorKeyItem,
 } from '@renderer/hooks/use-agent-queries.js';
+import { formatDate } from '@renderer/components/format-utils.js';
+import { LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';
+import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
+import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
+import { ForgeListCard } from '@renderer/components/card-list.js';
+import { ForgeLoadingSpinner, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { ForgeConfirmDialog, useConfirmDialog } from '@renderer/components/confirm-modals.js';
+import { ImageUploadField } from '@renderer/components/image-upload-field.js';
 
 function toJsonObject(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -21,14 +31,9 @@ function toJsonObject(value: unknown): JsonObject {
     : {};
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
+/* ------------------------------------------------------------------ */
+/*  DnaCategorySelector (uses ForgeSegmentControl)                     */
+/* ------------------------------------------------------------------ */
 
 function DnaCategorySelector({
   label,
@@ -41,27 +46,22 @@ function DnaCategorySelector({
   options: string[];
   onChange: (v: string) => void;
 }) {
+  const segmentOptions: SegmentOption[] = options.map((opt) => ({
+    value: opt,
+    label: opt.charAt(0).toUpperCase() + opt.slice(1),
+  }));
+
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 text-xs text-neutral-400">{label}</span>
-      <div className="flex gap-1.5">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            onClick={() => onChange(opt)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
-              value === opt
-                ? 'border-white bg-white text-black'
-                : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-white'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
+      <span className="w-28 shrink-0 text-xs text-[var(--nimi-text-muted)]">{label}</span>
+      <ForgeSegmentControl options={segmentOptions} value={value} onChange={onChange} />
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  DnaSlider (custom — kit has no slider)                             */
+/* ------------------------------------------------------------------ */
 
 function DnaSlider({
   label,
@@ -78,36 +78,33 @@ function DnaSlider({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 text-xs text-neutral-400">{label}</span>
+      <span className="w-28 shrink-0 text-xs text-[var(--nimi-text-muted)]">{label}</span>
       <input
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-neutral-700 accent-white"
+        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--nimi-surface-card)] accent-[var(--nimi-action-primary-bg)]"
       />
-      <span className="w-8 text-right text-xs tabular-nums text-neutral-400">{value}</span>
+      <span className="w-8 text-right text-xs tabular-nums text-[var(--nimi-text-muted)]">{value}</span>
     </div>
   );
 }
 
-function FieldGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs text-neutral-400">{label}</label>
-      {children}
-    </div>
-  );
-}
+/* ------------------------------------------------------------------ */
+/*  ProfileTab                                                         */
+/* ------------------------------------------------------------------ */
 
 export function ProfileTab({
   agent,
   onSave,
+  onAvatarChange,
   saving,
 }: {
   agent: AgentDetail;
   onSave: (updates: JsonObject) => Promise<void>;
+  onAvatarChange: (url: string) => void;
   saving: boolean;
 }) {
   const { t } = useTranslation();
@@ -126,82 +123,91 @@ export function ProfileTab({
     greeting !== (agent.greeting || '') ||
     wakeStrategy !== agent.wakeStrategy;
 
+  const wakeOptions: SegmentOption[] = [
+    { value: 'PASSIVE', label: t('agentDetail.passive', 'PASSIVE') },
+    { value: 'PROACTIVE', label: t('agentDetail.proactive', 'PROACTIVE') },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 text-xs text-neutral-500">
-        <span>{t('agentDetail.statusLabel', 'Status:')} <strong className="text-neutral-300">{agent.status}</strong></span>
-        <span>{t('agentDetail.stateLabel', 'State:')} <strong className="text-neutral-300">{agent.state}</strong></span>
-        <span>{t('agentDetail.ownershipLabel', 'Ownership:')} <strong className="text-neutral-300">{agent.ownershipType === 'WORLD_OWNED' ? t('agentDetail.ownerWorld', 'World') : t('agentDetail.ownerMaster', 'Master')}</strong></span>
-        {agent.worldId ? <span>{t('agentDetail.worldLabel', 'World:')} <strong className="text-neutral-300">{agent.worldId}</strong></span> : null}
+      <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--nimi-text-muted)]">
+        <span>
+          {t('agentDetail.statusLabel', 'Status:')}{' '}
+          <ForgeStatusBadge domain="agent" status={agent.status} />
+        </span>
+        <span>
+          {t('agentDetail.stateLabel', 'State:')}{' '}
+          <ForgeStatusBadge domain="generic" status={agent.state} tone="neutral" />
+        </span>
+        <span>
+          {t('agentDetail.ownershipLabel', 'Ownership:')}{' '}
+          <ForgeStatusBadge
+            domain="ownership"
+            status={agent.ownershipType}
+            label={agent.ownershipType === 'WORLD_OWNED' ? t('agentDetail.ownerWorld', 'World') : t('agentDetail.ownerMaster', 'Master')}
+          />
+        </span>
+        {agent.worldId ? (
+          <span className="text-[var(--nimi-text-muted)]">
+            {t('agentDetail.worldLabel', 'World:')}{' '}
+            <strong className="text-[var(--nimi-text-secondary)]">{agent.worldId}</strong>
+          </span>
+        ) : null}
         <span>{t('agentDetail.createdLabel', 'Created:')} {formatDate(agent.createdAt)}</span>
         <span>{t('agentDetail.updatedLabel', 'Updated:')} {formatDate(agent.updatedAt)}</span>
       </div>
 
       <div className="space-y-4">
-        <FieldGroup label={t('agentDetail.displayName', 'Display Name')}>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-          />
-        </FieldGroup>
-        <FieldGroup label={t('agentDetail.concept', 'Concept')}>
-          <textarea
-            value={concept}
-            onChange={(e) => setConcept(e.target.value)}
-            rows={2}
-            className="w-full resize-none rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-          />
-        </FieldGroup>
-        <FieldGroup label={t('agentDetail.description', 'Description')}>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder={t('agentDetail.descriptionPlaceholder', 'Detailed description of the agent...')}
-            className="w-full resize-none rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-          />
-        </FieldGroup>
-        <FieldGroup label={t('agentDetail.scenario', 'Scenario')}>
-          <textarea
-            value={scenario}
-            onChange={(e) => setScenario(e.target.value)}
-            rows={3}
-            placeholder={t('agentDetail.scenarioPlaceholder', 'The scenario or setting for this agent...')}
-            className="w-full resize-none rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-          />
-        </FieldGroup>
-        <FieldGroup label={t('agentDetail.greeting', 'Greeting')}>
-          <textarea
-            value={greeting}
-            onChange={(e) => setGreeting(e.target.value)}
-            rows={2}
-            placeholder={t('agentDetail.greetingPlaceholder', 'The first message the agent sends...')}
-            className="w-full resize-none rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-          />
-        </FieldGroup>
-        <FieldGroup label={t('agentDetail.wakeStrategy', 'Wake Strategy')}>
-          <div className="flex gap-2">
-            {(['PASSIVE', 'PROACTIVE'] as const).map((strategy) => (
-              <button
-                key={strategy}
-                onClick={() => setWakeStrategy(strategy)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  wakeStrategy === strategy
-                    ? 'bg-white text-black'
-                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                }`}
-              >
-                {strategy === 'PASSIVE' ? t('agentDetail.passive', 'PASSIVE') : t('agentDetail.proactive', 'PROACTIVE')}
-              </button>
-            ))}
-          </div>
-        </FieldGroup>
+        <ImageUploadField
+          label={t('agentDetail.avatar', 'Avatar')}
+          currentUrl={agent.avatarUrl}
+          aspect="1:1"
+          onUploaded={(result) => onAvatarChange(result.url)}
+        />
+
+        <LabeledTextField
+          label={t('agentDetail.displayName', 'Display Name')}
+          value={displayName}
+          onChange={setDisplayName}
+        />
+        <LabeledTextareaField
+          label={t('agentDetail.concept', 'Concept')}
+          value={concept}
+          onChange={setConcept}
+          rows={2}
+        />
+        <LabeledTextareaField
+          label={t('agentDetail.description', 'Description')}
+          value={description}
+          onChange={setDescription}
+          rows={3}
+          placeholder={t('agentDetail.descriptionPlaceholder', 'Detailed description of the agent...')}
+        />
+        <LabeledTextareaField
+          label={t('agentDetail.scenario', 'Scenario')}
+          value={scenario}
+          onChange={setScenario}
+          rows={3}
+          placeholder={t('agentDetail.scenarioPlaceholder', 'The scenario or setting for this agent...')}
+        />
+        <LabeledTextareaField
+          label={t('agentDetail.greeting', 'Greeting')}
+          value={greeting}
+          onChange={setGreeting}
+          rows={2}
+          placeholder={t('agentDetail.greetingPlaceholder', 'The first message the agent sends...')}
+        />
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+            {t('agentDetail.wakeStrategy', 'Wake Strategy')}
+          </label>
+          <ForgeSegmentControl options={wakeOptions} value={wakeStrategy} onChange={(v) => setWakeStrategy(v as typeof wakeStrategy)} />
+        </div>
       </div>
 
       <div className="flex justify-end pt-2">
-        <button
+        <Button
+          tone="primary"
           onClick={() => {
             void onSave({
               displayName,
@@ -213,14 +219,17 @@ export function ProfileTab({
             });
           }}
           disabled={saving || !dirty}
-          className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
         >
           {saving ? t('agentDetail.saving', 'Saving...') : t('agentDetail.saveProfile', 'Save Profile')}
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  DnaTab                                                             */
+/* ------------------------------------------------------------------ */
 
 export function DnaTab({
   agentId: _agentId,
@@ -292,100 +301,102 @@ export function DnaTab({
 
   return (
     <div className="space-y-8">
+      {/* Primary Personality Type */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">{t('agentDetail.primaryType', 'Primary Personality Type')}</h3>
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('agentDetail.primaryType', 'Primary Personality Type')}
+          </h3>
           <div className="flex gap-1.5">
-            <button
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => {
                 const randomIdx = Math.floor(Math.random() * DNA_PRIMARY_TYPES.length);
                 setPrimaryType(DNA_PRIMARY_TYPES[randomIdx]!);
               }}
-              className="rounded px-2 py-0.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white"
-              title="Randomize"
             >
               {t('agentDetail.randomize', 'Randomize')}
-            </button>
-            <button
+            </Button>
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => setPrimaryType(currentPrimary)}
-              className="rounded px-2 py-0.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white"
-              title="Reset to saved value"
             >
               {t('agentDetail.reset', 'Reset')}
-            </button>
+            </Button>
           </div>
         </div>
-        <p className="mb-3 text-xs text-neutral-500">
+        <p className="mb-3 text-xs text-[var(--nimi-text-muted)]">
           {t('agentDetail.primaryTypeHint', 'Select the core personality archetype for this agent.')}
         </p>
         <div className="grid grid-cols-3 gap-2">
           {DNA_PRIMARY_TYPES.map((type) => (
-            <button
+            <Button
               key={type}
+              tone={primaryType === type ? 'primary' : 'secondary'}
+              size="sm"
               onClick={() => setPrimaryType(type)}
-              className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                primaryType === type
-                  ? 'border-white bg-white text-black'
-                  : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-white'
-              }`}
             >
               {type}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
+      {/* Secondary Traits */}
       <div>
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('agentDetail.secondaryTraits', 'Secondary Traits')}
-            <span className="ml-2 text-xs font-normal text-neutral-500">({secondaryTraits.length}/3)</span>
+            <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">({secondaryTraits.length}/3)</span>
           </h3>
           <div className="flex gap-1.5">
-            <button
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => {
                 const shuffled = [...DNA_SECONDARY_TRAITS].sort(() => Math.random() - 0.5);
                 setSecondaryTraits(shuffled.slice(0, 3));
               }}
-              className="rounded px-2 py-0.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white"
-              title="Randomize"
             >
               {t('agentDetail.randomize', 'Randomize')}
-            </button>
-            <button
+            </Button>
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => setSecondaryTraits(currentSecondary)}
-              className="rounded px-2 py-0.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white"
-              title="Reset to saved value"
             >
               {t('agentDetail.reset', 'Reset')}
-            </button>
+            </Button>
           </div>
         </div>
-        <p className="mb-3 text-xs text-neutral-500">
+        <p className="mb-3 text-xs text-[var(--nimi-text-muted)]">
           {t('agentDetail.secondaryTraitsHint', 'Choose up to 3 traits that flavor the personality.')}
         </p>
         <div className="flex flex-wrap gap-2">
           {DNA_SECONDARY_TRAITS.map((trait) => {
             const selected = secondaryTraits.includes(trait);
             return (
-              <button
+              <Button
                 key={trait}
+                tone={selected ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={() => toggleSecondary(trait)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                  selected
-                    ? 'border-white bg-white text-black'
-                    : 'border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-neutral-500 hover:text-white'
-                }`}
+                className="rounded-full"
               >
                 {trait}
-              </button>
+              </Button>
             );
           })}
         </div>
       </div>
 
+      {/* Communication Style */}
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-white">{t('agentDetail.communicationStyle', 'Communication Style')}</h3>
+        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('agentDetail.communicationStyle', 'Communication Style')}
+        </h3>
         <div className="space-y-4">
           <DnaCategorySelector label={t('agentDetail.formality', 'Formality')} value={formality} options={['casual', 'formal', 'slang']} onChange={setFormality} />
           <DnaCategorySelector label={t('agentDetail.responseLength', 'Response Length')} value={responseLength} options={['short', 'medium', 'long']} onChange={setResponseLength} />
@@ -393,30 +404,30 @@ export function DnaTab({
         </div>
       </div>
 
+      {/* Voice */}
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-white">{t('agentDetail.voice', 'Voice')}</h3>
+        <h3 className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('agentDetail.voice', 'Voice')}
+        </h3>
         <div className="space-y-4">
           <DnaSlider label={t('agentDetail.voiceSpeed', 'Speed')} value={voiceSpeed} onChange={setVoiceSpeed} />
           <DnaSlider label={t('agentDetail.voicePitch', 'Pitch')} value={voicePitch} onChange={setVoicePitch} />
         </div>
       </div>
 
-      <div>
-        <h3 className="mb-1 text-sm font-semibold text-white">{t('agentDetail.behavioralRules', 'Behavioral Rules')}</h3>
-        <p className="mb-3 text-xs text-neutral-500">
-          {t('agentDetail.behavioralRulesHint', 'Define boundaries, trigger responses, and forbidden topics. One rule per line.')}
-        </p>
-        <textarea
-          value={rulesText}
-          onChange={(e) => setRulesText(e.target.value)}
-          rows={6}
-          placeholder={t('agentDetail.rulesPlaceholder', 'e.g. Never break character\nDo not discuss real-world politics\nAlways respond in character voice')}
-          className="w-full resize-y rounded border border-neutral-700 bg-neutral-800 px-3 py-2 font-mono text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-        />
-      </div>
+      {/* Behavioral Rules */}
+      <LabeledTextareaField
+        label={t('agentDetail.behavioralRules', 'Behavioral Rules')}
+        value={rulesText}
+        onChange={setRulesText}
+        rows={6}
+        placeholder={t('agentDetail.rulesPlaceholder', 'e.g. Never break character\nDo not discuss real-world politics\nAlways respond in character voice')}
+        helper={t('agentDetail.behavioralRulesHint', 'Define boundaries, trigger responses, and forbidden topics. One rule per line.')}
+      />
 
       <div className="flex justify-end">
-        <button
+        <Button
+          tone="primary"
           onClick={() => {
             const rulesLines = rulesText.split('\n').map((l) => l.trim()).filter(Boolean);
             void onSaveDna({
@@ -429,44 +440,44 @@ export function DnaTab({
             });
           }}
           disabled={savingDna || !dnaDirty}
-          className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
         >
           {savingDna ? t('agentDetail.saving', 'Saving...') : t('agentDetail.saveDna', 'Save DNA')}
-        </button>
+        </Button>
       </div>
 
-      <div className="border-t border-neutral-800 pt-6">
-        <h3 className="mb-1 text-sm font-semibold text-white">{t('agentDetail.soulPrime', 'Soul Prime')}</h3>
-        <p className="mb-3 text-xs text-neutral-500">
+      {/* Soul Prime */}
+      <div className="border-t border-[var(--nimi-border-subtle)] pt-6">
+        <h3 className="mb-1 text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('agentDetail.soulPrime', 'Soul Prime')}
+        </h3>
+        <p className="mb-3 text-xs text-[var(--nimi-text-muted)]">
           {t(
             'agentDetail.soulPrimeHint',
             'Writes the canonical agent truth rule. Use labeled sections like Backstory:, Core Values:, Guidelines:, and Catchphrase: when needed.',
           )}
         </p>
         {soulPrimeLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-          </div>
+          <ForgeLoadingSpinner />
         ) : (
           <>
-            <textarea
+            <LabeledTextareaField
+              label=""
               value={soulPrimeText}
-              onChange={(e) => setSoulPrimeText(e.target.value)}
+              onChange={setSoulPrimeText}
               rows={10}
               placeholder={t(
                 'agentDetail.soulPrimePlaceholder',
                 'Backstory: ...\n\nCore Values: ...\n\nGuidelines: ...',
               )}
-              className="w-full resize-y rounded border border-neutral-700 bg-neutral-800 px-3 py-2 font-mono text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
             />
             <div className="mt-3 flex justify-end">
-              <button
+              <Button
+                tone="primary"
                 onClick={() => { void onSaveSoulPrime({ text: soulPrimeText }); }}
                 disabled={savingSoulPrime}
-                className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
               >
                 {savingSoulPrime ? t('agentDetail.saving', 'Saving...') : t('agentDetail.saveSoulPrime', 'Save Soul Prime')}
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -474,6 +485,10 @@ export function DnaTab({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  PreviewTab                                                         */
+/* ------------------------------------------------------------------ */
 
 export function PreviewTab({ agent }: { agent: AgentDetail }) {
   const { t } = useTranslation();
@@ -524,44 +539,46 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/50">
-        <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
+      <Surface tone="card" padding="none">
+        <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-700">
-              <span className="text-xs text-neutral-400">
-                {(agent.displayName || agent.handle || '?')[0]?.toUpperCase()}
-              </span>
-            </div>
-            <span className="text-sm font-medium text-white">{agent.displayName || agent.handle}</span>
+            <ForgeEntityAvatar
+              src={agent.avatarUrl}
+              name={agent.displayName || agent.handle}
+              size="sm"
+            />
+            <span className="text-sm font-medium text-[var(--nimi-text-primary)]">
+              {agent.displayName || agent.handle}
+            </span>
           </div>
           <div className="flex gap-1.5">
-            <button
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => setShowSystemPrompt((v) => !v)}
-              className={`rounded px-2 py-0.5 text-xs transition-colors ${
-                showSystemPrompt ? 'bg-neutral-700 text-white' : 'text-neutral-500 hover:bg-neutral-800 hover:text-white'
-              }`}
             >
               {t('agentDetail.systemPrompt', 'System Prompt')}
-            </button>
-            <button
+            </Button>
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={handleResetConversation}
-              className="rounded px-2 py-0.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white"
             >
               {t('agentDetail.resetChat', 'Reset')}
-            </button>
+            </Button>
           </div>
         </div>
 
         {showSystemPrompt ? (
-          <div className="space-y-2 border-b border-neutral-800 bg-neutral-950/50 px-4 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-600">
+          <div className="space-y-2 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-base)] px-4 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--nimi-text-muted)]">
               {t('agentDetail.systemPromptPreview', 'System Prompt Preview')}
             </p>
-            <div className="space-y-1 text-xs text-neutral-400">
-              <p><span className="text-neutral-600">{t('agentDetail.primaryLabel', 'Primary:')}</span> {primaryType}</p>
-              <p><span className="text-neutral-600">{t('agentDetail.secondaryLabel', 'Secondary:')}</span> {secondaryTraits}</p>
-              {agent.concept ? <p><span className="text-neutral-600">{t('agentDetail.conceptLabel', 'Concept:')}</span> {agent.concept}</p> : null}
-              {agent.scenario ? <p><span className="text-neutral-600">{t('agentDetail.scenarioLabel', 'Scenario:')}</span> {agent.scenario}</p> : null}
+            <div className="space-y-1 text-xs text-[var(--nimi-text-muted)]">
+              <p><span className="text-[var(--nimi-text-muted)]">{t('agentDetail.primaryLabel', 'Primary:')}</span> {primaryType}</p>
+              <p><span className="text-[var(--nimi-text-muted)]">{t('agentDetail.secondaryLabel', 'Secondary:')}</span> {secondaryTraits}</p>
+              {agent.concept ? <p><span className="text-[var(--nimi-text-muted)]">{t('agentDetail.conceptLabel', 'Concept:')}</span> {agent.concept}</p> : null}
+              {agent.scenario ? <p><span className="text-[var(--nimi-text-muted)]">{t('agentDetail.scenarioLabel', 'Scenario:')}</span> {agent.scenario}</p> : null}
             </div>
           </div>
         ) : null}
@@ -570,9 +587,9 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
           session={session}
           className="rounded-none border-0 bg-transparent shadow-none"
           messagesClassName="h-80"
-          userMessageBubbleClassName="rounded-lg bg-white text-black"
-          assistantMessageBubbleClassName="rounded-lg bg-neutral-800 text-white"
-          composerClassName="border-neutral-800"
+          userMessageBubbleClassName="rounded-lg bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]"
+          assistantMessageBubbleClassName="rounded-lg bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)]"
+          composerClassName="border-[var(--nimi-border-subtle)]"
           placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
           sendLabel={t('agentDetail.send', 'Send')}
           streamingLabel={t('agentDetail.streaming', 'Streaming...')}
@@ -580,15 +597,19 @@ export function PreviewTab({ agent }: { agent: AgentDetail }) {
           resetLabel={t('agentDetail.resetChat', 'Reset')}
           onReset={handleResetConversation}
           emptyState={(
-            <p className="py-8 text-center text-sm text-neutral-500">
+            <p className="py-8 text-center text-sm text-[var(--nimi-text-muted)]">
               {t('agentDetail.noMessages', 'No messages yet')}
             </p>
           )}
         />
-      </div>
+      </Surface>
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  KeysTab                                                            */
+/* ------------------------------------------------------------------ */
 
 export function KeysTab({
   keys,
@@ -606,97 +627,105 @@ export function KeysTab({
   const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [keyName, setKeyName] = useState('');
+  const revokeDialog = useConfirmDialog();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">{t('agentDetail.apiKeys', 'API Keys')}</h3>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+            {t('agentDetail.apiKeys', 'API Keys')}
+          </h3>
+          <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
             {t('agentDetail.apiKeysHint', 'Manage API keys for programmatic access to your agents.')}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-neutral-200"
-        >
+        <Button tone="primary" onClick={() => setShowForm(true)}>
           {t('agentDetail.createKey', 'Create Key')}
-        </button>
+        </Button>
       </div>
 
       {showForm ? (
-        <div className="space-y-3 rounded-lg border border-neutral-700 bg-neutral-900 p-4">
-          <FieldGroup label={t('agentDetail.keyName', 'Key Name')}>
-            <input
-              type="text"
+        <Surface tone="card" padding="md">
+          <div className="space-y-3">
+            <LabeledTextField
+              label={t('agentDetail.keyName', 'Key Name')}
               value={keyName}
-              onChange={(e) => setKeyName(e.target.value)}
+              onChange={setKeyName}
               placeholder={t('agentDetail.keyNamePlaceholder', 'e.g. production-key')}
-              className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
             />
-          </FieldGroup>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setKeyName('');
-              }}
-              className="rounded px-4 py-1.5 text-sm text-neutral-400 transition-colors hover:text-white"
-            >
-              {t('agentDetail.cancel', 'Cancel')}
-            </button>
-            <button
-              onClick={() => {
-                if (!keyName.trim()) return;
-                void onCreateKey({ name: keyName.trim() }).then(() => {
-                  setKeyName('');
+            <div className="flex justify-end gap-2">
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => {
                   setShowForm(false);
-                });
-              }}
-              disabled={creatingKey || !keyName.trim()}
-              className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black transition-colors hover:bg-neutral-200 disabled:opacity-50"
-            >
-              {creatingKey ? t('agentDetail.creating', 'Creating...') : t('agentDetail.create', 'Create')}
-            </button>
+                  setKeyName('');
+                }}
+              >
+                {t('agentDetail.cancel', 'Cancel')}
+              </Button>
+              <Button
+                tone="primary"
+                size="sm"
+                onClick={() => {
+                  if (!keyName.trim()) return;
+                  void onCreateKey({ name: keyName.trim() }).then(() => {
+                    setKeyName('');
+                    setShowForm(false);
+                  });
+                }}
+                disabled={creatingKey || !keyName.trim()}
+              >
+                {creatingKey ? t('agentDetail.creating', 'Creating...') : t('agentDetail.create', 'Create')}
+              </Button>
+            </div>
           </div>
-        </div>
+        </Surface>
       ) : null}
 
       {keysLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-        </div>
+        <ForgeLoadingSpinner />
       ) : keys.length === 0 ? (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-          <p className="text-sm text-neutral-400">{t('agentDetail.noKeys', 'No API keys yet.')}</p>
-        </div>
+        <ForgeEmptyState message={t('agentDetail.noKeys', 'No API keys yet.')} />
       ) : (
         <div className="space-y-2">
           {keys.map((key) => (
-            <div key={key.id} className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">{key.name}</p>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  <code className="rounded bg-neutral-800 px-1.5 py-0.5">{key.keyPreview}</code>
-                  <span className="ml-2">{t('agentDetail.createdAt', 'Created:')} {formatDate(key.createdAt)}</span>
-                  {key.lastUsedAt ? <span className="ml-2">{t('agentDetail.lastUsed', 'Last used:')} {formatDate(key.lastUsedAt)}</span> : null}
-                  {key.expiresAt ? <span className="ml-2">{t('agentDetail.expiresAt', 'Expires:')} {formatDate(key.expiresAt)}</span> : null}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  if (confirm(t('agentDetail.confirmRevoke', 'Revoke this key? This cannot be undone.'))) {
-                    void onRevokeKey(key.id);
-                  }
-                }}
-                className="ml-3 rounded px-3 py-1 text-xs font-medium text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-400"
-              >
-                {t('agentDetail.revoke', 'Revoke')}
-              </button>
-            </div>
+            <ForgeListCard
+              key={key.id}
+              title={key.name}
+              subtitle={[
+                key.keyPreview,
+                `${t('agentDetail.createdAt', 'Created:')} ${formatDate(key.createdAt)}`,
+                key.lastUsedAt ? `${t('agentDetail.lastUsed', 'Last used:')} ${formatDate(key.lastUsedAt)}` : '',
+                key.expiresAt ? `${t('agentDetail.expiresAt', 'Expires:')} ${formatDate(key.expiresAt)}` : '',
+              ].filter(Boolean).join(' \u00b7 ')}
+              actions={
+                <Button
+                  tone="danger"
+                  size="sm"
+                  onClick={async () => {
+                    const confirmed = await revokeDialog.confirm();
+                    if (confirmed) {
+                      void onRevokeKey(key.id);
+                    }
+                  }}
+                >
+                  {t('agentDetail.revoke', 'Revoke')}
+                </Button>
+              }
+            />
           ))}
         </div>
       )}
+
+      <ForgeConfirmDialog
+        {...revokeDialog.dialogProps}
+        title={t('agentDetail.revokeKeyTitle', 'Revoke API Key')}
+        message={t('agentDetail.confirmRevoke', 'Revoke this key? This cannot be undone.')}
+        confirmLabel={t('agentDetail.revoke', 'Revoke')}
+        cancelLabel={t('agentDetail.cancel', 'Cancel')}
+      />
     </div>
   );
 }

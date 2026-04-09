@@ -7,6 +7,12 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { LabeledTextField, LabeledTextareaField, LabeledSelectField } from '@renderer/components/form-fields.js';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
+import { ForgeListCard } from '@renderer/components/card-list.js';
 import {
   createRelease,
   listReleases,
@@ -28,6 +34,25 @@ type PublishDraft = PublishReleaseDraft;
 function emptyAttachment(): DraftAttachmentItem {
   return { targetType: 'RESOURCE', targetId: '', displayKind: 'IMAGE' };
 }
+
+const STATUS_OPTIONS = [
+  { value: 'ALL' as const, label: 'All' },
+  { value: 'DRAFT' as const, label: 'DRAFT' },
+  { value: 'PUBLISHED' as const, label: 'PUBLISHED' },
+];
+
+const IDENTITY_OPTIONS = [
+  { value: 'USER', label: 'Creator' },
+  { value: 'AGENT', label: 'Agent' },
+];
+
+const DISPLAY_KIND_OPTIONS = [
+  { value: 'IMAGE', label: 'Image' },
+  { value: 'VIDEO', label: 'Video' },
+  { value: 'AUDIO', label: 'Audio' },
+  { value: 'TEXT', label: 'Text' },
+  { value: 'CARD', label: 'Card' },
+];
 
 export default function ReleasesPage() {
   const { t } = useTranslation();
@@ -159,301 +184,261 @@ export default function ReleasesPage() {
     },
   });
 
+  const agentOptions = (agentListQuery.data || []).map((agent) => ({
+    value: agent.id,
+    label: agent.displayName || agent.handle,
+  }));
+
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{t('pages.releases')}</h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              {t('releases.subtitle', 'Draft posts, choose a publish identity, and review publish history')}
-            </p>
-          </div>
-          <button
+    <ForgePage maxWidth="max-w-6xl">
+      <ForgePageHeader
+        title={t('pages.releases')}
+        subtitle={t('releases.subtitle', 'Draft posts, choose a publish identity, and review publish history')}
+        actions={
+          <Button
+            tone="primary"
+            size="md"
             onClick={() => createDraftMutation.mutate()}
             disabled={createDraftMutation.isPending}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-opacity disabled:opacity-60"
           >
             {t('releases.createRelease', 'New Draft')}
-          </button>
-        </div>
+          </Button>
+        }
+      />
 
-        {error && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-        {notice && !error && (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-            {notice}
-          </div>
-        )}
+      {error && <ForgeErrorBanner message={error} />}
+      {notice && !error && (
+        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-success)]">
+          <p className="text-sm text-[var(--nimi-status-success)]">{notice}</p>
+        </Surface>
+      )}
 
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <section className="space-y-4">
-            <div className="flex rounded-lg border border-neutral-700 overflow-hidden w-fit">
-              {(['ALL', 'DRAFT', 'PUBLISHED'] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-2 text-xs font-medium transition-colors ${
-                    statusFilter === status
-                      ? 'bg-white text-black'
-                      : 'bg-neutral-900 text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  {status === 'ALL' ? t('releases.filterAll', 'All') : status}
-                </button>
-              ))}
-            </div>
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        {/* Draft list sidebar */}
+        <section className="space-y-4">
+          <ForgeSegmentControl
+            options={STATUS_OPTIONS.map((o) => ({
+              ...o,
+              label: o.value === 'ALL' ? t('releases.filterAll', 'All') : o.label,
+            }))}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
 
-            <div className="space-y-3">
-              {!drafts.length && (
-                <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6 text-center">
-                  <p className="text-sm text-neutral-400">
-                    {t('releases.noReleases', 'No publish drafts yet. Create a draft to prepare a post and publish it as yourself or a selected agent.')}
-                  </p>
-                  <p className="mt-2 text-xs text-neutral-600">
-                    {t('releases.releaseHint', 'Drafts stay in Forge app state. Published history will be derived from existing post and feed queries.')}
-                  </p>
-                </div>
-              )}
+          <div className="space-y-3">
+            {!drafts.length && (
+              <ForgeEmptyState
+                message={t('releases.noReleases', 'No publish drafts yet. Create a draft to prepare a post and publish it as yourself or a selected agent.')}
+              />
+            )}
 
-              {drafts.map((draft) => (
-                <button
-                  key={draft.id}
-                  onClick={() => setSelectedDraftId(draft.id)}
-                  className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
-                    selectedDraftId === draft.id
-                      ? 'border-white bg-white/10'
-                      : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-white">
-                      {draft.title || t('releases.untitledDraft', 'Untitled Draft')}
-                    </p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      draft.status === 'PUBLISHED'
-                        ? 'bg-emerald-500/10 text-emerald-300'
-                        : 'bg-neutral-800 text-neutral-400'
-                    }`}>
-                      {draft.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-neutral-400">
-                    {draft.caption || t('releases.emptyDraftCaption', 'No caption yet.')}
-                  </p>
-                  <p className="mt-2 text-[11px] text-neutral-500">
+            {drafts.map((draft) => (
+              <ForgeListCard
+                key={draft.id}
+                title={draft.title || t('releases.untitledDraft', 'Untitled Draft')}
+                subtitle={draft.caption || t('releases.emptyDraftCaption', 'No caption yet.')}
+                badges={
+                  <ForgeStatusBadge
+                    domain="draft"
+                    status={draft.status}
+                    label={draft.status}
+                  />
+                }
+                actions={
+                  <span className="text-[11px] text-[var(--nimi-text-muted)]">
                     {draft.attachments.length} {t('releases.attachments', 'attachments')} · {draft.identity}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </section>
+                  </span>
+                }
+                onClick={() => setSelectedDraftId(draft.id)}
+                className={selectedDraftId === draft.id ? 'ring-1 ring-[var(--nimi-border-strong)]' : ''}
+              />
+            ))}
+          </div>
+        </section>
 
-          <section className="space-y-6">
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-white">
-                    {t('releases.editorTitle', 'Draft Editor')}
-                  </h2>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    {t('releases.editorHint', 'Current publish path supports creator-authored posts with canonical attachment targets and preserves RESOURCE, ASSET, and BUNDLE references in local drafts.')}
-                  </p>
-                </div>
-                {selectedDraft && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => deleteDraftMutation.mutate(selectedDraft.id)}
-                      disabled={deleteDraftMutation.isPending}
-                      className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-300 disabled:opacity-60"
-                    >
-                      {t('releases.deleteDraft', 'Delete')}
-                    </button>
-                    <button
-                      onClick={() => saveDraftMutation.mutate(selectedDraft.id)}
-                      disabled={saveDraftMutation.isPending || publishDraftMutation.isPending}
-                      className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-white disabled:opacity-60"
-                    >
-                      {t('releases.saveDraft', 'Save Draft')}
-                    </button>
-                    <button
-                      onClick={() => publishDraftMutation.mutate(selectedDraft.id)}
-                      disabled={!selectedDraft || publishDraftMutation.isPending || saveDraftMutation.isPending}
-                      className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-black disabled:opacity-60"
-                    >
-                      {t('releases.publishNow', 'Publish Now')}
-                    </button>
-                  </div>
-                )}
+        {/* Editor panel */}
+        <section className="space-y-6">
+          <Surface tone="card" padding="md">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                  {t('releases.editorTitle', 'Draft Editor')}
+                </h2>
+                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                  {t('releases.editorHint', 'Current publish path supports creator-authored posts with canonical attachment targets and preserves RESOURCE, ASSET, and BUNDLE references in local drafts.')}
+                </p>
               </div>
-
-              {!selectedDraft && (
-                <div className="mt-4 rounded-lg border border-dashed border-neutral-700 px-4 py-8 text-center text-sm text-neutral-500">
-                  {t('releases.selectDraft', 'Create or select a draft to start publishing.')}
-                </div>
-              )}
-
               {selectedDraft && (
-                <div className="mt-4 space-y-4">
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-neutral-400">{t('releases.title', 'Title')}</span>
-                    <input
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                      placeholder={t('releases.titlePlaceholder', 'Draft title')}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-neutral-400">{t('releases.caption', 'Caption')}</span>
-                    <textarea
-                      value={caption}
-                      onChange={(event) => setCaption(event.target.value)}
-                      rows={4}
-                      className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                      placeholder={t('releases.captionPlaceholder', 'Write the text that will accompany the post')}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-neutral-400">{t('releases.tags', 'Tags')}</span>
-                    <input
-                      value={tagsInput}
-                      onChange={(event) => setTagsInput(event.target.value)}
-                      className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                      placeholder={t('releases.tagsPlaceholder', 'fantasy, cover, trailer')}
-                    />
-                  </label>
-
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs text-neutral-400">{t('releases.identity', 'Publish Identity')}</span>
-                      <select
-                        value={identity}
-                        onChange={(event) => setIdentity(event.target.value === 'AGENT' ? 'AGENT' : 'USER')}
-                        className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                      >
-                        <option value="USER">{t('releases.identityUser', 'Creator')}</option>
-                        <option value="AGENT">{t('releases.identityAgent', 'Agent')}</option>
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs text-neutral-400">{t('releases.agent', 'Agent')}</span>
-                      <select
-                        value={agentId}
-                        onChange={(event) => setAgentId(event.target.value)}
-                        disabled={identity !== 'AGENT'}
-                        className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500 disabled:opacity-50"
-                      >
-                        <option value="">{t('releases.selectAgent', 'Select agent')}</option>
-                        {(agentListQuery.data || []).map((agent) => (
-                          <option key={agent.id} value={agent.id}>
-                            {agent.displayName || agent.handle}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  {identity === 'AGENT' && (
-                    <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 text-xs text-yellow-300">
-                      {t('releases.agentPublishNotice', 'Agent identity is selectable now, but publishing through the Forge realm client is not wired yet. Save the draft and switch back to Creator to publish today.')}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-neutral-400">{t('releases.attachments', 'Attachments')}</span>
-                      <button
-                        onClick={() => setAttachments((current) => [...current, emptyAttachment()])}
-                        className="rounded-lg border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200"
-                      >
-                        {t('releases.addAttachment', 'Add Attachment')}
-                      </button>
-                    </div>
-
-                    {attachments.map((item, index) => (
-                      <div key={`${index}-${item.targetId}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
-                        <select
-                          value={item.displayKind}
-                          onChange={(event) => setAttachments((current) => current.map((entry, entryIndex) => (
-                            entryIndex === index
-                              ? {
-                                  ...entry,
-                                  displayKind: (
-                                    ['VIDEO', 'AUDIO', 'TEXT', 'CARD'].includes(event.target.value)
-                                      ? event.target.value
-                                      : 'IMAGE'
-                                  ) as DraftAttachmentItem['displayKind'],
-                                }
-                              : entry
-                          )))}
-                          className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                        >
-                          <option value="IMAGE">{t('releases.attachmentImage', 'Image')}</option>
-                          <option value="VIDEO">{t('releases.attachmentVideo', 'Video')}</option>
-                          <option value="AUDIO">{t('releases.attachmentAudio', 'Audio')}</option>
-                          <option value="TEXT">{t('releases.attachmentText', 'Text')}</option>
-                          <option value="CARD">{t('releases.attachmentCard', 'Card')}</option>
-                        </select>
-                        <input
-                          value={item.targetId}
-                          onChange={(event) => setAttachments((current) => current.map((entry, entryIndex) => (
-                            entryIndex === index
-                              ? { ...entry, targetId: event.target.value }
-                              : entry
-                          )))}
-                          className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                          placeholder={t('releases.attachmentTargetIdPlaceholder', 'Selected attachment target id')}
-                        />
-                        <button
-                          onClick={() => setAttachments((current) => {
-                            const next = current.filter((_, entryIndex) => entryIndex !== index);
-                            return next.length > 0 ? next : [emptyAttachment()];
-                          })}
-                          className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-300"
-                        >
-                          {t('releases.removeAttachment', 'Remove')}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex gap-2">
+                  <Button
+                    tone="danger"
+                    size="sm"
+                    onClick={() => deleteDraftMutation.mutate(selectedDraft.id)}
+                    disabled={deleteDraftMutation.isPending}
+                  >
+                    {t('releases.deleteDraft', 'Delete')}
+                  </Button>
+                  <Button
+                    tone="secondary"
+                    size="sm"
+                    onClick={() => saveDraftMutation.mutate(selectedDraft.id)}
+                    disabled={saveDraftMutation.isPending || publishDraftMutation.isPending}
+                  >
+                    {t('releases.saveDraft', 'Save Draft')}
+                  </Button>
+                  <Button
+                    tone="primary"
+                    size="sm"
+                    onClick={() => publishDraftMutation.mutate(selectedDraft.id)}
+                    disabled={!selectedDraft || publishDraftMutation.isPending || saveDraftMutation.isPending}
+                  >
+                    {t('releases.publishNow', 'Publish Now')}
+                  </Button>
                 </div>
               )}
             </div>
 
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5">
-              <h2 className="text-sm font-semibold text-white">
-                {t('releases.historyTitle', 'Recent Published Posts')}
-              </h2>
-              <div className="mt-4 space-y-3">
-                {(postsQuery.data || []).slice(0, 6).map((post) => (
-                  <div key={post.id} className="rounded-lg border border-neutral-800 bg-black/20 px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm text-white">{post.caption || t('releases.untitledPost', 'Untitled post')}</p>
-                      <span className="text-[11px] text-neutral-500">{post.attachments.length} {t('releases.attachments', 'attachments')}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {post.tags.join(', ') || t('releases.noTags', 'No tags')}
+            {!selectedDraft && (
+              <ForgeEmptyState
+                message={t('releases.selectDraft', 'Create or select a draft to start publishing.')}
+              />
+            )}
+
+            {selectedDraft && (
+              <div className="mt-4 space-y-4">
+                <LabeledTextField
+                  label={t('releases.title', 'Title')}
+                  value={title}
+                  onChange={setTitle}
+                  placeholder={t('releases.titlePlaceholder', 'Draft title')}
+                />
+
+                <LabeledTextareaField
+                  label={t('releases.caption', 'Caption')}
+                  value={caption}
+                  onChange={setCaption}
+                  rows={4}
+                  placeholder={t('releases.captionPlaceholder', 'Write the text that will accompany the post')}
+                />
+
+                <LabeledTextField
+                  label={t('releases.tags', 'Tags')}
+                  value={tagsInput}
+                  onChange={setTagsInput}
+                  placeholder={t('releases.tagsPlaceholder', 'fantasy, cover, trailer')}
+                />
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <LabeledSelectField
+                    label={t('releases.identity', 'Publish Identity')}
+                    value={identity}
+                    options={IDENTITY_OPTIONS}
+                    onChange={(v) => setIdentity(v === 'AGENT' ? 'AGENT' : 'USER')}
+                  />
+
+                  <LabeledSelectField
+                    label={t('releases.agent', 'Agent')}
+                    value={agentId}
+                    options={[{ value: '', label: t('releases.selectAgent', 'Select agent') }, ...agentOptions]}
+                    onChange={setAgentId}
+                    disabled={identity !== 'AGENT'}
+                  />
+                </div>
+
+                {identity === 'AGENT' && (
+                  <Surface tone="card" padding="sm" className="border-[var(--nimi-status-warning)]">
+                    <p className="text-xs text-[var(--nimi-status-warning)]">
+                      {t('releases.agentPublishNotice', 'Agent identity is selectable now, but publishing through the Forge realm client is not wired yet. Save the draft and switch back to Creator to publish today.')}
                     </p>
-                  </div>
-                ))}
-                {!postsQuery.data?.length && (
-                  <p className="text-sm text-neutral-500">
-                    {t('releases.noPublishedPosts', 'No published posts yet.')}
-                  </p>
+                  </Surface>
                 )}
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-[var(--nimi-text-muted)]">{t('releases.attachments', 'Attachments')}</span>
+                    <Button
+                      tone="secondary"
+                      size="sm"
+                      onClick={() => setAttachments((current) => [...current, emptyAttachment()])}
+                    >
+                      {t('releases.addAttachment', 'Add Attachment')}
+                    </Button>
+                  </div>
+
+                  {attachments.map((item, index) => (
+                    <div key={`${index}-${item.targetId}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
+                      <LabeledSelectField
+                        label=""
+                        value={item.displayKind}
+                        options={DISPLAY_KIND_OPTIONS.map((o) => ({
+                          ...o,
+                          label: t(`releases.attachment${o.value.charAt(0) + o.value.slice(1).toLowerCase()}`, o.label),
+                        }))}
+                        onChange={(v) => setAttachments((current) => current.map((entry, entryIndex) => (
+                          entryIndex === index
+                            ? {
+                                ...entry,
+                                displayKind: (
+                                  ['VIDEO', 'AUDIO', 'TEXT', 'CARD'].includes(v) ? v : 'IMAGE'
+                                ) as DraftAttachmentItem['displayKind'],
+                              }
+                            : entry
+                        )))}
+                      />
+                      <LabeledTextField
+                        label=""
+                        value={item.targetId}
+                        onChange={(v) => setAttachments((current) => current.map((entry, entryIndex) => (
+                          entryIndex === index
+                            ? { ...entry, targetId: v }
+                            : entry
+                        )))}
+                        placeholder={t('releases.attachmentTargetIdPlaceholder', 'Selected attachment target id')}
+                      />
+                      <Button
+                        tone="secondary"
+                        size="sm"
+                        onClick={() => setAttachments((current) => {
+                          const next = current.filter((_, entryIndex) => entryIndex !== index);
+                          return next.length > 0 ? next : [emptyAttachment()];
+                        })}
+                      >
+                        {t('releases.removeAttachment', 'Remove')}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+          </Surface>
+
+          <Surface tone="card" padding="md">
+            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {t('releases.historyTitle', 'Recent Published Posts')}
+            </h2>
+            <div className="mt-4 space-y-3">
+              {(postsQuery.data || []).slice(0, 6).map((post) => (
+                <ForgeListCard
+                  key={post.id}
+                  title={post.caption || t('releases.untitledPost', 'Untitled post')}
+                  subtitle={post.tags.join(', ') || t('releases.noTags', 'No tags')}
+                  actions={
+                    <span className="text-[11px] text-[var(--nimi-text-muted)]">
+                      {post.attachments.length} {t('releases.attachments', 'attachments')}
+                    </span>
+                  }
+                />
+              ))}
+              {!postsQuery.data?.length && (
+                <p className="text-sm text-[var(--nimi-text-muted)]">
+                  {t('releases.noPublishedPosts', 'No published posts yet.')}
+                </p>
+              )}
             </div>
-          </section>
-        </div>
+          </Surface>
+        </section>
       </div>
-    </div>
+    </ForgePage>
   );
 }
 

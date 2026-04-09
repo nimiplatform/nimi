@@ -5,10 +5,11 @@
  * wires it to Forge's creator-world-store and world-data-client.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { MaintainWorkbench } from '@world-engine/ui/maintain/maintain-workbench.js';
 import type {
   EventNodeDraft,
@@ -40,7 +41,11 @@ import {
   getWorldviewTruth,
   listAgentRules,
   listWorldRules,
+  rollbackWorldRelease,
+  retryOfficialFactoryBatchRun,
 } from '@renderer/data/world-data-client.js';
+import { ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
 import {
   asRecord,
@@ -60,6 +65,38 @@ type WorldMaintainPageViewProps = {
   title?: string;
 };
 
+type CompareAnchor = {
+  lineageKey: string;
+  releaseId: string | null;
+  runId: string | null;
+};
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return 'Not recorded';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed);
+}
+
+function formatActorLabel(value: string | null | undefined): string {
+  const normalized = String(value || '').trim();
+  return normalized ? normalized.slice(0, 12) : 'unknown';
+}
+
+function releaseStatusTone(status: string): 'success' | 'warning' | 'info' | 'neutral' {
+  if (status === 'PUBLISHED') return 'success';
+  if (status === 'FROZEN') return 'warning';
+  if (status === 'DRAFT') return 'info';
+  return 'neutral';
+}
+
 export function WorldMaintainPageView({
   embedded = false,
   worldIdOverride,
@@ -69,6 +106,7 @@ export function WorldMaintainPageView({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { worldId = '' } = useParams<{ worldId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const effectiveWorldId = worldIdOverride || worldId;
   const queryClient = useQueryClient();
 
@@ -104,7 +142,15 @@ export function WorldMaintainPageView({
   }, [persistForUser, snapshot, userId]);
 
   // Queries
-  const { stateQuery, historyQuery, lorebooksQuery, maintenanceTimeline } = useWorldResourceQueries({
+  const {
+    stateQuery,
+    historyQuery,
+    lorebooksQuery,
+    maintenanceTimeline,
+    releasesQuery,
+    titleLineageQuery,
+    batchRunsQuery,
+  } = useWorldResourceQueries({
     enabled: Boolean(effectiveWorldId),
     worldId: effectiveWorldId,
   });
@@ -117,6 +163,13 @@ export function WorldMaintainPageView({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTruthAgentId, setSelectedTruthAgentId] = useState('');
+  const [rollbackingReleaseId, setRollbackingReleaseId] = useState<string | null>(null);
+  const [retryingBatchRunId, setRetryingBatchRunId] = useState<string | null>(null);
+  const [expandedReleases, setExpandedReleases] = useState<Record<string, boolean>>({});
+  const [expandedBatchRuns, setExpandedBatchRuns] = useState<Record<string, boolean>>({});
+  const [activeCompareAnchor, setActiveCompareAnchor] = useState<CompareAnchor | null>(null);
+  const releaseCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const batchRunCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const eventSyncMode = 'merge' as const;
 
   const worldTruthQuery = useQuery({
@@ -278,6 +331,86 @@ export function WorldMaintainPageView({
     ]);
   }, [queryClient, effectiveWorldId]);
 
+  const invalidateGovernanceQueries = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'releases', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'title-lineage', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'batch-runs', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'history', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
+    ]);
+  }, [effectiveWorldId, queryClient]);
+
+  const onRollbackRelease = useCallback(async (releaseId: string, releaseVersion: number) => {
+    if (!effectiveWorldId) return;
+    if (!userId) {
+      setError('Rollback requires an authenticated Forge operator.');
+      return;
+    }
+    setRollbackingReleaseId(releaseId);
+    setError(null);
+    setNotice(null);
+    try {
+      const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+      const result = await rollbackWorldRelease(effectiveWorldId, releaseId, {
+        governance: {
+          officialOwnerId: userId,
+          editorialOperatorId: userId,
+          reviewerId: userId,
+          publisherId: userId,
+          publishActorId: userId,
+          sourceProvenance: 'release-rollback',
+          reviewVerdict: 'approved',
+          releaseTag: `rollback-v${releaseVersion}-${timestamp}`,
+          releaseSummary: `Rollback to release v${releaseVersion}`,
+          changeSummary: `Forge maintain page rollback to release ${releaseId}`,
+        },
+      });
+      await invalidateGovernanceQueries();
+      setNotice(`Rollback published as release v${result.release.version}.`);
+    } catch (err) {
+      setError(`Rollback failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setRollbackingReleaseId(null);
+    }
+  }, [effectiveWorldId, invalidateGovernanceQueries, userId]);
+
+  const onRetryBatchRun = useCallback(async (runId: string) => {
+    setRetryingBatchRunId(runId);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await retryOfficialFactoryBatchRun(runId, {
+        reason: 'Retry requested from Forge maintain page',
+      });
+      await invalidateGovernanceQueries();
+      setNotice(`Batch run ${result.name} re-queued for retry.`);
+    } catch (err) {
+      setError(`Batch retry failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setRetryingBatchRunId(null);
+    }
+  }, [invalidateGovernanceQueries]);
+
+  const toggleBatchRunDetails = useCallback((runId: string) => {
+    setExpandedBatchRuns((current) => ({
+      ...current,
+      [runId]: !current[runId],
+    }));
+  }, []);
+
+  const toggleReleaseDetails = useCallback((releaseId: string) => {
+    setExpandedReleases((current) => ({
+      ...current,
+      [releaseId]: !current[releaseId],
+    }));
+  }, []);
+
   // Derived
   const working = commitActions.saveMaintenanceMutation.isPending
     || commitActions.syncEventsMutation.isPending
@@ -294,9 +427,121 @@ export function WorldMaintainPageView({
     || commitActions.archiveAgentRuleMutation.isPending;
 
   const mutationsList: WorldMaintenanceTimelineItem[] = maintenanceTimeline;
+  const releaseItems = releasesQuery.data ?? [];
+  const titleLineageItems = titleLineageQuery.data ?? [];
+  const relevantBatchRuns = (batchRunsQuery.data ?? []).filter((run) =>
+    run.items.some((item) => item.worldId === effectiveWorldId),
+  );
+  const latestReleaseId = releaseItems[0]?.id ?? null;
   const dirtyLabels = Object.entries(workspaceSnapshot.unsavedChangesByPanel)
     .filter(([, dirty]) => dirty)
     .map(([key]) => key);
+
+  const syncCompareAnchorToUrl = useCallback((anchor: CompareAnchor) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('lineageKey', anchor.lineageKey);
+    if (anchor.releaseId) {
+      next.set('releaseId', anchor.releaseId);
+    } else {
+      next.delete('releaseId');
+    }
+    if (anchor.runId) {
+      next.set('runId', anchor.runId);
+    } else {
+      next.delete('runId');
+    }
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
+
+  const applyCompareAnchor = useCallback((anchor: CompareAnchor) => {
+    if (anchor.releaseId) {
+      setExpandedReleases((current) => ({
+        ...current,
+        [anchor.releaseId!]: true,
+      }));
+    }
+    if (anchor.runId) {
+      setExpandedBatchRuns((current) => ({
+        ...current,
+        [anchor.runId!]: true,
+      }));
+    }
+    setActiveCompareAnchor(anchor);
+  }, []);
+
+  const onOpenLineageAnchor = useCallback((entry: typeof titleLineageItems[number]) => {
+    const matchedRun = relevantBatchRuns.find((run) =>
+      run.id === entry.runId
+      || run.items.some((item) =>
+        item.id === entry.itemId
+        || item.titleLineageKey === entry.titleLineageKey
+        || (entry.releaseId ? item.releaseId === entry.releaseId : false),
+      ),
+    ) ?? null;
+    const matchedReleaseId = entry.releaseId
+      ?? matchedRun?.items.find((item) => item.titleLineageKey === entry.titleLineageKey)?.releaseId
+      ?? null;
+    const matchedRunId = matchedRun?.id ?? null;
+
+    const anchor = {
+      lineageKey: entry.titleLineageKey,
+      releaseId: matchedReleaseId,
+      runId: matchedRunId,
+    };
+    applyCompareAnchor(anchor);
+    syncCompareAnchorToUrl(anchor);
+  }, [applyCompareAnchor, relevantBatchRuns, syncCompareAnchorToUrl, titleLineageItems]);
+
+  useEffect(() => {
+    const requestedLineageKey = String(searchParams.get('lineageKey') || '').trim();
+    const requestedReleaseId = String(searchParams.get('releaseId') || '').trim() || null;
+    const requestedRunId = String(searchParams.get('runId') || '').trim() || null;
+    if (!requestedLineageKey && !requestedReleaseId && !requestedRunId) {
+      return;
+    }
+
+    const matchedLineage = titleLineageItems.find((entry) =>
+      (requestedLineageKey && entry.titleLineageKey === requestedLineageKey)
+      || (requestedReleaseId && entry.releaseId === requestedReleaseId)
+      || (requestedRunId && entry.runId === requestedRunId),
+    );
+    const matchedRun = relevantBatchRuns.find((run) =>
+      run.id === requestedRunId
+      || run.items.some((item) =>
+        (requestedLineageKey && item.titleLineageKey === requestedLineageKey)
+        || (requestedReleaseId && item.releaseId === requestedReleaseId),
+      ),
+    ) ?? null;
+    const nextAnchor = {
+      lineageKey: matchedLineage?.titleLineageKey ?? requestedLineageKey,
+      releaseId: requestedReleaseId ?? matchedLineage?.releaseId ?? null,
+      runId: requestedRunId ?? matchedRun?.id ?? null,
+    };
+    if (!nextAnchor.lineageKey && !nextAnchor.releaseId && !nextAnchor.runId) {
+      return;
+    }
+    if (
+      activeCompareAnchor?.lineageKey === nextAnchor.lineageKey
+      && activeCompareAnchor?.releaseId === nextAnchor.releaseId
+      && activeCompareAnchor?.runId === nextAnchor.runId
+    ) {
+      return;
+    }
+    applyCompareAnchor(nextAnchor);
+  }, [activeCompareAnchor, applyCompareAnchor, relevantBatchRuns, searchParams, titleLineageItems]);
+
+  useEffect(() => {
+    if (!activeCompareAnchor) {
+      return;
+    }
+    const target = (activeCompareAnchor.releaseId
+      ? releaseCardRefs.current[activeCompareAnchor.releaseId]
+      : null)
+      ?? (activeCompareAnchor.runId ? batchRunCardRefs.current[activeCompareAnchor.runId] : null);
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeCompareAnchor]);
 
   const layout: WorldStudioLayoutSlice = {
     title: 'Forge World Maintenance',
@@ -531,7 +776,7 @@ export function WorldMaintainPageView({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <ForgeLoadingSpinner />
       </div>
     );
   }
@@ -540,20 +785,24 @@ export function WorldMaintainPageView({
     <div className="flex h-full flex-col">
       {/* Header */}
       {!embedded ? (
-        <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4 py-3">
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              tone="ghost"
+              size="sm"
               onClick={() => navigate(backTo)}
-              className="text-sm text-neutral-400 hover:text-white transition-colors"
             >
               &larr; {t('worlds.backToList', 'Back')}
-            </button>
-            <h1 className="text-lg font-semibold text-white">
+            </Button>
+            <h1 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
               {title || t('pages.worldMaintain', 'Maintain World')}
             </h1>
-            <span className="text-xs text-neutral-500">{effectiveWorldId.slice(0, 8)}</span>
+            <span className="text-xs text-[var(--nimi-text-muted)]">{effectiveWorldId.slice(0, 8)}</span>
           </div>
-          <button
+          <Button
+            tone="primary"
+            size="sm"
+            disabled={working || truthWorking}
             onClick={async () => {
               if (!effectiveWorldId) return;
               try {
@@ -570,27 +819,330 @@ export function WorldMaintainPageView({
                 setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
               }
             }}
-            disabled={working || truthWorking}
-            className="rounded-lg bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
           >
             {t('maintain.save', 'Save')}
-          </button>
+          </Button>
         </div>
       ) : null}
 
       {/* Notice/Error banners */}
       {error && (
-        <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2 text-sm text-red-400 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-[var(--nimi-status-danger)]/20 bg-[var(--nimi-status-danger)]/10 px-4 py-2 text-sm text-[var(--nimi-status-danger)]">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-400/60 hover:text-red-400">&times;</button>
+          <Button tone="ghost" size="sm" onClick={() => setError(null)}>&times;</Button>
         </div>
       )}
       {notice && !error && (
-        <div className="bg-green-500/10 border-b border-green-500/20 px-4 py-2 text-sm text-green-400 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-[var(--nimi-status-success)]/20 bg-[var(--nimi-status-success)]/10 px-4 py-2 text-sm text-[var(--nimi-status-success)]">
           <span>{notice}</span>
-          <button onClick={() => setNotice(null)} className="text-green-400/60 hover:text-green-400">&times;</button>
+          <Button tone="ghost" size="sm" onClick={() => setNotice(null)}>&times;</Button>
         </div>
       )}
+
+      <div className="grid gap-4 border-b border-[var(--nimi-border-subtle)] px-4 py-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Surface tone="card" padding="md" className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Official Releases</h2>
+              <p className="text-xs text-[var(--nimi-text-muted)]">
+                Governed publish history and rollback surface for this world.
+              </p>
+            </div>
+            <span className="text-xs text-[var(--nimi-text-muted)]">{releaseItems.length} tracked</span>
+          </div>
+          {releasesQuery.isLoading ? (
+            <ForgeLoadingSpinner />
+          ) : releaseItems.length === 0 ? (
+            <ForgeEmptyState message="No official releases yet." />
+          ) : (
+            <div className="space-y-2">
+              {releaseItems.slice(0, 5).map((release) => {
+                const isCurrent = latestReleaseId === release.id;
+                const detailsExpanded = Boolean(expandedReleases[release.id]);
+                const publishedAt = release.publishedAt ?? release.createdAt;
+                const summaryText = release.diffSummary?.summaryText ?? release.description ?? 'No change summary.';
+                const highlighted = activeCompareAnchor?.releaseId === release.id;
+                return (
+                  <div
+                    key={release.id}
+                    ref={(node) => {
+                      releaseCardRefs.current[release.id] = node;
+                    }}
+                    className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+                      highlighted
+                        ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
+                        : 'border-[var(--nimi-border-subtle)]'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+                            v{release.version} {release.tag ? `· ${release.tag}` : ''}
+                          </p>
+                          <ForgeStatusBadge domain="generic" status={release.status} tone={releaseStatusTone(release.status)} />
+                          <ForgeStatusBadge domain="generic" status={release.releaseType} tone="neutral" />
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                          {summaryText}
+                        </p>
+                        <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+                          Published {formatDateTime(publishedAt)} · pkg {release.packageVersion ?? 'n/a'} · actor {formatActorLabel(release.publishActorId ?? release.createdBy)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          tone="ghost"
+                          size="sm"
+                          onClick={() => toggleReleaseDetails(release.id)}
+                        >
+                          {detailsExpanded ? 'Hide Details' : 'Show Details'}
+                        </Button>
+                        <Button
+                          tone={isCurrent ? 'ghost' : 'secondary'}
+                          size="sm"
+                          disabled={isCurrent || rollbackingReleaseId !== null}
+                          onClick={() => void onRollbackRelease(release.id, release.version)}
+                        >
+                          {rollbackingReleaseId === release.id ? 'Rolling back…' : isCurrent ? 'Current' : 'Rollback'}
+                        </Button>
+                      </div>
+                    </div>
+                    {detailsExpanded ? (
+                      <div className="mt-3 space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Release Diff
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            world rules {release.diffSummary?.worldRuleDelta ?? 0} · agent snapshots {release.diffSummary?.agentRuleSnapshotDelta ?? 0} · worldview {release.diffSummary?.worldviewChanged ? 'changed' : 'stable'} · lorebook {release.diffSummary?.lorebookChanged ? 'changed' : 'stable'}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            previous {release.diffSummary?.previousReleaseId ?? 'none'} · rollback target {release.diffSummary?.rollbackTargetReleaseId ?? 'none'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Governance
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            owner {formatActorLabel(release.officialOwnerId)} · editor {formatActorLabel(release.editorialOperatorId)} · reviewer {formatActorLabel(release.reviewerId)}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            publisher {formatActorLabel(release.publisherId)} · actor {formatActorLabel(release.publishActorId ?? release.createdBy)} · verdict {release.reviewVerdict ?? 'n/a'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Release Lineage
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            source {release.sourceProvenance ?? 'n/a'} · supersedes {release.supersedesReleaseId ?? 'none'} · rollback from {release.rollbackFromReleaseId ?? 'none'}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            checksum {release.ruleChecksum} · worldview {release.worldviewChecksum ?? 'n/a'} · lorebook {release.lorebookChecksum ?? 'n/a'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Surface>
+
+        <Surface tone="card" padding="md" className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Title Lineage</h2>
+            <p className="text-xs text-[var(--nimi-text-muted)]">
+              Canonical title tracking for compare and release operations.
+            </p>
+          </div>
+          {titleLineageQuery.isLoading ? (
+            <ForgeLoadingSpinner />
+          ) : titleLineageItems.length === 0 ? (
+            <ForgeEmptyState message="No title lineage records yet." />
+          ) : (
+            <div className="space-y-2">
+              {titleLineageItems.slice(0, 5).map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+                    activeCompareAnchor?.lineageKey === entry.titleLineageKey
+                      ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
+                      : 'border-[var(--nimi-border-subtle)]'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{entry.canonicalTitle}</p>
+                      <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                        source {entry.sourceTitle} · pkg {entry.packageVersion ?? 'n/a'}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                        anchor release {entry.releaseId ?? 'n/a'} · run {entry.runId ?? 'n/a'} · item {entry.itemId ?? 'n/a'}
+                      </p>
+                      <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+                        {entry.reason ?? 'Recorded from official publish flow.'}
+                      </p>
+                      <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+                        {formatDateTime(entry.createdAt)} · actor {formatActorLabel(entry.recordedBy)}
+                      </p>
+                    </div>
+                    <Button
+                      tone="ghost"
+                      size="sm"
+                      onClick={() => onOpenLineageAnchor(entry)}
+                    >
+                      Open Related
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Surface>
+      </div>
+
+      <div className="border-b border-[var(--nimi-border-subtle)] px-4 py-4">
+        <Surface tone="card" padding="md" className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">Factory Runs</h2>
+              <p className="text-xs text-[var(--nimi-text-muted)]">
+                Official batch execution records linked to this world.
+              </p>
+            </div>
+            <span className="text-xs text-[var(--nimi-text-muted)]">{relevantBatchRuns.length} tracked</span>
+          </div>
+          {batchRunsQuery.isLoading ? (
+            <ForgeLoadingSpinner />
+          ) : relevantBatchRuns.length === 0 ? (
+            <ForgeEmptyState message="No official factory batch runs for this world yet." />
+          ) : (
+            <div className="space-y-2">
+              {relevantBatchRuns.slice(0, 4).map((run) => {
+                const retryable = run.items.some((item) => item.status === 'FAILED' || item.status === 'SKIPPED');
+                const detailsExpanded = Boolean(expandedBatchRuns[run.id]);
+                const highlighted = activeCompareAnchor?.runId === run.id;
+                return (
+                  <div
+                    key={run.id}
+                    ref={(node) => {
+                      batchRunCardRefs.current[run.id] = node;
+                    }}
+                    className={`rounded-xl border bg-[var(--nimi-surface-panel)]/60 p-3 ${
+                      highlighted
+                        ? 'border-[var(--nimi-accent-primary)] ring-1 ring-[var(--nimi-accent-primary)]/40'
+                        : 'border-[var(--nimi-border-subtle)]'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{run.name}</p>
+                          <ForgeStatusBadge domain="generic" status={run.status} />
+                          {run.qualityGateStatus ? (
+                            <ForgeStatusBadge domain="generic" status={run.qualityGateStatus} />
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                          {run.pipelineStages.join(' -> ')}
+                        </p>
+                        <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+                          success {run.successCount} · failed {run.failureCount} · retry {run.retryCount}/{run.retryLimit}
+                        </p>
+                        {run.lastError ? (
+                          <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{run.lastError}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          tone="ghost"
+                          size="sm"
+                          onClick={() => toggleBatchRunDetails(run.id)}
+                        >
+                          {detailsExpanded ? 'Hide Details' : 'Show Details'}
+                        </Button>
+                        <Button
+                          tone="secondary"
+                          size="sm"
+                          disabled={!retryable || retryingBatchRunId !== null}
+                          onClick={() => void onRetryBatchRun(run.id)}
+                        >
+                          {retryingBatchRunId === run.id ? 'Retrying…' : 'Retry Failed'}
+                        </Button>
+                      </div>
+                    </div>
+                    {detailsExpanded ? (
+                      <div className="mt-3 space-y-3 border-t border-[var(--nimi-border-subtle)] pt-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Pipeline Stages
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                            {run.pipelineStages.join(' -> ')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Quality Findings
+                          </p>
+                          {run.qualityGateSummary?.findings?.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {run.qualityGateSummary.findings.map((finding) => (
+                                <span
+                                  key={finding}
+                                  className="rounded-full border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-muted)]"
+                                >
+                                  {finding}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                              No quality findings recorded.
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--nimi-text-muted)]">
+                            Item Lineage
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {run.items.map((item) => (
+                              <div
+                                key={`${run.id}-${item.id}`}
+                                className="rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]/40 p-3"
+                              >
+                                <p className="text-xs text-[var(--nimi-text-muted)]">
+                                  {item.canonicalTitle} · slug {item.slug} · source {item.sourceMode}
+                                </p>
+                                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                                  package {item.packageVersion ?? 'pending'} · release {item.releaseId ?? 'pending'}
+                                </p>
+                                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                                  lineage {item.titleLineageKey} · started {item.startedAt ?? 'not-started'} · finished {item.finishedAt ?? 'not-finished'}
+                                </p>
+                                {item.lastError ? (
+                                  <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">
+                                    {item.lastError}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Surface>
+      </div>
 
       <WorldRuleTruthPanel
         worldRules={Array.isArray(worldRulesQuery.data) ? worldRulesQuery.data : []}

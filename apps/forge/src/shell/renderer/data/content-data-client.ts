@@ -159,6 +159,50 @@ export async function deleteResource(resourceId: string) {
   return realm().services.ResourcesService.deleteResource(resourceId);
 }
 
+// ── File Upload (manual pick → presigned URL → finalize) ────
+
+export type FileUploadResult = {
+  resourceId: string;
+  url: string;
+};
+
+export async function uploadFileAsResource(file: File): Promise<FileUploadResult> {
+  const session = await createImageDirectUpload();
+  const record = session && typeof session === 'object' && !Array.isArray(session)
+    ? session as Record<string, unknown>
+    : {};
+  const uploadUrl = String(record.uploadUrl || '');
+  const resourceId = String(record.resourceId || record.id || '');
+
+  if (!uploadUrl || !resourceId) {
+    throw new Error('FORGE_FILE_UPLOAD_NO_SESSION');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file, file.name);
+  let uploadResponse = await fetch(uploadUrl, { method: 'POST', body: formData });
+  if (!uploadResponse.ok) {
+    uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type || 'image/png' },
+    });
+  }
+  if (!uploadResponse.ok) {
+    throw new Error(`FORGE_FILE_UPLOAD_FAILED: ${uploadResponse.status}`);
+  }
+
+  const finalized = await finalizeResource(resourceId, {});
+  const finalRecord = finalized && typeof finalized === 'object' && !Array.isArray(finalized)
+    ? finalized as Record<string, unknown>
+    : {};
+
+  return {
+    resourceId,
+    url: String(finalRecord.url || ''),
+  };
+}
+
 // ── Posts ─────────────────────────────────────────────────────
 
 export async function createPost(payload: ForgeCreatePostInput) {

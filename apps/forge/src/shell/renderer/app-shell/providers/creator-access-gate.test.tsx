@@ -11,6 +11,8 @@ vi.mock('@renderer/data/world-data-client.js', () => ({
   getMyWorldAccess: (...args: unknown[]) => getMyWorldAccess(...args),
 }));
 
+const EMPTY_ACCESS = { checked: false, hasAccess: false, canCreateWorld: false, canMaintainWorld: false, records: [] };
+
 describe('CreatorAccessGate', () => {
   beforeAll(async () => {
     await initI18n('en');
@@ -20,12 +22,17 @@ describe('CreatorAccessGate', () => {
     vi.clearAllMocks();
     useAppStore.setState((state) => ({
       ...state,
-      creatorAccess: { checked: false, hasAccess: false },
+      creatorAccess: { ...EMPTY_ACCESS },
     }));
   });
 
   it('renders children when the normalized access response grants access', async () => {
-    getMyWorldAccess.mockResolvedValue({ hasAccess: true });
+    getMyWorldAccess.mockResolvedValue({
+      hasAccess: true,
+      canCreateWorld: true,
+      canMaintainWorld: true,
+      records: [{ id: 'r1', userId: 'u1', scopeType: 'CREATE', canCreateWorld: true, canMaintainWorld: true, maintainRole: 'OWNER', status: 'ACTIVE', expiresAt: null }],
+    });
 
     render(
       <I18nextProvider i18n={i18n}>
@@ -37,12 +44,21 @@ describe('CreatorAccessGate', () => {
 
     expect(await screen.findByText('forge-home')).toBeTruthy();
     await waitFor(() => {
-      expect(useAppStore.getState().creatorAccess).toEqual({ checked: true, hasAccess: true });
+      const access = useAppStore.getState().creatorAccess;
+      expect(access.checked).toBe(true);
+      expect(access.hasAccess).toBe(true);
+      expect(access.canCreateWorld).toBe(true);
+      expect(access.records).toHaveLength(1);
     });
   });
 
   it('renders the blocked state when the normalized access response denies access', async () => {
-    getMyWorldAccess.mockResolvedValue({ hasAccess: false });
+    getMyWorldAccess.mockResolvedValue({
+      hasAccess: false,
+      canCreateWorld: false,
+      canMaintainWorld: false,
+      records: [],
+    });
 
     render(
       <I18nextProvider i18n={i18n}>
@@ -55,7 +71,10 @@ describe('CreatorAccessGate', () => {
     expect(await screen.findByText('Creator access is required to use Forge')).toBeTruthy();
     expect(screen.getByText('Creator access is managed outside Forge right now. Ask an admin to grant access, then re-check here.')).toBeTruthy();
     await waitFor(() => {
-      expect(useAppStore.getState().creatorAccess).toEqual({ checked: true, hasAccess: false });
+      const access = useAppStore.getState().creatorAccess;
+      expect(access.checked).toBe(true);
+      expect(access.hasAccess).toBe(false);
+      expect(access.records).toHaveLength(0);
     });
   });
 });

@@ -7,6 +7,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { LabeledSelectField } from '@renderer/components/form-fields.js';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
+import { ForgeListCard } from '@renderer/components/card-list.js';
+import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import {
   listPublishingChannels,
   updateChannel,
@@ -14,6 +20,11 @@ import {
   type PublishChannelUpdateInput,
 } from '@renderer/data/content-data-client.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
+
+const IDENTITY_OPTIONS = [
+  { value: 'USER' as const, label: 'Creator' },
+  { value: 'AGENT' as const, label: 'Agent' },
+];
 
 export default function ChannelsPage() {
   const { t } = useTranslation();
@@ -50,113 +61,100 @@ export default function ChannelsPage() {
     updateChannelMutation.mutate({ channelId: 'INTERNAL_FEED', payload });
   }
 
+  const agentSelectOptions = [
+    { value: '', label: t('channels.noDefaultAgent', 'No default agent') },
+    ...(agentsQuery.data || []).map((agent) => ({
+      value: agent.id,
+      label: agent.displayName || agent.handle,
+    })),
+  ];
+
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.channels')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {t('channels.subtitle', 'Choose where a post appears and which identity publishes it')}
-          </p>
+    <ForgePage>
+      <ForgePageHeader
+        title={t('pages.channels')}
+        subtitle={t('channels.subtitle', 'Choose where a post appears and which identity publishes it')}
+      />
+
+      {error && <ForgeErrorBanner message={error} />}
+      {notice && !error && (
+        <Surface tone="card" padding="sm" className="border-[var(--nimi-status-success)]">
+          <p className="text-sm text-[var(--nimi-status-success)]">{notice}</p>
+        </Surface>
+      )}
+
+      <Surface tone="card" padding="md">
+        <h2 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+          {t('channels.defaultIdentity', 'Default Publish Identity')}
+        </h2>
+        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+          {t('channels.defaultIdentityHint', 'Choose the identity Forge preselects for new publish drafts.')}
+        </p>
+        <div className="mt-4">
+          <ForgeSegmentControl
+            options={IDENTITY_OPTIONS.map((o) => ({
+              ...o,
+              label: o.value === 'USER'
+                ? t('channels.identityUser', 'Creator')
+                : t('channels.identityAgent', 'Agent'),
+            }))}
+            value={defaultIdentity}
+            onChange={(v) => updateDefaults({ defaultIdentity: v })}
+            size="md"
+          />
         </div>
 
-        {error && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-        {notice && !error && (
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-            {notice}
-          </div>
-        )}
+        <div className="mt-4 max-w-sm">
+          <LabeledSelectField
+            label={t('channels.defaultAgent', 'Default Agent')}
+            value={defaultAgentId}
+            options={agentSelectOptions}
+            onChange={(v) => updateDefaults({ defaultAgentId: v || null })}
+          />
+        </div>
 
-        <section className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-5">
-          <h2 className="text-sm font-semibold text-white">
-            {t('channels.defaultIdentity', 'Default Publish Identity')}
-          </h2>
-          <p className="mt-1 text-xs text-neutral-500">
-            {t('channels.defaultIdentityHint', 'Choose the identity Forge preselects for new publish drafts.')}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {(['USER', 'AGENT'] as const).map((option) => (
-              <button
-                key={option}
-                onClick={() => updateDefaults({ defaultIdentity: option })}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  defaultIdentity === option
-                    ? 'bg-white text-black'
-                    : 'bg-neutral-800 text-neutral-300 hover:text-white'
-                }`}
-              >
-                {option === 'USER'
-                  ? t('channels.identityUser', 'Creator')
-                  : t('channels.identityAgent', 'Agent')}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-4 max-w-sm">
-            <label className="mb-1 block text-xs text-neutral-400">
-              {t('channels.defaultAgent', 'Default Agent')}
-            </label>
-            <select
-              value={defaultAgentId}
-              onChange={(event) => updateDefaults({ defaultAgentId: event.target.value || null })}
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-            >
-              <option value="">{t('channels.noDefaultAgent', 'No default agent')}</option>
-              {(agentsQuery.data || []).map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.displayName || agent.handle}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {defaultIdentity === 'AGENT' && (
-            <div className="mt-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 text-xs text-yellow-300">
+        {defaultIdentity === 'AGENT' && (
+          <Surface tone="card" padding="sm" className="mt-4 border-[var(--nimi-status-warning)]">
+            <p className="text-xs text-[var(--nimi-status-warning)]">
               {t('channels.agentIdentityHint', 'Agent identity can be preselected now, but live agent publishing is still pending Forge-side wiring.')}
-            </div>
-          )}
-        </section>
+            </p>
+          </Surface>
+        )}
+      </Surface>
 
-        <section className="space-y-3">
-          {channels.map((channel) => (
-            <div
-              key={channel.id}
-              className="flex flex-col gap-4 rounded-lg border border-neutral-800 bg-neutral-900/50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"
-            >
-              <div>
-                <p className="text-sm font-medium text-white">{channel.label}</p>
-                <p className="mt-1 text-xs text-neutral-500">{channel.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  channel.enabled
-                    ? 'bg-emerald-500/10 text-emerald-300'
-                    : 'bg-neutral-800 text-neutral-400'
-                }`}>
-                  {channel.enabled
-                    ? t('channels.enabled', 'Enabled')
-                    : t('channels.disabled', 'Disabled')}
-                </span>
-                <button
-                  onClick={() => updateChannelMutation.mutate({
-                    channelId: channel.id,
-                    payload: { enabled: !channel.enabled },
-                  })}
-                  className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-200"
-                >
-                  {channel.enabled
-                    ? t('channels.disable', 'Disable')
-                    : t('channels.enable', 'Enable')}
-                </button>
-              </div>
-            </div>
-          ))}
-        </section>
-      </div>
-    </div>
+      <section className="space-y-3">
+        {channels.map((channel) => (
+          <ForgeListCard
+            key={channel.id}
+            title={channel.label}
+            subtitle={channel.description}
+            badges={
+              <ForgeStatusBadge
+                domain="generic"
+                status={channel.enabled ? 'ENABLED' : 'DISABLED'}
+                label={channel.enabled
+                  ? t('channels.enabled', 'Enabled')
+                  : t('channels.disabled', 'Disabled')}
+                tone={channel.enabled ? 'success' : 'neutral'}
+              />
+            }
+            actions={
+              <Button
+                tone="secondary"
+                size="sm"
+                onClick={() => updateChannelMutation.mutate({
+                  channelId: channel.id,
+                  payload: { enabled: !channel.enabled },
+                })}
+              >
+                {channel.enabled
+                  ? t('channels.disable', 'Disable')
+                  : t('channels.enable', 'Enable')}
+              </Button>
+            }
+          />
+        ))}
+      </section>
+    </ForgePage>
   );
 }

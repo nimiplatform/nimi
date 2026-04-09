@@ -18,6 +18,10 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import type { ImageGenTarget, ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { LabeledTextareaField, LabeledSelectField, ToggleRow } from '@renderer/components/form-fields.js';
+import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 
 const STYLE_PRESETS = ['anime', 'realistic', 'painterly', 'pixel-art'] as const;
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3'] as const;
@@ -28,6 +32,14 @@ const TEMPLATES = [
   { id: 'item', label: 'Item / Object', target: 'custom' as ImageGenTarget },
   { id: 'environment', label: 'Environment', target: 'custom' as ImageGenTarget },
 ] as const;
+
+const TEMPLATE_OPTIONS = [
+  { value: '', label: 'Custom Prompt' },
+  ...TEMPLATES.map((tmpl) => ({ value: tmpl.id, label: tmpl.label })),
+];
+
+const STYLE_OPTIONS = STYLE_PRESETS.map((s) => ({ value: s, label: s }));
+const RATIO_OPTIONS = ASPECT_RATIOS.map((r) => ({ value: r, label: r }));
 
 type GeneratedImage = {
   id: string;
@@ -185,203 +197,170 @@ export default function ImageStudioPage() {
   const busy = generating || imageGen.busy;
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.imageStudio')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {hasEntityContext
-              ? t('imageStudio.subtitleEntity', 'Generate images for {{name}}', {
-                name: urlAgentName || urlWorldName || 'entity',
-              })
-              : t('imageStudio.subtitle', 'Generate AI images for your worlds and agents')}
-          </p>
-        </div>
+    <ForgePage maxWidth="max-w-5xl">
+      <ForgePageHeader
+        title={t('pages.imageStudio')}
+        subtitle={
+          hasEntityContext
+            ? t('imageStudio.subtitleEntity', 'Generate images for {{name}}', {
+              name: urlAgentName || urlWorldName || 'entity',
+            })
+            : t('imageStudio.subtitle', 'Generate AI images for your worlds and agents')
+        }
+      />
 
-        <div className="grid grid-cols-3 gap-6">
-          {/* Left: Controls */}
-          <div className="col-span-1 space-y-5">
-            {/* AI Prompt Toggle */}
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-neutral-400">
-                {t('imageStudio.aiPrompt', 'AI-Assisted Prompt')}
-              </label>
-              <button
-                onClick={() => setUseAiPrompt((v) => !v)}
-                className={`relative h-5 w-9 rounded-full transition-colors ${
-                  useAiPrompt ? 'bg-white' : 'bg-neutral-700'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full transition-transform ${
-                    useAiPrompt ? 'translate-x-4 bg-black' : 'translate-x-0.5 bg-neutral-400'
-                  }`}
-                />
-              </button>
-            </div>
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left: Controls */}
+        <div className="col-span-1 space-y-5">
+          {/* AI Prompt Toggle */}
+          <ToggleRow
+            label={t('imageStudio.aiPrompt', 'AI-Assisted Prompt')}
+            checked={useAiPrompt}
+            onChange={setUseAiPrompt}
+          />
 
-            {/* Template */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('imageStudio.template', 'Template')}
-              </label>
-              <select
-                value={template}
-                onChange={(e) => setTemplate(e.target.value)}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none"
-              >
-                <option value="">{t('imageStudio.customPrompt', 'Custom Prompt')}</option>
-                {TEMPLATES.map((tmpl) => (
-                  <option key={tmpl.id} value={tmpl.id}>{t(`imageStudio.template${tmpl.id.charAt(0).toUpperCase()}${tmpl.id.slice(1)}`, tmpl.label)}</option>
-                ))}
-              </select>
-            </div>
+          {/* Template */}
+          <LabeledSelectField
+            label={t('imageStudio.template', 'Template')}
+            value={template}
+            options={TEMPLATE_OPTIONS}
+            onChange={setTemplate}
+          />
 
-            {/* Prompt */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {useAiPrompt
-                  ? t('imageStudio.promptAi', 'Additional Instructions')
-                  : t('imageStudio.prompt', 'Prompt')}
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                placeholder={useAiPrompt
-                  ? t('imageStudio.promptAiPlaceholder', 'Optional: describe specific details to include...')
-                  : t('imageStudio.promptPlaceholder', 'Describe the image you want to generate...')}
-                className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
-              />
-            </div>
+          {/* Prompt */}
+          <LabeledTextareaField
+            label={
+              useAiPrompt
+                ? t('imageStudio.promptAi', 'Additional Instructions')
+                : t('imageStudio.prompt', 'Prompt')
+            }
+            value={prompt}
+            onChange={setPrompt}
+            rows={4}
+            placeholder={
+              useAiPrompt
+                ? t('imageStudio.promptAiPlaceholder', 'Optional: describe specific details to include...')
+                : t('imageStudio.promptPlaceholder', 'Describe the image you want to generate...')
+            }
+          />
 
-            {/* Negative prompt (direct mode only) */}
-            {!useAiPrompt ? (
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1.5">
-                  {t('imageStudio.negativePrompt', 'Negative Prompt')}
-                </label>
-                <textarea
-                  value={negativePrompt}
-                  onChange={(e) => setNegativePrompt(e.target.value)}
-                  rows={2}
-                  placeholder={t('imageStudio.negativePromptPlaceholder', 'Things to avoid...')}
-                  className="w-full rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none resize-none"
-                />
-              </div>
-            ) : null}
+          {/* Negative prompt (direct mode only) */}
+          {!useAiPrompt ? (
+            <LabeledTextareaField
+              label={t('imageStudio.negativePrompt', 'Negative Prompt')}
+              value={negativePrompt}
+              onChange={setNegativePrompt}
+              rows={2}
+              placeholder={t('imageStudio.negativePromptPlaceholder', 'Things to avoid...')}
+            />
+          ) : null}
 
-            {/* Style */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('imageStudio.style', 'Style')}
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                {STYLE_PRESETS.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStyle(s)}
-                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                      style === s
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Aspect ratio */}
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {t('imageStudio.aspectRatio', 'Aspect Ratio')}
-              </label>
-              <div className="flex gap-1.5">
-                {ASPECT_RATIOS.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setRatio(r)}
-                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                      ratio === r
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Generate */}
-            <button
-              onClick={() => void handleGenerate()}
-              disabled={busy || (!prompt.trim() && !useAiPrompt)}
-              className="w-full rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-            >
-              {busy
-                ? (useAiPrompt && imageGen.phase !== 'idle'
-                    ? PHASE_LABELS[imageGen.phase] || imageGen.phase
-                    : t('imageStudio.generating', 'Generating...'))
-                : t('imageStudio.generate', 'Generate Image')}
-            </button>
-
-            {/* Composed prompt preview (AI mode) */}
-            {useAiPrompt && imageGen.composedPrompt ? (
-              <div className="rounded border border-neutral-800 bg-neutral-900/50 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Composed Prompt</p>
-                <p className="text-xs text-neutral-400 line-clamp-4">{imageGen.composedPrompt}</p>
-              </div>
-            ) : null}
-
+          {/* Style */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              {t('imageStudio.style', 'Style')}
+            </label>
+            <ForgeSegmentControl
+              options={STYLE_OPTIONS}
+              value={style}
+              onChange={setStyle}
+              className="grid grid-cols-2"
+            />
           </div>
 
-          {/* Right: Gallery */}
-          <div className="col-span-2">
-            {(saveError || imageGen.error) && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 mb-3">
-                <p className="text-xs text-red-400">{saveError || imageGen.error}</p>
-              </div>
+          {/* Aspect ratio */}
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+              {t('imageStudio.aspectRatio', 'Aspect Ratio')}
+            </label>
+            <ForgeSegmentControl
+              options={RATIO_OPTIONS}
+              value={ratio}
+              onChange={setRatio}
+            />
+          </div>
+
+          {/* Generate */}
+          <Button
+            tone="primary"
+            size="md"
+            fullWidth
+            onClick={() => void handleGenerate()}
+            disabled={busy || (!prompt.trim() && !useAiPrompt)}
+          >
+            {busy
+              ? (useAiPrompt && imageGen.phase !== 'idle'
+                  ? PHASE_LABELS[imageGen.phase] || imageGen.phase
+                  : t('imageStudio.generating', 'Generating...'))
+              : t('imageStudio.generate', 'Generate Image')}
+          </Button>
+
+          {/* Composed prompt preview (AI mode) */}
+          {useAiPrompt && imageGen.composedPrompt ? (
+            <Surface tone="card" padding="sm">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--nimi-text-muted)] mb-1">Composed Prompt</p>
+              <p className="text-xs text-[var(--nimi-text-secondary)] line-clamp-4">{imageGen.composedPrompt}</p>
+            </Surface>
+          ) : null}
+
+        </div>
+
+        {/* Right: Gallery */}
+        <div className="col-span-2">
+          {(saveError || imageGen.error) && (
+            <ForgeErrorBanner message={saveError || imageGen.error || ''} className="mb-3" />
+          )}
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
+            {t('imageStudio.gallery', 'Gallery')}
+            {gallery.length > 0 && (
+              <span className="ml-2 text-xs font-normal text-[var(--nimi-text-muted)]">
+                ({gallery.length})
+              </span>
             )}
-            <h3 className="text-sm font-semibold text-white mb-3">
-              {t('imageStudio.gallery', 'Gallery')}
-              {gallery.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-neutral-500">
-                  ({gallery.length})
-                </span>
-              )}
-            </h3>
-            {gallery.length === 0 ? (
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 flex items-center justify-center h-96">
-                <div className="text-center">
-                  <div className="text-4xl text-neutral-700 mb-2">🎨</div>
-                  <p className="text-sm text-neutral-500">
-                    {t('imageStudio.emptyGallery', 'Generated images will appear here')}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {gallery.map((img) => (
-                  <div
-                    key={img.id}
-                    className="group relative rounded-lg border border-neutral-800 bg-neutral-900/50 overflow-hidden"
-                  >
-                    <img src={img.url} alt="" className="w-full aspect-square object-cover" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          onClick={() => void handleSaveToLibrary(img)}
-                          className="rounded bg-white px-3 py-1 text-xs font-medium text-black"
+          </h3>
+          {gallery.length === 0 ? (
+            <ForgeEmptyState message={t('imageStudio.emptyGallery', 'Generated images will appear here')} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {gallery.map((img) => (
+                <Surface
+                  key={img.id}
+                  tone="card"
+                  padding="none"
+                  className="group relative overflow-hidden"
+                >
+                  <img src={img.url} alt="" className="w-full aspect-square object-cover" />
+                  <div className="absolute inset-0 bg-[var(--nimi-surface-overlay)] opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        tone="primary"
+                        size="sm"
+                        onClick={() => void handleSaveToLibrary(img)}
+                      >
+                        {t('imageStudio.save', 'Save')}
+                      </Button>
+                      {urlAgentId ? (
+                        <Button
+                          tone="secondary"
+                          size="sm"
+                          onClick={() => void imageGen.useAsAgentAvatar(urlAgentId, {
+                            id: img.id,
+                            url: img.url,
+                            prompt: img.prompt,
+                            negativePrompt: '',
+                            timestamp: img.timestamp,
+                          })}
+                          disabled={imageGen.busy}
                         >
-                          {t('imageStudio.save', 'Save')}
-                        </button>
-                        {urlAgentId ? (
-                          <button
-                            onClick={() => void imageGen.useAsAgentAvatar(urlAgentId, {
+                          {t('imageStudio.useAsAvatar', 'Use as Avatar')}
+                        </Button>
+                      ) : null}
+                      {urlWorldId ? (
+                        <>
+                          <Button
+                            tone="secondary"
+                            size="sm"
+                            onClick={() => void imageGen.useAsWorldBanner(urlWorldId, {
                               id: img.id,
                               url: img.url,
                               prompt: img.prompt,
@@ -389,56 +368,40 @@ export default function ImageStudioPage() {
                               timestamp: img.timestamp,
                             })}
                             disabled={imageGen.busy}
-                            className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
                           >
-                            {t('imageStudio.useAsAvatar', 'Use as Avatar')}
-                          </button>
-                        ) : null}
-                        {urlWorldId ? (
-                          <>
-                            <button
-                              onClick={() => void imageGen.useAsWorldBanner(urlWorldId, {
-                                id: img.id,
-                                url: img.url,
-                                prompt: img.prompt,
-                                negativePrompt: '',
-                                timestamp: img.timestamp,
-                              })}
-                              disabled={imageGen.busy}
-                              className="rounded bg-sky-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
-                            >
-                              {t('imageStudio.useAsBanner', 'Set as Banner')}
-                            </button>
-                            <button
-                              onClick={() => void imageGen.useAsWorldIcon(urlWorldId, {
-                                id: img.id,
-                                url: img.url,
-                                prompt: img.prompt,
-                                negativePrompt: '',
-                                timestamp: img.timestamp,
-                              })}
-                              disabled={imageGen.busy}
-                              className="rounded bg-violet-600 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
-                            >
-                              {t('imageStudio.useAsIcon', 'Set as Icon')}
-                            </button>
-                          </>
-                        ) : null}
-                        <button
-                          onClick={() => setGallery((g) => g.filter((i) => i.id !== img.id))}
-                          className="rounded bg-neutral-700 px-3 py-1 text-xs font-medium text-white"
-                        >
-                          {t('imageStudio.delete', 'Delete')}
-                        </button>
-                      </div>
+                            {t('imageStudio.useAsBanner', 'Set as Banner')}
+                          </Button>
+                          <Button
+                            tone="secondary"
+                            size="sm"
+                            onClick={() => void imageGen.useAsWorldIcon(urlWorldId, {
+                              id: img.id,
+                              url: img.url,
+                              prompt: img.prompt,
+                              negativePrompt: '',
+                              timestamp: img.timestamp,
+                            })}
+                            disabled={imageGen.busy}
+                          >
+                            {t('imageStudio.useAsIcon', 'Set as Icon')}
+                          </Button>
+                        </>
+                      ) : null}
+                      <Button
+                        tone="ghost"
+                        size="sm"
+                        onClick={() => setGallery((g) => g.filter((i) => i.id !== img.id))}
+                      >
+                        {t('imageStudio.delete', 'Delete')}
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </Surface>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </ForgePage>
   );
 }

@@ -3,6 +3,7 @@ import type { Phase1Result, Phase2Result } from '@world-engine/generation/pipeli
 import { runPhase1ExtractionFromChunks, runPhase2DraftGeneration } from '@world-engine/generation/pipeline.js';
 import { splitSourceText } from '@world-engine/engine/chunker.js';
 import { toFailedChunkIndices } from '@world-engine/services/event-graph-map.js';
+import { PIPELINE_STAGES } from '../../../../../../../../packages/nimi-forge/src/authoring/pipeline.js';
 import type {
   EventNodeDraft,
   WorldLorebookDraftRow,
@@ -10,8 +11,12 @@ import type {
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
-import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
-import type { ForgeDraftHistoryEvent } from '@renderer/data/world-data-client.js';
+import {
+  getOfficialFactoryBatchRun,
+  type ForgeDraftHistoryEvent,
+  type ForgeOfficialFactoryBatchRun,
+} from '@renderer/data/world-data-client.js';
+import { buildForgeOfficialWorldPackage } from '@renderer/data/world-package-builder.js';
 import type {
   ForgeWorkspacePatch,
   ForgeWorkspaceSnapshot,
@@ -20,7 +25,6 @@ import {
   asRecord,
   createForgeAiClient,
   deriveRuleTruthDraftFromWorkspace,
-  getSelectedAgentDraftEntries,
   resolveRuleTruthDraft,
   toDraftStatus,
 } from './world-create-page-helpers';
@@ -28,47 +32,6 @@ import {
   generateEntityImage,
   type ImageGenEntityContext,
 } from '@renderer/data/image-gen-client.js';
-
-function normalizeAgentHandle(characterName: string, worldId: string, index: number): string {
-  const worldSuffix = String(worldId || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(-4) || 'wld';
-  const base = characterName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 8);
-  const normalizedBase = base || `agent_${index + 1}`;
-  return `${normalizedBase}_${worldSuffix}`.slice(0, 16);
-}
-
-function toAgentCreatePayload(
-  entry: { characterName: string; draft: JsonObject },
-  worldId: string,
-  index: number,
-): JsonObject {
-  const concept = String(
-    entry.draft.concept
-      || entry.draft.backstory
-      || `World character ${entry.characterName}`,
-  ).trim();
-  return {
-    handle: normalizeAgentHandle(entry.characterName, worldId, index),
-    displayName: entry.characterName,
-    concept,
-    description: String(entry.draft.backstory || '').trim() || undefined,
-    worldId,
-    ownershipType: 'WORLD_OWNED',
-  };
-}
-
-function toCreatorAgentList(payload: unknown): JsonObject[] {
-  const record = asRecord(payload);
-  const items = Array.isArray(record.items)
-    ? record.items
-    : [];
-  return items
-    .filter((item) => item && typeof item === 'object')
-    .map((item) => asRecord(item));
-}
 
 function requireWorldName(value: unknown, code: string): string {
   const normalized = String(value || '').trim();
@@ -105,6 +68,25 @@ function parseFutureHistoricalDraft(value: string): ForgeDraftHistoryEvent[] | u
     }
     return record as ForgeDraftHistoryEvent;
   });
+}
+
+function toOfficialFactoryQualityGate(
+  phase1: Phase1Result | null,
+): {
+  status: 'PASS' | 'WARN' | 'FAIL' | 'BYPASSED';
+  findingCount?: number | null;
+} {
+  if (!phase1) {
+    return { status: 'BYPASSED' };
+  }
+  return {
+    status: phase1.qualityGate.status === 'PASS'
+      ? 'PASS'
+      : phase1.qualityGate.status === 'WARN'
+        ? 'WARN'
+        : 'FAIL',
+    findingCount: Number(phase1.qualityGate.metrics.failedChunks || 0),
+  };
 }
 
 function toDraftHistoryEvent(
@@ -154,10 +136,89 @@ type UseWorldCreatePageGenerationInput = {
   sourceChunksRef: MutableRefObject<string[]>;
   sourceMode: 'TEXT' | 'FILE';
   sourceRawTextRef: MutableRefObject<string>;
+  userId: string;
 };
+
+export type ForgeCreatePublishOperationState = {
+  batchRun: ForgeOfficialFactoryBatchRun | null;
+  publishedWorldId: string | null;
+  publishedReleaseVersion: number | null;
+};
+
+type ForgePreparedPublishContext = {
+  pkg: ReturnType<typeof buildForgeOfficialWorldPackage>;
+  qualityGate: ReturnType<typeof toOfficialFactoryQualityGate>;
+};
+
 export function useWorldCreatePageGeneration(input: UseWorldCreatePageGenerationInput) {
   const [phase1, setPhase1] = useState<Phase1Result | null>(null);
   const [phase2, setPhase2] = useState<Phase2Result | null>(null);
+  const [publishOperation, setPublishOperation] = useState<ForgeCreatePublishOperationState>({
+    batchRun: null,
+    publishedWorldId: null,
+    publishedReleaseVersion: null,
+  });
+
+  const publishWithBatchRun = useCallback(async (
+    prepared: ForgePreparedPublishContext,
+    batchRun: ForgeOfficialFactoryBatchRun,
+  ) => {
+    const retryableItem = batchRun.items.find((item) => item.status === 'PENDING' || item.status === 'RUNNING');
+    const batchItemId = String(retryableItem?.id || '').trim();
+    if (!batchItemId) {
+      throw new Error('FORGE_OFFICIAL_FACTORY_BATCH_ITEM_REQUIRED');
+    }
+
+    try {
+      const published = await input.commitActions.publishPackageMutation.mutateAsync({
+        package: prepared.pkg,
+        governance: {
+          officialOwnerId: input.userId,
+          editorialOperatorId: input.userId,
+          reviewerId: input.userId,
+          publisherId: input.userId,
+          publishActorId: input.userId,
+          sourceProvenance: input.sourceMode === 'FILE' ? 'forge-file-source' : 'forge-text-source',
+          reviewVerdict: 'approved',
+          releaseTag: `official-${prepared.pkg.meta.version}`,
+          releaseSummary: 'Forge official package publish',
+          changeSummary: 'Initial official publish from Forge workspace snapshot',
+        },
+        operations: {
+          batchRunId: batchRun.id,
+          batchItemId,
+          qualityGate: prepared.qualityGate,
+          titleLineageReason: 'Forge official package publish',
+        },
+      });
+      const refreshedBatchRun = await getOfficialFactoryBatchRun(batchRun.id);
+      setPublishOperation({
+        batchRun: refreshedBatchRun,
+        publishedWorldId: published.worldId,
+        publishedReleaseVersion: published.release.version,
+      });
+      input.setNotice(`Official package published as release v${published.release.version}. Redirecting to world maintenance.`);
+      input.navigate(`/worlds/${published.worldId}/maintain`);
+    } catch (error) {
+      const failedBatchRun = await input.commitActions.reportBatchItemFailureMutation.mutateAsync({
+        runId: batchRun.id,
+        itemId: batchItemId,
+        payload: {
+          reason: error instanceof Error ? error.message : 'Forge official package publish failed',
+          qualityGate: {
+            ...prepared.qualityGate,
+            status: 'FAIL',
+          },
+        },
+      });
+      setPublishOperation({
+        batchRun: failedBatchRun,
+        publishedWorldId: null,
+        publishedReleaseVersion: null,
+      });
+      throw error;
+    }
+  }, [input]);
   useEffect(() => {
     const artifact = input.snapshot.phase1Artifact;
     if (!artifact) {
@@ -628,118 +689,70 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     return draftId;
   }, [input]);
 
-  const publishDraft = useCallback(async () => {
+  const preparePublishContext = useCallback(async (): Promise<ForgePreparedPublishContext> => {
     const draftId = (await persistDraft()) || input.activeDraftId;
     if (!draftId) {
       throw new Error('Draft id is required before publishing.');
     }
-    const published = await input.commitActions.publishDraftMutation.mutateAsync({
+    const pkg = buildForgeOfficialWorldPackage({
+      userId: requireWorldName(input.userId, 'FORGE_PACKAGE_USER_ID_REQUIRED'),
+      sourceMode: input.sourceMode,
       draftId,
-      reason: 'Forge manual publish',
+      snapshot: input.snapshot,
     });
-    const record = asRecord(published);
-    const worldId = String(record.worldId || '').trim();
-    if (worldId) {
-      const agentDraftEntries = getSelectedAgentDraftEntries(input.snapshot);
-      const agentRuleDrafts = resolveRuleTruthDraft(input.snapshot).agentRules;
-      if (agentDraftEntries.length > 0) {
-        try {
-          const existingAgents = toCreatorAgentList(await listCreatorAgents()).filter(
-            (item) => String(item.worldId || '').trim() === worldId,
-          );
-          const agentsByName = new Map<string, string>();
+    return {
+      pkg,
+      qualityGate: toOfficialFactoryQualityGate(phase1),
+    };
+  }, [input.activeDraftId, input.snapshot, input.sourceMode, input.userId, persistDraft, phase1]);
 
-          for (const item of existingAgents) {
-            const displayName = String(item.displayName || item.name || '').trim();
-            if (displayName) {
-              agentsByName.set(displayName, String(item.id || '').trim());
-            }
-          }
+  const publishDraft = useCallback(async () => {
+    const prepared = await preparePublishContext();
+    const batchRun = await input.commitActions.createBatchRunMutation.mutateAsync({
+      name: `Forge official publish · ${prepared.pkg.world.name}`,
+      requestKey: prepared.pkg.meta.version,
+      pipelineStages: [...PIPELINE_STAGES],
+      retryLimit: 1,
+      executionNotes: 'Forge create flow official package publish',
+      items: [{
+        worldId: prepared.pkg.world.id,
+        slug: prepared.pkg.slug,
+        sourceTitle: prepared.pkg.meta.sourceTitle,
+        canonicalTitle: prepared.pkg.world.name,
+        sourceMode: prepared.pkg.meta.sourceMode,
+        qualityGate: prepared.qualityGate,
+      }],
+    });
+    setPublishOperation({
+      batchRun,
+      publishedWorldId: null,
+      publishedReleaseVersion: null,
+    });
+    await publishWithBatchRun(prepared, batchRun);
+  }, [input.commitActions.createBatchRunMutation, preparePublishContext, publishWithBatchRun]);
 
-          const agentsToCreate = agentDraftEntries
-            .filter((entry) => !agentsByName.has(entry.characterName))
-            .map((entry, index) => toAgentCreatePayload(entry, worldId, index));
-
-          if (agentsToCreate.length > 0) {
-            const createdAgents = await input.commitActions.batchCreateCreatorAgentsMutation.mutateAsync({
-              items: agentsToCreate,
-              continueOnError: true,
-            });
-            const created = Array.isArray(asRecord(createdAgents).created)
-              ? (asRecord(createdAgents).created as JsonObject[])
-              : [];
-
-            created.forEach((item) => {
-              const payloadIndex = Number(item.index);
-              const payload = Number.isInteger(payloadIndex) ? agentsToCreate[payloadIndex] : undefined;
-              const displayName = String(payload?.displayName || '').trim();
-              const agentId = String(item.agentId || '').trim();
-              if (displayName && agentId) {
-                agentsByName.set(displayName, agentId);
-              }
-            });
-          }
-
-          await Promise.all(agentDraftEntries.map(async (entry) => {
-            const agentId = agentsByName.get(entry.characterName);
-            if (!agentId) return;
-
-            const existingRules = await listAgentRules(worldId, agentId, { status: 'ACTIVE' });
-            const activeRules = Array.isArray(existingRules)
-              ? existingRules as JsonObject[]
-              : [];
-            const existingIdentityRule = activeRules.find(
-              (item) => String(item.ruleKey || '').trim() === 'identity:self:core',
-            );
-            const payload = agentRuleDrafts.find((item) => item.characterName === entry.characterName)?.payload;
-            if (!payload) return;
-
-            if (existingIdentityRule?.id) {
-              await input.commitActions.updateAgentRuleMutation.mutateAsync({
-                worldId,
-                agentId,
-                ruleId: String(existingIdentityRule.id),
-	                payload: {
-	                  title: typeof payload.title === 'string' ? payload.title : undefined,
-	                  statement: typeof payload.statement === 'string' ? payload.statement : undefined,
-	                  category: payload.category as 'CONSTRAINT' | 'MECHANISM' | 'DEFINITION' | 'RELATION' | 'POLICY' | undefined,
-	                  hardness: payload.hardness as 'HARD' | 'FIRM' | 'SOFT' | 'AESTHETIC' | undefined,
-	                  scope: payload.scope as 'SELF' | 'DYAD' | 'GROUP' | 'WORLD' | undefined,
-	                  importance: typeof payload.importance === 'number' ? payload.importance : undefined,
-	                  priority: typeof payload.priority === 'number' ? payload.priority : undefined,
-                  provenance: typeof payload.provenance === 'string'
-                    ? payload.provenance as 'SYSTEM' | 'CREATOR' | 'WORLD_INHERITED' | 'NARRATIVE_EMERGED' | undefined
-                    : undefined,
-                  reasoning: typeof payload.reasoning === 'string' ? payload.reasoning : undefined,
-                  structured: payload.structured && typeof payload.structured === 'object' && !Array.isArray(payload.structured)
-                    ? payload.structured as JsonObject
-                    : undefined,
-                },
-              });
-              return;
-            }
-
-            await input.commitActions.createAgentRuleMutation.mutateAsync({
-              worldId,
-              agentId,
-              payload,
-            });
-          }));
-        } catch (error) {
-          input.setNotice(
-            `Draft published, but agent truth sync needs attention: ${error instanceof Error ? error.message : String(error)}`,
-          );
-          input.navigate(`/worlds/${worldId}/maintain`);
-          return;
-        }
-      }
-
-      input.setNotice('Draft published. Redirecting to Rule Truth maintenance.');
-      input.navigate(`/worlds/${worldId}/maintain`);
-      return;
+  const retryPublishOperation = useCallback(async () => {
+    const currentBatchRun = publishOperation.batchRun;
+    if (!currentBatchRun) {
+      throw new Error('FORGE_OFFICIAL_FACTORY_BATCH_RUN_REQUIRED');
     }
-    input.setNotice('Draft published.');
-  }, [input, persistDraft]);
+    const hasRetryableItems = currentBatchRun.items.some((item) => item.status === 'FAILED' || item.status === 'SKIPPED');
+    if (!hasRetryableItems) {
+      throw new Error(`FORGE_OFFICIAL_FACTORY_RETRYABLE_ITEMS_REQUIRED:${currentBatchRun.id}`);
+    }
+
+    const prepared = await preparePublishContext();
+    const retriedBatchRun = await input.commitActions.retryBatchRunMutation.mutateAsync({
+      runId: currentBatchRun.id,
+      reason: 'Retry requested from Forge create page',
+    });
+    setPublishOperation({
+      batchRun: retriedBatchRun,
+      publishedWorldId: null,
+      publishedReleaseVersion: null,
+    });
+    await publishWithBatchRun(prepared, retriedBatchRun);
+  }, [input.commitActions.retryBatchRunMutation, preparePublishContext, publishOperation.batchRun, publishWithBatchRun]);
 
   return {
     onGenerateCharacterPortrait,
@@ -752,6 +765,8 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     persistDraft,
     phase1,
     phase2,
+    publishOperation,
     publishDraft,
+    retryPublishOperation,
   };
 }

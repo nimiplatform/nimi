@@ -8,8 +8,18 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ForgePage, ForgePageHeader, ForgeEmptyState } from '@renderer/components/page-layout.js';
+import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
 
 type TemplateStatus = 'ALL' | 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+const STATUS_OPTIONS: SegmentOption<TemplateStatus>[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'DRAFT', label: 'DRAFT' },
+  { value: 'PUBLISHED', label: 'PUBLISHED' },
+  { value: 'ARCHIVED', label: 'ARCHIVED' },
+];
 
 export default function TemplateMinePage() {
   const { t } = useTranslation();
@@ -17,58 +27,31 @@ export default function TemplateMinePage() {
   const [statusFilter, setStatusFilter] = useState<TemplateStatus>('ALL');
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <ForgePage>
+      <ForgePageHeader
+        title={t('pages.templateMine')}
+        actions={
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/templates')}
-              className="rounded px-2 py-1 text-sm text-neutral-400 hover:text-white transition-colors"
-            >
+            <Button tone="ghost" size="sm" onClick={() => navigate('/templates')}>
               &larr; {t('templates.backToMarketplace', 'Marketplace')}
-            </button>
-            <h1 className="text-2xl font-bold text-white">{t('pages.templateMine')}</h1>
+            </Button>
+            <Button tone="primary" size="sm" disabled>
+              {t('templates.createTemplate', 'Create Template')}
+            </Button>
           </div>
-          <button
-            disabled
-            className="rounded-lg bg-white/30 px-4 py-2 text-sm font-medium text-white/50 cursor-not-allowed"
-          >
-            {t('templates.createTemplate', 'Create Template')}
-          </button>
-        </div>
+        }
+      />
 
-        {/* Status filter */}
-        <div className="flex rounded-lg border border-neutral-700 overflow-hidden w-fit">
-          {(['ALL', 'DRAFT', 'PUBLISHED', 'ARCHIVED'] as const).map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3 py-2 text-xs font-medium transition-colors ${
-                statusFilter === status
-                  ? 'bg-white text-black'
-                  : 'bg-neutral-900 text-neutral-400 hover:text-white'
-              }`}
-            >
-              {status === 'ALL' ? t('templates.filterAll', 'All') : status}
-            </button>
-          ))}
-        </div>
+      <ForgeSegmentControl options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
 
-        {/* Scope notice */}
-        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-          <p className="text-xs text-yellow-400">
-            {t('templates.backendNoticeDetail', 'Template workflows are deferred until they are redesigned against world-studio and world draft semantics.')}
-          </p>
-        </div>
+      {/* Scope notice */}
+      <Surface tone="card" padding="md" className="border-[var(--nimi-status-warning)]">
+        <p className="text-xs text-[var(--nimi-status-warning)]">
+          {t('templates.backendNoticeDetail', 'Template workflows are deferred until they are redesigned against world-studio and world draft semantics.')}
+        </p>
+      </Surface>
 
-        {/* Empty */}
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-8 text-center">
-          <p className="text-sm text-neutral-500">
-            {t('templates.noMyTemplates', 'You haven\'t published any templates yet.')}
-          </p>
-        </div>
-      </div>
-    </div>
+      <ForgeEmptyState message={t('templates.noMyTemplates', 'You haven\'t published any templates yet.')} />
+    </ForgePage>
   );
 }

@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { ForgePage, ForgePageHeader, ForgeStatCard } from '@renderer/components/page-layout.js';
+import { ForgeActionCard } from '@renderer/components/card-list.js';
 import { useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
 import { useBalancesQuery } from '@renderer/hooks/use-revenue-queries.js';
@@ -34,45 +36,35 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="h-full overflow-auto p-8">
-      <div className="mx-auto max-w-4xl space-y-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">{t('dashboard.title')}</h1>
-          <p className="mt-2 text-neutral-400">{t('dashboard.welcome')}</p>
-        </div>
+    <ForgePage>
+      <ForgePageHeader
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.welcome')}
+      />
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-3 gap-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-5 py-4"
-            >
-              <p className="text-xs text-neutral-500">{stat.label}</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Navigation cards */}
-        <div className="grid grid-cols-2 gap-4">
-          {NAV_CARDS.map((card) => (
-            <button
-              key={card.path}
-              onClick={() => navigate(card.path)}
-              className="flex items-start gap-4 rounded-lg border border-neutral-800 bg-neutral-900/50 px-5 py-4 text-left transition-colors hover:border-neutral-600 hover:bg-neutral-900"
-            >
-              <span className="text-2xl">{card.icon}</span>
-              <div>
-                <p className="text-sm font-medium text-white">{t(card.label)}</p>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  {t(card.description, card.description)}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
+      {/* Quick stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {stats.map((stat) => (
+          <ForgeStatCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+          />
+        ))}
       </div>
-    </div>
+
+      {/* Navigation cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {NAV_CARDS.map((card) => (
+          <ForgeActionCard
+            key={card.path}
+            icon={<span className="text-2xl">{card.icon}</span>}
+            title={t(card.label)}
+            description={t(card.description, card.description)}
+            onClick={() => navigate(card.path)}
+          />
+        ))}
+      </div>
+    </ForgePage>
   );
 }

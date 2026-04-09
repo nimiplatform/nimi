@@ -7,9 +7,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useNovelImport } from '@renderer/features/import/hooks/use-novel-import.js';
 import { accumulatorToImportResult } from '@renderer/features/import/state/novel-accumulator.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
+import { ForgePage, ForgePageHeader, ForgeStatCard, ForgeErrorBanner, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
+import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
+import type { NovelImportMode } from '@renderer/features/import/types.js';
 
 export default function NovelImportPage() {
   const { t } = useTranslation();
@@ -105,63 +109,62 @@ export default function NovelImportPage() {
     await startExtraction(sourceText, sourceFilename, mode);
   }, [mode, sourceFilename, sourceText, startExtraction]);
 
-  const backButton = (
-    <button
+  const backAction = (
+    <Button
+      tone="ghost"
+      size="sm"
       onClick={() => {
         reset();
         navigate(workspaceId ? `/workbench/${workspaceId}?panel=IMPORT` : '/workbench');
       }}
-      className="text-sm text-neutral-400 hover:text-white"
     >
       Back to Workspace
-    </button>
+    </Button>
   );
 
   if (!workspaceId) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <p className="text-sm text-neutral-400">Novel import requires an active workspace.</p>
-          <button
-            onClick={() => navigate('/workbench')}
-            className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black"
-          >
+          <p className="text-sm text-[var(--nimi-text-secondary)]">Novel import requires an active workspace.</p>
+          <Button tone="primary" size="sm" onClick={() => navigate('/workbench')} className="mt-3">
             Back to Workbench
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   if (machineState === 'IDLE' || machineState === 'FILE_LOADED') {
-    return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.novel')}</h1>
-        </div>
+    const modeOptions: SegmentOption<NovelImportMode>[] = [
+      { value: 'auto', label: t('import.modeAuto') },
+      { value: 'manual', label: t('import.modeManual') },
+    ];
 
-        <div className="mb-6 rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-emerald-300">Workspace Import</p>
-          <h2 className="mt-3 text-lg font-semibold text-white">Novel extraction accumulates inside one workspace.</h2>
-          <p className="mt-2 text-sm text-neutral-400">
+    return (
+      <ForgePage maxWidth="max-w-3xl">
+        <ForgePageHeader title={t('import.novel')} actions={backAction} />
+
+        <Surface tone="card" padding="md">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--nimi-status-success)]">Workspace Import</p>
+          <h2 className="mt-3 text-lg font-semibold text-[var(--nimi-text-primary)]">Novel extraction accumulates inside one workspace.</h2>
+          <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
             Chapter chunks, extraction artifacts, conflict decisions, and final rule lineage stay local until the unified workspace review.
           </p>
-        </div>
+        </Surface>
 
         {machineState === 'IDLE' ? (
-          <div
-            onDragOver={(event) => event.preventDefault()}
+          <Surface
+            tone="card"
+            padding="lg"
+            className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--nimi-border-subtle)] text-center transition-colors hover:border-[var(--nimi-text-muted)]"
+            onDragOver={(event: React.DragEvent) => event.preventDefault()}
             onDrop={handleDrop}
-            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-600 bg-neutral-800/30 p-12 text-center transition-colors hover:border-neutral-400"
           >
-            <p className="text-sm text-neutral-300">{t('import.dropText')}</p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-3 rounded-md bg-neutral-700 px-4 py-1.5 text-sm text-white hover:bg-neutral-600"
-            >
+            <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.dropText')}</p>
+            <Button tone="secondary" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-3">
               {t('import.browseFiles')}
-            </button>
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
@@ -169,76 +172,53 @@ export default function NovelImportPage() {
               onChange={handleFileSelect}
               className="hidden"
             />
-          </div>
+          </Surface>
         ) : null}
 
         {machineState === 'FILE_LOADED' && sourceText ? (
           <div className="max-w-xl space-y-4">
-            <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
-              <p className="text-sm text-neutral-300">
-                {t('import.fileLoaded')}: <span className="text-white">{sourceFilename}</span>
+            <Surface tone="card" padding="md">
+              <p className="text-sm text-[var(--nimi-text-secondary)]">
+                {t('import.fileLoaded')}: <span className="text-[var(--nimi-text-primary)]">{sourceFilename}</span>
               </p>
-              <p className="text-sm text-neutral-400">
+              <p className="text-sm text-[var(--nimi-text-secondary)]">
                 {sourceText.length.toLocaleString()} {t('import.characters')}
               </p>
-            </div>
+            </Surface>
 
             <div>
-              <label className="mb-2 block text-sm text-neutral-400">{t('import.extractionMode')}</label>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => switchMode('auto')}
-                  className={`rounded-md px-3 py-1.5 text-sm ${mode === 'auto' ? 'bg-emerald-600 text-white' : 'bg-neutral-700 text-neutral-300'}`}
-                >
-                  {t('import.modeAuto')}
-                </button>
-                <button
-                  onClick={() => switchMode('manual')}
-                  className={`rounded-md px-3 py-1.5 text-sm ${mode === 'manual' ? 'bg-emerald-600 text-white' : 'bg-neutral-700 text-neutral-300'}`}
-                >
-                  {t('import.modeManual')}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-neutral-500">
+              <label className="mb-2 block text-sm text-[var(--nimi-text-secondary)]">{t('import.extractionMode')}</label>
+              <ForgeSegmentControl options={modeOptions} value={mode} onChange={switchMode} />
+              <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
                 {mode === 'auto' ? t('import.modeAutoDesc') : t('import.modeManualDesc')}
               </p>
             </div>
 
-            <button
-              onClick={handleStartExtraction}
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-            >
+            <Button tone="primary" size="md" onClick={handleStartExtraction}>
               {t('import.startExtraction')}
-            </button>
+            </Button>
           </div>
         ) : null}
 
-        {error ? (
-          <div className="mt-4 rounded-md border border-red-800 bg-red-900/20 p-3">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        ) : null}
-      </div>
+        {error ? <ForgeErrorBanner message={error} /> : null}
+      </ForgePage>
     );
   }
 
   if (machineState === 'CHUNKING' || machineState === 'EXTRACTING' || machineState === 'ACCUMULATING') {
     return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.extracting')}</h1>
-        </div>
+      <ForgePage maxWidth="max-w-3xl">
+        <ForgePageHeader title={t('import.extracting')} actions={backAction} />
 
         <div className="max-w-xl space-y-4">
           <div>
-            <div className="mb-1 flex justify-between text-sm text-neutral-400">
+            <div className="mb-1 flex justify-between text-sm text-[var(--nimi-text-secondary)]">
               <span>{t('import.chapterProgress')}</span>
               <span>{progress.current}/{progress.total}</span>
             </div>
-            <div className="h-2 rounded-full bg-neutral-700">
+            <div className="h-2 rounded-full bg-[var(--nimi-surface-panel)]">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-[width] duration-300"
+                className="h-full rounded-full bg-[var(--nimi-status-success)] transition-[width] duration-300"
                 style={{ width: progress.total > 0 ? `${(progress.current / progress.total) * 100}%` : '0%' }}
               />
             </div>
@@ -246,172 +226,121 @@ export default function NovelImportPage() {
 
           {accumulator ? (
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center">
-                <p className="text-lg font-semibold text-white">{Object.keys(accumulator.worldRules).length}</p>
-                <p className="text-xs text-neutral-400">{t('import.worldRulesCount')}</p>
-              </div>
-              <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center">
-                <p className="text-lg font-semibold text-white">{Object.keys(accumulator.characters).length}</p>
-                <p className="text-xs text-neutral-400">{t('import.charactersCount')}</p>
-              </div>
-              <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center">
-                <p className="text-lg font-semibold text-white">{accumulator.conflicts.length}</p>
-                <p className="text-xs text-neutral-400">{t('import.conflictsCount')}</p>
-              </div>
+              <ForgeStatCard label={t('import.worldRulesCount')} value={Object.keys(accumulator.worldRules).length} />
+              <ForgeStatCard label={t('import.charactersCount')} value={Object.keys(accumulator.characters).length} />
+              <ForgeStatCard label={t('import.conflictsCount')} value={accumulator.conflicts.length} />
             </div>
           ) : null}
 
           <div className="flex gap-3">
-            <button
-              onClick={pause}
-              className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:border-neutral-500"
-            >
+            <Button tone="secondary" size="sm" onClick={pause}>
               {t('import.pause')}
-            </button>
-            <button
-              onClick={resume}
-              className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:border-neutral-500"
-            >
+            </Button>
+            <Button tone="secondary" size="sm" onClick={resume}>
               {t('import.resume')}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </ForgePage>
     );
   }
 
   if (machineState === 'CHAPTER_REVIEW' && currentChapterResult) {
     return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.chapterReview')}</h1>
-        </div>
+      <ForgePage maxWidth="max-w-3xl">
+        <ForgePageHeader title={t('import.chapterReview')} actions={backAction} />
 
         <div className="max-w-3xl space-y-4">
-          <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
-            <p className="text-sm text-neutral-400">{t('import.chapter')} {currentChapterResult.chapterIndex + 1}</p>
-            <h2 className="mt-2 text-lg font-semibold text-white">{currentChapterResult.chapterTitle}</h2>
-          </div>
+          <Surface tone="card" padding="md">
+            <p className="text-sm text-[var(--nimi-text-secondary)]">{t('import.chapter')} {currentChapterResult.chapterIndex + 1}</p>
+            <h2 className="mt-2 text-lg font-semibold text-[var(--nimi-text-primary)]">{currentChapterResult.chapterTitle}</h2>
+          </Surface>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-neutral-700 bg-neutral-900/40 p-4">
-              <h3 className="text-sm font-medium text-white">{t('import.worldRulesCount')}</h3>
-              <p className="mt-2 text-2xl font-semibold text-white">{currentChapterResult.worldRules.length}</p>
-            </div>
-            <div className="rounded-lg border border-neutral-700 bg-neutral-900/40 p-4">
-              <h3 className="text-sm font-medium text-white">{t('import.charactersCount')}</h3>
-              <p className="mt-2 text-2xl font-semibold text-white">{currentChapterResult.newCharacters.length}</p>
-            </div>
+            <ForgeStatCard label={t('import.worldRulesCount')} value={currentChapterResult.worldRules.length} />
+            <ForgeStatCard label={t('import.charactersCount')} value={currentChapterResult.newCharacters.length} />
           </div>
 
-          <button
-            onClick={() => confirmChapter()}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
+          <Button tone="primary" size="md" onClick={() => confirmChapter()}>
             {t('import.confirmChapter')}
-          </button>
+          </Button>
         </div>
-      </div>
+      </ForgePage>
     );
   }
 
   if (machineState === 'PAUSED') {
     return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.paused')}</h1>
-        </div>
+      <ForgePage maxWidth="max-w-3xl">
+        <ForgePageHeader title={t('import.paused')} actions={backAction} />
 
-        <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
-          <p className="text-sm text-neutral-400">
+        <Surface tone="card" padding="md">
+          <p className="text-sm text-[var(--nimi-text-secondary)]">
             Extraction is paused. Resume to continue accumulating into the current workspace draft.
           </p>
-          <button
-            onClick={resume}
-            className="mt-4 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
+          <Button tone="primary" size="md" onClick={resume} className="mt-4">
             {t('import.resume')}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Surface>
+      </ForgePage>
     );
   }
 
   if (machineState === 'CONFLICT_CHECK' && accumulator) {
     return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.conflictCheck')}</h1>
-        </div>
+      <ForgePage maxWidth="max-w-4xl">
+        <ForgePageHeader title={t('import.conflictCheck')} actions={backAction} />
 
-        <div className="max-w-4xl space-y-4">
+        <div className="space-y-4">
           {accumulator.conflicts.map((conflict, index) => (
-            <div key={`${conflict.ruleKey}:${index}`} className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4">
+            <Surface key={`${conflict.ruleKey}:${index}`} tone="card" padding="md">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <code className="text-xs text-neutral-500">{conflict.ruleKey}</code>
-                  <p className="mt-2 text-sm text-neutral-300">{conflict.previousStatement}</p>
-                  <p className="mt-2 text-sm text-neutral-400">{conflict.newStatement}</p>
+                  <code className="text-xs text-[var(--nimi-text-muted)]">{conflict.ruleKey}</code>
+                  <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{conflict.previousStatement}</p>
+                  <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">{conflict.newStatement}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => resolveConflict(index, 'KEEP_PREVIOUS')}
-                    className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
-                  >
+                  <Button tone="secondary" size="sm" onClick={() => resolveConflict(index, 'KEEP_PREVIOUS')}>
                     Keep Previous
-                  </button>
-                  <button
-                    onClick={() => resolveConflict(index, 'USE_NEW')}
-                    className="rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
-                  >
+                  </Button>
+                  <Button tone="secondary" size="sm" onClick={() => resolveConflict(index, 'USE_NEW')}>
                     Use New
-                  </button>
-                  <button
-                    onClick={() => resolveConflict(index, 'MERGE', conflict.newStatement)}
-                    className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white"
-                  >
+                  </Button>
+                  <Button tone="primary" size="sm" onClick={() => resolveConflict(index, 'MERGE', conflict.newStatement)}>
                     Merge
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Surface>
           ))}
 
-          <button
-            onClick={finishConflictCheck}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
+          <Button tone="primary" size="md" onClick={finishConflictCheck}>
             {t('import.proceedToReview')}
-          </button>
+          </Button>
         </div>
-      </div>
+      </ForgePage>
     );
   }
 
   if (machineState === 'FINAL_REVIEW' || machineState === 'PUBLISHING') {
     return (
-      <div className="h-full overflow-auto p-6">
-        <div className="mb-4 flex items-center gap-3">
-          {backButton}
-          <h1 className="text-xl font-semibold text-white">{t('import.finalReview')}</h1>
-        </div>
+      <ForgePage maxWidth="max-w-3xl">
+        <ForgePageHeader title={t('import.finalReview')} actions={backAction} />
 
-        <div className="rounded-3xl border border-neutral-800 bg-neutral-900/60 p-6">
-          <h2 className="text-lg font-semibold text-white">Handoff to workspace review</h2>
-          <p className="mt-2 text-sm text-neutral-400">
+        <Surface tone="card" padding="md">
+          <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Handoff to workspace review</h2>
+          <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">
             Final novel truth is being written into the current workspace review state. Publish remains available only from the workbench publish plan.
           </p>
-        </div>
-      </div>
+        </Surface>
+      </ForgePage>
     );
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <p className="text-sm text-neutral-400">State: {machineState}</p>
-    </div>
+    <ForgePage maxWidth="max-w-3xl">
+      <p className="text-sm text-[var(--nimi-text-secondary)]">State: {machineState}</p>
+    </ForgePage>
   );
 }
