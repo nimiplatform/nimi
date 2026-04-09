@@ -1,7 +1,7 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
-export const STREAM_FIRST_PACKET_TIMEOUT_MS = 30_000;
+export const STREAM_FIRST_PACKET_TIMEOUT_MS = 60_000;
 export const STREAM_IDLE_TIMEOUT_MS = 30_000;
 export const STREAM_TEXT_TOTAL_TIMEOUT_MS = 120_000;
 export const STREAM_SPEECH_TOTAL_TIMEOUT_MS = 45_000;
@@ -32,6 +32,7 @@ export type StreamState = {
 export type StreamEvent =
   | { type: 'reasoning_delta'; textDelta: string }
   | { type: 'text_delta'; textDelta: string }
+  | { type: 'keepalive' }
   | {
     type: 'done';
     usage?: { inputTokens?: number; outputTokens?: number };
@@ -303,6 +304,14 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
       && !canRecoverTimeoutWithTerminal
     )
   ) {
+    return;
+  }
+
+  if (event.type === 'keepalive') {
+    const abortController = abortControllers.get(chatId);
+    if (abortController) {
+      resetIdleTimeout(chatId, abortController);
+    }
     return;
   }
 

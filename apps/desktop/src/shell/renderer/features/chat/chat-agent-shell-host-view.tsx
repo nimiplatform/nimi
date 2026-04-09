@@ -25,6 +25,7 @@ export function resolveAgentConversationHostView(input: {
     loadingLabel: string;
   };
   renderMessageContent: CanonicalMessageContentSlot;
+  onStopGenerating?: () => void;
 }): AgentConversationHostView {
   return {
     availability: {
@@ -45,6 +46,7 @@ export function resolveAgentConversationHostView(input: {
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
+      onStopGenerating: input.onStopGenerating,
     },
     stagePanelProps: {
       footerContent: input.footerContent,

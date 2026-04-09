@@ -43,6 +43,11 @@ import {
   type AIConfig,
   type AISnapshot,
 } from './conversation-capability';
+import {
+  refreshAgentEffectiveCapabilityResolution,
+  refreshConversationCapabilityProjections,
+} from './conversation-capability-projection';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { probeExecutionSchedulingGuard } from './chat-execution-scheduling-guard';
 import {
   peekDesktopAISchedulingForEvidence,
@@ -63,8 +68,8 @@ import {
 import {
   getStreamState,
   startStream,
-  STREAM_TEXT_TOTAL_TIMEOUT_MS,
 } from '../turns/stream-controller';
+import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 
 type AgentRunTurn = (input: {
   threadId: string;
@@ -460,13 +465,28 @@ export function useAgentConversationHostActions(
         runtimeEvidence,
       });
       recordDesktopAISnapshot(textExecutionSnapshot);
-      const imageExecutionSnapshot = input.agentResolution.imageProjection?.supported
-        && input.agentResolution.imageProjection?.resolvedBinding
+
+      // On-demand image projection refresh: if a binding exists but the
+      // projection is stale (not supported), re-evaluate before the turn so
+      // that a runtime that became ready after bootstrap is picked up.
+      let effectiveAgentResolution = input.agentResolution;
+      if (
+        effectiveAgentResolution.imageProjection?.selectedBinding
+        && !effectiveAgentResolution.imageReady
+      ) {
+        await refreshConversationCapabilityProjections(['image.generate']);
+        refreshAgentEffectiveCapabilityResolution();
+        effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution
+          || effectiveAgentResolution;
+      }
+
+      const imageExecutionSnapshot = effectiveAgentResolution.imageProjection?.supported
+        && effectiveAgentResolution.imageProjection?.resolvedBinding
         ? createAISnapshot({
           config: input.aiConfig,
           capability: 'image.generate',
-          projection: input.agentResolution.imageProjection,
-          agentResolution: input.agentResolution,
+          projection: effectiveAgentResolution.imageProjection,
+          agentResolution: effectiveAgentResolution,
           runtimeEvidence: await peekDesktopAISchedulingForEvidence({
             scopeRef: input.aiConfig.scopeRef,
             target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'image.generate'),
@@ -476,7 +496,10 @@ export function useAgentConversationHostActions(
       if (imageExecutionSnapshot) {
         recordDesktopAISnapshot(imageExecutionSnapshot);
       }
-      const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
+      const abortController = startStream(
+        effectiveThreadId,
+        resolveAgentTurnTotalTimeoutMs(input.aiConfig),
+      );
       const history = toConversationHistoryMessages(userBundle.messages);
       try {
         for await (const event of input.runAgentTurn({
@@ -489,7 +512,7 @@ export function useAgentConversationHostActions(
           },
           history,
           signal: abortController.signal,
-          agentResolution: input.agentResolution,
+          agentResolution: effectiveAgentResolution,
           textExecutionSnapshot,
           imageExecutionSnapshot,
           target: input.activeTarget,

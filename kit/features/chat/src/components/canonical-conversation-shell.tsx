@@ -279,7 +279,7 @@ export function CanonicalConversationShell(props: CanonicalConversationShellProp
                 <CanonicalTranscriptView
                   messages={messages}
                   pendingFirstBeat={props.pendingFirstBeat}
-                  onIntentReturnToStage={() => props.onViewModeChange('stage')}
+                  /* Stage mode shelved — do not auto-switch back */
                   {...props.transcriptProps}
                 />
               )}

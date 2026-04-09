@@ -50,11 +50,27 @@ function normalizeLocalStatus(value: unknown): string {
   return String(value || '').trim().toLowerCase();
 }
 
-function usesRuntimeAuthoritativeLocalTextHealth(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
+function hasRuntimeAuthoritativeLocalModelRef(input: CheckLlmHealthInput): boolean {
+  return Boolean(
+    String(input.goRuntimeLocalModelId || '').trim()
+    || String(input.goRuntimeStatus || '').trim()
+    || String(input.localModelId || '').trim(),
+  );
+}
+
+function usesRuntimeAuthoritativeLocalModelHealth(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
   return engine === 'llama';
 }
 
-async function checkRuntimeAuthoritativeLocalTextHealth(
+function usesRuntimeAuthoritativeLocalMediaHealth(
+  engine: ReturnType<typeof normalizeLocalEngine>,
+  endpoint: string,
+  input: CheckLlmHealthInput,
+): boolean {
+  return engine === 'media' && (!endpoint || hasRuntimeAuthoritativeLocalModelRef(input));
+}
+
+async function checkRuntimeAuthoritativeLocalModelHealth(
   input: CheckLlmHealthInput,
   provider: string,
   endpoint: string,
@@ -195,10 +211,14 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const provider = String(input.provider || '').trim();
   const engine = normalizeLocalEngine(provider);
 
-  if ((endpoint && source === 'local') || (usesRuntimeAuthoritativeLocalTextHealth(engine) && !input.connectorId)) {
+  const runtimeAuthoritativeLocalHealth = !input.connectorId && (
+    usesRuntimeAuthoritativeLocalModelHealth(engine)
+    || usesRuntimeAuthoritativeLocalMediaHealth(engine, endpoint, input)
+  );
+  if ((endpoint && source === 'local') || runtimeAuthoritativeLocalHealth) {
     try {
-      if (usesRuntimeAuthoritativeLocalTextHealth(engine)) {
-        return await checkRuntimeAuthoritativeLocalTextHealth(input, provider, endpoint, model);
+      if (runtimeAuthoritativeLocalHealth) {
+        return await checkRuntimeAuthoritativeLocalModelHealth(input, provider, endpoint, model);
       }
       const localFetch = input.fetchImpl || fetch;
       const response = usesCanonicalCatalogProbe(engine)

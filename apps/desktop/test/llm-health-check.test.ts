@@ -110,6 +110,56 @@ test('media health uses /healthz + /v1/catalog', async () => {
   assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
 });
 
+test('media health prefers runtime authoritative active model state over endpoint probe when go-runtime state is present', async () => {
+  const mockFetch = mock.fn(async () => new Response('not used', { status: 500 }));
+  const result = await checkLocalLlmHealth({
+    provider: 'media',
+    localProviderEndpoint: 'http://127.0.0.1:8321/v1',
+    localProviderModel: 'media/z_image_turbo',
+    goRuntimeLocalModelId: 'go-z-image',
+    goRuntimeStatus: 'active',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localAssetId: 'go-z-image',
+      assetId: 'local-import/z_image_turbo-Q4_K',
+      engine: 'media',
+      status: 'active',
+      endpoint: 'http://127.0.0.1:8321/v1',
+    }]),
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'healthy');
+  assert.equal(result.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(result.model, 'media/z_image_turbo');
+  assert.equal(result.provider, 'media');
+  assert.equal(result.detail, '');
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
+test('media health returns unreachable from runtime authoritative model state when local asset is unhealthy', async () => {
+  const mockFetch = mock.fn(async () => new Response('not used', { status: 500 }));
+  const result = await checkLocalLlmHealth({
+    provider: 'media',
+    localProviderEndpoint: 'http://127.0.0.1:8321/v1',
+    localProviderModel: 'media/z_image_turbo',
+    goRuntimeStatus: 'active',
+    localModelId: 'go-z-image',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localAssetId: 'go-z-image',
+      assetId: 'local-import/z_image_turbo-Q4_K',
+      engine: 'media',
+      status: 'unhealthy',
+      endpoint: 'http://127.0.0.1:8321/v1',
+      healthDetail: 'managed local image backend validation failed',
+    }]),
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'unreachable');
+  assert.equal(result.detail, 'managed local image backend validation failed');
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
 test('speech health uses /healthz + /v1/catalog', async () => {
   const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
     const url = String(input);

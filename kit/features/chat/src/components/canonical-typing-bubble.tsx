@@ -3,29 +3,19 @@ export type CanonicalTypingBubbleProps = {
   agentName: string;
   agentRoleLabel?: string;
   thinkingLabel?: string;
+  onStop?: () => void;
+  stopLabel?: string;
 };
 
 export function CanonicalTypingBubble({
-  agentAvatarUrl = null,
   agentName,
   agentRoleLabel = 'Assistant',
   thinkingLabel = 'Thinking…',
+  onStop,
+  stopLabel = 'Stop generating',
 }: CanonicalTypingBubbleProps) {
-  const agentInitial = (String(agentName || 'A').trim().charAt(0) || 'A').toUpperCase();
-
   return (
     <div className="flex gap-2" role="status" aria-live="polite" aria-label={agentRoleLabel}>
-      {agentAvatarUrl ? (
-        <img
-          src={agentAvatarUrl}
-          alt={agentName || agentRoleLabel}
-          className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-black/5"
-        />
-      ) : (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 text-xs font-semibold text-white ring-1 ring-black/5">
-          {agentInitial}
-        </div>
-      )}
       <div className="max-w-[72%]">
         <div className="lc-typing-bubble px-4 py-3">
           <div className="lc-typing-row flex items-center gap-3">
@@ -41,6 +31,17 @@ export function CanonicalTypingBubble({
               <span />
               <span />
             </span>
+            {onStop ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
+                aria-label={stopLabel}
+                title={stopLabel}
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><rect width="8" height="8" rx="1" /></svg>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import {
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
+import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
   findAgentConversationThreadByAgentId,
   resolveAgentConversationActiveThreadId,
@@ -216,6 +217,22 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
   });
 
   assert.equal(result.text, 'hi');
+});
+
+test('agent local host turn timeout honors larger image timeout settings', () => {
+  const aiConfig = createEmptyAIConfig();
+  aiConfig.capabilities.selectedParams['image.generate'] = {
+    timeoutMs: '600000',
+  };
+  assert.equal(resolveAgentTurnTotalTimeoutMs(aiConfig), 600000);
+});
+
+test('agent local host turn timeout never drops below text stream default', () => {
+  const aiConfig = createEmptyAIConfig();
+  aiConfig.capabilities.selectedParams['image.generate'] = {
+    timeoutMs: '15000',
+  };
+  assert.equal(resolveAgentTurnTotalTimeoutMs(aiConfig), 120000);
 });
 
 test('agent runtime invoke supports cloud routes via connectorId', async () => {
@@ -534,6 +551,149 @@ test('agent image runtime encodes artifact bytes to stable data url when uri is 
   assert.equal(result.artifactId, 'artifact-bytes');
 });
 
+test('agent image runtime injects managed image workflow profile entries for local-import z_image_turbo routes', async () => {
+  const projection = {
+    capability: 'image.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'local-import/z_image_turbo-Q4_K',
+    },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:media:local-import/z_image_turbo-Q4_K',
+      source: 'local' as const,
+      provider: 'media',
+      engine: 'media',
+      model: 'media/local-import/z_image_turbo-Q4_K',
+      modelId: 'local-import/z_image_turbo-Q4_K',
+      localModelId: '01-main',
+      goRuntimeLocalModelId: '01-main',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:8321/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    imageProjection: projection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection,
+    agentResolution,
+  });
+  let capturedRequest: Record<string, unknown> | null = null;
+
+  await generateChatAgentImageRuntime({
+    prompt: 'draw the harbor in fog',
+    imageExecutionSnapshot,
+    imageCapabilityParams: {
+      size: '512x512',
+      responseFormat: 'auto',
+      seed: '42',
+      timeoutMs: '600000',
+      steps: '15',
+      cfgScale: '1.5',
+      sampler: 'euler',
+      scheduler: 'karras',
+      optionsText: 'diffusion_fa:true',
+      companionSlots: {
+        vae_path: 'vae-1',
+        llm_path: 'llm-1',
+      },
+    },
+  }, {
+    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-image-workflow' }),
+    getRuntimeClientImpl: () => ({
+      media: {
+        image: {
+          generate: async (request: Record<string, unknown>) => {
+            capturedRequest = request;
+            return {
+              artifacts: [{
+                artifactId: 'artifact-workflow',
+                mimeType: 'image/png',
+                uri: 'https://cdn.nimi.test/workflow.png',
+              }],
+              trace: {
+                traceId: 'trace-image-workflow',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
+  });
+
+  if (!capturedRequest) {
+    assert.fail('expected runtime media image request to be captured');
+  }
+  const request = capturedRequest as Record<string, unknown>;
+  assert.equal(request['prompt'], 'draw the harbor in fog');
+  assert.equal(request['model'], 'local-import/z_image_turbo-Q4_K');
+  assert.equal(request['responseFormat'], undefined);
+  assert.equal(request['size'], '512x512');
+  assert.equal(request['seed'], 42);
+  assert.equal(request['timeoutMs'], 600000);
+  assert.deepEqual(request['extensions'], {
+    entry_overrides: [
+      { entry_id: 'agent-chat/image-main-model', local_asset_id: '01-main' },
+      { entry_id: 'agent-chat/image-slot/vae_path', local_asset_id: 'vae-1' },
+      { entry_id: 'agent-chat/image-slot/llm_path', local_asset_id: 'llm-1' },
+    ],
+    profile_entries: [
+      {
+        entryId: 'agent-chat/image-main-model',
+        kind: 'asset',
+        capability: 'image',
+        title: 'Selected local image model',
+        required: true,
+        preferred: true,
+        assetId: 'local-import/z_image_turbo-Q4_K',
+        assetKind: 'image',
+      },
+      {
+        entryId: 'agent-chat/image-slot/vae_path',
+        kind: 'asset',
+        capability: 'image',
+        title: 'Workflow slot vae_path',
+        required: true,
+        preferred: true,
+        assetId: 'vae_path',
+        assetKind: 'vae',
+        engineSlot: 'vae_path',
+      },
+      {
+        entryId: 'agent-chat/image-slot/llm_path',
+        kind: 'asset',
+        capability: 'image',
+        title: 'Workflow slot llm_path',
+        required: true,
+        preferred: true,
+        assetId: 'llm_path',
+        assetKind: 'chat',
+        engineSlot: 'llm_path',
+      },
+    ],
+    profile_overrides: {
+      step: 15,
+      cfg_scale: 1.5,
+      sampler: 'euler',
+      scheduler: 'karras',
+      options: ['diffusion_fa:true'],
+    },
+  });
+});
+
 
 test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is false', () => {
   const supportedProjection = {
@@ -644,6 +804,88 @@ test('agent capability resolution keeps image optional while exposing image read
   });
   assert.equal(unresolvedImage.ready, true);
   assert.equal(unresolvedImage.imageReady, false);
+});
+
+test('agent local mode creates image execution snapshot for runtime-authoritative local image routes with endpoint', () => {
+  const textProjection = {
+    capability: 'text.generate' as const,
+    selectedBinding: { source: 'local' as const, connectorId: '', model: 'llama3' },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      resolvedBindingRef: 'local:text:llama3',
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'llama3',
+      modelId: 'llama3',
+      localModelId: 'local-chat-1',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:11434/v1',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: {
+      capability: 'text.generate' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'local:text:llama3',
+      metadataKind: 'text.generate' as const,
+      metadata: {
+        supportsThinking: false,
+        traceModeSupport: 'none' as const,
+        supportsImageInput: false,
+        supportsAudioInput: false,
+        supportsVideoInput: false,
+        supportsArtifactRefInput: false,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const imageProjection = {
+    capability: 'image.generate' as const,
+    selectedBinding: { source: 'local' as const, connectorId: '', model: 'z_image_turbo' },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:image:z_image_turbo',
+      source: 'local' as const,
+      provider: 'media',
+      model: 'media/z_image_turbo',
+      modelId: 'z_image_turbo',
+      localModelId: '01JIMAGE',
+      connectorId: '',
+      engine: 'media',
+      endpoint: 'http://127.0.0.1:8321/v1',
+      localProviderEndpoint: 'http://127.0.0.1:8321/v1',
+      goRuntimeLocalModelId: 'go-z-image',
+      goRuntimeStatus: 'active',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection,
+    imageProjection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection: imageProjection,
+    agentResolution,
+  });
+  const resolvedBinding = imageExecutionSnapshot.conversationCapabilitySlice?.resolvedBinding as {
+    endpoint?: string;
+    goRuntimeLocalModelId?: string;
+    goRuntimeStatus?: string;
+  } | undefined;
+
+  assert.equal(agentResolution.ready, true);
+  assert.equal(agentResolution.imageReady, true);
+  assert.equal(imageExecutionSnapshot.conversationCapabilitySlice?.capability, 'image.generate');
+  assert.equal(resolvedBinding?.endpoint, 'http://127.0.0.1:8321/v1');
+  assert.equal(resolvedBinding?.goRuntimeLocalModelId, 'go-z-image');
+  assert.equal(resolvedBinding?.goRuntimeStatus, 'active');
 });
 
 test('agent local mode keeps thinking unsupported and forces effective off config', () => {

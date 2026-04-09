@@ -253,7 +253,7 @@ export function ChatPage() {
   const currentViewModeKey = selectedTarget
     ? `${selectedTarget.source}:${selectedTarget.id}`
     : `${chatMode}:landing`;
-  const currentViewMode = viewModeBySourceTarget[currentViewModeKey] || 'stage';
+  const currentViewMode = viewModeBySourceTarget[currentViewModeKey] || 'chat';
 
   const canonicalMessages = activeHost?.messages || [];
 

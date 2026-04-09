@@ -93,6 +93,7 @@ function installFakeTimers(): {
 }
 
 import {
+    STREAM_FIRST_PACKET_TIMEOUT_MS,
     startStream,
     feedStreamEvent,
     cancelStream,
@@ -214,7 +215,7 @@ test('D-STRM: late terminal completion recovers a first-packet timeout', () => {
     let state = getStreamState(TEST_CHAT);
     assert.equal(state.phase, 'error');
     assert.equal(state.cancelSource, 'timeout');
-    assert.equal(state.errorMessage, 'No response within 30s');
+    assert.equal(state.errorMessage, `No response within ${STREAM_FIRST_PACKET_TIMEOUT_MS / 1000}s`);
 
     feedStreamEvent(TEST_CHAT, {
       type: 'done',

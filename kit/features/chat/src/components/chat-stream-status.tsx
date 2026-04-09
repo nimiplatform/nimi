@@ -72,8 +72,8 @@ export function ChatStreamStatus({
                 {resolvedInterruptedSuffix}
               </>
             )}
+          {actions ?? null}
         </div>
-        {actions ? <div className="mt-1">{actions}</div> : null}
         {mode === 'interrupted' && errorMessage ? (
           <p className="mt-1 text-xs text-[var(--nimi-status-danger)]">{errorMessage}</p>
         ) : null}

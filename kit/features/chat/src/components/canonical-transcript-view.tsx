@@ -201,18 +201,14 @@ function TranscriptMessageGroups(props: {
         <CanonicalMessageBubble
           key={item.message.id}
           message={item.message}
-          avatar={props.renderMessageAvatar
-            ? props.renderMessageAvatar(item.message, renderContext)
-            : item.showAvatar
-              ? undefined
-              : null}
+          avatar={null}
           content={props.renderMessageContent?.(item.message, renderContext)}
           accessory={props.renderMessageAccessory
             ? props.renderMessageAccessory(item.message, renderContext)
             : item.showTimestamp
               ? undefined
               : null}
-          showAvatar={item.showAvatar}
+          showAvatar={false}
           showTimestamp={item.showTimestamp}
           position={item.position}
           displayContext="transcript"
@@ -225,18 +221,9 @@ function TranscriptMessageGroups(props: {
     }
 
     nodes.push(
-      isFocusedAssistantGroup ? (
-        <section key={`group-${group.groupIndex}`} className="relative">
-          <div className="absolute inset-[-6px] rounded-[30px] bg-[radial-gradient(circle_at_top,rgba(167,243,208,0.28),transparent_70%)] opacity-90" />
-          <div className="relative rounded-[28px] border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(238,247,247,0.9))] px-4 py-4 shadow-[0_24px_56px_rgba(15,23,42,0.08)]">
-            <div className="space-y-2.5">{groupNodes}</div>
-          </div>
-        </section>
-      ) : (
-        <section key={`group-${group.groupIndex}`} className="space-y-2.5">
-          {groupNodes}
-        </section>
-      ),
+      <section key={`group-${group.groupIndex}`} className="space-y-2.5">
+        {groupNodes}
+      </section>,
     );
   }
 
@@ -284,6 +271,8 @@ export type CanonicalTranscriptViewProps = {
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
   /** Called when the user scrolls down past the bottom of the transcript, signaling intent to return to stage view. */
   onIntentReturnToStage?: () => void;
+  /** Called when the user wants to stop generating (shown inline in the typing bubble). */
+  onStopGenerating?: () => void;
 };
 
 export function CanonicalTranscriptView({
@@ -311,6 +300,7 @@ export function CanonicalTranscriptView({
   onPlayVoiceMessage,
   onVoiceContextMenu,
   onIntentReturnToStage,
+  onStopGenerating,
 }: CanonicalTranscriptViewProps) {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
@@ -431,22 +421,19 @@ export function CanonicalTranscriptView({
               onVoiceContextMenu={onVoiceContextMenu}
             />
             {pendingFirstBeat ? (
-              <section className="lc-message-group lc-current-turn-shell">
-                <div className="lc-current-turn-halo lc-current-turn-halo-pending" aria-hidden />
-                <div className="lc-current-turn-card lc-current-turn-card-pending min-h-[112px] rounded-[26px] border border-emerald-200/80 bg-white/88 px-4 py-4">
-                  <CanonicalTypingBubble
-                    agentAvatarUrl={agentAvatarUrl}
-                    agentName={agentName}
-                    agentRoleLabel="Assistant pending"
-                    thinkingLabel="Thinking…"
-                  />
-                </div>
-              </section>
+              <div className="py-1">
+                <CanonicalTypingBubble
+                  agentName={agentName}
+                  agentRoleLabel="Assistant pending"
+                  thinkingLabel="Thinking…"
+                  onStop={onStopGenerating}
+                />
+              </div>
             ) : null}
           </section>
         ) : null}
 
-        {!loading && !error && footerContent ? footerContent : null}
+        {!loading && !error && !pendingFirstBeat && footerContent ? footerContent : null}
       </div>
     </div>
   );

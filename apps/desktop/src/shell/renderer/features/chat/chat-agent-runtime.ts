@@ -3,6 +3,7 @@ import {
   createNimiError,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
+import { buildLocalProfileExtensions } from '@nimiplatform/sdk/mod';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -51,6 +52,7 @@ export type ChatAgentRuntimeStreamResult = {
 export type ChatAgentImageRuntimeInvokeInput = {
   prompt: string;
   imageExecutionSnapshot: AISnapshot | null;
+  imageCapabilityParams?: Record<string, unknown> | null;
   signal?: AbortSignal;
 };
 
@@ -76,9 +78,169 @@ export type ChatAgentRuntimeStreamDeps = {
 };
 
 export const CORE_CHAT_AGENT_MOD_ID = 'core.chat-agent';
+const AGENT_CHAT_LOCAL_IMAGE_WORKFLOW_MODEL_ID = 'z_image_turbo';
+const AGENT_CHAT_LOCAL_IMAGE_MAIN_ENTRY_ID = 'agent-chat/image-main-model';
+const AGENT_CHAT_LOCAL_IMAGE_SLOT_DEFS = [
+  { slot: 'vae_path', label: 'VAE', assetKind: 'vae' },
+  { slot: 'llm_path', label: 'LLM', assetKind: 'chat' },
+  { slot: 'clip_l_path', label: 'CLIP-L', assetKind: 'clip' },
+  { slot: 'clip_g_path', label: 'CLIP-G', assetKind: 'clip' },
+  { slot: 'controlnet_path', label: 'ControlNet', assetKind: 'controlnet' },
+  { slot: 'lora_path', label: 'LoRA', assetKind: 'lora' },
+  { slot: 'aux_path', label: 'Auxiliary', assetKind: 'auxiliary' },
+] as const;
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function normalizeFiniteNumber(value: unknown): number | undefined {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : undefined;
+}
+
+function normalizePositiveFiniteNumber(value: unknown): number | undefined {
+  const normalized = normalizeFiniteNumber(value);
+  return normalized && normalized > 0 ? normalized : undefined;
+}
+
+function normalizeLocalImageWorkflowModelId(value: unknown): string {
+  let normalized = normalizeText(value).toLowerCase();
+  if (normalized.startsWith('media/')) {
+    normalized = normalized.slice('media/'.length).trim();
+  }
+  if (normalized.startsWith('local/')) {
+    normalized = normalized.slice('local/'.length).trim();
+  }
+  return normalized;
+}
+
+function isAgentManagedLocalImageWorkflowModel(modelId: string): boolean {
+  return /(^|\/)z_image_turbo(?:$|[-_])/u.test(modelId);
+}
+
+function resolveLocalImageWorkflowAssetId(value: unknown): string {
+  let normalized = normalizeText(value);
+  if (normalized.toLowerCase().startsWith('media/')) {
+    normalized = normalized.slice('media/'.length).trim();
+  }
+  return normalized || AGENT_CHAT_LOCAL_IMAGE_WORKFLOW_MODEL_ID;
+}
+
+function resolveAgentImageResponseFormat(value: unknown): 'base64' | 'url' | undefined {
+  const normalized = normalizeText(value).toLowerCase();
+  return normalized === 'base64' || normalized === 'url'
+    ? normalized
+    : undefined;
+}
+
+function shouldInjectAgentLocalImageWorkflow(resolved: NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>): boolean {
+  if (resolved.source !== 'local') {
+    return false;
+  }
+  const normalizedModel = normalizeLocalImageWorkflowModelId(
+    resolved.modelId || resolved.model || resolved.localModelId,
+  );
+  if (!isAgentManagedLocalImageWorkflowModel(normalizedModel)) {
+    return false;
+  }
+  const engine = normalizeText(resolved.engine || resolved.provider).toLowerCase();
+  return !engine || engine === 'media' || engine === 'local';
+}
+
+function buildAgentLocalImageWorkflowExtensions(input: {
+  resolved: NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
+  params: Record<string, unknown> | null;
+}): Record<string, unknown> | undefined {
+  if (!shouldInjectAgentLocalImageWorkflow(input.resolved)) {
+    return undefined;
+  }
+  const companionSlots = asRecord(input.params?.companionSlots) || {};
+  const entryOverrides = AGENT_CHAT_LOCAL_IMAGE_SLOT_DEFS
+    .map((definition) => ({
+      definition,
+      localAssetId: normalizeText(companionSlots[definition.slot]),
+    }))
+    .filter((item) => item.localAssetId)
+    .map((item) => ({
+      entryId: `agent-chat/image-slot/${item.definition.slot}`,
+      localAssetId: item.localAssetId,
+    }));
+  const mainLocalAssetId = normalizeText(
+    input.resolved.goRuntimeLocalModelId || input.resolved.localModelId,
+  );
+  if (mainLocalAssetId) {
+    entryOverrides.unshift({
+      entryId: AGENT_CHAT_LOCAL_IMAGE_MAIN_ENTRY_ID,
+      localAssetId: mainLocalAssetId,
+    });
+  }
+
+  const profileOverrides: Record<string, unknown> = {};
+  const step = normalizePositiveFiniteNumber(input.params?.steps);
+  if (step !== undefined) {
+    profileOverrides.step = step;
+  }
+  const cfgScale = normalizePositiveFiniteNumber(input.params?.cfgScale);
+  if (cfgScale !== undefined) {
+    profileOverrides.cfg_scale = cfgScale;
+  }
+  const sampler = normalizeText(input.params?.sampler);
+  if (sampler) {
+    profileOverrides.sampler = sampler;
+  }
+  const scheduler = normalizeText(input.params?.scheduler);
+  if (scheduler) {
+    profileOverrides.scheduler = scheduler;
+  }
+  const options = String(input.params?.optionsText || '')
+    .split(/\r?\n/gu)
+    .map((line) => normalizeText(line))
+    .filter(Boolean);
+  if (options.length > 0) {
+    profileOverrides.options = options;
+  }
+
+  const extensions = buildLocalProfileExtensions({
+    entryOverrides,
+    profileOverrides,
+  });
+  extensions.profile_entries = [
+    {
+      entryId: AGENT_CHAT_LOCAL_IMAGE_MAIN_ENTRY_ID,
+      kind: 'asset',
+      capability: 'image',
+      title: 'Selected local image model',
+      required: true,
+      preferred: true,
+      assetId: resolveLocalImageWorkflowAssetId(input.resolved.modelId || input.resolved.model),
+      assetKind: 'image',
+    },
+    ...AGENT_CHAT_LOCAL_IMAGE_SLOT_DEFS
+      .map((definition) => ({
+        definition,
+        localAssetId: normalizeText(companionSlots[definition.slot]),
+      }))
+      .filter((item) => item.localAssetId)
+      .map((item) => ({
+        entryId: `agent-chat/image-slot/${item.definition.slot}`,
+        kind: 'asset',
+        capability: 'image',
+        title: `Workflow slot ${item.definition.slot}`,
+        required: true,
+        preferred: true,
+        assetId: item.definition.slot,
+        assetKind: item.definition.assetKind,
+        engineSlot: item.definition.slot,
+      })),
+  ];
+  return extensions;
 }
 
 function requireValue(value: unknown, reasonCode: string, actionHint: string, message: string): string {
@@ -291,6 +453,15 @@ export async function generateChatAgentImageRuntime(
       || normalizeText(resolved.localOpenAiEndpoint)
       || undefined,
   });
+  const imageCapabilityParams = asRecord(input.imageCapabilityParams);
+  const responseFormat = resolveAgentImageResponseFormat(imageCapabilityParams?.responseFormat);
+  const size = normalizeText(imageCapabilityParams?.size) || undefined;
+  const seed = normalizeFiniteNumber(imageCapabilityParams?.seed);
+  const timeoutMs = normalizePositiveFiniteNumber(imageCapabilityParams?.timeoutMs);
+  const extensions = buildAgentLocalImageWorkflowExtensions({
+    resolved,
+    params: imageCapabilityParams,
+  });
   const response = await (deps.getRuntimeClientImpl || getRuntimeClient)().media.image.generate({
     model: requireValue(
       resolved.modelId || resolved.model || resolved.localModelId,
@@ -301,7 +472,11 @@ export async function generateChatAgentImageRuntime(
     prompt,
     route: resolved.source,
     connectorId: normalizeText(resolved.connectorId) || undefined,
-    responseFormat: 'url',
+    responseFormat,
+    size,
+    seed,
+    timeoutMs,
+    ...(extensions ? { extensions } : {}),
     metadata,
     signal: input.signal,
   });

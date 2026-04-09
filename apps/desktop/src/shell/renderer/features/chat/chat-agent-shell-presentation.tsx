@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   CanonicalComposer,
   type ChatComposerSubmitInput,
@@ -20,6 +20,7 @@ import {
   RuntimeInspectCard,
 } from './chat-runtime-inspect-content';
 import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
+import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
 import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
 import { createInitialAgentTurnLifecycleState, type AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
@@ -159,6 +160,11 @@ export function useAgentConversationPresentation(
     selectionAgentId: input.inputSelectionAgentId,
     activeTargetId: input.selectedTargetId,
   });
+  const handleStopGenerating = useCallback(() => {
+    if (input.activeThreadId) {
+      cancelStream(input.activeThreadId);
+    }
+  }, [input.activeThreadId]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,
@@ -192,6 +198,7 @@ export function useAgentConversationPresentation(
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
     renderMessageContent: input.renderMessageContent,
+    onStopGenerating: handleStopGenerating,
   }), [
     characterData.avatarUrl,
     characterData.name,
@@ -202,6 +209,7 @@ export function useAgentConversationPresentation(
     input.renderMessageContent,
     input.streamState,
     input.t,
+    handleStopGenerating,
     selectedTargetId,
     surfaceState.footer,
     targetSummaries,
@@ -244,8 +252,8 @@ export function useAgentConversationPresentation(
     },
     composerAdapter: surfaceState.composer
       ? {
-        submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
-          await input.handleSubmit(composerInput.text);
+        submit: (composerInput: ChatComposerSubmitInput<unknown>) => {
+          void input.handleSubmit(composerInput.text);
         },
         disabled: surfaceState.composer.disabled || schedulingGuard.disabled,
         disabledReason: schedulingGuard.disabledReason || surfaceState.composer.disabledReason,

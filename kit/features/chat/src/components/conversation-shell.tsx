@@ -223,7 +223,7 @@ export function ConversationShell({
   className,
 }: ConversationShellProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'stage' | 'chat'>('stage');
+  const [viewMode, setViewMode] = useState<'stage' | 'chat'>('chat');
 
   const handleSettingsToggle = useCallback(() => {
     setSettingsOpen((prev) => !prev);
@@ -251,11 +251,7 @@ export function ConversationShell({
           }))}
         />
       ) : null}
-      <HeaderIconButton
-        icon={viewMode === 'stage' ? ICON_HISTORY : ICON_STAGE}
-        label={viewMode === 'stage' ? 'History' : 'Stage'}
-        onClick={handleViewModeToggle}
-      />
+      {/* Stage/History toggle disabled — stage mode shelved */}
       {thinkingState ? (
         <HeaderIconButton
           icon={ICON_THINKING}

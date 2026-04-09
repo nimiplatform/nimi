@@ -124,8 +124,8 @@
   --nimi-opacity-subtle-fill: 0.16;
   --nimi-focus-ring-width: 3px;
   --nimi-focus-ring-offset: 1px;
-  --nimi-scrollbar-thumb: rgba(148,163,184,0.42);
-  --nimi-scrollbar-thumb-hover: rgba(148,163,184,0.62);
+  --nimi-scrollbar-thumb: rgba(148,163,184,0.18);
+  --nimi-scrollbar-thumb-hover: rgba(148,163,184,0.35);
   --nimi-scrollbar-track: transparent;
   --nimi-scrollbar-radius: 999px;
   --nimi-scrollbar-size: 8px;

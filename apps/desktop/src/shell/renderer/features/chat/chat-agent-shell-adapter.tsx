@@ -352,6 +352,9 @@ export function useAgentConversationModeHost(
           agentResolution: turnInput.agentResolution,
           textExecutionSnapshot: turnInput.textExecutionSnapshot,
           imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
+          imageCapabilityParams: (
+            agentAiConfig.capabilities.selectedParams['image.generate'] || null
+          ) as Record<string, unknown> | null,
           runtimeConfigState: input.runtimeConfigState,
           runtimeFields: input.runtimeFields,
           reasoningPreference: chatThinkingPreference,

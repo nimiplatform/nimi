@@ -11,6 +11,7 @@ import type {
 import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
 import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
+import { feedStreamEvent } from '../turns/stream-controller';
 import type {
   AgentLocalCommitTurnResult,
   AgentLocalTargetSnapshot,
@@ -30,6 +31,7 @@ import type {
   AgentEffectiveCapabilityResolution,
   AISnapshot,
 } from './conversation-capability';
+import { getStreamState } from '../turns/stream-controller';
 
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
@@ -61,6 +63,7 @@ export type AgentLocalChatRuntimeRequest = {
 export type AgentLocalChatImageRequest = {
   prompt: string;
   imageExecutionSnapshot: AISnapshot | null;
+  imageCapabilityParams?: Record<string, unknown> | null;
   signal?: AbortSignal;
 };
 
@@ -82,6 +85,7 @@ export type AgentLocalChatProviderMetadata = {
   agentResolution: AgentEffectiveCapabilityResolution | null;
   textExecutionSnapshot: AISnapshot | null;
   imageExecutionSnapshot: AISnapshot | null;
+  imageCapabilityParams?: Record<string, unknown> | null;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
@@ -151,6 +155,33 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function isTextStreamIdleTimeoutState(threadId: string): boolean {
+  const streamState = getStreamState(threadId);
+  return streamState.cancelSource === 'timeout'
+    && normalizeText(streamState.errorMessage).startsWith('No stream activity within ');
+}
+
+export function createAgentTailAbortSignal(
+  threadId: string,
+  signal: AbortSignal | undefined,
+): AbortSignal | undefined {
+  if (!signal) {
+    return undefined;
+  }
+  if (signal.aborted) {
+    return isTextStreamIdleTimeoutState(threadId) ? undefined : signal;
+  }
+  const controller = new AbortController();
+  const propagateAbort = () => {
+    if (isTextStreamIdleTimeoutState(threadId)) {
+      return;
+    }
+    controller.abort();
+  };
+  signal.addEventListener('abort', propagateAbort, { once: true });
+  return controller.signal;
+}
+
 function stringifyJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -176,6 +207,7 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
     agentResolution: (nextRecord.agentResolution ?? null) as AgentEffectiveCapabilityResolution | null,
     textExecutionSnapshot: (nextRecord.textExecutionSnapshot ?? null) as AISnapshot | null,
     imageExecutionSnapshot: (nextRecord.imageExecutionSnapshot ?? null) as AISnapshot | null,
+    imageCapabilityParams: (nextRecord.imageCapabilityParams ?? null) as Record<string, unknown> | null,
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,
@@ -1147,11 +1179,21 @@ export function createAgentLocalChatConversationProvider(
                   emittedEvents.push(imageDeliveryStarted);
                   yield imageDeliveryStarted;
                   try {
-                    const generatedImage = await runtimeAdapter.generateImage({
-                      prompt: imageDecision.prompt,
-                      imageExecutionSnapshot: metadata.imageExecutionSnapshot,
-                      signal: input.signal,
-                    });
+                    // Keep stream alive during long image generation
+                    const keepaliveInterval = setInterval(() => {
+                      feedStreamEvent(input.threadId, { type: 'keepalive' });
+                    }, 10_000);
+                    let generatedImage: Awaited<ReturnType<typeof runtimeAdapter.generateImage>>;
+                    try {
+                      generatedImage = await runtimeAdapter.generateImage({
+                        prompt: imageDecision.prompt,
+                        imageExecutionSnapshot: metadata.imageExecutionSnapshot,
+                        imageCapabilityParams: metadata.imageCapabilityParams,
+                        signal: createAgentTailAbortSignal(input.threadId, input.signal),
+                      });
+                    } finally {
+                      clearInterval(keepaliveInterval);
+                    }
                     imageState = {
                       status: 'complete',
                       beatId: `${input.turnId}:beat:1`,

@@ -187,7 +187,7 @@ pub(crate) async fn http_request(
     if !is_https && !allowed.contains(&origin) && !is_private_lan_http_origin(&url) {
         let allowed_list = allowed.iter().cloned().collect::<Vec<_>>();
         eprintln!(
-            "[http_request] × {} {} - blocked origin={} allowed={}",
+            "[http] × {} {} blocked origin={} allowed={}",
             method,
             url,
             origin,
@@ -252,24 +252,17 @@ pub(crate) async fn http_request(
     if payload.authorization.as_deref().is_some() {
         redacted_headers.insert("authorization".to_string(), "[REDACTED]".to_string());
     }
-    let headers_str = if redacted_headers.is_empty() {
-        "  (无)".to_string()
-    } else {
-        redacted_headers
-            .iter()
-            .map(|(k, v)| format!("  {}: {}", k, v))
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
     let body_preview = payload
         .body
         .as_ref()
-        .map(|b| redact_body_preview(b, 500))
-        .unwrap_or_else(|| "(无)".to_string());
-    eprintln!(
-        "[http_request] → {} {}\n[http_request] Headers:\n{}\n[http_request] Body: {}",
-        method, url, headers_str, body_preview
-    );
+        .map(|b| redact_body_preview(b, 200))
+        .unwrap_or_default();
+    let body_tag = if body_preview.is_empty() {
+        String::new()
+    } else {
+        format!(" | body: {}", body_preview)
+    };
+    eprintln!("[http] → {} {}{}", method, url, body_tag);
     append_diag_log_entry(
         "http-request",
         "info",
@@ -310,7 +303,7 @@ pub(crate) async fn http_request(
     let start = std::time::Instant::now();
     let diag_session_for_request = diag_session_id.clone();
     let response = request.send().await.map_err(|error| {
-        eprintln!("[http_request] × {} {} - 发送失败: {}", method, url, error);
+        eprintln!("[http] × {} {} 发送失败: {}", method, url, error);
         append_diag_log_entry(
             "http-request",
             "error",
@@ -346,10 +339,16 @@ pub(crate) async fn http_request(
     let body = response.text().await.map_err(|error| error.to_string())?;
 
     // 打印响应日志
-    let body_preview = redact_body_preview(&body, 500);
+    let body_preview = redact_body_preview(&body, 200);
+    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    let resp_body_tag = if body_preview.is_empty() {
+        String::new()
+    } else {
+        format!(" | {}", body_preview)
+    };
     eprintln!(
-        "[http_request] ← {} {} - {} ({:?})\n[http_request] Response Body: {}",
-        method, url, status, elapsed, body_preview
+        "[http] ← {} {} {} {:.1}ms{}",
+        method, url, status.as_u16(), elapsed_ms, resp_body_tag
     );
     append_diag_log_entry(
         "http-request",

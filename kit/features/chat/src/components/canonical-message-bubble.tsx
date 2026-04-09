@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
+import { RpContentRenderer } from './rp-content-renderer.js';
+import { hasRpContent } from '../utils/rp-content-parser.js';
 
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
 
@@ -24,17 +26,20 @@ function listDialogFocusableElements(root: HTMLElement | null): HTMLElement[] {
     .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
 }
 
-function bubbleShapeFor(role: ConversationCanonicalMessage['role'], position: CanonicalMessageBubbleProps['position']): string {
-  if (role === 'user' || role === 'human') {
-    if (position === 'single') return 'rounded-[22px]';
-    if (position === 'start') return 'rounded-[22px] rounded-br-md';
-    if (position === 'middle') return 'rounded-[14px] rounded-r-md';
-    return 'rounded-[22px] rounded-tr-md';
+type BubbleShape = { className: string; style: CSSProperties };
+
+function bubbleShapeFor(role: ConversationCanonicalMessage['role'], position: CanonicalMessageBubbleProps['position']): BubbleShape {
+  const R = 22; // large corner radius
+  const S = 6;  // small directional corner radius
+  const isUser = role === 'user' || role === 'human';
+
+  // CSS border-radius order: top-left / top-right / bottom-right / bottom-left
+  if (isUser) {
+    // User: bottom-right is the directional corner
+    return { className: '', style: { borderRadius: `${R}px ${R}px ${S}px ${R}px` } };
   }
-  if (position === 'single') return 'rounded-[22px]';
-  if (position === 'start') return 'rounded-[22px] rounded-bl-md';
-  if (position === 'middle') return 'rounded-[14px] rounded-l-md';
-  return 'rounded-[22px] rounded-tl-md';
+  // Agent: bottom-left is the directional corner
+  return { className: '', style: { borderRadius: `${R}px ${R}px ${R}px ${S}px` } };
 }
 
 function entryAnimationFor(message: ConversationCanonicalMessage): string {
@@ -121,12 +126,9 @@ function formatTimestamp(value: string | undefined): string {
 
 function resolveBubbleLabel(message: ConversationCanonicalMessage): string {
   if (message.role === 'user' || message.role === 'human') {
-    return 'You';
+    return message.senderName || 'You';
   }
-  if (message.kind === 'voice') {
-    return 'Assistant Voice';
-  }
-  return 'Assistant';
+  return message.senderName || 'Assistant';
 }
 
 function resolveMessageAvatar(message: ConversationCanonicalMessage): ReactNode {
@@ -224,7 +226,7 @@ export function CanonicalMessageBubble({
   const isStreaming = message.kind === 'streaming';
   const isPlaying = isVoice && voicePlayingMessageId === message.id;
   const isMediaCard = isImage || isVideo || isImagePending || isVideoPending;
-  const bubbleShapeClass = bubbleShapeFor(message.role, position);
+  const bubbleShape = bubbleShapeFor(message.role, position);
   const animationName = entryAnimationFor(message);
   const animationDelayMs = Math.min(Math.max(Number((message.metadata as Record<string, unknown> | undefined)?.beatIndex || 0), 0) * 90, 320);
   const previewDialogRef = useRef<HTMLDivElement | null>(null);
@@ -370,7 +372,7 @@ export function CanonicalMessageBubble({
             type="button"
             onClick={handleOpenImagePreview}
             aria-label="Open image preview"
-            className={`group block overflow-hidden rounded-[22px] border border-gray-200 shadow-[0_12px_24px_rgba(15,23,42,0.08)] ${displayContext === 'stage'
+            className={`group block overflow-hidden ${displayContext === 'stage'
               ? 'bg-[radial-gradient(circle_at_center,_rgba(248,250,252,0.98),_rgba(226,232,240,0.84))]'
               : 'bg-gray-50'}`}
             style={stageMediaFrameStyle}
@@ -401,7 +403,7 @@ export function CanonicalMessageBubble({
             src={mediaUri}
             controls
             preload="metadata"
-            className={`rounded-[22px] border border-gray-200 shadow-[0_12px_24px_rgba(15,23,42,0.08)] ${displayContext === 'stage'
+            className={`${displayContext === 'stage'
               ? 'h-full w-full object-contain bg-slate-950'
               : 'max-h-[360px] w-full bg-black'}`}
             style={stageMediaFrameStyle}
@@ -423,6 +425,8 @@ export function CanonicalMessageBubble({
           {message.text ? <ChatMarkdownRenderer content={message.text} appearance="canonical" /> : 'Streaming…'}
           <span className="inline-block animate-pulse text-emerald-600">|</span>
         </div>
+      ) : hasRpContent(message.text) ? (
+        <RpContentRenderer content={message.text} appearance="canonical" />
       ) : (
         <ChatMarkdownRenderer content={message.text} appearance="canonical" />
       )}
@@ -445,25 +449,20 @@ export function CanonicalMessageBubble({
           {content === undefined ? (
             <div
               className={cn(
-                bubbleShapeClass,
+                bubbleShape.className,
                 'text-sm leading-[1.6]',
                 isMediaCard
-                  ? 'rounded-[28px] border border-white/80 bg-white/92 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.1)]'
+                  ? 'overflow-hidden border border-gray-200 bg-white'
                   : isUser
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 px-4 py-2 text-white shadow-[0_2px_12px_-2px_rgb(78_204_163/0.45)]'
-                    : 'border border-gray-200 bg-white px-4 py-2 text-gray-900 shadow-[0_1px_2px_rgba(15,23,42,0.05)]',
+                    ? 'bg-gradient-to-br from-emerald-500 to-teal-500 border border-emerald-400 px-4 py-2 text-white/90 [&_*]:!text-inherit'
+                    : 'bg-gray-100/70 px-4 py-2 text-gray-600',
               )}
+              style={bubbleShape.style}
             >
               {defaultContent}
             </div>
           ) : content}
-          {accessory === undefined ? (
-            showTimestamp ? (
-              <p className={cn('mt-1 text-[10px] text-gray-400', isUser ? 'text-right pr-2' : 'text-left pl-2')}>
-                {time} · {resolveBubbleLabel(message)}
-              </p>
-            ) : null
-          ) : accessory}
+          {accessory === undefined ? null : accessory}
         </div>
       </div>
 

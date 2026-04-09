@@ -13,17 +13,115 @@ import type {
 } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 import {
   buildAgentLocalChatPrompt,
+  createAgentTailAbortSignal,
   createAgentLocalChatContinuityAdapter,
   createAgentLocalChatConversationProvider,
   type AgentLocalChatRuntimeAdapter,
 } from '../src/shell/renderer/features/chat/chat-agent-orchestration.js';
 import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
 import {
+  clearAllStreams,
+  clearStream,
+  feedStreamEvent,
+  startStream,
+} from '../src/shell/renderer/features/turns/stream-controller.js';
+import {
   createAgentTextMessage,
   createAgentTurnBeat,
 } from './helpers/agent-chat-record-fixtures.js';
 
 type AgentCommitInput = Parameters<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitAgentTurnResult']>[0];
+
+function installBrowserGlobals(): () => void {
+  const previousWindow = globalThis.window;
+  const previousLocalStorage = globalThis.localStorage;
+  const previousSessionStorage = globalThis.sessionStorage;
+  const store = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+  };
+  Object.defineProperty(globalThis, 'window', {
+    value: {},
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storage,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: storage,
+    configurable: true,
+  });
+  return () => {
+    Object.defineProperty(globalThis, 'window', {
+      value: previousWindow,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: previousLocalStorage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      value: previousSessionStorage,
+      configurable: true,
+    });
+  };
+}
+
+function installFakeTimers(): {
+  restore: () => void;
+  runTimer: (id: number) => void;
+  getTimerIds: () => number[];
+} {
+  const previousSetTimeout = globalThis.setTimeout;
+  const previousClearTimeout = globalThis.clearTimeout;
+  let nextId = 1;
+  const timers = new Map<number, () => void>();
+
+  Object.defineProperty(globalThis, 'setTimeout', {
+    value: ((callback: TimerHandler) => {
+      const id = nextId++;
+      timers.set(id, () => {
+        if (typeof callback === 'function') {
+          callback();
+        }
+      });
+      return id;
+    }) as typeof setTimeout,
+    configurable: true,
+  });
+
+  Object.defineProperty(globalThis, 'clearTimeout', {
+    value: ((id: ReturnType<typeof setTimeout>) => {
+      timers.delete(Number(id));
+    }) as typeof clearTimeout,
+    configurable: true,
+  });
+
+  return {
+    restore: () => {
+      Object.defineProperty(globalThis, 'setTimeout', {
+        value: previousSetTimeout,
+        configurable: true,
+      });
+      Object.defineProperty(globalThis, 'clearTimeout', {
+        value: previousClearTimeout,
+        configurable: true,
+      });
+    },
+    runTimer: (id: number) => {
+      const callback = timers.get(id);
+      if (!callback) {
+        return;
+      }
+      timers.delete(id);
+      callback();
+    },
+    getTimerIds: () => [...timers.keys()],
+  };
+}
 
 function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>): AgentLocalChatRuntimeAdapter {
   return {
@@ -59,6 +157,17 @@ function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>):
     ...overrides,
   };
 }
+
+let restoreBrowserGlobals: () => void = () => {};
+
+test.beforeEach(() => {
+  restoreBrowserGlobals = installBrowserGlobals();
+});
+
+test.afterEach(() => {
+  clearAllStreams();
+  restoreBrowserGlobals();
+});
 
 function createContinuityAdapter(
   committed: AgentCommitInput[],
@@ -451,6 +560,45 @@ test('agent local chat provider can emit a second image beat after text when the
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.imageState?.status, 'complete');
   assert.equal(committed[0]?.imageState?.mediaUrl, 'https://cdn.nimi.test/agent-image.png');
+});
+
+test('agent local chat image tail signal ignores text stream idle timeout', () => {
+  const fakeTimers = installFakeTimers();
+  const threadId = 'thread-tail-idle-timeout';
+  try {
+    const controller = startStream(threadId);
+    feedStreamEvent(threadId, { type: 'text_delta', textDelta: 'partial text' });
+    const tailSignal = createAgentTailAbortSignal(threadId, controller.signal);
+    assert.ok(tailSignal, 'expected tail signal');
+
+    const timerIds = fakeTimers.getTimerIds();
+    const idleTimerId = timerIds[timerIds.length - 1];
+    assert.ok(idleTimerId, 'expected idle timer to be registered');
+    fakeTimers.runTimer(idleTimerId);
+
+    assert.equal(tailSignal?.aborted, false);
+  } finally {
+    clearStream(threadId);
+    clearAllStreams();
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat image tail signal still propagates user cancellation', () => {
+  const threadId = 'thread-tail-user-cancel';
+  try {
+    const controller = startStream(threadId);
+    feedStreamEvent(threadId, { type: 'text_delta', textDelta: 'partial text' });
+    const tailSignal = createAgentTailAbortSignal(threadId, controller.signal);
+    assert.ok(tailSignal, 'expected tail signal');
+
+    controller.abort();
+
+    assert.equal(tailSignal?.aborted, true);
+  } finally {
+    clearStream(threadId);
+    clearAllStreams();
+  }
 });
 
 test('agent local chat provider ignores explicit negative image requests', async () => {

@@ -33,7 +33,7 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
       </ScrollAreaPrimitive.Viewport>
       <ScrollAreaPrimitive.Scrollbar
         orientation="vertical"
-        className="flex touch-none select-none p-0.5 transition-colors data-[orientation=vertical]:w-2.5"
+        className="flex touch-none select-none p-0.5 data-[orientation=vertical]:w-2.5 transition-opacity duration-200 data-[state=hidden]:opacity-0 data-[state=visible]:opacity-100"
       >
         <ScrollAreaPrimitive.Thumb
           className="relative flex-1 rounded-full bg-[var(--nimi-scrollbar-thumb)] hover:bg-[var(--nimi-scrollbar-thumb-hover)] transition-colors"
