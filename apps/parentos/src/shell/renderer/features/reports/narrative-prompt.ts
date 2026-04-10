@@ -1,4 +1,5 @@
 import { computeAgeMonthsAt, formatAge, type ChildProfile } from '../../app-shell/app-store.js';
+import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
 import type {
   AllergyRecordRow, DentalRecordRow, FitnessAssessmentRow, JournalEntryRow,
   MeasurementRow, MedicalEventRow, MilestoneRecordRow, ReminderStateRow,
@@ -226,8 +227,9 @@ export async function generateNarrativeReport(
   const snapshot = buildReportDataSnapshot(child, period, data);
   const monthLabel = new Date(period.end).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
 
+  const aiParams = resolveParentosBinding('text.generate');
   const out = await runtime.ai.text.stream({
-    model: 'auto',
+    ...aiParams,
     input: [{ role: 'user', content: buildReportUserMessage(child.displayName, monthLabel, snapshot) }],
     system: buildReportSystemPrompt(child.displayName),
     temperature: 0.7, maxTokens: 2048, signal,

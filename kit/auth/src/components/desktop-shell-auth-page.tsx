@@ -57,7 +57,7 @@ export function DesktopShellAuthPage(props: DesktopShellAuthPageProps) {
       }}
       appearance={{
         theme: 'desktop',
-        shellClassName: 'absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none p-0',
+        shellClassName: 'absolute inset-0 z-10 flex flex-col items-center justify-center p-0',
         contentClassName: mode === 'embedded' ? 'w-full max-w-[440px] px-6 gap-6' : '',
         footerPlacement: 'inside-content',
       }}

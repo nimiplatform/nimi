@@ -37,6 +37,7 @@ pub struct RuntimeExecutionDefaults {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeDefaults {
+    pub web_base_url: String,
     pub realm: RealmDefaults,
     pub runtime: RuntimeExecutionDefaults,
 }
@@ -104,6 +105,11 @@ pub fn runtime_defaults() -> RuntimeDefaults {
     );
 
     RuntimeDefaults {
+        web_base_url: normalize_loopback_http_url(
+            env_value("NIMI_WEB_URL", "http://localhost:3000").as_str(),
+            3000,
+            true,
+        ),
         realm: RealmDefaults {
             realm_base_url: realm_base_url.clone(),
             realtime_url: env_value("NIMI_REALTIME_URL", ""),

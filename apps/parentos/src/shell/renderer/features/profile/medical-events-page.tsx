@@ -11,6 +11,7 @@ import { analyzeMedicalEvents } from '../../engine/smart-alerts.js';
 import type { MedicalAnalysis, MedicalAlert } from '../../engine/smart-alerts.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
+import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
@@ -228,8 +229,9 @@ export default function MedicalEventsPage() {
       ].join('\n');
 
       const client = getPlatformClient();
+      const insightParams = resolveParentosBinding('text.generate');
       const output = await client.runtime.ai.text.generate({
-        model: 'auto',
+        ...insightParams,
         temperature: 0.3,
         maxTokens: 600,
         input: [{ role: 'user', content: prompt }],
@@ -332,8 +334,9 @@ export default function MedicalEventsPage() {
         '- 仅输出 JSON，不要输出其他内容。',
       ].join('\n');
 
+      const ocrParams = resolveParentosBinding('text.generate');
       const output = await client.runtime.ai.text.generate({
-        model: 'auto',
+        ...ocrParams,
         temperature: 0,
         maxTokens: 1000,
         input: [{
@@ -548,8 +551,9 @@ export default function MedicalEventsPage() {
       ].filter(Boolean).join('\n');
 
       const client = getPlatformClient();
+      const eventParams = resolveParentosBinding('text.generate');
       const output = await client.runtime.ai.text.generate({
-        model: 'auto',
+        ...eventParams,
         temperature: 0.3,
         maxTokens: 300,
         input: [{ role: 'user', content: prompt }],

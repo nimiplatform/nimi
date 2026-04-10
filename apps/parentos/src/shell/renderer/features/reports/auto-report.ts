@@ -7,6 +7,7 @@ import {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { generateNarrativeReport } from './narrative-prompt.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 function currentMonthBounds(): { start: string; end: string } {
   const now = new Date();
@@ -19,7 +20,6 @@ function currentMonthBounds(): { start: string; end: string } {
 export async function autoGenerateMonthlyReport(child: ChildProfile): Promise<string | null> {
   let runtime;
   try {
-    const { getPlatformClient } = await import('@nimiplatform/sdk');
     const client = getPlatformClient();
     if (!client.runtime?.appId) return null;
     runtime = client.runtime;

@@ -1,6 +1,17 @@
 import { create } from 'zustand';
+import type { AIConfig } from '@nimiplatform/sdk/mod';
+import type { RuntimeDefaults } from '../bridge/types.js';
 
 export type NurtureMode = 'relaxed' | 'balanced' | 'advanced';
+
+export type AuthUser = {
+  id: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string;
+};
+
+export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
 
 export interface ChildProfile {
   childId: string;
@@ -22,8 +33,21 @@ export interface ChildProfile {
 }
 
 interface AppState {
+  auth: {
+    status: AuthStatus;
+    user: AuthUser | null;
+    token: string;
+    refreshToken: string;
+  };
   bootstrapReady: boolean;
+  bootstrapError: string | null;
+  runtimeDefaults: RuntimeDefaults | null;
+
+  setAuthSession: (user: AuthUser, token: string, refreshToken: string) => void;
+  clearAuthSession: () => void;
   setBootstrapReady: (ready: boolean) => void;
+  setBootstrapError: (error: string | null) => void;
+  setRuntimeDefaults: (defaults: RuntimeDefaults) => void;
 
   activeChildId: string | null;
   setActiveChildId: (id: string | null) => void;
@@ -33,11 +57,35 @@ interface AppState {
 
   familyId: string | null;
   setFamilyId: (id: string | null) => void;
+
+  aiConfig: AIConfig | null;
+  setAIConfig: (config: AIConfig) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
+  auth: {
+    status: 'bootstrapping',
+    user: null,
+    token: '',
+    refreshToken: '',
+  },
   bootstrapReady: false,
+  bootstrapError: null,
+  runtimeDefaults: null,
+
+  setAuthSession(user, token, refreshToken) {
+    set({
+      auth: { status: 'authenticated', user, token, refreshToken },
+    });
+  },
+  clearAuthSession() {
+    set({
+      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+    });
+  },
   setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
+  setBootstrapError: (error) => set({ bootstrapError: error }),
+  setRuntimeDefaults: (defaults) => set({ runtimeDefaults: defaults }),
 
   activeChildId: null,
   setActiveChildId: (id) => set({ activeChildId: id }),
@@ -47,6 +95,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   familyId: null,
   setFamilyId: (id) => set({ familyId: id }),
+
+  aiConfig: null,
+  setAIConfig: (config) => set({ aiConfig: config }),
 }));
 
 /** Compute age in months from birth date to now */

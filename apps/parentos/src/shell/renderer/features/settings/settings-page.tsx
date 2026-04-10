@@ -14,6 +14,7 @@ const sections = [
   { to: '/settings/children', emoji: '👶', label: '孩子管理', desc: '添加、编辑、删除孩子档案', color: '#ddedfb' },
   { to: '/settings/nurture-mode', emoji: '🌱', label: '养育模式', desc: '轻松养 / 均衡养 / 进阶养，可按领域混合配置', color: '#e2f0dc' },
   { to: '/settings/reminders', emoji: '⏱️', label: '提醒管理', desc: '查看和管理已自定义频率的提醒', color: '#f5f0e6' },
+  { to: '/settings/ai', emoji: '🤖', label: 'AI 模型设置', desc: '配置对话、语音转写等 AI 能力使用的模型', color: '#e8e0f5' },
 ];
 
 const infoCards = [

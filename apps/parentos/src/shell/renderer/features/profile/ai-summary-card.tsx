@@ -11,6 +11,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { getAppSetting, setAppSetting } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
+import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
 
 interface AISummaryCardProps {
   /** Unique domain key, e.g. 'growth', 'vaccine', 'vision' */
@@ -97,8 +98,9 @@ export function AISummaryCard(props: AISummaryCardProps) {
     setError(false);
     try {
       const client = getPlatformClient();
+      const aiParams = resolveParentosBinding('text.generate');
       const output = await client.runtime.ai.text.generate({
-        model: 'auto',
+        ...aiParams,
         temperature: 0.3,
         maxTokens: 400,
         input: [{ role: 'user', content: buildPrompt(props) }],

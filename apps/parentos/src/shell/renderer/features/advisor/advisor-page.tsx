@@ -22,6 +22,7 @@ import {
   canUseAdvisorRuntime,
   inferRequestedDomains,
 } from './advisor-boundary.js';
+import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
 
 /* design tokens imported from shared page-style */
 
@@ -160,8 +161,9 @@ export default function AdvisorPage() {
           const { getPlatformClient } = await import('@nimiplatform/sdk');
           const rt = getPlatformClient().runtime;
           const ac = new AbortController(); abortRef.current = ac;
+          const aiParams = resolveParentosBinding('text.generate');
           const out = await rt.ai.text.stream({
-            model: 'auto', input: msgs.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+            ...aiParams, input: msgs.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
             system: buildSystemPrompt(child.displayName, am, child.gender, child.nurtureMode),
             temperature: 0.5, maxTokens: 1024, signal: ac.signal,
             metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' },
@@ -203,9 +205,10 @@ export default function AdvisorPage() {
 
       setStreamingState('streaming'); setStreamingContent('');
       try {
-        const { getPlatformClient } = await import('@nimiplatform/sdk');
-        const rt = getPlatformClient().runtime; const ac = new AbortController(); abortRef.current = ac;
-        const out = await rt.ai.text.stream({ model: 'auto', input: updated.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })), system: buildSystemPrompt(child.displayName, ageMonths, child.gender, child.nurtureMode), temperature: 0.5, maxTokens: 1024, signal: ac.signal, metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' } });
+          const { getPlatformClient } = await import('@nimiplatform/sdk');
+          const rt = getPlatformClient().runtime; const ac = new AbortController(); abortRef.current = ac;
+        const aiParams2 = resolveParentosBinding('text.generate');
+        const out = await rt.ai.text.stream({ ...aiParams2, input: updated.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })), system: buildSystemPrompt(child.displayName, ageMonths, child.gender, child.nurtureMode), temperature: 0.5, maxTokens: 1024, signal: ac.signal, metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' } });
         let full = '';
         for await (const p of out.stream) { if (p.type === 'delta') { full += p.text; setStreamingContent(full); } else if (p.type === 'error') throw new Error(String(p.error)); }
         await saveAssistantMsg(activeConvId, appendAdvisorSources(filterAIResponse(full).filtered, domains));
