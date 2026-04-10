@@ -10,6 +10,7 @@ import {
 import { lookdevTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { ensureLookdevBootstrapReady } from '@renderer/infra/bootstrap/lookdev-bootstrap.js';
 
 const LOOKDEV_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Lookdev desktop-browser mode.';
@@ -52,6 +53,7 @@ function normalizeLookdevUser(
 }
 
 export async function loadLookdevCurrentUser(): Promise<LookdevUser | null> {
+  await ensureLookdevBootstrapReady();
   const data: CurrentUserDto = await getPlatformClient().realm.services.MeService.getMe();
   return normalizeLookdevUser((data as Record<string, unknown> | null | undefined) ?? null);
 }
@@ -69,6 +71,7 @@ export function createLookdevDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
     updatePassword: unsupported,
     loadCurrentUser: loadLookdevCurrentUser,
     applyToken: async (accessToken: string, refreshToken?: string) => {
+      await ensureLookdevBootstrapReady();
       getPlatformClient().realm.updateAuth({
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',

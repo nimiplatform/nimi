@@ -22,19 +22,20 @@ async function runBootstrapRuntime(): Promise<void> {
 
 function AppBoot() {
   const { t } = useTranslation();
+  const shellMode = getShellFeatureFlags().mode;
   const setBootstrapError = useAppStore((state) => state.setBootstrapError);
   const setBootstrapReady = useAppStore((state) => state.setBootstrapReady);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady;
 
   useMenuBarNavigationListener();
-  useRuntimeHealthCoordinatorBootstrap(bootstrapReady);
+  useRuntimeHealthCoordinatorBootstrap(runtimeHealthBootstrapEnabled);
   useMenuBarRuntimeSync();
   useDesktopUpdatesBootstrap(bootstrapReady);
 
   useEffect(() => {
     const flowId = createRendererFlowId('renderer-bootstrap');
-    const shellMode = getShellFeatureFlags().mode;
     let settled = false;
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;

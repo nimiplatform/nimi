@@ -16,6 +16,9 @@ import {
   startDaemon,
 } from '@renderer/bridge';
 
+let bootstrapPromise: Promise<void> | null = null;
+let bootstrapSettled = false;
+
 /**
  * runShiJiBootstrap — Phase 0 bootstrap sequence (SJ-SHELL-001)
  *
@@ -27,6 +30,39 @@ import {
  * 6. bootstrapReady = true → routes render
  */
 export async function runShiJiBootstrap(): Promise<void> {
+  if (bootstrapPromise && !bootstrapSettled) {
+    return bootstrapPromise;
+  }
+  if (bootstrapPromise && useAppStore.getState().bootstrapReady) {
+    return bootstrapPromise;
+  }
+
+  bootstrapSettled = false;
+  bootstrapPromise = doRunShiJiBootstrap().finally(() => {
+    bootstrapSettled = true;
+    if (!useAppStore.getState().bootstrapReady) {
+      bootstrapPromise = null;
+    }
+  });
+
+  return bootstrapPromise;
+}
+
+export async function ensureShiJiBootstrapReady(): Promise<void> {
+  const store = useAppStore.getState();
+  if (store.bootstrapReady) {
+    return;
+  }
+
+  await runShiJiBootstrap();
+
+  const nextStore = useAppStore.getState();
+  if (!nextStore.bootstrapReady) {
+    throw new Error(nextStore.bootstrapError || 'ShiJi bootstrap did not complete');
+  }
+}
+
+async function doRunShiJiBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
   logRendererEvent({

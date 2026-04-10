@@ -14,6 +14,9 @@ import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import { bootstrapAuthSession } from './moment-bootstrap-auth.js';
 
+let bootstrapPromise: Promise<void> | null = null;
+let bootstrapSettled = false;
+
 function toMomentAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
     return null;
@@ -31,6 +34,39 @@ function toMomentAuthUser(user: Record<string, unknown> | null) {
 }
 
 export async function runMomentBootstrap(): Promise<void> {
+  if (bootstrapPromise && !bootstrapSettled) {
+    return bootstrapPromise;
+  }
+  if (bootstrapPromise && useAppStore.getState().bootstrapReady) {
+    return bootstrapPromise;
+  }
+
+  bootstrapSettled = false;
+  bootstrapPromise = doRunMomentBootstrap().finally(() => {
+    bootstrapSettled = true;
+    if (!useAppStore.getState().bootstrapReady) {
+      bootstrapPromise = null;
+    }
+  });
+
+  return bootstrapPromise;
+}
+
+export async function ensureMomentBootstrapReady(): Promise<void> {
+  const store = useAppStore.getState();
+  if (store.bootstrapReady) {
+    return;
+  }
+
+  await runMomentBootstrap();
+
+  const nextStore = useAppStore.getState();
+  if (!nextStore.bootstrapReady) {
+    throw new Error(nextStore.bootstrapError || 'Moment bootstrap did not complete');
+  }
+}
+
+async function doRunMomentBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
   logRendererEvent({

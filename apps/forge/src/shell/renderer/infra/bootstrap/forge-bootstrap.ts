@@ -15,6 +15,9 @@ import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { registerForgeModSdkHost } from './forge-runtime-host.js';
 import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
 
+let bootstrapPromise: Promise<void> | null = null;
+let bootstrapSettled = false;
+
 function toForgeAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
     return null;
@@ -32,6 +35,39 @@ function toForgeAuthUser(user: Record<string, unknown> | null) {
 }
 
 export async function runForgeBootstrap(): Promise<void> {
+  if (bootstrapPromise && !bootstrapSettled) {
+    return bootstrapPromise;
+  }
+  if (bootstrapPromise && useAppStore.getState().bootstrapReady) {
+    return bootstrapPromise;
+  }
+
+  bootstrapSettled = false;
+  bootstrapPromise = doRunForgeBootstrap().finally(() => {
+    bootstrapSettled = true;
+    if (!useAppStore.getState().bootstrapReady) {
+      bootstrapPromise = null;
+    }
+  });
+
+  return bootstrapPromise;
+}
+
+export async function ensureForgeBootstrapReady(): Promise<void> {
+  const store = useAppStore.getState();
+  if (store.bootstrapReady) {
+    return;
+  }
+
+  await runForgeBootstrap();
+
+  const nextStore = useAppStore.getState();
+  if (!nextStore.bootstrapReady) {
+    throw new Error(nextStore.bootstrapError || 'Forge bootstrap did not complete');
+  }
+}
+
+async function doRunForgeBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
   logRendererEvent({

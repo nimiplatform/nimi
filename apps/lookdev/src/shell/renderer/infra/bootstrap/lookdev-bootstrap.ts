@@ -14,6 +14,9 @@ import {
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './lookdev-bootstrap-auth.js';
 
+let bootstrapPromise: Promise<void> | null = null;
+let bootstrapSettled = false;
+
 function toLookdevAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
     return null;
@@ -31,6 +34,39 @@ function toLookdevAuthUser(user: Record<string, unknown> | null) {
 }
 
 export async function runLookdevBootstrap(): Promise<void> {
+  if (bootstrapPromise && !bootstrapSettled) {
+    return bootstrapPromise;
+  }
+  if (bootstrapPromise && useAppStore.getState().bootstrapReady) {
+    return bootstrapPromise;
+  }
+
+  bootstrapSettled = false;
+  bootstrapPromise = doRunLookdevBootstrap().finally(() => {
+    bootstrapSettled = true;
+    if (!useAppStore.getState().bootstrapReady) {
+      bootstrapPromise = null;
+    }
+  });
+
+  return bootstrapPromise;
+}
+
+export async function ensureLookdevBootstrapReady(): Promise<void> {
+  const store = useAppStore.getState();
+  if (store.bootstrapReady) {
+    return;
+  }
+
+  await runLookdevBootstrap();
+
+  const nextStore = useAppStore.getState();
+  if (!nextStore.bootstrapReady) {
+    throw new Error(nextStore.bootstrapError || 'Lookdev bootstrap did not complete');
+  }
+}
+
+async function doRunLookdevBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
   logRendererEvent({

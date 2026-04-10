@@ -10,6 +10,7 @@ import {
   shijiTauriOAuthBridge,
 } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
+import { ensureShiJiBootstrapReady } from '@renderer/app-shell/bootstrap.js';
 
 const SHIJI_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in ShiJi desktop-browser mode.';
@@ -52,6 +53,7 @@ function normalizeShiJiUser(
 }
 
 export async function loadShiJiCurrentUser(): Promise<ShiJiUser | null> {
+  await ensureShiJiBootstrapReady();
   const data: CurrentUserDto = await getPlatformClient().realm.services.MeService.getMe();
   return normalizeShiJiUser((data as Record<string, unknown> | null | undefined) ?? null);
 }
@@ -69,6 +71,7 @@ export function createShiJiDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
     updatePassword: unsupported,
     loadCurrentUser: loadShiJiCurrentUser,
     applyToken: async (accessToken: string, refreshToken?: string) => {
+      await ensureShiJiBootstrapReady();
       getPlatformClient().realm.updateAuth({
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',

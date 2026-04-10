@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUpdateAuth = vi.fn();
 const mockRequest = vi.fn();
+const mockEnsureForgeBootstrapReady = vi.fn(async () => undefined);
 
 vi.mock('@renderer/bridge/oauth.js', () => ({
   forgeTauriOAuthBridge: { openExternalUrl: vi.fn() },
+}));
+
+vi.mock('@renderer/infra/bootstrap/forge-bootstrap.js', () => ({
+  ensureForgeBootstrapReady: mockEnsureForgeBootstrapReady,
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -35,6 +40,7 @@ describe('forge-auth-adapter', () => {
 
     await adapter.applyToken('access-token', 'refresh-token');
 
+    expect(mockEnsureForgeBootstrapReady).toHaveBeenCalledTimes(1);
     expect(mockUpdateAuth).toHaveBeenCalledTimes(1);
     const authConfig = mockUpdateAuth.mock.calls[0]?.[0] as {
       accessToken: () => string;
@@ -58,6 +64,7 @@ describe('forge-auth-adapter', () => {
       email: 'forge@example.com',
     });
 
+    expect(mockEnsureForgeBootstrapReady).toHaveBeenCalledTimes(1);
     expect(mockRequest).toHaveBeenCalledWith();
   });
 });

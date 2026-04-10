@@ -10,6 +10,7 @@ import {
 } from '@renderer/bridge';
 import { momentTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { ensureMomentBootstrapReady } from '@renderer/infra/bootstrap/moment-bootstrap.js';
 
 const MOMENT_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Moment desktop-browser mode.';
@@ -52,6 +53,7 @@ function normalizeMomentUser(
 }
 
 export async function loadMomentCurrentUser(): Promise<MomentUser | null> {
+  await ensureMomentBootstrapReady();
   const data: CurrentUserDto = await getPlatformClient().realm.services.MeService.getMe();
   return normalizeMomentUser((data as Record<string, unknown> | null | undefined) ?? null);
 }
@@ -69,6 +71,7 @@ export function createMomentDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
     updatePassword: unsupported,
     loadCurrentUser: loadMomentCurrentUser,
     applyToken: async (accessToken: string, refreshToken?: string) => {
+      await ensureMomentBootstrapReady();
       getPlatformClient().realm.updateAuth({
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',

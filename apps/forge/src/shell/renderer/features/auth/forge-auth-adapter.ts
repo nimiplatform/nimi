@@ -10,6 +10,7 @@ import {
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { ensureForgeBootstrapReady } from '@renderer/infra/bootstrap/forge-bootstrap.js';
 
 const FORGE_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Forge desktop-browser mode.';
@@ -52,6 +53,7 @@ function normalizeForgeUser(
 }
 
 export async function loadForgeCurrentUser(): Promise<ForgeUser | null> {
+  await ensureForgeBootstrapReady();
   const data: CurrentUserDto = await getPlatformClient().realm.services.MeService.getMe();
   return normalizeForgeUser((data as Record<string, unknown> | null | undefined) ?? null);
 }
@@ -69,6 +71,7 @@ export function createForgeDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
     updatePassword: unsupported,
     loadCurrentUser: loadForgeCurrentUser,
     applyToken: async (accessToken: string, refreshToken?: string) => {
+      await ensureForgeBootstrapReady();
       getPlatformClient().realm.updateAuth({
         accessToken: () => accessToken,
         refreshToken: () => refreshToken || '',
