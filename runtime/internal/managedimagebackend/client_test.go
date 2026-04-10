@@ -133,6 +133,88 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 }
 
+func TestGenerateImageAcceptsLegacyTerminalResult(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatalf("ensureDescriptors: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	outputPath := filepath.Join(tempDir, "artifact.png")
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer listener.Close()
+
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		if method != backendGenerateImageMethod {
+			return status.Error(codes.Unimplemented, method)
+		}
+		in := dynamicpb.NewMessage(generateImageMessageDescriptor)
+		if err := stream.RecvMsg(in); err != nil {
+			return err
+		}
+		if err := os.WriteFile(outputPath, []byte("png"), 0o600); err != nil {
+			return err
+		}
+		return stream.SendMsg(successResult("generated"))
+	}))
+	defer server.Stop()
+
+	go func() {
+		_ = server.Serve(listener)
+	}()
+
+	err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		ModelPath:      "resolved/example/model.gguf",
+		Dst:            outputPath,
+	})
+	if err != nil {
+		t.Fatalf("GenerateImage should accept legacy terminal result, got %v", err)
+	}
+}
+
+func TestGenerateImageReturnsLegacyTerminalFailure(t *testing.T) {
+	if err := ensureDescriptors(); err != nil {
+		t.Fatalf("ensureDescriptors: %v", err)
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer listener.Close()
+
+	server := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		if method != backendGenerateImageMethod {
+			return status.Error(codes.Unimplemented, method)
+		}
+		in := dynamicpb.NewMessage(generateImageMessageDescriptor)
+		if err := stream.RecvMsg(in); err != nil {
+			return err
+		}
+		return stream.SendMsg(failureResult("legacy generate failed"))
+	}))
+	defer server.Stop()
+
+	go func() {
+		_ = server.Serve(listener)
+	}()
+
+	err = GenerateImage(context.Background(), ImageRequest{
+		BackendAddress: listener.Addr().String(),
+		ModelPath:      "resolved/example/model.gguf",
+		Dst:            filepath.Join(t.TempDir(), "artifact.png"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "legacy generate failed") {
+		t.Fatalf("expected legacy terminal failure, got %v", err)
+	}
+}
+
 func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
 	if err := ensureDescriptors(); err != nil {
 		t.Fatalf("ensureDescriptors: %v", err)

@@ -62,7 +62,7 @@ enum FinishReason {
 }
 
 enum ReasoningMode {
-  REASONING_MODE_DEFAULT = 0;
+  REASONING_MODE_UNSPECIFIED = 0;
   REASONING_MODE_OFF = 1;
   REASONING_MODE_ON = 2;
 }

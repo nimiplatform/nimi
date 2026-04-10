@@ -61,6 +61,7 @@ func ExtractTaskIDFromAdapterPayload(adapter string, payload map[string]any) str
 			payloadStringPath{"taskId"},
 			payloadStringPath{"data", "task_id"},
 			payloadStringPath{"data", "taskId"},
+			payloadStringPath{"id"},
 		)
 	case "voice:dashscope":
 		return firstStringAtPayloadPaths(payload,
@@ -307,6 +308,7 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 	}
 	artifactURI := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(payload["url"]),
+		ValueAsString(payload["video_url"]),
 		ValueAsString(payload["audio_url"]),
 		ValueAsString(MapField(payload["artifact"], "url")),
 		ValueAsString(MapField(payload["artifact"], "audio_url")),
@@ -318,6 +320,8 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		ValueAsString(MapField(payload["output"], "audio_url")),
 		// DashScope qwen3-tts: output.audio is a nested object with url field
 		ValueAsString(MapField(MapField(payload["output"], "audio"), "url")),
+		// Volcengine seedance: content.video_url
+		ValueAsString(MapField(payload["content"], "video_url")),
 	))
 	if artifactURI != "" {
 		raw, resolvedMIME, err := fetchBinaryArtifact(context.Background(), artifactURI)

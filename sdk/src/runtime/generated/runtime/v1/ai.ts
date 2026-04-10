@@ -2185,9 +2185,9 @@ export enum FinishReason {
  */
 export enum ReasoningMode {
     /**
-     * @generated from protobuf enum value: REASONING_MODE_DEFAULT = 0;
+     * @generated from protobuf enum value: REASONING_MODE_UNSPECIFIED = 0;
      */
-    DEFAULT = 0,
+    UNSPECIFIED = 0,
     /**
      * @generated from protobuf enum value: REASONING_MODE_OFF = 1;
      */

@@ -89,7 +89,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 				Available:   true,
 				Vendor:      vendor,
 				Model:       model,
-				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN,
+				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED,
 			},
 			cudaReady: strings.EqualFold(strings.TrimSpace(vendor), "nvidia") && probeGPUCUDAReadyValue(),
 		}
@@ -167,7 +167,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	return gpuProbeCapabilities{
 		profile: &runtimev1.LocalGpuProfile{
 			Available:   false,
-			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN,
+			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED,
 		},
 		cudaReady: false,
 	}

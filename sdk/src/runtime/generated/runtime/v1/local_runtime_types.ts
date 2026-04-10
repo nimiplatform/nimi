@@ -1771,9 +1771,9 @@ export enum LocalProfileEntryKind {
  */
 export enum GpuMemoryModel {
     /**
-     * @generated from protobuf enum value: GPU_MEMORY_MODEL_UNKNOWN = 0;
+     * @generated from protobuf enum value: GPU_MEMORY_MODEL_UNSPECIFIED = 0;
      */
-    UNKNOWN = 0,
+    UNSPECIFIED = 0,
     /**
      * @generated from protobuf enum value: GPU_MEMORY_MODEL_DISCRETE = 1;
      */

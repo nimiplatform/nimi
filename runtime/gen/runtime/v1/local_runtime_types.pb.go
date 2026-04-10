@@ -477,22 +477,22 @@ func (LocalProfileEntryKind) EnumDescriptor() ([]byte, []int) {
 type GpuMemoryModel int32
 
 const (
-	GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN  GpuMemoryModel = 0
-	GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE GpuMemoryModel = 1
-	GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED  GpuMemoryModel = 2
+	GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED GpuMemoryModel = 0
+	GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE    GpuMemoryModel = 1
+	GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED     GpuMemoryModel = 2
 )
 
 // Enum value maps for GpuMemoryModel.
 var (
 	GpuMemoryModel_name = map[int32]string{
-		0: "GPU_MEMORY_MODEL_UNKNOWN",
+		0: "GPU_MEMORY_MODEL_UNSPECIFIED",
 		1: "GPU_MEMORY_MODEL_DISCRETE",
 		2: "GPU_MEMORY_MODEL_UNIFIED",
 	}
 	GpuMemoryModel_value = map[string]int32{
-		"GPU_MEMORY_MODEL_UNKNOWN":  0,
-		"GPU_MEMORY_MODEL_DISCRETE": 1,
-		"GPU_MEMORY_MODEL_UNIFIED":  2,
+		"GPU_MEMORY_MODEL_UNSPECIFIED": 0,
+		"GPU_MEMORY_MODEL_DISCRETE":    1,
+		"GPU_MEMORY_MODEL_UNIFIED":     2,
 	}
 )
 
@@ -2104,7 +2104,7 @@ func (x *LocalGpuProfile) GetMemoryModel() GpuMemoryModel {
 	if x != nil {
 		return x.MemoryModel
 	}
-	return GpuMemoryModel_GPU_MEMORY_MODEL_UNKNOWN
+	return GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED
 }
 
 type LocalPythonProfile struct {
@@ -4981,9 +4981,9 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"$LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED\x10\x00\x12$\n" +
 	" LOCAL_PROFILE_ENTRY_KIND_SERVICE\x10\x03\x12!\n" +
 	"\x1dLOCAL_PROFILE_ENTRY_KIND_NODE\x10\x04\x12\"\n" +
-	"\x1eLOCAL_PROFILE_ENTRY_KIND_ASSET\x10\x05\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02*\x1eLOCAL_PROFILE_ENTRY_KIND_MODEL*!LOCAL_PROFILE_ENTRY_KIND_ARTIFACT*k\n" +
-	"\x0eGpuMemoryModel\x12\x1c\n" +
-	"\x18GPU_MEMORY_MODEL_UNKNOWN\x10\x00\x12\x1d\n" +
+	"\x1eLOCAL_PROFILE_ENTRY_KIND_ASSET\x10\x05\"\x04\b\x01\x10\x01\"\x04\b\x02\x10\x02*\x1eLOCAL_PROFILE_ENTRY_KIND_MODEL*!LOCAL_PROFILE_ENTRY_KIND_ARTIFACT*o\n" +
+	"\x0eGpuMemoryModel\x12 \n" +
+	"\x1cGPU_MEMORY_MODEL_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19GPU_MEMORY_MODEL_DISCRETE\x10\x01\x12\x1c\n" +
 	"\x18GPU_MEMORY_MODEL_UNIFIED\x10\x02B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 

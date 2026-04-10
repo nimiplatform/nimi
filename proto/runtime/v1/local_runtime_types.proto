@@ -274,7 +274,7 @@ message LocalInstallPlanDescriptor {
 
 // K-DEV-001: GPU memory architecture model.
 enum GpuMemoryModel {
-  GPU_MEMORY_MODEL_UNKNOWN  = 0;
+  GPU_MEMORY_MODEL_UNSPECIFIED  = 0;
   GPU_MEMORY_MODEL_DISCRETE = 1;
   GPU_MEMORY_MODEL_UNIFIED  = 2;
 }

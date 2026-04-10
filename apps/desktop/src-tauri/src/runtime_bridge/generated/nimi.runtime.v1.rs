@@ -3076,7 +3076,7 @@ impl FinishReason {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReasoningMode {
-    Default = 0,
+    Unspecified = 0,
     Off = 1,
     On = 2,
 }
@@ -3087,7 +3087,7 @@ impl ReasoningMode {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Default => "REASONING_MODE_DEFAULT",
+            Self::Unspecified => "REASONING_MODE_UNSPECIFIED",
             Self::Off => "REASONING_MODE_OFF",
             Self::On => "REASONING_MODE_ON",
         }
@@ -3095,7 +3095,7 @@ impl ReasoningMode {
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "REASONING_MODE_DEFAULT" => Some(Self::Default),
+            "REASONING_MODE_UNSPECIFIED" => Some(Self::Unspecified),
             "REASONING_MODE_OFF" => Some(Self::Off),
             "REASONING_MODE_ON" => Some(Self::On),
             _ => None,
@@ -6243,7 +6243,7 @@ impl LocalProfileEntryKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum GpuMemoryModel {
-    Unknown = 0,
+    Unspecified = 0,
     Discrete = 1,
     Unified = 2,
 }
@@ -6254,7 +6254,7 @@ impl GpuMemoryModel {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unknown => "GPU_MEMORY_MODEL_UNKNOWN",
+            Self::Unspecified => "GPU_MEMORY_MODEL_UNSPECIFIED",
             Self::Discrete => "GPU_MEMORY_MODEL_DISCRETE",
             Self::Unified => "GPU_MEMORY_MODEL_UNIFIED",
         }
@@ -6262,7 +6262,7 @@ impl GpuMemoryModel {
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "GPU_MEMORY_MODEL_UNKNOWN" => Some(Self::Unknown),
+            "GPU_MEMORY_MODEL_UNSPECIFIED" => Some(Self::Unspecified),
             "GPU_MEMORY_MODEL_DISCRETE" => Some(Self::Discrete),
             "GPU_MEMORY_MODEL_UNIFIED" => Some(Self::Unified),
             _ => None,

@@ -50,8 +50,14 @@ type llamaMessage struct {
 }
 
 func (b *Backend) supportsLlamaTextMultimodal() bool {
+	// Managed llama-server (llama.cpp) uses the standard OpenAI multimodal
+	// format (content array with image_url objects). Only match external
+	// LocalAI-style backends that need the legacy string_images format.
+	// The managed llama engine is never named "localai", so this effectively
+	// disables the legacy format for all current managed engines while
+	// preserving it if an explicit LocalAI backend is ever registered.
 	lower := strings.ToLower(strings.TrimSpace(b.Name))
-	return strings.Contains(lower, "llama")
+	return strings.Contains(lower, "localai")
 }
 
 func (b *Backend) supportsProviderNativeOpenAITextMultimodal() bool {

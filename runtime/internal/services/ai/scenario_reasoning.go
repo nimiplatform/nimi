@@ -28,7 +28,7 @@ func normalizeReasoningConfig(cfg *runtimev1.ReasoningConfig) normalizedReasonin
 	switch cfg.GetMode() {
 	case runtimev1.ReasoningMode_REASONING_MODE_ON:
 		normalized.mode = runtimev1.ReasoningMode_REASONING_MODE_ON
-	case runtimev1.ReasoningMode_REASONING_MODE_DEFAULT,
+	case runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED,
 		runtimev1.ReasoningMode_REASONING_MODE_OFF:
 		normalized.mode = runtimev1.ReasoningMode_REASONING_MODE_OFF
 	default:

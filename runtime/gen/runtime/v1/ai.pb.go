@@ -368,22 +368,22 @@ func (FinishReason) EnumDescriptor() ([]byte, []int) {
 type ReasoningMode int32
 
 const (
-	ReasoningMode_REASONING_MODE_DEFAULT ReasoningMode = 0
-	ReasoningMode_REASONING_MODE_OFF     ReasoningMode = 1
-	ReasoningMode_REASONING_MODE_ON      ReasoningMode = 2
+	ReasoningMode_REASONING_MODE_UNSPECIFIED ReasoningMode = 0
+	ReasoningMode_REASONING_MODE_OFF         ReasoningMode = 1
+	ReasoningMode_REASONING_MODE_ON          ReasoningMode = 2
 )
 
 // Enum value maps for ReasoningMode.
 var (
 	ReasoningMode_name = map[int32]string{
-		0: "REASONING_MODE_DEFAULT",
+		0: "REASONING_MODE_UNSPECIFIED",
 		1: "REASONING_MODE_OFF",
 		2: "REASONING_MODE_ON",
 	}
 	ReasoningMode_value = map[string]int32{
-		"REASONING_MODE_DEFAULT": 0,
-		"REASONING_MODE_OFF":     1,
-		"REASONING_MODE_ON":      2,
+		"REASONING_MODE_UNSPECIFIED": 0,
+		"REASONING_MODE_OFF":         1,
+		"REASONING_MODE_ON":          2,
 	}
 )
 
@@ -1780,7 +1780,7 @@ func (x *ReasoningConfig) GetMode() ReasoningMode {
 	if x != nil {
 		return x.Mode
 	}
-	return ReasoningMode_REASONING_MODE_DEFAULT
+	return ReasoningMode_REASONING_MODE_UNSPECIFIED
 }
 
 func (x *ReasoningConfig) GetTraceMode() ReasoningTraceMode {
@@ -8222,9 +8222,9 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x14FINISH_REASON_LENGTH\x10\x02\x12\x1b\n" +
 	"\x17FINISH_REASON_TOOL_CALL\x10\x03\x12 \n" +
 	"\x1cFINISH_REASON_CONTENT_FILTER\x10\x04\x12\x17\n" +
-	"\x13FINISH_REASON_ERROR\x10\x05*Z\n" +
-	"\rReasoningMode\x12\x1a\n" +
-	"\x16REASONING_MODE_DEFAULT\x10\x00\x12\x16\n" +
+	"\x13FINISH_REASON_ERROR\x10\x05*^\n" +
+	"\rReasoningMode\x12\x1e\n" +
+	"\x1aREASONING_MODE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REASONING_MODE_OFF\x10\x01\x12\x15\n" +
 	"\x11REASONING_MODE_ON\x10\x02*|\n" +
 	"\x12ReasoningTraceMode\x12$\n" +

@@ -184,7 +184,7 @@ export function toReasoningConfig(value: NimiReasoningConfig | undefined): Reaso
     return undefined;
   }
 
-  let mode = ReasoningMode.DEFAULT;
+  let mode = ReasoningMode.UNSPECIFIED;
   if (value.mode === 'on') {
     mode = ReasoningMode.ON;
   } else if (value.mode === 'off') {
