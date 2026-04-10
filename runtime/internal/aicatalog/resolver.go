@@ -395,6 +395,24 @@ func (r *Resolver) SupportsCapabilityForSubject(subjectUserID string, providerTy
 	return aicapabilities.HasCatalogCapability(model.Capabilities, capability), nil
 }
 
+// ResolveAPIModelID returns the canonical API model ID for a provider model.
+// If the catalog entry has an explicit ApiModelID, that value is returned;
+// otherwise modelID is returned unchanged.
+func (r *Resolver) ResolveAPIModelID(providerType string, modelID string) string {
+	return r.ResolveAPIModelIDForSubject("", providerType, modelID)
+}
+
+func (r *Resolver) ResolveAPIModelIDForSubject(subjectUserID string, providerType string, modelID string) string {
+	entry, err := r.ResolveModelEntryForSubject(subjectUserID, providerType, modelID)
+	if err != nil {
+		return modelID
+	}
+	if api := strings.TrimSpace(entry.ApiModelID); api != "" {
+		return api
+	}
+	return modelID
+}
+
 func (r *Resolver) SupportsVoice(providerType string, modelID string, voiceID string) (ResolveVoicesResult, bool, error) {
 	return r.SupportsVoiceForSubject("", providerType, modelID, voiceID)
 }

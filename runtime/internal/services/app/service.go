@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -165,9 +166,13 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	sub := s.addSubscriber(req)
 	defer s.removeSubscriber(sub.id)
 
-	return sub.relay.Run(stream.Context(), func(event *runtimev1.AppMessageEvent) error {
+	err := sub.relay.Run(stream.Context(), func(event *runtimev1.AppMessageEvent) error {
 		return stream.Send(event)
 	})
+	if err == nil && rpcctx.WasServerShutdown(stream.Context()) {
+		return rpcctx.ServerShutdownError()
+	}
+	return err
 }
 
 func appIDFromContext(ctx context.Context) string {

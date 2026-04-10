@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -34,10 +35,11 @@ type ServerConfig struct {
 }
 
 var managedImageBackendGOOS = runtime.GOOS
+var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(\d+)\s*/\s*(\d+)\b.*s/it`)
 
 type backendDriver interface {
 	LoadModel(loadModelState) error
-	GenerateImage(context.Context, loadModelState, imageGenerateState) error
+	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) error
 	Free(loadModelState) error
 }
 
@@ -60,6 +62,12 @@ type imageGenerateState struct {
 	Src            string
 	EnableParams   string
 	RefImages      []string
+}
+
+type imageGenerateProgress struct {
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
 }
 
 type managedImageOptions struct {
@@ -185,18 +193,20 @@ func (s *Server) handleGenerateImage(stream grpc.ServerStream) error {
 	}
 	imageReq, err := decodeGenerateImageState(req)
 	if err != nil {
-		return stream.SendMsg(resultMessage(false, err.Error()))
+		return stream.SendMsg(generateImageTerminalEvent(false, err.Error()))
 	}
 	s.mu.RLock()
 	loaded := s.loaded
 	s.mu.RUnlock()
 	if loaded == nil {
-		return stream.SendMsg(resultMessage(false, "managed image model is not loaded"))
+		return stream.SendMsg(generateImageTerminalEvent(false, "managed image model is not loaded"))
 	}
-	if err := s.driver.GenerateImage(stream.Context(), *loaded, imageReq); err != nil {
-		return stream.SendMsg(resultMessage(false, err.Error()))
+	if err := s.driver.GenerateImage(stream.Context(), *loaded, imageReq, func(progress imageGenerateProgress) error {
+		return stream.SendMsg(generateImageProgressEvent(progress))
+	}); err != nil {
+		return stream.SendMsg(generateImageTerminalEvent(false, err.Error()))
 	}
-	return stream.SendMsg(resultMessage(true, "generated"))
+	return stream.SendMsg(generateImageTerminalEvent(true, "generated"))
 }
 
 func (s *Server) handleFree(stream grpc.ServerStream) error {
@@ -235,8 +245,9 @@ type stableDiffusionCPPDriver struct {
 	readinessProbe       managedImageReadinessProbe
 	generateRequester    managedImageGenerateRequester
 
-	mu       sync.Mutex
-	resident *stableDiffusionCPPResident
+	mu         sync.Mutex
+	generateMu sync.Mutex
+	resident   *stableDiffusionCPPResident
 }
 
 func newStableDiffusionCPPDriver(executablePath string, workingDir string) (backendDriver, error) {
@@ -308,7 +319,7 @@ func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) error {
 	return nil
 }
 
-func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState) error {
+func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) error {
 	if d == nil {
 		return fmt.Errorf("managed image backend driver unavailable")
 	}
@@ -318,6 +329,8 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 	if err := os.MkdirAll(filepath.Dir(strings.TrimSpace(req.Dst)), 0o755); err != nil {
 		return fmt.Errorf("create managed image destination: %w", err)
 	}
+	d.generateMu.Lock()
+	defer d.generateMu.Unlock()
 
 	d.mu.Lock()
 	resident := d.resident
@@ -339,7 +352,50 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		true,
 	)
 
-	payload, err := d.generateRequester(ctx, d.httpClient, resident.endpoint, loaded, req)
+	progressCursor := 0
+	if resident.logCapture != nil {
+		progressCursor = resident.logCapture.SnapshotCursor()
+	}
+	type generateResult struct {
+		payload []byte
+		err     error
+	}
+	resultCh := make(chan generateResult, 1)
+	go func() {
+		payload, err := d.generateRequester(ctx, d.httpClient, resident.endpoint, loaded, req)
+		resultCh <- generateResult{payload: payload, err: err}
+	}()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	var (
+		payload      []byte
+		err          error
+		lastProgress imageGenerateProgress
+		haveProgress bool
+	)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			progressCursor, lastProgress, haveProgress, err = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
+			if err != nil {
+				return err
+			}
+		case result := <-resultCh:
+			payload = result.payload
+			err = result.err
+			var emitErr error
+			progressCursor, lastProgress, haveProgress, emitErr = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
+			if emitErr != nil {
+				return emitErr
+			}
+			_ = progressCursor
+			goto completed
+		}
+	}
+
+completed:
 	durationMs := time.Since(startedAt).Milliseconds()
 	if err != nil {
 		log.Printf("managed image resident request failed endpoint=%s model_path=%s duration_ms=%d error=%v",
@@ -539,6 +595,7 @@ type stableDiffusionCPPResident struct {
 type managedImageLogCapture struct {
 	mu      sync.Mutex
 	builder strings.Builder
+	lines   []string
 }
 
 func (c *managedImageLogCapture) Append(line string) {
@@ -555,6 +612,7 @@ func (c *managedImageLogCapture) Append(line string) {
 		c.builder.WriteString("\n")
 	}
 	c.builder.WriteString(trimmed)
+	c.lines = append(c.lines, trimmed)
 }
 
 func (c *managedImageLogCapture) String() string {
@@ -564,6 +622,31 @@ func (c *managedImageLogCapture) String() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return strings.TrimSpace(c.builder.String())
+}
+
+func (c *managedImageLogCapture) SnapshotCursor() int {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.lines)
+}
+
+func (c *managedImageLogCapture) LinesSince(cursor int) ([]string, int) {
+	if c == nil {
+		return nil, 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if cursor < 0 {
+		cursor = 0
+	}
+	if cursor > len(c.lines) {
+		cursor = len(c.lines)
+	}
+	out := append([]string(nil), c.lines[cursor:]...)
+	return out, len(c.lines)
 }
 
 func (r *stableDiffusionCPPResident) markExited(err error) {
@@ -1284,4 +1367,95 @@ func resultMessage(success bool, message string) *dynamicpb.Message {
 		result.Set(field, protoreflect.ValueOfBool(success))
 	}
 	return result
+}
+
+func generateImageProgressEvent(progress imageGenerateProgress) *dynamicpb.Message {
+	event := dynamicpb.NewMessage(generateImageEventDescriptor)
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("current_step")); field != nil && progress.CurrentStep > 0 {
+		event.Set(field, protoreflect.ValueOfInt32(progress.CurrentStep))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("total_steps")); field != nil && progress.TotalSteps > 0 {
+		event.Set(field, protoreflect.ValueOfInt32(progress.TotalSteps))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("progress_percent")); field != nil && progress.ProgressPercent > 0 {
+		event.Set(field, protoreflect.ValueOfInt32(progress.ProgressPercent))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("done")); field != nil {
+		event.Set(field, protoreflect.ValueOfBool(false))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("success")); field != nil {
+		event.Set(field, protoreflect.ValueOfBool(true))
+	}
+	return event
+}
+
+func generateImageTerminalEvent(success bool, message string) *dynamicpb.Message {
+	event := dynamicpb.NewMessage(generateImageEventDescriptor)
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("done")); field != nil {
+		event.Set(field, protoreflect.ValueOfBool(true))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("success")); field != nil {
+		event.Set(field, protoreflect.ValueOfBool(success))
+	}
+	if field := event.Descriptor().Fields().ByName(protoreflect.Name("message")); field != nil && strings.TrimSpace(message) != "" {
+		event.Set(field, protoreflect.ValueOfString(strings.TrimSpace(message)))
+	}
+	return event
+}
+
+func emitManagedImageProgressUpdates(
+	capture *managedImageLogCapture,
+	cursor int,
+	onProgress func(imageGenerateProgress) error,
+	last imageGenerateProgress,
+	haveLast bool,
+) (int, imageGenerateProgress, bool, error) {
+	if capture == nil {
+		return cursor, last, haveLast, nil
+	}
+	lines, nextCursor := capture.LinesSince(cursor)
+	if len(lines) == 0 {
+		return nextCursor, last, haveLast, nil
+	}
+	for _, line := range lines {
+		progress, ok := parseManagedImageProgressLine(line)
+		if !ok {
+			continue
+		}
+		if haveLast && progress == last {
+			continue
+		}
+		if onProgress != nil {
+			if err := onProgress(progress); err != nil {
+				return nextCursor, last, haveLast, err
+			}
+		}
+		last = progress
+		haveLast = true
+	}
+	return nextCursor, last, haveLast, nil
+}
+
+func parseManagedImageProgressLine(line string) (imageGenerateProgress, bool) {
+	matches := stableDiffusionProgressPattern.FindStringSubmatch(strings.TrimSpace(line))
+	if len(matches) != 3 {
+		return imageGenerateProgress{}, false
+	}
+	currentStep, err := strconv.Atoi(matches[1])
+	if err != nil || currentStep <= 0 {
+		return imageGenerateProgress{}, false
+	}
+	totalSteps, err := strconv.Atoi(matches[2])
+	if err != nil || totalSteps <= 0 || currentStep > totalSteps {
+		return imageGenerateProgress{}, false
+	}
+	progressPercent := int32((currentStep * 100) / totalSteps)
+	if currentStep == totalSteps {
+		progressPercent = 100
+	}
+	return imageGenerateProgress{
+		CurrentStep:     int32(currentStep),
+		TotalSteps:      int32(totalSteps),
+		ProgressPercent: progressPercent,
+	}, true
 }

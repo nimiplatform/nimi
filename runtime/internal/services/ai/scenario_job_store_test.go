@@ -550,6 +550,9 @@ func TestSubscribeJobEventsTerminalThenClose(t *testing.T) {
 	); !ok {
 		t.Fatalf("transition to RUNNING failed")
 	}
+	if _, ok := store.updateProgress("stream-edge-001", 4, 8, 50); !ok {
+		t.Fatalf("updateProgress failed")
+	}
 
 	// Transition to COMPLETED (terminal).
 	if _, ok := store.transition(
@@ -586,11 +589,14 @@ drained:
 		t.Fatalf("expected at least 2 events (RUNNING + COMPLETED), got %d", len(received))
 	}
 
-	var gotRunning, gotCompleted bool
+	var gotRunning, gotCompleted, gotProgress bool
 	for _, event := range received {
 		switch event.GetEventType() {
 		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING:
 			gotRunning = true
+			if event.GetJob().GetProgressPercent() == 50 && event.GetJob().GetProgressCurrentStep() == 4 && event.GetJob().GetProgressTotalSteps() == 8 {
+				gotProgress = true
+			}
 		case runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED:
 			gotCompleted = true
 		}
@@ -600,6 +606,9 @@ drained:
 	}
 	if !gotCompleted {
 		t.Fatalf("expected COMPLETED (terminal) event on subscriber channel")
+	}
+	if !gotProgress {
+		t.Fatalf("expected RUNNING event carrying progress snapshot")
 	}
 
 	// Unsubscribe closes the channel.

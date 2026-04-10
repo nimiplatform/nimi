@@ -10,6 +10,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -181,6 +182,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return stream.Send(event)
 	}
 	failAndStop := func(cause error) error {
+		if rpcctx.WasServerShutdown(requestCtx) {
+			return rpcctx.ServerShutdownError()
+		}
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		} else if idleTimedOut.Load() {
@@ -481,6 +485,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		return stream.Send(event)
 	}
 	failAndStop := func(cause error) error {
+		if rpcctx.WasServerShutdown(requestCtx) {
+			return rpcctx.ServerShutdownError()
+		}
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
 		}

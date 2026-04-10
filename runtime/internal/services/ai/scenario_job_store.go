@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -250,7 +251,10 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 		for {
 			select {
 			case <-stream.Context().Done():
-				return nil
+				if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
+					return nil
+				}
+				return rpcctx.ContextDoneError(stream.Context())
 			case event, open := <-ch:
 				if !open {
 					return nil
@@ -280,7 +284,10 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 	for {
 		select {
 		case <-stream.Context().Done():
-			return nil
+			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
+				return nil
+			}
+			return rpcctx.ContextDoneError(stream.Context())
 		case event, open := <-voiceCh:
 			if !open {
 				return nil
@@ -543,6 +550,13 @@ func (s *Service) executeScenarioAsyncJob(
 		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, scenarioModalFromType(req.GetScenarioType()))
 	}
 	adapterName := resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
+
+	// Resolve catalog alias → canonical API model ID (e.g. "seedance-2.0" → "doubao-seedance-2-0-260128").
+	apiModelID := modelResolved
+	if s.speechCatalog != nil && providerType != "" {
+		apiModelID = s.speechCatalog.ResolveAPIModelID(providerType, modelResolved)
+	}
+
 	var (
 		artifacts     []*runtimev1.ScenarioArtifact
 		usage         *runtimev1.UsageStats
@@ -556,94 +570,110 @@ func (s *Service) executeScenarioAsyncJob(
 		switch adapterName {
 		case adapterBytedanceOpenSpeech:
 			cfg := s.resolveNativeAdapterConfig("volcengine_openspeech", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceOpenSpeech(ctx, cfg, req, apiModelID)
 		case adapterBytedanceARKTask:
 			cfg := s.resolveNativeAdapterConfig("volcengine", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteBytedanceARKTask(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterAlibabaNative:
 			cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAlibabaNative(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterGeminiOperation:
 			cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, modelResolved, extractScenarioExtensions)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiOperation(ctx, cfg, s, jobID, req, apiModelID, extractScenarioExtensions)
 		case adapterDashScopeChatSTT:
 			cfg := s.resolveNativeAdapterConfig("dashscope", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteDashScopeTranscribe(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteDashScopeTranscribe(ctx, cfg, req, apiModelID)
 		case adapterGeminiChatSTT:
 			cfg := s.resolveNativeAdapterConfig("gemini", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiTranscribe(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGeminiTranscribe(ctx, cfg, req, apiModelID)
 		case adapterMiniMaxTask:
 			cfg := s.resolveNativeAdapterConfig("minimax", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, modelResolved, extractScenarioExtensions)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteMiniMaxTask(ctx, cfg, s, jobID, req, apiModelID, extractScenarioExtensions)
 		case adapterGLMTask:
 			cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, modelResolved, extractScenarioExtensions)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMTask(ctx, cfg, s, jobID, req, apiModelID, extractScenarioExtensions)
 		case adapterGLMNative:
 			cfg := s.resolveNativeAdapterConfig("glm", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGLMNative(ctx, cfg, req, apiModelID)
 		case adapterKimiChatMultimodal:
 			cfg := s.resolveNativeAdapterConfig("kimi", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteKimiImageChatMultimodal(ctx, cfg, req, apiModelID)
 		case adapterElevenLabsNative:
 			cfg := s.resolveNativeAdapterConfig("elevenlabs", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteElevenLabsTTS(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteElevenLabsTTS(ctx, cfg, req, apiModelID)
 		case adapterFishAudioNative:
 			cfg := s.resolveNativeAdapterConfig("fish_audio", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteFishAudioTTS(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteFishAudioTTS(ctx, cfg, req, apiModelID)
 		case adapterAWSPollyNative:
 			cfg := s.resolveNativeAdapterConfig("aws_polly", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteAWSPollyTTS(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAWSPollyTTS(ctx, cfg, req, apiModelID)
 		case adapterAzureSpeechNative:
 			cfg := s.resolveNativeAdapterConfig("azure_speech", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteAzureSpeechTTS(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteAzureSpeechTTS(ctx, cfg, req, apiModelID)
 		case adapterGoogleCloudTTS:
 			cfg := s.resolveNativeAdapterConfig("google_cloud_tts", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleCloudTTS(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleCloudTTS(ctx, cfg, req, apiModelID)
 		case adapterFluxNative:
 			cfg := s.resolveNativeAdapterConfig("flux", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteFluxImage(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteFluxImage(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterIdeogramNative:
 			cfg := s.resolveNativeAdapterConfig("ideogram", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteIdeogramImage(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteIdeogramImage(ctx, cfg, req, apiModelID)
 		case adapterStabilityNative:
 			cfg := s.resolveNativeAdapterConfig("stability", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityImage(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityImage(ctx, cfg, req, apiModelID)
 		case adapterStabilityMusic:
 			cfg := s.resolveNativeAdapterConfig("stability", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityMusic(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStabilityMusic(ctx, cfg, req, apiModelID)
 		case adapterKlingTask:
 			cfg := s.resolveNativeAdapterConfig("kling", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteKlingTask(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteKlingTask(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterLumaTask:
 			cfg := s.resolveNativeAdapterConfig("luma", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteLumaTask(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteLumaTask(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterPikaTask:
 			cfg := s.resolveNativeAdapterConfig("pika", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecutePikaTask(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecutePikaTask(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterRunwayTask:
 			cfg := s.resolveNativeAdapterConfig("runway", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteRunwayTask(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteRunwayTask(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterGoogleVeoOperation:
 			cfg := s.resolveNativeAdapterConfig("google_veo", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleVeoOperation(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteGoogleVeoOperation(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterStepFunNative:
 			cfg := s.resolveNativeAdapterConfig("stepfun", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteStepFunMedia(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteStepFunMedia(ctx, cfg, req, apiModelID)
 		case adapterSoundverseMusic:
 			cfg := s.resolveNativeAdapterConfig("soundverse", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteSoundverseMusic(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteSoundverseMusic(ctx, cfg, req, apiModelID)
 		case adapterMubertMusic:
 			cfg := s.resolveNativeAdapterConfig("mubert", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteMubertMusic(ctx, cfg, s, jobID, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteMubertMusic(ctx, cfg, s, jobID, req, apiModelID)
 		case adapterLoudlyMusic:
 			cfg := s.resolveNativeAdapterConfig("loudly", remoteTarget)
-			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, apiModelID)
 		case adapterSidecarMusic:
 			creds := s.config.LocalProviders["sidecar"]
 			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
-			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, modelResolved)
+			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, apiModelID)
 		default:
-			artifacts, usage, providerJobID, err = executeBackendSyncMedia(ctx, s, s.logger, req, selectedProvider, modelResolved, adapterName, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
+			artifacts, usage, providerJobID, err = executeBackendSyncMedia(
+				ctx,
+				s,
+				s.logger,
+				req,
+				selectedProvider,
+				apiModelID,
+				adapterName,
+				remoteTarget,
+				s.selector.cloudProvider,
+				s.speechCatalog,
+				func(progress nimillm.ManagedMediaImageProgress) {
+					if _, ok := s.scenarioJobs.updateProgress(jobID, progress.CurrentStep, progress.TotalSteps, progress.ProgressPercent); !ok {
+						s.logger.Debug("scenario job progress update skipped", "job_id", jobID)
+					}
+				},
+			)
 		}
 	}
 
@@ -678,6 +708,10 @@ func (s *Service) executeScenarioAsyncJob(
 		job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 		job.ReasonDetail = ""
 		job.ReasonMetadata = nil
+		if job.GetProgressTotalSteps() > 0 {
+			job.ProgressCurrentStep = job.GetProgressTotalSteps()
+		}
+		job.ProgressPercent = 100
 		job.Artifacts = cloneScenarioArtifacts(artifacts)
 		job.Usage = usage
 	}); !ok {

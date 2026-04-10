@@ -262,14 +262,20 @@ export function createCorePassthroughClients(input: {
   return { auth, workflow, model, local, connector, knowledge, audit };
 }
 
-export function createAppClient(invokeWithClient: RuntimeInvokeWithClient): RuntimeModuleAppClient {
+export function createAppClient(input: {
+  invokeWithClient: RuntimeInvokeWithClient;
+  wrapModeDStream: <T>(source: AsyncIterable<T>) => AsyncIterable<T>;
+}): RuntimeModuleAppClient {
   return {
-    sendMessage: async (request, options) => invokeWithClient(
+    sendMessage: async (request, options) => input.invokeWithClient(
       async (client) => client.app.sendAppMessage(request, options),
     ),
-    subscribeMessages: async (request, options) => invokeWithClient(
-      async (client) => client.app.subscribeAppMessages(request, options),
-    ),
+    subscribeMessages: async (request, options) => {
+      const raw = await input.invokeWithClient(
+        async (client) => client.app.subscribeAppMessages(request, options),
+      );
+      return input.wrapModeDStream(raw);
+    },
   };
 }
 

@@ -3,6 +3,7 @@ package managedimagebackend
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 	"sync"
@@ -39,6 +40,7 @@ type ImageRequest struct {
 	Src            string
 	EnableParams   string
 	RefImages      []string
+	OnProgress     func(ImageGenerateProgress)
 }
 
 type LoadModelRequest struct {
@@ -50,6 +52,12 @@ type LoadModelRequest struct {
 	Threads        int32
 }
 
+type ImageGenerateProgress struct {
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
+}
+
 var (
 	descriptorOnce sync.Once
 	descriptorErr  error
@@ -57,6 +65,7 @@ var (
 	resultMessageDescriptor        protoreflect.MessageDescriptor
 	modelOptionsMessageDescriptor  protoreflect.MessageDescriptor
 	generateImageMessageDescriptor protoreflect.MessageDescriptor
+	generateImageEventDescriptor   protoreflect.MessageDescriptor
 )
 
 func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) error {
@@ -117,7 +126,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 	setStringField(generateReq, "EnableParameters", req.EnableParams)
 	setRepeatedStringField(generateReq, "ref_images", req.RefImages)
 
-	generateResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	invokeStartedAt := time.Now()
 	slog.Info("managed image backend invoke start",
 		"operation", "generate",
@@ -127,24 +135,60 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 		"height", req.Height,
 		"step", req.Step,
 	)
-	if err := conn.Invoke(ctx, backendGenerateImageMethod, generateReq, generateResp); err != nil {
+	stream, err := conn.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, backendGenerateImageMethod)
+	if err != nil {
+		return fmt.Errorf("open managed media generate stream: %w", err)
+	}
+	if err := stream.SendMsg(generateReq); err != nil {
+		return fmt.Errorf("send managed media generate request: %w", err)
+	}
+	if err := stream.CloseSend(); err != nil {
+		return fmt.Errorf("close managed media generate request stream: %w", err)
+	}
+	receivedTerminal := false
+	for {
+		event := dynamicpb.NewMessage(generateImageEventDescriptor)
+		if err := stream.RecvMsg(event); err != nil {
+			if err == io.EOF {
+				break
+			}
+			slog.Warn("managed image backend invoke failed",
+				"operation", "generate",
+				"backend_address", strings.TrimSpace(req.BackendAddress),
+				"model_path", strings.TrimSpace(req.ModelPath),
+				"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+				"error", err,
+			)
+			return fmt.Errorf("generate managed media image: %w", err)
+		}
+		progress, hasProgress, done, success, message := readGenerateImageEvent(event)
+		if hasProgress && req.OnProgress != nil {
+			req.OnProgress(progress)
+		}
+		if !done {
+			continue
+		}
+		receivedTerminal = true
+		slog.Info("managed image backend invoke completed",
+			"operation", "generate",
+			"backend_address", strings.TrimSpace(req.BackendAddress),
+			"model_path", strings.TrimSpace(req.ModelPath),
+			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+		)
+		if !success {
+			return fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
+		}
+		return nil
+	}
+	if !receivedTerminal {
 		slog.Warn("managed image backend invoke failed",
 			"operation", "generate",
 			"backend_address", strings.TrimSpace(req.BackendAddress),
 			"model_path", strings.TrimSpace(req.ModelPath),
 			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
-			"error", err,
+			"error", "missing terminal backend event",
 		)
-		return fmt.Errorf("generate managed media image: %w", err)
-	}
-	slog.Info("managed image backend invoke completed",
-		"operation", "generate",
-		"backend_address", strings.TrimSpace(req.BackendAddress),
-		"model_path", strings.TrimSpace(req.ModelPath),
-		"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
-	)
-	if success, message := readResult(generateResp); !success {
-		return fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
+		return fmt.Errorf("generate managed media image: missing terminal backend event")
 	}
 	return nil
 }
@@ -389,6 +433,47 @@ func ensureDescriptors() error {
 						},
 					},
 				},
+				{
+					Name: stringPtr("GenerateImageEvent"),
+					Field: []*descriptorpb.FieldDescriptorProto{
+						{
+							Name:   stringPtr("current_step"),
+							Number: int32Ptr(1),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum(),
+						},
+						{
+							Name:   stringPtr("total_steps"),
+							Number: int32Ptr(2),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum(),
+						},
+						{
+							Name:   stringPtr("progress_percent"),
+							Number: int32Ptr(3),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum(),
+						},
+						{
+							Name:   stringPtr("done"),
+							Number: int32Ptr(4),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("success"),
+							Number: int32Ptr(5),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("message"),
+							Number: int32Ptr(6),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
+						},
+					},
+				},
 			},
 			Service: []*descriptorpb.ServiceDescriptorProto{
 				{
@@ -400,9 +485,10 @@ func ensureDescriptors() error {
 							OutputType: stringPtr(".backend.Result"),
 						},
 						{
-							Name:       stringPtr("GenerateImage"),
-							InputType:  stringPtr(".backend.GenerateImageRequest"),
-							OutputType: stringPtr(".backend.Result"),
+							Name:            stringPtr("GenerateImage"),
+							InputType:       stringPtr(".backend.GenerateImageRequest"),
+							OutputType:      stringPtr(".backend.GenerateImageEvent"),
+							ServerStreaming: descriptorBoolPtr(true),
 						},
 						{
 							Name:       stringPtr("Free"),
@@ -421,7 +507,8 @@ func ensureDescriptors() error {
 		resultMessageDescriptor = fileDescriptor.Messages().ByName("Result")
 		modelOptionsMessageDescriptor = fileDescriptor.Messages().ByName("ModelOptions")
 		generateImageMessageDescriptor = fileDescriptor.Messages().ByName("GenerateImageRequest")
-		if resultMessageDescriptor == nil || modelOptionsMessageDescriptor == nil || generateImageMessageDescriptor == nil {
+		generateImageEventDescriptor = fileDescriptor.Messages().ByName("GenerateImageEvent")
+		if resultMessageDescriptor == nil || modelOptionsMessageDescriptor == nil || generateImageMessageDescriptor == nil || generateImageEventDescriptor == nil {
 			descriptorErr = fmt.Errorf("resolve local backend message descriptors")
 		}
 	})
@@ -484,6 +571,19 @@ func readResult(message *dynamicpb.Message) (bool, string) {
 	return success, strings.TrimSpace(resultMessage)
 }
 
+func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, bool, bool, bool, string) {
+	if message == nil {
+		return ImageGenerateProgress{}, false, false, false, ""
+	}
+	progress := ImageGenerateProgress{
+		CurrentStep:     readOptionalInt32Field(message, "current_step"),
+		TotalSteps:      readOptionalInt32Field(message, "total_steps"),
+		ProgressPercent: readOptionalInt32Field(message, "progress_percent"),
+	}
+	hasProgress := progress.CurrentStep > 0 || progress.TotalSteps > 0 || progress.ProgressPercent > 0
+	return progress, hasProgress, readOptionalBoolField(message, "done"), readOptionalBoolField(message, "success"), readOptionalStringField(message, "message")
+}
+
 func defaultMessage(value string, fallback string) string {
 	if strings.TrimSpace(value) != "" {
 		return strings.TrimSpace(value)
@@ -491,10 +591,38 @@ func defaultMessage(value string, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
+func readOptionalStringField(message *dynamicpb.Message, fieldName string) string {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return ""
+	}
+	return strings.TrimSpace(message.Get(field).String())
+}
+
+func readOptionalInt32Field(message *dynamicpb.Message, fieldName string) int32 {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return 0
+	}
+	return int32(message.Get(field).Int())
+}
+
+func readOptionalBoolField(message *dynamicpb.Message, fieldName string) bool {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return false
+	}
+	return message.Get(field).Bool()
+}
+
 func stringPtr(value string) *string {
 	return &value
 }
 
 func int32Ptr(value int32) *int32 {
+	return &value
+}
+
+func descriptorBoolPtr(value bool) *bool {
 	return &value
 }

@@ -27,8 +27,13 @@ func (f *fakeBackendDriver) LoadModel(state loadModelState) error {
 	return nil
 }
 
-func (f *fakeBackendDriver) GenerateImage(_ context.Context, _ loadModelState, req imageGenerateState) error {
+func (f *fakeBackendDriver) GenerateImage(_ context.Context, _ loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) error {
 	f.generates = append(f.generates, req)
+	if onProgress != nil {
+		if err := onProgress(imageGenerateProgress{CurrentStep: 2, TotalSteps: 8, ProgressPercent: 25}); err != nil {
+			return err
+		}
+	}
 	if err := os.WriteFile(req.Dst, []byte("png"), 0o600); err != nil {
 		return err
 	}
@@ -246,7 +251,7 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 			VAEPath:     vaePath,
 			Sampler:     "euler",
 			Scheduler:   "discrete",
-			DiffusionFA: boolPtr(true),
+			DiffusionFA: testBoolPtr(true),
 		},
 	}
 	if err := driver.LoadModel(state); err != nil {
@@ -259,7 +264,7 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 		Width:          512,
 		Height:         512,
 		Step:           15,
-	}); err != nil {
+	}, nil); err != nil {
 		t.Fatalf("GenerateImage: %v", err)
 	}
 
@@ -332,7 +337,7 @@ func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *
 	}
 	if err := driver.GenerateImage(context.Background(), updated, imageGenerateState{
 		Dst: filepath.Join(t.TempDir(), "artifact.png"),
-	}); err != nil {
+	}, nil); err != nil {
 		t.Fatalf("GenerateImage(updated): %v", err)
 	}
 	if got := strings.TrimSpace(captured.Options.Sampler); got != "heun" {
@@ -446,7 +451,7 @@ func TestStableDiffusionCPPDriverGenerateWithoutLoadFailsClosed(t *testing.T) {
 	driver := &stableDiffusionCPPDriver{}
 	err := driver.GenerateImage(context.Background(), loadModelState{}, imageGenerateState{
 		Dst: filepath.Join(t.TempDir(), "artifact.png"),
-	})
+	}, nil)
 	if err == nil || !strings.Contains(err.Error(), "not loaded") {
 		t.Fatalf("expected generate without load failure, got %v", err)
 	}
@@ -479,7 +484,7 @@ func writeManagedImageModelFixtures(t *testing.T) (string, string) {
 	return modelPath, vaePath
 }
 
-func boolPtr(value bool) *bool {
+func testBoolPtr(value bool) *bool {
 	return &value
 }
 

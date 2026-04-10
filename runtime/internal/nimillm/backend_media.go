@@ -213,6 +213,12 @@ type ManagedMediaImageDiagnostics struct {
 	IgnoredOptions []string
 }
 
+type ManagedMediaImageProgress struct {
+	CurrentStep     int32
+	TotalSteps      int32
+	ProgressPercent int32
+}
+
 func normalizeImageResponseFormat(raw string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
 	case "", "base64", "b64_json":

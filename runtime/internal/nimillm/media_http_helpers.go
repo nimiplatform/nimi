@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -342,6 +343,26 @@ func doJSONOrBinaryRequestWithBackend(
 	}
 	defer response.Body.Close()
 	return decodeJSONOrBinaryResponse(response)
+}
+
+// upgradeHTTPToHTTPS replaces an http:// scheme with https:// for non-loopback
+// hosts. Provider artifact CDNs (e.g. Alibaba OSS, AWS S3) serve on both
+// protocols, and the endpoint security layer rejects non-loopback HTTP.
+// Loopback URLs (127.0.0.1, localhost, [::1]) are left as-is for local dev.
+func upgradeHTTPToHTTPS(rawURL string) string {
+	if !strings.HasPrefix(rawURL, "http://") {
+		return rawURL
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL
+	}
+	host := parsed.Hostname()
+	if host == "127.0.0.1" || host == "localhost" || host == "::1" {
+		return rawURL
+	}
+	parsed.Scheme = "https"
+	return parsed.String()
 }
 
 // JoinURL joins a base URL with a suffix path. If the suffix is already an

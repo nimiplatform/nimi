@@ -540,7 +540,11 @@ func scenarioJobReasonDetailFromMetadata(metadata map[string]string, reasonCode 
 	case runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 		runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
 		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
-		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE:
+		runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+		runtimev1.ReasonCode_AI_INPUT_INVALID,
+		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+		runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+		runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
 		return providerMessage
 	default:
 		return ""

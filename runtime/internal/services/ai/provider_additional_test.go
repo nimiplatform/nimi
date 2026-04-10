@@ -212,7 +212,7 @@ func TestNewFailsOnInvalidCustomSpeechCatalog(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected custom speech catalog init failure")
 	}
-	if !strings.Contains(err.Error(), "init speech catalog") {
+	if !strings.Contains(err.Error(), "init catalog") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

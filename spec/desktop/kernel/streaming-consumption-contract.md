@@ -84,7 +84,7 @@ subscribe → onJobEvent* → onTerminalState(gRPC OK close) → cleanup
 ```
 
 - **subscribe**：通过 SDK Runtime client 发起 `SubscribeScenarioJobEvents(job_id)` 订阅。
-- **onJobEvent**：每收到一个 job 状态事件（`SUBMITTED` / `QUEUED` → `RUNNING` → ...），更新 UI 进度（进度条、状态文本）。
+- **onJobEvent**：每收到一个 job 状态事件（`SUBMITTED` / `QUEUED` → `RUNNING` → ...），更新 UI 进度（进度条、状态文本）。`RUNNING` 可重复出现；Desktop 必须以事件里的最新 job snapshot 覆盖旧 snapshot，并优先消费 `progress_percent`，必要时结合 `progress_current_step` / `progress_total_steps` 展示更细粒度文案。
 - **onTerminalState**：收到终态事件（K-JOB-002: `COMPLETED` / `FAILED` / `CANCELED` / `TIMEOUT`）后，server 正常关闭流（gRPC OK）。**注意**：此流不使用 `done=true` 终帧语义（K-STREAM-005），与 D-STRM-001 的 `onDone(done=true)` 生命周期根本不同。
 - **cleanup**：释放订阅资源，移除进度指示器。
 
@@ -100,7 +100,7 @@ subscribe → onJobEvent* → onTerminalState(gRPC OK close) → cleanup
 **与文本流的差异**：
 
 - 文本流（D-STRM-001）：增量 chunk 追加渲染，`done=true` 终帧。
-- ScenarioJob 流（D-STRM-005）：离散状态事件，gRPC OK 关闭。不支持增量渲染，结果在终态后通过 `GetScenarioArtifacts` 获取。
+- ScenarioJob 流（D-STRM-005）：离散状态事件，gRPC OK 关闭。允许重复 `RUNNING` 事件以携带最新 job progress snapshot；结果仍在终态后通过 `GetScenarioArtifacts` 获取。
 
 ScenarioJob 事件流只消费已经被 admit 的 modality action execution lifecycle。
 无论是 image、video、还是受 `spec/runtime/kernel/voice-contract.md` 约束的 voice

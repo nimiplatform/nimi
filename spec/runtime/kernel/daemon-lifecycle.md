@@ -33,11 +33,15 @@ Daemon 启动固定为以下阶段：
 收到 shutdown 信号后：
 
 1. 状态迁移到 `STOPPING`，同步 gRPC health serving status。
-2. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004`）。
-3. 停止资源采样与 AI Provider 探测。
-4. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
-5. 带超时关闭 gRPC server（GracefulStop，同一超时后 ForceStop）。
-6. 状态迁移到 `STOPPED`。
+2. daemon-owned shutdown controller 冻结一个统一 deadline，并主动取消活跃 gRPC RPC/streams（规则见 `K-STREAM-010` 与 `K-STREAM-008`）。
+3. 短暂 drain 窗口内允许已收到取消信号的 handler 自行退出。
+4. 停止 supervised 引擎（`engineMgr.StopAll()`，`K-LENG-004`）。
+5. 停止资源采样与 AI Provider 探测。
+6. 带超时关闭 HTTP server（默认 10s，通过 `K-DAEMON-009` 配置）。
+7. 带超时关闭 gRPC server（GracefulStop；同一 deadline 到期后 ForceStop）。
+8. 状态迁移到 `STOPPED`。
+
+若 gRPC 在 deadline 内未自然排空，但 runtime 已执行 ForceStop 并在 deadline 内完成进程级退出，则该 shutdown 仍视为**受控完成**；必须写出带 `forced=true` 的 lifecycle audit 和诊断日志，不得把这一路径当成伪成功或静默吞掉。
 
 停机期间只读方法允许通过 lifecycle 拦截器（`K-DAEMON-005`）。
 
@@ -45,15 +49,15 @@ Daemon 启动固定为以下阶段：
 
 | 子系统状态机 | STOPPING 行为 | 引用 |
 |---|---|---|
-| 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已提交的 in-flight job 继续执行直到 gRPC GracefulStop 超时后强制终止 | K-DAEMON-003 step 4 |
-| 活跃 Workflow（K-WF-003） | 同 ScenarioJob：新请求拒绝，in-flight workflow 在 GracefulStop 期内继续，超时后强制终止。客户端收到流断开 | K-DAEMON-003 step 4 |
-| 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 4 |
-| 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
-| Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 gRPC/HTTP 关闭前执行 | K-DAEMON-003 step 2 |
-| Provider 探测（K-PROV-003） | 停止探测；`StreamScenario` 旁路的 authz 范围豁免不适用于健康探测循环 | K-DAEMON-003 step 3, K-KEYSRC-004 |
+| 活跃 ScenarioJob（K-JOB-001） | lifecycle 拦截器拒绝新请求（`UNAVAILABLE`）；已建立的 job 事件流可被 shutdown controller 以 `CANCELLED` 预empt，后台 job 由进程/engine shutdown 继续兜底 | K-DAEMON-003 step 2 |
+| 活跃 Workflow（K-WF-003） | 新请求拒绝；活跃 workflow 订阅流可被 shutdown controller 以 `CANCELLED` 预empt | K-DAEMON-003 step 2 |
+| 活跃 StreamScenario | 活跃执行流可被 shutdown controller 直接 `CANCELLED`，不得伪造完成态；若 handler 不退出，deadline 到期后 ForceStop | K-DAEMON-003 step 2 |
+| 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流，不得继续占住 `GracefulStop` | K-STREAM-010 |
+| Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 gRPC/HTTP 关闭前执行 | K-DAEMON-003 step 4 |
+| Provider 探测（K-PROV-003） | 停止探测；`StreamScenario` 旁路的 authz 范围豁免不适用于健康探测循环 | K-DAEMON-003 step 5, K-KEYSRC-004 |
 | Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
 
-**设计决策**：Phase 1 不实现 in-flight 任务的优雅排空（drain）——GracefulStop 超时到期后直接 ForceStop。此决策基于：桌面端 daemon 重启预期为低频事件，AI 推理任务可由客户端重试恢复。若未来引入服务端持久化队列，可在此基础上添加排空协议。
+**设计决策**：bounded shutdown 以“可靠退出”优先于“最大化优雅排空”。Runtime 允许在 `STOPPING` 时主动取消活跃 stream/RPC，以避免 daemon 因长生命周期订阅、health watch 或执行流卡死。若未来引入服务端排空协议，必须仍保留 force-stop bounded exit 作为最终兜底。
 
 ## K-DAEMON-005 gRPC 拦截器链
 

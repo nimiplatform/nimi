@@ -1057,6 +1057,18 @@ export interface ScenarioJob {
      * @generated from protobuf field: google.protobuf.Struct reason_metadata = 19
      */
     reasonMetadata?: Struct;
+    /**
+     * @generated from protobuf field: int32 progress_percent = 20
+     */
+    progressPercent: number;
+    /**
+     * @generated from protobuf field: int32 progress_current_step = 21
+     */
+    progressCurrentStep: number;
+    /**
+     * @generated from protobuf field: int32 progress_total_steps = 22
+     */
+    progressTotalSteps: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -5515,7 +5527,10 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 16, name: "usage", kind: "message", T: () => UsageStats },
             { no: 17, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension },
-            { no: 19, name: "reason_metadata", kind: "message", T: () => Struct }
+            { no: 19, name: "reason_metadata", kind: "message", T: () => Struct },
+            { no: 20, name: "progress_percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 21, name: "progress_current_step", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -5533,6 +5548,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         message.artifacts = [];
         message.traceId = "";
         message.ignoredExtensions = [];
+        message.progressPercent = 0;
+        message.progressCurrentStep = 0;
+        message.progressTotalSteps = 0;
         if (value !== undefined)
             reflectionMergePartial<ScenarioJob>(this, message, value);
         return message;
@@ -5598,6 +5616,15 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                     break;
                 case /* google.protobuf.Struct reason_metadata */ 19:
                     message.reasonMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.reasonMetadata);
+                    break;
+                case /* int32 progress_percent */ 20:
+                    message.progressPercent = reader.int32();
+                    break;
+                case /* int32 progress_current_step */ 21:
+                    message.progressCurrentStep = reader.int32();
+                    break;
+                case /* int32 progress_total_steps */ 22:
+                    message.progressTotalSteps = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5668,6 +5695,15 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* google.protobuf.Struct reason_metadata = 19; */
         if (message.reasonMetadata)
             Struct.internalBinaryWrite(message.reasonMetadata, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* int32 progress_percent = 20; */
+        if (message.progressPercent !== 0)
+            writer.tag(20, WireType.Varint).int32(message.progressPercent);
+        /* int32 progress_current_step = 21; */
+        if (message.progressCurrentStep !== 0)
+            writer.tag(21, WireType.Varint).int32(message.progressCurrentStep);
+        /* int32 progress_total_steps = 22; */
+        if (message.progressTotalSteps !== 0)
+            writer.tag(22, WireType.Varint).int32(message.progressTotalSteps);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

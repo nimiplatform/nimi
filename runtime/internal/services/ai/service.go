@@ -102,16 +102,14 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	}
 	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
 	customDir := strings.TrimSpace(daemonCfg.ModelCatalogCustomDir)
-	if customDir != "" {
-		voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
-			Logger:    logger,
-			CustomDir: customDir,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("init speech catalog: %w", err)
-		}
-		svc.speechCatalog = voiceCatalog
+	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
+		Logger:    logger,
+		CustomDir: customDir,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init catalog: %w", err)
 	}
+	svc.speechCatalog = voiceCatalog
 	return svc, nil
 }
 

@@ -332,6 +332,10 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 }
 
 func fetchBinaryArtifact(ctx context.Context, artifactURI string) ([]byte, string, error) {
+	// Upgrade HTTP to HTTPS for provider artifact URLs (e.g. DashScope OSS).
+	// The endpoint security layer rejects non-loopback HTTP, but provider CDNs
+	// like Alibaba OSS support HTTPS on the same host.
+	artifactURI = upgradeHTTPToHTTPS(artifactURI)
 	client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, artifactURI, nil)
 	if err != nil {
 		return nil, "", err

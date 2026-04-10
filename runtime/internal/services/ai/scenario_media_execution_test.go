@@ -117,7 +117,7 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 			if err := os.WriteFile(dst, []byte("png"), 0o600); err != nil {
 				return err
 			}
-			return stream.SendMsg(managedImageSuccessResult(t, "generated"))
+			return stream.SendMsg(managedImageTerminalEvent(t, true, "generated"))
 		default:
 			return status.Error(codes.Unimplemented, method)
 		}
@@ -192,6 +192,7 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 		selectedProvider,
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -319,6 +320,7 @@ func TestExecuteBackendSyncMediaImageUsesPlainPathForPythonPipelineSelection(t *
 		nil,
 		nil,
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("executeBackendSyncMedia: %v", err)
@@ -397,6 +399,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedWhenBackendTargetUnavailable(t *
 		nil,
 		nil,
 		nil,
+		nil,
 	)
 	if err != nil {
 		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
@@ -455,6 +458,17 @@ func getManagedImageDescriptor(t *testing.T, name string) protoreflect.MessageDe
 					{Name: stringPtr("ref_images"), Number: int32Ptr(12), Label: descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 				},
 			},
+			{
+				Name: stringPtr("GenerateImageEvent"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					{Name: stringPtr("current_step"), Number: int32Ptr(1), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum()},
+					{Name: stringPtr("total_steps"), Number: int32Ptr(2), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum()},
+					{Name: stringPtr("progress_percent"), Number: int32Ptr(3), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum()},
+					{Name: stringPtr("done"), Number: int32Ptr(4), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+					{Name: stringPtr("success"), Number: int32Ptr(5), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+					{Name: stringPtr("message"), Number: int32Ptr(6), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+				},
+			},
 		},
 	}), nil)
 	if err != nil {
@@ -467,12 +481,13 @@ func getManagedImageDescriptor(t *testing.T, name string) protoreflect.MessageDe
 	return descriptor
 }
 
-func managedImageSuccessResult(t *testing.T, message string) *dynamicpb.Message {
+func managedImageTerminalEvent(t *testing.T, success bool, message string) *dynamicpb.Message {
 	t.Helper()
-	result := dynamicpb.NewMessage(getManagedImageDescriptor(t, "Result"))
-	setManagedImageStringField(result, "message", message)
-	result.Set(result.Descriptor().Fields().ByName(protoreflect.Name("success")), protoreflect.ValueOfBool(true))
-	return result
+	event := dynamicpb.NewMessage(getManagedImageDescriptor(t, "GenerateImageEvent"))
+	event.Set(event.Descriptor().Fields().ByName(protoreflect.Name("done")), protoreflect.ValueOfBool(true))
+	event.Set(event.Descriptor().Fields().ByName(protoreflect.Name("success")), protoreflect.ValueOfBool(success))
+	setManagedImageStringField(event, "message", message)
+	return event
 }
 
 func readManagedImageStringField(message *dynamicpb.Message, fieldName string) string {
@@ -544,6 +559,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedWithoutLocalImageResolver(t *tes
 		nil,
 		nil,
 		nil,
+		nil,
 	)
 	if err == nil {
 		t.Fatal("expected canonical image execution to fail-close without resolver")
@@ -603,6 +619,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSelection(t *testi
 		selectedProvider,
 		"media/local-import/z_image_turbo-Q4_K",
 		adapterMediaNative,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -673,6 +690,7 @@ func TestExecuteBackendSyncMediaImageFailsClosedForUnsupportedSafetensorsNativeS
 		selectedProvider,
 		"media/local-import/safetensors-native",
 		adapterMediaNative,
+		nil,
 		nil,
 		nil,
 		nil,

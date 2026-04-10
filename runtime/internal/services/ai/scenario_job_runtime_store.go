@@ -195,6 +195,34 @@ func (s *scenarioJobStore) transition(
 	return job, true
 }
 
+func (s *scenarioJobStore) updateProgress(jobID string, currentStep int32, totalSteps int32, progressPercent int32) (*runtimev1.ScenarioJob, bool) {
+	id := strings.TrimSpace(jobID)
+	if id == "" {
+		return nil, false
+	}
+	s.mu.Lock()
+	record, ok := s.jobs[id]
+	if !ok || record == nil || record.job == nil {
+		s.mu.Unlock()
+		return nil, false
+	}
+	if isTerminalScenarioJobStatus(record.job.GetStatus()) {
+		s.mu.Unlock()
+		return nil, false
+	}
+	record.job.ProgressCurrentStep = clampProgressStep(currentStep)
+	record.job.ProgressTotalSteps = clampProgressStep(totalSteps)
+	record.job.ProgressPercent = clampProgressPercent(progressPercent)
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	record.job.UpdatedAt = timestamppb.New(nowTime)
+	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING)
+	s.pruneLocked(nowTime)
+	job := cloneScenarioJob(record.job)
+	s.mu.Unlock()
+	return job, true
+}
+
 func (s *scenarioJobStore) cancel(jobID string) bool {
 	id := strings.TrimSpace(jobID)
 	if id == "" {
@@ -210,6 +238,23 @@ func (s *scenarioJobStore) cancel(jobID string) bool {
 		record.cancel()
 	}
 	return true
+}
+
+func clampProgressPercent(value int32) int32 {
+	if value < 0 {
+		return 0
+	}
+	if value > 100 {
+		return 100
+	}
+	return value
+}
+
+func clampProgressStep(value int32) int32 {
+	if value < 0 {
+		return 0
+	}
+	return value
 }
 
 func (s *scenarioJobStore) listArtifacts(jobID string) (*runtimev1.ScenarioJob, []*runtimev1.ScenarioArtifact, string, bool) {

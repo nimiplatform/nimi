@@ -488,6 +488,9 @@ message ScenarioJob {
   string trace_id = 17;
   repeated IgnoredScenarioExtension ignored_extensions = 18;
   google.protobuf.Struct reason_metadata = 19;
+  int32 progress_percent = 20;
+  int32 progress_current_step = 21;
+  int32 progress_total_steps = 22;
 }
 
 message SubmitScenarioJobRequest {

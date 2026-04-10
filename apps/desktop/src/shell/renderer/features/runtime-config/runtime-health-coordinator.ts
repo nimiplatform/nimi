@@ -31,6 +31,8 @@ type RuntimeHealthCoordinatorDeps = {
   fetchProviderHealth: () => Promise<{ providers: AIProviderHealthSnapshot[] }>;
   subscribeRuntimeHealth: () => Promise<AsyncIterable<RuntimeHealthEvent>>;
   subscribeProviderHealth: () => Promise<AsyncIterable<AIProviderHealthEvent>>;
+  subscribeRuntimeConnected: (listener: () => void) => () => void;
+  subscribeRuntimeDisconnected: (listener: () => void) => () => void;
   now: () => number;
   setInterval: (callback: () => void, intervalMs: number) => unknown;
   clearInterval: (handle: unknown) => void;
@@ -155,6 +157,10 @@ export class RuntimeHealthCoordinator {
 
   private streamGeneration = 0;
 
+  private waitForRuntimeReconnect = false;
+
+  private runtimeEventUnsubscribers: Array<() => void> = [];
+
   constructor(deps?: Partial<RuntimeHealthCoordinatorDeps>) {
     this.deps = {
       fetchRuntimeHealth: async () => {
@@ -169,6 +175,8 @@ export class RuntimeHealthCoordinator {
       subscribeProviderHealth: async () => {
         return runtimeAdmin().providerHealthEvents({}, HEALTH_STREAM_OPTIONS);
       },
+      subscribeRuntimeConnected: (listener) => getPlatformClient().runtime.events.on('runtime.connected', listener),
+      subscribeRuntimeDisconnected: (listener) => getPlatformClient().runtime.events.on('runtime.disconnected', listener),
       now: () => Date.now(),
       setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),
       clearInterval: (handle) => window.clearInterval(handle as number),
@@ -200,6 +208,11 @@ export class RuntimeHealthCoordinator {
       this.deps.clearInterval(this.watchdogHandle);
       this.watchdogHandle = null;
     }
+    for (const unsubscribe of this.runtimeEventUnsubscribers) {
+      unsubscribe();
+    }
+    this.runtimeEventUnsubscribers = [];
+    this.waitForRuntimeReconnect = false;
     this.updateState((current) => ({
       ...current,
       started: false,
@@ -257,6 +270,14 @@ export class RuntimeHealthCoordinator {
     if (this.state.started) {
       return;
     }
+    this.runtimeEventUnsubscribers = [
+      this.deps.subscribeRuntimeDisconnected(() => {
+        this.handleRuntimeDisconnected();
+      }),
+      this.deps.subscribeRuntimeConnected(() => {
+        void this.handleRuntimeConnected();
+      }),
+    ];
     this.updateState((current) => ({
       ...current,
       started: true,
@@ -270,6 +291,9 @@ export class RuntimeHealthCoordinator {
 
   private async runWatchdog(): Promise<void> {
     if (!this.state.started) {
+      return;
+    }
+    if (this.waitForRuntimeReconnect) {
       return;
     }
     if (!this.state.streamConnected) {
@@ -290,6 +314,27 @@ export class RuntimeHealthCoordinator {
     }));
     this.startRuntimeHealthStream(generation);
     this.startProviderHealthStream(generation);
+  }
+
+  private handleRuntimeDisconnected(): void {
+    this.waitForRuntimeReconnect = true;
+    this.streamGeneration += 1;
+    this.updateState((current) => ({
+      ...current,
+      streamConnected: false,
+      healthStreamConnected: false,
+      providerStreamConnected: false,
+      streamError: null,
+    }));
+  }
+
+  private async handleRuntimeConnected(): Promise<void> {
+    this.waitForRuntimeReconnect = false;
+    if (!this.state.started) {
+      return;
+    }
+    this.restartStreams();
+    await this.forceRefresh('runtime-connected').catch(() => undefined);
   }
 
   private startRuntimeHealthStream(generation: number): void {

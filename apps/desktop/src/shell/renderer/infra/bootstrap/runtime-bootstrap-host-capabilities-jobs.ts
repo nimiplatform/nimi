@@ -44,7 +44,7 @@ export function toControllerJobSnapshot(value: unknown): JobPollResult | null {
   if (!status) {
     return null;
   }
-  const progress = Number(record.progress);
+  const progress = Number(record.progressPercent ?? record.progress);
   return {
     status,
     ...(String(record.reasonCode || '').trim() ? { reasonCode: String(record.reasonCode || '').trim() } : {}),

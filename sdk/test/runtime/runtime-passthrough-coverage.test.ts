@@ -241,6 +241,12 @@ import {
 
 test('createAppClient: sendMessage and subscribeMessages are forwarded', async () => {
   const invokeCalls: string[] = [];
+  let wrappedStreams = 0;
+  const emptyAsyncIterable = {
+    async *[Symbol.asyncIterator]() {
+      // empty
+    },
+  };
   function clientProxy(): Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>> {
     return new Proxy({} as Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>, {
       get(_t, mod: string) {
@@ -248,6 +254,9 @@ test('createAppClient: sendMessage and subscribeMessages are forwarded', async (
           get(_t2, method: string) {
             return async (..._args: unknown[]) => {
               invokeCalls.push(`${mod}.${method}`);
+              if (method === 'subscribeAppMessages') {
+                return emptyAsyncIterable;
+              }
               return {};
             };
           },
@@ -257,12 +266,22 @@ test('createAppClient: sendMessage and subscribeMessages are forwarded', async (
   }
   const invokeWithClient: <T>(operation: (client: never) => Promise<T>) => Promise<T> = async (op) => op(clientProxy() as never);
 
-  const appClient = createAppClient(invokeWithClient);
+  const appClient = createAppClient({
+    invokeWithClient,
+    wrapModeDStream: <T>(source: AsyncIterable<T>) => {
+      wrappedStreams += 1;
+      return source;
+    },
+  });
   await appClient.sendMessage({} as never);
-  await appClient.subscribeMessages({} as never);
+  const stream = await appClient.subscribeMessages({} as never);
+  for await (const _item of stream) {
+    // empty
+  }
 
   assert.ok(invokeCalls.includes('app.sendAppMessage'));
   assert.ok(invokeCalls.includes('app.subscribeAppMessages'));
+  assert.equal(wrappedStreams, 1);
 });
 
 test('createRawModule: call and closeStream are forwarded', async () => {

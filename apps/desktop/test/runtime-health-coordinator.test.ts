@@ -91,6 +91,13 @@ function makeProvider(providerName: string, state = 'healthy'): AIProviderHealth
   };
 }
 
+function runtimeEventDeps() {
+  return {
+    subscribeRuntimeConnected: () => () => undefined,
+    subscribeRuntimeDisconnected: () => () => undefined,
+  };
+}
+
 describe('RuntimeHealthCoordinator', () => {
   test('hydrates shared state once on startup', async () => {
     const healthStream = createAsyncStream<RuntimeHealthEvent>();
@@ -110,6 +117,7 @@ describe('RuntimeHealthCoordinator', () => {
       },
       subscribeRuntimeHealth: async () => healthStream.stream,
       subscribeProviderHealth: async () => providerStream.stream,
+      ...runtimeEventDeps(),
       now: () => now,
       setInterval: () => 1,
       clearInterval: () => undefined,
@@ -150,6 +158,7 @@ describe('RuntimeHealthCoordinator', () => {
       },
       subscribeRuntimeHealth: async () => healthStream.stream,
       subscribeProviderHealth: async () => providerStream.stream,
+      ...runtimeEventDeps(),
       now: () => 1710000000000,
       setInterval: () => 1,
       clearInterval: () => undefined,
@@ -186,6 +195,7 @@ describe('RuntimeHealthCoordinator', () => {
       },
       subscribeRuntimeHealth: async () => healthStream.stream,
       subscribeProviderHealth: async () => providerStream.stream,
+      ...runtimeEventDeps(),
       now: () => now,
       setInterval: () => 1,
       clearInterval: () => undefined,
@@ -256,6 +266,7 @@ describe('RuntimeHealthCoordinator', () => {
         providerSubscriptions += 1;
         throw new Error('provider stream down');
       },
+      ...runtimeEventDeps(),
       now: () => now,
       setInterval: (callback) => {
         watchdog = callback;
@@ -285,6 +296,84 @@ describe('RuntimeHealthCoordinator', () => {
     assert.equal(providerCalls, 2);
     assert.equal(runtimeSubscriptions, 2);
     assert.equal(providerSubscriptions, 2);
+
+    coordinator.stop();
+  });
+
+  test('runtime disconnect pauses watchdog churn until reconnect restarts streams', async () => {
+    let watchdog: (() => void) | null = null;
+    let now = 1710000000000;
+    let runtimeSubscriptions = 0;
+    let providerSubscriptions = 0;
+    let runtimeConnected: (() => void) | null = null;
+    let runtimeDisconnected: (() => void) | null = null;
+
+    const coordinator = new RuntimeHealthCoordinator({
+      fetchRuntimeHealth: async () => makeRuntimeHealth(3, 'ready'),
+      fetchProviderHealth: async () => ({ providers: [makeProvider('openai')] }),
+      subscribeRuntimeHealth: async () => {
+        runtimeSubscriptions += 1;
+        return createAsyncStream<RuntimeHealthEvent>().stream;
+      },
+      subscribeProviderHealth: async () => {
+        providerSubscriptions += 1;
+        return createAsyncStream<AIProviderHealthEvent>().stream;
+      },
+      subscribeRuntimeConnected: (listener) => {
+        runtimeConnected = listener;
+        return () => {
+          runtimeConnected = null;
+        };
+      },
+      subscribeRuntimeDisconnected: (listener) => {
+        runtimeDisconnected = listener;
+        return () => {
+          runtimeDisconnected = null;
+        };
+      },
+      now: () => now,
+      setInterval: (callback) => {
+        watchdog = callback;
+        return 1;
+      },
+      clearInterval: () => {
+        watchdog = null;
+      },
+    });
+
+    coordinator.start();
+    await flushMicrotasks();
+
+    assert.equal(runtimeSubscriptions, 1);
+    assert.equal(providerSubscriptions, 1);
+
+    const fireDisconnected = runtimeDisconnected;
+    if (!fireDisconnected) {
+      throw new Error('runtime disconnected listener was not installed');
+    }
+    (fireDisconnected as () => void)();
+    await flushMicrotasks();
+
+    now += 61_000;
+    const triggerWatchdog = watchdog;
+    if (!triggerWatchdog) {
+      throw new Error('watchdog callback was not installed');
+    }
+    (triggerWatchdog as () => void)();
+    await flushMicrotasks();
+
+    assert.equal(runtimeSubscriptions, 1, 'watchdog must not restart streams while waiting for reconnect');
+    assert.equal(providerSubscriptions, 1, 'watchdog must not restart streams while waiting for reconnect');
+
+    const fireConnected = runtimeConnected;
+    if (!fireConnected) {
+      throw new Error('runtime connected listener was not installed');
+    }
+    (fireConnected as () => void)();
+    await flushMicrotasks();
+
+    assert.equal(runtimeSubscriptions, 2, 'runtime reconnect should restart runtime health stream');
+    assert.equal(providerSubscriptions, 2, 'runtime reconnect should restart provider health stream');
 
     coordinator.stop();
   });

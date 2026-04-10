@@ -23,6 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 )
 
 type realtimeConn interface {
@@ -254,7 +255,10 @@ func (s *Service) ReadRealtimeEvents(req *runtimev1.ReadRealtimeEventsRequest, s
 	for {
 		select {
 		case <-stream.Context().Done():
-			return stream.Context().Err()
+			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
+				return nil
+			}
+			return rpcctx.ContextDoneError(stream.Context())
 		case event, ok := <-ch:
 			if !ok {
 				return nil

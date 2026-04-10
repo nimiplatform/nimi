@@ -34,6 +34,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		generateDst   string
 		generateSrc   string
 		enableParams  string
+		progresses    []ImageGenerateProgress
 	)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -65,7 +66,10 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 			if err := os.WriteFile(generateDst, []byte("png"), 0o600); err != nil {
 				return err
 			}
-			return stream.SendMsg(successResult("generated"))
+			if err := stream.SendMsg(progressEvent(4, 8, 50)); err != nil {
+				return err
+			}
+			return stream.SendMsg(generateTerminalEvent(true, "generated"))
 		default:
 			return status.Error(codes.Unimplemented, method)
 		}
@@ -89,6 +93,9 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		EnableParams:   "mask:/tmp/mask.png",
 		Dst:            outputPath,
 		Src:            "/tmp/source.png",
+		OnProgress: func(progress ImageGenerateProgress) {
+			progresses = append(progresses, progress)
+		},
 	})
 	if err != nil {
 		t.Fatalf("LoadModelAndGenerateImage: %v", err)
@@ -110,6 +117,12 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 	}
 	if enableParams != "mask:/tmp/mask.png" {
 		t.Fatalf("enable params mismatch: %q", enableParams)
+	}
+	if len(progresses) != 1 {
+		t.Fatalf("expected one progress callback, got %d", len(progresses))
+	}
+	if progresses[0].CurrentStep != 4 || progresses[0].TotalSteps != 8 || progresses[0].ProgressPercent != 50 {
+		t.Fatalf("unexpected progress callback: %+v", progresses[0])
 	}
 	payload, err := os.ReadFile(outputPath)
 	if err != nil {
@@ -222,6 +235,24 @@ func failureResult(message string) *dynamicpb.Message {
 	setStringField(result, "message", message)
 	result.Set(resultMessageDescriptor.Fields().ByName(protoreflect.Name("success")), protoreflect.ValueOfBool(false))
 	return result
+}
+
+func progressEvent(currentStep int32, totalSteps int32, progressPercent int32) *dynamicpb.Message {
+	event := dynamicpb.NewMessage(generateImageEventDescriptor)
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("current_step")), protoreflect.ValueOfInt32(currentStep))
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("total_steps")), protoreflect.ValueOfInt32(totalSteps))
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("progress_percent")), protoreflect.ValueOfInt32(progressPercent))
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("done")), protoreflect.ValueOfBool(false))
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("success")), protoreflect.ValueOfBool(true))
+	return event
+}
+
+func generateTerminalEvent(success bool, message string) *dynamicpb.Message {
+	event := dynamicpb.NewMessage(generateImageEventDescriptor)
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("done")), protoreflect.ValueOfBool(true))
+	event.Set(generateImageEventDescriptor.Fields().ByName(protoreflect.Name("success")), protoreflect.ValueOfBool(success))
+	setStringField(event, "message", message)
+	return event
 }
 
 func readStringField(message *dynamicpb.Message, fieldName string) string {

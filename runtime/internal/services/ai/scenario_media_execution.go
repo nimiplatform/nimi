@@ -35,6 +35,7 @@ func executeBackendSyncMedia(
 	remoteTarget *nimillm.RemoteTarget,
 	cloudProvider *nimillm.CloudProvider,
 	voiceCatalog *catalog.Resolver,
+	onProgress func(nimillm.ManagedMediaImageProgress),
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	var backend *nimillm.Backend
 	var backendModelID string
@@ -149,7 +150,7 @@ func executeBackendSyncMedia(
 					logger.Warn("managed image release after generate failed", "model_id", backendModelID, "error", releaseErr)
 				}
 			}()
-			payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions)
+			payload, usage, diag, err = backend.GenerateImageManagedMediaDirect(ctx, modelsRoot, backendAddress, profile, spec, scenarioExtensions, onProgress)
 			if err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err

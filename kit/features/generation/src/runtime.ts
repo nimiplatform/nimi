@@ -12,6 +12,7 @@ export type RuntimeScenarioJob = {
   jobId: string;
   status: ScenarioJobStatus;
   reasonDetail?: string | null;
+  progressPercent?: number | null;
 };
 export type RuntimeScenarioArtifact = {
   artifactId?: string;
@@ -181,8 +182,12 @@ export function useRuntimeGenerationPanel<TInput>({
       status: scenarioJobStatusToGenerationStatus(job.status),
       label: getStatusLabel({ input, job }),
       error: job.reasonDetail || undefined,
-      progressValue: job.status === ScenarioJobStatus.RUNNING ? 50 : undefined,
-      progressLabel: scenarioJobStatusLabel(job.status),
+      progressValue: job.status === ScenarioJobStatus.RUNNING && typeof job.progressPercent === 'number'
+        ? job.progressPercent
+        : undefined,
+      progressLabel: job.status === ScenarioJobStatus.RUNNING && typeof job.progressPercent === 'number'
+        ? `${Math.round(job.progressPercent)}%`
+        : scenarioJobStatusLabel(job.status),
     };
 
     setStatusItems((current) => {

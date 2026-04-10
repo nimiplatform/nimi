@@ -51,6 +51,7 @@ type Daemon struct {
 const (
 	engineManagedImageBackend = engine.EngineKind("managed-image-backend")
 	engineSidecar             = engine.EngineKind("sidecar")
+	maxShutdownDrainWait      = 250 * time.Millisecond
 )
 
 func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
@@ -156,21 +157,25 @@ func (d *Daemon) shutdown() error {
 	d.state.SetStatus(health.StatusStopping, "shutting down")
 	d.grpc.SyncServingState()
 
-	d.stopSupervisedEngines("stopping supervised engines")
-
 	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
 	defer cancel()
+	activeAtStart := d.grpc.BeginShutdown()
+	if len(activeAtStart) > 0 {
+		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
+	}
+	waitForShutdownDrain(ctx, d.cfg.ShutdownTimeout)
+
+	d.stopSupervisedEngines("stopping supervised engines")
 
 	httpErr := d.http.Shutdown(ctx)
-	grpcErr := d.grpc.Stop(ctx)
+	grpcResult := d.grpc.Stop(ctx)
+	appendShutdownAudit(d.auditStore, grpcResult.Shutdown)
+	logShutdownSummary(d.logger, grpcResult.Shutdown)
 
 	d.state.SetStatus(health.StatusStopped, "stopped")
 
 	if httpErr != nil {
 		return fmt.Errorf("shutdown http: %w", httpErr)
-	}
-	if grpcErr != nil {
-		return fmt.Errorf("shutdown grpc: %w", grpcErr)
 	}
 	return nil
 }
@@ -207,6 +212,45 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 			d.state.SetResource(0, int64(ms.Alloc), 0)
 		}
 	}
+}
+
+func waitForShutdownDrain(ctx context.Context, timeout time.Duration) {
+	wait := timeout / 10
+	if wait > maxShutdownDrainWait {
+		wait = maxShutdownDrainWait
+	}
+	if wait <= 0 {
+		return
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+	case <-timer.C:
+	}
+}
+
+func logShutdownSummary(logger *slog.Logger, summary grpcserver.ShutdownSummary) {
+	if logger == nil {
+		return
+	}
+	if summary.StartedAt.IsZero() {
+		return
+	}
+	if summary.Forced {
+		logger.Warn("runtime shutdown required gRPC force stop",
+			"duration", summary.Duration,
+			"active_methods", summary.ActiveByMethod,
+			"cancelled_methods", summary.CancelledByMethod,
+			"remaining_methods", summary.RemainingByMethod,
+		)
+		return
+	}
+	logger.Info("runtime shutdown completed",
+		"duration", summary.Duration,
+		"active_methods", summary.ActiveByMethod,
+		"cancelled_methods", summary.CancelledByMethod,
+	)
 }
 
 func (d *Daemon) setDegradedStatus(reason string) {

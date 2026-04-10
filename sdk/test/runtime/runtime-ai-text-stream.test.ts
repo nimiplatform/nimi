@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '../../src/types/index.js';
 import { FallbackPolicy, RoutePolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
 import type { RuntimeInternalContext } from '../../src/runtime/internal-context.js';
 import { runtimeAiRequestRequiresSubject } from '../../src/runtime/runtime-guards.js';
@@ -127,6 +128,48 @@ test('runtimeStreamText uses completed usage when the usage event is absent', as
   assert.equal(finish.usage.inputTokens, 7);
   assert.equal(finish.usage.outputTokens, 3);
   assert.equal(finish.usage.totalTokens, 10);
+});
+
+test('runtimeStreamText propagates shutdown cancellation instead of synthesizing finish output', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        streamScenario: async () => ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              payload: {
+                oneofKind: 'started',
+                started: {
+                  routeDecision: RoutePolicy.LOCAL,
+                  modelResolved: 'chat/shutdown-cancel',
+                },
+              },
+              traceId: 'trace-shutdown-cancel',
+            };
+            throw {
+              reasonCode: ReasonCode.RUNTIME_GRPC_CANCELLED,
+              message: 'runtime shutting down',
+              retryable: false,
+            };
+          },
+        }),
+      },
+    } as never),
+  });
+
+  const result = await runtimeStreamText(ctx, {
+    model: 'chat/default',
+    input: 'hello',
+  });
+
+  const parts: Array<{ type: string }> = [];
+  await assert.rejects(async () => {
+    for await (const part of result.stream) {
+      parts.push(part);
+    }
+  }, (error: any) => error?.reasonCode === ReasonCode.RUNTIME_GRPC_CANCELLED);
+
+  assert.deepEqual(parts, [{ type: 'start' }]);
 });
 
 test('runtimeStreamText prefers the usage event over completed usage', async () => {

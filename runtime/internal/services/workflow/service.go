@@ -16,6 +16,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 )
@@ -313,7 +314,11 @@ func (s *Service) SubscribeWorkflowEvents(req *runtimev1.SubscribeWorkflowEvents
 	if terminal {
 		sub.Relay.Close()
 	}
-	return <-done
+	runErr := <-done
+	if runErr == nil && rpcctx.WasServerShutdown(stream.Context()) {
+		return rpcctx.ServerShutdownError()
+	}
+	return runErr
 }
 
 func workflowAppIDFromContext(ctx context.Context) string {

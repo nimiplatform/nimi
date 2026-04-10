@@ -2335,6 +2335,12 @@ pub struct ScenarioJob {
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
     #[prost(message, optional, tag = "19")]
     pub reason_metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(int32, tag = "20")]
+    pub progress_percent: i32,
+    #[prost(int32, tag = "21")]
+    pub progress_current_step: i32,
+    #[prost(int32, tag = "22")]
+    pub progress_total_steps: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {

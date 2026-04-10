@@ -262,7 +262,10 @@ export class Runtime {
     this.healthEvents = healthStreams.healthEvents;
     this.providerHealthEvents = healthStreams.providerHealthEvents;
 
-    this.app = createAppClient((operation) => this.#invokeWithClient(operation));
+    this.app = createAppClient({
+      invokeWithClient: (operation) => this.#invokeWithClient(operation),
+      wrapModeDStream: (source) => this.#wrapModeDStream(source),
+    });
 
     this.appAuth = createAppAuthClient({
       invokeWithClient: (operation) => this.#invokeWithClient(operation),

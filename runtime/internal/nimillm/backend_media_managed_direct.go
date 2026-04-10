@@ -30,6 +30,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 	profile map[string]any,
 	spec *runtimev1.ImageGenerateScenarioSpec,
 	scenarioExtensions map[string]any,
+	onProgress func(ManagedMediaImageProgress),
 ) ([]byte, *runtimev1.UsageStats, *ManagedMediaImageDiagnostics, error) {
 	if spec == nil {
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -145,6 +146,16 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		Src:            sourcePath,
 		EnableParams:   enableParams,
 		RefImages:      refImages,
+		OnProgress: func(progress managedimagebackend.ImageGenerateProgress) {
+			if onProgress == nil {
+				return
+			}
+			onProgress(ManagedMediaImageProgress{
+				CurrentStep:     progress.CurrentStep,
+				TotalSteps:      progress.TotalSteps,
+				ProgressPercent: progress.ProgressPercent,
+			})
+		},
 	})
 	generateDurationMs := time.Since(startedAt).Milliseconds()
 	if err != nil {

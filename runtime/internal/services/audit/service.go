@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -312,10 +312,10 @@ func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProvid
 	for {
 		select {
 		case <-stream.Context().Done():
-			if errors.Is(stream.Context().Err(), context.Canceled) {
+			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
 				return nil
 			}
-			return stream.Context().Err()
+			return rpcctx.ContextDoneError(stream.Context())
 		case item, ok := <-updates:
 			if !ok {
 				return nil
@@ -359,10 +359,10 @@ func (s *Service) SubscribeRuntimeHealthEvents(_ *runtimev1.SubscribeRuntimeHeal
 	for {
 		select {
 		case <-stream.Context().Done():
-			if errors.Is(stream.Context().Err(), context.Canceled) {
+			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
 				return nil
 			}
-			return stream.Context().Err()
+			return rpcctx.ContextDoneError(stream.Context())
 		case snapshot, ok := <-updates:
 			if !ok {
 				return nil

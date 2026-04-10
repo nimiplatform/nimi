@@ -503,6 +503,9 @@
 - rule_id: K-JOB-007
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-JOB-008
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-KEYSRC-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

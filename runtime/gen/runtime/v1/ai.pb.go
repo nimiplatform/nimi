@@ -4226,28 +4226,31 @@ func (x *ScenarioArtifact) GetMetadata() *structpb.Struct {
 }
 
 type ScenarioJob struct {
-	state             protoimpl.MessageState      `protogen:"open.v1"`
-	JobId             string                      `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Head              *ScenarioRequestHead        `protobuf:"bytes,2,opt,name=head,proto3" json:"head,omitempty"`
-	ScenarioType      ScenarioType                `protobuf:"varint,3,opt,name=scenario_type,json=scenarioType,proto3,enum=nimi.runtime.v1.ScenarioType" json:"scenario_type,omitempty"`
-	ExecutionMode     ExecutionMode               `protobuf:"varint,4,opt,name=execution_mode,json=executionMode,proto3,enum=nimi.runtime.v1.ExecutionMode" json:"execution_mode,omitempty"`
-	RouteDecision     RoutePolicy                 `protobuf:"varint,5,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
-	ModelResolved     string                      `protobuf:"bytes,6,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
-	Status            ScenarioJobStatus           `protobuf:"varint,7,opt,name=status,proto3,enum=nimi.runtime.v1.ScenarioJobStatus" json:"status,omitempty"`
-	ProviderJobId     string                      `protobuf:"bytes,8,opt,name=provider_job_id,json=providerJobId,proto3" json:"provider_job_id,omitempty"`
-	ReasonCode        ReasonCode                  `protobuf:"varint,9,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	ReasonDetail      string                      `protobuf:"bytes,10,opt,name=reason_detail,json=reasonDetail,proto3" json:"reason_detail,omitempty"`
-	RetryCount        int32                       `protobuf:"varint,11,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
-	CreatedAt         *timestamppb.Timestamp      `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt         *timestamppb.Timestamp      `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	NextPollAt        *timestamppb.Timestamp      `protobuf:"bytes,14,opt,name=next_poll_at,json=nextPollAt,proto3" json:"next_poll_at,omitempty"`
-	Artifacts         []*ScenarioArtifact         `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
-	Usage             *UsageStats                 `protobuf:"bytes,16,opt,name=usage,proto3" json:"usage,omitempty"`
-	TraceId           string                      `protobuf:"bytes,17,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
-	IgnoredExtensions []*IgnoredScenarioExtension `protobuf:"bytes,18,rep,name=ignored_extensions,json=ignoredExtensions,proto3" json:"ignored_extensions,omitempty"`
-	ReasonMetadata    *structpb.Struct            `protobuf:"bytes,19,opt,name=reason_metadata,json=reasonMetadata,proto3" json:"reason_metadata,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state               protoimpl.MessageState      `protogen:"open.v1"`
+	JobId               string                      `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Head                *ScenarioRequestHead        `protobuf:"bytes,2,opt,name=head,proto3" json:"head,omitempty"`
+	ScenarioType        ScenarioType                `protobuf:"varint,3,opt,name=scenario_type,json=scenarioType,proto3,enum=nimi.runtime.v1.ScenarioType" json:"scenario_type,omitempty"`
+	ExecutionMode       ExecutionMode               `protobuf:"varint,4,opt,name=execution_mode,json=executionMode,proto3,enum=nimi.runtime.v1.ExecutionMode" json:"execution_mode,omitempty"`
+	RouteDecision       RoutePolicy                 `protobuf:"varint,5,opt,name=route_decision,json=routeDecision,proto3,enum=nimi.runtime.v1.RoutePolicy" json:"route_decision,omitempty"`
+	ModelResolved       string                      `protobuf:"bytes,6,opt,name=model_resolved,json=modelResolved,proto3" json:"model_resolved,omitempty"`
+	Status              ScenarioJobStatus           `protobuf:"varint,7,opt,name=status,proto3,enum=nimi.runtime.v1.ScenarioJobStatus" json:"status,omitempty"`
+	ProviderJobId       string                      `protobuf:"bytes,8,opt,name=provider_job_id,json=providerJobId,proto3" json:"provider_job_id,omitempty"`
+	ReasonCode          ReasonCode                  `protobuf:"varint,9,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	ReasonDetail        string                      `protobuf:"bytes,10,opt,name=reason_detail,json=reasonDetail,proto3" json:"reason_detail,omitempty"`
+	RetryCount          int32                       `protobuf:"varint,11,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
+	CreatedAt           *timestamppb.Timestamp      `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt           *timestamppb.Timestamp      `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	NextPollAt          *timestamppb.Timestamp      `protobuf:"bytes,14,opt,name=next_poll_at,json=nextPollAt,proto3" json:"next_poll_at,omitempty"`
+	Artifacts           []*ScenarioArtifact         `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	Usage               *UsageStats                 `protobuf:"bytes,16,opt,name=usage,proto3" json:"usage,omitempty"`
+	TraceId             string                      `protobuf:"bytes,17,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	IgnoredExtensions   []*IgnoredScenarioExtension `protobuf:"bytes,18,rep,name=ignored_extensions,json=ignoredExtensions,proto3" json:"ignored_extensions,omitempty"`
+	ReasonMetadata      *structpb.Struct            `protobuf:"bytes,19,opt,name=reason_metadata,json=reasonMetadata,proto3" json:"reason_metadata,omitempty"`
+	ProgressPercent     int32                       `protobuf:"varint,20,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
+	ProgressCurrentStep int32                       `protobuf:"varint,21,opt,name=progress_current_step,json=progressCurrentStep,proto3" json:"progress_current_step,omitempty"`
+	ProgressTotalSteps  int32                       `protobuf:"varint,22,opt,name=progress_total_steps,json=progressTotalSteps,proto3" json:"progress_total_steps,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ScenarioJob) Reset() {
@@ -4411,6 +4414,27 @@ func (x *ScenarioJob) GetReasonMetadata() *structpb.Struct {
 		return x.ReasonMetadata
 	}
 	return nil
+}
+
+func (x *ScenarioJob) GetProgressPercent() int32 {
+	if x != nil {
+		return x.ProgressPercent
+	}
+	return 0
+}
+
+func (x *ScenarioJob) GetProgressCurrentStep() int32 {
+	if x != nil {
+		return x.ProgressCurrentStep
+	}
+	return 0
+}
+
+func (x *ScenarioJob) GetProgressTotalSteps() int32 {
+	if x != nil {
+		return x.ProgressTotalSteps
+	}
+	return 0
 }
 
 type SubmitScenarioJobRequest struct {
@@ -7887,7 +7911,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0esample_rate_hz\x18\v \x01(\x05R\fsampleRateHz\x12\x1a\n" +
 	"\bchannels\x18\f \x01(\x05R\bchannels\x12K\n" +
 	"\x10speech_alignment\x18\r \x01(\v2 .nimi.runtime.v1.SpeechAlignmentR\x0fspeechAlignment\x123\n" +
-	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x9c\b\n" +
+	"\bmetadata\x18\x0e \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xad\t\n" +
 	"\vScenarioJob\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x128\n" +
 	"\x04head\x18\x02 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
@@ -7913,7 +7937,10 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x05usage\x18\x10 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12\x19\n" +
 	"\btrace_id\x18\x11 \x01(\tR\atraceId\x12X\n" +
 	"\x12ignored_extensions\x18\x12 \x03(\v2).nimi.runtime.v1.IgnoredScenarioExtensionR\x11ignoredExtensions\x12@\n" +
-	"\x0freason_metadata\x18\x13 \x01(\v2\x17.google.protobuf.StructR\x0ereasonMetadata\"\xa8\x04\n" +
+	"\x0freason_metadata\x18\x13 \x01(\v2\x17.google.protobuf.StructR\x0ereasonMetadata\x12)\n" +
+	"\x10progress_percent\x18\x14 \x01(\x05R\x0fprogressPercent\x122\n" +
+	"\x15progress_current_step\x18\x15 \x01(\x05R\x13progressCurrentStep\x120\n" +
+	"\x14progress_total_steps\x18\x16 \x01(\x05R\x12progressTotalSteps\"\xa8\x04\n" +
 	"\x18SubmitScenarioJobRequest\x128\n" +
 	"\x04head\x18\x01 \x01(\v2$.nimi.runtime.v1.ScenarioRequestHeadR\x04head\x12B\n" +
 	"\rscenario_type\x18\x02 \x01(\x0e2\x1d.nimi.runtime.v1.ScenarioTypeR\fscenarioType\x12E\n" +

@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
@@ -456,11 +457,14 @@ func (s *Service) WatchLocalTransfers(_ *runtimev1.WatchLocalTransfersRequest, s
 	for {
 		select {
 		case <-stream.Context().Done():
-			if errors.Is(stream.Context().Err(), context.Canceled) {
+			if err := rpcctx.ContextDoneError(stream.Context()); err == nil {
 				return nil
 			}
-			return stream.Context().Err()
+			return rpcctx.ContextDoneError(stream.Context())
 		case err := <-done:
+			if err == nil && rpcctx.WasServerShutdown(stream.Context()) {
+				return rpcctx.ServerShutdownError()
+			}
 			return err
 		case event, ok := <-updates:
 			if !ok {

@@ -72,6 +72,7 @@ type VideoGenerationCapability struct {
 type ModelEntry struct {
 	Provider           string                     `yaml:"provider" json:"provider"`
 	ModelID            string                     `yaml:"model_id" json:"model_id"`
+	ApiModelID         string                     `yaml:"api_model_id,omitempty" json:"api_model_id,omitempty"`
 	ModelType          string                     `yaml:"model_type" json:"model_type"`
 	UpdatedAt          string                     `yaml:"updated_at" json:"updated_at"`
 	Capabilities       []string                   `yaml:"capabilities" json:"capabilities"`

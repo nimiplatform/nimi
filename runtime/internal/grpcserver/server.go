@@ -43,6 +43,7 @@ type Server struct {
 	logger       *slog.Logger
 	grpcServer   *grpc.Server
 	healthServer *grpcHealth.Server
+	rpcRegistry  *activeRPCRegistry
 	aiHealth     *providerhealth.Tracker
 	auditStore   *auditlog.Store
 	aiSvc        *aiservice.Service
@@ -82,6 +83,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger.Info("model registry persistence enabled", "path", registryPath)
 	}
 	aiHealth := providerhealth.New()
+	rpcRegistry := newActiveRPCRegistry(nil)
 
 	h := grpcHealth.NewServer()
 	grantSvc := grantservice.NewWithDependencies(logger, appRegistry, scopeCatalog,
@@ -111,6 +113,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		grpc.ChainUnaryInterceptor(
 			newUnaryVersionInterceptor(logger, version),
 			newUnaryLifecycleInterceptor(state),
+			newUnaryActivityInterceptor(rpcRegistry),
 			newUnaryProtocolInterceptor(idempotencyStore),
 			authn.NewUnaryInterceptor(authnValidator),
 			newUnaryAuthzInterceptor(grantSvc),
@@ -120,6 +123,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		grpc.ChainStreamInterceptor(
 			newStreamVersionInterceptor(logger, version),
 			newStreamLifecycleInterceptor(state),
+			newStreamActivityInterceptor(rpcRegistry),
 			newStreamProtocolInterceptor(),
 			authn.NewStreamInterceptor(authnValidator),
 			newStreamAuthzInterceptor(grantSvc),
@@ -273,6 +277,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger:       logger,
 		grpcServer:   g,
 		healthServer: h,
+		rpcRegistry:  rpcRegistry,
 		aiHealth:     aiHealth,
 		auditStore:   auditStore,
 		aiSvc:        aiSvc,
@@ -313,7 +318,21 @@ func (s *Server) Serve() error {
 	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+type StopResult struct {
+	Shutdown ShutdownSummary
+}
+
+func (s *Server) BeginShutdown() []activeRPCSnapshot {
+	if s.rpcRegistry == nil {
+		return []activeRPCSnapshot{}
+	}
+	return s.rpcRegistry.BeginShutdown()
+}
+
+func (s *Server) Stop(ctx context.Context) StopResult {
+	if s.rpcRegistry != nil {
+		s.rpcRegistry.BeginShutdown()
+	}
 	done := make(chan struct{})
 	go func() {
 		s.grpcServer.GracefulStop()
@@ -322,10 +341,16 @@ func (s *Server) Stop(ctx context.Context) error {
 
 	select {
 	case <-done:
-		return nil
+		if s.rpcRegistry == nil {
+			return StopResult{}
+		}
+		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(false)}
 	case <-ctx.Done():
 		s.grpcServer.Stop()
-		return ctx.Err()
+		if s.rpcRegistry == nil {
+			return StopResult{}
+		}
+		return StopResult{Shutdown: s.rpcRegistry.CompleteShutdown(true)}
 	}
 }
 

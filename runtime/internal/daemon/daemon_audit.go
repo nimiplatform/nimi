@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcserver"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -106,6 +107,33 @@ func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string,
 		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
 		TraceId:    ulid.Make().String(),
 		Timestamp:  timestamppb.New(now),
+		Payload:    payload,
+		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
+		CallerId:   "runtime-daemon",
+		SurfaceId:  "daemon",
+	})
+}
+
+func appendShutdownAudit(store *auditlog.Store, summary grpcserver.ShutdownSummary) {
+	if store == nil || summary.StartedAt.IsZero() {
+		return
+	}
+	payload := auditPayloadStruct(map[string]any{
+		"forced":              summary.Forced,
+		"duration_ms":         summary.Duration.Milliseconds(),
+		"active_methods":      summary.ActiveByMethod,
+		"cancelled_methods":   summary.CancelledByMethod,
+		"remaining_methods":   summary.RemainingByMethod,
+		"active_rpc_count":    len(summary.ActiveAtStart),
+		"remaining_rpc_count": len(summary.RemainingAtForceStop),
+	})
+	store.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:    ulid.Make().String(),
+		Domain:     "runtime.lifecycle",
+		Operation:  "shutdown.completed",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:    ulid.Make().String(),
+		Timestamp:  timestamppb.New(time.Now().UTC()),
 		Payload:    payload,
 		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
 		CallerId:   "runtime-daemon",
