@@ -6,6 +6,7 @@ import test from 'node:test';
 import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import { parseAgentResolvedBeatActionEnvelope } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import {
+  buildDesktopChatEnvelopeSkeleton,
   buildDesktopChatOutputContractSection,
   composeDesktopChatSystemPrompt,
 } from '../src/shell/renderer/features/chat/chat-output-contract.js';
@@ -22,7 +23,9 @@ test('desktop chat output contract helper exposes beat-action envelope rules', (
   assert.match(section, /Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object/);
   assert.match(section, /The first character of your response must be "\{" and the final character must be "\}"/);
   assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
+  assert.match(section, /The top-level object must contain "schemaId", "beats", and "actions"\. Do not rename or omit these keys/);
   assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
+  assert.match(section, new RegExp(`Begin your response with \\{\"schemaId\":\"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.match(section, /Put all user-visible assistant text inside ordered "beats\[\*\]\.text" fields/);
   assert.match(section, /Every beat must include a unique "beatId" string/);
   assert.match(section, /Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request"/);
@@ -46,7 +49,18 @@ test('desktop chat output contract helper appends contract after existing system
   assert.match(prompt, /\n\nOutput Contract:\n/);
   assert.match(prompt, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
   assert.match(prompt, /The first character of your response must be "\{" and the final character must be "\}"/);
+  assert.match(prompt, /Response Skeleton:/);
+  assert.match(prompt, new RegExp(`"schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.doesNotMatch(prompt, /fall back to plain text instead of partial Markdown/);
+});
+
+test('desktop chat output contract helper exposes a minimal envelope skeleton', () => {
+  const skeleton = buildDesktopChatEnvelopeSkeleton();
+
+  assert.match(skeleton, /^\{/m);
+  assert.match(skeleton, new RegExp(`"schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
+  assert.match(skeleton, /"beats": \[/);
+  assert.match(skeleton, /"actions": \[\]/);
 });
 
 test('agent beat-action envelope parser fails close on fenced JSON with a contract-specific error', () => {

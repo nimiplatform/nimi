@@ -9,7 +9,7 @@ import type {
   AgentLocalTurnBeatRecord,
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { AgentResolvedBehavior } from './chat-agent-behavior';
+import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID, type AgentResolvedBehavior } from './chat-agent-behavior';
 import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 
 const DEFAULT_MODEL_CONTEXT_TOKENS = 4096;
@@ -369,7 +369,7 @@ function buildSystemPrompt(input: {
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
     buildDesktopChatOutputContractSection(),
-    'Instruction:\nReply as the target agent through the beat-action envelope. Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.',
+    `Instruction:\nReply as the target agent through the beat-action envelope. The top-level object must include "schemaId", "beats", and "actions". Begin exactly with {"schemaId":"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}". Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.`,
   ].filter(Boolean);
 
   return sections.length > 0 ? sections.join('\n\n') : null;

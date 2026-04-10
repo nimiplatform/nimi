@@ -10,7 +10,9 @@ function buildDesktopChatOutputContractLines(): string[] {
     'Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object.',
     'The first character of your response must be "{" and the final character must be "}".',
     'Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block.',
+    'The top-level object must contain "schemaId", "beats", and "actions". Do not rename or omit these keys.',
     `Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}".`,
+    `Begin your response with {"schemaId":"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}"`,
     'Put all user-visible assistant text inside ordered "beats[*].text" fields.',
     'Every beat must include a unique "beatId" string (e.g. "beat-0", "beat-1").',
     'Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request".',
@@ -28,6 +30,25 @@ function buildDesktopChatOutputContractLines(): string[] {
   ];
 }
 
+export function buildDesktopChatEnvelopeSkeleton(): string {
+  return [
+    '{',
+    `  "schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}",`,
+    '  "beats": [',
+    '    {',
+    '      "beatId": "beat-0",',
+    '      "beatIndex": 0,',
+    '      "beatCount": 1,',
+    '      "intent": "reply",',
+    '      "deliveryPhase": "primary",',
+    '      "text": "<assistant reply>"',
+    '    }',
+    '  ],',
+    '  "actions": []',
+    '}',
+  ].join('\n');
+}
+
 export function buildDesktopChatOutputContractSection(): string {
   return [
     'Output Contract:',
@@ -40,6 +61,7 @@ export function composeDesktopChatSystemPrompt(basePrompt?: string | null): stri
   const sections = [
     base || null,
     buildDesktopChatOutputContractSection(),
+    `Response Skeleton:\n${buildDesktopChatEnvelopeSkeleton()}`,
   ].filter(Boolean);
   return sections.join('\n\n');
 }

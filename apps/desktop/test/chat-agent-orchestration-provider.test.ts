@@ -529,7 +529,7 @@ test('agent local chat prompt includes continuity and transcript context', () =>
 
   assert.match(prompt, /Preset:/);
   assert.match(prompt, /Continuity:/);
-  assert.match(prompt, /User prefers concise answers/);
+  assert.match(prompt, /"userPrefs": \{[\s\S]*"brevity": true/);
   assert.match(prompt, /What should we do next/);
   assert.match(prompt, /Output Contract:/);
   assert.match(prompt, /Return exactly one JSON object/);
@@ -775,7 +775,7 @@ test('agent local chat diagnostics inspection returns a stable copy surface', ()
   assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
   assert.equal(request.diagnostics.budget.modelContextTokens, 4096);
   assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
-  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 1);
+  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 0);
   assert.equal(request.diagnostics.transcript.emittedMessages, 1);
 });
 
@@ -862,7 +862,7 @@ test('agent local chat provider emits first-beat before terminal and commits com
   const eventTypes = events.map((event) => event.type);
 
   assert.equal(runtimeCalls.length, 1);
-  assert.match(runtimeCalls[0]?.prompt || '', /User prefers concise answers/);
+  assert.match(runtimeCalls[0]?.systemPrompt || '', /"userPrefs": \{[\s\S]*"brevity": true/);
   assert.match(runtimeCalls[0]?.systemPrompt || '', /Output Contract:/);
   assert.deepEqual(runtimeCalls[0]?.messages, [
     {
