@@ -34,6 +34,9 @@ Its human-converged autonomous delivery posture is:
 10. Token-cost discussion belongs to methodology audit and workflow evaluation only. It must not become a routine topic artifact, phase gate, or everyday execution metric.
 11. `nimi-coding` is continuity-agnostic. It requires durable artifacts, packet-bound state, and recoverable governance, but it does not require a persistent manager process, heartbeat, daemon, or session-continuity substrate.
 12. Any full-automation, persistent-manager, or harness-level continuity system may extend `nimi-coding`, but it must do so as an outer engineering layer rather than redefining the methodology itself.
+13. Same-owner, same-lifecycle, or same-consumer stages must not be split into new authority surfaces by default. If the distinction is only phased naming, keep it inside one surface rather than opening another packet family.
+14. Repeated same-family packet decomposition is a methodology failure. Once one capability chain already has repeated `preflight`, `boundary`, or `seed` slices, the next allowed step is collapse/audit or implementation, not another decomposition packet.
+15. Validator and gate behavior should fail-close on capability-chain fragmentation when a topic belongs to an over-fragmented family and is not itself the collapse/audit repair.
 
 ## Module Ownership
 

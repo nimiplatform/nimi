@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 import {
@@ -98,6 +99,11 @@ const ACCEPTANCE_BLOCKS = [
 
 const ACCEPTANCE_DISPOSITIONS = new Set(['complete', 'partial', 'deferred']);
 const WORKER_RUNNER_SIGNAL_RESULT_KINDS = new Set(['complete', 'escalate', 'fail']);
+const FRAGMENTATION_STAGE_SUFFIXES = new Set(['preflight', 'boundary', 'seed']);
+const FRAGMENTATION_EXEMPT_TOKENS = new Set(['audit', 'collapse']);
+const FRAGMENTATION_WARNING_FAMILY_COUNT = 6;
+const FRAGMENTATION_ERROR_FAMILY_COUNT = 9;
+const FRAGMENTATION_MIN_PREFIX_TOKENS = 4;
 export const VALIDATOR_NATIVE_REFUSAL_CODES = Object.freeze({
   WORKER_OUTPUT_MISSING: 'WORKER_OUTPUT_MISSING',
   WORKER_OUTPUT_INVALID: 'WORKER_OUTPUT_INVALID',
@@ -122,6 +128,75 @@ function inferTopicDir(filePath) {
     }
     cursor = parent;
   }
+}
+
+function stripTopicDatePrefix(topicId) {
+  return String(topicId || '').replace(/^\d{8}-/u, '');
+}
+
+function topicHasFragmentationExemption(slug) {
+  const tokens = String(slug || '').split('-').filter(Boolean);
+  return tokens.some((token) => FRAGMENTATION_EXEMPT_TOKENS.has(token));
+}
+
+function readSiblingTopicIds(parentDir) {
+  const topicIds = [];
+  for (const entry of fs.readdirSync(parentDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const topicPath = path.join(parentDir, entry.name, 'topic.index.yaml');
+    if (!exists(topicPath)) {
+      continue;
+    }
+    topicIds.push(entry.name);
+  }
+  return topicIds;
+}
+
+function analyzeTopicFragmentation(topicDir, topicId) {
+  const slug = stripTopicDatePrefix(topicId || path.basename(topicDir));
+  const tokens = slug.split('-').filter(Boolean);
+  if (tokens.length < FRAGMENTATION_MIN_PREFIX_TOKENS) {
+    return null;
+  }
+  const parentDir = path.dirname(topicDir);
+  const siblingSlugs = readSiblingTopicIds(parentDir).map(stripTopicDatePrefix);
+  let best = null;
+
+  for (let length = tokens.length - 1; length >= FRAGMENTATION_MIN_PREFIX_TOKENS; length -= 1) {
+    const prefix = tokens.slice(0, length).join('-');
+    const family = siblingSlugs.filter((candidate) => candidate === prefix || candidate.startsWith(`${prefix}-`));
+    if (family.length < FRAGMENTATION_WARNING_FAMILY_COUNT) {
+      continue;
+    }
+    const stageCounts = { preflight: 0, boundary: 0, seed: 0 };
+    for (const candidate of family) {
+      const lastToken = candidate.split('-').filter(Boolean).at(-1);
+      if (lastToken && FRAGMENTATION_STAGE_SUFFIXES.has(lastToken)) {
+        stageCounts[lastToken] += 1;
+      }
+    }
+    const repeatedStageKinds = Object.values(stageCounts).filter((count) => count > 1).length;
+    const uniqueStageKinds = Object.values(stageCounts).filter((count) => count > 0).length;
+    if (repeatedStageKinds === 0 || uniqueStageKinds < 2) {
+      continue;
+    }
+    best = {
+      prefix,
+      familyCount: family.length,
+      stageCounts,
+    };
+    break;
+  }
+
+  if (!best) {
+    return null;
+  }
+  return {
+    ...best,
+    exempt: topicHasFragmentationExemption(slug),
+  };
 }
 
 function extractMarkdownSection(body, heading) {
@@ -1161,6 +1236,17 @@ export function validateTopicData(topicDir, doc = {}) {
   }
   if (status === 'active' && (!doc.protocol_refs || doc.protocol_refs.length === 0)) {
     warnings.push('active topic has empty protocol_refs');
+  }
+  const fragmentation = analyzeTopicFragmentation(topicDir, doc.topic_id);
+  if (fragmentation) {
+    const summary = `same-family topic fragmentation detected for "${fragmentation.prefix}": family_count=${fragmentation.familyCount} preflight=${fragmentation.stageCounts.preflight} boundary=${fragmentation.stageCounts.boundary} seed=${fragmentation.stageCounts.seed}`;
+    if (fragmentation.exempt) {
+      warnings.push(`${summary}; current topic is treated as the allowed collapse/audit exception`);
+    } else if (fragmentation.familyCount >= FRAGMENTATION_ERROR_FAMILY_COUNT) {
+      fail(`${summary}; stop opening more decomposition packets and open a collapse/audit repair instead`, errors);
+    } else {
+      warnings.push(`${summary}; next step should be collapse/audit or implementation, not another decomposition packet`);
+    }
   }
   return { ok: errors.length === 0, errors, warnings, doc };
 }

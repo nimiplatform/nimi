@@ -29,6 +29,12 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 
 Token-cost discussion belongs to methodology audit only. It helps judge whether this workflow is worth using for a class of work; it is not a routine topic artifact, phase gate, or day-to-day execution metric.
 
+Capability-chain decomposition is intentionally bounded. `nimi-coding` is meant
+to reduce ambiguity, not recursively manufacture more surfaces. When one
+capability family already has repeated `preflight`, `boundary`, or `seed`
+topics, the next valid step is collapse/audit or implementation. Opening
+another same-family decomposition topic is an execution-system failure.
+
 ## What This Module Owns
 
 | Directory | Responsibility |

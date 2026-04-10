@@ -22,6 +22,10 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 - Do not use `nimi-coding` for every small fix. If the authority boundary is
   already clear and the change is narrow and low-risk, work can stay outside a
   topic.
+- Do not recursively decompose one capability chain into repeated `preflight`,
+  `boundary`, and `seed` topics when owner, lifecycle, and consumer boundaries
+  have not actually changed. After the first bounded chain, the next step must
+  be collapse/audit or implementation.
 - Treat `README.md` and the promoted contracts under `contracts/` as the module
   authority for detailed methodology and runtime surface behavior.
 - Treat `.local/**` as the active topic workspace only. It is validated by the
@@ -72,6 +76,7 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 9. Keep continuity-agnostic explicit: harnesses, automation, or host runtimes may extend continuity, but they do not define core `nimi-coding` methodology.
 10. Do not reintroduce phased-rollout prose that understates the current promoted surface.
 11. Do not claim phase-2 semantic automation, generalized automation orchestration, or transport-manager behavior is complete when it is not.
+12. Treat same-family packet proliferation as an execution-system bug. If a capability chain starts repeating `preflight`, `boundary`, or `seed` slices, stop and open a collapse/audit repair rather than continuing the chain.
 
 ## Workflow Rules
 
@@ -84,6 +89,7 @@ Applies to all files under `nimi-coding/**`. This module is the formal execution
 7. Prefer principle-first guidance in instruction docs; leave detailed operational behavior to README and contracts
 8. Prefer inline manager-worker guidance in promoted examples unless the change explicitly targets provider-backed or scheduler-backed execution
 9. Do not turn continuity engineering concerns into core methodology requirements unless the module is explicitly being redesigned to own them
+10. If `validate-topic` reports same-family fragmentation, do not open another decomposition packet. Repair the chain or open a collapse/audit topic first.
 
 ## Verification Commands
 
