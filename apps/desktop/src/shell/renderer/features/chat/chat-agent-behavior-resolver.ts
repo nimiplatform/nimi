@@ -268,7 +268,16 @@ export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): Agent
   if (!raw) {
     throw new Error('Agent model output beat-action envelope is required');
   }
-  const payload = JSON.parse(raw) as unknown;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw) as unknown;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error || 'invalid JSON');
+    const hint = raw.startsWith('`')
+      ? 'leading backticks detected; remove Markdown code fences and return the JSON object directly'
+      : 'return the JSON object directly with no wrapper text';
+    throw new Error(`Agent model output must be a raw JSON object with no Markdown code fences or wrapper text: ${hint} (${detail})`);
+  }
   const record = parseRecord(payload, 'agent model output beat-action envelope');
   const schemaId = parseTrimmedString(record.schemaId, 'schemaId');
   if (schemaId !== AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID) {

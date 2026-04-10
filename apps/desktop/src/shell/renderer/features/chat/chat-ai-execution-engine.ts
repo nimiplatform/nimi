@@ -369,7 +369,7 @@ function buildSystemPrompt(input: {
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
     buildDesktopChatOutputContractSection(),
-    'Instruction:\nReply as the target agent through the beat-action envelope. Use continuity as background truth. Keep internal planning private.',
+    'Instruction:\nReply as the target agent through the beat-action envelope. Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.',
   ].filter(Boolean);
 
   return sections.length > 0 ? sections.join('\n\n') : null;

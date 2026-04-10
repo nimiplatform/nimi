@@ -8,6 +8,8 @@ function buildDesktopChatOutputContractLines(): string[] {
   return [
     'Return exactly one JSON object that matches the Agent Beat-Action Envelope schema.',
     'Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object.',
+    'The first character of your response must be "{" and the final character must be "}".',
+    'Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block.',
     `Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}".`,
     'Put all user-visible assistant text inside ordered "beats[*].text" fields.',
     'Every beat must include a unique "beatId" string (e.g. "beat-0", "beat-1").',

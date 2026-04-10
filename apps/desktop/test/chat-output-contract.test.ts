@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import { parseAgentResolvedBeatActionEnvelope } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import {
   buildDesktopChatOutputContractSection,
   composeDesktopChatSystemPrompt,
@@ -19,6 +20,8 @@ test('desktop chat output contract helper exposes beat-action envelope rules', (
   assert.match(section, /^Output Contract:/m);
   assert.match(section, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
   assert.match(section, /Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object/);
+  assert.match(section, /The first character of your response must be "\{" and the final character must be "\}"/);
+  assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
   assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
   assert.match(section, /Put all user-visible assistant text inside ordered "beats\[\*\]\.text" fields/);
   assert.match(section, /Every beat must include a unique "beatId" string/);
@@ -42,7 +45,29 @@ test('desktop chat output contract helper appends contract after existing system
   assert.match(prompt, /^Be concise\./);
   assert.match(prompt, /\n\nOutput Contract:\n/);
   assert.match(prompt, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
+  assert.match(prompt, /The first character of your response must be "\{" and the final character must be "\}"/);
   assert.doesNotMatch(prompt, /fall back to plain text instead of partial Markdown/);
+});
+
+test('agent beat-action envelope parser fails close on fenced JSON with a contract-specific error', () => {
+  assert.throws(() => {
+    parseAgentResolvedBeatActionEnvelope([
+      '```json',
+      '{',
+      `  "schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}",`,
+      '  "beats": [{',
+      '    "beatId": "beat-0",',
+      '    "beatIndex": 0,',
+      '    "beatCount": 1,',
+      '    "intent": "reply",',
+      '    "deliveryPhase": "primary",',
+      '    "text": "hello"',
+      '  }],',
+      '  "actions": []',
+      '}',
+      '```',
+    ].join('\n'));
+  }, /raw JSON object with no Markdown code fences or wrapper text/);
 });
 
 test('desktop AI host injects the shared output contract into simple-ai systemPrompt resolution', () => {
