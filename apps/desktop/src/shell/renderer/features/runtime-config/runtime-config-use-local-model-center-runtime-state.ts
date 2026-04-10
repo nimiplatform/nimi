@@ -703,6 +703,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     importFileAuxiliaryEngine,
     importFileEndpoint,
   });
+  const canChooseImportDirectory = importFileAssetKind === 'chat';
 
   const repairInstalledAsset = useCallback(async (localAssetId: string, endpoint: string) => {
     const asset = installedAssets.find((item) => item.localAssetId === localAssetId) || null;
@@ -726,6 +727,17 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       setAssetBusy(false);
     }
   }, [installedAssets, refreshAssetSections, refreshUnregisteredAssets]);
+
+  const rescanInstalledAsset = useCallback(async (localAssetId: string) => {
+    setAssetBusy(true);
+    try {
+      await localRuntime.rescanAssetBundle({ localAssetId }, { caller: 'core' });
+      await refreshAssetSections();
+      await refreshUnregisteredAssets();
+    } finally {
+      setAssetBusy(false);
+    }
+  }, [refreshAssetSections, refreshUnregisteredAssets]);
 
   return {
     activeDownloads: importActions.activeDownloads, activeImports: importActions.activeImports,
@@ -751,14 +763,16 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
     setSearchQuery, setShowImportFileDialog, setShowImportMenu,
     setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine, setUnregisteredEndpoint,
-    showImportFileDialog, showImportMenu, canChooseImportFile,
+    showImportFileDialog, showImportMenu, canChooseImportFile, canChooseImportDirectory,
     toggleVariantPicker: importActions.toggleVariantPicker,
     unregisteredAssetDrafts, unregisteredAssets,
     unregisteredCompatibilityHintByPath, unregisteredEndpointByPath,
     unregisteredEndpointRequiredByPath, unregisteredEndpointHintByPath, unregisteredImportAllowedByPath,
     importPickedAssetFile: importActions.importPickedAssetFile,
+    importPickedAssetDirectory: importActions.importPickedAssetDirectory,
     importPickedAssetManifest: importActions.importPickedAssetManifest,
     importUnregisteredAsset,
+    rescanInstalledAsset,
     variantError: importActions.variantError, variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,
     verifiedModels, visibleAssetTasks, visibleVerifiedAssets,

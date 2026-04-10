@@ -264,6 +264,20 @@ mod tests {
         }
     }
 
+    fn model_fixture_with_mmproj(
+        engine: &str,
+        status: LocalAiAssetStatus,
+        mmproj: &str,
+    ) -> LocalAiAssetRecord {
+        let mut model = model_fixture(engine, status);
+        model.engine_config = Some(serde_json::json!({
+            "llama": {
+                "mmproj": mmproj
+            }
+        }));
+        model
+    }
+
     fn unreachable_endpoint_fixture() -> String {
         let listener = TcpListener::bind("127.0.0.1:0")
             .expect("bind ephemeral localhost port for unreachable fixture");
@@ -425,6 +439,62 @@ mod tests {
         assert_eq!(args.get(model_index + 1), Some(&expected_model_path));
         assert_eq!(args.get(host_index + 1), Some(&"127.0.0.1".to_string()));
         assert_eq!(args.get(port_index + 1), Some(&"1234".to_string()));
+
+        std::env::remove_var("NIMI_LOCAL_AI_MODELS_DIR");
+        let _ = fs::remove_dir_all(models_root);
+    }
+
+    #[test]
+    fn canonical_llama_start_args_include_mmproj_when_configured() {
+        let _guard = env_lock().lock().expect("lock env");
+        let models_root = temp_dir("llama-mmproj-root");
+        std::env::set_var(
+            "NIMI_LOCAL_AI_MODELS_DIR",
+            models_root.display().to_string(),
+        );
+        let mmproj_path = crate::local_runtime::types::resolved_model_dir(
+            models_root.as_path(),
+            "nimi/test-model",
+        )
+        .join("mmproj-BF16.gguf");
+        fs::create_dir_all(mmproj_path.parent().expect("mmproj parent")).expect("create mmproj dir");
+        fs::write(&mmproj_path, b"mmproj").expect("write mmproj");
+        let model = model_fixture_with_mmproj(
+            "llama",
+            LocalAiAssetStatus::Installed,
+            "resolved/nimi/test-model/mmproj-BF16.gguf",
+        );
+
+        let args = LlamaCppProcessAdapter::start_args(&model).expect("build llama start args");
+        let mmproj_index = args
+            .iter()
+            .position(|item| item == "--mmproj")
+            .expect("start args include --mmproj");
+        assert_eq!(
+            args.get(mmproj_index + 1),
+            Some(&mmproj_path.to_string_lossy().to_string())
+        );
+
+        std::env::remove_var("NIMI_LOCAL_AI_MODELS_DIR");
+        let _ = fs::remove_dir_all(models_root);
+    }
+
+    #[test]
+    fn canonical_llama_start_args_fail_when_mmproj_is_missing() {
+        let _guard = env_lock().lock().expect("lock env");
+        let models_root = temp_dir("llama-mmproj-missing");
+        std::env::set_var(
+            "NIMI_LOCAL_AI_MODELS_DIR",
+            models_root.display().to_string(),
+        );
+        let model = model_fixture_with_mmproj(
+            "llama",
+            LocalAiAssetStatus::Installed,
+            "resolved/nimi/test-model/mmproj-BF16.gguf",
+        );
+
+        let error = LlamaCppProcessAdapter::start_args(&model).expect_err("missing mmproj");
+        assert!(error.contains("LOCAL_AI_ENGINE_MMPROJ_MISSING"));
 
         std::env::remove_var("NIMI_LOCAL_AI_MODELS_DIR");
         let _ = fs::remove_dir_all(models_root);

@@ -451,6 +451,18 @@ export type LocalRuntimeImportFilePayload = {
   endpoint?: string;
 };
 
+export type LocalRuntimeImportBundlePayload = {
+  directoryPath: string;
+  modelName?: string;
+  capabilities: string[];
+  engine?: string;
+  endpoint?: string;
+};
+
+export type LocalRuntimeRescanBundlePayload = {
+  localAssetId: string;
+};
+
 export type LocalRuntimeInferenceAuditPayload = {
   eventType: 'inference_invoked' | 'inference_failed' | 'fallback_to_cloud';
   modId: string;

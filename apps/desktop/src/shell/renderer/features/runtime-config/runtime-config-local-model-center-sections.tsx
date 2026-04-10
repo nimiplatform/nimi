@@ -162,6 +162,7 @@ type ToolbarProps = {
   onOpenModelsFolder: () => void;
   onToggleImportMenu: () => void;
   onOpenImportFile: () => void;
+  onOpenImportBundle: () => void;
   onImportManifest: () => void;
 };
 
@@ -228,6 +229,16 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                   })}
                 </div>
               </button>
+              <button type="button" onClick={props.onOpenImportBundle} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
+                <div className="font-medium text-[var(--nimi-text-primary)]">
+                  {i18n.t('runtimeConfig.localModelCenter.importAssetBundle', { defaultValue: 'Import Asset Bundle Folder' })}
+                </div>
+                <div className="mt-0.5 text-[var(--nimi-text-muted)]">
+                  {i18n.t('runtimeConfig.localModelCenter.supportedAssetBundleFolder', {
+                    defaultValue: 'Bundle directory with model.gguf and optional mmproj files',
+                  })}
+                </div>
+              </button>
               <button type="button" onClick={props.onImportManifest} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importRuntimeManifest', { defaultValue: 'Import Runtime Manifest' })}
@@ -259,7 +270,9 @@ type ImportDialogProps = {
   onEndpointChange: (endpoint: string) => void;
   onClose: () => void;
   onChooseFile: () => void;
+  onChooseFolder: () => void;
   canChooseFile?: boolean;
+  canChooseFolder?: boolean;
 };
 
 export function LocalModelCenterImportDialog(props: ImportDialogProps) {
@@ -278,7 +291,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
             <FolderOpenIcon className="h-3.5 w-3.5 text-[var(--nimi-action-primary-bg)]" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {i18n.t('runtimeConfig.localModelCenter.importLocalAssetFile', { defaultValue: 'Import Local Asset File' })}
+            {i18n.t('runtimeConfig.localModelCenter.importLocalAsset', { defaultValue: 'Import Local Asset' })}
           </h3>
         </div>
         <button type="button" onClick={props.onClose} className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] hover:text-[var(--nimi-text-secondary)]">
@@ -336,6 +349,15 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           <FolderOpenIcon className="h-3.5 w-3.5" />
           {i18n.t('runtimeConfig.localModelCenter.chooseFile', { defaultValue: 'Choose File' })}
         </button>
+        <button
+          type="button"
+          onClick={props.onChooseFolder}
+          disabled={props.canChooseFolder === false}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
+        >
+          <FolderOpenIcon className="h-3.5 w-3.5" />
+          {i18n.t('runtimeConfig.localModelCenter.chooseFolder', { defaultValue: 'Choose Folder' })}
+        </button>
       </div>
       {(props.endpointRequired || String(props.endpointHint || '').trim()) ? (
         <p className="mt-3 text-[11px] text-[var(--nimi-text-muted)]">
@@ -351,6 +373,13 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
       {String(props.compatibilityHint || '').trim() ? (
         <p className="mt-2 text-[11px] text-[var(--nimi-status-danger)]">
           {String(props.compatibilityHint || '').trim()}
+        </p>
+      ) : null}
+      {props.canChooseFolder === false ? (
+        <p className="mt-2 text-[11px] text-[var(--nimi-text-muted)]">
+          {i18n.t('runtimeConfig.localModelCenter.bundleImportChatOnlyHint', {
+            defaultValue: 'Bundle folder import currently targets chat model bundles.',
+          })}
         </p>
       ) : null}
     </div>

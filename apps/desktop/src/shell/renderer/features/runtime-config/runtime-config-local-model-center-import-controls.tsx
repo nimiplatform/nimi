@@ -27,13 +27,16 @@ type LocalModelCenterImportControlsProps = {
   onOpenModelsFolder: () => void;
   onToggleImportMenu: () => void;
   onOpenImportFile: () => void;
+  onOpenImportBundle: () => void;
   onImportManifest: () => void;
   onAssetKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onEndpointChange: (endpoint: string) => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;
+  onChooseImportDirectory: () => void;
   canChooseImportFile: boolean;
+  canChooseImportDirectory: boolean;
 };
 
 export function LocalModelCenterImportControls(props: LocalModelCenterImportControlsProps) {
@@ -51,6 +54,7 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         onOpenModelsFolder={props.onOpenModelsFolder}
         onToggleImportMenu={props.onToggleImportMenu}
         onOpenImportFile={props.onOpenImportFile}
+        onOpenImportBundle={props.onOpenImportBundle}
         onImportManifest={props.onImportManifest}
       />
       <LocalModelCenterImportDialog
@@ -66,7 +70,9 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         onEndpointChange={props.onEndpointChange}
         onClose={props.onCloseImportFileDialog}
         onChooseFile={props.onChooseImportFile}
+        onChooseFolder={props.onChooseImportDirectory}
         canChooseFile={props.canChooseImportFile}
+        canChooseFolder={props.canChooseImportDirectory}
       />
     </>
   );

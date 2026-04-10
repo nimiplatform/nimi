@@ -11,3 +11,9 @@ export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
   const result = await tauriInvoke<string | null>('runtime_local_pick_asset_file', {});
   return result || null;
 }
+
+export async function pickLocalRuntimeAssetDirectory(): Promise<string | null> {
+  if (!hasTauriInvoke()) return null;
+  const result = await tauriInvoke<string | null>('runtime_local_pick_asset_directory', {});
+  return result || null;
+}

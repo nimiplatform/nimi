@@ -191,6 +191,13 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
           runtimeState.importFileEndpoint,
         );
       }}
+      onChooseImportDirectory={() => {
+        runtimeState.setShowImportFileDialog(false);
+        void runtimeState.importPickedAssetDirectory(
+          runtimeState.importFileDeclaration,
+          runtimeState.importFileEndpoint,
+        );
+      }}
       onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
       onCloseVariantPicker={runtimeState.closeVariantPicker}
       onOpenModelsFolder={() => { void revealLocalRuntimeAssetsRootFolder(); }}
@@ -208,6 +215,11 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
         runtimeState.setShowImportMenu(false);
         runtimeState.setShowImportFileDialog(true);
       }}
+      onOpenImportBundle={() => {
+        runtimeState.setShowImportMenu(false);
+        runtimeState.setImportFileAssetKind('chat');
+        runtimeState.setShowImportFileDialog(true);
+      }}
       onPauseDownload={runtimeState.onPauseDownload}
       onRefresh={() => {
         void props.onDiscover().finally(() => {
@@ -219,6 +231,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
       onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
       onRepairAsset={(localAssetId, endpoint) => { void runtimeState.repairInstalledAsset(localAssetId, endpoint); }}
+      onRescanAsset={(localAssetId) => { void runtimeState.rescanInstalledAsset(localAssetId); }}
       onResumeDownload={runtimeState.onResumeDownload}
       onSearchQueryChange={runtimeState.setSearchQuery}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((prev) => !prev)}
@@ -235,6 +248,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       showImportFileDialog={runtimeState.showImportFileDialog}
       showImportMenu={runtimeState.showImportMenu}
       canChooseImportFile={runtimeState.canChooseImportFile}
+      canChooseImportDirectory={runtimeState.canChooseImportDirectory}
       variantError={runtimeState.variantError}
       variantList={runtimeState.variantList}
       variantPickerItem={runtimeState.variantPickerItem}

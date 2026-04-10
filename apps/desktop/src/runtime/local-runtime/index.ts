@@ -10,6 +10,7 @@ import {
   importLocalRuntimeAsset,
   importLocalRuntimeAssetFile,
   importLocalRuntimeAssetFileUnified,
+  importLocalRuntimeAssetBundle,
   importLocalRuntimeAssetManifest,
   installLocalRuntimeAsset,
   searchLocalRuntimeCatalog,
@@ -35,7 +36,9 @@ import {
   listLocalRuntimeAudits,
   pickLocalRuntimeAssetManifestPath,
   pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetDirectory,
   removeLocalRuntimeAsset,
+  rescanLocalRuntimeAssetBundle,
   startLocalRuntimeAsset,
   stopLocalRuntimeAsset,
   scanLocalRuntimeUnregisteredAssets,
@@ -79,6 +82,7 @@ import type {
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
+  LocalRuntimeImportBundlePayload,
   LocalRuntimeInstallPayload,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
@@ -104,6 +108,7 @@ import type {
   LocalRuntimeScaffoldAssetPayload,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
+  LocalRuntimeRescanBundlePayload,
 } from './types';
 import {
   queryLocalRuntimeAssetsByCapability,
@@ -156,6 +161,7 @@ export type {
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
+  LocalRuntimeImportBundlePayload,
   LocalRuntimeInstallPayload,
   LocalRuntimeProviderAdapter,
   LocalRuntimeProviderHints,
@@ -182,6 +188,7 @@ export type {
   LocalRuntimeScaffoldAssetPayload,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
+  LocalRuntimeRescanBundlePayload,
 };
 
 export type LocalRuntimeFacade = {
@@ -248,8 +255,13 @@ export type LocalRuntimeFacade = {
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeAssetRecord>;
   pickAssetFile: () => Promise<string | null>;
+  pickAssetDirectory: () => Promise<string | null>;
   importFile: (
     payload: LocalRuntimeImportFilePayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeAssetRecord>;
+  importAssetBundle: (
+    payload: LocalRuntimeImportBundlePayload,
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeAssetRecord>;
   remove: (
@@ -276,6 +288,10 @@ export type LocalRuntimeFacade = {
   ) => Promise<() => void>;
   revealInFolder: (localAssetId: string) => Promise<void>;
   revealRootFolder: () => Promise<void>;
+  rescanAssetBundle: (
+    payload: LocalRuntimeRescanBundlePayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeAssetRecord>;
   scaffoldOrphanAsset: (
     payload: LocalRuntimeScaffoldOrphanPayload,
     options?: LocalRuntimeWriteOptions,
@@ -318,7 +334,9 @@ export const localRuntime: LocalRuntimeFacade = {
   cancelDownload: cancelLocalRuntimeDownload,
   importAsset: importLocalRuntimeAsset,
   pickAssetFile: pickLocalRuntimeAssetFile,
+  pickAssetDirectory: pickLocalRuntimeAssetDirectory,
   importFile: importLocalRuntimeAssetFile,
+  importAssetBundle: importLocalRuntimeAssetBundle,
   remove: removeLocalRuntimeAsset,
   start: startLocalRuntimeAsset,
   stop: stopLocalRuntimeAsset,
@@ -332,6 +350,7 @@ export const localRuntime: LocalRuntimeFacade = {
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
   revealInFolder: revealLocalRuntimeAssetInFolder,
   revealRootFolder: revealLocalRuntimeAssetsRootFolder,
+  rescanAssetBundle: rescanLocalRuntimeAssetBundle,
   scaffoldOrphanAsset: scaffoldLocalRuntimeOrphanAsset,
   scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
   importAssetFile: importLocalRuntimeAssetFileUnified,

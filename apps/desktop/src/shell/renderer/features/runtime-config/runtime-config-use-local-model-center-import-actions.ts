@@ -217,6 +217,41 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     await input.onRefreshUnregisteredAssets();
   }, [input]);
 
+  const importPickedAssetDirectory = useCallback(async (
+    declaration: LocalRuntimeAssetDeclaration,
+    endpoint?: string,
+  ) => {
+    setAssetImportError('');
+    const directoryPath = await localRuntime.pickAssetDirectory();
+    if (!directoryPath) {
+      return;
+    }
+    setImportingAssetPath(directoryPath);
+    try {
+      const assetKind = declaration.assetKind;
+      if (!assetKind) {
+        throw new Error('assetKind is required for bundle import');
+      }
+      const assetName = basenameFromRuntimePath(directoryPath);
+      const imported = await localRuntime.importAssetBundle({
+        directoryPath,
+        modelName: assetName || undefined,
+        capabilities: capabilitiesForAssetKind(assetKind),
+        engine: declaration.engine,
+        endpoint: String(endpoint || '').trim() || undefined,
+      }, { caller: 'core' });
+      await input.props.onDiscover();
+      await input.onRefreshAssetSections();
+      await input.onRefreshUnregisteredAssets();
+      return imported;
+    } catch (error: unknown) {
+      setAssetImportError(toAssetImportUserMessage(error));
+      throw error;
+    } finally {
+      setImportingAssetPath(null);
+    }
+  }, [input]);
+
   const closeVariantPicker = useCallback(() => {
     setVariantPickerItem(null);
     setVariantList([]);
@@ -268,6 +303,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     closeVariantPicker,
     importAssetFromPath,
     importPickedAssetFile,
+    importPickedAssetDirectory,
     importPickedAssetManifest,
     assetImportError,
     assetImportSessionByPath,

@@ -24,6 +24,7 @@ import type {
   LocalRuntimeInstallVerifiedAssetPayload,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportFilePayload,
+  LocalRuntimeImportBundlePayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetHealth,
@@ -40,6 +41,7 @@ import type {
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeScaffoldOrphanPayload,
+  LocalRuntimeRescanBundlePayload,
 } from './types';
 import { localIdsMatch, toCanonicalLocalLookupKey } from './local-id';
 import {
@@ -65,6 +67,7 @@ import {
 export {
   pickLocalRuntimeAssetManifestPath,
   pickLocalRuntimeAssetFile,
+  pickLocalRuntimeAssetDirectory,
 } from './commands-pickers';
 
 // Desktop command contract: commands bridged via SDK gRPC client (not direct Tauri invoke).
@@ -73,6 +76,9 @@ export {
 // runtime_local_assets_install_verified
 // runtime_local_assets_import
 // runtime_local_assets_import_file
+// runtime_local_pick_asset_directory
+// runtime_local_assets_import_bundle
+// runtime_local_assets_rescan_bundle
 // runtime_local_assets_remove
 // runtime_local_assets_start
 // runtime_local_assets_stop
@@ -495,6 +501,23 @@ export async function importLocalRuntimeAssetFile(
   return parseAssetRecord(asRecord(response).asset);
 }
 
+export async function importLocalRuntimeAssetBundle(
+  payload: LocalRuntimeImportBundlePayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_import_bundle', options?.caller);
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import_bundle', {
+    payload: {
+      directoryPath: String(payload.directoryPath || '').trim(),
+      modelName: String(payload.modelName || '').trim() || undefined,
+      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
+      engine: String(payload.engine || '').trim() || undefined,
+      endpoint: String(payload.endpoint || '').trim() || undefined,
+    },
+  });
+  return parseAssetRecord(result);
+}
+
 export async function installLocalRuntimeAsset(
   payload: LocalRuntimeInstallPayload,
   options?: LocalRuntimeWriteOptions,
@@ -671,6 +694,19 @@ export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Pro
 
 export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
   await invokeLocalRuntimeCommand<void>('runtime_local_assets_reveal_root_folder');
+}
+
+export async function rescanLocalRuntimeAssetBundle(
+  payload: LocalRuntimeRescanBundlePayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeAssetRecord> {
+  assertLifecycleWriteAllowed('local_runtime_assets_rescan_bundle', options?.caller);
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_rescan_bundle', {
+    payload: {
+      localAssetId: String(payload.localAssetId || '').trim(),
+    },
+  });
+  return parseAssetRecord(result);
 }
 
 export async function subscribeLocalRuntimeDownloadProgress(

@@ -86,6 +86,7 @@ include!("commands_services.rs");
 include!("commands_downloads.rs");
 include!("commands_import_manifest.rs");
 include!("commands_import_file.rs");
+include!("commands_import_bundle.rs");
 include!("commands_models_audit.rs");
 include!("commands_assets_intake.rs");
 include!("commands_recommendation_feed.rs");

@@ -46,6 +46,56 @@ impl LlamaCppProcessAdapter {
         Ok(model_dir.join(entry_path))
     }
 
+    fn configured_mmproj_path(model: &LocalAiAssetRecord) -> Result<Option<PathBuf>, String> {
+        let mmproj = model
+            .engine_config
+            .as_ref()
+            .and_then(|value| value.as_object())
+            .and_then(|engine_config| engine_config.get("llama"))
+            .and_then(|value| value.as_object())
+            .and_then(|llama| llama.get("mmproj"))
+            .and_then(|value| value.as_str())
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+        let Some(mmproj) = mmproj else {
+            return Ok(None);
+        };
+
+        let models_root = Self::models_root_path()?;
+        let candidate = {
+            let path = PathBuf::from(mmproj.as_str());
+            if path.is_absolute() {
+                path
+            } else {
+                models_root.join(path)
+            }
+        };
+        if !candidate.exists() || !candidate.is_file() {
+            return Err(format!(
+                "LOCAL_AI_ENGINE_MMPROJ_MISSING: configured mmproj file does not exist: {}",
+                candidate.display()
+            ));
+        }
+        let canonical_models_root = models_root.canonicalize().map_err(|error| {
+            format!(
+                "LOCAL_AI_ENGINE_MODELS_ROOT_RESOLVE_FAILED: cannot resolve models root: {error}"
+            )
+        })?;
+        let canonical_candidate = candidate.canonicalize().map_err(|error| {
+            format!(
+                "LOCAL_AI_ENGINE_MMPROJ_RESOLVE_FAILED: cannot resolve mmproj path {}: {error}",
+                candidate.display()
+            )
+        })?;
+        if !canonical_candidate.starts_with(&canonical_models_root) {
+            return Err(format!(
+                "LOCAL_AI_ENGINE_MMPROJ_OUTSIDE_MODELS_ROOT: configured mmproj path must stay under runtime models root: {}",
+                canonical_candidate.display()
+            ));
+        }
+        Ok(Some(canonical_candidate))
+    }
+
     fn parse_endpoint_bind(endpoint: &str) -> Result<(String, u16), String> {
         let parsed = reqwest::Url::parse(endpoint.trim()).map_err(|error| {
             format!("LOCAL_AI_ENGINE_ENDPOINT_INVALID: invalid llama.cpp endpoint: {error}")
@@ -78,6 +128,12 @@ impl LlamaCppProcessAdapter {
             if !args.iter().any(|item| item == "--port") {
                 args.push("--port".to_string());
                 args.push(port.to_string());
+            }
+        }
+        if !args.iter().any(|item| item == "--mmproj") {
+            if let Some(mmproj_path) = Self::configured_mmproj_path(model)? {
+                args.push("--mmproj".to_string());
+                args.push(mmproj_path.to_string_lossy().to_string());
             }
         }
         Ok(args)

@@ -76,6 +76,7 @@ type LocalModelCenterRuntimeViewProps = {
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
   onChooseImportFile: () => void;
+  onChooseImportDirectory: () => void;
   onCloseImportFileDialog: () => void;
   onCloseVariantPicker: () => void;
   onHealthCheck: () => void;
@@ -87,6 +88,7 @@ type LocalModelCenterRuntimeViewProps = {
   onInstallVerifiedModel: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
   onOpenImportFile: () => void;
+  onOpenImportBundle: () => void;
   onPauseDownload: DownloadState['onPauseDownload'];
   onRefresh: () => void;
   onRefreshAssets: () => void;
@@ -94,6 +96,7 @@ type LocalModelCenterRuntimeViewProps = {
   onRefreshUnregisteredAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
+  onRescanAsset: (localAssetId: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
   onToggleImportMenu: () => void;
@@ -110,6 +113,7 @@ type LocalModelCenterRuntimeViewProps = {
   showImportFileDialog: boolean;
   showImportMenu: boolean;
   canChooseImportFile: boolean;
+  canChooseImportDirectory: boolean;
   variantError: string;
   variantList: GgufVariantDescriptor[];
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
@@ -147,13 +151,16 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onOpenModelsFolder={props.onOpenModelsFolder}
           onToggleImportMenu={props.onToggleImportMenu}
           onOpenImportFile={props.onOpenImportFile}
+          onOpenImportBundle={props.onOpenImportBundle}
           onImportManifest={props.onImportManifest}
           onAssetKindChange={props.onAssetKindChange}
           onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
           onEndpointChange={props.onImportEndpointChange}
           onCloseImportFileDialog={props.onCloseImportFileDialog}
           onChooseImportFile={props.onChooseImportFile}
+          onChooseImportDirectory={props.onChooseImportDirectory}
           canChooseImportFile={props.canChooseImportFile}
+          canChooseImportDirectory={props.canChooseImportDirectory}
         />
         <LocalModelCenterUnregisteredAssetsSection
           assets={props.unregisteredAssets}
@@ -201,6 +208,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onRefreshAssets={props.onRefreshAssets}
           onRemoveAsset={props.onRemoveAsset}
           onRepairAsset={props.onRepairAsset}
+          onRescanAsset={props.onRescanAsset}
           onInstallMissingAssets={props.onInstallMissingAssets}
           onInstallVerifiedModel={props.onInstallVerifiedModel}
           onInstallAsset={props.onInstallAsset}

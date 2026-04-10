@@ -68,6 +68,7 @@ type CatalogCardProps = {
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
+  onRescanAsset: (localAssetId: string) => void;
   onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onInstallAsset: (templateId: string) => void;
@@ -104,6 +105,10 @@ function assetNeedsAttachedEndpointRepair(asset: LocalRuntimeAssetRecord): boole
   if (!defaultEndpoint || currentEndpoint !== defaultEndpoint.replace(/\/+$/, '')) {
     return false;
   }
+  return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
+}
+
+function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
   return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
 }
 
@@ -354,6 +359,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             {props.filteredInstalledRunnableAssets.map((asset) => {
               const needsRepair = assetNeedsAttachedEndpointRepair(asset);
               const isRepairing = repairAssetId === asset.localAssetId;
+              const supportsRescan = assetSupportsBundleRescan(asset);
               return (
               <div key={asset.localAssetId} className="px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex items-center gap-3">
@@ -408,6 +414,16 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                         className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_16%,transparent)] disabled:opacity-50"
                       >
                         {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+                      </button>
+                    ) : null}
+                    {supportsRescan ? (
+                      <button
+                        type="button"
+                        onClick={() => props.onRescanAsset(asset.localAssetId)}
+                        disabled={props.assetBusy}
+                        className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
+                      >
+                        {i18n.t('runtimeConfig.localModelCenter.rescanBundle', { defaultValue: 'Re-scan Bundle' })}
                       </button>
                     ) : null}
                     <button
