@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
+import { S, selectStyle } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
+import { Area, CartesianGrid, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { computeAgeMonths, computeAgeMonthsAt, formatAge, useAppStore } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -10,6 +11,7 @@ import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { canRenderWHOLMS, loadWHOLMS, PERCENTILE_COLORS, type WHOLMSDataset } from './who-lms-loader.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   analyzeCheckupSheetOCR,
   hasCheckupOCRRuntime,
@@ -27,16 +29,7 @@ const TYPE_COLORS: Record<string, string> = {
 const TYPE_GROUPS: Array<{ label: string; typeIds: string[] }> = [
   {
     label: '生长发育',
-    typeIds: [
-      'height', 'weight', 'head-circumference', 'bmi', 'bone-age',
-      'body-fat-percentage', 'scoliosis-cobb-angle',
-    ],
-  },
-  {
-    label: '实验室检查',
-    typeIds: [
-      'lab-vitamin-d', 'lab-ferritin', 'lab-hemoglobin', 'lab-calcium', 'lab-zinc',
-    ],
+    typeIds: ['height', 'weight', 'head-circumference', 'bmi'],
   },
 ];
 
@@ -50,13 +43,19 @@ const METRIC_CARDS: Array<{ typeId: GrowthTypeId; emoji: string; label: string; 
 ];
 
 /* Other metrics kept in dropdown */
-const OTHER_TYPE_IDS = ['bone-age', 'body-fat-percentage', 'scoliosis-cobb-angle',
-  'lab-vitamin-d', 'lab-ferritin', 'lab-hemoglobin', 'lab-calcium', 'lab-zinc'] as const;
+const OTHER_TYPE_IDS = [] as const;
 const CARD_TYPE_IDS = new Set(METRIC_CARDS.map((c) => c.typeId));
 
 function computeBMI(heightCm: number, weightKg: number): number {
   const hm = heightCm / 100;
   return Math.round((weightKg / (hm * hm)) * 10) / 10;
+}
+
+function bmiLabel(bmi: number): { tag: string; color: string } {
+  if (bmi < 14) return { tag: '🔵 偏轻', color: '#3b82f6' };
+  if (bmi < 18.5) return { tag: '🟢 正常', color: '#22c55e' };
+  if (bmi < 24) return { tag: '🟡 偏重', color: '#eab308' };
+  return { tag: '🔴 肥胖', color: '#ef4444' };
 }
 
 function fmtMeasDate(dateStr: string): string {
@@ -80,8 +79,333 @@ function getLatestMeasurement(measurements: MeasurementRow[], typeId: string): M
   return best;
 }
 
+function getPreviousMeasurement(measurements: MeasurementRow[], typeId: string): MeasurementRow | undefined {
+  const sorted = measurements.filter((m) => m.typeId === typeId).sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
+  return sorted[1]; // second most recent
+}
+
+interface MergedPoint {
+  age: number;
+  value?: number;
+  date?: string;
+  p3?: number; p10?: number; p25?: number; p50?: number; p75?: number; p90?: number; p97?: number;
+  // Stacked band values for Recharts Area
+  band_base_3?: number;
+  band_3_97?: number;
+  band_base_10?: number;
+  band_10_90?: number;
+  band_base_25?: number;
+  band_25_75?: number;
+}
+
+function buildMergedChartData(
+  userData: Array<{ age: number; value: number; date?: string }>,
+  whoDataset: WHOLMSDataset | null,
+): MergedPoint[] {
+  if (!whoDataset) return userData;
+
+  // Build a map of WHO values by age
+  const whoByAge = new Map<number, Record<string, number>>();
+  for (const line of whoDataset.lines) {
+    for (const pt of line.points) {
+      const key = Math.round(pt.ageMonths * 100) / 100;
+      const entry = whoByAge.get(key) ?? {};
+      entry[`p${line.percentile}`] = pt.value;
+      whoByAge.set(key, entry);
+    }
+  }
+
+  // Determine age range: include all user data ages + WHO data within that range
+  const userAges = new Set(userData.map((d) => d.age));
+  const minAge = userData.length > 0 ? Math.min(...userData.map((d) => d.age)) : 0;
+  const maxAge = userData.length > 0 ? Math.max(...userData.map((d) => d.age)) : 0;
+
+  // Collect all unique ages (user + WHO within ±12 months of user range)
+  const allAges = new Set<number>();
+  for (const age of userAges) allAges.add(age);
+  for (const age of whoByAge.keys()) {
+    if (age >= minAge - 12 && age <= maxAge + 12 && Number.isInteger(age)) allAges.add(age);
+  }
+
+  const sorted = [...allAges].sort((a, b) => a - b);
+  const userMap = new Map(userData.map((d) => [d.age, d]));
+
+  return sorted.map((age) => {
+    const u = userMap.get(age);
+    const w = whoByAge.get(age) ?? {};
+    const p3 = w.p3; const p10 = w.p10; const p25 = w.p25;
+    const p50 = w.p50; const p75 = w.p75; const p90 = w.p90; const p97 = w.p97;
+    return {
+      age,
+      value: u?.value,
+      date: u?.date,
+      p3, p10, p25, p50, p75, p90, p97,
+      // Stacked bands: base (transparent) + band (colored)
+      band_base_3: p3, band_3_97: p3 != null && p97 != null ? p97 - p3 : undefined,
+      band_base_10: p10, band_10_90: p10 != null && p90 != null ? p90 - p10 : undefined,
+      band_base_25: p25, band_25_75: p25 != null && p75 != null ? p75 - p25 : undefined,
+    };
+  });
+}
+
+function getPercentileHint(value: number, refs: { p3?: number; p10?: number; p25?: number; p50?: number; p75?: number; p90?: number; p97?: number }) {
+  if (refs.p97 != null && value >= refs.p97) return { text: '超过同龄 97% 的孩子（偏高）', color: '#f59e0b' };
+  if (refs.p90 != null && value >= refs.p90) return { text: '超过同龄 90% 的孩子', color: '#22c55e' };
+  if (refs.p75 != null && value >= refs.p75) return { text: '超过同龄 75% 的孩子', color: '#22c55e' };
+  if (refs.p50 != null && value >= refs.p50) return { text: '处于同龄中等偏上水平', color: '#22c55e' };
+  if (refs.p25 != null && value >= refs.p25) return { text: '处于同龄平均水平', color: '#8a8f9a' };
+  if (refs.p10 != null && value >= refs.p10) return { text: '偏低，建议关注', color: '#f59e0b' };
+  if (refs.p3 != null && value >= refs.p3) return { text: '明显偏低，建议咨询专业人士', color: '#ef4444' };
+  if (refs.p3 != null) return { text: '低于同龄 97% 的孩子，建议就医评估', color: '#ef4444' };
+  return null;
+}
+
+function computeChartYDomain(merged: MergedPoint[], selectedType: string): [number, number] {
+  const vals: number[] = [];
+  for (const pt of merged) {
+    if (pt.value != null) vals.push(pt.value);
+    if (pt.p3 != null) vals.push(pt.p3);
+    if (pt.p97 != null) vals.push(pt.p97);
+  }
+  if (vals.length === 0) return [0, 100];
+  let min = Math.min(...vals);
+  let max = Math.max(...vals);
+  const pad = (max - min) * 0.1 || 5;
+  min = min - pad;
+  max = max + pad;
+  // Round to clean numbers based on metric
+  const step = selectedType === 'weight' ? 2 : selectedType === 'bmi' ? 1 : 5;
+  min = Math.floor(min / step) * step;
+  max = Math.ceil(max / step) * step;
+  if (min < 0) min = 0;
+  return [min, max];
+}
+
+function computeApproxPercentile(value: number, ageMonths: number, whoDataset: WHOLMSDataset | null): number | null {
+  if (!whoDataset) return null;
+  if (ageMonths < whoDataset.coverage.startAgeMonths || ageMonths > whoDataset.coverage.endAgeMonths) return null;
+
+  // Get WHO values at this age by finding nearest points
+  const pValues: Array<{ percentile: number; value: number }> = [];
+  for (const line of whoDataset.lines) {
+    // Find two bracketing points and interpolate
+    let lo: { ageMonths: number; value: number } | null = null;
+    let hi: { ageMonths: number; value: number } | null = null;
+    for (const pt of line.points) {
+      if (pt.ageMonths <= ageMonths) lo = pt;
+      if (pt.ageMonths >= ageMonths && !hi) hi = pt;
+    }
+    if (!lo && !hi) continue;
+    let v: number;
+    if (!lo) v = hi!.value;
+    else if (!hi) v = lo.value;
+    else if (lo.ageMonths === hi.ageMonths) v = lo.value;
+    else v = lo.value + (hi.value - lo.value) * (ageMonths - lo.ageMonths) / (hi.ageMonths - lo.ageMonths);
+    pValues.push({ percentile: line.percentile, value: v });
+  }
+  if (pValues.length === 0) return null;
+
+  // Sort by percentile ascending
+  pValues.sort((a, b) => a.percentile - b.percentile);
+
+  // If below lowest or above highest
+  if (value <= pValues[0]!.value) return pValues[0]!.percentile;
+  if (value >= pValues[pValues.length - 1]!.value) return pValues[pValues.length - 1]!.percentile;
+
+  // Interpolate between bracketing percentiles
+  for (let i = 0; i < pValues.length - 1; i++) {
+    const lo = pValues[i]!;
+    const hi = pValues[i + 1]!;
+    if (value >= lo.value && value <= hi.value) {
+      const frac = (value - lo.value) / (hi.value - lo.value);
+      return Math.round(lo.percentile + frac * (hi.percentile - lo.percentile));
+    }
+  }
+  return null;
+}
+
+function formatAgeLabel(age: number): string {
+  if (age >= 24) {
+    const y = Math.floor(age / 12);
+    const m = age % 12;
+    return m > 0 ? `${y}岁${m}个月` : `${y}岁`;
+  }
+  return `${age}个月`;
+}
+
+/* ── Add-Record Modal ── */
+
+function AddRecordModal({ formDate, setFormDate, formHeight, setFormHeight, formWeight, setFormWeight,
+  formHeadCirc, setFormHeadCirc, formNotes, setFormNotes, formPhotoPreview, isUnder6,
+  onPhotoChange, onSave, onClose,
+}: {
+  formDate: string; setFormDate: (v: string) => void;
+  formHeight: string; setFormHeight: (v: string) => void;
+  formWeight: string; setFormWeight: (v: string) => void;
+  formHeadCirc: string; setFormHeadCirc: (v: string) => void;
+  formNotes: string; setFormNotes: (v: string) => void;
+  formPhotoPreview: string | null;
+  isUnder6: boolean;
+  onPhotoChange: (f: File | null) => void;
+  onSave: () => void;
+  onClose: () => void;
+}) {
+  const photoRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [dropHover, setDropHover] = useState(false);
+  const dropActive = dragOver || dropHover;
+
+  const h = formHeight ? parseFloat(formHeight) : NaN;
+  const w = formWeight ? parseFloat(formWeight) : NaN;
+  const hasBMI = h > 0 && w > 0;
+  const bmi = hasBMI ? computeBMI(h, w) : null;
+  const bmiMeta = bmi != null ? bmiLabel(bmi) : null;
+
+  const inputCls = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`;
+  const inputSty = { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' as const, background: '#fafaf8' };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+    <div className={`w-[440px] max-h-[85vh] overflow-y-auto ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 pt-6 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[20px]">📏</span>
+          <h3 className="text-[15px] font-bold" style={{ color: S.text }}>添加记录</h3>
+        </div>
+        <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+      </div>
+
+      <div className="px-6 pb-2 space-y-4 flex-1">
+
+        {/* ── 1. Date (full width) ── */}
+        <div>
+          <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>测量日期</label>
+          <ProfileDatePicker value={formDate} onChange={setFormDate} className={inputCls} style={inputSty} />
+        </div>
+
+        {/* ── 2. Core metrics row ── */}
+        <div className={`grid gap-3 ${isUnder6 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <div>
+            <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>身高 (cm)</label>
+            <input type="number" step="0.1" placeholder="120.5" value={formHeight}
+              onChange={(e) => setFormHeight(e.target.value)} className={inputCls} style={inputSty} />
+          </div>
+          <div>
+            <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>体重 (kg)</label>
+            <input type="number" step="0.01" placeholder="22.5" value={formWeight}
+              onChange={(e) => setFormWeight(e.target.value)} className={inputCls} style={inputSty} />
+          </div>
+          {isUnder6 && (
+            <div>
+              <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>头围 (cm)</label>
+              <input type="number" step="0.1" placeholder="48.0" value={formHeadCirc}
+                onChange={(e) => setFormHeadCirc(e.target.value)} className={inputCls} style={inputSty} />
+            </div>
+          )}
+        </div>
+
+        {/* ── BMI auto-compute ── */}
+        <div className={`${S.radiusSm} px-3 py-2 flex items-center gap-2`}
+          style={{ background: hasBMI ? '#f0fdf4' : '#fafaf8', border: `1px solid ${hasBMI ? '#bbf7d0' : S.border}`, transition: 'all 0.2s' }}>
+          <span className="text-[11px] font-medium" style={{ color: S.sub }}>BMI 自动计算</span>
+          {hasBMI && bmi != null && bmiMeta ? (
+            <>
+              <span className="text-[14px] font-bold ml-auto" style={{ color: bmiMeta.color }}>{bmi}</span>
+              <span className="text-[11px] font-medium" style={{ color: bmiMeta.color }}>{bmiMeta.tag}</span>
+            </>
+          ) : (
+            <span className="text-[13px] ml-auto" style={{ color: '#c4c4c4' }}>--</span>
+          )}
+        </div>
+
+        {/* ── 3. Notes ── */}
+        <div>
+          <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
+          <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+            placeholder="记录一些观察..."
+            className={`${inputCls} resize-none`}
+            rows={2}
+            style={inputSty} />
+        </div>
+
+        {/* ── 4. Photo dropzone ── */}
+        <div>
+          <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>照片</label>
+          <input ref={photoRef} type="file" accept="image/*" className="hidden"
+            onChange={(e) => { onPhotoChange(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+          {formPhotoPreview ? (
+            <div className="relative group">
+              <img src={formPhotoPreview} alt="preview"
+                className={`w-full h-28 object-cover ${S.radiusSm}`} />
+              <button onClick={() => onPhotoChange(null)}
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => photoRef.current?.click()}
+              onMouseEnter={() => setDropHover(true)}
+              onMouseLeave={() => setDropHover(false)}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault(); setDragOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file?.type.startsWith('image/')) onPhotoChange(file);
+              }}
+              className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
+              style={{
+                border: `2px dashed ${dropActive ? '#c8e64a' : '#d0d0cc'}`,
+                background: '#fafaf8',
+                transition: 'border-color 0.25s ease',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
+                style={{
+                  stroke: dropActive ? '#94A533' : '#b0b0aa',
+                  transform: dropActive ? 'scale(1.15)' : 'scale(1)',
+                  transition: 'stroke 0.25s ease, transform 0.25s ease',
+                }}>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span className="text-[11px]" style={{
+                color: dropActive ? '#94A533' : '#a0a0a0',
+                transition: 'color 0.25s ease',
+              }}>
+                点击或拖拽上传照片
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Footer actions ── */}
+      <div className="px-6 pt-3 pb-5 mt-1">
+        <div className="flex items-center justify-end gap-2">
+          <button onClick={onClose}
+            className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`}
+            style={{ background: '#f0f0ec', color: S.sub }}>
+            取消
+          </button>
+          <button onClick={onSave}
+            className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`}
+            style={{ background: S.accent }}>
+            保存
+          </button>
+        </div>
+      </div>
+
+    </div>
+    </div>
+  );
+}
+
 export default function GrowthCurvePage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
   const navigate = useNavigate();
@@ -317,7 +641,7 @@ export default function GrowthCurvePage() {
       <div className="flex items-center gap-2 mb-6">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold" style={{ color: S.text }}>生长曲线</h1>
           {/* Info icon with sources tooltip */}
@@ -355,6 +679,30 @@ export default function GrowthCurvePage() {
             </div>
           </div>
         </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowOCR(!showOCR)}
+            className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            style={{ background: showOCR ? S.sub : '#86AFDA', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
+            </svg>
+            {showOCR ? '关闭识别' : '智能识别'}
+            <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
+              style={{ background: '#1a2b4a' }}>
+              拍照/上传体检单，自动识别数据
+            </span>
+          </button>
+          <button onClick={() => setShowForm(true)}
+            className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            style={{ background: S.accent }}>
+            + 添加记录
+          </button>
+        </div>
+      </div>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
       </div>
       <AISummaryCard domain="growth" childName={child.displayName} childId={child.childId}
         ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
@@ -371,39 +719,25 @@ export default function GrowthCurvePage() {
           return lines.length > 1 ? lines.join('\n') : '';
         })()}
       />
-      <div className="flex items-center justify-between mb-6">
-        {/* OCR smart-scan button */}
-        <button onClick={() => setShowOCR(!showOCR)}
-          className={`group relative flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
-          style={{ background: showOCR ? S.sub : S.accent, boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M7 8h4M7 12h10M7 16h6" />
-          </svg>
-          {showOCR ? '关闭识别' : '智能识别'}
-          {/* Tooltip */}
-          <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
-            style={{ background: '#1a2b4a' }}>
-            拍照/上传体检单，自动识别数据
-          </span>
-        </button>
-      </div>
+      {/* OCR and form sections below */}
 
       {/* ── Metric cards ──────────────────────────────────────── */}
       <div className={`grid gap-3 mb-4`} style={{ gridTemplateColumns: `repeat(${visibleCards.length}, 1fr)` }}>
         {visibleCards.map((card) => {
           const isActive = selectedType === card.typeId;
           const m = getLatestMeasurement(measurements, card.typeId);
+          const prev = getPreviousMeasurement(measurements, card.typeId);
           let displayVal: string;
           let dateLabel: string;
+          let delta: number | null = null;
           if (card.typeId === 'bmi') {
             displayVal = computedBmi != null ? `${computedBmi}` : '--';
-            // BMI date follows whichever of height/weight was recorded later
             const bmiDate = latestH && latestW ? (latestH.measuredAt > latestW.measuredAt ? latestH.measuredAt : latestW.measuredAt) : null;
             dateLabel = bmiDate ? fmtMeasDate(bmiDate) : '暂无数据';
           } else {
             displayVal = m ? `${m.value}` : '--';
             dateLabel = m ? fmtMeasDate(m.measuredAt) : '暂无数据';
+            if (m && prev) delta = Math.round((m.value - prev.value) * 10) / 10;
           }
           return (
             <button key={card.typeId} onClick={() => setSelectedType(card.typeId)}
@@ -417,13 +751,38 @@ export default function GrowthCurvePage() {
                 <span className="text-[20px]">{card.emoji}</span>
                 <span className="text-[10px] font-medium" style={{ color: isActive ? S.accent : S.sub }}>{card.label}</span>
               </div>
-              <p className="text-[20px] font-bold leading-none" style={{ color: S.text }}>{displayVal}</p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-[20px] font-bold leading-none" style={{ color: S.text }}>{displayVal}</p>
+                {delta != null && (
+                  <span className="text-[10px] font-medium" style={{ color: S.sub }}>
+                    {delta >= 0 ? '↑' : '↓'}{delta >= 0 ? '+' : ''}{delta}
+                  </span>
+                )}
+              </div>
               <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>{card.unit}</p>
               <p className="text-[9px] mt-1" style={{ color: dateLabel === '暂无数据' ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
             </button>
           );
         })}
       </div>
+
+      {/* ── Stale data reminder ────────────────────────────── */}
+      {(() => {
+        const allDates = measurements.map((m) => new Date(m.measuredAt).getTime());
+        if (allDates.length === 0) return null;
+        const latestMs = Math.max(...allDates);
+        const daysSince = Math.floor((Date.now() - latestMs) / 86400000);
+        if (daysSince <= 90) return null;
+        return (
+          <div className={`${S.radiusSm} px-3 py-2 mb-4 flex items-center gap-2`}
+            style={{ background: '#faf8f0', border: `1px solid #e8e2d0` }}>
+            <span className="text-[13px]">📅</span>
+            <span className="text-[11px]" style={{ color: '#8a7a5a' }}>
+              距离上次测量已过去 {daysSince} 天，建议更新数据
+            </span>
+          </div>
+        );
+      })()}
 
       {/* ── Other metrics dropdown (bone-age, labs, etc.) ──── */}
       {(() => {
@@ -434,135 +793,168 @@ export default function GrowthCurvePage() {
         const isOtherActive = !CARD_TYPE_IDS.has(selectedType as GrowthTypeId);
         return (
           <div className="mb-4">
-            <select
+            <AppSelect
               value={isOtherActive ? selectedType : ''}
-              onChange={(e) => { if (e.target.value) setSelectedType(e.target.value); }}
-              className={`${S.radiusSm} px-3 py-1.5 text-[12px]`}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: isOtherActive ? S.text : S.sub }}>
-              <option value="" disabled>其他指标...</option>
-              {others.map((s) => (
-                <option key={s!.typeId} value={s!.typeId}>{s!.displayName} ({s!.unit})</option>
-              ))}
-            </select>
+              onChange={(v) => { if (v) setSelectedType(v); }}
+              placeholder="其他指标..."
+              options={others.map((s) => ({ value: s!.typeId, label: `${s!.displayName} (${s!.unit})` }))}
+              style={{ color: isOtherActive ? S.text : S.sub }} />
           </div>
         );
       })()}
 
       <div className={`${S.radius} p-4 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
         {chartData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center" style={{ color: S.sub }}>
-            <p>暂无 {typeInfo?.displayName ?? selectedType} 数据，请添加记录</p>
+          <div className="p-8 text-center">
+            <span className="text-[28px]">📏</span>
+            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有{typeInfo?.displayName ?? selectedType}记录</p>
+            <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="age" label={{ value: '月龄', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: typeInfo?.unit ?? '', angle: -90, position: 'insideLeft' }} />
-              <Tooltip
-                formatter={(value: number) => [`${value} ${typeInfo?.unit}`, typeInfo?.displayName]}
-                labelFormatter={(age) => `${age} 个月`}
-              />
-              {percentileLines.map((line) => (
-                <Line
-                  key={`p${line.percentile}`}
-                  data={line.points.map((point) => ({ age: point.ageMonths, [`p${line.percentile}`]: point.value }))}
-                  type="monotone"
-                  dataKey={`p${line.percentile}`}
-                  stroke={PERCENTILE_COLORS[line.percentile] ?? '#d1d5db'}
-                  strokeWidth={line.percentile === 50 ? 1.5 : 1}
-                  strokeDasharray={line.percentile === 50 ? undefined : '4 4'}
-                  dot={false}
-                  name={`P${line.percentile}`}
-                />
-              ))}
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={TYPE_COLORS[selectedType] ?? '#6366f1'}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          (() => {
+            const merged = buildMergedChartData(chartData, canShowWhoLines ? whoDataset : null);
+            const ages = merged.map((d) => d.age);
+            const minA = Math.min(...ages);
+            const maxA = Math.max(...ages);
+            const span = maxA - minA;
+            const unit = typeInfo?.unit ?? '';
+            const yDomain = computeChartYDomain(merged, selectedType);
+            return (
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart data={merged} margin={{ top: 5, right: 10, bottom: 20, left: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0ec" />
+                  <XAxis dataKey="age"
+                    tickFormatter={(age: number) => {
+                      if (span > 48) return age % 12 === 0 ? `${age / 12}岁` : '';
+                      if (span > 24) return age % 6 === 0 ? `${Math.floor(age / 12)}岁${age % 12 > 0 ? `${age % 12}月` : ''}` : '';
+                      return `${age}月`;
+                    }}
+                    label={{ value: span > 24 ? '年龄' : '月龄', position: 'insideBottom', offset: -10, style: { fontSize: 11, fill: '#8a8f9a' } }}
+                    tick={{ fontSize: 10, fill: '#8a8f9a' }}
+                  />
+                  <YAxis
+                    domain={yDomain}
+                    label={{ value: unit, angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#8a8f9a' } }}
+                    tick={{ fontSize: 10, fill: '#8a8f9a' }}
+                  />
+                  <Tooltip
+                    cursor={false}
+                    isAnimationActive={false}
+                    offset={12}
+                    content={({ active, payload, label, coordinate }) => {
+                      if (!active || !payload?.length) return null;
+                      const userPt = payload.find((p) => p.dataKey === 'value');
+                      if (!userPt || userPt.value == null) return null;
+                      const age = label as number;
+                      const val = userPt.value as number;
+                      const d = payload[0]?.payload as MergedPoint | undefined;
+                      const hint = d ? getPercentileHint(val, { p3: d.p3, p10: d.p10, p25: d.p25, p50: d.p50, p75: d.p75, p90: d.p90, p97: d.p97 }) : null;
+                      return (
+                        <div className="rounded-xl p-3 shadow-lg pointer-events-none"
+                          style={{ background: '#fff', border: '1px solid #e8e5e0', minWidth: 160 }}>
+                          <p className="text-[11px] font-medium" style={{ color: '#8a8f9a' }}>{formatAgeLabel(age)}{d?.date ? ` (${d.date})` : ''}</p>
+                          <p className="text-[18px] font-bold mt-1" style={{ color: '#1a2b4a' }}>{val} {unit}</p>
+                          {hint && <p className="text-[11px] mt-1.5" style={{ color: hint.color }}>{hint.text}</p>}
+                        </div>
+                      );
+                    }}
+                  />
+
+                  {/* Band P3-P97 (outermost, light gray) */}
+                  <Area type="monotone" dataKey="band_base_3" stackId="outer" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="band_3_97" stackId="outer" fill="rgba(200,200,200,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
+                  {/* Band P10-P90 (middle, light blue) */}
+                  <Area type="monotone" dataKey="band_base_10" stackId="mid" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="band_10_90" stackId="mid" fill="rgba(134,175,218,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
+                  {/* Band P25-P75 (inner, light green) */}
+                  <Area type="monotone" dataKey="band_base_25" stackId="inner" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="band_25_75" stackId="inner" fill="rgba(148,165,51,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
+                  {/* P50 median line */}
+                  <Line type="monotone" dataKey="p50" stroke="rgba(148,165,51,0.45)" strokeWidth={1} strokeDasharray="6 3"
+                    dot={false} activeDot={false} isAnimationActive={false} name="P50 中位线" />
+                  {/* User measurement line */}
+                  <Line type="monotone" dataKey="value" stroke={TYPE_COLORS[selectedType] ?? '#6366f1'} strokeWidth={2.5}
+                    dot={(props: Record<string, unknown>) => {
+                      const { cx, cy, value: v } = props as { cx: number; cy: number; value: unknown };
+                      if (v == null || typeof cx !== 'number' || typeof cy !== 'number') return <g />;
+                      return <circle cx={cx} cy={cy} r={4} fill="#fff" stroke={TYPE_COLORS[selectedType] ?? '#6366f1'} strokeWidth={2} />;
+                    }}
+                    activeDot={{ r: 6, strokeWidth: 2.5, fill: '#fff', stroke: TYPE_COLORS[selectedType] ?? '#6366f1' }}
+                    connectNulls />
+                </ComposedChart>
+              </ResponsiveContainer>
+            );
+          })()
         )}
-        <p className="text-xs mt-2" style={{ color: S.sub }}>Note: {referenceNote}</p>
+        {canShowWhoLines && whoDataset && (
+          <div className="flex items-center gap-5 mt-3 text-[11px]" style={{ color: '#6b7280' }}>
+            <span className="flex items-center gap-2">
+              <svg width="28" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="rgba(148,165,51,0.55)" strokeWidth="1.5" strokeDasharray="6 3" /></svg>
+              P50 中位线（同龄平均）
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-sm" style={{ background: 'rgba(148,165,51,0.2)' }} />
+              P25-P75 正常区间
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block w-3.5 h-3.5 rounded-sm" style={{ background: 'rgba(134,175,218,0.2)' }} />
+              P10-P90 参考区间
+            </span>
+          </div>
+        )}
+        <p className="text-[10px] mt-1" style={{ color: S.sub }}>{referenceNote}</p>
       </div>
+
+      {/* Bone age associated display (height chart only) */}
+      {selectedType === 'height' && (() => {
+        const boneAgeRecords = measurements.filter((m) => m.typeId === 'bone-age').sort((a, b) => b.measuredAt.localeCompare(a.measuredAt));
+        const latest = boneAgeRecords[0];
+        if (!latest) return null;
+        const boneAgeYears = latest.value;
+        const actualAgeYears = ageMonths / 12;
+        const diff = boneAgeYears - actualAgeYears;
+        const absDiff = Math.abs(diff);
+        const status = absDiff <= 1 ? { label: '正常范围', color: '#22c55e', bg: '#f0fdf4' }
+          : diff > 1 ? { label: `偏早 ${absDiff.toFixed(1)} 年`, color: '#f59e0b', bg: '#fffbeb' }
+          : { label: `偏晚 ${absDiff.toFixed(1)} 年`, color: '#3b82f6', bg: '#eff6ff' };
+        const actualAgeStr = `${Math.floor(ageMonths / 12)} 岁 ${ageMonths % 12} 月`;
+        return (
+          <div className={`${S.radius} p-4 mb-4 flex items-start gap-3`} style={{ background: status.bg, border: `1px solid ${status.color}30` }}>
+            <span className="text-[20px] mt-0.5">🦴</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold" style={{ color: S.text }}>骨龄 {boneAgeYears} 岁</span>
+                <span className="text-[11px]" style={{ color: S.sub }}>（实际 {actualAgeStr}）</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="w-2 h-2 rounded-full inline-block" style={{ background: status.color }} />
+                <span className="text-[12px]" style={{ color: status.color }}>{status.label}</span>
+                {absDiff > 1 && <span className="text-[11px]" style={{ color: S.sub }}> — 建议关注身高增长趋势</span>}
+              </div>
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="text-[10px]" style={{ color: S.sub }}>评估日期：{latest.measuredAt.split('T')[0]}</span>
+                <Link to="/profile/tanner" className="text-[10px] hover:underline" style={{ color: S.accent }}>详细记录 → 青春期发育</Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex flex-wrap gap-3">
         {showForm ? (
-        <div className={`w-full ${S.radius} p-5 space-y-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <h3 className="text-[14px] font-bold" style={{ color: S.text }}>添加记录</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>日期</label>
-              <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-            </div>
-            <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>身高 (cm)</label>
-              <input type="number" step="0.1" placeholder="例: 120.5" value={formHeight}
-                onChange={(e) => setFormHeight(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-            </div>
-            <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>体重 (kg)</label>
-              <input type="number" step="0.01" placeholder="例: 22.5" value={formWeight}
-                onChange={(e) => setFormWeight(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-            </div>
-            {isUnder6 && (
-              <div>
-                <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>头围 (cm)</label>
-                <input type="number" step="0.1" placeholder="例: 48.0" value={formHeadCirc}
-                  onChange={(e) => setFormHeadCirc(e.target.value)}
-                  className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                  style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-              </div>
-            )}
-          </div>
-          {/* Auto BMI preview */}
-          {formHeight && formWeight && (
-            <p className="text-[11px]" style={{ color: S.accent }}>
-              BMI 自动计算: {computeBMI(parseFloat(formHeight), parseFloat(formWeight))} kg/m²
-            </p>
-          )}
-          <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>备注描述</label>
-            <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-              placeholder="记录一些观察..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-sm resize-none`}
-              rows={2}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
-          </div>
-          <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>添加照片</label>
-            <input type="file" accept="image/*"
-              onChange={(e) => void handlePhotoChange(e.target.files?.[0] ?? null)}
-              className="text-[12px]" />
-            {formPhotoPreview && (
-              <img src={formPhotoPreview} alt="preview" className={`mt-2 h-20 ${S.radiusSm} object-cover`} />
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => void handleAddRecord()}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm}`}
-              style={{ background: S.accent }}>保存</button>
-            <button onClick={() => { setShowForm(false); setFormHeight(''); setFormWeight(''); setFormHeadCirc(''); setFormNotes(''); setFormPhotoPreview(null); }}
-              className={`px-4 py-2 text-[13px] ${S.radiusSm}`}
-              style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-          </div>
-        </div>
-        ) : (
-        <button onClick={() => setShowForm(true)}
-          className={`px-4 py-2 text-[13px] font-medium text-white ${S.radiusSm}`}
-          style={{ background: S.accent }}>
-          + 添加记录
-        </button>
-        )}
+        <AddRecordModal
+          formDate={formDate} setFormDate={setFormDate}
+          formHeight={formHeight} setFormHeight={setFormHeight}
+          formWeight={formWeight} setFormWeight={setFormWeight}
+          formHeadCirc={formHeadCirc} setFormHeadCirc={setFormHeadCirc}
+          formNotes={formNotes} setFormNotes={setFormNotes}
+          formPhotoPreview={formPhotoPreview}
+          isUnder6={isUnder6}
+          onPhotoChange={handlePhotoChange}
+          onSave={() => void handleAddRecord()}
+          onClose={() => { setShowForm(false); setFormHeight(''); setFormWeight(''); setFormHeadCirc(''); setFormNotes(''); setFormPhotoPreview(null); }}
+        />
+        ) : null}
 
         {showOCR ? (
           <div className={`w-full ${S.radius} p-4 space-y-4`} style={{ background: S.card, boxShadow: S.shadow }}>
@@ -654,27 +1046,23 @@ export default function GrowthCurvePage() {
                             Import this measurement
                           </label>
                           <div className="grid gap-2 md:grid-cols-3">
-                            <select
+                            <AppSelect
                               value={candidate.typeId}
-                              onChange={(event) => {
-                                const nextType = event.target.value as OCRImportTypeId;
+                              onChange={(v) => {
+                                const nextType = v as OCRImportTypeId;
                                 setOCRCandidates((previous) =>
                                   previous.map((item, itemIndex) =>
                                     itemIndex === index ? { ...item, typeId: nextType } : item,
                                   ),
                                 );
                               }}
-                              className={`${S.radiusSm} px-3 py-1.5 text-sm`}
-                              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }}
-                            >
-                              {GROWTH_STANDARDS.filter((standard) =>
+                              options={GROWTH_STANDARDS.filter((standard) =>
                                 ['height', 'weight', 'head-circumference', 'bmi'].includes(standard.typeId),
-                              ).map((standard) => (
-                                <option key={standard.typeId} value={standard.typeId}>
-                                  {standard.displayName}
-                                </option>
-                              ))}
-                            </select>
+                              ).map((standard) => ({
+                                value: standard.typeId,
+                                label: standard.displayName,
+                              }))}
+                            />
                             <input
                               type="number"
                               value={candidate.value}
@@ -686,22 +1074,21 @@ export default function GrowthCurvePage() {
                                   ),
                                 );
                               }}
-                              className={`${S.radiusSm} px-3 py-1.5 text-sm`}
-                              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }}
+                              className={S.select}
+                              style={selectStyle}
                             />
-                            <input
-                              type="date"
+                            <ProfileDatePicker
                               value={candidate.measuredAt}
-                              onChange={(event) => {
-                                const nextDate = event.target.value;
+                              onChange={(nextDate) => {
                                 setOCRCandidates((previous) =>
                                   previous.map((item, itemIndex) =>
                                     itemIndex === index ? { ...item, measuredAt: nextDate } : item,
                                   ),
                                 );
                               }}
-                              className={`${S.radiusSm} px-3 py-1.5 text-sm`}
-                              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }}
+                              className={S.select}
+                              style={selectStyle}
+                              size="small"
                             />
                           </div>
                           {candidate.notes && (
@@ -749,7 +1136,12 @@ export default function GrowthCurvePage() {
                     <td>{measurement.ageMonths < 24 ? `${measurement.ageMonths}月` : `${Math.floor(measurement.ageMonths / 12)}岁${measurement.ageMonths % 12 > 0 ? `${measurement.ageMonths % 12}月` : ''}`}</td>
                     <td>{measurement.value} {typeInfo?.unit}</td>
                     <td>{measurement.source === 'manual' ? '手动' : measurement.source === 'ocr' ? 'OCR' : measurement.source === 'computed' ? '计算' : '-'}</td>
-                    <td>{measurement.percentile != null ? `P${Math.round(measurement.percentile)}` : '-'}</td>
+                    <td>{(() => {
+                      const stored = measurement.percentile;
+                      if (stored != null) return `P${Math.round(stored)}`;
+                      const approx = computeApproxPercentile(measurement.value, measurement.ageMonths, whoDataset);
+                      return approx != null ? `P${approx}` : '-';
+                    })()}</td>
                     <td>
                       <button onClick={() => navigateToAI(measurement)}
                         className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-[#f0f0ec]"

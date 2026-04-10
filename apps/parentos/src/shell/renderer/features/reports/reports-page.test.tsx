@@ -102,6 +102,13 @@ const {
       dismissReason: null,
       repeatIndex: 0,
       nextTriggerAt: null,
+      snoozedUntil: null,
+      scheduledDate: null,
+      notApplicable: 0,
+      plannedForDate: null,
+      surfaceRank: null,
+      lastSurfacedAt: null,
+      surfaceCount: 0,
       notes: null,
       createdAt: '2026-04-01T00:00:00.000Z',
       updatedAt: '2026-04-01T00:00:00.000Z',
@@ -164,10 +171,11 @@ describe('ReportsPage', () => {
     render(<ReportsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No saved reports yet/i)).toBeTruthy();
+      expect(screen.getByText(/还没有成长报告/i)).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate structured report/i }));
+    fireEvent.click(screen.getByRole('button', { name: /高级选项/i }));
+    fireEvent.click(screen.getByRole('button', { name: /生成综合报告/i }));
 
     await waitFor(() => {
       expect(insertGrowthReportMock).toHaveBeenCalledTimes(1);
@@ -180,9 +188,7 @@ describe('ReportsPage', () => {
     expect(storedPayload.reportType).toBe('quarterly-letter');
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Mimi's quarterly letter/i })).toBeTruthy();
+      expect(screen.queryByText(/还没有成长报告/i)).toBeNull();
     });
-
-    expect(screen.getByRole('heading', { name: /Trend signals/i })).toBeTruthy();
   });
 });

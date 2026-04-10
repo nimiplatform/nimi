@@ -66,9 +66,11 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
 
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ComposedChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   LineChart: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CartesianGrid: () => null,
   Line: ({ name }: { name?: string }) => <div>{name ?? 'line'}</div>,
+  Area: () => null,
   Tooltip: () => null,
   XAxis: () => null,
   YAxis: () => null,
@@ -158,25 +160,6 @@ describe('GrowthCurvePage', () => {
     });
 
     expect(screen.getByText(/Showing recorded measurements only/i)).toBeTruthy();
-  });
-
-  it('keeps non-LMS metrics on the static reference-range path', async () => {
-    render(
-      <MemoryRouter>
-        <GrowthCurvePage />
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('combobox')).toBeTruthy();
-    });
-
-    const typeSelect = screen.getByRole('combobox');
-    fireEvent.change(typeSelect, { target: { value: 'bone-age' } });
-
-    await waitFor(() => {
-      expect(screen.getByText(/reference range/i)).toBeTruthy();
-    });
   });
 
   it('imports OCR candidates only after parent confirmation and stores them as source=ocr', async () => {

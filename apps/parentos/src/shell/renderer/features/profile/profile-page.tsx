@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { getMeasurements, getVaccineRecords, getMilestoneRecords, getSleepRecords } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
@@ -13,19 +14,27 @@ const C = {
 
 /* ── section definitions ─────────────────────────────────── */
 
-const sections = [
-  { to: '/profile/growth', emoji: '📈', label: '生长曲线', desc: '身高、体重、头围的 WHO 百分位曲线', color: '#ede7fb' },
-  { to: '/profile/milestones', emoji: '🎯', label: '发育里程碑', desc: '追踪大运动、精细动作、语言等里程碑', color: '#fbe8d4' },
-  { to: '/profile/vaccines', emoji: '💉', label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
-  { to: '/profile/vision', emoji: '👁️', label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
-  { to: '/profile/dental', emoji: '🦷', label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
-  { to: '/profile/allergies', emoji: '🤧', label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
-  { to: '/profile/sleep', emoji: '😴', label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
-  { to: '/profile/medical-events', emoji: '🏥', label: '就医记录', desc: '门诊、住院和用药记录', color: '#e5dcf5' },
-  { to: '/profile/tanner', emoji: '🌱', label: '青春期发育', desc: 'Tanner 分期和青春期发育追踪', color: '#e2f0dc' },
-  { to: '/profile/fitness', emoji: '🏃', label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
-  { to: '/profile/report-upload', emoji: '🔍', label: '智能识别', desc: '上传医院报告，AI 自动提取数据生成记录', color: '#f4f7ea' },
-] as const;
+interface Section { to: string; emoji: string; label: string; desc: string; color: string }
+
+function getSections(ageMonths: number): Section[] {
+  return [
+    { to: '/profile/growth', emoji: '📈', label: '生长曲线', desc: '身高、体重、头围的 WHO 百分位曲线', color: '#ede7fb' },
+    ageMonths <= 72
+      ? { to: '/profile/milestones', emoji: '🎯', label: '发育里程碑', desc: '追踪大运动、精细动作、语言等里程碑', color: '#fbe8d4' }
+      : { to: '/profile/milestones', emoji: '📒', label: '早期发育记录', desc: '查看 0-6 岁发育里程碑的历史记录', color: '#fbe8d4' },
+    { to: '/profile/vaccines', emoji: '💉', label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
+    { to: '/profile/vision', emoji: '👁️', label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
+    { to: '/profile/dental', emoji: '🦷', label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
+    { to: '/profile/allergies', emoji: '🤧', label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
+    { to: '/profile/sleep', emoji: '😴', label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
+    { to: '/profile/medical-events', emoji: '🏥', label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
+    { to: '/profile/posture', emoji: '🧍', label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
+    ...(ageMonths >= 84 ? [{ to: '/profile/tanner', emoji: '🌱', label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc' }] : []),
+    { to: '/profile/fitness', emoji: '🏃', label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
+    { to: '/journal?filter=keepsake', emoji: '⭐', label: '高光时刻', desc: '珍藏的成长瞬间和重要里程碑', color: '#fef3c7' },
+    { to: '/profile/report-upload', emoji: '🔍', label: '智能识别', desc: '上传医院报告，AI 自动提取数据生成记录', color: '#f4f7ea' },
+  ];
+}
 
 /* ── helpers ─────────────────────────────────────────────── */
 
@@ -73,6 +82,7 @@ export default function ProfilePage() {
   const ageMonths = computeAgeMonths(activeChild.birthDate);
   const ageY = Math.floor(ageMonths / 12);
   const ageR = ageMonths % 12;
+  const sections = useMemo(() => getSections(ageMonths), [ageMonths]);
   const pct = pctComplete(activeChild);
   const latest = latestByType(measurements);
   const h = latest.get('height');
@@ -95,7 +105,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-5">
             {/* Avatar */}
             {activeChild.avatarPath ? (
-              <img src={activeChild.avatarPath} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-[3px]" style={{ borderColor: 'rgba(255,255,255,0.5)' }} />
+              <img src={convertFileSrc(activeChild.avatarPath)} alt="" className="w-[72px] h-[72px] rounded-full object-cover border-[3px]" style={{ borderColor: 'rgba(255,255,255,0.5)' }} />
             ) : (
               <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center border-[3px]" style={{ background: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.5)' }}>
                 <span className="text-2xl font-bold text-white">{activeChild.displayName.charAt(0)}</span>

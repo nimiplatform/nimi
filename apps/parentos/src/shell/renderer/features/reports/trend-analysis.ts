@@ -1,4 +1,4 @@
-import type { JournalEntryRow, MeasurementRow } from '../../bridge/sqlite-bridge.js';
+import type { JournalEntryRow, MeasurementRow, SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS, OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 
 export interface StructuredTrendSignal {
@@ -64,13 +64,13 @@ function buildMeasurementTrendSignals(
 
     signals.push({
       id: `measurement-${typeId}`,
-      title: `${label} trend`,
-      summary: `${label} changed by ${formatSignedDelta(delta)}${unit ? ` ${unit}` : ''} between ${formatDate(previous.measuredAt)} and ${formatDate(latestInPeriod.measuredAt)}.`,
+      title: `${label}趋势`,
+      summary: `${label}在 ${formatDate(previous.measuredAt)} 至 ${formatDate(latestInPeriod.measuredAt)} 期间变化了 ${formatSignedDelta(delta)}${unit ? ` ${unit}` : ''}。`,
       evidence: [
-        `Previous record: ${previous.value}${unit ? ` ${unit}` : ''} on ${formatDate(previous.measuredAt)}.`,
-        `Latest record: ${latestInPeriod.value}${unit ? ` ${unit}` : ''} on ${formatDate(latestInPeriod.measuredAt)}.`,
+        `上次记录：${previous.value}${unit ? ` ${unit}` : ''}，${formatDate(previous.measuredAt)}。`,
+        `最新记录：${latestInPeriod.value}${unit ? ` ${unit}` : ''}，${formatDate(latestInPeriod.measuredAt)}。`,
       ],
-      sources: ['Local growth measurements'],
+      sources: ['本地生长测量数据'],
     });
   }
 
@@ -96,13 +96,13 @@ function buildJournalVolumeSignal(
 
   return {
     id: 'journal-volume',
-    title: 'Journal activity trend',
-    summary: `Journal capture count was ${currentWindow.length} in the current window versus ${previousWindow.length} in the previous window of the same length.`,
+    title: '日志活跃度趋势',
+    summary: `当前周期日志记录 ${currentWindow.length} 条，上一同等周期 ${previousWindow.length} 条。`,
     evidence: [
-      `${currentVoice} voice-only entries and ${currentMixed} voice-plus-text entries were saved in the current window.`,
-      `${currentKeepsakes} entries were marked as keepsakes in the current window.`,
+      `当前周期内 ${currentVoice} 条纯语音记录，${currentMixed} 条语音+文字记录。`,
+      `当前周期内 ${currentKeepsakes} 条标记为珍藏。`,
     ],
-    sources: ['Local journal entries'],
+    sources: ['本地观察日志'],
   };
 }
 
@@ -128,15 +128,135 @@ function buildJournalDimensionSignal(
 
   return {
     id: 'journal-dimension',
-    title: 'Observation focus trend',
-    summary: `${label} was the most-recorded observation dimension in the current window with ${count} entries.`,
+    title: '观察维度趋势',
+    summary: `${label}是当前周期记录最多的观察维度，共 ${count} 条。`,
     evidence: [
-      `Dimension id: ${dimensionId}.`,
-      `Recorded entries in the current window: ${count}.`,
+      `维度 ID：${dimensionId}。`,
+      `当前周期记录条数：${count}。`,
     ],
-    sources: ['Local journal entries', 'Observation framework'],
+    sources: ['本地观察日志', '观察框架'],
   };
 }
+
+/* ── Comparison data extractors (for narrative reports) ── */
+
+export interface MeasurementComparison {
+  typeId: string;
+  label: string;
+  unit: string;
+  currentValue: number;
+  currentDate: string;
+  currentPercentile: number | null;
+  previousValue: number | null;
+  previousDate: string | null;
+  delta: number | null;
+}
+
+export function buildMeasurementComparisons(
+  measurements: MeasurementRow[],
+  periodStart: string,
+  periodEnd: string,
+): MeasurementComparison[] {
+  const grouped = new Map<string, MeasurementRow[]>();
+  for (const m of measurements) {
+    const bucket = grouped.get(m.typeId) ?? [];
+    bucket.push(m);
+    grouped.set(m.typeId, bucket);
+  }
+
+  const results: MeasurementComparison[] = [];
+  for (const [typeId, rows] of grouped.entries()) {
+    const sorted = [...rows].sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
+    const latestInPeriod = [...sorted].reverse().find((r) => isInPeriod(r.measuredAt, periodStart, periodEnd));
+    if (!latestInPeriod) continue;
+
+    const latestIndex = sorted.findIndex((r) => r.measurementId === latestInPeriod.measurementId);
+    const previous = latestIndex > 0 ? sorted[latestIndex - 1]! : null;
+    const gs = growthStandardById.get(typeId as typeof GROWTH_STANDARDS[number]['typeId']);
+
+    results.push({
+      typeId,
+      label: gs?.displayName ?? typeId,
+      unit: gs?.unit ?? '',
+      currentValue: latestInPeriod.value,
+      currentDate: latestInPeriod.measuredAt,
+      currentPercentile: latestInPeriod.percentile ?? null,
+      previousValue: previous ? previous.value : null,
+      previousDate: previous ? previous.measuredAt : null,
+      delta: previous ? Math.round((latestInPeriod.value - previous.value) * 10) / 10 : null,
+    });
+  }
+
+  return results.sort((a, b) => a.typeId.localeCompare(b.typeId));
+}
+
+export interface SleepComparison {
+  currentAvgBedtime: string | null;
+  currentAvgDuration: number | null;
+  previousAvgBedtime: string | null;
+  previousAvgDuration: number | null;
+  currentCount: number;
+  previousCount: number;
+  bedtimeDeltaMinutes: number | null;
+  durationDeltaMinutes: number | null;
+}
+
+function parseBedtimeMinutes(bedtime: string): number | null {
+  const parts = bedtime.match(/^(\d{1,2}):(\d{2})/);
+  if (!parts) return null;
+  let h = parseInt(parts[1]!, 10);
+  const m = parseInt(parts[2]!, 10);
+  // Normalize: times after midnight (0-5) treated as 24+
+  if (h < 6) h += 24;
+  return h * 60 + m;
+}
+
+function minutesToTimeStr(minutes: number): string {
+  const h = Math.floor(minutes % (24 * 60) / 60) % 24;
+  const m = Math.round(minutes % 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export function buildSleepComparison(
+  sleepRecords: SleepRecordRow[],
+  periodStart: string,
+  periodEnd: string,
+): SleepComparison {
+  const prevStart = previousPeriodStart(periodStart, periodEnd);
+  const current = sleepRecords.filter((r) => isInPeriod(r.sleepDate, periodStart, periodEnd));
+  const previous = sleepRecords.filter((r) => isInPeriod(r.sleepDate, prevStart, periodStart));
+
+  const avgBedtime = (records: SleepRecordRow[]): { avgStr: string | null; avgMin: number | null } => {
+    const mins = records.map((r) => r.bedtime ? parseBedtimeMinutes(r.bedtime) : null).filter((v): v is number => v !== null);
+    if (mins.length === 0) return { avgStr: null, avgMin: null };
+    const avg = mins.reduce((s, v) => s + v, 0) / mins.length;
+    return { avgStr: minutesToTimeStr(avg), avgMin: avg };
+  };
+
+  const avgDuration = (records: SleepRecordRow[]): number | null => {
+    const durations = records.map((r) => r.durationMinutes).filter((v): v is number => v !== null);
+    if (durations.length === 0) return null;
+    return Math.round(durations.reduce((s, v) => s + v, 0) / durations.length);
+  };
+
+  const curBt = avgBedtime(current);
+  const prevBt = avgBedtime(previous);
+  const curDur = avgDuration(current);
+  const prevDur = avgDuration(previous);
+
+  return {
+    currentAvgBedtime: curBt.avgStr,
+    currentAvgDuration: curDur,
+    previousAvgBedtime: prevBt.avgStr,
+    previousAvgDuration: prevDur,
+    currentCount: current.length,
+    previousCount: previous.length,
+    bedtimeDeltaMinutes: (curBt.avgMin != null && prevBt.avgMin != null) ? Math.round(curBt.avgMin - prevBt.avgMin) : null,
+    durationDeltaMinutes: (curDur != null && prevDur != null) ? Math.round(curDur - prevDur) : null,
+  };
+}
+
+/* ── Structured trend signals (v1 format) ── */
 
 export function buildStructuredTrendSignals(input: {
   measurements: MeasurementRow[];

@@ -7,8 +7,10 @@ import { getMilestoneRecords, upsertMilestoneRecord } from '../../bridge/sqlite-
 import type { MilestoneRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── domain config ───────────────────────────────────────── */
 
@@ -21,6 +23,17 @@ const DOMAINS: Array<{ key: MilestoneDomain; label: string; emoji: string; color
   { key: 'self-care', label: '自理', emoji: '🪥', color: '#e0f7fa' },
 ];
 const DOMAIN_MAP = new Map(DOMAINS.map((d) => [d.key, d]));
+
+type AgeBucket = {
+  startMonth: number;
+  endMonth: number;
+  label: string;
+  milestones: typeof MILESTONE_CATALOG;
+};
+
+function formatAchievedDate(achievedAt: string | null | undefined) {
+  return achievedAt?.split('T')[0] ?? '已记录';
+}
 
 /* ================================================================
    RADAR CHART (pure SVG)
@@ -115,30 +128,28 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
   const dm = DOMAIN_MAP.get(milestone.domain as MilestoneDomain);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={onClose}>
-      <div className={`w-[420px] ${S.radius} p-6 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+      <div className={`w-[420px] ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">{dm?.emoji ?? '🎯'}</span>
             <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{milestone.title}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
-        <p className="text-[12px] mb-4" style={{ color: S.sub }}>{milestone.description}</p>
 
-        <div className="space-y-3">
+        <div className="px-6 pb-2 space-y-4 flex-1">
+          <p className="text-[12px]" style={{ color: S.sub }}>{milestone.description}</p>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>达成日期</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+            <ProfileDatePicker value={date} onChange={setDate} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>记录小故事 ✏️</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
               placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none`} rows={3}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} rows={3}
+              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>添加照片 📷</label>
@@ -148,15 +159,15 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
           </div>
         </div>
 
-        <div className="flex gap-2 mt-5">
-          <button onClick={() => void handleSave()} disabled={saving}
-            className={`flex-1 py-2 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-50`}
-            style={{ background: S.accent }}>
-            {saving ? '保存中...' : '✅ 记录达成'}
-          </button>
-          <button onClick={onClose}
-            className={`px-4 py-2 text-[13px] ${S.radiusSm}`}
-            style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+        <div className="px-6 pt-3 pb-5 mt-1">
+          <div className="flex items-center justify-end gap-2">
+            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={() => void handleSave()} disabled={saving}
+              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              style={{ background: S.accent }}>
+              {saving ? '保存中...' : '✅ 记录达成'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -168,11 +179,12 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
    ================================================================ */
 
 export default function MilestonePage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<MilestoneRecordRow[]>([]);
   const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'timeline' | 'radar'>('timeline');
+  const [pastExpanded, setPastExpanded] = useState(false);
 
   useEffect(() => {
     if (activeChildId) getMilestoneRecords(activeChildId).then(setRecords).catch(() => {});
@@ -181,10 +193,27 @@ export default function MilestonePage() {
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
   const ageMonths = computeAgeMonths(child.birthDate);
+  const isArchive = ageMonths > 72; // 6+ years: read-only archive view
   const recordMap = new Map(records.map((r) => [r.milestoneId, r]));
   const achievedCount = records.filter((r) => r.achievedAt).length;
 
   const reload = () => { getMilestoneRecords(child.childId).then(setRecords).catch(() => {}); };
+
+  const handleQuickCheck = async (milestoneId: string) => {
+    const existing = recordMap.get(milestoneId);
+    try {
+      await upsertMilestoneRecord({
+        recordId: existing?.recordId ?? ulid(),
+        childId: child.childId, milestoneId,
+        achievedAt: isoNow(),
+        ageMonthsWhenAchieved: ageMonths,
+        notes: existing?.notes ?? null,
+        photoPath: existing?.photoPath ?? null,
+        now: isoNow(),
+      });
+      reload();
+    } catch { /* bridge unavailable */ }
+  };
 
   const handleUnachieve = async (milestoneId: string) => {
     const rec = recordMap.get(milestoneId);
@@ -207,7 +236,7 @@ export default function MilestonePage() {
 
   /* ── Timeline: group milestones by age buckets ──────────── */
   const ageBuckets = useMemo(() => {
-    const buckets: Array<{ startMonth: number; endMonth: number; label: string; milestones: typeof MILESTONE_CATALOG }> = [];
+    const buckets: AgeBucket[] = [];
     const ranges = [[0, 3, '0-3 个月'], [4, 6, '4-6 个月'], [7, 9, '7-9 个月'], [10, 12, '10-12 个月'],
       [13, 18, '13-18 个月'], [19, 24, '19-24 个月'], [25, 36, '2-3 岁'], [37, 48, '3-4 岁'],
       [49, 60, '4-5 岁'], [61, 72, '5-6 岁'], [73, 96, '6-8 岁'], [97, 120, '8-10 岁'],
@@ -216,8 +245,28 @@ export default function MilestonePage() {
       const ms = MILESTONE_CATALOG.filter((m) => m.typicalAge.medianMonths >= s && m.typicalAge.medianMonths <= e);
       if (ms.length > 0) buckets.push({ startMonth: s, endMonth: e, label: lbl, milestones: ms });
     }
-    return buckets.reverse();
+    return buckets;
   }, []);
+
+  /* ── Split buckets into past / current / future ─────────── */
+  const { pastBuckets, currentBucket, futureBuckets } = useMemo(() => {
+    const past: typeof ageBuckets = [];
+    let cur: typeof ageBuckets[number] | null = null;
+    const future: typeof ageBuckets = [];
+    for (const b of ageBuckets) {
+      if (ageMonths > b.endMonth) past.push(b);
+      else if (ageMonths >= b.startMonth && ageMonths <= b.endMonth) cur = b;
+      else future.push(b);
+    }
+    return { pastBuckets: past, currentBucket: cur, futureBuckets: future };
+  }, [ageBuckets, ageMonths]);
+
+  const pastSummary = useMemo(() => {
+    const totalMs = pastBuckets.reduce((n, b) => n + b.milestones.length, 0);
+    const achievedMs = pastBuckets.reduce((n, b) => n + b.milestones.filter((m) => recordMap.get(m.milestoneId)?.achievedAt).length, 0);
+    return { total: totalMs, achieved: achievedMs };
+  }, [pastBuckets, recordMap]);
+  const pastPendingCount = Math.max(0, pastSummary.total - pastSummary.achieved);
 
   /* ── Upcoming milestones (±3 months from current age) ──── */
   const upcoming = useMemo(() =>
@@ -236,9 +285,9 @@ export default function MilestonePage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold" style={{ color: S.text }}>发育里程碑</h1>
+          <h1 className="text-xl font-bold" style={{ color: S.text }}>{isArchive ? '早期发育记录' : '发育里程碑'}</h1>
           <div className="group relative">
             <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -272,9 +321,10 @@ export default function MilestonePage() {
           已达成 {achievedCount}/{MILESTONE_CATALOG.length}
         </span>
       </div>
-      <p className="text-[12px] mb-5" style={{ color: S.sub }}>
-        {child.displayName}，{Math.floor(ageMonths / 12)}岁{ageMonths % 12}个月
-      </p>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
 
       {/* AI Summary */}
       <AISummaryCard domain="milestone" childName={child.displayName} childId={child.childId}
@@ -287,8 +337,8 @@ export default function MilestonePage() {
           }).join(', ')}`
           : ''} />
 
-      {/* ── 4. Upcoming milestones (主动推送) ────────────────── */}
-      {upcoming.length > 0 && (
+      {/* ── 4. Upcoming milestones (主动推送, hidden in archive mode) ── */}
+      {!isArchive && upcoming.length > 0 && (
         <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">🔔</span>
@@ -297,21 +347,32 @@ export default function MilestonePage() {
           <div className="space-y-2">
             {upcoming.map((m) => {
               const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
+              const rec = recordMap.get(m.milestoneId);
+              const achieved = !!rec?.achievedAt;
               return (
                 <div key={m.milestoneId} className={`flex items-center gap-3 p-3 ${S.radiusSm} transition-colors hover:bg-[#f4f7ea]/50`}
-                  style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
-                  <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0" style={{ background: dm?.color ?? '#f0f0ec' }}>
-                    {dm?.emoji ?? '🎯'}
-                  </div>
+                  style={{ background: achieved ? '#f4f7ea' : '#f9faf7', border: `1px solid ${achieved ? S.accent + '40' : S.border}` }}>
+                  {/* Check circle — quick toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); void (achieved ? handleUnachieve(m.milestoneId) : handleQuickCheck(m.milestoneId)); }}
+                    className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all"
+                    style={achieved
+                      ? { background: S.accent, borderColor: S.accent, color: '#fff' }
+                      : { background: S.card, borderColor: '#d0d5db' }}
+                    title={achieved ? '撤销达成' : '标记已达成'}>
+                    {achieved && <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>}
+                  </button>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium" style={{ color: S.text }}>{m.title}</p>
+                    <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
                     <p className="text-[10px]" style={{ color: S.sub }}>
-                      典型 {formatAge(m.typicalAge.rangeStart)}-{formatAge(m.typicalAge.rangeEnd)} · {m.description.slice(0, 30)}...
+                      {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : `典型 ${formatAge(m.typicalAge.rangeStart)}-${formatAge(m.typicalAge.rangeEnd)} · ${m.description.slice(0, 30)}...`}
                     </p>
                   </div>
                   <button onClick={() => setEditingMilestone(m.milestoneId)}
-                    className={`px-3 py-1 text-[11px] font-medium text-white ${S.radiusSm} transition-colors hover:opacity-90`}
-                    style={{ background: S.accent }}>记录</button>
+                    className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                    style={{ color: S.sub, border: `1px solid ${S.border}` }}>
+                    📝 {achieved ? '补个故事' : '记录'}
+                  </button>
                 </div>
               );
             })}
@@ -350,72 +411,53 @@ export default function MilestonePage() {
       )}
 
       {/* ── 1. Timeline view ─────────────────────────────────── */}
-      {activeTab === 'timeline' && (
+      {activeTab === 'timeline' && isArchive && (
         <div className="relative">
-          {/* Vertical timeline line */}
           <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
-
           {ageBuckets.map((bucket) => {
-            const isCurrent = ageMonths >= bucket.startMonth && ageMonths <= bucket.endMonth;
-            const isPast = ageMonths > bucket.endMonth;
-            const isFuture = ageMonths < bucket.startMonth;
-
+            const bucketAchieved = bucket.milestones.filter((m) => recordMap.get(m.milestoneId)?.achievedAt).length;
             return (
-              <div key={bucket.label} className={`relative pl-10 pb-6 ${isFuture ? 'opacity-40' : ''}`}>
-                {/* Timeline dot */}
+              <div key={bucket.label} className="relative pl-10 pb-6">
                 <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
-                  style={{
-                    background: isCurrent ? S.accent : isPast ? S.card : '#eceeed',
-                    borderColor: isCurrent ? S.accent : isPast ? S.accent : S.border,
-                  }}>
-                  {isPast && <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />}
+                  style={{ background: S.card, borderColor: bucketAchieved > 0 ? S.accent : S.border }}>
+                  {bucketAchieved > 0 && <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />}
                 </div>
-
-                {/* Age label */}
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[12px] font-bold" style={{ color: isCurrent ? S.accent : S.text }}>{bucket.label}</span>
-                  {isCurrent && <span className="text-[9px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>}
+                  <span className="text-[12px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+                    {bucketAchieved}/{bucket.milestones.length}
+                  </span>
                 </div>
-
-                {/* Milestone cards */}
                 <div className="space-y-1.5">
                   {bucket.milestones.map((m) => {
                     const rec = recordMap.get(m.milestoneId);
                     const achieved = !!rec?.achievedAt;
                     const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
-
                     return (
                       <div key={m.milestoneId}
-                        className={`flex items-center gap-2.5 p-2.5 ${S.radiusSm} transition-all duration-150 cursor-pointer hover:shadow-sm`}
-                        style={{ background: achieved ? '#f4f7ea' : S.card, border: `1px solid ${achieved ? S.accent + '40' : S.border}` }}
-                        onClick={() => achieved ? undefined : setEditingMilestone(m.milestoneId)}>
-                        {/* Check / domain icon */}
+                        className={`flex items-center gap-2.5 p-2.5 ${S.radiusSm}`}
+                        style={{ background: achieved ? '#f4f7ea' : S.card, border: `1px solid ${achieved ? S.accent + '40' : S.border}` }}>
+                        {/* Static icon — no toggle in archive mode */}
                         {achieved ? (
-                          <div className="w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0"
+                          <div className="w-[20px] h-[20px] rounded-full flex items-center justify-center shrink-0"
                             style={{ background: S.accent, color: '#fff' }}>
-                            <svg viewBox="0 0 12 12" className="w-3.5 h-3.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
+                            <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
                           </div>
                         ) : (
-                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0"
-                            style={{ background: dm?.color ?? '#f0f0ec' }}>
-                            {dm?.emoji ?? '🎯'}
-                          </div>
+                          <div className="w-[20px] h-[20px] rounded-full border-[1.5px] shrink-0" style={{ borderColor: '#d0d5db' }} />
                         )}
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
+                          <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.sub }}>{m.title}</p>
                           <p className="text-[10px] truncate" style={{ color: S.sub }}>
-                            {achieved && rec?.achievedAt ? `${rec.achievedAt.split('T')[0]} 达成` : m.description}
+                            {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : '未记录'}
                           </p>
                         </div>
-                        {/* Actions */}
-                        {achieved ? (
-                          <button onClick={(e) => { e.stopPropagation(); void handleUnachieve(m.milestoneId); }}
-                            className="text-[10px] shrink-0 opacity-0 group-hover:opacity-100 px-2 py-1 rounded-full hover:bg-[#f0f0ec]"
-                            style={{ color: S.sub }}>撤销</button>
-                        ) : (
-                          <span className="text-[10px] shrink-0" style={{ color: S.sub }}>点击记录</span>
-                        )}
+                        <button
+                          onClick={() => setEditingMilestone(m.milestoneId)}
+                          className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                          style={{ color: S.sub, border: `1px solid ${S.border}` }}>
+                          📝 {achieved ? '补个故事' : '补记'}
+                        </button>
                       </div>
                     );
                   })}
@@ -423,6 +465,258 @@ export default function MilestonePage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {activeTab === 'timeline' && !isArchive && (
+        <div className="space-y-5">
+          {pastBuckets.length > 0 && (
+            <section
+              className={`${S.radius} p-5`}
+              style={{
+                background: 'linear-gradient(180deg, rgba(247, 248, 241, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%)',
+                border: `1px solid ${S.border}`,
+                boxShadow: '0 10px 28px rgba(26,43,74,0.04)',
+              }}
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[14px]"
+                      style={{ background: '#eef4d9' }}
+                    >
+                      🗂️
+                    </span>
+                    <span className="text-[12px] font-semibold tracking-[0.08em]" style={{ color: S.accent }}>
+                      成长档案
+                    </span>
+                  </div>
+                  <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>
+                    已走过的阶段
+                  </h3>
+                  <p className="mt-1 text-[11px] leading-5" style={{ color: S.sub }}>
+                    {pastBuckets[0]!.label} ~ {pastBuckets[pastBuckets.length - 1]!.label} 的成长足迹，随时可以回顾和补记
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setPastExpanded(!pastExpanded)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold transition-colors hover:opacity-90"
+                  style={{ background: '#eef4d9', color: S.text }}
+                >
+                  {pastExpanded ? '收起成长档案' : '展开成长档案'}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    className={`shrink-0 transition-transform duration-200 ${pastExpanded ? 'rotate-180' : ''}`}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
+                  已走过 {pastBuckets.length} 个阶段
+                </div>
+                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#eef4d9', color: S.text }}>
+                  已记录 {pastSummary.achieved}/{pastSummary.total} 项
+                </div>
+                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#f6efe2', color: '#8a6a2f' }}>
+                  {pastPendingCount} 项可补记
+                </div>
+              </div>
+
+              {pastExpanded && (
+                <div className="mt-5 space-y-3">
+                  {pastBuckets.slice().reverse().map((bucket) => {
+                    const bucketAchieved = bucket.milestones.filter((m) => recordMap.get(m.milestoneId)?.achievedAt).length;
+                    const bucketPending = bucket.milestones.length - bucketAchieved;
+
+                    return (
+                      <div
+                        key={bucket.label}
+                        className={`${S.radiusSm} p-4`}
+                        style={{
+                          background: bucketPending === 0 ? '#f8fbef' : '#fffdf8',
+                          border: `1px solid ${bucketPending === 0 ? '#d8e3b6' : '#ece4d6'}`,
+                        }}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[13px] font-semibold" style={{ color: S.text }}>
+                              {bucket.label}
+                            </span>
+                            <span
+                              className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                              style={{ background: '#ffffff', color: S.text, border: `1px solid ${S.border}` }}
+                            >
+                              已记录 {bucketAchieved}/{bucket.milestones.length}
+                            </span>
+                            {bucketPending > 0 && (
+                              <span
+                                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                style={{ background: '#f6efe2', color: '#8a6a2f' }}
+                              >
+                                待补记 {bucketPending} 项
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[10px] leading-5" style={{ color: S.sub }}>
+                            {bucketPending > 0 ? '还有未记录的项目，可以补上哦' : '所有里程碑都已记录'}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          {bucket.milestones.map((m) => {
+                            const rec = recordMap.get(m.milestoneId);
+                            const achieved = !!rec?.achievedAt;
+                            const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
+                            return (
+                              <div
+                                key={m.milestoneId}
+                                className={`group flex items-center gap-3 p-3 ${S.radiusSm} transition-all duration-150`}
+                                style={{
+                                  background: achieved ? '#ffffff' : '#fbfaf6',
+                                  border: `1px solid ${achieved ? '#d7e2b0' : '#ebe5d8'}`,
+                                }}
+                              >
+                                {/* Check circle — quick toggle */}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); void (achieved ? handleUnachieve(m.milestoneId) : handleQuickCheck(m.milestoneId)); }}
+                                  className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all"
+                                  style={achieved
+                                    ? { background: S.accent, borderColor: S.accent, color: '#fff' }
+                                    : { background: S.card, borderColor: '#d0d5db' }}
+                                  title={achieved ? '撤销达成' : '标记已达成'}>
+                                  {achieved && <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>}
+                                </button>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>
+                                      {m.title}
+                                    </p>
+                                    <span
+                                      className="rounded-full px-2 py-0.5 text-[9px] font-medium"
+                                      style={{ background: dm?.color ?? '#f0f0ec', color: S.text }}
+                                    >
+                                      {dm?.label ?? '里程碑'}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 line-clamp-2 text-[10px] leading-4" style={{ color: S.sub }}>
+                                    {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : m.description}
+                                  </p>
+                                </div>
+
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setEditingMilestone(m.milestoneId); }}
+                                  className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f3f5ea]"
+                                  style={{ color: S.sub, border: `1px solid ${S.border}` }}>
+                                  📝 {achieved ? '补个故事' : '记录'}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {(currentBucket || futureBuckets.length > 0) && (
+            <div className="relative">
+              <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+
+              {/* ── Current stage ───────────────────────────────── */}
+              {currentBucket && (
+                <div className="relative pl-10 pb-6">
+                  <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
+                    style={{ background: S.accent, borderColor: S.accent }} />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[12px] font-bold" style={{ color: S.accent }}>{currentBucket.label}</span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {currentBucket.milestones.map((m) => {
+                      const rec = recordMap.get(m.milestoneId);
+                      const achieved = !!rec?.achievedAt;
+                      const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
+                      return (
+                        <div key={m.milestoneId}
+                          className={`group flex items-center gap-2.5 p-2.5 ${S.radiusSm} transition-all duration-150 hover:shadow-sm`}
+                          style={{ background: achieved ? '#f4f7ea' : S.card, border: `1px solid ${achieved ? S.accent + '40' : S.border}` }}>
+                          {/* Check circle — quick toggle */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); void (achieved ? handleUnachieve(m.milestoneId) : handleQuickCheck(m.milestoneId)); }}
+                            className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all"
+                            style={achieved
+                              ? { background: S.accent, borderColor: S.accent, color: '#fff' }
+                              : { background: S.card, borderColor: '#d0d5db' }}
+                            title={achieved ? '撤销达成' : '标记已达成'}>
+                            {achieved && <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>}
+                          </button>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
+                            <p className="text-[10px] truncate" style={{ color: S.sub }}>
+                              {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : m.description}
+                            </p>
+                          </div>
+                          {/* Detail record button */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingMilestone(m.milestoneId); }}
+                            className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                            style={{ color: S.sub, border: `1px solid ${S.border}` }}>
+                            📝 {achieved ? '补个故事' : '记录'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Future stages ───────────────────────────────── */}
+              {futureBuckets.map((bucket) => (
+                <div key={bucket.label} className="relative pl-10 pb-6 opacity-40">
+                  <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
+                    style={{ background: '#eceeed', borderColor: S.border }} />
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[12px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {bucket.milestones.map((m) => {
+                      const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
+                      return (
+                        <div key={m.milestoneId}
+                          className={`flex items-center gap-2.5 p-2.5 ${S.radiusSm}`}
+                          style={{ background: S.card, border: `1px solid ${S.border}` }}>
+                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0"
+                            style={{ background: dm?.color ?? '#f0f0ec' }}>
+                            {dm?.emoji ?? '🎯'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium" style={{ color: S.text }}>{m.title}</p>
+                            <p className="text-[10px] truncate" style={{ color: S.sub }}>{m.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

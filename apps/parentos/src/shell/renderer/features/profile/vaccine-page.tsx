@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import type { ReminderRule } from '../../knowledge-base/gen/reminder-rules.gen.js';
@@ -7,7 +7,10 @@ import { getVaccineRecords, insertVaccineRecord } from '../../bridge/sqlite-brid
 import type { VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { completeReminderByRule } from '../../engine/reminder-actions.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── helpers ──────────────────────────────────────────────── */
 
@@ -19,7 +22,7 @@ function fmtDate(d: string) { return d.split('T')[0]; }
 
 function VaccineRecordModal({ rule, childId, birthDate, ageMonths, onSave, onClose }: {
   rule: ReminderRule; childId: string; birthDate: string; ageMonths: number;
-  onSave: () => void; onClose: () => void;
+  onSave: (ruleId: string) => void; onClose: () => void;
 }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [batch, setBatch] = useState('');
@@ -37,63 +40,61 @@ function VaccineRecordModal({ rule, childId, birthDate, ageMonths, onSave, onClo
         batchNumber: batch || null, hospital: hospital || null,
         adverseReaction: reaction || null, photoPath: null, now: isoNow(),
       });
-      onSave();
+      onSave(rule.ruleId);
       onClose();
     } catch { /* bridge unavailable */ }
     setSaving(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={onClose}>
-      <div className={`w-[420px] ${S.radius} p-6 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+      <div className={`w-[420px] ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
             <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{rule.title}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
-        <p className="text-[12px] mb-4" style={{ color: S.sub }}>{rule.description}</p>
 
-        <div className="space-y-3">
+        <div className="px-6 pb-2 space-y-4 flex-1">
+          <p className="text-[12px]" style={{ color: S.sub }}>{rule.description}</p>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种日期</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+            <ProfileDatePicker value={date} onChange={setDate} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-1.5 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
           </div>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应记录</label>
             <textarea value={reaction} onChange={(e) => setReaction(e.target.value)}
               placeholder="如有不良反应请记录..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none`} rows={2}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} rows={2}
+              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
         </div>
 
-        <div className="flex gap-2 mt-5">
-          <button onClick={() => void handleSave()} disabled={saving}
-            className={`flex-1 py-2 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-50`}
-            style={{ background: S.accent }}>
-            {saving ? '保存中...' : '✅ 记录接种'}
-          </button>
-          <button onClick={onClose}
-            className={`px-4 py-2 text-[13px] ${S.radiusSm}`}
-            style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+        <div className="px-6 pt-3 pb-5 mt-1">
+          <div className="flex items-center justify-end gap-2">
+            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={() => void handleSave()} disabled={saving}
+              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              style={{ background: S.accent }}>
+              {saving ? '保存中...' : '✅ 记录接种'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -163,52 +164,50 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={onClose}>
-      <div className={`w-[440px] ${S.radius} p-6 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+      <div className={`w-[440px] ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
             <h2 className="text-[15px] font-bold" style={{ color: S.text }}>自定义疫苗</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
-        <p className="text-[11px] mb-4" style={{ color: S.sub }}>
-          添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
-        </p>
 
-        <div className="space-y-3">
+        <div className="px-6 pb-2 space-y-4 flex-1">
+          <p className="text-[11px]" style={{ color: S.sub }}>
+            添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
+          </p>
           <div>
             <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗名称 *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：流感疫苗、水痘疫苗"
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none focus:ring-2 focus:ring-[#86AFDA]/40`}
-              style={{ background: '#f5f3ef', color: S.text }} />
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种日期 *</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-                style={{ background: '#f5f3ef', color: S.text }} />
+              <ProfileDatePicker value={date} onChange={setDate} style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-                style={{ background: '#f5f3ef', color: S.text }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-                style={{ background: '#f5f3ef', color: S.text }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
             <div>
               <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应</label>
               <input value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="如有请记录"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-                style={{ background: '#f5f3ef', color: S.text }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
 
@@ -235,8 +234,8 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             {remindOption === 'custom' && (
               <div className="flex items-center gap-2 mt-2">
                 <input type="number" min="1" max="120" value={customMonths} onChange={(e) => setCustomMonths(e.target.value)}
-                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[12px] border-0 outline-none`}
-                  style={{ background: '#fff', border: `1px solid ${S.border}`, color: S.text }} />
+                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                  style={{ background: '#fafaf8', border: `1px solid ${S.border}`, color: S.text }} />
                 <span className="text-[11px]" style={{ color: S.sub }}>个月后提醒</span>
               </div>
             )}
@@ -248,15 +247,15 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
           </div>
         </div>
 
-        <div className="flex gap-2 mt-5">
-          <button onClick={() => void handleSave()} disabled={saving || !name.trim()}
-            className={`flex-1 py-2.5 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-all hover:opacity-90`}
-            style={{ background: S.accent }}>
-            {saving ? '保存中...' : '记录接种'}
-          </button>
-          <button onClick={onClose}
-            className={`px-5 py-2.5 text-[13px] ${S.radiusSm}`}
-            style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+        <div className="px-6 pt-3 pb-5 mt-1">
+          <div className="flex items-center justify-end gap-2">
+            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={() => void handleSave()} disabled={saving || !name.trim()}
+              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-40`}
+              style={{ background: S.accent }}>
+              {saving ? '保存中...' : '记录接种'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -365,10 +364,11 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
    ================================================================ */
 
 export default function VaccinePage() {
-  const { activeChildId, children } = useAppStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<VaccineRecordRow[]>([]);
-  const [recordingRuleId, setRecordingRuleId] = useState<string | null>(null);
+  const [recordingRuleId, setRecordingRuleId] = useState<string | null>(() => searchParams.get('ruleId'));
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'timeline' | 'list'>('timeline');
 
@@ -385,6 +385,13 @@ export default function VaccinePage() {
   const pct = vaccineRules.length > 0 ? Math.round((completedCount / vaccineRules.length) * 100) : 0;
 
   const reload = () => { getVaccineRecords(child.childId).then(setRecords).catch(() => {}); };
+
+  const clearRuleSearch = () => {
+    if (!searchParams.has('ruleId')) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('ruleId');
+    setSearchParams(next, { replace: true });
+  };
 
   /* ── Upcoming vaccines: only current window or recently overdue (≤12月) ── */
   const upcoming = useMemo(() =>
@@ -430,7 +437,7 @@ export default function VaccinePage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold" style={{ color: S.text }}>疫苗接种</h1>
           <div className="group relative">
@@ -475,9 +482,10 @@ export default function VaccinePage() {
           </span>
         </div>
       </div>
-      <p className="text-[12px] mb-5" style={{ color: S.sub }}>
-        {child.displayName}，{Math.floor(ageMonths / 12)}岁{ageMonths % 12}个月
-      </p>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
 
       {/* Progress bar */}
       <div className={`${S.radius} p-4 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
@@ -541,7 +549,10 @@ export default function VaccinePage() {
               vaccineName: rule.title, vaccinatedAt: now.split('T')[0] ?? now,
               ageMonths: computeAgeMonthsAt(child.birthDate, now),
               batchNumber: null, hospital: null, adverseReaction: null, photoPath: null, now,
-            }).then(reload).catch(() => {});
+            }).then(async () => {
+              await completeReminderByRule({ childId: child.childId, ruleId });
+              reload();
+            }).catch(() => {});
           }}
           onMarkAll={() => {
             (async () => {
@@ -554,6 +565,7 @@ export default function VaccinePage() {
                     ageMonths: computeAgeMonthsAt(child.birthDate, now),
                     batchNumber: null, hospital: null, adverseReaction: null, photoPath: null, now,
                   });
+                  await completeReminderByRule({ childId: child.childId, ruleId: r.ruleId });
                 } catch { /* skip duplicates */ }
               }
               reload();
@@ -692,8 +704,16 @@ export default function VaccinePage() {
           childId={child.childId}
           birthDate={child.birthDate}
           ageMonths={ageMonths}
-          onSave={reload}
-          onClose={() => setRecordingRuleId(null)}
+          onSave={(ruleId) => {
+            void completeReminderByRule({ childId: child.childId, ruleId }).then(() => {
+              reload();
+              clearRuleSearch();
+            });
+          }}
+          onClose={() => {
+            setRecordingRuleId(null);
+            clearRuleSearch();
+          }}
         />
       )}
 

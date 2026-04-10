@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
-import { getMeasurements } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
+import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
+import { getMeasurements, getMedicalEvents, insertMedicalEvent } from '../../bridge/sqlite-bridge.js';
+import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
 import {
@@ -16,6 +17,27 @@ import {
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';
 import { VisionGuide } from './vision-guide.js';
+import { ulid, isoNow } from '../../bridge/ulid.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
+
+/* ── Early vision screening types (0-36 months) ─────────── */
+
+const SCREENING_TYPES = [
+  { key: 'red-reflex', label: '红光反射', emoji: '🔴', desc: '筛查先天性白内障', minAge: 0, maxAge: 12 },
+  { key: 'fixation-tracking', label: '注视追视', emoji: '👁️', desc: '追踪物体能力', minAge: 2, maxAge: 12 },
+  { key: 'cover-test', label: '遮盖试验', emoji: '🫣', desc: '筛查斜视', minAge: 4, maxAge: 72 },
+  { key: 'photoscreener', label: '光筛查仪', emoji: '📷', desc: '屈光异常筛查', minAge: 6, maxAge: 48 },
+  { key: 'tear-duct', label: '泪道检查', emoji: '💧', desc: '泪道阻塞筛查', minAge: 0, maxAge: 24 },
+  { key: 'eye-checkup', label: '眼科检查', emoji: '🩺', desc: '通用眼科就诊', minAge: 0, maxAge: Infinity },
+] as const;
+
+const SCREENING_RESULT_OPTIONS = [
+  { key: 'pass', label: '通过', color: '#22c55e' },
+  { key: 'refer', label: '转诊', color: '#ef4444' },
+  { key: 'inconclusive', label: '待定', color: '#f59e0b' },
+] as const;
+
+const VISION_SCREENING_PREFIX = 'vision:';
 
 /* ================================================================
    RECORD CARD — displays one exam session
@@ -176,13 +198,187 @@ function RecordCard({ record, index, gender, onEdit, meta }: { record: VisionRec
 }
 
 /* ================================================================
+   SCREENING SECTION — early vision screening (0-36+ months)
+   ================================================================ */
+
+function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onSave }: {
+  childId: string; birthDate: string; ageMonths: number;
+  screeningRecords: MedicalEventRow[]; onSave: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [formType, setFormType] = useState('eye-checkup');
+  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formResult, setFormResult] = useState('pass');
+  const [formHospital, setFormHospital] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+
+  const availableTypes = useMemo(
+    () => SCREENING_TYPES.filter((t) => ageMonths >= t.minAge && ageMonths <= t.maxAge),
+    [ageMonths],
+  );
+
+  const resetForm = () => {
+    setFormType('eye-checkup'); setFormDate(new Date().toISOString().slice(0, 10));
+    setFormResult('pass'); setFormHospital(''); setFormNotes(''); setShowForm(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!formDate) return;
+    const screeningMeta = SCREENING_TYPES.find((t) => t.key === formType);
+    const now = isoNow();
+    await insertMedicalEvent({
+      eventId: ulid(), childId, eventType: 'checkup',
+      title: `${screeningMeta?.label ?? formType}检查`,
+      eventDate: formDate, endDate: null,
+      ageMonths: computeAgeMonthsAt(birthDate, formDate),
+      severity: null, result: formResult,
+      hospital: formHospital || null, medication: null, dosage: null,
+      notes: `${VISION_SCREENING_PREFIX}${formType}${formNotes ? `\n${formNotes}` : ''}`,
+      photoPath: null, now,
+    });
+    resetForm();
+    onSave();
+  };
+
+  const resultLabel = (r: string | null) => SCREENING_RESULT_OPTIONS.find((o) => o.key === r) ?? { label: r ?? '—', color: S.sub };
+  const sorted = [...screeningRecords].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[13px] font-semibold" style={{ color: S.text }}>早期眼科筛查</h2>
+        {!showForm && (
+          <button onClick={() => setShowForm(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            style={{ background: S.accent }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            添加筛查
+          </button>
+        )}
+      </div>
+
+      {/* Add screening form — modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
+        <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
+            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          </div>
+
+          {/* Screening type selector */}
+          <p className="text-[11px] mb-2" style={{ color: S.sub }}>筛查项目</p>
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {availableTypes.map((t) => (
+              <button key={t.key} onClick={() => setFormType(t.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                style={formType === t.key
+                  ? { background: S.accent, color: '#fff' }
+                  : { background: '#f5f3ef', color: S.sub }}>
+                <span>{t.emoji}</span> {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Result selector */}
+          <p className="text-[11px] mb-2" style={{ color: S.sub }}>检查结果</p>
+          <div className="flex gap-1.5 mb-4">
+            {SCREENING_RESULT_OPTIONS.map((r) => (
+              <button key={r.key} onClick={() => setFormResult(r.key)}
+                className={`px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all font-medium`}
+                style={formResult === r.key
+                  ? { background: r.color, color: '#fff' }
+                  : { background: '#f5f3ef', color: S.sub }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date + hospital */}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>日期</p>
+              <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
+            </div>
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
+              <input type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
+                placeholder="选填" className={`w-full px-3 py-2 text-[12px] ${S.radiusSm} border-0 outline-none`}
+                style={{ background: '#f5f3ef', color: S.text }} />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="mb-4">
+            <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
+            <input type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+              placeholder="选填" className={`w-full px-3 py-2 text-[12px] ${S.radiusSm} border-0 outline-none`}
+              style={{ background: '#f5f3ef', color: S.text }} />
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-2">
+            <button onClick={handleSubmit}
+              className={`px-5 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
+              style={{ background: S.accent }}>保存</button>
+            <button onClick={resetForm}
+              className={`px-4 py-2 text-[12px] ${S.radiusSm} transition-all`}
+              style={{ background: '#f5f3ef', color: S.sub }}>取消</button>
+          </div>
+        </div>
+        </div>
+      )}
+
+      {/* Screening record list */}
+      {sorted.length > 0 ? (
+        <div className="space-y-2">
+          {sorted.map((rec) => {
+            const screeningKey = rec.notes?.startsWith(VISION_SCREENING_PREFIX)
+              ? rec.notes.split('\n')[0]!.slice(VISION_SCREENING_PREFIX.length)
+              : null;
+            const meta = screeningKey ? SCREENING_TYPES.find((t) => t.key === screeningKey) : null;
+            const rl = resultLabel(rec.result);
+            const userNotes = rec.notes?.includes('\n') ? rec.notes.split('\n').slice(1).join('\n') : null;
+            return (
+              <div key={rec.eventId} className={`${S.radiusSm} px-4 py-3 flex items-center justify-between`}
+                style={{ background: S.card, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[16px]">{meta?.emoji ?? '🩺'}</span>
+                  <div>
+                    <span className="text-[12px] font-medium" style={{ color: S.text }}>{rec.title}</span>
+                    <span className="block text-[10px]" style={{ color: S.sub }}>
+                      {rec.eventDate.replace(/-/g, '/')} · {Math.floor(rec.ageMonths / 12)}岁{rec.ageMonths % 12}月
+                      {rec.hospital ? ` · ${rec.hospital}` : ''}
+                    </span>
+                    {userNotes && <span className="block text-[10px] mt-0.5" style={{ color: S.sub }}>{userNotes}</span>}
+                  </div>
+                </div>
+                <span className={`px-2.5 py-0.5 text-[10px] font-semibold ${S.radiusSm}`}
+                  style={{ background: `${rl.color}18`, color: rl.color }}>
+                  {rl.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : !showForm && (
+        <div className={`${S.radiusSm} p-5 text-center`} style={{ background: S.card, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <p className="text-[12px]" style={{ color: S.sub }}>暂无筛查记录</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================================================================
    MAIN PAGE
    ================================================================ */
 
 export default function VisionPage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
+  const [medicalEvents, setMedicalEvents] = useState<MedicalEventRow[]>([]);
   const [chartType, setChartType] = useState<GrowthTypeId>('axial-length-right');
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VisionRecord | null>(null);
@@ -192,10 +388,21 @@ export default function VisionPage() {
   useEffect(() => {
     if (!activeChildId) return;
     getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
+    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(() => {});
   }, [activeChildId]);
 
   const records = useMemo(() => groupByDate(measurements), [measurements]);
-  const reload = () => { if (activeChildId) getMeasurements(activeChildId).then(setMeasurements).catch(() => {}); };
+  const reload = () => {
+    if (!activeChildId) return;
+    getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
+    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(() => {});
+  };
+
+  // Filter medical events to vision screenings only (notes starts with "vision:")
+  const screeningRecords = useMemo(
+    () => medicalEvents.filter((e) => e.notes?.startsWith(VISION_SCREENING_PREFIX)),
+    [medicalEvents],
+  );
 
   const typeInfo = GROWTH_STANDARDS.find((s) => s.typeId === chartType);
   const chartData = measurements
@@ -221,7 +428,7 @@ export default function VisionPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold" style={{ color: S.text }}>视力档案</h1>
           {/* Info icon with sources tooltip */}
@@ -261,52 +468,56 @@ export default function VisionPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowGuide(!showGuide)}
-            className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all`}
-            style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            录入指引
-          </button>
-          <button onClick={() => {
-            const input = document.createElement('input');
-            input.type = 'file'; input.accept = 'image/*';
-            input.onchange = async () => {
-              const file = input.files?.[0]; if (!file || !child) return;
-              setOcrScanning(true);
-              try {
-                const dataUrl = await readImageFileAsDataUrl(file);
-                const result = await analyzeCheckupSheetOCR({ imageUrl: dataUrl });
-                if (result?.measurements?.length) { setShowForm(true); }
-              } catch { /* OCR failed */ }
-              setOcrScanning(false);
-            };
-            input.click();
-          }} disabled={ocrScanning}
-            className={`group relative flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
-            style={{ background: '#86AFDA', color: '#fff' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
-            </svg>
-            {ocrScanning ? '识别中...' : '智能识别'}
-            <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[9px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
-              style={{ background: '#1a2b4a' }}>上传验光单/眼轴单自动识别</span>
-          </button>
-          {!showForm && (
-            <button onClick={() => setShowForm(true)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
-              style={{ background: S.accent }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-              录入数据
+        {/* Quantitative data buttons — only for 3+ years */}
+        {ageMonths >= 36 && (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowGuide(!showGuide)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all`}
+              style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              录入指引
             </button>
-          )}
-        </div>
+            <button onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file'; input.accept = 'image/*';
+              input.onchange = async () => {
+                const file = input.files?.[0]; if (!file || !child) return;
+                setOcrScanning(true);
+                try {
+                  const dataUrl = await readImageFileAsDataUrl(file);
+                  const result = await analyzeCheckupSheetOCR({ imageUrl: dataUrl });
+                  if (result?.measurements?.length) { setShowForm(true); }
+                } catch { /* OCR failed */ }
+                setOcrScanning(false);
+              };
+              input.click();
+            }} disabled={ocrScanning}
+              className={`group relative flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
+              style={{ background: '#86AFDA', color: '#fff' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
+              </svg>
+              {ocrScanning ? '识别中...' : '智能识别'}
+              <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[9px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
+                style={{ background: '#1a2b4a' }}>上传验光单/眼轴单自动识别</span>
+            </button>
+            {!showForm && (
+              <button onClick={() => setShowForm(true)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+                style={{ background: S.accent }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                录入数据
+              </button>
+            )}
+          </div>
+        )}
       </div>
-      <p className="text-[12px] mb-5" style={{ color: S.sub }}>
-        {child.displayName}，{Math.floor(ageMonths / 12)}岁{ageMonths % 12}个月
-      </p>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
 
       {/* ── Interactive guide ────────────────────────────────── */}
       {showGuide && <VisionGuide onClose={() => setShowGuide(false)} />}
@@ -323,21 +534,25 @@ export default function VisionPage() {
           return lines.join('\n');
         })()} />
 
-      {/* ── Batch input form ─────────────────────────────────── */}
-      {showForm && (
+      {/* ── Early vision screening section ──────────────────── */}
+      <ScreeningSection childId={child.childId} birthDate={child.birthDate}
+        ageMonths={ageMonths} screeningRecords={screeningRecords} onSave={reload} />
+
+      {/* ── Batch input form (quantitative, 3+ years) ────────── */}
+      {ageMonths >= 36 && showForm && (
         <BatchForm childId={child.childId} birthDate={child.birthDate} onSave={reload}
           onClose={() => { setShowForm(false); setEditingRecord(null); }}
           initialRecord={editingRecord ?? undefined} />
       )}
 
-      {/* ── Exam record cards ────────────────────────────────── */}
+      {/* ── Exam record cards (quantitative) ─────────────────── */}
       {records.length > 0 ? (
         <div className="mb-6">
           <h2 className="text-[13px] font-semibold mb-3" style={{ color: S.text }}>检查记录（{records.length} 次）</h2>
           {records.map((rec, i) => <RecordCard key={rec.date} record={rec} index={records.length - 1 - i} gender={child.gender}
             onEdit={() => { setEditingRecord(rec); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />)}
         </div>
-      ) : !showForm && (
+      ) : ageMonths >= 36 && !showForm && (
         <div className={`${S.radius} p-8 text-center mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: '#f5f3ef' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c0bdb8" strokeWidth="1.5" strokeLinecap="round">
@@ -354,15 +569,14 @@ export default function VisionPage() {
         <div className={`${S.radius} p-4 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[13px] font-semibold" style={{ color: S.text }}>趋势曲线</h3>
-            <select value={chartType} onChange={(e) => setChartType(e.target.value as GrowthTypeId)}
-              className={`${S.radiusSm} px-2.5 py-1.5 text-[11px] border-0 outline-none`}
-              style={{ background: '#f5f3ef', color: S.text }}>
-              {CHART_OPTIONS.map((o) => <option key={o.typeId} value={o.typeId}>{o.label}</option>)}
-            </select>
+            <AppSelect value={chartType} onChange={(v) => setChartType(v as GrowthTypeId)}
+              options={CHART_OPTIONS.map((o) => ({ value: o.typeId, label: o.label }))} />
           </div>
           {chartData.length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-[12px]" style={{ color: '#d4d1cc' }}>
-              暂无 {typeInfo?.displayName ?? chartType} 数据
+            <div className="p-8 text-center">
+              <span className="text-[28px]">👁️</span>
+              <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有{typeInfo?.displayName ?? chartType}记录</p>
+              <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>

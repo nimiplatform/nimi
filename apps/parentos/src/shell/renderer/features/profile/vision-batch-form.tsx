@@ -4,6 +4,7 @@ import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { analyzeCheckupSheetOCR, readImageFileAsDataUrl } from './checkup-ocr.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   EYE_SET, FORM_SECTIONS, PUPIL_OPTIONS, getPickerConfig,
   type VisionRecord,
@@ -231,7 +232,8 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord }
   const inp = `${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none focus:ring-2 focus:ring-[#86AFDA]/30`;
 
   return (
-    <div className={`${S.radius} p-5 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+    <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>{initialRecord ? `编辑检查记录 · ${initialRecord.date}` : '录入检查数据'}</h3>
         <div className="flex items-center gap-2">
@@ -254,8 +256,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord }
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div>
           <label className="text-[11px] block mb-1" style={{ color: S.sub }}>检查日期 *</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
+          <ProfileDatePicker value={date} onChange={setDate} className={inp} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
           <label className="text-[11px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
@@ -371,6 +372,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord }
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

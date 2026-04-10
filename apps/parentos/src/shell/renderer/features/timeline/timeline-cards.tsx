@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, type ChildProfile } from '../../app-shell/app-store.js';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shell/app-store.js';
 import { getAppSetting, setAppSetting } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
@@ -214,15 +215,28 @@ export function ChildProfileCard({ child, childList, ageY, ageR, pct }: {
 }) {
   const { setActiveChildId } = useAppStore();
   const [flipping, setFlipping] = useState(false);
+  const [pickerMounted, setPickerMounted] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const pendingChildRef = useRef<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const switchToNext = () => {
-    if (childList.length < 2) return;
-    const idx = childList.findIndex((c) => c.childId === child.childId);
-    const next = childList[(idx + 1) % childList.length]!;
-    pendingChildRef.current = next.childId;
+  const openPicker = useCallback(() => {
+    setPickerMounted(true);
+    // rAF so the DOM is painted before triggering the CSS transition
+    requestAnimationFrame(() => requestAnimationFrame(() => setPickerOpen(true)));
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setPickerOpen(false);
+    // unmount after transition (200ms)
+  }, []);
+
+  const switchTo = useCallback((targetId: string) => {
+    if (targetId === child.childId) { closePicker(); return; }
+    pendingChildRef.current = targetId;
+    closePicker();
     setFlipping(true);
-  };
+  }, [child.childId, closePicker]);
 
   const handleAnimEnd = () => {
     if (pendingChildRef.current) {
@@ -231,6 +245,16 @@ export function ChildProfileCard({ child, childList, ageY, ageR, pct }: {
     }
     setFlipping(false);
   };
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!pickerMounted) return;
+    const onDown = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) closePicker();
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [pickerMounted, closePicker]);
 
   return (
     <div className={`col-span-2 row-span-2 ${C.radius} relative overflow-hidden`}
@@ -244,21 +268,69 @@ export function ChildProfileCard({ child, childList, ageY, ageR, pct }: {
           animation: flipping ? 'cardFlip 0.5s ease-in-out' : undefined,
         }}
       >
-        {/* Switch-child icon (top-right) */}
+        {/* Switch-child button (top-right) */}
         {childList.length > 1 && (
-          <button onClick={switchToNext}
-            className="absolute top-4 right-4 z-10 w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
-            style={{ color: 'rgba(255,255,255,0.7)' }} title="切换孩子">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
-              <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
-            </svg>
-          </button>
+          <div ref={pickerRef} className="absolute top-4 right-4 z-20">
+            <button onClick={() => pickerOpen ? closePicker() : openPicker()}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
+              style={{ color: 'rgba(255,255,255,0.7)' }} title="切换孩子">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+            </button>
+            {/* Child picker popover */}
+            {pickerMounted && (
+              <div
+                className="absolute right-0 top-9 min-w-[180px] rounded-xl p-1.5"
+                onTransitionEnd={() => { if (!pickerOpen) setPickerMounted(false); }}
+                style={{
+                  background: '#fff',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  opacity: pickerOpen ? 1 : 0,
+                  transform: pickerOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
+                  transformOrigin: 'top right',
+                  transition: 'opacity 0.2s ease, transform 0.2s ease',
+                  pointerEvents: pickerOpen ? 'auto' : 'none',
+                }}>
+                {childList.map((c, idx) => {
+                  const am = computeAgeMonths(c.birthDate);
+                  const y = Math.floor(am / 12);
+                  const m = am % 12;
+                  const isActive = c.childId === child.childId;
+                  return (
+                    <button key={c.childId} onClick={() => switchTo(c.childId)}
+                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left transition-colors hover:bg-[#f5f3ef]"
+                      style={{
+                        ...(isActive ? { background: '#EEF3F1' } : undefined),
+                        opacity: pickerOpen ? 1 : 0,
+                        transform: pickerOpen ? 'translateY(0)' : 'translateY(-4px)',
+                        transition: `opacity 0.2s ease ${idx * 0.03}s, transform 0.2s ease ${idx * 0.03}s`,
+                      }}>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                        style={{ background: isActive ? C.cardProfile : '#e0e4e8', color: isActive ? '#fff' : C.text }}>
+                        {c.displayName.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-[12px] font-medium truncate" style={{ color: C.text }}>{c.displayName}</span>
+                        <span className="block text-[10px]" style={{ color: '#8a8f9a' }}>
+                          {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
+                        </span>
+                      </div>
+                      {isActive && (
+                        <svg className="ml-auto shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.cardProfile} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         <div className="relative flex flex-col items-center text-center h-full justify-center">
           {child.avatarPath ? (
-            <img src={child.avatarPath} alt="" className="w-[80px] h-[80px] rounded-full object-cover border-[3px] shadow-sm mb-3" style={{ borderColor: 'rgba(255,255,255,0.5)' }} />
+            <img src={convertFileSrc(child.avatarPath)} alt="" className="w-[80px] h-[80px] rounded-full object-cover border-[3px] shadow-sm mb-3" style={{ borderColor: 'rgba(255,255,255,0.5)' }} />
           ) : (
             <div className="w-[80px] h-[80px] rounded-full flex items-center justify-center border-[3px] mb-3" style={{ background: 'rgba(255,255,255,0.35)', borderColor: 'rgba(255,255,255,0.5)' }}>
               <span className="text-3xl font-bold text-white">{child.displayName.charAt(0)}</span>

@@ -73,6 +73,27 @@ pub fn get_measurements(child_id: String, type_id: Option<String>) -> Result<Vec
     }
 }
 
+#[tauri::command]
+pub fn update_measurement(
+    measurement_id: String, value: f64, measured_at: String, age_months: i32,
+    percentile: Option<f64>, source: Option<String>, notes: Option<String>, now: String,
+) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE growth_measurements SET value = ?2, measuredAt = ?3, ageMonths = ?4, percentile = ?5, source = ?6, notes = ?7, createdAt = ?8 WHERE measurementId = ?1",
+        params![measurement_id, value, measured_at, age_months, percentile, source, notes, now],
+    ).map_err(|e| format!("update_measurement: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_measurement(measurement_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM growth_measurements WHERE measurementId = ?1", params![measurement_id])
+        .map_err(|e| format!("delete_measurement: {e}"))?;
+    Ok(())
+}
+
 // ── Milestone Records ──────────────────────────────────────
 
 #[tauri::command]
@@ -124,10 +145,18 @@ pub fn get_milestone_records(child_id: String) -> Result<Vec<MilestoneRecord>, S
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_milestone_records collect: {e}"))
 }
 
+#[tauri::command]
+pub fn delete_milestone_record(record_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM milestone_records WHERE recordId = ?1", params![record_id])
+        .map_err(|e| format!("delete_milestone_record: {e}"))?;
+    Ok(())
+}
+
 // ── Growth Reports ─────────────────────────────────────────
 
 fn is_supported_growth_report_type(report_type: &str) -> bool {
-    matches!(report_type, "monthly" | "quarterly" | "quarterly-letter")
+    matches!(report_type, "monthly" | "quarterly" | "quarterly-letter" | "custom")
 }
 
 #[tauri::command]
@@ -202,4 +231,19 @@ pub fn get_growth_reports(child_id: String, report_type: Option<String>) -> Resu
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("get_growth_reports collect: {e}"))
     }
+}
+
+#[tauri::command]
+pub fn update_growth_report_content(report_id: String, content: String, _now: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let changed = conn
+        .execute(
+            "UPDATE growth_reports SET content = ?1 WHERE reportId = ?2",
+            params![content, report_id],
+        )
+        .map_err(|e| format!("update_growth_report_content: {e}"))?;
+    if changed == 0 {
+        return Err(format!("update_growth_report_content: no report found with id {report_id}"));
+    }
+    Ok(())
 }

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
 import { insertAllergyRecord, updateAllergyRecord, getAllergyRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
 import type { AllergyRecordRow } from '../../bridge/sqlite-bridge.js';
 import { generateAllergyFollowups } from '../../engine/smart-alerts.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Constants ───────────────────────────────────────────── */
 
@@ -53,11 +55,11 @@ const TREATMENT_TAGS = [
 /* ── Main page ───────────────────────────────────────────── */
 
 export default function AllergyPage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<AllergyRecordRow[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [showMore, setShowMore] = useState(false); // toggle optional fields
+  const [showMore, setShowMore] = useState<false | 'allergens' | 'symptoms' | 'medical'>(false);
 
   // Form state — core
   const [formAllergen, setFormAllergen] = useState('');
@@ -75,6 +77,7 @@ export default function AllergyPage() {
   const [formCustomTreatment, setFormCustomTreatment] = useState('');
   // Photo is stored as notes reference (actual file handling would need Tauri FS)
   const [formPhotoName, setFormPhotoName] = useState('');
+  const [photoHover, setPhotoHover] = useState(false);
 
   useEffect(() => {
     if (activeChildId) getAllergyRecords(activeChildId).then(setRecords).catch(() => {});
@@ -162,17 +165,9 @@ export default function AllergyPage() {
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
 
-      {/* Header with child identity */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: '#86AFDA' }}>
-            {child.displayName.charAt(0)}
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: S.text }}>过敏记录</h1>
-            <p className="text-[11px]" style={{ color: S.sub }}>{child.displayName} · {ageY > 0 ? `${ageY}岁` : ''}{ageR > 0 ? `${ageR}个月` : ''}</p>
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: S.text }}>过敏记录</h1>
         {!showForm && (
           <button onClick={() => setShowForm(true)}
             className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
@@ -182,6 +177,10 @@ export default function AllergyPage() {
           </button>
         )}
       </div>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
 
       <AISummaryCard domain="allergy" childName={child.displayName} childId={child.childId}
         ageLabel={`${ageY}岁${ageR}个月`} gender={child.gender}
@@ -189,99 +188,145 @@ export default function AllergyPage() {
 
       {/* ── Form ─────────────────────────────────────────── */}
       {showForm && (
-        <div className={`${S.radius} mb-5 overflow-hidden`} style={{ background: S.card, boxShadow: S.shadow }}>
-          {/* Core section — visually distinct */}
-          <div className="p-5" style={{ borderBottom: `1px solid ${S.border}` }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>记录过敏反应</h2>
-              <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
+        <div className={`w-[480px] max-h-[85vh] overflow-y-auto flex flex-col ${S.radius} shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
 
-            {/* Allergen input + quick tags */}
-            <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>过敏原 <span style={{ color: '#dc2626' }}>*</span></p>
-            <input value={formAllergen} onChange={(e) => setFormAllergen(e.target.value)} placeholder="输入过敏原名称"
-              className={`w-full ${S.radiusSm} px-3 py-2.5 text-[13px] border-0 outline-none mb-2`} style={{ background: '#f5f3ef', color: S.text }} />
-            <div className="flex flex-wrap gap-1 mb-4">
-              {COMMON_ALLERGENS.map((a) => (
-                <button key={a.label} onClick={() => { setFormAllergen(a.label); setFormCategory(a.category); }}
-                  className={`px-2 py-1 text-[10px] rounded-full transition-all ${formAllergen === a.label ? 'text-white' : 'hover:bg-[#e8e5e0]'}`}
-                  style={formAllergen === a.label ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                  {a.label}
-                </button>
-              ))}
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[20px]">🤧</span>
+              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加过敏记录</h2>
             </div>
+            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          </div>
 
-            {/* Date + Severity — core fields */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="px-6 pb-2 flex-1">
+
+            {/* ━━ Section 1: Core ━━ */}
+            <div className="space-y-3 pb-4">
+
+              {/* Allergen */}
               <div>
-                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>发生日期 <span style={{ color: '#dc2626' }}>*</span></p>
-                <input type="date" value={formDiagnosedAt} onChange={(e) => setFormDiagnosedAt(e.target.value)}
-                  className={`w-full ${S.radiusSm} px-3 py-2.5 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏原 <span style={{ color: '#dc2626' }}>*</span></p>
+                <input value={formAllergen} onChange={(e) => setFormAllergen(e.target.value)} placeholder="输入过敏原名称"
+                  className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                  style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
               </div>
-              <div>
-                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>严重程度 <span style={{ color: '#dc2626' }}>*</span></p>
-                <div className="flex gap-1.5">
-                  {(['mild', 'moderate', 'severe'] as const).map((sv) => (
-                    <button key={sv} onClick={() => setFormSeverity(formSeverity === sv ? '' : sv)}
-                      className={`flex-1 py-2.5 text-[11px] font-medium ${S.radiusSm} transition-all`}
-                      style={formSeverity === sv ? { background: sevColor(sv), color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                      {SEVERITY_LABELS[sv]}
+
+              {/* Quick-pick: top 6 visible, rest in expandable row */}
+              <div className="flex flex-wrap gap-1.5">
+                {COMMON_ALLERGENS.slice(0, 6).map((a) => (
+                  <button key={a.label} onClick={() => { setFormAllergen(a.label); setFormCategory(a.category); }}
+                    className={`px-2.5 py-1 text-[11px] rounded-full transition-all`}
+                    style={formAllergen === a.label
+                      ? { background: S.accent, color: '#fff' }
+                      : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                    {a.label}
+                  </button>
+                ))}
+                <button onClick={() => setShowMore(showMore === 'allergens' ? false : 'allergens')}
+                  className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                  style={{ border: `1px solid ${S.border}`, color: S.sub, background: showMore === 'allergens' ? '#f0f2ee' : '#fff' }}>
+                  + 更多
+                </button>
+              </div>
+              {showMore === 'allergens' && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {COMMON_ALLERGENS.slice(6).map((a) => (
+                    <button key={a.label} onClick={() => { setFormAllergen(a.label); setFormCategory(a.category); }}
+                      className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                      style={formAllergen === a.label
+                        ? { background: S.accent, color: '#fff' }
+                        : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                      {a.label}
                     </button>
                   ))}
                 </div>
+              )}
+
+              {/* Date + Severity side-by-side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>发生日期 <span style={{ color: '#dc2626' }}>*</span></p>
+                  <ProfileDatePicker
+                    value={formDiagnosedAt}
+                    onChange={setFormDiagnosedAt}
+                    style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
+                  />
+                </div>
+                <div>
+                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>严重程度 <span style={{ color: '#dc2626' }}>*</span></p>
+                  <div className="flex gap-1.5">
+                    {(['mild', 'moderate', 'severe'] as const).map((sv) => (
+                      <button key={sv} onClick={() => setFormSeverity(formSeverity === sv ? '' : sv)}
+                        className={`flex-1 py-2 text-[11px] font-medium ${S.radiusSm} transition-all`}
+                        style={formSeverity === sv
+                          ? { background: sevColor(sv), color: '#fff' }
+                          : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                        {SEVERITY_LABELS[sv]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Symptom tags — multi-select */}
-            <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>症状表现 <span className="font-normal" style={{ color: S.sub }}>（可多选）</span></p>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {SYMPTOM_TAGS.map((t) => (
-                <button key={t.key} onClick={() => toggleSymptom(t.key)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] ${S.radiusSm} transition-all`}
-                  style={formSymptoms.has(t.key) ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                  <span>{t.emoji}</span> {t.label}
+            {/* ━━ Section 2: Symptoms + Photo ━━ */}
+            <div className="space-y-3 py-4" style={{ borderTop: `1px solid ${S.border}` }}>
+              <p className="text-[11px] font-medium" style={{ color: S.sub }}>症状表现 <span className="font-normal">（可多选）</span></p>
+
+              {/* Top 6 symptoms visible */}
+              <div className="flex flex-wrap gap-1.5">
+                {SYMPTOM_TAGS.slice(0, 6).map((t) => (
+                  <button key={t.key} onClick={() => toggleSymptom(t.key)}
+                    className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                    style={formSymptoms.has(t.key)
+                      ? { background: S.accent, color: '#fff' }
+                      : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                    {t.label}
+                  </button>
+                ))}
+                <button onClick={() => setShowMore(showMore === 'symptoms' ? false : 'symptoms')}
+                  className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                  style={{ border: `1px solid ${S.border}`, color: S.sub, background: showMore === 'symptoms' ? '#f0f2ee' : '#fff' }}>
+                  + 更多症状
                 </button>
-              ))}
-              <input value={formCustomSymptom} onChange={(e) => setFormCustomSymptom(e.target.value)}
-                placeholder="其它症状..."
-                className={`px-2.5 py-1.5 text-[10px] ${S.radiusSm} border-0 outline-none w-28`}
-                style={{ background: '#f5f3ef', color: S.text }} />
-            </div>
-          </div>
-
-          {/* Optional section — collapsible */}
-          <div className="px-5 py-3" style={{ background: '#fafcfb' }}>
-            <button onClick={() => setShowMore(!showMore)} className="flex items-center gap-1.5 text-[11px] font-medium w-full" style={{ color: S.sub }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                className={`transition-transform ${showMore ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
-              {showMore ? '收起详细信息' : '补充详细信息（处理措施、照片、确认方式...）'}
-            </button>
-
-            {showMore && (
-              <div className="mt-3 space-y-4">
-                {/* Treatment tags */}
-                <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>处理措施 <span className="font-normal" style={{ color: S.sub }}>（可多选）</span></p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {TREATMENT_TAGS.map((t) => (
-                      <button key={t} onClick={() => toggleTreatment(t)}
-                        className={`px-2.5 py-1.5 text-[10px] ${S.radiusSm} transition-all`}
-                        style={formTreatments.has(t) ? { background: '#86AFDA', color: '#fff' } : { background: '#fff', border: `1px solid ${S.border}`, color: S.sub }}>
-                        {t}
-                      </button>
-                    ))}
-                    <input value={formCustomTreatment} onChange={(e) => setFormCustomTreatment(e.target.value)}
-                      placeholder="其它措施..."
-                      className={`px-2.5 py-1.5 text-[10px] ${S.radiusSm} border-0 outline-none w-28`}
-                      style={{ background: '#f5f3ef', color: S.text }} />
-                  </div>
+              </div>
+              {showMore === 'symptoms' && (
+                <div className="flex flex-wrap gap-1.5">
+                  {SYMPTOM_TAGS.slice(6).map((t) => (
+                    <button key={t.key} onClick={() => toggleSymptom(t.key)}
+                      className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                      style={formSymptoms.has(t.key)
+                        ? { background: S.accent, color: '#fff' }
+                        : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                      {t.label}
+                    </button>
+                  ))}
+                  <input value={formCustomSymptom} onChange={(e) => setFormCustomSymptom(e.target.value)}
+                    placeholder="自定义症状..."
+                    className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 w-32`}
+                    style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                 </div>
+              )}
 
-                {/* Photo upload */}
-                <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.text }}>
-                    上传照片 <span className="font-normal" style={{ color: S.sub }}>（皮疹/红斑等现场照片，就医时极为重要）</span>
-                  </p>
+              {/* Photo — tight to symptoms */}
+              <div>
+                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>
+                  现场照片 <span className="font-normal">（皮疹/红斑等，就医时极有帮助）</span>
+                </p>
+                {formPhotoName ? (
+                  <div className={`flex items-center gap-2 px-4 py-2 w-full ${S.radiusSm} text-[12px] group`}
+                    style={{ background: '#fff', color: S.text, border: `1px solid ${S.accent}` }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="1.5" strokeLinecap="round">
+                      <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
+                    </svg>
+                    <span className="truncate flex-1">{formPhotoName}</span>
+                    <button onClick={() => setFormPhotoName('')}
+                      className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
+                      style={{ color: S.sub }}>✕</button>
+                  </div>
+                ) : (
                   <button onClick={() => {
                     const input = document.createElement('input');
                     input.type = 'file'; input.accept = 'image/*'; input.multiple = true;
@@ -291,80 +336,131 @@ export default function AllergyPage() {
                     };
                     input.click();
                   }}
-                    className={`flex items-center gap-2 px-4 py-2.5 w-full ${S.radiusSm} transition-colors hover:bg-[#e8e5e0]`}
-                    style={{ background: '#f5f3ef', color: S.sub, border: `1px dashed ${S.border}` }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    onMouseEnter={() => setPhotoHover(true)}
+                    onMouseLeave={() => setPhotoHover(false)}
+                    className={`w-full h-20 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
+                    style={{
+                      border: `2px dashed ${photoHover ? '#c8e64a' : '#d0d0cc'}`,
+                      background: '#fafaf8',
+                      transition: 'border-color 0.25s ease',
+                    }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
+                      style={{
+                        stroke: photoHover ? '#94A533' : '#b0b0aa',
+                        transform: photoHover ? 'scale(1.15)' : 'scale(1)',
+                        transition: 'stroke 0.25s ease, transform 0.25s ease',
+                      }}>
                       <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
                     </svg>
-                    {formPhotoName || '点击拍照或选择照片'}
+                    <span className="text-[11px]" style={{
+                      color: photoHover ? '#94A533' : '#a0a0a0',
+                      transition: 'color 0.25s ease',
+                    }}>点击拍照或选择照片</span>
                   </button>
-                </div>
-
-                {/* Category + Confirmed by + Status */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <p className="text-[11px] mb-1" style={{ color: S.sub }}>过敏类别</p>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(CATEGORY_LABELS).map(([k, l]) => (
-                        <button key={k} onClick={() => setFormCategory(k)}
-                          className={`px-2 py-1 text-[10px] rounded-full`}
-                          style={formCategory === k ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] mb-1" style={{ color: S.sub }}>确认方式</p>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(CONFIRMED_LABELS).map(([k, l]) => (
-                        <button key={k} onClick={() => setFormConfirmedBy(formConfirmedBy === k ? '' : k)}
-                          className={`px-2 py-1 text-[10px] rounded-full`}
-                          style={formConfirmedBy === k ? { background: '#86AFDA', color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[11px] mb-1" style={{ color: S.sub }}>当前状态</p>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(STATUS_LABELS).map(([k, l]) => (
-                        <button key={k} onClick={() => setFormStatus(k)}
-                          className={`px-2 py-1 text-[10px] rounded-full`}
-                          style={formStatus === k ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                          {l}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <p className="text-[11px] mb-1" style={{ color: S.sub }}>补充备注</p>
-                  <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他需要记录的信息..."
-                    className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] border-0 outline-none resize-none`} rows={2}
-                    style={{ background: '#fff', border: `1px solid ${S.border}`, color: S.text }} />
-                </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* ━━ Section 3: Medical details (collapsed) ━━ */}
+            <div className="py-3" style={{ borderTop: `1px solid ${S.border}` }}>
+              <button onClick={() => setShowMore(showMore === 'medical' ? false : 'medical')}
+                className="flex items-center gap-1.5 text-[11px] font-medium w-full" style={{ color: S.sub }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                  className={`transition-transform duration-200 ${showMore === 'medical' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+                {showMore === 'medical' ? '收起医疗与后续信息' : '补充医疗与后续信息'}
+              </button>
+
+              {showMore === 'medical' && (
+                <div className="mt-3 space-y-4">
+
+                  {/* Treatment tags */}
+                  <div>
+                    <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>处理措施 <span className="font-normal">（可多选）</span></p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {TREATMENT_TAGS.map((t) => (
+                        <button key={t} onClick={() => toggleTreatment(t)}
+                          className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                          style={formTreatments.has(t)
+                            ? { background: S.accent, color: '#fff' }
+                            : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                          {t}
+                        </button>
+                      ))}
+                      <input value={formCustomTreatment} onChange={(e) => setFormCustomTreatment(e.target.value)}
+                        placeholder="自定义..."
+                        className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 w-28`}
+                        style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
+                    </div>
+                  </div>
+
+                  {/* Category + Confirmed by + Status — unified grid */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏类别</p>
+                      <div className="flex flex-col gap-1">
+                        {Object.entries(CATEGORY_LABELS).map(([k, l]) => (
+                          <button key={k} onClick={() => setFormCategory(k)}
+                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            style={formCategory === k
+                              ? { background: S.accent, color: '#fff' }
+                              : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>确认方式</p>
+                      <div className="flex flex-col gap-1">
+                        {Object.entries(CONFIRMED_LABELS).map(([k, l]) => (
+                          <button key={k} onClick={() => setFormConfirmedBy(formConfirmedBy === k ? '' : k)}
+                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            style={formConfirmedBy === k
+                              ? { background: S.accent, color: '#fff' }
+                              : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>当前状态</p>
+                      <div className="flex flex-col gap-1">
+                        {Object.entries(STATUS_LABELS).map(([k, l]) => (
+                          <button key={k} onClick={() => setFormStatus(k)}
+                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            style={formStatus === k
+                              ? { background: S.accent, color: '#fff' }
+                              : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
+                    <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他需要记录的信息..."
+                      className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 resize-none`} rows={2}
+                      style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Submit */}
-          <div className="flex items-center justify-between px-5 py-3.5" style={{ borderTop: `1px solid ${S.border}` }}>
-            <p className="text-[10px]" style={{ color: S.sub }}>
-              {!formAllergen.trim() && '请填写过敏原'}
-              {formAllergen.trim() && !formSeverity && '请选择严重程度'}
-              {formAllergen.trim() && formSeverity && `${formSymptoms.size} 项症状 · ${formTreatments.size} 项处理`}
-            </p>
-            <div className="flex gap-2">
-              <button onClick={resetForm} className={`px-4 py-2 text-[12px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+          {/* ── Footer ── */}
+          <div className="px-6 pt-3 pb-5">
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
               <button onClick={() => void handleSubmit()} disabled={!formAllergen.trim() || !formSeverity}
-                className={`px-5 py-2 text-[12px] font-medium text-white ${S.radiusSm} disabled:opacity-40 hover:opacity-90`}
+                className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-colors hover:brightness-110`}
                 style={{ background: S.accent }}>保存</button>
             </div>
           </div>
+        </div>
         </div>
       )}
 

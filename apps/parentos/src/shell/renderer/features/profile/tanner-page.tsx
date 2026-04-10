@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { insertTannerAssessment, getTannerAssessments } from '../../bridge/sqlite-bridge.js';
-import type { TannerAssessmentRow } from '../../bridge/sqlite-bridge.js';
+import { insertTannerAssessment, getTannerAssessments, getMeasurements, insertMeasurement } from '../../bridge/sqlite-bridge.js';
+import type { TannerAssessmentRow, MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Tanner stage descriptions ───────────────────────────── */
 
@@ -233,20 +235,32 @@ function StageSelector({ stages, value, onChange, label }: {
 /* ── Main page ───────────────────────────────────────────── */
 
 export default function TannerPage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [assessments, setAssessments] = useState<TannerAssessmentRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+
+  const [boneAgeMeasurements, setBoneAgeMeasurements] = useState<MeasurementRow[]>([]);
+  const [bodyFatMeasurements, setBodyFatMeasurements] = useState<MeasurementRow[]>([]);
 
   const [formAssessedAt, setFormAssessedAt] = useState(new Date().toISOString().slice(0, 10));
   const [formBG, setFormBG] = useState(1);
   const [formPH, setFormPH] = useState(1);
   const [formAssessedBy, setFormAssessedBy] = useState('parent');
   const [formNotes, setFormNotes] = useState('');
+  const [formBoneAge, setFormBoneAge] = useState('');
+  const [formBodyFat, setFormBodyFat] = useState('');
+
+  const loadAll = async (cid: string) => {
+    const [ta, ms] = await Promise.all([getTannerAssessments(cid), getMeasurements(cid)]);
+    setAssessments(ta);
+    setBoneAgeMeasurements(ms.filter((m) => m.typeId === 'bone-age'));
+    setBodyFatMeasurements(ms.filter((m) => m.typeId === 'body-fat-percentage'));
+  };
 
   useEffect(() => {
-    if (activeChildId) getTannerAssessments(activeChildId).then(setAssessments).catch(() => {});
+    if (activeChildId) loadAll(activeChildId).catch(() => {});
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
@@ -260,19 +274,37 @@ export default function TannerPage() {
 
   const resetForm = () => {
     setFormAssessedAt(new Date().toISOString().slice(0, 10));
-    setFormBG(1); setFormPH(1); setFormAssessedBy('parent'); setFormNotes(''); setShowForm(false);
+    setFormBG(1); setFormPH(1); setFormAssessedBy('parent'); setFormNotes('');
+    setFormBoneAge(''); setFormBodyFat(''); setShowForm(false);
   };
 
   const handleSubmit = async () => {
     if (!formAssessedAt || formBG < 1 || formBG > 5 || formPH < 1 || formPH > 5) return;
+    const now = isoNow();
+    const am = computeAgeMonthsAt(child.birthDate, formAssessedAt);
     try {
       await insertTannerAssessment({
         assessmentId: ulid(), childId: child.childId, assessedAt: formAssessedAt,
-        ageMonths: computeAgeMonthsAt(child.birthDate, formAssessedAt),
-        breastOrGenitalStage: formBG, pubicHairStage: formPH,
-        assessedBy: formAssessedBy || null, notes: formNotes || null, now: isoNow(),
+        ageMonths: am, breastOrGenitalStage: formBG, pubicHairStage: formPH,
+        assessedBy: formAssessedBy || null, notes: formNotes || null, now,
       });
-      setAssessments(await getTannerAssessments(child.childId));
+      // Save bone age as measurement if provided
+      if (formBoneAge.trim()) {
+        await insertMeasurement({
+          measurementId: ulid(), childId: child.childId, typeId: 'bone-age',
+          value: parseFloat(formBoneAge), measuredAt: formAssessedAt,
+          ageMonths: am, percentile: null, source: 'manual', notes: null, now,
+        });
+      }
+      // Save body fat as measurement if provided
+      if (formBodyFat.trim()) {
+        await insertMeasurement({
+          measurementId: ulid(), childId: child.childId, typeId: 'body-fat-percentage',
+          value: parseFloat(formBodyFat), measuredAt: formAssessedAt,
+          ageMonths: am, percentile: null, source: 'manual', notes: null, now,
+        });
+      }
+      await loadAll(child.childId);
       resetForm();
     } catch { /* bridge */ }
   };
@@ -284,7 +316,7 @@ export default function TannerPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold" style={{ color: S.text }}>青春期发育评估</h1>
           {/* Info tooltip */}
@@ -331,9 +363,49 @@ export default function TannerPage() {
           )}
         </div>
       </div>
-      <p className="text-[12px] mb-5" style={{ color: S.sub }}>
-        {child.displayName}，{fmtAge(ageMonths)} · {isFemale ? '女孩' : '男孩'} · 共 {assessments.length} 次评估
-      </p>
+      <div className="mb-4">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
+        <p className="text-[11px] mt-1" style={{ color: S.sub }}>{isFemale ? '女孩' : '男孩'} · 共 {assessments.length} 次评估</p>
+      </div>
+
+      {/* ── Bone age & body fat overview ──────────────────── */}
+      {(boneAgeMeasurements.length > 0 || bodyFatMeasurements.length > 0) && (
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {(() => {
+            const latest = [...boneAgeMeasurements].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))[0];
+            if (!latest) return <div />;
+            const actualYears = ageMonths / 12;
+            const diff = latest.value - actualYears;
+            const status = Math.abs(diff) <= 1
+              ? { label: '正常范围', color: '#22c55e', bg: '#f0fdf4' }
+              : diff > 1 ? { label: `偏早 ${Math.abs(diff).toFixed(1)} 年`, color: '#f59e0b', bg: '#fffbeb' }
+              : { label: `偏晚 ${Math.abs(diff).toFixed(1)} 年`, color: '#3b82f6', bg: '#eff6ff' };
+            return (
+              <div className={`${S.radiusSm} p-4`} style={{ background: status.bg, border: `1px solid ${status.color}30` }}>
+                <p className="text-[10px] font-medium" style={{ color: S.sub }}>🦴 骨龄</p>
+                <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{latest.value} 岁</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: status.color }} />
+                  <span className="text-[11px]" style={{ color: status.color }}>{status.label}</span>
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: S.sub }}>{latest.measuredAt.split('T')[0]}</p>
+              </div>
+            );
+          })()}
+          {(() => {
+            const latest = [...bodyFatMeasurements].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))[0];
+            if (!latest) return <div />;
+            return (
+              <div className={`${S.radiusSm} p-4`} style={{ background: '#f5f3ef' }}>
+                <p className="text-[10px] font-medium" style={{ color: S.sub }}>📊 体脂率</p>
+                <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{latest.value}%</p>
+                <p className="text-[10px] mt-1" style={{ color: S.sub }}>{latest.measuredAt.split('T')[0]}</p>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* ── Guide ────────────────────────────────────────── */}
       {showGuide && (
@@ -388,19 +460,22 @@ export default function TannerPage() {
 
       {/* ── Add form ─────────────────────────────────────── */}
       {showForm && (
-        <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>新增评估</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
+        <div className={`w-[440px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[20px]">🌱</span>
+              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>新增评估</h2>
+            </div>
             <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
           </div>
 
+          <div className="px-6 pb-2 space-y-4 flex-1">
           {/* Date + assessor */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[11px] mb-1" style={{ color: S.sub }}>评估日期</p>
-              <input type="date" value={formAssessedAt} onChange={(e) => setFormAssessedAt(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-                style={{ background: '#f5f3ef', color: S.text }} />
+              <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} style={{ background: '#fafaf8', color: S.text }} />
             </div>
             <div>
               <p className="text-[11px] mb-1" style={{ color: S.sub }}>评估人</p>
@@ -422,26 +497,40 @@ export default function TannerPage() {
             <StageSelector stages={PUBIC_HAIR_STAGES} value={formPH} onChange={setFormPH} label="阴毛发育 (PH期)" />
           </div>
 
-          {/* Notes */}
-          <div className="mb-4">
-            <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
-            <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="如：与上次对比有进展..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`}
-              style={{ background: '#f5f3ef', color: S.text }} />
-          </div>
-
-          {/* Summary + submit */}
-          <div className="flex items-center justify-between">
-            <p className="text-[11px]" style={{ color: S.sub }}>
-              {bgStages.find((s) => s.stage === formBG)?.title} + {PUBIC_HAIR_STAGES.find((s) => s.stage === formPH)?.title}
-            </p>
-            <div className="flex gap-2">
-              <button onClick={resetForm} className={`px-4 py-2 text-[12px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-              <button onClick={() => void handleSubmit()}
-                className={`px-5 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
-                style={{ background: S.accent }}>保存评估</button>
+          {/* Bone age + Body fat */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>🦴 骨龄（岁，可选）</p>
+              <input type="number" step="0.1" value={formBoneAge} onChange={(e) => setFormBoneAge(e.target.value)}
+                placeholder="如 12.5"
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ background: '#fafaf8', color: S.text }} />
+            </div>
+            <div>
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>📊 体脂率（%，可选）</p>
+              <input type="number" step="0.1" value={formBodyFat} onChange={(e) => setFormBodyFat(e.target.value)}
+                placeholder="如 18.5"
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+                style={{ background: '#fafaf8', color: S.text }} />
             </div>
           </div>
+
+          {/* Notes */}
+          <div>
+            <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
+            <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="如：与上次对比有进展..."
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              style={{ background: '#fafaf8', color: S.text }} />
+          </div>
+          </div>
+
+          <div className="px-6 pt-3 pb-5 mt-1">
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={() => void handleSubmit()} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存评估</button>
+            </div>
+          </div>
+        </div>
         </div>
       )}
 

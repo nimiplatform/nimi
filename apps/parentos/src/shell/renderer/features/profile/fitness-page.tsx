@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment, getFitnessAssessments } from '../../bridge/sqlite-bridge.js';
 import type { FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 const SOURCE_OPTIONS = ['school-pe', 'sports-club', 'clinic', 'self'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -55,12 +57,14 @@ interface FieldVisibility {
   run50m: boolean; run800m: boolean; run1000m: boolean; run50x8: boolean;
   sitAndReach: boolean; standingLongJump: boolean; sitUps: boolean; pullUps: boolean;
   ropeSkipping: boolean; vitalCapacity: boolean;
+  run10mShuttle: boolean; tennisBallThrow: boolean; doubleFootJump: boolean; balanceBeam: boolean;
 }
 
 const NO_FIELDS: FieldVisibility = {
   run50m: false, run800m: false, run1000m: false, run50x8: false,
   sitAndReach: false, standingLongJump: false, sitUps: false, pullUps: false,
   ropeSkipping: false, vitalCapacity: false,
+  run10mShuttle: false, tennisBallThrow: false, doubleFootJump: false, balanceBeam: false,
 };
 
 /** Which metric fields are visible for a given age tier + gender */
@@ -68,6 +72,7 @@ function visibleFields(tier: AgeTier, isFemale: boolean): FieldVisibility {
   const base = { ...NO_FIELDS, run50m: true, sitAndReach: true, ropeSkipping: true, vitalCapacity: true };
   switch (tier) {
     case 'preschool':
+      return { ...NO_FIELDS, run10mShuttle: true, standingLongJump: true, tennisBallThrow: true, doubleFootJump: true, sitAndReach: true, balanceBeam: true };
     case 'grade12':
       return base;
     case 'grade34':
@@ -99,7 +104,7 @@ function parseIntNum(v: string): number | null {
 }
 
 export default function FitnessPage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [assessments, setAssessments] = useState<FitnessAssessmentRow[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -117,6 +122,10 @@ export default function FitnessPage() {
   const [formPullUps, setFormPullUps] = useState('');
   const [formRopeSkipping, setFormRopeSkipping] = useState('');
   const [formVitalCapacity, setFormVitalCapacity] = useState('');
+  const [formRun10mShuttle, setFormRun10mShuttle] = useState('');
+  const [formTennisBallThrow, setFormTennisBallThrow] = useState('');
+  const [formDoubleFootJump, setFormDoubleFootJump] = useState('');
+  const [formBalanceBeam, setFormBalanceBeam] = useState('');
   const [formFootArch, setFormFootArch] = useState('');
   const [formGrade, setFormGrade] = useState('');
   const [formNotes, setFormNotes] = useState('');
@@ -151,6 +160,10 @@ export default function FitnessPage() {
     setFormPullUps('');
     setFormRopeSkipping('');
     setFormVitalCapacity('');
+    setFormRun10mShuttle('');
+    setFormTennisBallThrow('');
+    setFormDoubleFootJump('');
+    setFormBalanceBeam('');
     setFormFootArch('');
     setFormGrade('');
     setFormNotes('');
@@ -177,6 +190,10 @@ export default function FitnessPage() {
         pullUps: parseIntNum(formPullUps),
         ropeSkipping: parseIntNum(formRopeSkipping),
         vitalCapacity: parseIntNum(formVitalCapacity),
+        run10mShuttle: parseNum(formRun10mShuttle),
+        tennisBallThrow: parseNum(formTennisBallThrow),
+        doubleFootJump: parseNum(formDoubleFootJump),
+        balanceBeam: parseNum(formBalanceBeam),
         footArchStatus: formFootArch || null,
         overallGrade: formGrade || null,
         notes: formNotes || null,
@@ -195,8 +212,8 @@ export default function FitnessPage() {
       <input
         type={opts?.type ?? 'number'} step={opts?.step} min={opts?.min} placeholder={opts?.placeholder ?? '--'}
         value={value} onChange={(e) => onChange(e.target.value)}
-        className={`${S.radiusSm} px-3 py-2 text-sm ${opts?.className ?? ''}`}
-        style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}
+        className={`${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50 ${opts?.className ?? ''}`}
+        style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }}
       />
     </label>
   );
@@ -214,157 +231,148 @@ export default function FitnessPage() {
       <div className="flex items-center gap-2 mb-6">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
       </div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold mb-1" style={{ color: S.text }}>体能评估</h1>
-          <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
-            ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
-            dataContext={assessments.length > 0 ? `共 ${assessments.length} 次体能测评` : ''}
-          />
-          <p className="text-sm" style={{ color: S.sub }}>共 {assessments.length} 次评估</p>
-        </div>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-xl font-bold" style={{ color: S.text }}>体能评估</h1>
         {!showForm && (
           <button onClick={() => setShowForm(true)} className={S.radiusSm + ' text-sm px-4 py-2 text-white'} style={{ background: S.accent }}>
             添加评估
           </button>
         )}
       </div>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
+      <AISummaryCard domain="fitness" childName={child.displayName} childId={child.childId}
+        ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
+        dataContext={assessments.length > 0 ? `共 ${assessments.length} 次体能测评` : ''}
+      />
 
       {/* Add Form */}
       {showForm && (
-        <section className={S.radius + ' mb-8 p-6'} style={{ background: S.card, boxShadow: S.shadow }}>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>新增体能评估</h2>
-            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
-              {AGE_TIER_LABELS[tier]}
-            </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
+        <section className={`w-[440px] max-h-[85vh] overflow-y-auto ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[20px]">🏃</span>
+              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加体能评估</h2>
+              <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
+                {AGE_TIER_LABELS[tier]}
+              </span>
+            </div>
+            <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
           </div>
 
+          <div className="px-6 pb-2 space-y-4 flex-1">
           {tier === 'preschool' && (
-            <div className={`${S.radiusSm} px-4 py-3 mb-5 text-[12px]`} style={{ background: '#FEF9E7', color: '#92760A' }}>
-              学龄前暂无国家体质健康标准测试项目，以下为基础运动能力记录。
+            <div className={`${S.radiusSm} px-4 py-3 text-[12px]`} style={{ background: '#EEF6EE', color: '#3a7a3a' }}>
+              📋 依据《国民体质测定标准》幼儿部分（3-6岁），共 6 项测试
             </div>
           )}
 
           {/* Meta: date + source */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-medium" style={{ color: S.sub }}>评估日期</span>
-              <input type="date" value={formAssessedAt} onChange={(e) => setFormAssessedAt(e.target.value)}
-                className={`${S.radiusSm} px-3 py-2 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }} />
+              <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] font-medium" style={{ color: S.sub }}>来源</span>
-              <select value={formSource} onChange={(e) => setFormSource(e.target.value)}
-                className={`${S.radiusSm} px-3 py-2 text-sm`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
-                {SOURCE_OPTIONS.map((v) => (
-                  <option key={v} value={v}>{SOURCE_LABELS[v]}</option>
-                ))}
-              </select>
+              <AppSelect value={formSource} onChange={setFormSource}
+                options={SOURCE_OPTIONS.map((v) => ({ value: v, label: SOURCE_LABELS[v] ?? v }))} />
             </label>
           </div>
 
           <div className="space-y-4">
-            {/* Speed / Endurance */}
-            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-              {sectionHeader('⚡', '速度 & 耐力')}
-              <div className="grid grid-cols-2 gap-3">
-                {fields.run50m && formInput('50米跑 (秒)', formRun50m, setFormRun50m, { step: '0.1', min: '0' })}
-                {fields.run800m && formInput('800米跑 (秒)', formRun800m, setFormRun800m, { step: '1', min: '0' })}
-                {fields.run1000m && formInput('1000米跑 (秒)', formRun1000m, setFormRun1000m, { step: '1', min: '0' })}
-                {fields.run50x8 && formInput('50m×8往返跑 (秒)', formRun50x8, setFormRun50x8, { step: '0.1', min: '0' })}
-              </div>
-            </div>
-
-            {/* Flexibility & Power — only show if any strength fields visible */}
-            {(fields.sitAndReach || fields.standingLongJump || fields.sitUps || fields.pullUps) && (
+            {/* Speed / Agility */}
+            {(fields.run50m || fields.run800m || fields.run1000m || fields.run50x8 || fields.run10mShuttle) && (
               <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-                {sectionHeader('💪', '柔韧 & 力量')}
+                {sectionHeader('⚡', tier === 'preschool' ? '速度 & 灵敏' : '速度 & 耐力')}
                 <div className="grid grid-cols-2 gap-3">
-                  {fields.sitAndReach && formInput('坐位体前屈 (cm)', formSitAndReach, setFormSitAndReach, { step: '0.1' })}
+                  {fields.run10mShuttle && formInput('10米折返跑 (秒)', formRun10mShuttle, setFormRun10mShuttle, { step: '0.1', min: '0' })}
+                  {fields.run50m && formInput('50米跑 (秒)', formRun50m, setFormRun50m, { step: '0.1', min: '0' })}
+                  {fields.run800m && formInput('800米跑 (秒)', formRun800m, setFormRun800m, { step: '1', min: '0' })}
+                  {fields.run1000m && formInput('1000米跑 (秒)', formRun1000m, setFormRun1000m, { step: '1', min: '0' })}
+                  {fields.run50x8 && formInput('50m×8往返跑 (秒)', formRun50x8, setFormRun50x8, { step: '0.1', min: '0' })}
+                </div>
+              </div>
+            )}
+
+            {/* Power & Coordination */}
+            {(fields.standingLongJump || fields.tennisBallThrow || fields.doubleFootJump || fields.sitUps || fields.pullUps) && (
+              <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
+                {sectionHeader('💪', tier === 'preschool' ? '力量 & 协调' : '力量')}
+                <div className="grid grid-cols-2 gap-3">
                   {fields.standingLongJump && formInput('立定跳远 (cm)', formStandingLongJump, setFormStandingLongJump, { step: '1', min: '0' })}
+                  {fields.tennisBallThrow && formInput('网球掷远 (米)', formTennisBallThrow, setFormTennisBallThrow, { step: '0.1', min: '0' })}
+                  {fields.doubleFootJump && formInput('双脚连续跳 (秒)', formDoubleFootJump, setFormDoubleFootJump, { step: '0.1', min: '0' })}
                   {fields.sitUps && formInput('仰卧起坐 (次/分)', formSitUps, setFormSitUps, { step: '1', min: '0' })}
                   {fields.pullUps && formInput('引体向上 (次)', formPullUps, setFormPullUps, { step: '1', min: '0' })}
                 </div>
               </div>
             )}
 
-            {/* Coordination & Cardio */}
-            {(fields.ropeSkipping || fields.vitalCapacity) && (
+            {/* Flexibility & Balance */}
+            {(fields.sitAndReach || fields.balanceBeam || fields.ropeSkipping || fields.vitalCapacity) && (
               <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-                {sectionHeader('🫁', '协调 & 心肺')}
+                {sectionHeader('🤸', tier === 'preschool' ? '柔韧 & 平衡' : '协调 & 心肺')}
                 <div className="grid grid-cols-2 gap-3">
+                  {fields.sitAndReach && formInput('坐位体前屈 (cm)', formSitAndReach, setFormSitAndReach, { step: '0.1' })}
+                  {fields.balanceBeam && formInput('走平衡木 (秒)', formBalanceBeam, setFormBalanceBeam, { step: '0.1', min: '0' })}
                   {fields.ropeSkipping && formInput('跳绳 (次/分)', formRopeSkipping, setFormRopeSkipping, { step: '1', min: '0' })}
                   {fields.vitalCapacity && formInput('肺活量 (mL)', formVitalCapacity, setFormVitalCapacity, { step: '1', min: '0' })}
                 </div>
               </div>
             )}
 
-            {/* Overall */}
-            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-              {sectionHeader('📋', '综合评价')}
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-medium" style={{ color: S.sub }}>足弓状态</span>
-                  <select value={formFootArch} onChange={(e) => setFormFootArch(e.target.value)}
-                    className={`${S.radiusSm} px-3 py-2 text-sm`}
-                    style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
-                    <option value="">可选</option>
-                    {FOOT_ARCH_OPTIONS.map((v) => (
-                      <option key={v} value={v}>{FOOT_ARCH_LABELS[v]}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-medium" style={{ color: S.sub }}>综合等级</span>
-                  <select value={formGrade} onChange={(e) => setFormGrade(e.target.value)}
-                    className={`${S.radiusSm} px-3 py-2 text-sm`}
-                    style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }}>
-                    <option value="">可选</option>
-                    {GRADE_OPTIONS.map((v) => (
-                      <option key={v} value={v}>{GRADE_LABELS[v]}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
           </div>
 
-          {/* Notes + actions */}
-          <div className="mt-5">
-            <input placeholder="备注（选填）" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-              className={`${S.radiusSm} px-3 py-2 text-sm w-full`}
-              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text }} />
+          {/* Notes */}
+          <div>
+            <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
+            <input placeholder="记录一些观察..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`}
+              style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
           </div>
-          <div className="flex gap-3 mt-5">
-            <button onClick={handleSubmit} className={S.radiusSm + ' text-sm font-medium px-5 py-2 text-white'} style={{ background: S.accent }}>保存</button>
-            <button onClick={resetForm} className={S.radiusSm + ' text-sm px-5 py-2'} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+          </div>
+          <div className="px-6 pt-3 pb-5 mt-1">
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={handleSubmit} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
+            </div>
           </div>
         </section>
+        </div>
       )}
 
       {/* Assessment Cards */}
       <section>
         {sortedAssessments.length === 0 ? (
-          <p className="text-sm" style={{ color: S.sub }}>暂无体能评估</p>
+          <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+            <span className="text-[28px]">🏃</span>
+            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有体能评估</p>
+            <p className="text-[11px] mt-1" style={{ color: S.sub }}>记录体测成绩，追踪体能发展</p>
+          </div>
         ) : (
           <div className="space-y-4">
             {sortedAssessments.map((a) => {
               const speedMetrics = [
+                { label: '10米折返跑', value: a.run10mShuttle, unit: 's' },
                 { label: '50米跑', value: a.run50m, unit: 's' },
                 { label: '800米跑', value: a.run800m, unit: 's' },
                 { label: '1000米跑', value: a.run1000m, unit: 's' },
                 { label: '50m×8', value: a.run50x8, unit: 's' },
               ].filter((m) => m.value != null);
               const strengthMetrics = [
-                { label: '坐位体前屈', value: a.sitAndReach, unit: 'cm' },
                 { label: '立定跳远', value: a.standingLongJump, unit: 'cm' },
+                { label: '网球掷远', value: a.tennisBallThrow, unit: 'm' },
+                { label: '双脚连续跳', value: a.doubleFootJump, unit: 's' },
+                { label: '坐位体前屈', value: a.sitAndReach, unit: 'cm' },
                 { label: '仰卧起坐', value: a.sitUps, unit: '次/分' },
                 { label: '引体向上', value: a.pullUps, unit: '次' },
               ].filter((m) => m.value != null);
               const cardioMetrics = [
+                { label: '走平衡木', value: a.balanceBeam, unit: 's' },
                 { label: '跳绳', value: a.ropeSkipping, unit: '次/分' },
                 { label: '肺活量', value: a.vitalCapacity, unit: 'mL' },
               ].filter((m) => m.value != null);

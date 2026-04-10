@@ -72,6 +72,7 @@ const snapshot = {
       guidedAnswers: null,
       observationDuration: 5,
       keepsake: 0,
+      moodTag: null,
       recorderId: 'rec-1',
       createdAt: '2025-03-11T08:00:00.000Z',
       updatedAt: '2025-03-11T08:00:00.000Z',

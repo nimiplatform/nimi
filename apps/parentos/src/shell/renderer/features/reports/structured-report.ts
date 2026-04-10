@@ -9,9 +9,9 @@ import type {
 import { GROWTH_STANDARDS, MILESTONE_CATALOG, REMINDER_RULES } from '../../knowledge-base/index.js';
 import { buildStructuredTrendSignals, type StructuredTrendSignal } from './trend-analysis.js';
 
-export type GrowthReportType = 'monthly' | 'quarterly' | 'quarterly-letter';
+export type GrowthReportType = 'monthly' | 'quarterly' | 'quarterly-letter' | 'custom';
 
-const GROWTH_REPORT_TYPES = ['monthly', 'quarterly', 'quarterly-letter'] as const satisfies readonly GrowthReportType[];
+const GROWTH_REPORT_TYPES = ['monthly', 'quarterly', 'quarterly-letter', 'custom'] as const satisfies readonly GrowthReportType[];
 
 export interface StructuredGrowthReportMetric {
   id: string;
@@ -41,13 +41,52 @@ export interface StructuredGrowthReportContent {
   safetyNote: string;
 }
 
+/* ── Narrative report types (v2) ── */
+
+export interface NarrativeSection {
+  id: string;
+  title: string;
+  narrative: string;
+  dataPoints?: Array<{ label: string; value: string; detail?: string }>;
+}
+
+export interface ActionItem {
+  id: string;
+  text: string;
+  linkTo?: string;
+  ruleId?: string;
+}
+
+export interface NarrativeReportContent {
+  version: 2;
+  format: 'narrative' | 'narrative-ai';
+  reportType: GrowthReportType;
+  title: string;
+  subtitle: string;
+  teaser: string;
+  generatedAt: string;
+  opening?: string;
+  narrativeSections: NarrativeSection[];
+  milestoneReplay?: string | null;
+  highlights?: string[];
+  watchNext?: string[];
+  closingMessage?: string;
+  actionItems: ActionItem[];
+  trendSignals: StructuredTrendSignal[];
+  metrics: StructuredGrowthReportMetric[];
+  sources: string[];
+  safetyNote: string;
+}
+
+export type ParsedReportContent = StructuredGrowthReportContent | NarrativeReportContent;
+
 export interface BuiltStructuredGrowthReport {
   reportType: GrowthReportType;
   periodStart: string;
   periodEnd: string;
   ageMonthsStart: number;
   ageMonthsEnd: number;
-  content: StructuredGrowthReportContent;
+  content: StructuredGrowthReportContent | NarrativeReportContent;
 }
 
 export interface StructuredGrowthReportSnapshot {
@@ -295,6 +334,89 @@ export function buildStructuredGrowthReport(snapshot: StructuredGrowthReportSnap
     ageMonthsEnd,
     content,
   };
+}
+
+/* ── Action items builder (used by narrative-prompt.ts) ── */
+
+const DOMAIN_ROUTES: Record<string, string> = {
+  vaccine: '/profile/vaccines', checkup: '/profile/medical-events', growth: '/profile/growth',
+  vision: '/profile/vision', dental: '/profile/dental', sleep: '/profile/sleep',
+  'bone-age': '/profile/tanner', sensitivity: '/journal', milestone: '/profile/milestones',
+  posture: '/profile/posture', fitness: '/profile/fitness', tanner: '/profile/tanner',
+};
+
+export function buildNarrativeActionItems(reminderStates: ReminderStateRow[]): ActionItem[] {
+  const openStatuses = new Set(['pending', 'active', 'overdue']);
+  return reminderStates
+    .filter((s) => openStatuses.has(s.status))
+    .map((s) => ({ state: s, rule: reminderRuleById.get(s.ruleId) }))
+    .filter((item) => item.rule != null)
+    .slice(0, 3)
+    .map((item) => {
+      const rule = item.rule!;
+      const statusLabel = item.state.status === 'overdue' ? '（逾期）' : '';
+      const route = DOMAIN_ROUTES[rule.domain] ?? '/profile';
+      return {
+        id: `action-${item.state.ruleId}`,
+        text: `${rule.title}${statusLabel}`,
+        linkTo: `/advisor?topic=${encodeURIComponent(rule.title)}&desc=${encodeURIComponent(rule.description)}&record=${encodeURIComponent(route)}`,
+        ruleId: item.state.ruleId,
+      };
+    });
+}
+
+/* ── Parsers ── */
+
+function parseNarrativeReportContent(parsed: Record<string, unknown>): NarrativeReportContent {
+  const fmt = parsed.format;
+  if (parsed.version !== 2 || (fmt !== 'narrative' && fmt !== 'narrative-ai') || typeof parsed.title !== 'string' ||
+    !Array.isArray(parsed.narrativeSections) || !Array.isArray(parsed.actionItems) ||
+    !Array.isArray(parsed.sources) || typeof parsed.safetyNote !== 'string') {
+    throw new Error('Invalid narrative report payload');
+  }
+  return {
+    version: 2, format: fmt as 'narrative' | 'narrative-ai',
+    reportType: typeof parsed.reportType === 'string' ? parsed.reportType as GrowthReportType : 'custom',
+    title: parsed.title,
+    subtitle: typeof parsed.subtitle === 'string' ? parsed.subtitle : '',
+    teaser: typeof parsed.teaser === 'string' ? parsed.teaser : '',
+    generatedAt: typeof parsed.generatedAt === 'string' ? parsed.generatedAt : '',
+    opening: typeof parsed.opening === 'string' ? parsed.opening : undefined,
+    milestoneReplay: typeof parsed.milestoneReplay === 'string' ? parsed.milestoneReplay : undefined,
+    highlights: Array.isArray(parsed.highlights) ? (parsed.highlights as string[]).map(String) : undefined,
+    watchNext: Array.isArray(parsed.watchNext) ? (parsed.watchNext as string[]).map(String) : undefined,
+    closingMessage: typeof parsed.closingMessage === 'string' ? parsed.closingMessage : undefined,
+    narrativeSections: (parsed.narrativeSections as Array<Record<string, unknown>>).map((s) => ({
+      id: String(s.id ?? ''), title: String(s.title ?? ''), narrative: String(s.narrative ?? ''),
+      dataPoints: Array.isArray(s.dataPoints) ? (s.dataPoints as Array<Record<string, unknown>>).map((d) => ({
+        label: String(d.label ?? ''), value: String(d.value ?? ''), detail: d.detail != null ? String(d.detail) : undefined,
+      })) : undefined,
+    })),
+    actionItems: (parsed.actionItems as Array<Record<string, unknown>>).map((a) => ({
+      id: String(a.id ?? ''), text: String(a.text ?? ''),
+      linkTo: typeof a.linkTo === 'string' ? a.linkTo : undefined,
+      ruleId: typeof a.ruleId === 'string' ? a.ruleId : undefined,
+    })),
+    trendSignals: Array.isArray(parsed.trendSignals)
+      ? (parsed.trendSignals as Array<Record<string, unknown>>).map((s) => ({
+        id: String(s.id ?? ''), title: String(s.title ?? ''), summary: truncate(String(s.summary ?? '')),
+        evidence: Array.isArray(s.evidence) ? (s.evidence as string[]).map((e) => truncate(String(e))) : [],
+        sources: Array.isArray(s.sources) ? (s.sources as string[]).map((e) => String(e)) : [],
+      })) : [],
+    metrics: Array.isArray(parsed.metrics)
+      ? (parsed.metrics as Array<Record<string, unknown>>).map((m) => ({
+        id: String(m.id ?? ''), label: String(m.label ?? ''), value: String(m.value ?? ''),
+        detail: m.detail != null ? String(m.detail) : undefined,
+      })) : [],
+    sources: (parsed.sources as string[]).map((s) => String(s)),
+    safetyNote: parsed.safetyNote as string,
+  };
+}
+
+export function parseReportContent(raw: string): ParsedReportContent {
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  if (parsed.version === 2) return parseNarrativeReportContent(parsed);
+  return parseStructuredGrowthReportContent(raw);
 }
 
 export function parseStructuredGrowthReportContent(raw: string): StructuredGrowthReportContent {

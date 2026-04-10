@@ -5,22 +5,24 @@ import { insertDentalRecord, getDentalRecords, upsertReminderState } from '../..
 import type { DentalRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
+import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { generateDentalFollowup } from '../../engine/smart-alerts.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Event types ─────────────────────────────────────────── */
 
 const EVENT_TYPES = [
-  { key: 'eruption', label: '萌出', emoji: '🌱', desc: '新牙冒出' },
-  { key: 'loss', label: '脱落', emoji: '🦷', desc: '乳牙脱落' },
-  { key: 'caries', label: '龋齿', emoji: '🔴', desc: '蛀牙' },
-  { key: 'filling', label: '补牙', emoji: '🔧', desc: '龋齿治疗' },
-  { key: 'cleaning', label: '洁牙', emoji: '✨', desc: '定期洁牙' },
-  { key: 'fluoride', label: '涂氟', emoji: '💧', desc: '氟化物防龋' },
-  { key: 'sealant', label: '窝沟封闭', emoji: '🛡️', desc: '防龋保护' },
-  { key: 'ortho-assessment', label: '正畸评估', emoji: '📐', desc: '咬合检查' },
-  { key: 'ortho-start', label: '开始正畸', emoji: '🦷', desc: '佩戴矫治器' },
-  { key: 'checkup', label: '口腔检查', emoji: '🔍', desc: '常规检查' },
+  { key: 'eruption', label: '萌出', emoji: '🌱', desc: '新牙冒出', minAge: 0 },
+  { key: 'loss', label: '脱落', emoji: '🦷', desc: '乳牙脱落', minAge: 60 },
+  { key: 'caries', label: '龋齿', emoji: '🔴', desc: '蛀牙', minAge: 12 },
+  { key: 'filling', label: '补牙', emoji: '🔧', desc: '龋齿治疗', minAge: 24 },
+  { key: 'cleaning', label: '洁牙', emoji: '✨', desc: '定期洁牙', minAge: 24 },
+  { key: 'fluoride', label: '涂氟', emoji: '💧', desc: '氟化物防龋', minAge: 6 },
+  { key: 'sealant', label: '窝沟封闭', emoji: '🛡️', desc: '防龋保护', minAge: 36 },
+  { key: 'ortho-assessment', label: '正畸评估', emoji: '📐', desc: '咬合检查', minAge: 84 },
+  { key: 'ortho-start', label: '开始正畸', emoji: '🦷', desc: '佩戴矫治器', minAge: 84 },
+  { key: 'checkup', label: '口腔检查', emoji: '🔍', desc: '常规检查', minAge: 0 },
 ] as const;
 
 const EVENT_LABEL: Record<string, string> = Object.fromEntries(EVENT_TYPES.map((e) => [e.key, e.label]));
@@ -65,18 +67,19 @@ const TOOTH_NAMES: Record<string, string> = {
 
 /* ── Interactive tooth chart ─────────────────────────────── */
 
-function ToothChart({ selectedTooth, onSelect, toothSet, recordedTeeth }: {
-  selectedTooth: string; onSelect: (id: string) => void; toothSet: 'primary' | 'permanent';
-  recordedTeeth: Map<string, string>; // toothId → latest eventType
+function ToothChart({ selectedTeeth, onToggle, toothSet, recordedTeeth }: {
+  selectedTeeth: string[]; onToggle: (id: string) => void; toothSet: 'primary' | 'permanent';
+  recordedTeeth: Map<string, string>;
 }) {
   const isPrimary = toothSet === 'primary';
   const upperR = isPrimary ? PRIMARY_UPPER_R : PERM_UPPER_R;
   const upperL = isPrimary ? PRIMARY_UPPER_L : PERM_UPPER_L;
   const lowerL = isPrimary ? PRIMARY_LOWER_L : PERM_LOWER_L;
   const lowerR = isPrimary ? PRIMARY_LOWER_R : PERM_LOWER_R;
+  const sel = new Set(selectedTeeth);
 
   const toothColor = (id: string) => {
-    if (id === selectedTooth) return { bg: S.accent, color: '#fff' };
+    if (sel.has(id)) return { bg: S.accent, color: '#fff' };
     const evt = recordedTeeth.get(id);
     if (evt === 'caries') return { bg: '#fecaca', color: '#dc2626' };
     if (evt === 'loss') return { bg: '#e8e5e0', color: '#8a8f9a' };
@@ -91,7 +94,7 @@ function ToothChart({ selectedTooth, onSelect, toothSet, recordedTeeth }: {
       {teeth.map((id) => {
         const c = toothColor(id);
         return (
-          <button key={id} onClick={() => onSelect(id)} title={`${id} ${TOOTH_NAMES[id] ?? ''}`}
+          <button key={id} onClick={() => onToggle(id)} title={`${id} ${TOOTH_NAMES[id] ?? ''}`}
             className="w-7 h-7 rounded-lg text-[10px] font-bold transition-all hover:scale-110"
             style={{ background: c.bg, color: c.color }}>
             {id}
@@ -105,7 +108,7 @@ function ToothChart({ selectedTooth, onSelect, toothSet, recordedTeeth }: {
     <div className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
       <div className="flex items-center justify-between mb-3">
         <p className="text-[12px] font-semibold" style={{ color: S.text }}>
-          {isPrimary ? '乳牙 (20颗)' : '恒牙 (32颗)'} · 点击选择牙位
+          {isPrimary ? '乳牙 (20颗)' : '恒牙 (32颗)'} · 点击选择牙位（可多选）
         </p>
         <div className="flex gap-1">
           {[
@@ -135,37 +138,49 @@ function ToothChart({ selectedTooth, onSelect, toothSet, recordedTeeth }: {
         </div>
         <p className="text-[9px]" style={{ color: S.sub }}>下颌</p>
       </div>
-      {selectedTooth && (
+      {selectedTeeth.length > 0 && (
         <p className="text-center text-[11px] mt-2 font-medium" style={{ color: S.accent }}>
-          已选: {selectedTooth} — {TOOTH_NAMES[selectedTooth] ?? ''}
+          已选 {selectedTeeth.length} 颗: {selectedTeeth.map((id) => `${id}(${TOOTH_NAMES[id] ?? ''})`).join('、')}
         </p>
       )}
     </div>
   );
 }
 
+/* ── Event entry type ────────────────────────────────────── */
+
+interface EventEntry { eventType: string; toothIds: string[]; toothSet: 'primary' | 'permanent'; severity: string }
+function makeEventEntry(ageMonths: number): EventEntry {
+  return { eventType: 'eruption', toothIds: [], toothSet: ageMonths < 72 ? 'primary' : 'permanent', severity: '' };
+}
+
 /* ── Main page ───────────────────────────────────────────── */
 
 export default function DentalPage() {
-  const { activeChildId, children } = useAppStore();
+  const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<DentalRecordRow[]>([]);
   const [showForm, setShowForm] = useState(false);
 
-  const [formEventType, setFormEventType] = useState('checkup');
-  const [formToothId, setFormToothId] = useState('');
-  const [formToothSet, setFormToothSet] = useState<'primary' | 'permanent'>('primary');
+  const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
+
+  const [eventEntries, setEventEntries] = useState<EventEntry[]>(() => [makeEventEntry(ageMonths)]);
+  const [activeEntryIdx, setActiveEntryIdx] = useState(0);
   const [formEventDate, setFormEventDate] = useState(new Date().toISOString().slice(0, 10));
-  const [formSeverity, setFormSeverity] = useState('');
   const [formHospital, setFormHospital] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
+  const [addEventHover, setAddEventHover] = useState(false);
 
   useEffect(() => {
     if (activeChildId) getDentalRecords(activeChildId).then(setRecords).catch(() => {});
   }, [activeChildId]);
 
-  const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
+  // Filter event types by child age
+  const availableEventTypes = useMemo(
+    () => EVENT_TYPES.filter((e) => ageMonths >= e.minAge),
+    [ageMonths],
+  );
 
   // Build tooth status map from records
   const toothStatus = useMemo(() => {
@@ -183,49 +198,65 @@ export default function DentalPage() {
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
   const sortedRecords = [...records].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
-  const needsTooth = NEEDS_TOOTH.has(formEventType);
-  const needsSeverity = NEEDS_SEVERITY.has(formEventType);
+  const updateEntry = (idx: number, patch: Partial<EventEntry>) =>
+    setEventEntries((prev) => prev.map((e, i) => i === idx ? { ...e, ...patch } : e));
 
-  // Auto-detect tooth set by age
-  useEffect(() => { setFormToothSet(ageMonths < 72 ? 'primary' : 'permanent'); }, [ageMonths]);
+  const addEntry = () => {
+    const next = makeEventEntry(ageMonths);
+    setEventEntries((prev) => [...prev, next]);
+    setActiveEntryIdx(eventEntries.length);
+  };
+
+  const removeEntry = (idx: number) => {
+    setEventEntries((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      setActiveEntryIdx((ai) => Math.min(ai, next.length - 1));
+      return next;
+    });
+  };
 
   const resetForm = () => {
-    setFormEventType('checkup'); setFormToothId(''); setFormEventDate(new Date().toISOString().slice(0, 10));
-    setFormSeverity(''); setFormHospital(''); setFormNotes(''); setShowForm(false);
+    setEventEntries([makeEventEntry(ageMonths)]);
+    setActiveEntryIdx(0);
+    setFormEventDate(new Date().toISOString().slice(0, 10));
+    setFormHospital(''); setFormNotes(''); setShowForm(false);
   };
 
   const handleSubmit = async () => {
-    if (!formEventDate) return;
+    if (!formEventDate || eventEntries.length === 0) return;
     const now = isoNow();
+    const age = computeAgeMonthsAt(child.birthDate, formEventDate);
     try {
-      await insertDentalRecord({
-        recordId: ulid(), childId: child.childId, eventType: formEventType,
-        toothId: formToothId || null, toothSet: formToothSet,
-        eventDate: formEventDate, ageMonths: computeAgeMonthsAt(child.birthDate, formEventDate),
-        severity: needsSeverity ? (formSeverity || null) : null,
-        hospital: formHospital || null, notes: formNotes || null, photoPath: null, now,
-      });
+      for (const entry of eventEntries) {
+        await insertDentalRecord({
+          recordId: ulid(), childId: child.childId, eventType: entry.eventType,
+          toothId: entry.toothIds.length > 0 ? entry.toothIds.join(',') : null, toothSet: entry.toothSet,
+          eventDate: formEventDate, ageMonths: age,
+          severity: NEEDS_SEVERITY.has(entry.eventType) ? (entry.severity || null) : null,
+          hospital: formHospital || null, notes: formNotes || null, photoPath: null, now,
+        });
 
-      // Auto-create next-visit reminder if applicable
-      const reminderCfg = DENTAL_REMINDER_INTERVALS[formEventType];
-      if (reminderCfg) {
-        const nextDate = new Date(formEventDate);
-        nextDate.setMonth(nextDate.getMonth() + reminderCfg.months);
-        const nextTrigger = nextDate.toISOString();
-        try {
-          await upsertReminderState({
-            stateId: ulid(), childId: child.childId,
-            ruleId: `dental-auto-${formEventType}-${formEventDate}`,
-            status: 'pending', activatedAt: null, completedAt: null, dismissedAt: null,
-            dismissReason: null, repeatIndex: 0,
-            nextTriggerAt: nextTrigger,
-            notes: `[dental-reminder] ${reminderCfg.title} · 上次: ${formEventDate} · 下次: ${nextTrigger.split('T')[0]}`,
-            now,
-          });
-          const nextStr = nextTrigger.split('T')[0] ?? '';
-          setReminderMsg(`已设置提醒：${reminderCfg.title} · ${nextStr}`);
-          setTimeout(() => setReminderMsg(null), 5000);
-        } catch { /* reminder creation failed, non-critical */ }
+        // Auto-create next-visit reminder if applicable
+        const reminderCfg = DENTAL_REMINDER_INTERVALS[entry.eventType];
+        if (reminderCfg) {
+          const nextDate = new Date(formEventDate);
+          nextDate.setMonth(nextDate.getMonth() + reminderCfg.months);
+          const nextTrigger = nextDate.toISOString();
+          try {
+            await upsertReminderState({
+              stateId: ulid(), childId: child.childId,
+              ruleId: `dental-auto-${entry.eventType}-${formEventDate}`,
+              status: 'pending', activatedAt: null, completedAt: null, dismissedAt: null,
+              dismissReason: null, repeatIndex: 0,
+              nextTriggerAt: nextTrigger,
+              notes: `[dental-reminder] ${reminderCfg.title} · 上次: ${formEventDate} · 下次: ${nextTrigger.split('T')[0]}`,
+              now,
+            });
+            const nextStr = nextTrigger.split('T')[0] ?? '';
+            setReminderMsg(`已设置提醒：${reminderCfg.title} · ${nextStr}`);
+            setTimeout(() => setReminderMsg(null), 5000);
+          } catch { /* reminder creation failed, non-critical */ }
+        }
       }
 
       setRecords(await getDentalRecords(child.childId));
@@ -242,7 +273,7 @@ export default function DentalPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold" style={{ color: S.text }}>口腔记录</h1>
           <div className="group relative">
@@ -278,7 +309,10 @@ export default function DentalPage() {
           </button>
         )}
       </div>
-      <p className="text-[12px] mb-5" style={{ color: S.sub }}>{child.displayName}，{fmtAge(ageMonths)}</p>
+      <div className="mb-5">
+        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
+      </div>
 
       {/* Reminder toast */}
       {reminderMsg && (
@@ -313,89 +347,159 @@ export default function DentalPage() {
 
       {/* ── Add form ─────────────────────────────────────── */}
       {showForm && (
-        <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>添加口腔记录</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
+        <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[20px]">🦷</span>
+              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加口腔记录</h2>
+            </div>
             <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
           </div>
 
-          {/* Event type selector */}
-          <p className="text-[11px] mb-2" style={{ color: S.sub }}>事件类型</p>
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {EVENT_TYPES.map((e) => (
-              <button key={e.key} onClick={() => setFormEventType(e.key)}
-                className={`flex items-center gap-1 px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
-                style={formEventType === e.key
-                  ? { background: S.accent, color: '#fff' }
-                  : { background: '#f5f3ef', color: S.sub }}>
-                <span>{e.emoji}</span> {e.label}
-              </button>
-            ))}
-          </div>
+          <div className="px-6 pb-2 space-y-4 flex-1">
 
-          {/* Tooth chart — only for tooth-specific events */}
-          {needsTooth && (
-            <div className="mb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <p className="text-[11px]" style={{ color: S.sub }}>牙位选择</p>
-                <div className="flex gap-1">
-                  {(['primary', 'permanent'] as const).map((ts) => (
-                    <button key={ts} onClick={() => { setFormToothSet(ts); setFormToothId(''); }}
-                      className={`px-3 py-1 text-[10px] rounded-full font-medium transition-all`}
-                      style={formToothSet === ts ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                      {ts === 'primary' ? '乳牙' : '恒牙'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <ToothChart selectedTooth={formToothId} onSelect={setFormToothId} toothSet={formToothSet} recordedTeeth={toothStatus} />
-            </div>
-          )}
-
-          {/* Severity — only for caries */}
-          {needsSeverity && (
-            <div className="mb-4">
-              <p className="text-[11px] mb-2" style={{ color: S.sub }}>严重程度</p>
-              <div className="flex gap-1.5">
-                {(['mild', 'moderate', 'severe'] as const).map((sv) => (
-                  <button key={sv} onClick={() => setFormSeverity(formSeverity === sv ? '' : sv)}
-                    className={`px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
-                    style={formSeverity === sv
-                      ? { background: sv === 'severe' ? '#dc2626' : sv === 'moderate' ? '#d97706' : S.accent, color: '#fff' }
-                      : { background: '#f5f3ef', color: S.sub }}>
-                    {SEVERITY_LABELS[sv]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Date + hospital + notes */}
-          <div className="grid grid-cols-2 gap-3 mb-3">
+          {/* Date + hospital — shared across all events */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-[11px] mb-1" style={{ color: S.sub }}>日期</p>
-              <input type="date" value={formEventDate} onChange={(e) => setFormEventDate(e.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+              <p className="text-[11px] mb-1" style={{ color: S.sub }}>就诊日期</p>
+              <ProfileDatePicker value={formEventDate} onChange={setFormEventDate} style={{ background: '#fafaf8', color: S.text }} />
             </div>
             <div>
               <p className="text-[11px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
               <input value={formHospital} onChange={(e) => setFormHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} style={{ background: '#fafaf8', color: S.text }} />
             </div>
           </div>
-          <div className="mb-4">
+
+          {/* Event entries */}
+          {eventEntries.map((entry, idx) => {
+            const isActive = idx === activeEntryIdx;
+            const evtMeta = EVENT_TYPES.find((e) => e.key === entry.eventType);
+            const entryNeedsTooth = NEEDS_TOOTH.has(entry.eventType);
+            const entryNeedsSeverity = NEEDS_SEVERITY.has(entry.eventType);
+            return (
+              <div key={idx}
+                className={`${S.radiusSm} p-3 transition-all cursor-pointer`}
+                style={{
+                  background: isActive ? '#fafaf8' : '#f9faf7',
+                  border: `1.5px solid ${isActive ? S.accent + '60' : S.border}`,
+                }}
+                onClick={() => setActiveEntryIdx(idx)}>
+
+                {/* Entry header */}
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] font-semibold" style={{ color: isActive ? S.accent : S.text }}>
+                    事件 {idx + 1} {evtMeta ? `· ${evtMeta.emoji} ${evtMeta.label}` : ''}
+                    {entry.toothIds.length > 0 && <span className="font-normal" style={{ color: S.sub }}> · {entry.toothIds.length} 颗牙</span>}
+                  </p>
+                  {eventEntries.length > 1 && (
+                    <button onClick={(e) => { e.stopPropagation(); removeEntry(idx); }}
+                      className="text-[10px] px-2 py-0.5 rounded-full hover:bg-red-50 transition-colors"
+                      style={{ color: '#dc2626' }}>删除</button>
+                  )}
+                </div>
+
+                {/* Expanded content for active entry */}
+                {isActive && (
+                  <div className="space-y-3 mt-2">
+                    {/* Event type selector */}
+                    <div>
+                      <p className="text-[10px] mb-1.5" style={{ color: S.sub }}>类型</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableEventTypes.map((e) => (
+                          <button key={e.key} onClick={(ev) => { ev.stopPropagation(); updateEntry(idx, { eventType: e.key, toothIds: [], severity: '' }); }}
+                            className={`flex items-center gap-1 px-2.5 py-1 text-[10px] ${S.radiusSm} transition-all`}
+                            style={entry.eventType === e.key
+                              ? { background: S.accent, color: '#fff' }
+                              : { background: '#f0f0ec', color: S.sub }}>
+                            <span>{e.emoji}</span> {e.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tooth chart */}
+                    {entryNeedsTooth && (
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-[10px]" style={{ color: S.sub }}>牙位</p>
+                          <div className="flex gap-1">
+                            {(['primary', ...(ageMonths >= 60 ? ['permanent'] : [])] as const).map((ts) => (
+                              <button key={ts} onClick={(ev) => { ev.stopPropagation(); updateEntry(idx, { toothSet: ts as 'primary' | 'permanent', toothIds: [] }); }}
+                                className="px-2.5 py-0.5 text-[9px] rounded-full font-medium transition-all"
+                                style={entry.toothSet === ts ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}>
+                                {ts === 'primary' ? '乳牙' : '恒牙'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <ToothChart selectedTeeth={entry.toothIds}
+                          onToggle={(id) => updateEntry(idx, { toothIds: entry.toothIds.includes(id) ? entry.toothIds.filter((t) => t !== id) : [...entry.toothIds, id] })}
+                          toothSet={entry.toothSet} recordedTeeth={toothStatus} />
+                      </div>
+                    )}
+
+                    {/* Severity for caries */}
+                    {entryNeedsSeverity && (
+                      <div>
+                        <p className="text-[10px] mb-1.5" style={{ color: S.sub }}>严重程度</p>
+                        <div className="flex gap-1.5">
+                          {(['mild', 'moderate', 'severe'] as const).map((sv) => (
+                            <button key={sv} onClick={(ev) => { ev.stopPropagation(); updateEntry(idx, { severity: entry.severity === sv ? '' : sv }); }}
+                              className={`px-2.5 py-1 text-[10px] ${S.radiusSm} transition-all`}
+                              style={entry.severity === sv
+                                ? { background: sv === 'severe' ? '#dc2626' : sv === 'moderate' ? '#d97706' : S.accent, color: '#fff' }
+                                : { background: '#f0f0ec', color: S.sub }}>
+                              {SEVERITY_LABELS[sv]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Add another event */}
+          <button onClick={addEntry}
+            onMouseEnter={() => setAddEventHover(true)}
+            onMouseLeave={() => setAddEventHover(false)}
+            className={`w-full flex items-center justify-center gap-2 py-3 text-[11px] font-medium ${S.radiusSm} cursor-pointer`}
+            style={{
+              border: `2px dashed ${addEventHover ? '#c8e64a' : '#d0d0cc'}`,
+              background: addEventHover ? '#f9fbf4' : '#fafaf8',
+              color: addEventHover ? S.accent : S.sub,
+              transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
+            }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
+              style={{
+                stroke: addEventHover ? '#94A533' : '#b0b0aa',
+                transform: addEventHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                transition: 'stroke 0.25s ease, transform 0.3s ease',
+              }}>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            添加另一个事件
+          </button>
+
+          {/* Notes */}
+          <div>
             <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
             <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="选填"
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none`} style={{ background: '#f5f3ef', color: S.text }} />
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} style={{ background: '#fafaf8', color: S.text }} />
+          </div>
           </div>
 
-          <div className="flex gap-2">
-            <button onClick={() => void handleSubmit()}
-              className={`px-5 py-2.5 text-[13px] font-medium text-white ${S.radiusSm} hover:opacity-90`} style={{ background: S.accent }}>
-              保存
-            </button>
-            <button onClick={resetForm} className={`px-5 py-2.5 text-[13px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+          <div className="px-6 pt-3 pb-5 mt-1">
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={() => void handleSubmit()} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
+            </div>
           </div>
+        </div>
         </div>
       )}
 

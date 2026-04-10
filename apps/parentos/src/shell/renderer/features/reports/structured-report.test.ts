@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStructuredGrowthReport, parseStructuredGrowthReportContent } from './structured-report.js';
+import { buildStructuredGrowthReport, parseReportContent, parseStructuredGrowthReportContent } from './structured-report.js';
 
 describe('structured-report', () => {
   const child = {
@@ -82,6 +82,7 @@ describe('structured-report', () => {
           guidedAnswers: null,
           observationDuration: 5,
           keepsake: 1,
+          moodTag: null,
           recorderId: 'mom',
           createdAt: '2026-03-10T00:00:00.000Z',
           updatedAt: '2026-03-10T00:00:00.000Z',
@@ -99,6 +100,13 @@ describe('structured-report', () => {
           dismissReason: null,
           repeatIndex: 0,
           nextTriggerAt: null,
+          snoozedUntil: null,
+          scheduledDate: null,
+          notApplicable: 0,
+          plannedForDate: null,
+          surfaceRank: null,
+          lastSurfacedAt: null,
+          surfaceCount: 0,
           notes: null,
           createdAt: '2026-04-01T00:00:00.000Z',
           updatedAt: '2026-04-01T00:00:00.000Z',
@@ -106,10 +114,12 @@ describe('structured-report', () => {
       ],
     });
 
+    expect(report.content.version).toBe(1);
     expect(report.content.format).toBe('structured-local');
     expect(report.content.reportType).toBe('quarterly-letter');
     expect(report.content.trendSignals.length).toBeGreaterThan(0);
-    expect(report.content.sections.some((section) => section.id === 'journal')).toBe(true);
+    const v1 = report.content as { sections: Array<{ id: string }> };
+    expect(v1.sections.some((section) => section.id === 'journal')).toBe(true);
     expect(report.content.safetyNote).toMatch(/structured facts only/i);
   });
 
@@ -132,5 +142,12 @@ describe('structured-report', () => {
       sources: [],
       safetyNote: 'facts only',
     }))).toThrow(/invalid structured growth report/i);
+  });
+
+  it('parseReportContent dispatches v1 and v2 correctly', () => {
+    const v1 = JSON.stringify({ version: 1, format: 'structured-local', reportType: 'monthly', title: 'T', subtitle: '', generatedAt: '', overview: [], metrics: [], trendSignals: [], sections: [], sources: [], safetyNote: 'test' });
+    expect(parseReportContent(v1).version).toBe(1);
+    const v2 = JSON.stringify({ version: 2, format: 'narrative', reportType: 'monthly', title: 'T', subtitle: '', teaser: '', generatedAt: '', narrativeSections: [], actionItems: [], trendSignals: [], metrics: [], sources: [], safetyNote: 'test' });
+    expect(parseReportContent(v2).version).toBe(2);
   });
 });

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
-import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
-import { insertMeasurement } from '../../bridge/sqlite-bridge.js';
+import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
+import { insertMeasurement, getMeasurements } from '../../bridge/sqlite-bridge.js';
+import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import {
@@ -11,6 +12,7 @@ import {
   readImageFileAsDataUrl,
   type OCRMeasurementCandidate,
 } from './checkup-ocr.js';
+import { ProfileDatePicker } from './profile-date-picker.js';
 
 type Status = 'idle' | 'analyzing' | 'review' | 'importing' | 'done';
 
@@ -43,10 +45,35 @@ export default function ReportUploadPage() {
   const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Array<OCRMeasurementCandidate & { selected: boolean }>>([]);
   const [importedCount, setImportedCount] = useState(0);
+  const [allMeasurements, setAllMeasurements] = useState<MeasurementRow[]>([]);
+  const [activeView, setActiveView] = useState<'upload' | 'library'>('upload');
 
   useEffect(() => {
     hasCheckupOCRRuntime().then(setRuntimeAvailable).catch(() => setRuntimeAvailable(false));
   }, []);
+
+  useEffect(() => {
+    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(() => {});
+  }, [activeChildId]);
+
+  const reloadMeasurements = () => {
+    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(() => {});
+  };
+
+  // Group OCR-sourced measurements by date for report library
+  const reportGroups = useMemo(() => {
+    const ocrItems = allMeasurements.filter((m) => m.source === 'ocr');
+    const groups = new Map<string, MeasurementRow[]>();
+    for (const m of ocrItems) {
+      const date = m.measuredAt.split('T')[0] ?? m.measuredAt;
+      const existing = groups.get(date);
+      if (existing) existing.push(m);
+      else groups.set(date, [m]);
+    }
+    return [...groups.entries()]
+      .map(([date, items]) => ({ date, items, ageMonths: items[0]?.ageMonths ?? 0 }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [allMeasurements]);
 
   if (!child) {
     return <div className="flex items-center justify-center h-full" style={{ color: S.sub }}>请先添加孩子档案</div>;
@@ -121,6 +148,7 @@ export default function ReportUploadPage() {
       }
       setImportedCount(count);
       setStatus('done');
+      reloadMeasurements();
     } catch {
       setError(`导入部分失败，已成功导入 ${count} 条`);
       setStatus('review');
@@ -141,10 +169,35 @@ export default function ReportUploadPage() {
       <div className="flex items-center gap-2 mb-5">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
-      <h1 className="text-xl font-bold mb-1" style={{ color: S.text }}>智能识别报告</h1>
-      <p className="text-[12px] mb-6" style={{ color: S.sub }}>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-xl font-bold" style={{ color: S.text }}>智能识别报告</h1>
+        {reportGroups.length > 0 && (
+          <span className="text-[11px] px-2.5 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+            {reportGroups.length} 份报告
+          </span>
+        )}
+      </div>
+      <p className="text-[12px] mb-4" style={{ color: S.sub }}>
         上传医院报告（体检单、验血单、骨龄报告等），AI 自动提取数据并生成记录
       </p>
+
+      {/* ── Tab toggle ─────────────────────────────────────── */}
+      <div className="flex gap-1 rounded-full p-1 mb-5 w-fit" style={{ background: '#eceeed' }}>
+        {([['upload', '📄 上传报告'], ['library', '📚 报告库']] as const).map(([k, l]) => (
+          <button key={k} onClick={() => setActiveView(k)}
+            className="px-4 py-1.5 text-[11px] font-medium rounded-full transition-all"
+            style={activeView === k
+              ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+              : { color: S.sub }}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* ════════════════════════════════════════════════════════
+         UPLOAD VIEW
+         ════════════════════════════════════════════════════════ */}
+      {activeView === 'upload' && <>
 
       {/* ── Step 1: Upload ──────────────────────────────────── */}
       {status !== 'done' && (
@@ -255,11 +308,15 @@ export default function ReportUploadPage() {
                     style={{ color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
                   <span className="text-[10px] w-12" style={{ color: S.sub }}>{info.unit}</span>
                   {/* Date */}
-                  <input type="date" value={c.measuredAt}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => updateCandidate(i, 'measuredAt', e.target.value)}
-                    className={`text-[11px] px-2 py-1 ${S.radiusSm}`}
-                    style={{ color: S.sub, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <ProfileDatePicker
+                      value={c.measuredAt}
+                      onChange={(nextDate) => updateCandidate(i, 'measuredAt', nextDate)}
+                      className={`text-[11px] ${S.radiusSm}`}
+                      style={{ color: S.sub, borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fff' }}
+                      size="small"
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -296,13 +353,99 @@ export default function ReportUploadPage() {
             已成功导入 {importedCount} 条数据到 {child.displayName} 的档案
           </p>
           <div className="flex gap-3">
-            <button onClick={reset}
+            <button onClick={() => { reset(); setActiveView('library'); }}
               className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm}`}
-              style={{ background: S.accent }}>继续上传</button>
-            <Link to="/profile"
-              className={`px-5 py-2 text-[13px] ${S.radiusSm} inline-flex items-center`}
-              style={{ background: '#f0f0ec', color: S.sub }}>返回档案</Link>
+              style={{ background: S.accent }}>查看报告库</button>
+            <button onClick={reset}
+              className={`px-5 py-2 text-[13px] ${S.radiusSm}`}
+              style={{ background: '#f0f0ec', color: S.sub }}>继续上传</button>
           </div>
+        </div>
+      )}
+
+      </>}
+
+      {/* ════════════════════════════════════════════════════════
+         REPORT LIBRARY VIEW
+         ════════════════════════════════════════════════════════ */}
+      {activeView === 'library' && (
+        <div>
+          {reportGroups.length === 0 ? (
+            <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <span className="text-[36px]">📂</span>
+              <p className="text-[14px] font-medium mt-3" style={{ color: S.text }}>暂无报告记录</p>
+              <p className="text-[11px] mt-1" style={{ color: S.sub }}>上传医院报告后，AI 识别的数据会自动归档到这里</p>
+              <button onClick={() => setActiveView('upload')}
+                className={`mt-4 px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm}`}
+                style={{ background: S.accent }}>去上传报告</button>
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+
+              {reportGroups.map((group) => {
+                const ageY = Math.floor(group.ageMonths / 12);
+                const ageR = group.ageMonths % 12;
+                const ageStr = group.ageMonths < 24 ? `${group.ageMonths}月` : ageR > 0 ? `${ageY}岁${ageR}月` : `${ageY}岁`;
+
+                // Categorize items
+                const categories = new Map<string, MeasurementRow[]>();
+                for (const item of group.items) {
+                  const std = GROWTH_STANDARDS.find((s) => s.typeId === item.typeId);
+                  const cat = item.typeId.startsWith('lab-') ? '血检' :
+                    item.typeId.includes('vision') || item.typeId.includes('axial') || item.typeId.includes('refraction') || item.typeId.includes('corneal') || item.typeId.includes('iop') || item.typeId.includes('acd') || item.typeId.includes('lt-') ? '眼科' :
+                    item.typeId === 'bone-age' ? '骨龄' : '生长';
+                  const existing = categories.get(cat);
+                  if (existing) existing.push(item);
+                  else categories.set(cat, [item]);
+                }
+
+                return (
+                  <div key={group.date} className="relative pl-10 pb-5">
+                    {/* Timeline dot */}
+                    <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
+                      style={{ background: S.card, borderColor: S.accent }}>
+                      <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
+                    </div>
+
+                    {/* Date header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[13px] font-bold" style={{ color: S.text }}>{group.date}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>{ageStr}</span>
+                      <span className="text-[10px]" style={{ color: S.sub }}>{group.items.length} 项数据</span>
+                    </div>
+
+                    {/* Report card */}
+                    <div className={`${S.radius} overflow-hidden`} style={{ background: S.card, boxShadow: S.shadow }}>
+                      {[...categories.entries()].map(([cat, items]) => (
+                        <div key={cat}>
+                          <div className="px-4 py-2 text-[10px] font-medium" style={{ background: '#f8faf9', color: S.sub }}>
+                            {cat === '眼科' ? '👁️' : cat === '血检' ? '🧪' : cat === '骨龄' ? '🦴' : '📏'} {cat}
+                          </div>
+                          {items.map((item) => {
+                            const info = getDisplayInfo(item.typeId);
+                            return (
+                              <div key={item.measurementId} className="flex items-center justify-between px-4 py-2 border-t" style={{ borderColor: '#f0f0ec' }}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[12px]">{info.emoji}</span>
+                                  <span className="text-[11px]" style={{ color: S.text }}>{info.name}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[13px] font-bold" style={{ color: S.text }}>{item.value}</span>
+                                  <span className="text-[10px]" style={{ color: S.sub }}>{info.unit}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

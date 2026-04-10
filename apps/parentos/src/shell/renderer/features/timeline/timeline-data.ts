@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ChildProfile } from '../../app-shell/app-store.js';
 import {
   getReminderStates, getMeasurements, getVaccineRecords, getMilestoneRecords,
-  getJournalEntries, getSleepRecords, getAllergyRecords,
+  getJournalEntries, getSleepRecords, getAllergyRecords, getGrowthReports,
 } from '../../bridge/sqlite-bridge.js';
-import type { ReminderState } from '../../engine/reminder-engine.js';
+import { mapReminderStateRow, type ReminderState } from '../../engine/reminder-engine.js';
 import type { MeasurementRow, SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 
 /* ================================================================
@@ -12,6 +12,7 @@ import type { MeasurementRow, SleepRecordRow } from '../../bridge/sqlite-bridge.
    ================================================================ */
 
 export interface AllergyRec { allergen: string; category: string; severity: string; status: string; notes: string | null }
+export interface MonthlyReportSummary { reportId: string; content: string; periodStart: string; generatedAt: string }
 export interface DashData {
   reminderStates: ReminderState[];
   measurements: MeasurementRow[];
@@ -20,8 +21,9 @@ export interface DashData {
   journalEntries: Array<{ entryId: string; contentType: string; textContent: string | null; recordedAt: string; observationMode: string | null }>;
   sleepRecords: SleepRecordRow[];
   allergyRecords: AllergyRec[];
+  latestMonthlyReport: MonthlyReportSummary | null;
 }
-const EMPTY: DashData = { reminderStates: [], measurements: [], vaccineCount: 0, milestoneRecords: [], journalEntries: [], sleepRecords: [], allergyRecords: [] };
+const EMPTY: DashData = { reminderStates: [], measurements: [], vaccineCount: 0, milestoneRecords: [], journalEntries: [], sleepRecords: [], allergyRecords: [], latestMonthlyReport: null };
 
 export function useDash(childId: string | null) {
   const [d, setD] = useState<DashData>(EMPTY);
@@ -29,19 +31,25 @@ export function useDash(childId: string | null) {
   const load = useCallback(async () => {
     if (!childId) { setLoading(false); return; }
     setLoading(true);
-    const [rs, ms, vs, mi, jo, sl, al] = await Promise.allSettled([
+    const [rs, ms, vs, mi, jo, sl, al, rp] = await Promise.allSettled([
       getReminderStates(childId), getMeasurements(childId), getVaccineRecords(childId),
       getMilestoneRecords(childId), getJournalEntries(childId, 5), getSleepRecords(childId, 7),
-      getAllergyRecords(childId),
+      getAllergyRecords(childId), getGrowthReports(childId),
     ]);
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const allReports = rp.status === 'fulfilled' ? rp.value : [];
+    const thisMonthReport = allReports.find((r) => r.periodStart >= monthStart) ?? null;
+
     setD({
-      reminderStates: rs.status === 'fulfilled' ? rs.value.map((s) => ({ stateId: s.stateId, childId: s.childId, ruleId: s.ruleId, status: s.status as ReminderState['status'], repeatIndex: s.repeatIndex, completedAt: s.completedAt, dismissedAt: s.dismissedAt })) : [],
+      reminderStates: rs.status === 'fulfilled' ? rs.value.map(mapReminderStateRow) : [],
       measurements: ms.status === 'fulfilled' ? ms.value : [],
       vaccineCount: vs.status === 'fulfilled' ? vs.value.length : 0,
       milestoneRecords: mi.status === 'fulfilled' ? mi.value.map((m) => ({ milestoneId: m.milestoneId, achievedAt: m.achievedAt })) : [],
       journalEntries: jo.status === 'fulfilled' ? jo.value.map((e) => ({ entryId: e.entryId, contentType: e.contentType, textContent: e.textContent, recordedAt: e.recordedAt, observationMode: e.observationMode })) : [],
       sleepRecords: sl.status === 'fulfilled' ? sl.value : [],
       allergyRecords: al.status === 'fulfilled' ? al.value.map((a) => ({ allergen: a.allergen, category: a.category, severity: a.severity, status: a.status, notes: a.notes })) : [],
+      latestMonthlyReport: thisMonthReport ? { reportId: thisMonthReport.reportId, content: thisMonthReport.content, periodStart: thisMonthReport.periodStart, generatedAt: thisMonthReport.generatedAt } : null,
     });
     setLoading(false);
   }, [childId]);
@@ -127,7 +135,8 @@ export const SETTING_KEY = 'dashboard_overview_metrics';
 /* ── domain routes ───────────────────────────────────────── */
 
 export const DOMAIN_ROUTES: Record<string, string> = {
-  vaccine: '/profile/vaccines', growth: '/profile/growth', vision: '/profile/growth',
-  dental: '/profile/dental', sleep: '/profile/sleep', 'bone-age': '/profile/growth',
+  vaccine: '/profile/vaccines', growth: '/profile/growth', vision: '/profile/vision',
+  dental: '/profile/dental', sleep: '/profile/sleep', 'bone-age': '/profile/tanner',
   checkup: '/profile/medical-events', nutrition: '/profile/growth',
+  posture: '/profile/posture', fitness: '/profile/fitness', tanner: '/profile/tanner',
 };

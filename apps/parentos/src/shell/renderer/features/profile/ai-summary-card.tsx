@@ -165,9 +165,14 @@ export function AISummaryCard(props: AISummaryCardProps) {
           <div className="h-3 rounded-full w-3/5" style={{ background: '#eceeed' }} />
         </div>
       ) : error ? (
-        <p className="text-[12px]" style={{ color: S.sub }}>
-          AI 分析暂时不可用，请确认 AI 运行时已启动后重试。
-        </p>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px]" style={{ color: S.sub }}>连接 AI 运行时后可查看智能分析</span>
+          <button onClick={() => void generate(true)}
+            className={`text-[11px] px-2 py-0.5 ${S.radiusSm} transition-colors hover:bg-[#f0f0ec]`}
+            style={{ color: S.accent, border: `1px solid ${S.border}` }}>
+            重试
+          </button>
+        </div>
       ) : summary ? (
         <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>{summary}</p>
       ) : null}
