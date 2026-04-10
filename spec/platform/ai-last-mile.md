@@ -30,4 +30,4 @@
 
 - 不提供独立于 Hook Runtime 的旁路执行通道。
 - 不在 domain 层定义新的 action 协议字段或状态机。
-- 不在本文件记录执行态结果；执行证据写入 `nimi-coding/.local/report/*`。
+- 不在本文件记录执行态结果；执行证据只能落入 local execution report route patterns（如 `nimi-coding/.local/report/**`）。

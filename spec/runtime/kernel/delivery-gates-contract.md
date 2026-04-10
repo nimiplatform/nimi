@@ -63,8 +63,8 @@ provider 覆盖矩阵、runtime Go statements coverage、catalog/source drift、
 
 证据路由：
 
-- `nimi-coding/.local/report/live-test-coverage.yaml`
-- `nimi-coding/.local/report/*`
+- tracked baseline/config：`nimi-coding/config/live-gate-baseline.yaml`
+- local latest-run report route patterns（如 `nimi-coding/.local/report/**`）
 
 ## K-GATE-050 G4 Workflow Async Gate
 
@@ -85,7 +85,8 @@ external async 事件与任务语义必须一致可追溯。
 
 证据路由：
 
-- `nimi-coding/.local/report/live-test-coverage.yaml`
+- tracked baseline/config：`nimi-coding/config/live-gate-baseline.yaml`
+- local latest-run report route patterns（如 `nimi-coding/.local/report/**`）
 
 ## K-GATE-070 G6 Observability Gate
 
@@ -111,6 +112,11 @@ external async 事件与任务语义必须一致可追溯。
 
 - required provider 出现 `failed` 或 `skipped` 时，release job 必须在 publish 前终止。
 
+证据路由：
+
+- tracked baseline/config：`nimi-coding/config/live-gate-baseline.yaml`
+- local latest-run report route patterns（如 `nimi-coding/.local/report/**`）
+
 ## K-GATE-090 Evidence Routing
 
-topic-bound 执行计划与冻结工件写 `nimi-coding/.local/<topic-id>/**`，共享执行证据写 `nimi-coding/.local/report/*`，spec 不承载运行快照。
+topic-bound 执行计划与冻结工件可写入 `nimi-coding/.local/<topic-id>/**`，local-only 执行证据可写入 `nimi-coding/.local/report/**`；tracked spec 不依赖具体 `.local` 文件，spec 不承载运行快照。

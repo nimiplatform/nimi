@@ -158,9 +158,9 @@ Admission gate contract 注册：
 - `admission_gate` token 的值域必须来自 kernel prose 的显式注册；table comment 或单独 table entry 不得成为唯一注册源。
 - 本轮唯一注册的 admission contract 是 `apple-mps-image-poc`：
   - 仅用于 `workflow_safetensors_image -> diffusers -> python_pipeline` 的 Apple Silicon PoC admission。
-  - 证据必须写入 `nimi-coding/.local/report/apple-mps-image-poc.md`。
+  - 证据必须写入 local execution report route patterns（如 `nimi-coding/.local/report/**`）。
   - gate 通过后，必须在同一 spec cutover 中把对应 entry 提升为 `product_state=supported` 并移除 `admission_gate`。
-  - 历史证据保留在 `nimi-coding/.local/report/**` / audit；稳定 kernel table 不保留“已通过 gate 但仍挂着 gate token”的状态。
+  - 历史证据保留在 local-only execution reports / audit（如 `nimi-coding/.local/report/**`）；稳定 kernel table 不保留“已通过 gate 但仍挂着 gate token”的状态。
 
 ## K-LENG-013 单机单 Canonical Mode 仲裁
 

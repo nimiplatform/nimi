@@ -86,16 +86,18 @@ function renderBacklogItems(doc, sourceName) {
 function renderResearchSources(doc, sourceName) {
   const sources = Array.isArray(doc?.sources) ? doc.sources : [];
   let out = header('Generated Research Sources', sourceName);
-  out += '| Source ID | Title | Date | Path | Scope |\n';
-  out += '|---|---|---|---|---|\n';
+  out += '| Source ID | Title | Date | Kind | Access | Scope | Conclusion |\n';
+  out += '|---|---|---|---|---|---|---|\n';
   for (const source of sources) {
     const sourceId = String(source?.source_id || '').trim();
     const title = String(source?.title || '').trim();
     const date = String(source?.date || '').trim();
-    const filePath = String(source?.path || '').trim();
+    const sourceKind = String(source?.source_kind || '').trim();
+    const access = String(source?.access || '').trim();
     const scope = String(source?.scope || '').trim();
+    const conclusion = String(source?.conclusion || '').trim();
     if (!sourceId) continue;
-    out += `| \`${sourceId}\` | ${title} | ${date} | \`${filePath}\` | ${scope} |\n`;
+    out += `| \`${sourceId}\` | ${title} | ${date} | \`${sourceKind}\` | \`${access}\` | ${scope} | ${conclusion} |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

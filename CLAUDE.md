@@ -40,43 +40,21 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Methodology: Nimi Coding
 
-Core lifecycle: `Rule -> Table -> Generate -> Check -> Evidence`.
-- **Spec-first**: `spec/**` is the only normative source.
-- **Table-first**: structured facts live in `spec/**/kernel/tables/*.yaml`, not in prose or source code.
-- **Projection-last**: never edit generated files; regenerate from source.
-- **Evidence over assertion**: every change requires executed commands and outputs.
+Use `nimi-coding` through the authoritative `AGENTS.md` surfaces, not through
+this file.
 
-Before any capability/evaluation/architecture question:
-1. Read `spec/INDEX.md` — match the question to a reading path.
-2. Read kernel YAML tables — these are structured facts.
-3. Read the relevant domain spec — normative rules with Rule IDs.
-4. Identify the current authority owner and classify the work as `alignment` or `redesign`.
-5. If the work is `redesign`, do not proceed to implementation planning before the relevant `spec/**` delta is defined.
-6. Read source code ONLY to verify or fill gaps.
-
-For high-risk design / refactor / implementation plans involving route, state, persistence, bridge, canonical model, or ownership:
-- The doc must include `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth`.
-- `alignment` work must not introduce parallel truth.
-- `redesign` work requires prior spec alignment.
-
-## Nimi Coding Instantiation
-
-This project instantiates nimi-coding with domain-prefix Rule IDs:
-
-| Prefix | Domain | Kernel Location |
-|--------|--------|-----------------|
-| K- | Runtime | spec/runtime/kernel/ |
-| D- | Desktop | spec/desktop/kernel/ |
-| S- | SDK | spec/sdk/kernel/ |
-| P- | Platform | spec/platform/kernel/ |
-| R- | Realm | spec/realm/kernel/ |
-| F- | Future | spec/future/kernel/ |
-
-Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
+- `spec/**` is the only normative source.
+- `nimi-coding` is mainly for high-risk, authority-bearing, cross-layer, or
+  multi-phase work.
+- Small, local, low-risk fixes do not need a `nimi-coding` topic when the
+  authority boundary is already clear.
+- For high-risk work, follow the nearest authoritative `AGENTS.md` and include
+  `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth` in the
+  design/plan surface when required.
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; active execution topics and local reports live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
+- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; local-only execution workspaces and reports may live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -96,7 +74,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 - Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
-`nimi-coding/.local/**` is the only active local execution workspace. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
+`nimi-coding/.local/**` is the only active local execution workspace. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
 
 ## Repo-Wide Verification
 

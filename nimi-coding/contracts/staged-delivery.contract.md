@@ -19,6 +19,23 @@ Staged delivery is enabled by audit routing, not by task labels.
   - must not perform semantic acceptance, final confirmation, or finding inference
   - may invoke only admitted module-owned provider execution surfaces and consume only module-owned worker runner signals
 
+## Default Execution Posture
+
+Staged delivery defaults to inline manager-worker execution.
+
+- `worker` is a semantic role and artifact boundary, not a required process topology.
+- By default, the manager may enter one frozen phase, execute against the worker contract, produce `worker-output`, then return to manager review for acceptance.
+- External or provider-backed worker invocation is optional operational infrastructure for cases that benefit from process isolation, long-running execution, or scheduler-backed unattended continuation.
+- External worker support remains admitted, but it is not the default methodology posture.
+
+## Continuity Boundary
+
+Staged delivery is continuity-agnostic.
+
+- It requires recoverable packet-bound state, artifact continuity, and manager-governed acceptance.
+- It does not require a persistent manager session, background daemon, heartbeat, or host-specific continuity substrate.
+- Higher-layer harnesses, automations, or runtime shells may supply continuity, but they do so as operational extensions on top of staged delivery rather than as owners of staged-delivery semantics.
+
 ## Required Outcomes
 
 Each execution attempt inside a frozen phase must close as exactly one of:

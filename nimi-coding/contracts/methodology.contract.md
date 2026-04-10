@@ -13,7 +13,9 @@ Its execution-orchestration extension is:
 Its human-converged autonomous delivery posture is:
 
 - human-heavy before freeze
-- automation-heavy after freeze
+- inline manager-worker by default after freeze
+- automation-heavy or provider-backed execution only when the packet or operating context justifies it
+- continuity-agnostic by design: recoverable governance is required, persistent manager presence is not
 - explicit escalation on bounded packet-declared conditions
 - manager-owned phase and terminal run closeout
 - optional final human overall acceptance before topic closeout
@@ -28,6 +30,10 @@ Its human-converged autonomous delivery posture is:
 6. Post-freeze automation may continue only against a frozen execution packet; it must not replace manager semantic acceptance, and it must not confuse per-phase closeout with optional final human overall acceptance.
 7. Resumable autonomous mode may persist orchestration state, but that state remains packet-bound run position only; it does not become semantic authority.
 8. Provider-backed worker invocation and worker runner signaling may be formalized as protocol-only operational surfaces, but they must not become product authority, semantic acceptance authority, or topic-state ownership.
+9. `nimi-coding` is the formal system for high-risk work: authority-bearing redesign, large refactor, cross-layer change, or multi-phase delivery. It is not the default entry path for every code or spec edit.
+10. Token-cost discussion belongs to methodology audit and workflow evaluation only. It must not become a routine topic artifact, phase gate, or everyday execution metric.
+11. `nimi-coding` is continuity-agnostic. It requires durable artifacts, packet-bound state, and recoverable governance, but it does not require a persistent manager process, heartbeat, daemon, or session-continuity substrate.
+12. Any full-automation, persistent-manager, or harness-level continuity system may extend `nimi-coding`, but it must do so as an outer engineering layer rather than redefining the methodology itself.
 
 ## Module Ownership
 

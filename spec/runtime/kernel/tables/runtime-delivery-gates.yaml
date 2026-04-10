@@ -26,7 +26,7 @@ gates:
     objective: provider routing, catalog drift, canonicalization, endpoint ssot, and runtime service coverage baselines verified
     command: pnpm check:runtime-go-coverage && pnpm check:no-legacy-cloud-provider-keys && pnpm check:runtime-ai-scenario-coverage && pnpm check:live-provider-invariants && pnpm check:runtime-catalog-drift && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-alias-hardcut && pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-endpoint-ssot && pnpm check:runtime-provider-yaml-first-hardcut && pnpm check:runtime-video-capability-block-enforcement
     blocking: hard_block
-    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/config/live-gate-baseline.yaml,nimi-coding/.local/report/**
     source_rule: K-GATE-040
   - gate: G4
     name: workflow_async
@@ -40,7 +40,7 @@ gates:
     objective: multimodal matrix baseline satisfied
     command: node scripts/run-live-test-matrix.mjs
     blocking: pr_skip_safe_nightly_release_hard_block
-    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/config/live-gate-baseline.yaml,nimi-coding/.local/report/**
     source_rule: K-GATE-060
   - gate: G6
     name: observability
@@ -54,5 +54,5 @@ gates:
     objective: release checks all green
     command: pnpm check:live-smoke-gate --require-release
     blocking: release_hard_block
-    evidence_route: nimi-coding/.local/report/live-test-coverage.yaml
+    evidence_route: nimi-coding/config/live-gate-baseline.yaml,nimi-coding/.local/report/**
     source_rule: K-GATE-080

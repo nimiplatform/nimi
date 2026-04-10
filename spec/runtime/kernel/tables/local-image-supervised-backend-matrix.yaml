@@ -100,8 +100,9 @@ entries:
     admission_gate: apple-mps-image-poc
     detail: >-
       recognized topology; becomes supported only after admission contract passes.
-      Requires nimi-coding/.local/report/apple-mps-image-poc.md evidence and concurrent spec revision
-      of K-LENG-* / K-MMPROV-* / K-PROV-* rules.
+      Requires local admission evidence under route patterns such as
+      nimi-coding/.local/report/** and concurrent spec revision of K-LENG-* /
+      K-MMPROV-* / K-PROV-* rules.
 
   - entry_id: windows-x64-nvidia-gguf
     host_match:

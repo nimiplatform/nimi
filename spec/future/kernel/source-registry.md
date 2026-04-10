@@ -1,6 +1,6 @@
 # Source Registry
 
-> Scope: 研究报告注册与引用规范。
+> Scope: 研究来源元数据与结论摘要注册规范。
 
 ## F-SRC-001 Source ID 格式
 
@@ -14,15 +14,18 @@
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `source_id` | string | yes | 格式见 F-SRC-001 |
-| `title` | string | yes | 报告标题 |
-| `path` | string | yes | 相对于仓库根的文件路径 |
-| `date` | string | yes | 报告日期（`YYYY-MM-DD`） |
-| `scope` | string | yes | 报告覆盖范围简述 |
+| `title` | string | yes | 来源标题 |
+| `date` | string | yes | 来源日期（`YYYY-MM-DD`） |
+| `source_kind` | string | yes | 来源类别：`public_reference`、`internal_research`、`local_evidence`、`spec_derived` |
+| `access` | string | yes | 访问边界：`public`、`private`、`local_only` |
+| `scope` | string | yes | 来源覆盖范围简述 |
+| `conclusion` | string | yes | 对 future backlog 有效的蒸馏结论或决策相关摘要 |
 
-## F-SRC-003 路径有效性
+## F-SRC-003 工件路径独立性
 
-- `path` 必须指向仓库中实际存在的文件。
-- 一致性检查脚本验证路径存在性。
+- 来源注册的 canonical model 仅包括可跟踪的元数据与蒸馏结论。
+- 不要求、也不得依赖 repo 或 local workspace 中存在具体研究工件文件。
+- 一致性检查脚本不得把 concrete artifact path existence 作为来源注册有效性的前提。
 
 ## F-SRC-004 引用要求
 

@@ -1194,9 +1194,9 @@ Backlog 条目生命周期
 
   d.text(`### 11.3 来源注册：可追溯性链条
 
-每个 backlog 条目的 \`source_ids\` 字段引用来源注册表中的 source_id。来源注册表执行**双层验证**：source_id 必须存在于 \`research-sources.yaml\` 注册表中（ID 存在性），且注册的 \`path\` 必须指向磁盘上实际存在的文件（文件存在性）。
+每个 backlog 条目的 \`source_ids\` 字段引用来源注册表中的 source_id。来源注册表现在只验证**可追踪元数据与结论摘要**：source_id 必须存在于 \`research-sources.yaml\` 注册表中，且每条注册必须提供 title、date、source_kind、access、scope 与 conclusion。它不再把 concrete research artifact 文件是否存在当成有效性的前提。
 
-Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的大写缩写，NNN 是三位递增数字。每条来源包含 source_id、title、path（repo root 相对路径）、date（YYYY-MM-DD）、scope 五个必填字段。`);
+Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的大写缩写，NNN 是三位递增数字。这个模型的目的不是把研究过程文件塞进 repo，而是让 future backlog 保留可审计的来源元数据与蒸馏结论，同时允许真正的研究工件保持 private 或 local-only。`);
   d.blank();
   d.rule('F-SRC-001');
   d.rule('F-SRC-002');

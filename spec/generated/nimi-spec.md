@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-09
+> 生成时间: 2026-04-10
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -2698,6 +2698,18 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 - `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
 - AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
+- 本契约只拥有 runtime-aligned voice route/API truth；agent chat richer workflow 是否被
+  admit、属于 `tts_v2v` 还是 `tts_t2v`、使用什么 voice identity、以及 workflow result
+  如何回到当前 thread，固定由 `agent-chat-voice-workflow-contract.md`
+  （`D-LLM-047` ~ `D-LLM-052`）拥有
+- 本契约只拥有 runtime-aligned TTS route/API truth；agent chat resolved `voice`
+  action consumption、`audio.synthesize` 首包 executor semantics、以及 playback-ready
+  speech artifact outcome 固定由
+  `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）拥有
+- 本契约同样不拥有 broader voice session product semantics；explicit entry / exit、
+  same-thread continuity、admitted listening modes、interruption、以及
+  transcript / caption rules 固定由
+  `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有
 
 **D-LLM-006 — 本地 AI 推理审计**
 
@@ -3243,9 +3255,9 @@ Category 枚举按域分类：`ux`（UI/交互）、`integration`（外部协议
 
 ### 11.3 来源注册：可追溯性链条
 
-每个 backlog 条目的 `source_ids` 字段引用来源注册表中的 source_id。来源注册表执行**双层验证**：source_id 必须存在于 `research-sources.yaml` 注册表中（ID 存在性），且注册的 `path` 必须指向磁盘上实际存在的文件（文件存在性）。
+每个 backlog 条目的 `source_ids` 字段引用来源注册表中的 source_id。来源注册表现在只验证**可追踪元数据与结论摘要**：source_id 必须存在于 `research-sources.yaml` 注册表中，且每条注册必须提供 title、date、source_kind、access、scope 与 conclusion。它不再把 concrete research artifact 文件是否存在当成有效性的前提。
 
-Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大写缩写，NNN 是三位递增数字。每条来源包含 source_id、title、path（repo root 相对路径）、date（YYYY-MM-DD）、scope 五个必填字段。
+Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大写缩写，NNN 是三位递增数字。这个模型的目的不是把研究过程文件塞进 repo，而是让 future backlog 保留可审计的来源元数据与蒸馏结论，同时允许真正的研究工件保持 private 或 local-only。
 
 **F-SRC-001 — Source ID 格式**
 
@@ -3259,15 +3271,18 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | `source_id` | string | yes | 格式见 F-SRC-001 |
-| `title` | string | yes | 报告标题 |
-| `path` | string | yes | 相对于仓库根的文件路径 |
-| `date` | string | yes | 报告日期（`YYYY-MM-DD`） |
-| `scope` | string | yes | 报告覆盖范围简述 |
+| `title` | string | yes | 来源标题 |
+| `date` | string | yes | 来源日期（`YYYY-MM-DD`） |
+| `source_kind` | string | yes | 来源类别：`public_reference`、`internal_research`、`local_evidence`、`spec_derived` |
+| `access` | string | yes | 访问边界：`public`、`private`、`local_only` |
+| `scope` | string | yes | 来源覆盖范围简述 |
+| `conclusion` | string | yes | 对 future backlog 有效的蒸馏结论或决策相关摘要 |
 
-**F-SRC-003 — 路径有效性**
+**F-SRC-003 — 工件路径独立性**
 
-- `path` 必须指向仓库中实际存在的文件。
-- 一致性检查脚本验证路径存在性。
+- 来源注册的 canonical model 仅包括可跟踪的元数据与蒸馏结论。
+- 不要求、也不得依赖 repo 或 local workspace 中存在具体研究工件文件。
+- 一致性检查脚本不得把 concrete artifact path existence 作为来源注册有效性的前提。
 
 **F-SRC-004 — 引用要求**
 
@@ -4197,6 +4212,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | world | World | core | — |
 | explore | Explore | core | — |
 | runtime | AI Runtime | core | enableRuntimeTab |
+| tester | AI Tester | core | enableRuntimeTab |
 | settings | Settings | core | — |
 | mods | Mods | mod-nav | enableModUi |
 | profile | Profile | detail | — |
@@ -4456,11 +4472,11 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 | Source ID | 标题 | 路径 |
 |---|---|---|
-| RESEARCH-AUI-001 | A2UI 对比校准执行记录（现存替代来源） | nimi-coding/.local/report/a2ui-future-spec-update-2026-03-14.md |
-| RESEARCH-AGRT-001 | World Evolution Engine Spec Landing Design | nimi-coding/.local/report/agent-runtime-kernel-spec-landing-design-2026-04-08.md |
-| RESEARCH-AGRT-002 | World Evolution Engine Reuse-Conflict Matrix | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/reuse-conflict-matrix-20260408.evidence.md |
-| RESEARCH-AGRT-003 | World Evolution Engine P-ARCH-002 Derived Constraints | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/p-arch-002-derived-constraints-20260408.evidence.md |
-| RESEARCH-AGRT-004 | World Evolution Engine Spec Intake Readiness | nimi-coding/.local/20260408-agent-runtime-kernel-spec-landing-spec-first-pilot/spec-intake-readiness-20260408.evidence.md |
+| RESEARCH-AUI-001 | A2UI 对比校准执行记录（现存替代来源） | — |
+| RESEARCH-AGRT-001 | World Evolution Engine Spec Landing Design | — |
+| RESEARCH-AGRT-002 | World Evolution Engine Reuse-Conflict Matrix | — |
+| RESEARCH-AGRT-003 | World Evolution Engine P-ARCH-002 Derived Constraints | — |
+| RESEARCH-AGRT-004 | World Evolution Engine Spec Intake Readiness | — |
 
 ### 12.28 Future — Graduation Log
 

@@ -23,4 +23,4 @@ reload 必须事务化，失败必须回滚且不污染已启用状态。
 ## 5. 门禁与证据
 Anchors: D-CODEGEN-060, D-CODEGEN-070
 
-门禁结果写入 `nimi-coding/.local/report/*`，spec 不写运行快照。
+门禁结果只可写入 local execution report route patterns（如 `nimi-coding/.local/report/**`），spec 不写运行快照。

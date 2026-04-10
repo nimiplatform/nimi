@@ -10,6 +10,25 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 - `nimi-coding/**` is the promoted execution system. Only stable, reusable, decision-complete assets belong here.
 - `nimi-coding/.local/**` is the local-only topic workspace for methodology research and trial artifacts. It is never committed. Promotion into this module follows `gates/promotion-policy.yaml`.
 
+## Default Posture
+
+`nimi-coding` defaults to inline manager-worker delivery.
+
+- `manager` and `worker` remain distinct methodology roles.
+- `worker` remains a bounded execution contract and artifact boundary.
+- The default path is for the manager to freeze the phase, execute the phase against the worker contract, produce `worker-output`, then return to manager review for acceptance.
+- External or provider-backed worker execution remains admitted as an optional operational path for isolation, long-running execution, or scheduler-backed unattended flows.
+
+`nimi-coding` is continuity-agnostic.
+
+- It requires durable artifacts, packet-bound run state, and recoverable governance.
+- It does not require a persistent manager session, daemon, heartbeat, or any specific host runtime.
+- Harnesses, automations, or outer agent runtimes may extend `nimi-coding` with stronger continuity, but those extensions are not part of the core methodology contract.
+
+`nimi-coding` is not the default path for every change. Use it mainly for high-risk work: authority-bearing redesign, large refactor, cross-layer change, or multi-phase delivery. Small fixes and narrow spec repairs may stay outside `nimi-coding` when the authority boundary is already clear and correction cost is low.
+
+Token-cost discussion belongs to methodology audit only. It helps judge whether this workflow is worth using for a class of work; it is not a routine topic artifact, phase gate, or day-to-day execution metric.
+
 ## What This Module Owns
 
 | Directory | Responsibility |
@@ -165,6 +184,10 @@ pnpm nimi-coding:run-confirm -- <topic-dir> [--final-evidence <topic-local-path>
 ```
 
 Continuous run is the first packet-bound autonomous orchestration cut.
+
+The default attended flow still remains inline manager-worker. The continuous-run and provider-backed commands below are optional operational surfaces for cases that benefit from process isolation, foreground looping, or scheduler-backed continuation; they do not replace manager-owned semantic review.
+
+These operational surfaces also do not change the continuity boundary: they can supply stronger execution continuity when the host environment supports it, but `nimi-coding` itself remains continuity-agnostic and recoverable rather than continuity-dependent.
 
 - `run-start` creates a `running` orchestration state for a frozen packet.
 - `run-next-prompt` generates a formal `*.prompt.md` artifact from the current packet phase and topic state.
@@ -347,7 +370,7 @@ pnpm nimi-coding:batch-phase-done -- <topic-dir> --phase <name> --disposition <v
 # 7. If disposition=partial, redispatch the same frozen phase. If disposition=complete, inspect next phase or finish the terminal run under manager ownership.
 ```
 
-**Manager-reviewed continuous loop:**
+**Default inline manager-worker loop:**
 
 ```bash
 # 0. Start one packet-bound run
@@ -356,7 +379,7 @@ pnpm nimi-coding:run-start -- <topic-dir>
 # 1. Generate the current frozen phase prompt
 pnpm nimi-coding:run-next-prompt -- <topic-dir> --output <prompt-path>
 
-# 2. Worker executes outside nimi-coding and writes output
+# 2. Manager executes the frozen phase against the worker contract and writes output
 pnpm nimi-coding:validate-worker-output -- <worker-output-path>
 
 # 3. Manager writes acceptance for this attempt and validates it
@@ -369,6 +392,10 @@ pnpm nimi-coding:run-review -- <topic-dir> --worker-output <worker-output-path> 
 #    If disposition=complete, the run advances or completes terminally under manager ownership.
 #    If disposition=deferred, the run pauses with explicit human action.
 ```
+
+**Optional provider-backed loop:**
+
+Use `run-loop-once`, `run-until-blocked`, and the scheduler-backed commands only when the operating context benefits from an external worker process or bounded unattended continuation. These surfaces remain packet-bound and operational only; they do not change manager review semantics or topic authority.
 
 ### Reports
 
@@ -395,11 +422,11 @@ pnpm nimi-coding:set-topic-status -- nimi-coding/.local/my-topic active --reason
 # 4. Freeze a packet-driven route and start a run or batch loop
 pnpm nimi-coding:batch-preflight -- nimi-coding/.local/my-topic
 
-# 5. Generate a prompt for the current frozen phase, dispatch to worker
+# 5. Generate a prompt for the current frozen phase and execute inline by default
 pnpm nimi-coding:run-start -- nimi-coding/.local/my-topic
 pnpm nimi-coding:run-next-prompt -- nimi-coding/.local/my-topic
 
-# 6. Worker executes, produces output (manual), validate
+# 6. Manager executes against the worker contract, produces output, validate
 pnpm nimi-coding:validate-worker-output -- nimi-coding/.local/my-topic/phase-1.worker-output.md
 
 # 7. Manager writes acceptance for this attempt (manual), validate, and review

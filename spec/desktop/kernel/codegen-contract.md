@@ -86,7 +86,7 @@ codegen mod 验收门禁（完整列表见 `codegen-acceptance-gates.yaml`）：
 - **Static scan gate**：命中禁用模式必须阻断安装。
 - **Reload leak gate**：连续 reload 不得出现重复注册与泄漏。
 - **Scenario coverage gate**：至少三类场景稳定可运行。
-- **Evidence routing**：执行证据必须进入 `nimi-coding/.local/report/*`。
+- **Evidence routing**：执行证据只能进入 local execution report route patterns（如 `nimi-coding/.local/report/**`）。
 
 **Fact Source**: `codegen-acceptance-gates.yaml`
 

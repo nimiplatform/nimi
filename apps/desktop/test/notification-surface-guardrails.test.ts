@@ -88,7 +88,7 @@ test('phase-2 migrated surfaces no longer write global status banners directly',
 });
 
 test('notification audit report records final target channels for migrated phase-2 surfaces', () => {
-  const report = readFileSync(resolve(import.meta.dirname, '../../../nimi-coding/.local/report/desktop-notification-audit.md'), 'utf8');
+  const report = readFileSync(resolve(import.meta.dirname, './fixtures/desktop-notification-audit.fixture.md'), 'utf8');
   assert.match(report, /slot-host\.tsx` render failed .* \| `page_inline` \(`Mods`\) \| migrated \|/);
   assert.match(report, /web-auth-menu\.tsx` auth warning\/error incl\. onboarding pending .* \| `page_inline` \| migrated \|/);
   assert.match(report, /turn-input\.tsx` upload\/send\/read-only\/unsupported-file .* \| `page_inline` \/ composer inline \| migrated \|/);

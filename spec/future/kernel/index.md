@@ -27,7 +27,7 @@
 |---|---|---|
 | `capability-backlog.md` | `F-CAP-*` | Backlog 条目结构、优先级、生命周期 |
 | `graduation-contract.md` | `F-GRAD-*` | 毕业条件、流程、后续跟踪 |
-| `source-registry.md` | `F-SRC-*` | 研究报告注册与引用规范 |
+| `source-registry.md` | `F-SRC-*` | 研究来源元数据与结论摘要注册规范 |
 
 ## 5. 结构化事实源
 

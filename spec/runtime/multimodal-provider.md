@@ -31,8 +31,8 @@
 ## 3. 关联材料
 
 - Companion 指南：`kernel/companion/multimodal-provider-guide.md`。
-- topic-bound 执行计划：`nimi-coding/.local/<topic-id>/**`。
-- 审计与覆盖结果：`nimi-coding/.local/report/*`。
+- topic-bound 本地执行计划：`nimi-coding/.local/<topic-id>/**`。
+- local-only 审计与覆盖结果：`nimi-coding/.local/report/**`。
 
 ## 4. 非目标
 

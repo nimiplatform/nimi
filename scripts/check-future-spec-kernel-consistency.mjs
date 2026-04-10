@@ -72,6 +72,14 @@ const referencedSourceIds = new Set();
 
 // --- Check source_id format and uniqueness ---
 
+const validSourceKinds = new Set([
+  'public_reference',
+  'internal_research',
+  'local_evidence',
+  'spec_derived',
+]);
+const validSourceAccess = new Set(['public', 'private', 'local_only']);
+
 const sourceIdDupCheck = new Set();
 for (const source of sources) {
   const sourceId = String(source?.source_id || '').trim();
@@ -88,21 +96,20 @@ for (const source of sources) {
   sourceIdDupCheck.add(sourceId);
 
   // Check required fields
-  for (const field of ['title', 'path', 'date', 'scope']) {
+  for (const field of ['title', 'date', 'source_kind', 'access', 'scope', 'conclusion']) {
     if (!String(source?.[field] || '').trim()) {
       fail(`research-sources.yaml ${sourceId}: missing required field: ${field}`);
     }
   }
-}
 
-// --- Check source path existence ---
+  const sourceKind = String(source?.source_kind || '').trim();
+  if (sourceKind && !validSourceKinds.has(sourceKind)) {
+    fail(`research-sources.yaml ${sourceId}: invalid source_kind: ${sourceKind}`);
+  }
 
-for (const source of sources) {
-  const sourceId = String(source?.source_id || '').trim();
-  const filePath = String(source?.path || '').trim();
-  if (!filePath) continue;
-  if (!fs.existsSync(path.join(cwd, filePath))) {
-    fail(`research-sources.yaml ${sourceId}: path does not exist: ${filePath}`);
+  const access = String(source?.access || '').trim();
+  if (access && !validSourceAccess.has(access)) {
+    fail(`research-sources.yaml ${sourceId}: invalid access: ${access}`);
   }
 }
 
