@@ -1,7 +1,8 @@
 use super::codec::{
     map_sql_error, message_kind_to_db_value, message_role_to_db_value,
     message_status_to_db_value, normalize_message_error, normalize_optional_string,
-    normalize_required_string, normalize_target_snapshot, require_non_negative_ms,
+    normalize_required_string, normalize_structured_json, normalize_target_snapshot,
+    require_non_negative_ms,
 };
 use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
 use super::types::*;
@@ -95,6 +96,7 @@ pub(crate) fn get_thread_bundle(
               media_url,
               media_mime_type,
               artifact_id,
+              metadata_json,
               created_at_ms,
               updated_at_ms
             FROM agent_messages
@@ -240,6 +242,11 @@ pub(crate) fn create_message(
     let thread_id = normalize_required_string(&input.thread_id, "threadId")?;
     let content_text = input.content_text.trim().to_string();
     let error = normalize_message_error(input.error.as_ref())?;
+    let metadata_json = input
+        .metadata_json
+        .as_ref()
+        .map(|value| normalize_structured_json(value, "metadataJson"))
+        .transpose()?;
     let created_at_ms = require_non_negative_ms(input.created_at_ms, "createdAtMs")?;
     let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "updatedAtMs")?;
     conn.execute(
@@ -259,9 +266,10 @@ pub(crate) fn create_message(
           media_url,
           media_mime_type,
           artifact_id,
+          metadata_json,
           created_at_ms,
           updated_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
         "#,
         params![
             id,
@@ -278,6 +286,10 @@ pub(crate) fn create_message(
             normalize_optional_string(input.media_url.as_deref()),
             normalize_optional_string(input.media_mime_type.as_deref()),
             normalize_optional_string(input.artifact_id.as_deref()),
+            metadata_json
+                .as_ref()
+                .map(|value| super::codec::serialize_json_value(value, "metadataJson"))
+                .transpose()?,
             created_at_ms,
             updated_at_ms,
         ],
@@ -300,6 +312,7 @@ pub(crate) fn create_message(
           media_url,
           media_mime_type,
           artifact_id,
+          metadata_json,
           created_at_ms,
           updated_at_ms
         FROM agent_messages
@@ -318,26 +331,34 @@ pub(crate) fn update_message(
     let id = normalize_required_string(&input.id, "id")?;
     let content_text = input.content_text.trim().to_string();
     let error = normalize_message_error(input.error.as_ref())?;
+    let metadata_json = input
+        .metadata_json
+        .as_ref()
+        .map(|value| normalize_structured_json(value, "metadataJson"))
+        .transpose()?;
     let updated_at_ms = require_non_negative_ms(input.updated_at_ms, "updatedAtMs")?;
     let changed = conn
         .execute(
             r#"
             UPDATE agent_messages
             SET
-              status = ?2,
-              content_text = ?3,
-              reasoning_text = ?4,
-              error_code = ?5,
-              error_message = ?6,
-              trace_id = ?7,
-              media_url = ?8,
-              media_mime_type = ?9,
-              artifact_id = ?10,
-              updated_at_ms = ?11
+              kind = ?2,
+              status = ?3,
+              content_text = ?4,
+              reasoning_text = ?5,
+              error_code = ?6,
+              error_message = ?7,
+              trace_id = ?8,
+              media_url = ?9,
+              media_mime_type = ?10,
+              artifact_id = ?11,
+              metadata_json = ?12,
+              updated_at_ms = ?13
             WHERE id = ?1
             "#,
             params![
                 id,
+                message_kind_to_db_value(input.kind),
                 message_status_to_db_value(input.status),
                 content_text,
                 normalize_optional_string(input.reasoning_text.as_deref()),
@@ -347,6 +368,10 @@ pub(crate) fn update_message(
                 normalize_optional_string(input.media_url.as_deref()),
                 normalize_optional_string(input.media_mime_type.as_deref()),
                 normalize_optional_string(input.artifact_id.as_deref()),
+                metadata_json
+                    .as_ref()
+                    .map(|value| super::codec::serialize_json_value(value, "metadataJson"))
+                    .transpose()?,
                 updated_at_ms,
             ],
         )
@@ -371,6 +396,7 @@ pub(crate) fn update_message(
           media_url,
           media_mime_type,
           artifact_id,
+          metadata_json,
           created_at_ms,
           updated_at_ms
         FROM agent_messages

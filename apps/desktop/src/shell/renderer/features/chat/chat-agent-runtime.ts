@@ -1,6 +1,10 @@
 import {
   asNimiError,
   createNimiError,
+  ExecutionMode,
+  RoutePolicy,
+  ScenarioJobStatus,
+  ScenarioType,
   type TextMessage,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
@@ -12,6 +16,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import { invokeModLlm } from '@runtime/llm-adapter/execution';
 import type { InvokeModLlmInput, InvokeModLlmOutput } from '@runtime/llm-adapter/execution';
 import {
+  buildRuntimeCallOptions,
   buildRuntimeStreamOptions,
   buildRuntimeRequestMetadata,
   ensureRuntimeLocalModelWarm,
@@ -23,6 +28,8 @@ import {
   resolveAgentChatThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
+import type { AgentVoiceWorkflowIntent } from './chat-agent-turn-plan';
+import type { AgentChatVoiceReferenceMeaning } from './chat-agent-voice-workflow';
 import type {
   AgentEffectiveCapabilityResolution,
   AISnapshot,
@@ -67,7 +74,87 @@ export type ChatAgentImageRuntimeInvokeResult = {
   traceId: string;
 };
 
+export type ChatAgentVoiceRuntimeInvokeInput = {
+  prompt: string;
+  voiceExecutionSnapshot: AISnapshot | null;
+  signal?: AbortSignal;
+};
+
+export type ChatAgentVoiceRuntimeInvokeResult = {
+  mediaUrl: string;
+  mimeType: string;
+  artifactId: string | null;
+  traceId: string;
+};
+
+export type ChatAgentVoiceWorkflowReferenceAudio = {
+  bytes: Uint8Array;
+  mimeType: string;
+  transcriptText: string;
+};
+
+export type ChatAgentVoiceWorkflowSubmitInput = {
+  threadId: string;
+  turnId: string;
+  beatId: string;
+  workflowIntent: AgentVoiceWorkflowIntent;
+  prompt: string;
+  voiceWorkflowExecutionSnapshot: AISnapshot | null;
+  referenceAudio?: ChatAgentVoiceWorkflowReferenceAudio | null;
+  signal?: AbortSignal;
+};
+
+export type ChatAgentVoiceWorkflowSubmitResult = {
+  jobId: string;
+  traceId: string;
+  workflowStatus: 'submitted' | 'queued' | 'running';
+  voiceReference: AgentChatVoiceReferenceMeaning | null;
+  voiceAssetId: string | null;
+  providerVoiceRef: string | null;
+};
+
+export type ChatAgentVoiceWorkflowPollResult = {
+  workflowStatus: 'submitted' | 'queued' | 'running' | 'complete' | 'failed' | 'canceled';
+  traceId: string | null;
+  message: string | null;
+};
+
+export type ChatAgentVoiceReferenceSynthesisInput = {
+  prompt: string;
+  voiceReference: AgentChatVoiceReferenceMeaning;
+  voiceExecutionSnapshot: AISnapshot | null;
+  signal?: AbortSignal;
+};
+
+export type ChatAgentTranscribeRuntimeInvokeInput = {
+  audioBytes: Uint8Array;
+  mimeType: string;
+  transcribeExecutionSnapshot: AISnapshot | null;
+  language?: string;
+  signal?: AbortSignal;
+};
+
+export type ChatAgentTranscribeRuntimeInvokeResult = {
+  text: string;
+  traceId: string;
+};
+
 export type ChatAgentImageRuntimeInvokeDeps = {
+  buildRuntimeRequestMetadataImpl?: typeof buildRuntimeRequestMetadata;
+  getRuntimeClientImpl?: typeof getRuntimeClient;
+};
+
+export type ChatAgentVoiceRuntimeInvokeDeps = {
+  buildRuntimeRequestMetadataImpl?: typeof buildRuntimeRequestMetadata;
+  getRuntimeClientImpl?: typeof getRuntimeClient;
+};
+
+export type ChatAgentVoiceWorkflowRuntimeDeps = {
+  buildRuntimeCallOptionsImpl?: typeof buildRuntimeCallOptions;
+  getRuntimeClientImpl?: typeof getRuntimeClient;
+};
+
+export type ChatAgentTranscribeRuntimeInvokeDeps = {
   buildRuntimeRequestMetadataImpl?: typeof buildRuntimeRequestMetadata;
   getRuntimeClientImpl?: typeof getRuntimeClient;
 };
@@ -302,7 +389,13 @@ function requireValue(value: unknown, reasonCode: string, actionHint: string, me
 
 function resolveExecutionSlice(
   snapshot: AISnapshot | null | undefined,
-  capability: 'text.generate' | 'image.generate',
+  capability:
+    | 'text.generate'
+    | 'image.generate'
+    | 'audio.synthesize'
+    | 'audio.transcribe'
+    | 'voice_workflow.tts_v2v'
+    | 'voice_workflow.tts_t2v',
 ): NonNullable<AISnapshot['conversationCapabilitySlice']> {
   const slice = snapshot?.conversationCapabilitySlice;
   if (!slice || slice.capability !== capability || !slice.resolvedBinding) {
@@ -325,6 +418,102 @@ function encodeBytesAsDataUrl(mimeType: string, bytes: Uint8Array): string {
     binary += String.fromCharCode(value);
   });
   return `data:${mimeType};base64,${btoa(binary)}`;
+}
+
+function toRuntimeRoutePolicy(source: string): RoutePolicy {
+  return source === 'local' ? RoutePolicy.LOCAL : RoutePolicy.CLOUD;
+}
+
+function resolveWorkflowJobStatus(status: number): ChatAgentVoiceWorkflowPollResult['workflowStatus'] {
+  switch (status) {
+    case ScenarioJobStatus.SUBMITTED:
+      return 'submitted';
+    case ScenarioJobStatus.QUEUED:
+      return 'queued';
+    case ScenarioJobStatus.RUNNING:
+      return 'running';
+    case ScenarioJobStatus.COMPLETED:
+      return 'complete';
+    case ScenarioJobStatus.CANCELED:
+      return 'canceled';
+    case ScenarioJobStatus.FAILED:
+    case ScenarioJobStatus.TIMEOUT:
+      return 'failed';
+    default:
+      return 'submitted';
+  }
+}
+
+function toRuntimeVoiceReference(
+  reference: AgentChatVoiceReferenceMeaning,
+): {
+  kind: number;
+  reference:
+    | { oneofKind: 'presetVoiceId'; presetVoiceId: string }
+    | { oneofKind: 'voiceAssetId'; voiceAssetId: string }
+    | { oneofKind: 'providerVoiceRef'; providerVoiceRef: string };
+} {
+  if (reference.kind === 'preset_voice_id') {
+    return {
+      kind: 1,
+      reference: {
+        oneofKind: 'presetVoiceId',
+        presetVoiceId: reference.stableRef,
+      },
+    };
+  }
+  if (reference.kind === 'voice_asset_id') {
+    return {
+      kind: 2,
+      reference: {
+        oneofKind: 'voiceAssetId',
+        voiceAssetId: reference.stableRef,
+      },
+    };
+  }
+  return {
+    kind: 3,
+    reference: {
+      oneofKind: 'providerVoiceRef',
+      providerVoiceRef: reference.stableRef,
+    },
+  };
+}
+
+function resolveVoiceReferenceFromAsset(
+  asset: { voiceAssetId?: unknown; providerVoiceRef?: unknown } | null | undefined,
+): {
+  voiceReference: AgentChatVoiceReferenceMeaning | null;
+  voiceAssetId: string | null;
+  providerVoiceRef: string | null;
+} {
+  const voiceAssetId = normalizeText(asset?.voiceAssetId) || null;
+  const providerVoiceRef = normalizeText(asset?.providerVoiceRef) || null;
+  if (voiceAssetId) {
+    return {
+      voiceReference: {
+        kind: 'voice_asset_id',
+        stableRef: voiceAssetId,
+      },
+      voiceAssetId,
+      providerVoiceRef,
+    };
+  }
+  if (providerVoiceRef) {
+    return {
+      voiceReference: {
+        kind: 'provider_voice_ref',
+        stableRef: providerVoiceRef,
+      },
+      voiceAssetId,
+      providerVoiceRef,
+    };
+  }
+  return {
+    voiceReference: null,
+    voiceAssetId,
+    providerVoiceRef,
+  };
 }
 
 async function resolveInvokeInput(
@@ -552,6 +741,385 @@ export async function generateChatAgentImageRuntime(
     mediaUrl,
     mimeType,
     artifactId: normalizeText((artifact as { artifactId?: unknown }).artifactId) || null,
+    traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
+  };
+}
+
+export async function synthesizeChatAgentVoiceRuntime(
+  input: ChatAgentVoiceRuntimeInvokeInput,
+  deps: ChatAgentVoiceRuntimeInvokeDeps = {},
+): Promise<ChatAgentVoiceRuntimeInvokeResult> {
+  const prompt = normalizeText(input.prompt);
+  if (!prompt) {
+    throw createNimiError({
+      message: 'agent voice prompt is required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'provide_voice_prompt',
+      source: 'runtime',
+    });
+  }
+  const slice = resolveExecutionSlice(input.voiceExecutionSnapshot, 'audio.synthesize');
+  const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
+  const metadata = await (deps.buildRuntimeRequestMetadataImpl || buildRuntimeRequestMetadata)({
+    source: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    providerEndpoint: normalizeText(resolved.endpoint)
+      || normalizeText(resolved.localProviderEndpoint)
+      || normalizeText(resolved.localOpenAiEndpoint)
+      || undefined,
+  });
+  const response = await (deps.getRuntimeClientImpl || getRuntimeClient)().media.tts.synthesize({
+    model: requireValue(
+      resolved.modelId || resolved.model || resolved.localModelId,
+      ReasonCode.AI_INPUT_INVALID,
+      'select_runtime_route_binding',
+      'agent voice route model is missing',
+    ),
+    text: prompt,
+    route: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    audioFormat: 'mp3',
+    metadata,
+    signal: input.signal,
+  });
+  const artifact = Array.isArray(response.artifacts) ? response.artifacts[0] : null;
+  if (!artifact) {
+    throw createNimiError({
+      message: 'agent voice synthesis returned no artifacts',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_synthesis',
+      source: 'runtime',
+    });
+  }
+  const mimeType = normalizeText((artifact as { mimeType?: unknown }).mimeType) || 'audio/mpeg';
+  const uri = normalizeText((artifact as { uri?: unknown }).uri);
+  const bytes = (artifact as { bytes?: Uint8Array | null }).bytes || null;
+  const mediaUrl = uri || (bytes && bytes.length > 0 ? encodeBytesAsDataUrl(mimeType, bytes) : '');
+  if (!mediaUrl) {
+    throw createNimiError({
+      message: 'agent voice synthesis artifact has no uri or bytes',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_synthesis',
+      source: 'runtime',
+    });
+  }
+  return {
+    mediaUrl,
+    mimeType,
+    artifactId: normalizeText((artifact as { artifactId?: unknown }).artifactId) || null,
+    traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
+  };
+}
+
+export async function submitChatAgentVoiceWorkflowRuntime(
+  input: ChatAgentVoiceWorkflowSubmitInput,
+  deps: ChatAgentVoiceWorkflowRuntimeDeps = {},
+): Promise<ChatAgentVoiceWorkflowSubmitResult> {
+  const prompt = normalizeText(input.prompt);
+  if (!prompt) {
+    throw createNimiError({
+      message: 'agent voice workflow prompt is required',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'provide_voice_prompt',
+      source: 'runtime',
+    });
+  }
+  const slice = resolveExecutionSlice(
+    input.voiceWorkflowExecutionSnapshot,
+    input.workflowIntent.capability,
+  );
+  const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
+  const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
+  const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
+    modId: CORE_CHAT_AGENT_MOD_ID,
+    timeoutMs: 180_000,
+    source: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    providerEndpoint: normalizeText(resolved.endpoint)
+      || normalizeText(resolved.localProviderEndpoint)
+      || normalizeText(resolved.localOpenAiEndpoint)
+      || undefined,
+  });
+  const modelId = requireValue(
+    resolved.modelId || resolved.model || resolved.localModelId,
+    ReasonCode.AI_INPUT_INVALID,
+    'select_runtime_route_binding',
+    'agent voice workflow route model is missing',
+  );
+  const preferredName = `agent-chat-${input.turnId.slice(-6)}-${input.beatId.slice(-4)}`;
+  const response = await runtimeClient.ai.submitScenarioJob({
+    head: {
+      appId: runtimeClient.appId,
+      modelId,
+      routePolicy: toRuntimeRoutePolicy(resolved.source),
+      timeoutMs: 180_000,
+      connectorId: normalizeText(resolved.connectorId),
+    },
+    scenarioType: input.workflowIntent.workflowType === 'tts_v2v'
+      ? ScenarioType.VOICE_CLONE
+      : ScenarioType.VOICE_DESIGN,
+    executionMode: ExecutionMode.ASYNC_JOB,
+    requestId: callOptions.idempotencyKey,
+    idempotencyKey: callOptions.idempotencyKey,
+    labels: {
+      surface: 'agent-chat',
+      thread_id: input.threadId,
+      turn_id: input.turnId,
+      beat_id: input.beatId,
+    },
+    extensions: [],
+    spec: input.workflowIntent.workflowType === 'tts_v2v'
+      ? {
+        spec: {
+          oneofKind: 'voiceClone' as const,
+          voiceClone: {
+            targetModelId: modelId,
+            input: {
+              referenceAudioBytes: input.referenceAudio?.bytes || (() => {
+                throw createNimiError({
+                  message: 'voice clone workflow requires current-thread reference audio',
+                  reasonCode: ReasonCode.AI_INPUT_INVALID,
+                  actionHint: 'record_voice_input',
+                  source: 'runtime',
+                });
+              })(),
+              referenceAudioMime: requireValue(
+                input.referenceAudio?.mimeType,
+                ReasonCode.AI_INPUT_INVALID,
+                'record_voice_input',
+                'voice clone workflow requires a reference audio mimeType',
+              ),
+              referenceAudioUri: '',
+              text: prompt,
+              preferredName,
+              languageHints: [],
+            },
+          },
+        },
+      }
+      : {
+        spec: {
+          oneofKind: 'voiceDesign' as const,
+          voiceDesign: {
+            targetModelId: modelId,
+            input: {
+              instructionText: prompt,
+              previewText: prompt,
+              language: '',
+              preferredName,
+            },
+          },
+        },
+      },
+  }, callOptions);
+  const jobId = normalizeText(response.job?.jobId);
+  if (!jobId) {
+    throw createNimiError({
+      message: 'voice workflow submit returned no jobId',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_workflow',
+      source: 'runtime',
+    });
+  }
+  const workflowStatus = resolveWorkflowJobStatus(Number(response.job?.status || ScenarioJobStatus.SUBMITTED));
+  if (workflowStatus === 'complete' || workflowStatus === 'failed' || workflowStatus === 'canceled') {
+    throw createNimiError({
+      message: 'voice workflow submit returned an unexpected terminal state',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_workflow',
+      source: 'runtime',
+    });
+  }
+  const voiceReference = resolveVoiceReferenceFromAsset(response.asset || null);
+  return {
+    jobId,
+    traceId: normalizeText(response.job?.traceId) || normalizeText(callOptions.metadata.traceId),
+    workflowStatus,
+    voiceReference: voiceReference.voiceReference,
+    voiceAssetId: voiceReference.voiceAssetId,
+    providerVoiceRef: voiceReference.providerVoiceRef,
+  };
+}
+
+export async function pollChatAgentVoiceWorkflowRuntime(
+  input: {
+    jobId: string;
+    signal?: AbortSignal;
+  },
+  deps: ChatAgentVoiceWorkflowRuntimeDeps = {},
+): Promise<ChatAgentVoiceWorkflowPollResult> {
+  const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
+  const response = await runtimeClient.ai.getScenarioJob({
+    jobId: requireValue(
+      input.jobId,
+      ReasonCode.AI_INPUT_INVALID,
+      'retry_voice_workflow',
+      'voice workflow jobId is required',
+    ),
+  });
+  const workflowStatus = resolveWorkflowJobStatus(Number(response.job?.status || 0));
+  return {
+    workflowStatus,
+    traceId: normalizeText(response.job?.traceId) || null,
+    message: normalizeText(response.job?.reasonDetail) || normalizeText(response.job?.reasonCode) || null,
+  };
+}
+
+export async function synthesizeChatAgentVoiceReferenceRuntime(
+  input: ChatAgentVoiceReferenceSynthesisInput,
+  deps: ChatAgentVoiceWorkflowRuntimeDeps = {},
+): Promise<ChatAgentVoiceRuntimeInvokeResult> {
+  const prompt = normalizeText(input.prompt);
+  if (!prompt) {
+    throw createNimiError({
+      message: 'projected voice playback requires text',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'provide_voice_prompt',
+      source: 'runtime',
+    });
+  }
+  const slice = resolveExecutionSlice(input.voiceExecutionSnapshot, 'audio.synthesize');
+  const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
+  const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
+  const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
+    modId: CORE_CHAT_AGENT_MOD_ID,
+    timeoutMs: 120_000,
+    source: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    providerEndpoint: normalizeText(resolved.endpoint)
+      || normalizeText(resolved.localProviderEndpoint)
+      || normalizeText(resolved.localOpenAiEndpoint)
+      || undefined,
+  });
+  const response = await runtimeClient.ai.executeScenario({
+    head: {
+      appId: runtimeClient.appId,
+      modelId: requireValue(
+        resolved.modelId || resolved.model || resolved.localModelId,
+        ReasonCode.AI_INPUT_INVALID,
+        'select_runtime_route_binding',
+        'agent voice route model is missing',
+      ),
+      routePolicy: toRuntimeRoutePolicy(resolved.source),
+      timeoutMs: 120_000,
+      connectorId: normalizeText(resolved.connectorId),
+    },
+    scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
+    executionMode: ExecutionMode.SYNC,
+    extensions: [],
+    spec: {
+      spec: {
+        oneofKind: 'speechSynthesize' as const,
+        speechSynthesize: {
+          text: prompt,
+          audioFormat: 'mp3',
+          language: '',
+          sampleRateHz: 0,
+          speed: 0,
+          pitch: 0,
+          volume: 0,
+          emotion: '',
+          timingMode: 0,
+          voiceRef: toRuntimeVoiceReference(input.voiceReference),
+        },
+      },
+    },
+  }, callOptions);
+  const responseArtifacts = (
+    Array.isArray((response as { artifacts?: unknown[] }).artifacts)
+      ? (response as { artifacts?: unknown[] }).artifacts
+      : []
+  ) as unknown[];
+  const artifact = responseArtifacts[0] || null;
+  if (!artifact) {
+    throw createNimiError({
+      message: 'projected voice playback returned no artifacts',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_synthesis',
+      source: 'runtime',
+    });
+  }
+  const mimeType = normalizeText((artifact as { mimeType?: unknown }).mimeType) || 'audio/mpeg';
+  const uri = normalizeText((artifact as { uri?: unknown }).uri);
+  const bytes = (artifact as { bytes?: Uint8Array | null }).bytes || null;
+  const mediaUrl = uri || (bytes && bytes.length > 0 ? encodeBytesAsDataUrl(mimeType, bytes) : '');
+  if (!mediaUrl) {
+    throw createNimiError({
+      message: 'projected voice playback artifact has no uri or bytes',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_synthesis',
+      source: 'runtime',
+    });
+  }
+  return {
+    mediaUrl,
+    mimeType,
+    artifactId: normalizeText((artifact as { artifactId?: unknown }).artifactId) || null,
+    traceId: normalizeText((response as { trace?: { traceId?: string } }).trace?.traceId)
+      || normalizeText(callOptions.metadata.traceId),
+  };
+}
+
+export async function transcribeChatAgentVoiceRuntime(
+  input: ChatAgentTranscribeRuntimeInvokeInput,
+  deps: ChatAgentTranscribeRuntimeInvokeDeps = {},
+): Promise<ChatAgentTranscribeRuntimeInvokeResult> {
+  if (!(input.audioBytes instanceof Uint8Array) || input.audioBytes.length === 0) {
+    throw createNimiError({
+      message: 'agent voice transcription requires audio bytes',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'record_voice_input',
+      source: 'runtime',
+    });
+  }
+  const mimeType = normalizeText(input.mimeType);
+  if (!mimeType) {
+    throw createNimiError({
+      message: 'agent voice transcription requires an audio mimeType',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'record_voice_input',
+      source: 'runtime',
+    });
+  }
+  const slice = resolveExecutionSlice(input.transcribeExecutionSnapshot, 'audio.transcribe');
+  const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
+  const metadata = await (deps.buildRuntimeRequestMetadataImpl || buildRuntimeRequestMetadata)({
+    source: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    providerEndpoint: normalizeText(resolved.endpoint)
+      || normalizeText(resolved.localProviderEndpoint)
+      || normalizeText(resolved.localOpenAiEndpoint)
+      || undefined,
+  });
+  const response = await (deps.getRuntimeClientImpl || getRuntimeClient)().media.stt.transcribe({
+    model: requireValue(
+      resolved.modelId || resolved.model || resolved.localModelId,
+      ReasonCode.AI_INPUT_INVALID,
+      'select_runtime_route_binding',
+      'agent voice transcribe route model is missing',
+    ),
+    audio: {
+      kind: 'bytes',
+      bytes: input.audioBytes,
+    },
+    mimeType,
+    language: normalizeText(input.language) || undefined,
+    route: resolved.source,
+    connectorId: normalizeText(resolved.connectorId) || undefined,
+    metadata,
+    signal: input.signal,
+  });
+  const text = normalizeText(response.text);
+  if (!text) {
+    throw createNimiError({
+      message: 'agent voice transcription returned no transcript text',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'retry_voice_transcription',
+      source: 'runtime',
+    });
+  }
+  return {
+    text,
     traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
   };
 }

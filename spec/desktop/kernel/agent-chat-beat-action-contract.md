@@ -157,13 +157,23 @@ modality action plan。本契约拥有这些输出之间的 product relation tru
 - wake-word / background continuation
 - connected-app actions
 - camera / screenshare
-- custom voice authoring / cloning
 
 具体约束：
 
 - delayed beat semantics 不得被解释为 proactive contact authorization
 - admitted `voice` / `video` action envelope 不等于 voice/video execution 已完成产品落地；
-  后续 implementation/alignment 仍需单独 packet，但不得破坏本契约的一体 action envelope
+  admitted `voice` action 也不等于 richer voice workflow semantics 已被 admit；
+  `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`、agent chat voice identity /
+  `VoiceReference`、preset/custom voice selection、以及 packet-bounded clone/design
+  trigger semantics 固定由 `agent-chat-voice-workflow-contract.md`
+  （`D-LLM-047` ~ `D-LLM-052`）拥有；
+  admitted `voice` action 的 executor / playback product semantics 固定由
+  `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）拥有；
+  admitted `voice` action envelope 也不等于 broader voice session semantics 已被 admit；
+  explicit entry / exit、same-thread continuity、admitted listening modes、
+  interruption、以及 transcript / caption rules 固定由
+  `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有；
+  admitted `video` action 仍需后续独立 packet，但不得破坏本契约的一体 action envelope
 - 若 downstream 需要新增 richer assistant behavior surface，必须先落新的 admitted
   desktop kernel authority；不得扩写 timer、scheduler、prompt runtime、notification、
   bridge、或 modality helper 作为替代 owner
@@ -179,13 +189,19 @@ modality action plan。本契约拥有这些输出之间的 product relation tru
 - `spec/desktop/kernel/streaming-consumption-contract.md` — delivery lifecycle /
   cancel / retry boundary
 - `spec/runtime/kernel/voice-contract.md` — runtime voice workflow boundary
+- `spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — agent chat
+  richer voice workflow / voice identity boundary
+- `spec/desktop/kernel/agent-chat-voice-executor-contract.md` — agent chat
+  voice executor / playback outcome boundary
+- `spec/desktop/kernel/agent-chat-voice-session-contract.md` — agent chat
+  broader voice session boundary
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-behavior.ts` —
   current resolved beat vocabulary evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-behavior-resolver.ts`
   — current heuristic delayed beat planning evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts` —
   current single-text-beat commit and image-helper execution evidence
-- `nimi-coding/.local/20260409-desktop-agent-chat-llm-planned-beat-modality-preflight/llm-planned-beat-modality-preflight-closeout-20260409.evidence.md`
-  — preflight authority/defer decision
-- `nimi-coding/.local/20260409-desktop-agent-chat-beat-action-spec-landing/beat-action-spec-landing-route-20260409.evidence.md`
-  — dedicated beat-action landing route evidence
+- `nimi-coding/.local/**` — local preflight evidence for LLM-planned beat /
+  modality authority decisions (non-authoritative supporting material only)
+- `nimi-coding/.local/**` — local beat-action landing route evidence
+  (non-authoritative supporting material only)

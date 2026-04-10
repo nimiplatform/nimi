@@ -116,6 +116,19 @@ export function toConversationThreadSummary(
 export function toConversationMessageViewModel(
   message: AgentLocalMessageRecord,
 ): ConversationMessageViewModel {
+  const metadata = {
+    ...(message.metadataJson || {}),
+    kind: message.kind,
+    traceId: message.traceId,
+    parentMessageId: message.parentMessageId,
+    reasoningText: message.reasoningText,
+    mediaUrl: message.mediaUrl,
+    voiceUrl: message.mediaUrl,
+    mediaMimeType: message.mediaMimeType,
+    artifactId: message.artifactId,
+    voiceTranscript: message.contentText,
+    mediaError: message.error?.message || null,
+  };
   return {
     id: message.id,
     threadId: message.threadId,
@@ -125,16 +138,7 @@ export function toConversationMessageViewModel(
     updatedAt: toIsoString(message.updatedAtMs),
     status: message.status,
     error: message.error?.message || null,
-    metadata: {
-      kind: message.kind,
-      traceId: message.traceId,
-      parentMessageId: message.parentMessageId,
-      reasoningText: message.reasoningText,
-      mediaUrl: message.mediaUrl,
-      mediaMimeType: message.mediaMimeType,
-      artifactId: message.artifactId,
-      mediaError: message.error?.message || null,
-    },
+    metadata,
   };
 }
 

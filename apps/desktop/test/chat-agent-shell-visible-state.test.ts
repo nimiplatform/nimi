@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { resolveAgentConversationSurfaceState } from '../src/shell/renderer/features/chat/chat-agent-shell-visible-state.js';
 import type { AgentFooterViewState } from '../src/shell/renderer/features/chat/chat-agent-shell-footer-state.js';
+import type { AgentVoiceSessionShellState } from '../src/shell/renderer/features/chat/chat-agent-voice-session.js';
 import {
   beginAgentHostSubmit,
   closeAgentHostHarness,
@@ -154,6 +155,7 @@ function resolveSurfaceState(input: {
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
   footerViewState: AgentFooterViewState;
+  voiceSessionState?: AgentVoiceSessionShellState;
 }) {
   return resolveAgentConversationSurfaceState({
     ...input,
@@ -162,6 +164,14 @@ function resolveSurfaceState(input: {
       sendingDisabledReason: 'The agent is replying…',
       composerPlaceholderWithTarget: `Talk to ${input.activeTarget?.displayName || 'this agent'}…`,
       composerPlaceholderWithoutTarget: 'Select an agent to start chatting…',
+      voiceHandsFreeLabel: 'Hands-free on (foreground only)',
+      voiceListeningLabel: 'Listening',
+      voiceTranscribingLabel: 'Transcribing…',
+    },
+    voiceSessionState: input.voiceSessionState || {
+      status: 'idle',
+      mode: 'push-to-talk',
+      message: null,
     },
   });
 }
@@ -207,6 +217,29 @@ test('agent visible state falls back to targetless placeholder and idle characte
     busy: false,
   });
   assert.equal(surfaceState.footer.shouldRender, false);
+});
+
+test('agent visible state surfaces foreground hands-free as an admitted idle label', () => {
+  const surfaceState = resolveSurfaceState({
+    composerReady: true,
+    activeTarget: sampleTarget(),
+    submittingThreadId: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    voiceSessionState: {
+      status: 'idle',
+      mode: 'hands-free',
+      message: null,
+    },
+  });
+
+  assert.deepEqual(surfaceState.character.interactionState, {
+    phase: 'idle',
+    busy: false,
+    label: 'Hands-free on (foreground only)',
+  });
 });
 
 test('agent visible state converges to idle composer and hidden footer after completed authoritative submit', () => {

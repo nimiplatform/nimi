@@ -36,8 +36,11 @@ import {
 } from './chat-agent-shell-bundle';
 import {
   toChatAgentRuntimeError,
+  type ChatAgentVoiceWorkflowReferenceAudio,
 } from './chat-agent-runtime';
 import {
+  AGENT_VOICE_WORKFLOW_CAPABILITIES,
+  type AgentVoiceWorkflowCapability,
   createAISnapshot,
   type AgentEffectiveCapabilityResolution,
   type AIConfig,
@@ -84,6 +87,9 @@ type AgentRunTurn = (input: {
   agentResolution: AgentEffectiveCapabilityResolution;
   textExecutionSnapshot: AISnapshot;
   imageExecutionSnapshot: AISnapshot | null;
+  voiceExecutionSnapshot: AISnapshot | null;
+  voiceWorkflowExecutionSnapshotByCapability: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>>;
+  latestVoiceCapture: ChatAgentVoiceWorkflowReferenceAudio | null;
   target: AgentLocalTargetSnapshot;
 }) => AsyncIterable<ConversationTurnEvent>;
 
@@ -97,6 +103,9 @@ type UseAgentConversationHostActionsInput = {
   currentDraftTextRef: { current: string };
   draftText: string | null | undefined;
   draftUpdatedAtMs: number | null | undefined;
+  latestVoiceCaptureByThreadRef: {
+    current: Record<string, ChatAgentVoiceWorkflowReferenceAudio | undefined>;
+  };
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
   runAgentTurn: AgentRunTurn;
@@ -382,6 +391,7 @@ export function useAgentConversationHostActions(
         mediaUrl: null,
         mediaMimeType: null,
         artifactId: null,
+        metadataJson: null,
         createdAtMs,
         updatedAtMs: createdAtMs,
       };
@@ -399,11 +409,16 @@ export function useAgentConversationHostActions(
         mediaUrl: null,
         mediaMimeType: null,
         artifactId: null,
+        metadataJson: null,
         createdAtMs: createdAtMs + 1,
         updatedAtMs: createdAtMs + 1,
       };
 
       input.currentDraftTextRef.current = submittedText;
+      const latestVoiceCapture = input.latestVoiceCaptureByThreadRef.current[effectiveThreadId] || null;
+      const matchedVoiceCapture = latestVoiceCapture?.transcriptText === submittedText
+        ? latestVoiceCapture
+        : null;
       const submittingLockToken = submittingLockTokenRef.current + 1;
       submittingLockTokenRef.current = submittingLockToken;
       input.setSubmittingThreadId(effectiveThreadId);
@@ -509,11 +524,15 @@ export function useAgentConversationHostActions(
       // projection is stale (not supported), re-evaluate before the turn so
       // that a runtime that became ready after bootstrap is picked up.
       let effectiveAgentResolution = input.agentResolution;
-      if (
-        effectiveAgentResolution.imageProjection?.selectedBinding
-        && !effectiveAgentResolution.imageReady
-      ) {
-        await refreshConversationCapabilityProjections(['image.generate']);
+      const staleCapabilities: Array<'image.generate' | 'audio.synthesize'> = [];
+      if (effectiveAgentResolution.imageProjection?.selectedBinding && !effectiveAgentResolution.imageReady) {
+        staleCapabilities.push('image.generate');
+      }
+      if (effectiveAgentResolution.voiceProjection?.selectedBinding && !effectiveAgentResolution.voiceReady) {
+        staleCapabilities.push('audio.synthesize');
+      }
+      if (staleCapabilities.length > 0) {
+        await refreshConversationCapabilityProjections(staleCapabilities);
         refreshAgentEffectiveCapabilityResolution();
         effectiveAgentResolution = useAppStore.getState().agentEffectiveCapabilityResolution
           || effectiveAgentResolution;
@@ -534,6 +553,41 @@ export function useAgentConversationHostActions(
         : null;
       if (imageExecutionSnapshot) {
         recordDesktopAISnapshot(imageExecutionSnapshot);
+      }
+      const voiceExecutionSnapshot = effectiveAgentResolution.voiceProjection?.supported
+        && effectiveAgentResolution.voiceProjection?.resolvedBinding
+        ? createAISnapshot({
+          config: input.aiConfig,
+          capability: 'audio.synthesize',
+          projection: effectiveAgentResolution.voiceProjection,
+          agentResolution: effectiveAgentResolution,
+          runtimeEvidence: await peekDesktopAISchedulingForEvidence({
+            scopeRef: input.aiConfig.scopeRef,
+            target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'audio.synthesize'),
+          }),
+        })
+        : null;
+      if (voiceExecutionSnapshot) {
+        recordDesktopAISnapshot(voiceExecutionSnapshot);
+      }
+      const voiceWorkflowExecutionSnapshotByCapability: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>> = {};
+      for (const workflowCapability of AGENT_VOICE_WORKFLOW_CAPABILITIES) {
+        const workflowProjection = effectiveAgentResolution.voiceWorkflowProjections[workflowCapability] || null;
+        if (!workflowProjection?.supported || !workflowProjection.resolvedBinding) {
+          continue;
+        }
+        const workflowExecutionSnapshot = createAISnapshot({
+          config: input.aiConfig,
+          capability: workflowCapability,
+          projection: workflowProjection,
+          agentResolution: effectiveAgentResolution,
+          runtimeEvidence: await peekDesktopAISchedulingForEvidence({
+            scopeRef: input.aiConfig.scopeRef,
+            target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, workflowCapability),
+          }),
+        });
+        voiceWorkflowExecutionSnapshotByCapability[workflowCapability] = workflowExecutionSnapshot;
+        recordDesktopAISnapshot(workflowExecutionSnapshot);
       }
       const abortController = startStream(
         effectiveThreadId,
@@ -565,6 +619,9 @@ export function useAgentConversationHostActions(
           agentResolution: effectiveAgentResolution,
           textExecutionSnapshot,
           imageExecutionSnapshot,
+          voiceExecutionSnapshot,
+          voiceWorkflowExecutionSnapshotByCapability,
+          latestVoiceCapture: matchedVoiceCapture,
           target: activeTarget,
         })) {
           if (event.type === 'beat-planned' && event.modality === 'text' && event.beatIndex > 0) {

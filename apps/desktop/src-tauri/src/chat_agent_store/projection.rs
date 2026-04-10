@@ -1,8 +1,8 @@
 use super::codec::{
     map_sql_error, message_kind_to_db_value, message_role_to_db_value,
     message_status_to_db_value, normalize_message_error, normalize_optional_string,
-    normalize_required_string, parse_beat_modality, parse_beat_status, parse_message_role,
-    require_non_negative_ms,
+    normalize_required_string, normalize_structured_json, parse_beat_modality,
+    parse_beat_status, parse_message_role, require_non_negative_ms,
 };
 use super::crud::get_thread_bundle;
 use super::types::*;
@@ -12,18 +12,19 @@ pub(super) fn compute_projection_version(
     conn: &Connection,
     thread_id: &str,
 ) -> Result<String, String> {
-    let (turn_count, beat_count, snapshot_count, memory_count, recall_count): (i64, i64, i64, i64, i64) = conn
+    let (turn_count, beat_count, message_count, snapshot_count, memory_count, recall_count): (i64, i64, i64, i64, i64, i64) = conn
         .query_row(
             r#"
             SELECT
               (SELECT COUNT(*) FROM agent_turns WHERE thread_id = ?1),
               (SELECT COUNT(*) FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)),
+              (SELECT COUNT(*) FROM agent_messages WHERE thread_id = ?1),
               (SELECT COUNT(*) FROM agent_interaction_snapshots WHERE thread_id = ?1),
               (SELECT COUNT(*) FROM agent_relation_memory_slots WHERE thread_id = ?1),
               (SELECT COUNT(*) FROM agent_recall_index WHERE thread_id = ?1)
             "#,
             params![thread_id],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)),
         )
         .map_err(|error| format!("compute chat_agent projection version counts failed: {error}"))?;
 
@@ -42,6 +43,8 @@ pub(super) fn compute_projection_version(
               UNION ALL
               SELECT COALESCE(MAX(delivered_at_ms), 0) AS value FROM agent_turn_beats WHERE turn_id IN (SELECT id FROM agent_turns WHERE thread_id = ?1)
               UNION ALL
+              SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_messages WHERE thread_id = ?1
+              UNION ALL
               SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_interaction_snapshots WHERE thread_id = ?1
               UNION ALL
               SELECT COALESCE(MAX(updated_at_ms), 0) AS value FROM agent_relation_memory_slots WHERE thread_id = ?1
@@ -55,7 +58,7 @@ pub(super) fn compute_projection_version(
         .map_err(|error| format!("compute chat_agent projection version timestamp failed: {error}"))?;
 
     Ok(format!(
-        "truth:{latest_truth_ms}:t{turn_count}:b{beat_count}:s{snapshot_count}:m{memory_count}:r{recall_count}"
+        "truth:{latest_truth_ms}:t{turn_count}:b{beat_count}:msg{message_count}:s{snapshot_count}:m{memory_count}:r{recall_count}"
     ))
 }
 
@@ -67,6 +70,11 @@ pub(super) fn upsert_projection_message(
     let thread_id = normalize_required_string(&input.thread_id, "projection.messages[].threadId")?;
     let content_text = input.content_text.trim().to_string();
     let error = normalize_message_error(input.error.as_ref())?;
+    let metadata_json = input
+        .metadata_json
+        .as_ref()
+        .map(|value| normalize_structured_json(value, "projection.messages[].metadataJson"))
+        .transpose()?;
     let created_at_ms =
         require_non_negative_ms(input.created_at_ms, "projection.messages[].createdAtMs")?;
     let updated_at_ms =
@@ -88,9 +96,10 @@ pub(super) fn upsert_projection_message(
           media_url,
           media_mime_type,
           artifact_id,
+          metadata_json,
           created_at_ms,
           updated_at_ms
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
         ON CONFLICT(id) DO UPDATE SET
           thread_id = excluded.thread_id,
           role = excluded.role,
@@ -105,6 +114,7 @@ pub(super) fn upsert_projection_message(
           media_url = excluded.media_url,
           media_mime_type = excluded.media_mime_type,
           artifact_id = excluded.artifact_id,
+          metadata_json = excluded.metadata_json,
           created_at_ms = excluded.created_at_ms,
           updated_at_ms = excluded.updated_at_ms
         "#,
@@ -123,6 +133,10 @@ pub(super) fn upsert_projection_message(
             normalize_optional_string(input.media_url.as_deref()),
             normalize_optional_string(input.media_mime_type.as_deref()),
             normalize_optional_string(input.artifact_id.as_deref()),
+            metadata_json
+                .as_ref()
+                .map(|value| super::codec::serialize_json_value(value, "projection.messages[].metadataJson"))
+                .transpose()?,
             created_at_ms,
             updated_at_ms,
         ],
@@ -264,6 +278,7 @@ pub(super) fn rebuild_projection_internal(
             media_url,
             media_mime_type: mime_type,
             artifact_id,
+            metadata_json: None,
             created_at_ms,
             updated_at_ms,
         });

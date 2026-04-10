@@ -1,5 +1,6 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
 import type { AgentFooterViewState } from './chat-agent-shell-footer-state';
+import type { AgentVoiceSessionShellState } from './chat-agent-voice-session';
 
 export type AgentConversationSurfaceState = {
   composer: {
@@ -14,8 +15,9 @@ export type AgentConversationSurfaceState = {
     handle: string | null;
     bio: string | null;
     interactionState: {
-      phase: 'thinking' | 'idle';
+      phase: 'thinking' | 'idle' | 'listening' | 'loading';
       busy: boolean;
+      label?: string;
     };
   };
   footer: AgentFooterViewState & {
@@ -27,16 +29,47 @@ export function resolveAgentConversationSurfaceState(input: {
   composerReady: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
   submittingThreadId: string | null;
+  voiceSessionState: AgentVoiceSessionShellState;
   footerViewState: AgentFooterViewState;
   labels: {
     title: string;
     sendingDisabledReason: string;
     composerPlaceholderWithTarget: string;
     composerPlaceholderWithoutTarget: string;
+    voiceHandsFreeLabel: string;
+    voiceListeningLabel: string;
+    voiceTranscribingLabel: string;
   };
 }): AgentConversationSurfaceState {
   const isSubmitting = Boolean(input.submittingThreadId);
   const displayName = input.activeTarget?.displayName || input.labels.title;
+  const interactionState = isSubmitting
+    ? {
+      phase: 'thinking' as const,
+      busy: true,
+    }
+    : input.voiceSessionState.status === 'listening'
+      ? {
+        phase: 'listening' as const,
+        busy: true,
+        label: input.labels.voiceListeningLabel,
+      }
+      : input.voiceSessionState.status === 'transcribing'
+        ? {
+          phase: 'loading' as const,
+          busy: true,
+          label: input.labels.voiceTranscribingLabel,
+        }
+        : input.voiceSessionState.mode === 'hands-free'
+          ? {
+            phase: 'idle' as const,
+            busy: false,
+            label: input.labels.voiceHandsFreeLabel,
+          }
+        : {
+          phase: 'idle' as const,
+          busy: false,
+        };
   return {
     composer: input.composerReady
       ? {
@@ -53,10 +86,7 @@ export function resolveAgentConversationSurfaceState(input: {
       avatarFallback: (displayName || 'A').charAt(0).toUpperCase() || 'A',
       handle: input.activeTarget?.handle ? `@${input.activeTarget.handle}` : null,
       bio: input.activeTarget?.bio || null,
-      interactionState: {
-        phase: isSubmitting ? 'thinking' : 'idle',
-        busy: isSubmitting,
-      },
+      interactionState,
     },
     footer: {
       ...input.footerViewState,

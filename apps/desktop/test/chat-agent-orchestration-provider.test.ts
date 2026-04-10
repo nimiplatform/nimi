@@ -5,6 +5,7 @@ import type {
   ConversationRuntimeTextStreamPart,
   ConversationTurnInput,
 } from '@nimiplatform/nimi-kit/features/chat';
+import { parseAgentLocalProjectionCommitInput } from '../src/shell/renderer/bridge/runtime-bridge/chat-agent-parsers.js';
 import type {
   AgentLocalCommitTurnResult,
   AgentLocalTargetSnapshot,
@@ -34,13 +35,24 @@ import {
   feedStreamEvent,
   startStream,
 } from '../src/shell/renderer/features/turns/stream-controller.js';
+import { parseAgentChatVoiceWorkflowMetadata } from '../src/shell/renderer/features/chat/chat-agent-voice-workflow.js';
 import {
+  createAgentVoiceMessage,
   createAgentTextMessage,
   createAgentTurnBeat,
 } from './helpers/agent-chat-record-fixtures.js';
 
 type AgentCommitInput = Parameters<ReturnType<typeof createAgentLocalChatContinuityAdapter>['commitAgentTurnResult']>[0];
 type AgentRuntimeStreamRequest = Parameters<AgentLocalChatRuntimeAdapter['streamText']>[0];
+type TestVoiceWorkflowSubmitRequest = {
+  workflowIntent: {
+    workflowType: 'tts_v2v' | 'tts_t2v';
+  };
+  referenceAudio?: {
+    bytes: Uint8Array;
+    mimeType: string;
+  } | null;
+};
 
 function installBrowserGlobals(): () => void {
   const previousWindow = globalThis.window;
@@ -204,6 +216,27 @@ function createRuntimeAdapter(overrides: Partial<AgentLocalChatRuntimeAdapter>):
         mimeType: 'image/png',
         artifactId: 'artifact-default',
         traceId: 'trace-image',
+      };
+    },
+    async synthesizeVoice() {
+      return {
+        mediaUrl: 'file:///tmp/agent-voice-default.mp3',
+        mimeType: 'audio/mpeg',
+        artifactId: 'artifact-voice-default',
+        traceId: 'trace-voice',
+      };
+    },
+    async submitVoiceWorkflow() {
+      return {
+        jobId: 'voice-workflow-job-default',
+        traceId: 'trace-voice-workflow-default',
+        workflowStatus: 'submitted',
+        voiceReference: {
+          kind: 'voice_asset_id',
+          stableRef: 'voice-asset-default',
+        },
+        voiceAssetId: 'voice-asset-default',
+        providerVoiceRef: 'provider-voice-default',
       };
     },
     ...overrides,
@@ -523,7 +556,7 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.match(request.systemPrompt || '', /Preset:/);
   assert.match(request.systemPrompt || '', /Continuity:/);
   assert.match(request.systemPrompt || '', /ResolvedBehavior:/);
-  assert.match(request.systemPrompt || '', /User prefers concise answers/);
+  assert.match(request.systemPrompt || '', /"userPrefs": \{[\s\S]*"brevity": true/);
   assert.match(request.systemPrompt || '', /"resolvedTurnMode": "information"/);
   assert.doesNotMatch(request.systemPrompt || '', /"allowMultiReply":/);
   assert.doesNotMatch(request.systemPrompt || '', /"deliveryPolicy":/);
@@ -536,8 +569,8 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.equal(request.diagnostics.budget.modelContextTokens, 4096);
   assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
   assert.equal(request.diagnostics.continuity.snapshotIncluded, true);
-  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 1);
-  assert.equal(request.diagnostics.continuity.retainedRecallEntries, 1);
+  assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 0);
+  assert.equal(request.diagnostics.continuity.retainedRecallEntries, 0);
   assert.equal(request.diagnostics.transcript.retainedHistoryMessages, 0);
   assert.equal(request.diagnostics.transcript.emittedMessages, 1);
   assert.equal(request.diagnostics.transcript.trimmedLeadingAssistantMessages, 1);
@@ -1198,7 +1231,7 @@ test('agent local chat provider does not generate an image when the resolved env
   assert.equal(committed[0]?.imageState?.status, 'none');
 });
 
-test('agent local chat provider leaves voice and video actions unapplied in phase 1', async () => {
+test('agent local chat provider executes voice actions and keeps video deferred in phase 1', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
     runtimeAdapter: createRuntimeAdapter({
@@ -1239,6 +1272,15 @@ test('agent local chat provider leaves voice and video actions unapplied in phas
         }
         return { stream: stream() };
       },
+      async synthesizeVoice(request) {
+        assert.equal(request.prompt, '一段轻声回应');
+        return {
+          mediaUrl: 'file:///tmp/voice-turn.mp3',
+          mimeType: 'audio/mpeg',
+          artifactId: 'artifact-voice-1',
+          traceId: 'trace-voice-1',
+        };
+      },
       async generateImage() {
         throw new Error('image generation should stay unopened for voice/video-only actions');
       },
@@ -1248,6 +1290,35 @@ test('agent local chat provider leaves voice and video actions unapplied in phas
 
   const events = await collectEvents(provider, sampleTurnInput({
     userText: '你能用声音或者视频回复我吗？',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: null,
+        voiceProjection: {
+          capability: 'audio.synthesize',
+          selectedBinding: { source: 'local', connectorId: '', model: 'kokoro-82m' },
+          resolvedBinding: { capability: 'audio.synthesize', source: 'local', provider: 'kokoro', model: 'kokoro-82m', modelId: 'kokoro-82m', connectorId: '', endpoint: 'http://127.0.0.1:8010' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageReady: false,
+        voiceReady: true,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      voiceExecutionSnapshot: { executionId: 'voice-snapshot' },
+    },
   }));
 
   assert.deepEqual(
@@ -1257,11 +1328,17 @@ test('agent local chat provider leaves voice and video actions unapplied in phas
       'beat-planned',
       'first-beat-sealed',
       'beat-delivered',
+      'beat-planned',
+      'beat-delivery-started',
+      'artifact-ready',
+      'beat-delivered',
       'projection-rebuilt',
       'turn-completed',
     ],
   );
-  assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), true);
+  assert.equal(committed[0]?.voiceState?.status, 'complete');
+  assert.equal(committed[0]?.voiceState?.mediaUrl, 'file:///tmp/voice-turn.mp3');
   assert.equal(committed[0]?.imageState?.status, 'none');
 });
 
@@ -1350,6 +1427,283 @@ test('agent local chat provider consumes typed image prompt payloads from the mo
   assert.equal(committed[0]?.imageState?.status, 'complete');
   assert.match(committed[0]?.imageState?.prompt || '', /subject: 客栈老板娘/);
   assert.match(committed[0]?.imageState?.prompt || '', /continuity: 古风客栈, 夜色室内/);
+});
+
+test('agent local chat provider submits workflow voice actions without silently reusing audio.synthesize', async () => {
+  const committed: AgentCommitInput[] = [];
+  let synthesizeVoiceCalled = false;
+  let submitRequest: TestVoiceWorkflowSubmitRequest | null = null;
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-voice-clone',
+            beatIndex: 0,
+            text: '我可以先把音色方向给你定下来。',
+          }],
+          actions: [{
+            actionId: 'action-voice-clone',
+            actionIndex: 0,
+            modality: 'voice',
+            operation: 'voice_workflow.tts_v2v',
+            promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
+            sourceBeatId: 'beat-voice-clone',
+            sourceBeatIndex: 0,
+          }],
+        });
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-voice-workflow',
+              promptTraceId: 'prompt-voice-workflow',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async synthesizeVoice() {
+        synthesizeVoiceCalled = true;
+        throw new Error('workflow voice action must not silently call narrow synth runtime');
+      },
+      async submitVoiceWorkflow(request) {
+        submitRequest = request as TestVoiceWorkflowSubmitRequest;
+        return {
+          jobId: 'voice-workflow-job-clone',
+          traceId: 'trace-voice-workflow-submit',
+          workflowStatus: 'submitted',
+          voiceReference: {
+            kind: 'voice_asset_id',
+            stableRef: 'voice-asset-clone',
+          },
+          voiceAssetId: 'voice-asset-clone',
+          providerVoiceRef: 'provider-voice-clone',
+        };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:156:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '帮我定一个新的声音分身吧',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: null,
+        voiceProjection: null,
+        voiceWorkflowProjections: {
+          'voice_workflow.tts_v2v': {
+            capability: 'voice_workflow.tts_v2v',
+            selectedBinding: { source: 'cloud', connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
+            resolvedBinding: { capability: 'voice_workflow.tts_v2v', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
+            health: null,
+            metadata: {
+              capability: 'voice_workflow.tts_v2v',
+              metadataVersion: 'v1',
+              resolvedBindingRef: 'voice-clone-ref',
+              metadataKind: 'voice_workflow.tts_v2v',
+              metadata: {
+                workflowType: 'tts_v2v',
+              },
+            },
+            supported: true,
+            reasonCode: null,
+          },
+          'voice_workflow.tts_t2v': null,
+        },
+        voiceWorkflowReadyByCapability: {
+          'voice_workflow.tts_v2v': true,
+          'voice_workflow.tts_t2v': false,
+        },
+        imageReady: false,
+        voiceReady: false,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      voiceExecutionSnapshot: null,
+      latestVoiceCapture: {
+        bytes: new Uint8Array([1, 2, 3, 4]),
+        mimeType: 'audio/wav',
+        transcriptText: '帮我定一个新的声音分身吧',
+      },
+      voiceWorkflowExecutionSnapshotByCapability: {
+        'voice_workflow.tts_v2v': {
+          executionId: 'workflow-clone-snapshot',
+          conversationCapabilitySlice: {
+            capability: 'voice_workflow.tts_v2v',
+            resolvedBinding: {
+              capability: 'voice_workflow.tts_v2v',
+            },
+          },
+        },
+      },
+    },
+  }));
+
+  assert.equal(synthesizeVoiceCalled, false);
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
+  if (!submitRequest) {
+    assert.fail('expected submitVoiceWorkflow to receive a request');
+  }
+  const capturedSubmitRequest = submitRequest as unknown as TestVoiceWorkflowSubmitRequest;
+  assert.equal(capturedSubmitRequest.workflowIntent.workflowType, 'tts_v2v');
+  assert.equal(capturedSubmitRequest.referenceAudio?.mimeType, 'audio/wav');
+  assert.deepEqual([...capturedSubmitRequest.referenceAudio?.bytes || []], [1, 2, 3, 4]);
+  assert.equal(committed[0]?.voiceState?.status, 'pending');
+  if (committed[0]?.voiceState?.status !== 'pending') {
+    assert.fail('expected a pending voice workflow state');
+  }
+  assert.match(committed[0].voiceState.message || '', /Creating a custom voice from current-thread reference audio/i);
+  const workflowMetadata = parseAgentChatVoiceWorkflowMetadata(committed[0].voiceState.metadata);
+  assert.ok(workflowMetadata);
+  assert.equal(workflowMetadata?.workflowStatus, 'submitted');
+  assert.equal(workflowMetadata?.jobId, 'voice-workflow-job-clone');
+  assert.equal(workflowMetadata?.voiceReference?.kind, 'voice_asset_id');
+  assert.equal(workflowMetadata?.sourceBeatId, 'beat-voice-clone');
+  assert.equal(workflowMetadata?.sourceActionId, 'action-voice-clone');
+});
+
+test('agent local chat provider fails close when workflow voice clone has no current-thread reference audio', async () => {
+  const committed: AgentCommitInput[] = [];
+  let synthesizeVoiceCalled = false;
+  let submitRequest: TestVoiceWorkflowSubmitRequest | null = null;
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        const envelopeText = createBeatActionEnvelopeText({
+          beats: [{
+            beatId: 'beat-voice-clone',
+            beatIndex: 0,
+            text: '我需要先拿到这一线程里的参考音频。',
+          }],
+          actions: [{
+            actionId: 'action-voice-clone',
+            actionIndex: 0,
+            modality: 'voice',
+            operation: 'voice_workflow.tts_v2v',
+            promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
+            sourceBeatId: 'beat-voice-clone',
+            sourceBeatIndex: 0,
+          }],
+        });
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-voice-workflow',
+              promptTraceId: 'prompt-voice-workflow',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+      async synthesizeVoice() {
+        synthesizeVoiceCalled = true;
+        throw new Error('workflow voice action must not silently call narrow synth runtime');
+      },
+      async submitVoiceWorkflow(request) {
+        submitRequest = request as TestVoiceWorkflowSubmitRequest;
+        if (!request.referenceAudio) {
+          throw new Error('voice clone workflow requires current-thread reference audio');
+        }
+        return {
+          jobId: 'voice-workflow-job-clone',
+          traceId: 'trace-voice-workflow-submit',
+          workflowStatus: 'submitted',
+          voiceReference: null,
+          voiceAssetId: null,
+          providerVoiceRef: null,
+        };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:156:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userText: '帮我定一个新的声音分身吧',
+    agentLocalChat: {
+      agentResolution: {
+        ready: true,
+        reason: 'ok',
+        textProjection: {
+          capability: 'text.generate',
+          selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+          resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+          health: null,
+          metadata: null,
+          supported: true,
+          reasonCode: null,
+        },
+        imageProjection: null,
+        voiceProjection: null,
+        voiceWorkflowProjections: {
+          'voice_workflow.tts_v2v': {
+            capability: 'voice_workflow.tts_v2v',
+            selectedBinding: { source: 'cloud', connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
+            resolvedBinding: { capability: 'voice_workflow.tts_v2v', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
+            health: null,
+            metadata: {
+              capability: 'voice_workflow.tts_v2v',
+              metadataVersion: 'v1',
+              resolvedBindingRef: 'voice-clone-ref',
+              metadataKind: 'voice_workflow.tts_v2v',
+              metadata: {
+                workflowType: 'tts_v2v',
+              },
+            },
+            supported: true,
+            reasonCode: null,
+          },
+          'voice_workflow.tts_t2v': null,
+        },
+        voiceWorkflowReadyByCapability: {
+          'voice_workflow.tts_v2v': true,
+          'voice_workflow.tts_t2v': false,
+        },
+        imageReady: false,
+        voiceReady: false,
+      },
+      textExecutionSnapshot: { executionId: 'text-snapshot' },
+      voiceExecutionSnapshot: null,
+      voiceWorkflowExecutionSnapshotByCapability: {
+        'voice_workflow.tts_v2v': {
+          executionId: 'workflow-clone-snapshot',
+          conversationCapabilitySlice: {
+            capability: 'voice_workflow.tts_v2v',
+            resolvedBinding: {
+              capability: 'voice_workflow.tts_v2v',
+            },
+          },
+        },
+      },
+    },
+  }));
+
+  assert.equal(synthesizeVoiceCalled, false);
+  assert.equal(events.some((event) => event.type === 'artifact-ready'), false);
+  if (!submitRequest) {
+    assert.fail('expected submitVoiceWorkflow to receive a request');
+  }
+  const capturedSubmitRequest = submitRequest as unknown as TestVoiceWorkflowSubmitRequest;
+  assert.equal(capturedSubmitRequest.referenceAudio || null, null);
+  assert.equal(committed[0]?.voiceState?.status, 'error');
+  assert.match(committed[0]?.voiceState?.message || '', /current-thread reference audio/i);
 });
 
 test('agent local chat provider fails close when runtime stream finishes without output text', async () => {
@@ -1530,4 +1884,159 @@ test('agent local chat continuity adapter maps committed turn events to truth so
       clearDraft: true,
     },
   });
+});
+
+test('agent local chat continuity adapter commits canonical voice projection messages', async () => {
+  const commitCalls: unknown[] = [];
+  const adapter = createAgentLocalChatContinuityAdapter({
+    now: () => 240,
+    storeClient: {
+      async loadTurnContext() {
+        return sampleTurnContext();
+      },
+      async commitTurnResult(input) {
+        commitCalls.push(input);
+        return sampleCommitResult();
+      },
+      async cancelTurn() {
+        throw new Error('cancelTurn not expected');
+      },
+      async rebuildProjection(threadId) {
+        return {
+          bundle: {
+            thread: sampleThread(),
+            messages: [],
+            draft: null,
+          },
+          projectionVersion: `truth:${threadId}`,
+        };
+      },
+    },
+  });
+
+  await adapter.commitAgentTurnResult({
+    modeId: 'agent-local-chat-v1',
+    threadId: 'thread-1',
+    turnId: 'turn-voice-1',
+    outcome: 'completed',
+    outputText: '我给你留一段语音。',
+    events: [{
+      type: 'turn-completed',
+      turnId: 'turn-voice-1',
+      outputText: '我给你留一段语音。',
+      trace: {
+        traceId: 'trace-voice-1',
+        promptTraceId: 'prompt-voice-1',
+      },
+    }],
+    voiceState: {
+      status: 'complete',
+      beatId: 'turn-voice-1:beat:1',
+      beatIndex: 1,
+      projectionMessageId: 'turn-voice-1:message:1',
+      prompt: '轻声说晚安',
+      transcriptText: '晚安，记得早点休息。',
+      mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+      mimeType: 'audio/mpeg',
+      artifactId: 'voice-artifact-1',
+      sourceBeatId: 'turn-voice-1:beat:0',
+      sourceActionId: 'action-voice-1',
+    },
+  });
+
+  assert.equal(commitCalls.length, 1);
+  assert.deepEqual(commitCalls[0], {
+    threadId: 'thread-1',
+    turn: {
+      id: 'turn-voice-1',
+      threadId: 'thread-1',
+      role: 'assistant',
+      status: 'completed',
+      providerMode: 'agent-local-chat-v1',
+      traceId: 'trace-voice-1',
+      promptTraceId: 'prompt-voice-1',
+      startedAtMs: 240,
+      completedAtMs: 240,
+      abortedAtMs: null,
+    },
+    beats: [{
+      ...createAgentTurnBeat({
+        id: 'turn-voice-1:beat:1',
+        turnId: 'turn-voice-1',
+        beatIndex: 1,
+        modality: 'voice',
+        status: 'delivered',
+        textShadow: '晚安，记得早点休息。',
+        artifactId: 'voice-artifact-1',
+        mimeType: 'audio/mpeg',
+        mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+        projectionMessageId: 'turn-voice-1:message:1',
+        createdAtMs: 240,
+        deliveredAtMs: 240,
+      }),
+    }],
+    interactionSnapshot: null,
+    relationMemorySlots: [],
+    recallEntries: [],
+    projection: {
+      thread: {
+        id: 'thread-1',
+        title: 'Companion',
+        updatedAtMs: 240,
+        lastMessageAtMs: 240,
+        archivedAtMs: null,
+        targetSnapshot: sampleTarget(),
+      },
+      messages: [createAgentVoiceMessage({
+        id: 'turn-voice-1:message:1',
+        threadId: 'thread-1',
+        role: 'assistant',
+        status: 'complete',
+        contentText: '晚安，记得早点休息。',
+        mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+        mediaMimeType: 'audio/mpeg',
+        artifactId: 'voice-artifact-1',
+        createdAtMs: 240,
+        updatedAtMs: 240,
+      })],
+      draft: null,
+      clearDraft: true,
+    },
+  });
+});
+
+test('chat agent projection parser accepts voice messages', () => {
+  const projection = parseAgentLocalProjectionCommitInput({
+    thread: {
+      id: 'thread-1',
+      title: 'Companion',
+      updatedAtMs: 240,
+      lastMessageAtMs: 240,
+      archivedAtMs: null,
+      targetSnapshot: sampleTarget(),
+    },
+    messages: [{
+      id: 'turn-voice-1:message:1',
+      threadId: 'thread-1',
+      role: 'assistant',
+      status: 'complete',
+      kind: 'voice',
+      contentText: '晚安，记得早点休息。',
+      reasoningText: null,
+      error: null,
+      traceId: null,
+      parentMessageId: null,
+      mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+      mediaMimeType: 'audio/mpeg',
+      artifactId: 'voice-artifact-1',
+      createdAtMs: 240,
+      updatedAtMs: 240,
+    }],
+    draft: null,
+    clearDraft: true,
+  });
+
+  assert.equal(projection.messages.length, 1);
+  assert.equal(projection.messages[0]?.kind, 'voice');
+  assert.equal(projection.messages[0]?.mediaMimeType, 'audio/mpeg');
 });

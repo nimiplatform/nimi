@@ -1,5 +1,6 @@
 import {
   assertRecord,
+  parseOptionalJsonObject,
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
@@ -31,6 +32,7 @@ import type {
   AgentLocalTargetSnapshot,
   AgentLocalTurnBeatInput,
   AgentLocalTurnBeatRecord,
+  AgentLocalUpdateTurnBeatInput,
   AgentLocalThreadBundle,
   AgentLocalThreadRecord,
   AgentLocalThreadSummary,
@@ -76,7 +78,7 @@ function parseMessageStatus(value: unknown, errorPrefix: string): AgentLocalMess
 
 function parseMessageKind(value: unknown, errorPrefix: string): AgentLocalMessageKind {
   const normalized = String(value || '').trim();
-  if (normalized === 'text' || normalized === 'image') {
+  if (normalized === 'text' || normalized === 'image' || normalized === 'voice') {
     return normalized;
   }
   throw new Error(`${errorPrefix}: kind is invalid`);
@@ -219,6 +221,7 @@ export function parseAgentLocalMessageRecord(value: unknown): AgentLocalMessageR
     mediaUrl: parseOptionalString(record.mediaUrl) || null,
     mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
     artifactId: parseOptionalString(record.artifactId) || null,
+    metadataJson: parseOptionalJsonObject(record.metadataJson) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent message record'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent message record'),
   };
@@ -264,6 +267,19 @@ export function parseAgentLocalTurnBeatRecord(value: unknown): AgentLocalTurnBea
     projectionMessageId: parseOptionalString(record.projectionMessageId) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent turn beat record'),
     deliveredAtMs: parseNullableFiniteInteger(record.deliveredAtMs, 'deliveredAtMs', 'chat_agent turn beat record'),
+  };
+}
+
+export function parseAgentLocalUpdateTurnBeatInput(value: unknown): AgentLocalUpdateTurnBeatInput {
+  const record = assertRecord(value, 'chat_agent update turn beat input is invalid');
+  return {
+    id: parseRequiredString(record.id, 'id', 'chat_agent update turn beat input'),
+    status: parseBeatStatus(record.status, 'chat_agent update turn beat input'),
+    textShadow: parseOptionalString(record.textShadow) || null,
+    artifactId: parseOptionalString(record.artifactId) || null,
+    mimeType: parseOptionalString(record.mimeType) || null,
+    mediaUrl: parseOptionalString(record.mediaUrl) || null,
+    deliveredAtMs: parseNullableFiniteInteger(record.deliveredAtMs, 'deliveredAtMs', 'chat_agent update turn beat input'),
   };
 }
 
@@ -417,6 +433,7 @@ export function parseAgentLocalCreateMessageInput(value: unknown): AgentLocalCre
     mediaUrl: parseOptionalString(record.mediaUrl) || null,
     mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
     artifactId: parseOptionalString(record.artifactId) || null,
+    metadataJson: parseOptionalJsonObject(record.metadataJson) || null,
     createdAtMs: parseFiniteInteger(record.createdAtMs, 'createdAtMs', 'chat_agent create_message payload'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent create_message payload'),
   };
@@ -426,6 +443,7 @@ export function parseAgentLocalUpdateMessageInput(value: unknown): AgentLocalUpd
   const record = assertRecord(value, 'chat_agent update_message payload is invalid');
   return {
     id: parseRequiredString(record.id, 'id', 'chat_agent update_message payload'),
+    kind: parseMessageKind(record.kind, 'chat_agent update_message payload'),
     status: parseMessageStatus(record.status, 'chat_agent update_message payload'),
     contentText: String(record.contentText ?? ''),
     reasoningText: parseOptionalString(record.reasoningText) || null,
@@ -434,6 +452,7 @@ export function parseAgentLocalUpdateMessageInput(value: unknown): AgentLocalUpd
     mediaUrl: parseOptionalString(record.mediaUrl) || null,
     mediaMimeType: parseOptionalString(record.mediaMimeType) || null,
     artifactId: parseOptionalString(record.artifactId) || null,
+    metadataJson: parseOptionalJsonObject(record.metadataJson) || null,
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent update_message payload'),
   };
 }

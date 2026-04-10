@@ -1,6 +1,8 @@
+import type { JsonObject } from './shared.js';
+
 export type AgentLocalMessageRole = 'system' | 'user' | 'assistant';
 export type AgentLocalMessageStatus = 'pending' | 'complete' | 'error';
-export type AgentLocalMessageKind = 'text' | 'image';
+export type AgentLocalMessageKind = 'text' | 'image' | 'voice';
 export type AgentLocalTurnRole = 'system' | 'user' | 'assistant';
 export type AgentLocalTurnStatus = 'pending' | 'completed' | 'failed' | 'canceled';
 export type AgentLocalBeatModality = 'text' | 'voice' | 'image' | 'video';
@@ -50,6 +52,7 @@ export type AgentLocalMessageRecord = {
   mediaUrl: string | null;
   mediaMimeType: string | null;
   artifactId: string | null;
+  metadataJson: JsonObject | null;
   createdAtMs: number;
   updatedAtMs: number;
 };
@@ -186,12 +189,14 @@ export type AgentLocalCreateMessageInput = {
   mediaUrl: string | null;
   mediaMimeType: string | null;
   artifactId: string | null;
+  metadataJson: JsonObject | null;
   createdAtMs: number;
   updatedAtMs: number;
 };
 
 export type AgentLocalUpdateMessageInput = {
   id: string;
+  kind: AgentLocalMessageKind;
   status: AgentLocalMessageStatus;
   contentText: string;
   reasoningText: string | null;
@@ -200,6 +205,7 @@ export type AgentLocalUpdateMessageInput = {
   mediaUrl: string | null;
   mediaMimeType: string | null;
   artifactId: string | null;
+  metadataJson: JsonObject | null;
   updatedAtMs: number;
 };
 
@@ -219,6 +225,16 @@ export type AgentLocalLoadTurnContextInput = {
 export type AgentLocalTurnRecordInput = Omit<AgentLocalTurnRecord, never>;
 
 export type AgentLocalTurnBeatInput = Omit<AgentLocalTurnBeatRecord, never>;
+
+export type AgentLocalUpdateTurnBeatInput = {
+  id: string;
+  status: AgentLocalBeatStatus;
+  textShadow: string | null;
+  artifactId: string | null;
+  mimeType: string | null;
+  mediaUrl: string | null;
+  deliveredAtMs: number | null;
+};
 
 export type AgentLocalInteractionSnapshotInput = Omit<AgentLocalInteractionSnapshotRecord, never>;
 

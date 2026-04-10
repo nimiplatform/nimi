@@ -44,6 +44,12 @@ export const CONVERSATION_CAPABILITIES = [
 ] as const;
 
 export type ConversationCapability = (typeof CONVERSATION_CAPABILITIES)[number];
+export const AGENT_VOICE_WORKFLOW_CAPABILITIES = [
+  'voice_workflow.tts_v2v',
+  'voice_workflow.tts_t2v',
+] as const;
+export type AgentVoiceWorkflowCapability = (typeof AGENT_VOICE_WORKFLOW_CAPABILITIES)[number];
+export type AgentVoiceWorkflowType = 'tts_v2v' | 'tts_t2v';
 
 const CONVERSATION_CAPABILITY_RUNTIME_MAP: Partial<Record<ConversationCapability, RuntimeCanonicalCapability>> = {
   'image.edit': 'image.generate',
@@ -81,11 +87,21 @@ export type ConversationCapabilityProjection = {
   reasonCode: ConversationCapabilityProjectionReasonCode | null;
 };
 
+export type AgentVoiceWorkflowProjectionMap =
+  Partial<Record<AgentVoiceWorkflowCapability, ConversationCapabilityProjection | null>>;
+
+export type AgentVoiceWorkflowReadyMap =
+  Partial<Record<AgentVoiceWorkflowCapability, boolean>>;
+
 export type AgentEffectiveCapabilityResolution = {
   ready: boolean;
   textProjection: ConversationCapabilityProjection | null;
   imageProjection: ConversationCapabilityProjection | null;
+  voiceProjection: ConversationCapabilityProjection | null;
+  voiceWorkflowProjections: AgentVoiceWorkflowProjectionMap;
+  voiceWorkflowReadyByCapability: AgentVoiceWorkflowReadyMap;
   imageReady: boolean;
+  voiceReady: boolean;
   reason:
     | 'ok'
     | 'projection_unavailable'
@@ -384,16 +400,39 @@ export async function buildConversationCapabilityProjectionMap(input: {
 export function buildAgentEffectiveCapabilityResolution(input: {
   textProjection: ConversationCapabilityProjection | null;
   imageProjection?: ConversationCapabilityProjection | null;
+  voiceProjection?: ConversationCapabilityProjection | null;
+  voiceWorkflowCloneProjection?: ConversationCapabilityProjection | null;
+  voiceWorkflowDesignProjection?: ConversationCapabilityProjection | null;
 }): AgentEffectiveCapabilityResolution {
   const textProjection = input.textProjection || null;
   const imageProjection = input.imageProjection || null;
+  const voiceProjection = input.voiceProjection || null;
+  const voiceWorkflowProjections: AgentVoiceWorkflowProjectionMap = {
+    'voice_workflow.tts_v2v': input.voiceWorkflowCloneProjection || null,
+    'voice_workflow.tts_t2v': input.voiceWorkflowDesignProjection || null,
+  };
+  const voiceWorkflowReadyByCapability: AgentVoiceWorkflowReadyMap = {
+    'voice_workflow.tts_v2v': Boolean(
+      voiceWorkflowProjections['voice_workflow.tts_v2v']?.supported
+        && voiceWorkflowProjections['voice_workflow.tts_v2v']?.resolvedBinding,
+    ),
+    'voice_workflow.tts_t2v': Boolean(
+      voiceWorkflowProjections['voice_workflow.tts_t2v']?.supported
+        && voiceWorkflowProjections['voice_workflow.tts_t2v']?.resolvedBinding,
+    ),
+  };
   const imageReady = Boolean(imageProjection?.supported && imageProjection?.resolvedBinding);
+  const voiceReady = Boolean(voiceProjection?.supported && voiceProjection?.resolvedBinding);
   if (!textProjection || !textProjection.supported) {
     return {
       ready: false,
       textProjection,
       imageProjection,
+      voiceProjection,
+      voiceWorkflowProjections,
+      voiceWorkflowReadyByCapability,
       imageReady,
+      voiceReady,
       reason: 'projection_unavailable',
     };
   }
@@ -403,7 +442,11 @@ export function buildAgentEffectiveCapabilityResolution(input: {
       ready: false,
       textProjection,
       imageProjection,
+      voiceProjection,
+      voiceWorkflowProjections,
+      voiceWorkflowReadyByCapability,
       imageReady,
+      voiceReady,
       reason: 'route_unresolved',
     };
   }
@@ -412,7 +455,11 @@ export function buildAgentEffectiveCapabilityResolution(input: {
     ready: true,
     textProjection,
     imageProjection,
+    voiceProjection,
+    voiceWorkflowProjections,
+    voiceWorkflowReadyByCapability,
     imageReady,
+    voiceReady,
     reason: 'ok',
   };
 }

@@ -34,6 +34,9 @@
 | `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 delayed beat / modality action truth |
 | `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、multi-beat ordering / turn-mode / experience-policy authority；不拥有 delayed beat / modality action truth |
 | `agent-chat-beat-action-contract.md` | `D-LLM-*` | Agent chat delayed beat / pending invalidation / modality action envelope authority、model-generated modality prompt semantics、proactive and richer assistant expansion defer boundary |
+| `agent-chat-voice-executor-contract.md` | `D-LLM-*` | Agent chat resolved voice action consumption、`audio.synthesize` first-packet execution semantics、playback-ready speech artifact outcome authority；不拥有 voice workflow / voice asset / broader session truth |
+| `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-thread text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |
+| `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 beat-action envelope / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |

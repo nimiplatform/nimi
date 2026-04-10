@@ -33,6 +33,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
           media_url TEXT,
           media_mime_type TEXT,
           artifact_id TEXT,
+          metadata_json TEXT,
           created_at_ms INTEGER NOT NULL,
           updated_at_ms INTEGER NOT NULL
         );
@@ -139,6 +140,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
     add_nullable_text_column_if_missing(conn, "agent_messages", "media_url")?;
     add_nullable_text_column_if_missing(conn, "agent_messages", "media_mime_type")?;
     add_nullable_text_column_if_missing(conn, "agent_messages", "artifact_id")?;
+    add_nullable_text_column_if_missing(conn, "agent_messages", "metadata_json")?;
     add_text_column_with_default_if_missing(conn, "agent_messages", "kind", "'text'")?;
     ensure_required_columns(
         conn,
@@ -158,6 +160,7 @@ pub(crate) fn init_schema(conn: &Connection) -> Result<(), String> {
             "media_url",
             "media_mime_type",
             "artifact_id",
+            "metadata_json",
             "created_at_ms",
             "updated_at_ms",
         ],

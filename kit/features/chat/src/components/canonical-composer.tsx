@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
-import type { AttachmentAdapter, ChatComposerAdapter, ChatComposerAttachmentsSlot } from '../types.js';
+import type {
+  AttachmentAdapter,
+  ChatComposerAdapter,
+  ChatComposerAttachmentsSlot,
+  ChatComposerVoiceState,
+} from '../types.js';
 import { ChatComposer } from './chat-composer.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 import { ConversationComposerShell } from './conversation-composer-shell.js';
@@ -21,6 +26,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   onAttachmentsChange?: (attachments: readonly TAttachment[]) => void;
   attachmentsSlot?: ChatComposerAttachmentsSlot<TAttachment>;
   attachLabel?: string;
+  voiceState?: ChatComposerVoiceState;
   widthClassName?: string;
 };
 
@@ -40,6 +46,7 @@ export function CanonicalComposer<TAttachment = never>({
   onAttachmentsChange,
   attachmentsSlot,
   attachLabel,
+  voiceState,
   widthClassName = CANONICAL_STAGE_SURFACE_WIDTH_CLASS,
 }: CanonicalComposerProps<TAttachment>) {
   return (
@@ -72,6 +79,7 @@ export function CanonicalComposer<TAttachment = never>({
               onAttachmentsChange={onAttachmentsChange}
               attachmentsSlot={attachmentsSlot}
               attachLabel={attachLabel}
+              voiceState={voiceState}
             />
           </ConversationComposerShell>
         </div>

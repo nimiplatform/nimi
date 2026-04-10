@@ -29,8 +29,17 @@ export async function refreshConversationCapabilityProjections(
 export function refreshAgentEffectiveCapabilityResolution(): void {
   const textProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
   const imageProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['image.generate'] || null;
+  const voiceProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['audio.synthesize'] || null;
+  const voiceWorkflowCloneProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.tts_v2v'] || null;
+  const voiceWorkflowDesignProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.tts_t2v'] || null;
   useAppStore.getState().setAgentEffectiveCapabilityResolution(
-    buildAgentEffectiveCapabilityResolution({ textProjection, imageProjection }),
+    buildAgentEffectiveCapabilityResolution({
+      textProjection,
+      imageProjection,
+      voiceProjection,
+      voiceWorkflowCloneProjection,
+      voiceWorkflowDesignProjection,
+    }),
   );
 }
 

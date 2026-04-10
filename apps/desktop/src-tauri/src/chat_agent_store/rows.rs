@@ -61,6 +61,7 @@ pub(super) fn message_record_from_row(
     let reasoning_text: Option<String> = row.get(6)?;
     let error_code: Option<String> = row.get(7)?;
     let error_message: Option<String> = row.get(8)?;
+    let metadata_json_raw: Option<String> = row.get(14)?;
     let error = match (error_code, error_message) {
         (None, None) => None,
         (Some(code), Some(message)) => Some(ChatAgentMessageError {
@@ -96,8 +97,18 @@ pub(super) fn message_record_from_row(
         media_url: row.get(11)?,
         media_mime_type: row.get(12)?,
         artifact_id: row.get(13)?,
-        created_at_ms: row.get(14)?,
-        updated_at_ms: row.get(15)?,
+        metadata_json: metadata_json_raw
+            .map(|raw| parse_json_required(raw, "agent_messages.metadata_json"))
+            .transpose()
+            .map_err(|error| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    14,
+                    rusqlite::types::Type::Text,
+                    Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, error)),
+                )
+            })?,
+        created_at_ms: row.get(15)?,
+        updated_at_ms: row.get(16)?,
     })
 }
 

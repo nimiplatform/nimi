@@ -628,6 +628,45 @@ pub(crate) fn commit_turn_result(
     })
 }
 
+pub(crate) fn update_turn_beat(
+    conn: &Connection,
+    input: &ChatAgentUpdateTurnBeatInput,
+) -> Result<(), String> {
+    let id = normalize_required_string(&input.id, "id")?;
+    let delivered_at_ms = input
+        .delivered_at_ms
+        .map(|value| require_non_negative_ms(value, "deliveredAtMs"))
+        .transpose()?;
+    let changed = conn
+        .execute(
+            r#"
+            UPDATE agent_turn_beats
+            SET
+              status = ?2,
+              text_shadow = ?3,
+              artifact_id = ?4,
+              mime_type = ?5,
+              media_url = ?6,
+              delivered_at_ms = ?7
+            WHERE id = ?1
+            "#,
+            params![
+                id,
+                beat_status_to_db_value(input.status),
+                normalize_optional_string(input.text_shadow.as_deref()),
+                normalize_optional_string(input.artifact_id.as_deref()),
+                normalize_optional_string(input.mime_type.as_deref()),
+                normalize_optional_string(input.media_url.as_deref()),
+                delivered_at_ms,
+            ],
+        )
+        .map_err(|error| map_sql_error("update chat_agent turn beat failed", error))?;
+    if changed == 0 {
+        return Err("update chat_agent turn beat failed: beat not found".to_string());
+    }
+    Ok(())
+}
+
 pub(crate) fn cancel_turn(
     conn: &mut Connection,
     input: &ChatAgentCancelTurnInput,

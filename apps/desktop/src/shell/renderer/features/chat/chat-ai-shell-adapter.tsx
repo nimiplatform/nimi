@@ -9,6 +9,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ConversationOrchestrationRegistry,
+  createReadyConversationSetupState,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { createSimpleAiConversationProvider } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -174,8 +175,10 @@ export function useAiConversationModeHost(
   }, [selectedTextBinding]);
 
   const setupState = useMemo(
-    () => resolveAiConversationSetupStateFromProjection(textCapabilityProjection),
-    [textCapabilityProjection],
+    () => bootstrapReady
+      ? resolveAiConversationSetupStateFromProjection(textCapabilityProjection)
+      : createReadyConversationSetupState('ai'),
+    [bootstrapReady, textCapabilityProjection],
   );
 
   const thinkingSupport = useMemo(

@@ -17,6 +17,7 @@ import {
   parseAgentLocalTurnContext,
   parseAgentLocalTurnRecord,
   parseAgentLocalUpdateMessageInput,
+  parseAgentLocalUpdateTurnBeatInput,
   parseAgentLocalUpdateThreadMetadataInput,
   type AgentLocalCancelTurnInput,
   type AgentLocalCommitTurnResult,
@@ -34,6 +35,7 @@ import {
   type AgentLocalTurnContext,
   type AgentLocalTurnRecord,
   type AgentLocalUpdateMessageInput,
+  type AgentLocalUpdateTurnBeatInput,
   type AgentLocalUpdateThreadMetadataInput,
 } from './types';
 
@@ -81,6 +83,13 @@ export async function updateMessage(input: AgentLocalUpdateMessageInput): Promis
   return invokeChecked('chat_agent_update_message', {
     payload: parseAgentLocalUpdateMessageInput(input),
   }, parseAgentLocalMessageRecord);
+}
+
+export async function updateTurnBeat(input: AgentLocalUpdateTurnBeatInput): Promise<void> {
+  requireTauri('chat_agent_update_turn_beat');
+  await invokeChecked('chat_agent_update_turn_beat', {
+    payload: parseAgentLocalUpdateTurnBeatInput(input),
+  }, () => undefined);
 }
 
 export async function getDraft(threadId: string): Promise<AgentLocalDraftRecord | null> {
@@ -139,6 +148,7 @@ export const chatAgentStoreClient = {
   updateThreadMetadata,
   createMessage,
   updateMessage,
+  updateTurnBeat,
   getDraft,
   putDraft,
   deleteDraft,

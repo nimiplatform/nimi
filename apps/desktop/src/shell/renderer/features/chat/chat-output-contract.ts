@@ -20,6 +20,7 @@ function buildDesktopChatOutputContractLines(): string[] {
     '"deliveryCoupling" must be "after-source-beat" (deliver the action after the referenced beat) or "with-source-beat" (deliver alongside the referenced beat).',
     'Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video".',
     'Use typed prompt payloads only: image -> {"kind":"image-prompt","promptText":"..."}, voice -> {"kind":"voice-prompt","promptText":"..."}, video -> {"kind":"video-prompt","promptText":"..."}.',
+    'For voice actions, use "operation": "audio.synthesize" for narrow playback, "voice_workflow.tts_v2v" for clone workflow, or "voice_workflow.tts_t2v" for design workflow.',
     'If no modality action exists, return "actions": [].',
     'Keep internal planning private and never include chain-of-thought fields.',
   ];

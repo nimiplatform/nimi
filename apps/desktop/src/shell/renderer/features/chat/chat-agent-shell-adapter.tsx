@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -52,6 +53,7 @@ import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
   bundleQueryKey,
+  upsertBundleDraft,
   sortThreadSummaries,
   toErrorMessage,
   THREADS_QUERY_KEY,
@@ -66,9 +68,37 @@ import { useAgentConversationHostActions } from './chat-agent-shell-host-actions
 import { resolveAiConversationSetupStateFromProjection } from './chat-ai-route-view';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
-import { toRuntimeRouteBindingFromPickerSelection } from './conversation-capability';
+import {
+  createAISnapshot,
+  toRuntimeRouteBindingFromPickerSelection,
+} from './conversation-capability';
+import { parseAgentChatVoiceWorkflowMetadata } from './chat-agent-voice-workflow';
+import { reconcileAgentChatVoiceWorkflowMessage } from './chat-agent-voice-workflow-tracker';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { cancelStream } from '../turns/stream-controller';
+import {
+  transcribeChatAgentVoiceRuntime,
+  toChatAgentRuntimeError,
+} from './chat-agent-runtime';
+import { startAgentVoiceCaptureSession, type AgentVoiceCaptureSession } from './chat-agent-voice-capture';
+import {
+  createInitialAgentVoiceSessionShellState,
+  type AgentVoiceSessionMode,
+  resolveIdleAgentVoiceSessionShellState,
+  type AgentVoiceSessionShellState,
+} from './chat-agent-voice-session';
+
+function resolveIsVoiceSessionForeground(): boolean {
+  if (typeof document === 'undefined') {
+    return true;
+  }
+  const visible = document.visibilityState !== 'hidden';
+  const focused = typeof document.hasFocus === 'function'
+    ? document.hasFocus()
+    : true;
+  return visible && focused;
+}
 
 type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
 
@@ -94,6 +124,12 @@ export function useAgentConversationModeHost(
   const imageCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['image.generate'] || null,
   );
+  const voiceCapabilityProjection = useAppStore(
+    (state) => state.conversationCapabilityProjectionByCapability['audio.synthesize'] || null,
+  );
+  const transcribeCapabilityProjection = useAppStore(
+    (state) => state.conversationCapabilityProjectionByCapability['audio.transcribe'] || null,
+  );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
   const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
@@ -106,7 +142,20 @@ export function useAgentConversationModeHost(
       lifecycle: AgentTurnLifecycleState;
     }>
   >({});
+  const [voiceSessionState, setVoiceSessionState] = useState<AgentVoiceSessionShellState>(
+    () => createInitialAgentVoiceSessionShellState(),
+  );
+  const [isVoiceSessionForeground, setIsVoiceSessionForeground] = useState<boolean>(
+    () => resolveIsVoiceSessionForeground(),
+  );
   const currentDraftTextRef = useRef('');
+  const latestVoiceCaptureByThreadRef = useRef<Record<string, {
+    bytes: Uint8Array;
+    mimeType: string;
+    transcriptText: string;
+  } | undefined>>({});
+  const voiceCaptureSessionRef = useRef<AgentVoiceCaptureSession | null>(null);
+  const voiceTranscribeAbortRef = useRef<AbortController | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createAgentLocalChatConversationProvider());
@@ -197,6 +246,36 @@ export function useAgentConversationModeHost(
       modelLabel: selectedTextBinding.modelLabel,
     };
   }, [selectedTextBinding]);
+
+  useEffect(() => {
+    const resetVoiceSession = () => {
+      voiceTranscribeAbortRef.current?.abort();
+      voiceTranscribeAbortRef.current = null;
+      voiceCaptureSessionRef.current?.cancel();
+      voiceCaptureSessionRef.current = null;
+      setVoiceSessionState(createInitialAgentVoiceSessionShellState());
+    };
+    resetVoiceSession();
+    return resetVoiceSession;
+  }, [input.selection.agentId, input.selection.threadId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return undefined;
+    }
+    const syncForegroundState = () => {
+      setIsVoiceSessionForeground(resolveIsVoiceSessionForeground());
+    };
+    syncForegroundState();
+    document.addEventListener('visibilitychange', syncForegroundState);
+    window.addEventListener('focus', syncForegroundState);
+    window.addEventListener('blur', syncForegroundState);
+    return () => {
+      document.removeEventListener('visibilitychange', syncForegroundState);
+      window.removeEventListener('focus', syncForegroundState);
+      window.removeEventListener('blur', syncForegroundState);
+    };
+  }, []);
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
@@ -292,6 +371,9 @@ export function useAgentConversationModeHost(
         },
       };
     }
+    if (!bootstrapReady) {
+      return createReadyConversationSetupState('agent');
+    }
     if (!activeTarget) {
       return createReadyConversationSetupState('agent');
     }
@@ -316,7 +398,7 @@ export function useAgentConversationModeHost(
         returnToMode: 'agent' as const,
       },
     };
-  }, [activeTarget, agentRouteReady, input.authStatus, t, textCapabilityProjection]);
+  }, [activeTarget, agentRouteReady, bootstrapReady, input.authStatus, t, textCapabilityProjection]);
 
   const composerReady = setupState.status === 'ready'
     && (!activeTarget || agentRouteReady)
@@ -347,6 +429,7 @@ export function useAgentConversationModeHost(
     currentDraftTextRef,
     draftText: bundle?.draft?.text,
     draftUpdatedAtMs: bundle?.draft?.updatedAtMs,
+    latestVoiceCaptureByThreadRef,
     queryClient,
     reportHostError,
     runAgentTurn: (turnInput) => agentProvider.runTurn({
@@ -363,6 +446,9 @@ export function useAgentConversationModeHost(
           agentResolution: turnInput.agentResolution,
           textExecutionSnapshot: turnInput.textExecutionSnapshot,
           imageExecutionSnapshot: turnInput.imageExecutionSnapshot,
+          voiceExecutionSnapshot: turnInput.voiceExecutionSnapshot,
+          voiceWorkflowExecutionSnapshotByCapability: turnInput.voiceWorkflowExecutionSnapshotByCapability,
+          latestVoiceCapture: turnInput.latestVoiceCapture,
           imageCapabilityParams: (
             agentAiConfig.capabilities.selectedParams['image.generate'] || null
           ) as Record<string, unknown> | null,
@@ -397,6 +483,319 @@ export function useAgentConversationModeHost(
     [reasoningLabel],
   );
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
+  const persistVoiceTranscriptDraft = useCallback(async (text: string) => {
+    if (!activeThreadId) {
+      throw new Error('Voice input is unavailable because no active thread is selected.');
+    }
+    const draft = await chatAgentStoreClient.putDraft({
+      threadId: activeThreadId,
+      text,
+      updatedAtMs: Date.now(),
+    });
+    currentDraftTextRef.current = text;
+    setBundleCache(
+      activeThreadId,
+      (current) => upsertBundleDraft(current, draft) || current,
+    );
+  }, [activeThreadId, currentDraftTextRef, setBundleCache]);
+  useEffect(() => {
+    if (!activeThreadId || !bundle?.messages?.length) {
+      return undefined;
+    }
+    const pendingMessages = bundle.messages.filter((message) => {
+      const metadata = parseAgentChatVoiceWorkflowMetadata(message.metadataJson);
+      return metadata?.workflowStatus === 'submitted'
+        || metadata?.workflowStatus === 'queued'
+        || metadata?.workflowStatus === 'running';
+    });
+    if (pendingMessages.length === 0) {
+      return undefined;
+    }
+    const voiceExecutionSnapshot = voiceCapabilityProjection?.supported && voiceCapabilityProjection.resolvedBinding
+      ? createAISnapshot({
+        config: agentAdapterAiConfig,
+        capability: 'audio.synthesize',
+        projection: voiceCapabilityProjection,
+        agentResolution,
+      })
+      : null;
+    let cancelled = false;
+    const timerId = window.setTimeout(() => {
+      void (async () => {
+        for (const message of pendingMessages) {
+          if (cancelled) {
+            return;
+          }
+          const result = await reconcileAgentChatVoiceWorkflowMessage({
+            message,
+            voiceExecutionSnapshot,
+          });
+          if (!result.updatedMessage || cancelled) {
+            continue;
+          }
+          setBundleCache(activeThreadId, (current) => {
+            if (!current) {
+              return current;
+            }
+            return {
+              ...current,
+              messages: current.messages.map((item) => (
+                item.id === result.updatedMessage?.id
+                  ? result.updatedMessage
+                  : item
+              )),
+            };
+          });
+        }
+      })().catch((error) => {
+        reportHostError(error);
+      });
+    }, 2_000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+    };
+  }, [
+    activeThreadId,
+    agentAdapterAiConfig,
+    agentResolution,
+    bundle?.messages,
+    reportHostError,
+    setBundleCache,
+    voiceCapabilityProjection,
+  ]);
+  const resolveVoiceSessionUnavailableMessage = useCallback(() => {
+    if (!activeTarget) {
+      return t('Chat.voiceSessionTargetRequired', {
+        defaultValue: 'Select an agent before starting voice input.',
+      });
+    }
+    if (transcribeCapabilityProjection?.reasonCode === 'selection_missing' || transcribeCapabilityProjection?.reasonCode === 'selection_cleared') {
+      return t('Chat.voiceSessionRouteRequired', {
+        defaultValue: 'Voice input is unavailable because no transcribe route is configured.',
+      });
+    }
+    if (transcribeCapabilityProjection?.reasonCode === 'route_unhealthy') {
+      return t('Chat.voiceSessionRuntimeUnavailable', {
+        defaultValue: 'Voice input is unavailable because the transcribe runtime is not ready.',
+      });
+    }
+    if (transcribeCapabilityProjection?.reasonCode === 'metadata_missing' || transcribeCapabilityProjection?.reasonCode === 'binding_unresolved') {
+      return t('Chat.voiceSessionRouteUnavailable', {
+        defaultValue: 'Voice input is unavailable because the selected transcribe route cannot be resolved.',
+      });
+    }
+    if (!transcribeCapabilityProjection?.supported || !transcribeCapabilityProjection?.resolvedBinding) {
+      return t('Chat.voiceSessionUnavailable', {
+        defaultValue: 'Voice input is unavailable for the current conversation.',
+      });
+    }
+    return null;
+  }, [activeTarget, t, transcribeCapabilityProjection]);
+  const resetVoiceSessionToPushToTalk = useCallback(() => {
+    voiceTranscribeAbortRef.current?.abort();
+    voiceTranscribeAbortRef.current = null;
+    voiceCaptureSessionRef.current?.cancel();
+    voiceCaptureSessionRef.current = null;
+    setVoiceSessionState(createInitialAgentVoiceSessionShellState());
+  }, []);
+  const beginVoiceCapture = useCallback(async (input: {
+    mode: AgentVoiceSessionMode;
+    interruptActiveStream?: boolean;
+    degradeToPushToTalkOnFailure?: boolean;
+    failureDefaultMessage: string;
+  }) => {
+    try {
+      if (input.interruptActiveStream !== false && activeThreadId) {
+        cancelStream(activeThreadId);
+      }
+      const captureSession = await startAgentVoiceCaptureSession(
+        input.mode === 'hands-free'
+          ? {
+            autoStopMode: 'silence',
+          }
+          : undefined,
+      );
+      voiceCaptureSessionRef.current = captureSession;
+      setVoiceSessionState({
+        status: 'listening',
+        mode: input.mode,
+        message: null,
+      });
+      return true;
+    } catch (error) {
+      const message = toErrorMessage(error, input.failureDefaultMessage);
+      reportHostError(new Error(message, { cause: error }));
+      setVoiceSessionState(
+        input.degradeToPushToTalkOnFailure
+          ? {
+            status: 'failed',
+            mode: 'push-to-talk',
+            message,
+          }
+          : {
+            status: 'failed',
+            mode: input.mode,
+            message,
+          },
+      );
+      return false;
+    }
+  }, [activeThreadId, reportHostError]);
+
+  useEffect(() => {
+    if (voiceSessionState.mode !== 'hands-free' || isVoiceSessionForeground) {
+      return;
+    }
+    resetVoiceSessionToPushToTalk();
+  }, [isVoiceSessionForeground, resetVoiceSessionToPushToTalk, voiceSessionState.mode]);
+
+  const handleVoiceSessionToggle = useCallback(() => {
+    void (async () => {
+      if (voiceSessionState.status === 'transcribing') {
+        return;
+      }
+      if (voiceSessionState.status === 'listening') {
+        const captureSession = voiceCaptureSessionRef.current;
+        if (!captureSession) {
+          setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
+          return;
+        }
+        voiceCaptureSessionRef.current = null;
+        const activeMode = voiceSessionState.mode;
+        setVoiceSessionState({
+          status: 'transcribing',
+          mode: activeMode,
+          message: null,
+        });
+        const abortController = new AbortController();
+        voiceTranscribeAbortRef.current = abortController;
+        try {
+          const recording = await captureSession.stop();
+          const transcribeExecutionSnapshot = transcribeCapabilityProjection
+            ? createAISnapshot({
+              config: agentAdapterAiConfig,
+              capability: 'audio.transcribe',
+              projection: transcribeCapabilityProjection,
+              agentResolution,
+            })
+            : null;
+          const result = await transcribeChatAgentVoiceRuntime({
+            audioBytes: recording.bytes,
+            mimeType: recording.mimeType,
+            transcribeExecutionSnapshot,
+            signal: abortController.signal,
+          });
+          if (activeThreadId) {
+            latestVoiceCaptureByThreadRef.current[activeThreadId] = {
+              bytes: recording.bytes,
+              mimeType: recording.mimeType,
+              transcriptText: result.text,
+            };
+          }
+          await persistVoiceTranscriptDraft(result.text);
+          if (activeMode === 'hands-free' && isVoiceSessionForeground) {
+            const continued = await beginVoiceCapture({
+              mode: 'hands-free',
+              interruptActiveStream: false,
+              degradeToPushToTalkOnFailure: true,
+              failureDefaultMessage: 'Hands-free is unavailable for the current conversation.',
+            });
+            if (continued) {
+              return;
+            }
+          }
+          setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(activeMode));
+        } catch (error) {
+          if ((error as Error | null)?.name === 'AbortError') {
+            setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(activeMode));
+            return;
+          }
+          const runtimeError = toChatAgentRuntimeError(error);
+          reportHostError(new Error(runtimeError.message, { cause: error }));
+          setVoiceSessionState({
+            status: 'failed',
+            mode: activeMode,
+            message: runtimeError.message,
+          });
+        } finally {
+          if (voiceTranscribeAbortRef.current === abortController) {
+            voiceTranscribeAbortRef.current = null;
+          }
+        }
+        return;
+      }
+      if (voiceSessionState.status === 'failed') {
+        setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
+        return;
+      }
+      const unavailableMessage = resolveVoiceSessionUnavailableMessage();
+      if (unavailableMessage) {
+        setVoiceSessionState({
+          status: 'failed',
+          mode: voiceSessionState.mode,
+          message: unavailableMessage,
+        });
+        return;
+      }
+      await beginVoiceCapture({
+        mode: voiceSessionState.mode,
+        failureDefaultMessage: 'Voice input is unavailable for the current conversation.',
+      });
+    })();
+  }, [
+    agentAdapterAiConfig,
+    agentResolution,
+    beginVoiceCapture,
+    isVoiceSessionForeground,
+    persistVoiceTranscriptDraft,
+    reportHostError,
+    resolveVoiceSessionUnavailableMessage,
+    transcribeCapabilityProjection,
+    voiceSessionState.status,
+    voiceSessionState.mode,
+  ]);
+  const handleVoiceSessionCancel = useCallback(() => {
+    voiceTranscribeAbortRef.current?.abort();
+    voiceTranscribeAbortRef.current = null;
+    voiceCaptureSessionRef.current?.cancel();
+    voiceCaptureSessionRef.current = null;
+    setVoiceSessionState(resolveIdleAgentVoiceSessionShellState(voiceSessionState.mode));
+  }, [voiceSessionState.mode]);
+  const handleEnterHandsFreeVoiceSession = useCallback(() => {
+    void (async () => {
+      if (
+        voiceSessionState.mode === 'hands-free'
+        || voiceSessionState.status === 'transcribing'
+        || voiceSessionState.status === 'listening'
+      ) {
+        return;
+      }
+      const unavailableMessage = resolveVoiceSessionUnavailableMessage();
+      if (unavailableMessage) {
+        setVoiceSessionState({
+          status: 'failed',
+          mode: 'push-to-talk',
+          message: unavailableMessage,
+        });
+        return;
+      }
+      await beginVoiceCapture({
+        mode: 'hands-free',
+        degradeToPushToTalkOnFailure: true,
+        failureDefaultMessage: 'Hands-free is unavailable for the current conversation.',
+      });
+    })();
+  }, [
+    beginVoiceCapture,
+    reportHostError,
+    resolveVoiceSessionUnavailableMessage,
+    voiceSessionState.mode,
+    voiceSessionState.status,
+  ]);
+  const handleExitHandsFreeVoiceSession = useCallback(() => {
+    resetVoiceSessionToPushToTalk();
+  }, [resetVoiceSessionToPushToTalk]);
   const presentation = useAgentConversationPresentation({
     activeTarget,
     activeThreadId,
@@ -419,6 +818,11 @@ export function useAgentConversationModeHost(
     selectedTargetId: activeTarget?.agentId || null,
     behaviorSettings,
     setBehaviorSettings,
+    voiceSessionState,
+    onVoiceSessionToggle: handleVoiceSessionToggle,
+    onVoiceSessionCancel: handleVoiceSessionCancel,
+    onEnterHandsFreeVoiceSession: handleEnterHandsFreeVoiceSession,
+    onExitHandsFreeVoiceSession: handleExitHandsFreeVoiceSession,
     setupState,
     streamState,
     submittingThreadId,

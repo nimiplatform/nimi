@@ -30,6 +30,7 @@ test('desktop chat output contract helper exposes beat-action envelope rules', (
   assert.match(section, /"deliveryCoupling" must be "after-source-beat".*or "with-source-beat"/);
   assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video"/);
   assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}/);
+  assert.match(section, /For voice actions, use "operation": "audio\.synthesize" for narrow playback, "voice_workflow\.tts_v2v" for clone workflow, or "voice_workflow\.tts_t2v" for design workflow/);
   assert.match(section, /If no modality action exists, return "actions": \[\]/);
   assert.doesNotMatch(section, /Only output the user-visible reply body/);
   assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);

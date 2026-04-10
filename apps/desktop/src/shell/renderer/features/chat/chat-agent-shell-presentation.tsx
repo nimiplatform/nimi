@@ -42,6 +42,10 @@ import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { resolveExecutionSchedulingGuardDecision } from './chat-execution-scheduling-guard';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
+import {
+  resolveAgentComposerVoiceState,
+  type AgentVoiceSessionShellState,
+} from './chat-agent-voice-session';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -68,6 +72,11 @@ type UseAgentConversationPresentationInput = {
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
   setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
+  voiceSessionState: AgentVoiceSessionShellState;
+  onVoiceSessionToggle: () => void;
+  onVoiceSessionCancel: () => void;
+  onEnterHandsFreeVoiceSession: () => void;
+  onExitHandsFreeVoiceSession: () => void;
   setupState: ConversationSetupState;
   streamState: StreamState | null;
   submittingThreadId: string | null;
@@ -121,6 +130,7 @@ export function useAgentConversationPresentation(
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
     submittingThreadId: input.submittingThreadId,
+    voiceSessionState: input.voiceSessionState,
     footerViewState,
     labels: {
       title: input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' }),
@@ -132,8 +142,17 @@ export function useAgentConversationPresentation(
       composerPlaceholderWithoutTarget: input.t('Chat.agentComposerNoTargetPlaceholder', {
         defaultValue: 'Select an agent to start chatting…',
       }),
+      voiceHandsFreeLabel: input.t('Chat.voiceSessionHandsFreeActive', {
+        defaultValue: 'Hands-free on (foreground only)',
+      }),
+      voiceListeningLabel: input.t('Chat.voiceSessionListening', {
+        defaultValue: 'Listening',
+      }),
+      voiceTranscribingLabel: input.t('Chat.voiceSessionTranscribing', {
+        defaultValue: 'Transcribing…',
+      }),
     },
-  }), [footerViewState, input.activeTarget, input.composerReady, input.submittingThreadId, input.t]);
+  }), [footerViewState, input.activeTarget, input.composerReady, input.submittingThreadId, input.t, input.voiceSessionState]);
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
@@ -280,11 +299,53 @@ export function useAgentConversationPresentation(
       adapter.composerAdapter ? (
         <div className="space-y-3">
           {hostFeedbackNode}
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-800">
+            <span>
+              {input.voiceSessionState.mode === 'hands-free'
+                ? input.t('Chat.voiceSessionHandsFreeActive', {
+                  defaultValue: 'Hands-free on (foreground only)',
+                })
+                : input.t('Chat.voiceSessionHandsFreeHint', {
+                  defaultValue: 'Foreground hands-free stays inside this thread only.',
+                })}
+            </span>
+            {input.voiceSessionState.mode === 'hands-free' ? (
+              <button
+                type="button"
+                onClick={input.onExitHandsFreeVoiceSession}
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-medium text-emerald-800 transition-colors hover:bg-emerald-50"
+              >
+                {input.t('Chat.voiceSessionHandsFreeExit', {
+                  defaultValue: 'Exit hands-free',
+                })}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={input.onEnterHandsFreeVoiceSession}
+                disabled={
+                  Boolean(input.submittingThreadId)
+                  || input.voiceSessionState.status === 'transcribing'
+                  || input.voiceSessionState.status === 'listening'
+                }
+                className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-medium text-emerald-800 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {input.t('Chat.voiceSessionHandsFreeEnter', {
+                  defaultValue: 'Enter hands-free',
+                })}
+              </button>
+            )}
+          </div>
           <CanonicalComposer
             key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             adapter={adapter.composerAdapter}
             initialText={input.bundle?.draft?.text || ''}
             disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
+            voiceState={resolveAgentComposerVoiceState({
+              state: input.voiceSessionState,
+              onToggle: input.onVoiceSessionToggle,
+              onCancel: input.onVoiceSessionCancel,
+            })}
             placeholder={input.t('Chat.agentComposerPlaceholder', { defaultValue: 'Talk to this agent…' })}
             onInputCaptureText={(text) => {
               input.currentDraftTextRef.current = text;
@@ -317,12 +378,17 @@ export function useAgentConversationPresentation(
     input.bundle?.draft?.updatedAtMs,
     input.currentDraftTextRef,
     input.onDismissHostFeedback,
+    input.onEnterHandsFreeVoiceSession,
+    input.onExitHandsFreeVoiceSession,
     input.setBehaviorSettings,
     input.submittingThreadId,
     input.t,
     input.thinkingPreference,
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
+    input.voiceSessionState,
+    input.onVoiceSessionToggle,
+    input.onVoiceSessionCancel,
     input.initialModelSelection,
     input.onModelSelectionChange,
     schedulingGuard.disabled,

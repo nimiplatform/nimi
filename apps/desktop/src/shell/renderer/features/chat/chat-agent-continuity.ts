@@ -13,6 +13,7 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import type {
   AgentLocalChatImageState,
+  AgentLocalChatVoiceState,
   AgentLocalTextBeatState,
 } from './chat-agent-turn-plan';
 
@@ -36,6 +37,7 @@ export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
     events: readonly ConversationTurnEvent[];
     signal?: AbortSignal;
     imageState?: AgentLocalChatImageState;
+    voiceState?: AgentLocalChatVoiceState;
     textBeatStates?: readonly AgentLocalTextBeatState[];
   }) => Promise<AgentLocalCommitTurnResult>;
 };
@@ -188,6 +190,7 @@ function buildTextProjectionMessages(
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
+    metadataJson: null,
     createdAtMs: committedAtMs,
     updatedAtMs: committedAtMs,
   }));
@@ -217,6 +220,48 @@ function buildImageProjectionMessage(
     mediaUrl: imageState.status === 'complete' ? imageState.mediaUrl : null,
     mediaMimeType: imageState.status === 'complete' ? imageState.mimeType : null,
     artifactId: imageState.status === 'complete' ? imageState.artifactId : null,
+    metadataJson: null,
+    createdAtMs: committedAtMs,
+    updatedAtMs: committedAtMs,
+  };
+}
+
+function buildVoiceProjectionMessage(
+  thread: AgentLocalThreadRecord,
+  voiceState: Extract<AgentLocalChatVoiceState, { status: 'pending' | 'complete' | 'error' }>,
+  committedAtMs: number,
+) {
+  const metadataJson = 'metadata' in voiceState && voiceState.metadata
+    ? voiceState.metadata
+    : null;
+  const shouldRenderAsVoice = voiceState.status === 'complete'
+    && Boolean(voiceState.mediaUrl);
+  return {
+    id: voiceState.projectionMessageId,
+    threadId: thread.id,
+    role: 'assistant' as const,
+    status: voiceState.status === 'pending'
+      ? 'pending' as const
+      : voiceState.status === 'complete'
+        ? 'complete' as const
+        : 'error' as const,
+    kind: shouldRenderAsVoice ? 'voice' as const : 'text' as const,
+    contentText: voiceState.status === 'pending'
+      ? voiceState.message
+      : voiceState.transcriptText,
+    reasoningText: null,
+    error: voiceState.status === 'pending' || voiceState.status === 'complete'
+      ? null
+      : {
+        code: 'AGENT_VOICE_FAILED',
+        message: voiceState.message,
+      },
+    traceId: null,
+    parentMessageId: null,
+    mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
+    mediaMimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
+    artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
+    metadataJson,
     createdAtMs: committedAtMs,
     updatedAtMs: committedAtMs,
   };
@@ -243,8 +288,12 @@ export function createAgentLocalChatContinuityAdapter(
       textBeatStates: input.textBeatStates,
     });
     const imageState = input.imageState || { status: 'none' as const };
+    const voiceState = input.voiceState || { status: 'none' as const };
     const projectionMessages = [
       ...buildTextProjectionMessages(thread, textBeats, input, committedAtMs),
+      ...((voiceState.status === 'pending' || voiceState.status === 'complete' || voiceState.status === 'error')
+        ? [buildVoiceProjectionMessage(thread, voiceState, committedAtMs)]
+        : []),
       ...((imageState.status === 'complete' || imageState.status === 'error')
         ? [buildImageProjectionMessage(thread, imageState, committedAtMs)]
         : []),
@@ -278,6 +327,28 @@ export function createAgentLocalChatContinuityAdapter(
           createdAtMs: committedAtMs,
           deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
         })),
+        ...(voiceState.status === 'none' || voiceState.status === 'synthesize'
+          ? []
+          : [{
+            id: voiceState.beatId,
+            turnId: input.turnId,
+            beatIndex: voiceState.beatIndex,
+            modality: 'voice' as const,
+            status: voiceState.status === 'pending'
+              ? 'planned' as const
+              : voiceState.status === 'complete'
+                ? 'delivered' as const
+                : 'failed' as const,
+            textShadow: voiceState.transcriptText || voiceState.prompt || null,
+            artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
+            mimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
+            mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
+            projectionMessageId: voiceState.projectionMessageId,
+            createdAtMs: committedAtMs,
+            deliveredAtMs: voiceState.status === 'complete' && input.outcome === 'completed'
+              ? committedAtMs
+              : null,
+          }]),
         ...(imageState.status === 'none' || imageState.status === 'generate'
           ? []
           : [{
@@ -321,6 +392,7 @@ export function createAgentLocalChatContinuityAdapter(
       ...input,
       modeId: 'agent-local-chat-v1',
       imageState: { status: 'none' },
+      voiceState: { status: 'none' },
     }),
     commitAgentTurnResult: commitAgentTurnResultInternal,
     cancelTurn: async (input) => {
@@ -351,6 +423,7 @@ export async function commitProviderOutcome(input: {
   reasoningText: string;
   error?: ConversationTurnError;
   imageState?: AgentLocalChatImageState;
+  voiceState?: AgentLocalChatVoiceState;
   textBeatStates?: readonly AgentLocalTextBeatState[];
 }): Promise<AgentLocalCommitTurnResult> {
   return input.continuityAdapter.commitAgentTurnResult({
@@ -367,6 +440,7 @@ export async function commitProviderOutcome(input: {
     ],
     signal: input.baseInput.signal,
     imageState: input.imageState,
+    voiceState: input.voiceState,
     textBeatStates: input.textBeatStates,
   });
 }

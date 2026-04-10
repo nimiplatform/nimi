@@ -8,6 +8,7 @@ import {
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
   streamChatAgentRuntime,
+  synthesizeChatAgentVoiceRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
@@ -653,6 +654,116 @@ test('agent image runtime encodes artifact bytes to stable data url when uri is 
   assert.equal(result.artifactId, 'artifact-bytes');
 });
 
+test('agent voice runtime returns cached playback artifact from audio.synthesize routes', async () => {
+  const textProjection = {
+    capability: 'text.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'qwen3',
+    },
+    resolvedBinding: {
+      capability: 'text.generate' as const,
+      resolvedBindingRef: 'local:text:qwen3',
+      source: 'local' as const,
+      provider: 'llama',
+      model: 'qwen3',
+      modelId: 'qwen3',
+      connectorId: '',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const voiceProjection = {
+    capability: 'audio.synthesize' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'kokoro-82m',
+    },
+    resolvedBinding: {
+      capability: 'audio.synthesize' as const,
+      resolvedBindingRef: 'local:audio:kokoro-82m',
+      source: 'local' as const,
+      provider: 'kokoro',
+      model: 'kokoro-82m',
+      modelId: 'kokoro-82m',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:8010',
+      localProviderEndpoint: 'http://127.0.0.1:8010',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection,
+    voiceProjection,
+  });
+  const voiceExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'audio.synthesize',
+    projection: voiceProjection,
+    agentResolution,
+  });
+  const capturedRequests: Array<{
+    model?: unknown;
+    text?: unknown;
+    route?: unknown;
+    audioFormat?: unknown;
+  }> = [];
+
+  const result = await synthesizeChatAgentVoiceRuntime({
+    prompt: '晚安，记得早点休息。',
+    voiceExecutionSnapshot,
+  }, {
+    buildRuntimeRequestMetadataImpl: async () => ({ traceId: 'trace-voice-request' }),
+    getRuntimeClientImpl: () => ({
+      media: {
+        tts: {
+          synthesize: async (request: {
+            model?: unknown;
+            text?: unknown;
+            route?: unknown;
+            audioFormat?: unknown;
+          }) => {
+            capturedRequests.push(request);
+            return {
+              artifacts: [{
+                artifactId: 'voice-artifact-1',
+                mimeType: 'audio/mpeg',
+                uri: 'file:///tmp/voice-turn-1.mp3',
+              }],
+              trace: {
+                traceId: 'trace-voice-1',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
+  });
+
+  assert.equal(capturedRequests[0]?.model, 'kokoro-82m');
+  assert.equal(capturedRequests[0]?.text, '晚安，记得早点休息。');
+  assert.equal(capturedRequests[0]?.route, 'local');
+  assert.equal(capturedRequests[0]?.audioFormat, 'mp3');
+  assert.equal(result.mediaUrl, 'file:///tmp/voice-turn-1.mp3');
+  assert.equal(result.mimeType, 'audio/mpeg');
+  assert.equal(result.artifactId, 'voice-artifact-1');
+});
+
 test('agent image runtime injects managed image workflow profile entries for local-import z_image_turbo routes', async () => {
   const projection = {
     capability: 'image.generate' as const,
@@ -831,7 +942,7 @@ test('agent submit fail-closes when AgentEffectiveCapabilityResolution.ready is 
   assert.equal(res3.reason, 'ok');
 });
 
-test('agent capability resolution keeps image optional while exposing image readiness truth', () => {
+test('agent capability resolution keeps image and voice optional while exposing readiness truth', () => {
   const textProjection = {
     capability: 'text.generate' as const,
     selectedBinding: { source: 'local' as const, connectorId: '', model: 'qwen3' },
@@ -880,22 +991,110 @@ test('agent capability resolution keeps image optional while exposing image read
     supported: true,
     reasonCode: null,
   };
+  const readyVoiceProjection = {
+    capability: 'audio.synthesize' as const,
+    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice', model: 'gpt-4o-mini-tts' },
+    resolvedBinding: {
+      capability: 'audio.synthesize' as const,
+      resolvedBindingRef: 'cloud:audio:connector-voice:gpt-4o-mini-tts',
+      source: 'cloud' as const,
+      provider: 'openai',
+      model: 'gpt-4o-mini-tts',
+      modelId: 'gpt-4o-mini-tts',
+      connectorId: 'connector-voice',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
 
   const withoutImage = buildAgentEffectiveCapabilityResolution({
     textProjection,
     imageProjection: null,
+    voiceProjection: null,
   });
   assert.equal(withoutImage.ready, true);
   assert.equal(withoutImage.imageProjection, null);
   assert.equal(withoutImage.imageReady, false);
+  assert.equal(withoutImage.voiceProjection, null);
+  assert.equal(withoutImage.voiceReady, false);
+  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], false);
+  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.tts_t2v'], false);
+
+  const readyVoiceWorkflowCloneProjection = {
+    capability: 'voice_workflow.tts_v2v' as const,
+    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
+    resolvedBinding: {
+      capability: 'voice_workflow.tts_v2v' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.tts_v2v:connector-voice-clone:qwen3-tts-vc',
+      source: 'cloud' as const,
+      provider: 'dashscope',
+      model: 'qwen3-tts-vc',
+      modelId: 'qwen3-tts-vc',
+      connectorId: 'connector-voice-clone',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: {
+      capability: 'voice_workflow.tts_v2v' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.tts_v2v:connector-voice-clone:qwen3-tts-vc',
+      metadataKind: 'voice_workflow.tts_v2v' as const,
+      metadata: {
+        workflowType: 'tts_v2v' as const,
+        supportsReferenceAudioInput: true as const,
+        supportsTextPromptInput: true,
+        requiresTargetSynthesisBinding: true,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
+  const readyVoiceWorkflowDesignProjection = {
+    capability: 'voice_workflow.tts_t2v' as const,
+    selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-design', model: 'qwen3-tts-vd' },
+    resolvedBinding: {
+      capability: 'voice_workflow.tts_t2v' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.tts_t2v:connector-voice-design:qwen3-tts-vd',
+      source: 'cloud' as const,
+      provider: 'dashscope',
+      model: 'qwen3-tts-vd',
+      modelId: 'qwen3-tts-vd',
+      connectorId: 'connector-voice-design',
+    },
+    health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
+    metadata: {
+      capability: 'voice_workflow.tts_t2v' as const,
+      metadataVersion: 'v1' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.tts_t2v:connector-voice-design:qwen3-tts-vd',
+      metadataKind: 'voice_workflow.tts_t2v' as const,
+      metadata: {
+        workflowType: 'tts_t2v' as const,
+        supportsReferenceAudioInput: false as const,
+        supportsTextPromptInput: true as const,
+        requiresTargetSynthesisBinding: true,
+      },
+    },
+    supported: true,
+    reasonCode: null,
+  };
 
   const withReadyImage = buildAgentEffectiveCapabilityResolution({
     textProjection,
     imageProjection: readyImageProjection,
+    voiceProjection: readyVoiceProjection,
+    voiceWorkflowCloneProjection: readyVoiceWorkflowCloneProjection,
+    voiceWorkflowDesignProjection: readyVoiceWorkflowDesignProjection,
   });
   assert.equal(withReadyImage.ready, true);
   assert.equal(withReadyImage.imageProjection?.capability, 'image.generate');
   assert.equal(withReadyImage.imageReady, true);
+  assert.equal(withReadyImage.voiceProjection?.capability, 'audio.synthesize');
+  assert.equal(withReadyImage.voiceReady, true);
+  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.tts_v2v']?.capability, 'voice_workflow.tts_v2v');
+  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.tts_t2v']?.capability, 'voice_workflow.tts_t2v');
+  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], true);
+  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.tts_t2v'], true);
 
   const unresolvedImage = buildAgentEffectiveCapabilityResolution({
     textProjection,
@@ -903,9 +1102,19 @@ test('agent capability resolution keeps image optional while exposing image read
       ...readyImageProjection,
       resolvedBinding: null,
     },
+    voiceProjection: {
+      ...readyVoiceProjection,
+      resolvedBinding: null,
+    },
+    voiceWorkflowCloneProjection: {
+      ...readyVoiceWorkflowCloneProjection,
+      resolvedBinding: null,
+    },
   });
   assert.equal(unresolvedImage.ready, true);
   assert.equal(unresolvedImage.imageReady, false);
+  assert.equal(unresolvedImage.voiceReady, false);
+  assert.equal(unresolvedImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], false);
 });
 
 test('agent local mode creates image execution snapshot for runtime-authoritative local image routes with endpoint', () => {
@@ -1009,6 +1218,7 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
   const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
   const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
+  const humanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
   const orchestrationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-orchestration.ts');
   assert.match(adapterSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
@@ -1033,6 +1243,12 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\);/);
   assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
   assert.match(adapterSource, /logRendererEvent/);
+  assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);
+  assert.match(adapterSource, /voiceSessionState/);
+  assert.match(adapterSource, /handleVoiceSessionToggle/);
+  assert.match(adapterSource, /resolveIsVoiceSessionForeground/);
+  assert.match(adapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
+  assert.match(adapterSource, /autoStopMode:\s*'silence'/);
   assert.match(adapterSource, /if \(agentRouteReady\) \{\s+return createReadyConversationSetupState\('agent'\);/);
   assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& \(!activeTarget \|\| agentRouteReady\)/);
   assert.match(orchestrationSource, /normalizeConversationRuntimeTextStreamPart/);
@@ -1046,8 +1262,10 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(presentationSource, /resolveAgentTargetSummaries/);
   assert.match(presentationSource, /resolveAgentCanonicalMessages/);
   assert.match(presentationSource, /resolveAgentSelectedTargetId/);
+  assert.match(presentationSource, /voiceState=\{resolveAgentComposerVoiceState/);
   assert.match(effectsSource, /applyDriverEffects/);
   assert.match(effectsSource, /applyHostInteractionPatch/);
+  assert.doesNotMatch(humanAdapterSource, /voice session mode stays on/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.createThread/);
   assert.doesNotMatch(adapterSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.doesNotMatch(adapterSource, /matchConversationTurnEvent/);

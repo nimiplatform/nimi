@@ -82,6 +82,18 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 - `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
 - AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
+- 本契约只拥有 runtime-aligned voice route/API truth；agent chat richer workflow 是否被
+  admit、属于 `tts_v2v` 还是 `tts_t2v`、使用什么 voice identity、以及 workflow result
+  如何回到当前 thread，固定由 `agent-chat-voice-workflow-contract.md`
+  （`D-LLM-047` ~ `D-LLM-052`）拥有
+- 本契约只拥有 runtime-aligned TTS route/API truth；agent chat resolved `voice`
+  action consumption、`audio.synthesize` 首包 executor semantics、以及 playback-ready
+  speech artifact outcome 固定由
+  `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）拥有
+- 本契约同样不拥有 broader voice session product semantics；explicit entry / exit、
+  same-thread continuity、admitted listening modes、interruption、以及
+  transcript / caption rules 固定由
+  `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有
 
 ## D-LLM-006 — 本地 AI 推理审计
 

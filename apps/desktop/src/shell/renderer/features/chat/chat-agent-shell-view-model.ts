@@ -48,6 +48,7 @@ export function resolveAgentCanonicalMessages(input: {
     const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
     const kind = String(metadata.kind || '').trim();
     const isImage = kind === 'image';
+    const isVoice = kind === 'voice';
     return {
       id: message.id,
       sessionId: input.activeThreadId || input.activeTargetId || 'agent',
@@ -61,7 +62,9 @@ export function resolveAgentCanonicalMessages(input: {
       error: message.error,
       kind: isImage
         ? (message.status === 'pending' ? 'image-pending' as const : 'image' as const)
-        : 'text' as const,
+        : isVoice
+          ? 'voice' as const
+          : 'text' as const,
       senderName: isUser ? 'You' : input.character.name,
       senderAvatarUrl: isUser ? undefined : input.character.avatarUrl || undefined,
       senderHandle: isUser ? undefined : input.character.handle || undefined,

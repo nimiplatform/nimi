@@ -157,6 +157,21 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   readiness；resolved modality action 是否存在、其 relation 是什么、以及
   `promptPayload` 是什么，固定由 `agent-chat-beat-action-contract.md` 拥有，capability
   layer 不得从 healthy projection 反推 action existence
+- `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` projection healthy 同样只表达
+  execution readiness；某个 richer workflow 是否被 admit、属于哪种 workflow type、
+  使用什么 voice identity、以及 workflow result 如何回到当前 thread，固定由
+  `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）拥有，capability
+  layer 不得从 healthy projection 反推 workflow semantics
+- `audio.synthesize` 或 `voice_workflow.*` projection healthy 同样只表达 execution
+  readiness；某个 resolved `voice` action 是否进入 agent chat voice executor、是否形成
+  playback-ready outcome，固定由 `agent-chat-voice-executor-contract.md`
+  （`D-LLM-034` ~ `D-LLM-039`）拥有，capability layer 不得从 healthy projection 反推
+  executor success truth
+- `audio.transcribe`、`audio.synthesize`、或 `voice_workflow.*` projection healthy 也不表达
+  broader voice session 已被 admit；explicit entry / exit、same-thread continuity、
+  admitted listening modes、interruption、以及 transcript / caption rules 固定由
+  `agent-chat-voice-session-contract.md`（`D-LLM-040` ~ `D-LLM-046`）拥有，capability layer
+  不得从 healthy projection 反推 session semantics
 
 ## D-LLM-019 — Conversation Execution Snapshot
 
@@ -173,6 +188,15 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   action、或 `promptPayload` evidence，也只能作为对
   `agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）的只读引用或副本；
   snapshot 不得成为 beat/action resolution 的平行 owner
+- snapshot 若携带 richer voice workflow admission、workflow type、voice identity /
+  `VoiceReference`、preset/custom voice selection、或 workflow return-path evidence，
+  也只能作为对 `agent-chat-voice-workflow-contract.md`
+  （`D-LLM-047` ~ `D-LLM-052`）的只读引用或副本；snapshot 不得成为 richer voice
+  workflow product semantics 的平行 owner
+- snapshot 若携带 agent chat voice executor、playback-ready speech artifact、或 voice
+  playback outcome evidence，也只能作为对
+  `agent-chat-voice-executor-contract.md`（`D-LLM-034` ~ `D-LLM-039`）的只读引用或副本；
+  snapshot 不得成为 voice executor product semantics 的平行 owner
 
 thread-level `routeSnapshot` 不再是允许的规范 contract。
 
@@ -200,3 +224,18 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
   `agent-chat-beat-action-contract.md` 定义的 resolved beat/action outputs；不得经由
   capability health、metadata、`runtimeFields`、或 connector/model 默认值派生一份
   平行 beat/action truth
+- AI / Agent submit path 若还需要 richer voice workflow admission、workflow type、
+  agent chat voice identity / `VoiceReference`、preset/custom voice selection、或
+  workflow return-path 决策，必须消费
+  `agent-chat-voice-workflow-contract.md` 定义的 outputs；不得经由 capability health、
+  `runtimeFields`、voice list、voice asset inventory、或 connector/model 默认值派生
+  一份平行 workflow truth
+- AI / Agent submit path 若还需要 agent chat voice executor 决策、`audio.synthesize`
+  首包 playback outcome、或 playback-ready speech artifact evidence，必须消费
+  `agent-chat-voice-executor-contract.md` 定义的 outputs；不得经由 capability health、
+  `runtimeFields`、voice list、或 connector/model 默认值派生一份平行 voice executor
+  truth
+- AI / Agent submit path 若还需要 broader voice session 决策、listening-mode
+  session semantics、或 transcript/caption reveal boundary，必须消费
+  `agent-chat-voice-session-contract.md` 定义的 outputs；不得经由 capability health、
+  `runtimeFields`、capture state、或 UI local state 派生一份平行 session truth

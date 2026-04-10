@@ -20,6 +20,7 @@ export function createAgentTextMessage(
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
+    metadataJson: null,
     ...input,
   };
 }
@@ -36,6 +37,24 @@ export function createAgentImageMessage(
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
+    metadataJson: null,
+    ...input,
+  };
+}
+
+export function createAgentVoiceMessage(
+  input: PartialWithRequired<AgentLocalMessageRecord, 'id' | 'threadId' | 'role' | 'status' | 'contentText' | 'createdAtMs' | 'updatedAtMs'>,
+): AgentLocalMessageRecord {
+  return {
+    kind: 'voice',
+    reasoningText: null,
+    error: null,
+    traceId: null,
+    parentMessageId: null,
+    mediaUrl: null,
+    mediaMimeType: null,
+    artifactId: null,
+    metadataJson: null,
     ...input,
   };
 }
@@ -50,12 +69,14 @@ export function createAgentUpdateMessageInput(
   input: PartialWithRequired<AgentLocalUpdateMessageInput, 'id' | 'status' | 'contentText' | 'updatedAtMs'>,
 ): AgentLocalUpdateMessageInput {
   return {
+    kind: 'text',
     reasoningText: null,
     error: null,
     traceId: null,
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
+    metadataJson: null,
     ...input,
   };
 }

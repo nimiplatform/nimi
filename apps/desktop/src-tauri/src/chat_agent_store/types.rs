@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 3;
+pub(crate) const CHAT_AGENT_DB_SCHEMA_VERSION: i64 = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -23,6 +23,7 @@ pub enum ChatAgentMessageStatus {
 pub enum ChatAgentMessageKind {
     Text,
     Image,
+    Voice,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -122,6 +123,7 @@ pub struct ChatAgentMessageRecord {
     pub media_url: Option<String>,
     pub media_mime_type: Option<String>,
     pub artifact_id: Option<String>,
+    pub metadata_json: Option<serde_json::Value>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }
@@ -284,6 +286,7 @@ pub struct ChatAgentCreateMessageInput {
     pub media_url: Option<String>,
     pub media_mime_type: Option<String>,
     pub artifact_id: Option<String>,
+    pub metadata_json: Option<serde_json::Value>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }
@@ -292,6 +295,7 @@ pub struct ChatAgentCreateMessageInput {
 #[serde(rename_all = "camelCase")]
 pub struct ChatAgentUpdateMessageInput {
     pub id: String,
+    pub kind: ChatAgentMessageKind,
     pub status: ChatAgentMessageStatus,
     pub content_text: String,
     pub reasoning_text: Option<String>,
@@ -300,6 +304,7 @@ pub struct ChatAgentUpdateMessageInput {
     pub media_url: Option<String>,
     pub media_mime_type: Option<String>,
     pub artifact_id: Option<String>,
+    pub metadata_json: Option<serde_json::Value>,
     pub updated_at_ms: i64,
 }
 
@@ -366,6 +371,18 @@ pub struct ChatAgentTurnBeatInput {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ChatAgentUpdateTurnBeatInput {
+    pub id: String,
+    pub status: ChatAgentBeatStatus,
+    pub text_shadow: Option<String>,
+    pub artifact_id: Option<String>,
+    pub mime_type: Option<String>,
+    pub media_url: Option<String>,
+    pub delivered_at_ms: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatAgentInteractionSnapshotInput {
     pub thread_id: String,
     pub version: i64,
@@ -418,6 +435,7 @@ pub struct ChatAgentProjectionMessageInput {
     pub media_url: Option<String>,
     pub media_mime_type: Option<String>,
     pub artifact_id: Option<String>,
+    pub metadata_json: Option<serde_json::Value>,
     pub created_at_ms: i64,
     pub updated_at_ms: i64,
 }

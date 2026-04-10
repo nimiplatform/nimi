@@ -236,6 +236,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             chat_agent_store::chat_agent_update_thread_metadata,
             chat_agent_store::chat_agent_create_message,
             chat_agent_store::chat_agent_update_message,
+            chat_agent_store::chat_agent_update_turn_beat,
             chat_agent_store::chat_agent_get_draft,
             chat_agent_store::chat_agent_put_draft,
             chat_agent_store::chat_agent_delete_draft,

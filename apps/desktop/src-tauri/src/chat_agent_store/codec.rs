@@ -61,6 +61,7 @@ pub(super) fn message_kind_to_db_value(value: ChatAgentMessageKind) -> &'static 
     match value {
         ChatAgentMessageKind::Text => "text",
         ChatAgentMessageKind::Image => "image",
+        ChatAgentMessageKind::Voice => "voice",
     }
 }
 
@@ -86,6 +87,7 @@ pub(super) fn parse_message_kind(value: &str) -> Result<ChatAgentMessageKind, St
     match value {
         "text" => Ok(ChatAgentMessageKind::Text),
         "image" => Ok(ChatAgentMessageKind::Image),
+        "voice" => Ok(ChatAgentMessageKind::Voice),
         other => Err(format!("chat_agent message kind is invalid: {other}")),
     }
 }

@@ -186,12 +186,20 @@ export function resolveAgentConsumerSnapshotForHarness(input: {
     composerReady: input.composerReady ?? true,
     activeTarget: input.activeTarget,
     submittingThreadId: input.state.submittingThreadId,
+    voiceSessionState: {
+      status: 'idle',
+      mode: 'push-to-talk',
+      message: null,
+    },
     footerViewState,
     labels: {
       title,
       sendingDisabledReason: 'The agent is replying…',
       composerPlaceholderWithTarget: `Talk to ${input.activeTarget?.displayName || 'this agent'}…`,
       composerPlaceholderWithoutTarget: 'Select an agent to start chatting…',
+      voiceHandsFreeLabel: 'Hands-free on (foreground only)',
+      voiceListeningLabel: 'Listening',
+      voiceTranscribingLabel: 'Transcribing…',
     },
   });
   const characterData = {
