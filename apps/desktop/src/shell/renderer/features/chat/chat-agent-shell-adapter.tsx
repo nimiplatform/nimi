@@ -37,6 +37,7 @@ import {
 import { createAgentLocalChatConversationProvider } from './chat-agent-orchestration';
 import type { AgentConversationSelection } from './chat-shell-types';
 import {
+  RuntimeImageMessageContent,
   createReasoningMessageContentRenderer,
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
@@ -87,6 +88,8 @@ import {
   resolveIdleAgentVoiceSessionShellState,
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session';
+import type { PendingAttachment } from '../turns/turn-input-attachments';
+import { clearPendingAttachments } from '../turns/turn-input-attachments';
 
 function resolveIsVoiceSessionForeground(): boolean {
   if (typeof document === 'undefined') {
@@ -144,10 +147,12 @@ export function useAgentConversationModeHost(
   const [voiceSessionState, setVoiceSessionState] = useState<AgentVoiceSessionShellState>(
     () => createInitialAgentVoiceSessionShellState(),
   );
+  const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
   const [isVoiceSessionForeground, setIsVoiceSessionForeground] = useState<boolean>(
     () => resolveIsVoiceSessionForeground(),
   );
   const currentDraftTextRef = useRef('');
+  const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
   const latestVoiceCaptureByThreadRef = useRef<Record<string, {
     bytes: Uint8Array;
     mimeType: string;
@@ -186,6 +191,14 @@ export function useAgentConversationModeHost(
   const setBehaviorSettings = useCallback((nextSettings: AgentChatExperienceSettings) => {
     persistStoredAgentChatExperienceSettings(nextSettings);
     setBehaviorSettingsState(nextSettings);
+  }, []);
+  useEffect(() => {
+    pendingAttachmentsByThreadRef.current = pendingAttachmentsByThreadId;
+  }, [pendingAttachmentsByThreadId]);
+  useEffect(() => () => {
+    for (const attachments of Object.values(pendingAttachmentsByThreadRef.current)) {
+      clearPendingAttachments([...attachments], (url) => URL.revokeObjectURL(url));
+    }
   }, []);
   const thinkingUnsupportedReason = useMemo(() => {
     if (thinkingSupport.supported || !thinkingSupport.reason) {
@@ -452,11 +465,58 @@ export function useAgentConversationModeHost(
   });
 
   const reasoningLabel = t('Chat.reasoningLabel', { defaultValue: 'Thought process' });
-  const renderMessageContent = useMemo(
+  const renderReasoningMessageContent = useMemo(
     () => createReasoningMessageContentRenderer(reasoningLabel),
     [reasoningLabel],
   );
+  const renderMessageContent = useMemo(() => (
+    (
+      message: Parameters<NonNullable<typeof renderReasoningMessageContent>>[0],
+      context: Parameters<NonNullable<typeof renderReasoningMessageContent>>[1],
+    ) => {
+      if (message.kind === 'image' || message.kind === 'image-pending') {
+        return (
+          <RuntimeImageMessageContent
+            message={message}
+            imageLabel={t('ChatTimeline.imageMessage', 'Image')}
+            showCaptionLabel={t('ChatTimeline.showImagePrompt', 'Show prompt')}
+            hideCaptionLabel={t('ChatTimeline.hideImagePrompt', 'Hide prompt')}
+          />
+        );
+      }
+      return renderReasoningMessageContent(message, context);
+    }
+  ), [renderReasoningMessageContent, t]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
+  const activePendingAttachments = activeThreadId
+    ? (pendingAttachmentsByThreadId[activeThreadId] || [])
+    : [];
+  const setPendingAttachmentsForThread = useCallback((threadId: string | null, nextAttachments: readonly PendingAttachment[]) => {
+    const normalizedThreadId = typeof threadId === 'string' ? threadId.trim() : '';
+    if (!normalizedThreadId) {
+      return;
+    }
+    setPendingAttachmentsByThreadId((current) => {
+      const existing = current[normalizedThreadId] || [];
+      const nextUrlSet = new Set(nextAttachments.map((attachment) => attachment.previewUrl));
+      for (const attachment of existing) {
+        if (!nextUrlSet.has(attachment.previewUrl)) {
+          URL.revokeObjectURL(attachment.previewUrl);
+        }
+      }
+      if (nextAttachments.length === 0) {
+        if (!(normalizedThreadId in current)) {
+          return current;
+        }
+        const { [normalizedThreadId]: _removed, ...rest } = current;
+        return rest;
+      }
+      return {
+        ...current,
+        [normalizedThreadId]: [...nextAttachments],
+      };
+    });
+  }, []);
   const persistVoiceTranscriptDraft = useCallback(async (text: string) => {
     if (!activeThreadId) {
       throw new Error('Voice input is unavailable because no active thread is selected.');
@@ -784,7 +844,9 @@ export function useAgentConversationModeHost(
     inputSelectionAgentId: input.selection.agentId,
     isBundleLoading,
     messages,
+    pendingAttachments: activePendingAttachments,
     onDismissHostFeedback: () => setHostFeedback(null),
+    onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
     onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
     renderMessageContent,

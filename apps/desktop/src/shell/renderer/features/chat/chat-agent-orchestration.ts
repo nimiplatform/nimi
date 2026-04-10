@@ -29,7 +29,10 @@ import type {
   AISnapshot,
 } from './conversation-capability';
 import { getStreamState } from '../turns/stream-controller';
-import { buildAgentLocalChatExecutionTextRequest } from './chat-ai-execution-engine';
+import {
+  buildAgentLocalChatExecutionTextRequest,
+  type AgentChatUserAttachment,
+} from './chat-ai-execution-engine';
 import type {
   AgentResolvedBehavior,
 } from './chat-agent-behavior';
@@ -362,8 +365,11 @@ export function createAgentLocalChatConversationProvider(
     async *runTurn(input: ConversationTurnInput): AsyncIterable<ConversationTurnEvent> {
       const metadata = requireProviderMetadata(input.metadata);
       const userText = normalizeText(input.userMessage.text);
-      if (!userText) {
-        throw new Error('agent-local-chat-v1 requires a non-empty user message');
+      const userAttachments = Array.isArray(input.userMessage.attachments)
+        ? input.userMessage.attachments as readonly AgentChatUserAttachment[]
+        : [];
+      if (!userText && userAttachments.length === 0) {
+        throw new Error('agent-local-chat-v1 requires a non-empty user message or image attachment');
       }
 
       const turnContext = await continuityAdapter.loadTurnContext({
@@ -377,6 +383,7 @@ export function createAgentLocalChatConversationProvider(
         targetSnapshot: metadata.targetSnapshot,
         history: input.history,
         userText,
+        userAttachments,
         context: turnContext,
         resolvedBehavior: metadata.resolvedBehavior,
       });

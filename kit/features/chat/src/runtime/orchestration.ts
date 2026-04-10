@@ -278,7 +278,7 @@ function toSdkTextStreamRequest(request: ConversationRuntimeTextRequest): TextSt
 function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
   return {
     role: message.role,
-    content: message.text,
+    content: message.content ?? message.text,
     name: normalizeNullableText(message.name) || undefined,
   };
 }

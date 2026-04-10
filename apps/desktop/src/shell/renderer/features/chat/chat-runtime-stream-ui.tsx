@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ChatStreamStatus,
@@ -15,6 +15,28 @@ import {
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
   return normalized || null;
+}
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function resolveImageUrls(message: ConversationCanonicalMessage): string[] {
+  const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
+  const attachmentUrls = Array.isArray(metadata.attachments)
+    ? metadata.attachments
+      .map((attachment) => (
+        attachment && typeof attachment === 'object'
+          ? normalizeText((attachment as { url?: unknown }).url)
+          : ''
+      ))
+      .filter(Boolean)
+    : [];
+  const mediaUrl = normalizeText(metadata.mediaUrl);
+  if (attachmentUrls.length > 0) {
+    return attachmentUrls;
+  }
+  return mediaUrl ? [mediaUrl] : [];
 }
 
 export function useConversationStreamState(chatId: string | null): StreamState | null {
@@ -64,6 +86,55 @@ export function RuntimeReasoningMessageContent(props: {
             </p>
           ))}
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function RuntimeImageMessageContent(props: {
+  message: ConversationCanonicalMessage;
+  imageLabel: string;
+  showCaptionLabel: string;
+  hideCaptionLabel: string;
+}) {
+  const imageUrls = resolveImageUrls(props.message);
+  const caption = normalizeText(props.message.text);
+  const [captionVisible, setCaptionVisible] = useState(false);
+  const toggleCaption = useCallback(() => setCaptionVisible((prev) => !prev), []);
+  if (imageUrls.length === 0) {
+    return caption ? <p className="whitespace-pre-wrap">{caption}</p> : null;
+  }
+  return (
+    <div className="space-y-3">
+      <div className={`grid gap-2 ${imageUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {imageUrls.map((url, index) => (
+          <div key={`${props.message.id}-image-${index}`} className="relative">
+            <img
+              src={url}
+              alt={props.imageLabel}
+              className="max-h-[480px] w-full max-w-[480px] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] object-cover"
+            />
+            {caption ? (
+              <button
+                type="button"
+                onClick={toggleCaption}
+                className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/80 backdrop-blur-sm transition hover:bg-black/70"
+                aria-label={captionVisible ? props.hideCaptionLabel : props.showCaptionLabel}
+                title={captionVisible ? props.hideCaptionLabel : props.showCaptionLabel}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {caption && captionVisible ? (
+        <p className="whitespace-pre-wrap text-xs text-[var(--nimi-text-muted)]">{caption}</p>
       ) : null}
     </div>
   );

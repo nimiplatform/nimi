@@ -688,6 +688,74 @@ test('agent local chat execution seam compacts continuity and packs history by b
   assert.equal(request.diagnostics.transcript.emittedMessages, request.messages.length);
 });
 
+test('agent local chat execution seam emits multimodal user content when image attachments are present', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: 'Describe this image.',
+    context: sampleTurnContext(),
+    userAttachments: [{
+      kind: 'image',
+      url: 'https://cdn.nimi.test/uploads/pasted-image.png',
+      mimeType: 'image/png',
+      name: 'pasted-image.png',
+      resourceId: 'resource-image-1',
+    }],
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: 'Describe this image.',
+      settings: {
+        thinkingPreference: 'off',
+      },
+    }),
+  });
+
+  const userMessage = request.messages.at(-1);
+  assert.equal(userMessage?.role, 'user');
+  assert.equal(userMessage?.text, 'Describe this image.');
+  assert.deepEqual(userMessage?.content, [{
+    type: 'image_url',
+    imageUrl: 'https://cdn.nimi.test/uploads/pasted-image.png',
+  }, {
+    type: 'text',
+    text: 'Describe this image.',
+  }]);
+  assert.match(request.prompt, /UserAttachments:/);
+  assert.match(request.prompt, /"resourceId": "resource-image-1"/);
+});
+
+test('agent local chat execution seam allows attachment-only turns and emits image placeholder prompt text', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: '',
+    context: sampleTurnContext(),
+    userAttachments: [{
+      kind: 'image',
+      url: 'https://cdn.nimi.test/uploads/attachment-only.png',
+      mimeType: 'image/png',
+      name: 'attachment-only.png',
+      resourceId: 'resource-image-2',
+    }],
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: '',
+      settings: {
+        thinkingPreference: 'off',
+      },
+    }),
+  });
+
+  const userMessage = request.messages.at(-1);
+  assert.equal(userMessage?.role, 'user');
+  assert.equal(userMessage?.text, '');
+  assert.deepEqual(userMessage?.content, [{
+    type: 'image_url',
+    imageUrl: 'https://cdn.nimi.test/uploads/attachment-only.png',
+  }]);
+  assert.match(request.prompt, /User: \[Image attachment\]/);
+});
+
 test('agent local chat diagnostics inspection returns a stable copy surface', () => {
   const request = buildAgentLocalChatExecutionTextRequest({
     systemPrompt: 'Be warm and concise.',

@@ -2,6 +2,7 @@ import type {
   ConversationRuntimeTextMessage,
   ConversationTurnHistoryMessage,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { TextMessageContentPart } from '@nimiplatform/sdk/runtime';
 import type {
   AgentLocalBeatModality,
   AgentLocalTargetSnapshot,
@@ -126,11 +127,20 @@ export type AgentLocalChatExecutionTextRequest = {
   diagnostics: AgentLocalChatPromptDiagnostics;
 };
 
+export type AgentChatUserAttachment = {
+  kind: 'image';
+  url: string;
+  mimeType: string | null;
+  name: string;
+  resourceId: string | null;
+};
+
 export type BuildAgentLocalChatExecutionTextRequestInput = {
   systemPrompt: string | null;
   targetSnapshot: AgentLocalTargetSnapshot;
   history: readonly ConversationTurnHistoryMessage[];
   userText: string;
+  userAttachments?: readonly AgentChatUserAttachment[];
   context: AgentLocalTurnContext;
   resolvedBehavior?: AgentResolvedBehavior | null;
   modelContextTokens?: number | null;
@@ -452,9 +462,29 @@ function buildHistoryCandidates(history: readonly ConversationTurnHistoryMessage
     });
 }
 
+function buildUserMessageContent(
+  userText: string,
+  attachments: readonly AgentChatUserAttachment[],
+): string | TextMessageContentPart[] {
+  if (attachments.length === 0) {
+    return userText;
+  }
+  const content: TextMessageContentPart[] = attachments.map((attachment) => ({
+    type: 'image_url',
+    imageUrl: attachment.url,
+  }));
+  if (normalizeText(userText)) {
+    content.push({
+      type: 'text',
+      text: userText,
+    });
+  }
+  return content;
+}
+
 function packHistoryMessages(input: {
   history: readonly ConversationTurnHistoryMessage[];
-  userText: string;
+  userMessage: ConversationRuntimeTextMessage;
   historyBudgetTokens: number;
 }): {
   messages: ConversationRuntimeTextMessage[];
@@ -501,10 +531,7 @@ function packHistoryMessages(input: {
   return {
     messages: [
       ...retained.map((candidate) => candidate.message),
-      {
-        role: 'user',
-        text: input.userText,
-      },
+      input.userMessage,
     ],
     transcriptLines: retained.map((candidate) => candidate.transcriptLine),
     historyTokens,
@@ -556,9 +583,14 @@ export function buildAgentLocalChatExecutionTextRequest(
 ): AgentLocalChatExecutionTextRequest {
   const modelContext = resolveModelContextTokens(input.modelContextTokens);
   const initialBudget = createInitialBudget(modelContext.value);
+  const userAttachments = (input.userAttachments || []).filter((attachment) => (
+    attachment.kind === 'image' && normalizeText(attachment.url)
+  ));
+  const userContent = buildUserMessageContent(input.userText, userAttachments);
   const userMessage: ConversationRuntimeTextMessage = {
     role: 'user',
     text: input.userText,
+    ...(Array.isArray(userContent) ? { content: userContent } : {}),
   };
   const userTokens = estimateRuntimeMessageTokens(userMessage);
   const fullDigest = buildContinuityDigest(input.context);
@@ -569,7 +601,7 @@ export function buildAgentLocalChatExecutionTextRequest(
   );
   const packedHistory = packHistoryMessages({
     history: input.history,
-    userText: input.userText,
+    userMessage,
     historyBudgetTokens,
   });
   const promptSections = [
@@ -577,7 +609,15 @@ export function buildAgentLocalChatExecutionTextRequest(
     packedHistory.transcriptLines.length > 0
       ? `Transcript:\n${packedHistory.transcriptLines.join('\n')}`
       : null,
-    `UserMessage:\nUser: ${input.userText}`,
+    userAttachments.length > 0
+      ? `UserAttachments:\n${stringifyJson(userAttachments.map((attachment) => ({
+        kind: attachment.kind,
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        resourceId: attachment.resourceId,
+      })))}`
+      : null,
+    `UserMessage:\nUser: ${input.userText || (userAttachments.length > 0 ? '[Image attachment]' : '')}`,
   ].filter(Boolean);
   const prompt = promptSections.join('\n\n');
   const budget: AgentLocalChatContextBudget = {

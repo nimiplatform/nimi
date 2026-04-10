@@ -1,3 +1,4 @@
+import type { TextMessageContentPart } from '@nimiplatform/sdk/runtime';
 import type { ConversationMessageRole } from '../types.js';
 
 export const CONVERSATION_ORCHESTRATION_MODE_IDS = [
@@ -55,6 +56,7 @@ export type ConversationRuntimeTrace = {
 export type ConversationRuntimeTextMessage = {
   role: ConversationTurnRole;
   text: string;
+  content?: string | TextMessageContentPart[];
   name?: string | null;
 };
 

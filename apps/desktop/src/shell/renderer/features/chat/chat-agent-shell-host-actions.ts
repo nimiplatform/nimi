@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
+import { dataSync } from '@runtime/data-sync';
 import {
   matchConversationTurnEvent,
   type ConversationTurnEvent,
@@ -72,8 +73,11 @@ import {
   getStreamState,
   startStream,
 } from '../turns/stream-controller';
+import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
+import type { AgentChatUserAttachment } from './chat-ai-execution-engine';
+import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
 
 type AgentRunTurn = (input: {
   threadId: string;
@@ -81,7 +85,7 @@ type AgentRunTurn = (input: {
   userMessage: {
     id: string;
     text: string;
-    attachments: unknown[];
+    attachments: readonly AgentChatUserAttachment[];
   };
   history: ReturnType<typeof toConversationHistoryMessages>;
   signal: AbortSignal;
@@ -173,7 +177,7 @@ export function useAgentConversationHostActions(
 ): {
   handleSelectAgent: (agentId: string | null) => void;
   handleSelectThread: (threadId: string) => void;
-  handleSubmit: (text: string) => Promise<void>;
+  handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
 } {
   useEffect(() => {
     input.currentDraftTextRef.current = input.draftText || '';
@@ -325,7 +329,50 @@ export function useAgentConversationHostActions(
     })().catch(input.reportHostError);
   }, [createOrRestoreThreadForTarget, input, persistDraftForThread]);
 
-  const handleSubmit = useCallback(async (text: string) => {
+  const uploadPendingAttachment = useCallback(async (attachment: PendingAttachment): Promise<AgentChatUserAttachment> => {
+    if (attachment.kind !== 'image') {
+      throw new Error(input.t('Chat.agentAttachmentImageOnly', {
+        defaultValue: 'Agent chat currently supports image attachments only.',
+      }));
+    }
+    const upload = await dataSync.createImageDirectUpload();
+    const formData = new FormData();
+    formData.append('file', attachment.file);
+    let response = await fetch(upload.uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      response = await fetch(upload.uploadUrl, {
+        method: 'PUT',
+        body: attachment.file,
+        headers: {
+          'Content-Type': attachment.file.type,
+        },
+      });
+    }
+    if (!response.ok) {
+      throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
+        defaultValue: 'Failed to upload image attachment.',
+      }));
+    }
+    const finalized = await dataSync.finalizeResource(upload.resourceId, {});
+    const url = normalizeText(finalized.url);
+    if (!url) {
+      throw new Error(input.t('Chat.agentAttachmentUploadFailed', {
+        defaultValue: 'Failed to upload image attachment.',
+      }));
+    }
+    return {
+      kind: 'image',
+      url,
+      mimeType: normalizeText(finalized.mimeType) || attachment.file.type || null,
+      name: attachment.name,
+      resourceId: normalizeText(finalized.id) || normalizeText(upload.resourceId) || null,
+    };
+  }, [input]);
+
+  const handleSubmit = useCallback(async (payload: { text: string; attachments: readonly PendingAttachment[] }) => {
     try {
       const activeTarget = input.activeTarget;
       if (!activeTarget) {
@@ -333,8 +380,8 @@ export function useAgentConversationHostActions(
           defaultValue: 'Select an agent friend before sending a message.',
         }));
       }
-      const submittedText = text.trim();
-      if (!submittedText) {
+      const submittedText = payload.text.trim();
+      if (!submittedText && payload.attachments.length === 0) {
         return;
       }
       const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
@@ -370,28 +417,19 @@ export function useAgentConversationHostActions(
       }
 
       const userTurnId = randomIdV11('agent-turn-user');
-      const userMessageId = randomIdV11('agent-message-user');
       const assistantTurnId = randomIdV11('agent-turn');
       const assistantMessageId = `${assistantTurnId}:message:0`;
       const createdAtMs = Date.now();
-      const userMessage: AgentLocalMessageRecord = {
-        id: userMessageId,
+      const uploadedAttachments = payload.attachments.length > 0
+        ? await Promise.all(payload.attachments.map((attachment) => uploadPendingAttachment(attachment)))
+        : [];
+      const userProjection = buildAgentUserProjectionCommit({
         threadId: effectiveThreadId,
-        role: 'user',
-        status: 'complete',
-        kind: 'text',
-        contentText: submittedText,
-        reasoningText: null,
-        error: null,
-        traceId: null,
-        parentMessageId: null,
-        mediaUrl: null,
-        mediaMimeType: null,
-        artifactId: null,
-        metadataJson: null,
+        turnId: userTurnId,
+        submittedText,
+        uploadedAttachments,
         createdAtMs,
-        updatedAtMs: createdAtMs,
-      };
+      });
       const assistantPlaceholder: AgentLocalMessageRecord = {
         id: assistantMessageId,
         threadId: effectiveThreadId,
@@ -402,13 +440,13 @@ export function useAgentConversationHostActions(
         reasoningText: null,
         error: null,
         traceId: null,
-        parentMessageId: userMessageId,
+        parentMessageId: userProjection.lastMessageId,
         mediaUrl: null,
         mediaMimeType: null,
         artifactId: null,
         metadataJson: null,
-        createdAtMs: createdAtMs + 1,
-        updatedAtMs: createdAtMs + 1,
+        createdAtMs: userProjection.lastMessageAtMs + 1,
+        updatedAtMs: userProjection.lastMessageAtMs + 1,
       };
 
       input.currentDraftTextRef.current = submittedText;
@@ -450,20 +488,9 @@ export function useAgentConversationHostActions(
           completedAtMs: createdAtMs,
           abortedAtMs: null,
         },
-        beats: [{
-          id: `${userTurnId}:beat:0`,
-          turnId: userTurnId,
-          beatIndex: 0,
-          modality: 'text',
-          status: 'delivered',
-          textShadow: submittedText,
-          artifactId: null,
-          mimeType: 'text/plain',
-          mediaUrl: null,
-          projectionMessageId: userMessageId,
-          createdAtMs,
-          deliveredAtMs: createdAtMs,
-        }],
+        beats: [
+          ...userProjection.beats,
+        ],
         interactionSnapshot: null,
         relationMemorySlots: [],
         recallEntries: [],
@@ -472,11 +499,11 @@ export function useAgentConversationHostActions(
             id: effectiveThreadRecord.id,
             title: effectiveThreadRecord.title,
             updatedAtMs: createdAtMs,
-            lastMessageAtMs: createdAtMs,
+            lastMessageAtMs: userProjection.lastMessageAtMs,
             archivedAtMs: effectiveThreadRecord.archivedAtMs,
             targetSnapshot: activeTarget,
           },
-          messages: [userMessage],
+          messages: userProjection.messages,
           draft: null,
           clearDraft: true,
         },
@@ -607,9 +634,9 @@ export function useAgentConversationHostActions(
           threadId: effectiveThreadId,
           turnId: assistantTurnId,
           userMessage: {
-            id: userMessageId,
+            id: userProjection.firstMessageId,
             text: submittedText,
-            attachments: [],
+            attachments: uploadedAttachments,
           },
           history,
           signal: abortController.signal,
@@ -788,7 +815,7 @@ export function useAgentConversationHostActions(
       input.reportHostError(error);
       throw error;
     }
-  }, [input]);
+  }, [input, uploadPendingAttachment]);
 
   return {
     handleSelectAgent,

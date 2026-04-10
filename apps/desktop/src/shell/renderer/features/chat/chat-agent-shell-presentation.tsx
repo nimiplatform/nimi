@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import {
-  CanonicalComposer,
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
 import type {
@@ -46,6 +45,8 @@ import {
   resolveAgentComposerVoiceState,
   type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session';
+import type { PendingAttachment } from '../turns/turn-input-attachments';
+import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -58,13 +59,15 @@ type UseAgentConversationPresentationInput = {
     footerState: AgentHostFlowFooterState;
     lifecycle: AgentTurnLifecycleState;
   } | null;
-  handleSubmit: (text: string) => Promise<void>;
+  handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
   initialModelSelection?: Partial<RouteModelPickerSelection>;
   inputSelectionAgentId: AgentConversationSelection['agentId'];
   isBundleLoading: boolean;
   messages: readonly ConversationMessageViewModel[];
+  pendingAttachments: readonly PendingAttachment[];
   onDismissHostFeedback: () => void;
+  onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageContent: CanonicalMessageContentSlot;
@@ -277,7 +280,10 @@ export function useAgentConversationPresentation(
     composerAdapter: surfaceState.composer
       ? {
         submit: (composerInput: ChatComposerSubmitInput<unknown>) => {
-          void input.handleSubmit(composerInput.text);
+          void input.handleSubmit({
+            text: composerInput.text,
+            attachments: composerInput.attachments as readonly PendingAttachment[],
+          });
         },
         disabled: surfaceState.composer.disabled || schedulingGuard.disabled,
         disabledReason: schedulingGuard.disabledReason || surfaceState.composer.disabledReason,
@@ -339,11 +345,13 @@ export function useAgentConversationPresentation(
               </button>
             )}
           </div>
-          <CanonicalComposer
-            key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
-            adapter={adapter.composerAdapter}
+          <AgentCanonicalComposer
+            composerKey={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             initialText={input.bundle?.draft?.text || ''}
             disabled={Boolean(input.submittingThreadId) || schedulingGuard.disabled}
+            pendingAttachments={input.pendingAttachments}
+            onAttachmentsChange={input.onAttachmentsChange}
+            onSubmit={input.handleSubmit}
             voiceState={resolveAgentComposerVoiceState({
               state: input.voiceSessionState,
               onToggle: input.onVoiceSessionToggle,
@@ -380,6 +388,8 @@ export function useAgentConversationPresentation(
     input.bundle?.draft?.text,
     input.bundle?.draft?.updatedAtMs,
     input.currentDraftTextRef,
+    input.handleSubmit,
+    input.onAttachmentsChange,
     input.onDismissHostFeedback,
     input.onEnterHandsFreeVoiceSession,
     input.onExitHandsFreeVoiceSession,
@@ -394,6 +404,7 @@ export function useAgentConversationPresentation(
     input.onVoiceSessionCancel,
     input.initialModelSelection,
     input.onModelSelectionChange,
+    input.pendingAttachments,
     schedulingGuard.disabled,
   ]);
 }

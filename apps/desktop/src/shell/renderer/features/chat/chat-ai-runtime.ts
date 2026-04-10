@@ -76,7 +76,7 @@ function requireValue(value: unknown, reasonCode: string, actionHint: string, me
 function toSdkTextMessage(message: ConversationRuntimeTextMessage): TextMessage {
   return {
     role: message.role,
-    content: message.text,
+    content: message.content ?? message.text,
     name: normalizeText(message.name) || undefined,
   };
 }
