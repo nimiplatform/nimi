@@ -14,7 +14,7 @@ import {
 import { createSimpleAiConversationProvider } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
-import type { ChatAiMessageRecord } from '@renderer/bridge/runtime-bridge/types';
+import type { ChatAiMessageRecord, ChatAiThreadRecord } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
 import { type RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +33,6 @@ import {
 import { composeDesktopChatSystemPrompt } from './chat-output-contract';
 import {
   buildAiConversationRouteSummary,
-  resolveAiConversationSetupStateFromProjection,
 } from './chat-ai-route-view';
 import {
   getChatThinkingUnsupportedCopy,
@@ -80,6 +79,7 @@ export function useAiConversationModeHost(
   );
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
+  const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);
   const currentDraftTextRef = useRef('');
   const schedulingJudgement = useSchedulingFeasibility();
 
@@ -102,10 +102,13 @@ export function useAiConversationModeHost(
     queryFn: () => chatAiStoreClient.listThreads(),
   });
 
-  const threads = useMemo(
-    () => sortThreadSummaries(threadsQuery.data || []),
-    [threadsQuery.data],
-  );
+  const threads = useMemo(() => {
+    const dbThreads = sortThreadSummaries(threadsQuery.data || []);
+    if (ephemeralThread && !dbThreads.some((t) => t.id === ephemeralThread.id)) {
+      return [ephemeralThread, ...dbThreads];
+    }
+    return dbThreads;
+  }, [threadsQuery.data, ephemeralThread]);
 
   const activeThreadId = useMemo(
     () => resolveAiConversationActiveThreadId({
@@ -175,10 +178,8 @@ export function useAiConversationModeHost(
   }, [selectedTextBinding]);
 
   const setupState = useMemo(
-    () => bootstrapReady
-      ? resolveAiConversationSetupStateFromProjection(textCapabilityProjection)
-      : createReadyConversationSetupState('ai'),
-    [bootstrapReady, textCapabilityProjection],
+    () => createReadyConversationSetupState('ai'),
+    [],
   );
 
   const thinkingSupport = useMemo(
@@ -209,14 +210,13 @@ export function useAiConversationModeHost(
   const streamState = useConversationStreamState(activeThreadId);
   const projectionSupported = textCapabilityProjection?.supported === true;
   const aiProvider = useMemo(() => {
-    if (!projectionSupported) {
-      return null;
-    }
     const registry = new ConversationOrchestrationRegistry();
     registry.register(createSimpleAiConversationProvider({
       runtimeAdapter: createChatAiConversationRuntimeAdapter({
         reasoningPreference: chatThinkingPreference,
-        textProjection: textCapabilityProjection,
+        getTextProjection: () => (
+          useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null
+        ),
         aiConfig,
         runtimeConfigState: input.runtimeConfigState,
         runtimeFields: input.runtimeFields,
@@ -226,16 +226,13 @@ export function useAiConversationModeHost(
     return registry.require('simple-ai');
   }, [
     chatThinkingPreference,
-    projectionSupported,
-    textCapabilityProjection,
     aiConfig,
     input.runtimeConfigState,
     input.runtimeFields,
   ]);
 
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
-  const composerReady = setupState.status === 'ready'
-    && !isBundleLoading
+  const composerReady = !isBundleLoading
     && !bundleQuery.error;
 
   const {
@@ -286,19 +283,18 @@ export function useAiConversationModeHost(
     aiConfig,
     bundleMessages: bundle?.messages,
     currentDraftTextRef,
+    ephemeralThread,
     queryClient,
     reportHostError,
-    runAiTurn: aiProvider
-      ? (turnInput) => aiProvider.runTurn({
-        modeId: 'simple-ai',
-        ...turnInput,
-      })
-      : null,
+    runAiTurn: (turnInput) => aiProvider.runTurn({
+      modeId: 'simple-ai',
+      ...turnInput,
+    }),
     selectedThreadRecord,
     setBundleCache,
+    setEphemeralThread,
     setSubmittingThreadId,
     setThreadsCache,
-    setupReady: setupState.status === 'ready',
     submittingThreadId,
     syncSelectionToThread,
     t,
@@ -440,6 +436,7 @@ export function useAiConversationModeHost(
     pendingFirstBeat,
     renderMessageContent,
     routeSummary,
+    routeReady: projectionSupported,
     schedulingJudgement,
     setChatThinkingPreference,
     setupState,

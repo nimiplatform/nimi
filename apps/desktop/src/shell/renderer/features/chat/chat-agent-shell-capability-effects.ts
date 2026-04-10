@@ -1,11 +1,22 @@
 import { useEffect } from 'react';
-import { CONVERSATION_CAPABILITIES, type ConversationCapability } from './conversation-capability';
+import type { ConversationCapability } from './conversation-capability';
 import {
   refreshAgentEffectiveCapabilityResolution,
   refreshConversationCapabilityProjections,
 } from './conversation-capability-projection';
 
-const AGENT_CONVERSATION_REFRESHED_CAPABILITIES: readonly ConversationCapability[] = CONVERSATION_CAPABILITIES;
+const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
+  'text.generate',
+];
+const AGENT_CONVERSATION_DEFERRED_CAPABILITIES: readonly ConversationCapability[] = [
+  'image.generate',
+  'image.edit',
+  'video.generate',
+  'audio.synthesize',
+  'audio.transcribe',
+  'voice_workflow.tts_v2v',
+  'voice_workflow.tts_t2v',
+];
 
 type UseAgentConversationCapabilityEffectsInput = {
   bootstrapReady: boolean;
@@ -20,7 +31,8 @@ export function useAgentConversationCapabilityEffects(
   // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
     if (!input.bootstrapReady) return;
-    void refreshConversationCapabilityProjections(AGENT_CONVERSATION_REFRESHED_CAPABILITIES);
+    void refreshConversationCapabilityProjections(AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES);
+    void refreshConversationCapabilityProjections(AGENT_CONVERSATION_DEFERRED_CAPABILITIES);
   }, [input.bootstrapReady]);
 
   useEffect(() => {

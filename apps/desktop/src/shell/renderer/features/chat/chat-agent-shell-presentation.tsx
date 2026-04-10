@@ -68,6 +68,7 @@ type UseAgentConversationPresentationInput = {
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
   renderMessageContent: CanonicalMessageContentSlot;
+  routeReady: boolean;
   schedulingJudgement: AISchedulingJudgement | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
@@ -248,12 +249,14 @@ export function useAgentConversationPresentation(
       label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
       value={input.targetsPending
         ? input.t('Chat.settingsLoading', { defaultValue: 'Loading models...' })
-        : input.t('Chat.agentTitle', { defaultValue: 'Agent Chat' })}
+        : input.routeReady
+          ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
+          : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
       detail={input.activeTarget?.ownershipType || input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
         defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
       })}
     />
-  ), [input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.t, input.targetsPending]);
+  ), [input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.routeReady, input.t, input.targetsPending]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;

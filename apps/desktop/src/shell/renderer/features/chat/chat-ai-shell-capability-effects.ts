@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { CONVERSATION_CAPABILITIES, type ConversationCapability } from './conversation-capability';
+import type { ConversationCapability } from './conversation-capability';
 import { refreshConversationCapabilityProjections } from './conversation-capability-projection';
 
-const AI_CONVERSATION_REFRESHED_CAPABILITIES: readonly ConversationCapability[] = CONVERSATION_CAPABILITIES;
+const AI_CONVERSATION_BOOTSTRAP_CAPABILITIES: readonly ConversationCapability[] = [
+  'text.generate',
+];
 
 type UseAiConversationCapabilityEffectsInput = {
   bootstrapReady: boolean;
@@ -18,7 +20,7 @@ export function useAiConversationCapabilityEffects(
   // is handled by the surface subscription (S-AICONF-006 via bindProjectionRefreshToSurface).
   useEffect(() => {
     if (!input.bootstrapReady) return;
-    void refreshConversationCapabilityProjections(AI_CONVERSATION_REFRESHED_CAPABILITIES);
+    void refreshConversationCapabilityProjections(AI_CONVERSATION_BOOTSTRAP_CAPABILITIES);
   }, [input.bootstrapReady]);
 
   useEffect(() => {

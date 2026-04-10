@@ -80,3 +80,29 @@ test('conversation capability UI contract: conversationExecution stays confined 
     ],
   );
 });
+
+test('conversation capability UI contract: AI bootstrap only refreshes text.generate and submit owns route gating', () => {
+  const aiEffectsSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-capability-effects.ts');
+  const aiAdapterSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
+  const aiHostActionsSource = readSource('src/shell/renderer/features/chat/chat-ai-shell-host-actions.ts');
+  assert.match(aiEffectsSource, /const AI_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
+  assert.doesNotMatch(aiEffectsSource, /CONVERSATION_CAPABILITIES/);
+  assert.match(aiAdapterSource, /\(\) => createReadyConversationSetupState\('ai'\)/);
+  assert.match(aiAdapterSource, /const composerReady = !isBundleLoading\s+&& !bundleQuery\.error/);
+  assert.doesNotMatch(aiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
+  assert.match(aiHostActionsSource, /ensureAiConversationSubmitRouteReady/);
+});
+
+test('conversation capability UI contract: agent bootstrap prioritizes text.generate and submit owns route gating', () => {
+  const agentEffectsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-capability-effects.ts');
+  const agentAdapterSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
+  assert.match(agentEffectsSource, /const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
+  assert.match(agentEffectsSource, /const AGENT_CONVERSATION_DEFERRED_CAPABILITIES:[\s\S]*'audio\.synthesize'/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES\)/);
+  assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_DEFERRED_CAPABILITIES\)/);
+  assert.match(agentAdapterSource, /return createReadyConversationSetupState\('agent'\);/);
+  assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleQuery\.error/);
+  assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
+  assert.match(agentHostActionsSource, /ensureAgentConversationSubmitRouteReady/);
+});

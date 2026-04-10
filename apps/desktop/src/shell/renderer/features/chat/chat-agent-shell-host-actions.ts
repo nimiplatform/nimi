@@ -73,6 +73,7 @@ import {
   startStream,
 } from '../turns/stream-controller';
 import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
+import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
 
 type AgentRunTurn = (input: {
   threadId: string;
@@ -96,7 +97,6 @@ type AgentRunTurn = (input: {
 type UseAgentConversationHostActionsInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
   activeThreadId: string | null;
-  agentResolution: AgentEffectiveCapabilityResolution | null;
   aiConfig: AIConfig;
   applyDriverEffects: (threadId: string, effects: ReturnType<typeof reduceAgentSubmitDriverEvent>) => AgentSubmitDriverState;
   bundle: AgentLocalThreadBundle | null;
@@ -333,16 +333,13 @@ export function useAgentConversationHostActions(
           defaultValue: 'Select an agent friend before sending a message.',
         }));
       }
-      if (!input.agentResolution || !input.agentResolution.ready) {
-        const resolutionReason = input.agentResolution?.reason || 'projection_unavailable';
-        throw new Error(input.t('Chat.agentSubmitRouteUnavailable', {
-          defaultValue: `Agent capability resolution not ready: ${resolutionReason}`,
-        }));
-      }
       const submittedText = text.trim();
       if (!submittedText) {
         return;
       }
+      const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
+        t: input.t,
+      });
       await assertAgentSubmitSchedulingAllowed({
         aiConfig: input.aiConfig,
         t: input.t,
@@ -514,8 +511,8 @@ export function useAgentConversationHostActions(
       const textExecutionSnapshot = createAISnapshot({
         config: input.aiConfig,
         capability: 'text.generate',
-        projection: input.agentResolution.textProjection!,
-        agentResolution: input.agentResolution,
+        projection: refreshedAgentResolution.textProjection!,
+        agentResolution: refreshedAgentResolution,
         runtimeEvidence,
       });
       recordDesktopAISnapshot(textExecutionSnapshot);
@@ -523,7 +520,7 @@ export function useAgentConversationHostActions(
       // On-demand image projection refresh: if a binding exists but the
       // projection is stale (not supported), re-evaluate before the turn so
       // that a runtime that became ready after bootstrap is picked up.
-      let effectiveAgentResolution = input.agentResolution;
+      let effectiveAgentResolution = refreshedAgentResolution;
       const staleCapabilities: Array<'image.generate' | 'audio.synthesize'> = [];
       if (effectiveAgentResolution.imageProjection?.selectedBinding && !effectiveAgentResolution.imageReady) {
         staleCapabilities.push('image.generate');

@@ -1249,8 +1249,9 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(adapterSource, /resolveIsVoiceSessionForeground/);
   assert.match(adapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
   assert.match(adapterSource, /autoStopMode:\s*'silence'/);
-  assert.match(adapterSource, /if \(agentRouteReady\) \{\s+return createReadyConversationSetupState\('agent'\);/);
-  assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& \(!activeTarget \|\| agentRouteReady\)/);
+  assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
+  assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleQuery\.error/);
+  assert.match(hostActionsSource, /ensureAgentConversationSubmitRouteReady/);
   assert.match(orchestrationSource, /normalizeConversationRuntimeTextStreamPart/);
   assert.doesNotMatch(orchestrationSource, /Unsupported agent runtime stream part/);
   assert.doesNotMatch(orchestrationSource, /yield \{ type: 'start' \};/);

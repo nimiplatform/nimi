@@ -47,6 +47,7 @@ type UseAiConversationPresentationInput = {
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   pendingFirstBeat: boolean;
   renderMessageContent: CanonicalMessageContentSlot;
+  routeReady: boolean;
   routeSummary: {
     label: string;
     detail: string | null;
@@ -76,14 +77,14 @@ export function useAiConversationPresentation(
   const diagnosticsContent = useMemo(() => (
     <RuntimeInspectCard
       label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
-      value={input.setupState.status === 'ready'
+      value={input.routeReady
         ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
         : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
       detail={input.routeSummary.detail}
     />
   ), [
+    input.routeReady,
     input.routeSummary.detail,
-    input.setupState.status,
     input.t,
   ]);
 

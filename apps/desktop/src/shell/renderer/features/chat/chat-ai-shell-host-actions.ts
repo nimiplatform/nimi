@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import {
@@ -9,6 +9,7 @@ import {
 import {
   type ChatAiMessageRecord,
   type ChatAiThreadBundle,
+  type ChatAiThreadRecord,
   type ChatAiThreadSummary,
 } from '@renderer/bridge/runtime-bridge/types';
 import { chatAiStoreClient } from '@renderer/bridge/runtime-bridge/chat-ai-store';
@@ -40,6 +41,7 @@ import {
   upsertBundleDraft,
   upsertThreadSummary,
 } from './chat-ai-shell-core';
+import { ensureAiConversationSubmitRouteReady } from './conversation-submit-readiness';
 
 type AiRunTurn = (input: {
   threadId: string;
@@ -58,17 +60,18 @@ type UseAiConversationHostActionsInput = {
   aiConfig: AIConfig;
   bundleMessages: readonly ChatAiMessageRecord[] | undefined;
   currentDraftTextRef: { current: string };
+  ephemeralThread: ChatAiThreadRecord | null;
   queryClient: QueryClient;
   reportHostError: (error: unknown) => void;
-  runAiTurn: AiRunTurn | null;
+  runAiTurn: AiRunTurn;
   selectedThreadRecord: ChatAiThreadSummary | null;
   setBundleCache: (
     threadId: string,
     updater: (current: ChatAiThreadBundle | null | undefined) => ChatAiThreadBundle | null | undefined,
   ) => void;
+  setEphemeralThread: (thread: ChatAiThreadRecord | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   setThreadsCache: (updater: (current: ChatAiThreadSummary[]) => ChatAiThreadSummary[]) => void;
-  setupReady: boolean;
   submittingThreadId: string | null;
   syncSelectionToThread: (threadId: string | null) => void;
   t: TFunction;
@@ -135,38 +138,46 @@ export function useAiConversationHostActions(
   }, [input]);
 
   const handleCreateThread = useCallback(async () => {
-    if (!input.setupReady) {
-      return;
+    // Discard previous ephemeral thread if it exists (never persisted)
+    if (input.ephemeralThread) {
+      input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
     }
     const timestampMs = Date.now();
-    const thread = await chatAiStoreClient.createThread({
+    const thread: ChatAiThreadRecord = {
       id: randomIdV11('ai-thread'),
       title: AI_NEW_CONVERSATION_TITLE,
       createdAtMs: timestampMs,
       updatedAtMs: timestampMs,
       lastMessageAtMs: null,
       archivedAtMs: null,
-    });
-    input.setThreadsCache((current) => upsertThreadSummary(current, thread));
+    };
+    // In-memory only — persisted to DB on first message send
+    input.setEphemeralThread(thread);
     input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyBundle(thread));
     input.currentDraftTextRef.current = '';
     syncAiThreadSelectionState(thread.id);
-  }, [input]);
+  }, [input, syncAiThreadSelectionState]);
 
   const handleArchiveThread = useCallback(async (threadId: string) => {
     const thread = input.threads.find((candidate) => candidate.id === threadId);
     if (!thread) {
       return;
     }
-    const archivedAtMs = Date.now();
-    await chatAiStoreClient.updateThreadMetadata({
-      id: thread.id,
-      title: thread.title,
-      updatedAtMs: archivedAtMs,
-      lastMessageAtMs: thread.lastMessageAtMs,
-      archivedAtMs,
-    });
-    input.setThreadsCache((current) => current.filter((candidate) => candidate.id !== threadId));
+    // Ephemeral threads are not in DB — just discard them
+    if (input.ephemeralThread && input.ephemeralThread.id === threadId) {
+      input.queryClient.removeQueries({ queryKey: bundleQueryKey(threadId) });
+      input.setEphemeralThread(null);
+    } else {
+      const archivedAtMs = Date.now();
+      await chatAiStoreClient.updateThreadMetadata({
+        id: thread.id,
+        title: thread.title,
+        updatedAtMs: archivedAtMs,
+        lastMessageAtMs: thread.lastMessageAtMs,
+        archivedAtMs,
+      });
+      input.setThreadsCache((current) => current.filter((candidate) => candidate.id !== threadId));
+    }
     if (input.activeThreadId === threadId) {
       const remaining = input.threads.filter((candidate) => candidate.id !== threadId);
       const nextThread = remaining[0] || null;
@@ -195,22 +206,6 @@ export function useAiConversationHostActions(
     })().catch(input.reportHostError);
   }, [input]);
 
-  const autoCreatingRef = useRef(false);
-  useEffect(() => {
-    if (!input.setupReady) {
-      return;
-    }
-    if (input.threads.length > 0 || autoCreatingRef.current) {
-      return;
-    }
-    autoCreatingRef.current = true;
-    void handleCreateThread()
-      .catch(input.reportHostError)
-      .finally(() => {
-        autoCreatingRef.current = false;
-      });
-  }, [handleCreateThread, input.reportHostError, input.setupReady, input.threads.length]);
-
   const handleSelectThread = useCallback((threadId: string) => {
     if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) {
       return;
@@ -218,6 +213,11 @@ export function useAiConversationHostActions(
     const nextThread = input.threads.find((candidate) => candidate.id === threadId) || null;
     if (!nextThread) {
       return;
+    }
+    // Discard ephemeral thread when switching away from it
+    if (input.ephemeralThread && input.activeThreadId === input.ephemeralThread.id) {
+      input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
+      input.setEphemeralThread(null);
     }
     void (async () => {
       await persistDraftForThread(input.activeThreadId);
@@ -227,21 +227,13 @@ export function useAiConversationHostActions(
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!input.runAiTurn) {
-      throw new Error(input.t('Chat.aiSubmitRouteUnavailable', {
-        defaultValue: 'Choose a ready AI route before sending a message.',
-      }));
-    }
-    if (!input.setupReady) {
-      throw new Error(input.t('Chat.aiSubmitRouteUnavailable', {
-        defaultValue: 'Choose a ready AI route before sending a message.',
-      }));
-    }
-
     const submittedText = text.trim();
     if (!submittedText) {
       return;
     }
+    await ensureAiConversationSubmitRouteReady({
+      t: input.t,
+    });
     await assertAiSubmitSchedulingAllowed({
       aiConfig: input.aiConfig,
       t: input.t,
@@ -264,6 +256,18 @@ export function useAiConversationHostActions(
       syncAiThreadSelectionState(newThread.id);
       effectiveThreadId = newThread.id;
       effectiveThreadRecord = newThread;
+    } else if (input.ephemeralThread && input.ephemeralThread.id === effectiveThreadId) {
+      // Persist the ephemeral thread to DB on first message send
+      const persisted = await chatAiStoreClient.createThread({
+        id: input.ephemeralThread.id,
+        title: input.ephemeralThread.title,
+        createdAtMs: input.ephemeralThread.createdAtMs,
+        updatedAtMs: input.ephemeralThread.updatedAtMs,
+        lastMessageAtMs: input.ephemeralThread.lastMessageAtMs,
+        archivedAtMs: input.ephemeralThread.archivedAtMs,
+      });
+      input.setThreadsCache((current) => upsertThreadSummary(current, persisted));
+      input.setEphemeralThread(null);
     }
 
     const userMessageId = randomIdV11('ai-message-user');

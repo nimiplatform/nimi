@@ -34,8 +34,9 @@ test('chat unified shell a2: anonymous desktop only exposes AI mode', () => {
   assert.match(chatModeRegistrySource, /input\.authStatus === 'authenticated'\s*\?\s*\[input\.aiHost, input\.humanHost, input\.agentHost\]\s*:\s*\[input\.aiHost\]/);
 });
 
-test('chat unified shell a2: AI host setup state is sourced from projection and route options', () => {
-  assert.match(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
+test('chat unified shell a2: AI host stays enterable and submit-time route gating owns readiness', () => {
+  assert.match(chatAiAdapterSource, /createReadyConversationSetupState\('ai'\)/);
+  assert.doesNotMatch(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
   assert.match(chatAiAdapterSource, /toRuntimeRouteBindingFromPickerSelection/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
   assert.match(chatPageSource, /useRuntimeConfigPanelController/);

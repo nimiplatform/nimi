@@ -65,7 +65,6 @@ import { useAgentConversationEffects } from './chat-agent-shell-effects';
 import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capability-effects';
 import { useSchedulingFeasibility } from './chat-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
-import { resolveAiConversationSetupStateFromProjection } from './chat-ai-route-view';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
 import {
@@ -374,34 +373,10 @@ export function useAgentConversationModeHost(
     if (!bootstrapReady) {
       return createReadyConversationSetupState('agent');
     }
-    if (!activeTarget) {
-      return createReadyConversationSetupState('agent');
-    }
-    if (agentRouteReady) {
-      return createReadyConversationSetupState('agent');
-    }
-    if (!textCapabilityProjection?.supported) {
-      return resolveAiConversationSetupStateFromProjection(textCapabilityProjection);
-    }
-    return {
-      mode: 'agent' as const,
-      status: 'setup-required' as const,
-      issues: [{
-        code: 'ai-thread-route-unavailable' as const,
-        detail: t('Chat.agentRouteRequired', {
-          defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-        }),
-      }],
-      primaryAction: {
-        kind: 'open-settings' as const,
-        targetId: 'runtime-overview' as const,
-        returnToMode: 'agent' as const,
-      },
-    };
-  }, [activeTarget, agentRouteReady, bootstrapReady, input.authStatus, t, textCapabilityProjection]);
+    return createReadyConversationSetupState('agent');
+  }, [bootstrapReady, input.authStatus]);
 
   const composerReady = setupState.status === 'ready'
-    && (!activeTarget || agentRouteReady)
     && !isBundleLoading
     && !bundleQuery.error;
 
@@ -422,7 +397,6 @@ export function useAgentConversationModeHost(
   const { handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
-    agentResolution,
     aiConfig: agentAiConfig,
     applyDriverEffects,
     bundle,
@@ -814,6 +788,7 @@ export function useAgentConversationModeHost(
     onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
     renderMessageContent,
+    routeReady: !activeTarget || agentRouteReady,
     schedulingJudgement,
     selectedTargetId: activeTarget?.agentId || null,
     behaviorSettings,

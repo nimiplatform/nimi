@@ -18,26 +18,27 @@ import { withPromptTrace } from './chat-ai-shell-core';
 
 export function createChatAiConversationRuntimeAdapter(input: {
   reasoningPreference: ChatThinkingPreference;
-  textProjection: ConversationCapabilityProjection | null;
+  getTextProjection: () => ConversationCapabilityProjection | null;
   aiConfig: AIConfig;
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
 }): ConversationRuntimeAdapter {
   return {
     async streamText(request) {
+      const textProjection = input.getTextProjection();
       const prompt = request.messages[request.messages.length - 1]?.text || '';
       // K-AIEXEC-003: capture scheduling evidence before execution.
-      const runtimeEvidence = input.textProjection?.supported
+      const runtimeEvidence = textProjection?.supported
         ? await peekDesktopAISchedulingForEvidence({
           scopeRef: input.aiConfig.scopeRef,
           target: resolveAIConfigSchedulingTargetForCapability(input.aiConfig, 'text.generate'),
         })
         : null;
-      const executionSnapshot = input.textProjection?.supported
+      const executionSnapshot = textProjection?.supported
         ? createAISnapshot({
           config: input.aiConfig,
           capability: 'text.generate',
-          projection: input.textProjection,
+          projection: textProjection,
           runtimeEvidence,
         })
         : null;
