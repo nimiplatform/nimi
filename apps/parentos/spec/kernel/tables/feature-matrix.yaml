@@ -12,7 +12,7 @@ features:
     phase: 1
     priority: P0
     contract: timeline-contract
-    description: "Project reminder states from reminder-rules.yaml and child context."
+    description: "Compute deterministic reminder eligibility and build a daily agenda from reminder-rules.yaml, child context, and local reminder state."
     tables: [reminder-rules.yaml, local-storage.yaml#reminder_states]
 
   - featureId: PO-FEAT-003
@@ -20,7 +20,7 @@ features:
     phase: 1
     priority: P0
     contract: timeline-contract
-    description: "Render timeline buckets for current, upcoming, and recently completed items."
+    description: "Render agenda buckets for today focus, this-week tasks, stage guidance, and compressed overdue/history views."
     tables: [local-storage.yaml#reminder_states]
 
   - featureId: PO-FEAT-004
@@ -167,7 +167,7 @@ features:
     phase: 3
     priority: P2
     contract: timeline-contract
-    description: "Future reminder prioritization informed by historical data."
+    description: "Future reminder prioritization informed by historical data after the deterministic local agenda is stable."
     tables: [reminder-rules.yaml]
     runtimeDependency: "runtime.ai.text.generate"
 

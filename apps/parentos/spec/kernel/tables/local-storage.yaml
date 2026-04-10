@@ -68,18 +68,25 @@ tables:
       - { columns: [childId, achievedAt] }
 
   - name: reminder_states
-    description: "Per-child reminder engine state."
+    description: "Per-child reminder action state and daily agenda stability metadata."
     columns:
       - { name: stateId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
       - { name: ruleId, type: TEXT, nullable: false, description: "References reminder-rules.yaml" }
-      - { name: status, type: TEXT, nullable: false, description: "pending | active | completed | dismissed | overdue" }
+      - { name: status, type: TEXT, nullable: false, description: "Legacy compatibility field: pending | active | completed | dismissed | overdue" }
       - { name: activatedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: completedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: dismissedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: dismissReason, type: TEXT, nullable: true }
       - { name: repeatIndex, type: INTEGER, nullable: false, default: 0 }
       - { name: nextTriggerAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
+      - { name: snoozedUntil, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: scheduledDate, type: TEXT, nullable: true, description: "ISO 8601 date" }
+      - { name: notApplicable, type: INTEGER, nullable: false, default: 0, description: "0 | 1" }
+      - { name: plannedForDate, type: TEXT, nullable: true, description: "ISO 8601 date for the persisted daily agenda slot" }
+      - { name: surfaceRank, type: INTEGER, nullable: true, description: "Stable same-day agenda rank" }
+      - { name: lastSurfacedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime when surfaced in today focus" }
+      - { name: surfaceCount, type: INTEGER, nullable: false, default: 0, description: "How many times this reminder has entered today focus" }
       - { name: notes, type: TEXT, nullable: true }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
@@ -87,6 +94,9 @@ tables:
       - { columns: [childId, ruleId, repeatIndex], unique: true }
       - { columns: [childId, status] }
       - { columns: [nextTriggerAt] }
+      - { columns: [childId, plannedForDate, surfaceRank] }
+      - { columns: [childId, snoozedUntil] }
+      - { columns: [childId, scheduledDate] }
 
   - name: vaccine_records
     description: "Structured vaccine administration records."

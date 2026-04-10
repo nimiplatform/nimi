@@ -72,6 +72,13 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
             dismissReason TEXT,
             repeatIndex   INTEGER NOT NULL DEFAULT 0,
             nextTriggerAt TEXT,
+            snoozedUntil  TEXT,
+            scheduledDate TEXT,
+            notApplicable INTEGER NOT NULL DEFAULT 0,
+            plannedForDate TEXT,
+            surfaceRank   INTEGER,
+            lastSurfacedAt TEXT,
+            surfaceCount  INTEGER NOT NULL DEFAULT 0,
             notes         TEXT,
             createdAt     TEXT NOT NULL,
             updatedAt     TEXT NOT NULL,
@@ -79,6 +86,9 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
         );
         CREATE INDEX IF NOT EXISTS idx_reminder_child_status ON reminder_states (childId, status);
         CREATE INDEX IF NOT EXISTS idx_reminder_next_trigger ON reminder_states (nextTriggerAt);
+        CREATE INDEX IF NOT EXISTS idx_reminder_child_plan ON reminder_states (childId, plannedForDate, surfaceRank);
+        CREATE INDEX IF NOT EXISTS idx_reminder_child_snooze ON reminder_states (childId, snoozedUntil);
+        CREATE INDEX IF NOT EXISTS idx_reminder_child_schedule ON reminder_states (childId, scheduledDate);
 
         -- Vaccine Records
         CREATE TABLE IF NOT EXISTS vaccine_records (

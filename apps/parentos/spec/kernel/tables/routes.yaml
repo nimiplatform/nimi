@@ -6,7 +6,7 @@ routes:
   - path: /timeline
     displayName: "成长时间线"
     feature: timeline
-    description: "主页。展示今日待办、即将到来的提醒、最近记录。"
+    description: "主页。展示今日重点、本周安排预览、阶段关注预览和逾期摘要。"
     isDefault: true
     icon: calendar
 
@@ -91,7 +91,7 @@ routes:
   - path: /reminders
     displayName: "Reminders"
     feature: timeline
-    description: "Review actionable, upcoming, and completed reminders."
+    description: "Review today focus, this-week tasks, stage guidance, and reminder history."
 
   - path: /advisor
     displayName: "成长顾问"

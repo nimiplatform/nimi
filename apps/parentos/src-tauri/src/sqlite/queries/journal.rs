@@ -12,7 +12,7 @@ pub fn insert_journal_entry(
     voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
     observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
     guided_answers: Option<String>, observation_duration: Option<i32>,
-    keepsake: i32, recorder_id: Option<String>, now: String,
+    keepsake: i32, _mood_tag: Option<String>, recorder_id: Option<String>, now: String,
 ) -> Result<(), String> {
     validate_observation_selection(
         dimension_id.as_deref(),
@@ -45,7 +45,7 @@ pub fn insert_journal_entry_with_tags(
     voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
     observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
     guided_answers: Option<String>, observation_duration: Option<i32>,
-    keepsake: i32, recorder_id: Option<String>, ai_tags: Vec<JournalTagInput>, now: String,
+    keepsake: i32, _mood_tag: Option<String>, recorder_id: Option<String>, ai_tags: Vec<JournalTagInput>, now: String,
 ) -> Result<(), String> {
     validate_observation_selection(
         dimension_id.as_deref(),
@@ -72,6 +72,47 @@ pub fn insert_journal_entry_with_tags(
     Ok(())
 }
 
+#[tauri::command]
+pub fn update_journal_entry_with_tags(
+    entry_id: String, child_id: String, content_type: String, text_content: Option<String>,
+    voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
+    observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
+    guided_answers: Option<String>, observation_duration: Option<i32>,
+    keepsake: i32, _mood_tag: Option<String>, recorder_id: Option<String>, ai_tags: Vec<JournalTagInput>, now: String,
+) -> Result<(), String> {
+    validate_observation_selection(
+        dimension_id.as_deref(),
+        selected_tags.as_deref(),
+        &ai_tags,
+    )?;
+
+    let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| format!("update_journal_entry_with_tags tx: {e}"))?;
+
+    let updated = tx.execute(
+        "UPDATE journal_entries SET childId = ?2, contentType = ?3, textContent = ?4, voicePath = ?5, photoPaths = ?6, recordedAt = ?7, ageMonths = ?8, observationMode = ?9, dimensionId = ?10, selectedTags = ?11, guidedAnswers = ?12, observationDuration = ?13, keepsake = ?14, recorderId = ?15, updatedAt = ?16 WHERE entryId = ?1",
+        params![entry_id, child_id, content_type, text_content, voice_path, photo_paths, recorded_at, age_months, observation_mode, dimension_id, selected_tags, guided_answers, observation_duration, keepsake, recorder_id, now],
+    ).map_err(|e| format!("update_journal_entry_with_tags entry: {e}"))?;
+    if updated == 0 {
+        return Err(format!("update_journal_entry_with_tags: no entry found with id {entry_id}"));
+    }
+
+    tx.execute(
+        "DELETE FROM journal_tags WHERE entryId = ?1",
+        params![entry_id],
+    ).map_err(|e| format!("update_journal_entry_with_tags delete tags: {e}"))?;
+
+    for tag in ai_tags {
+        tx.execute(
+            "INSERT INTO journal_tags (tagId, entryId, domain, tag, source, confidence, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+            params![tag.tag_id, entry_id, tag.domain, tag.tag, tag.source, tag.confidence, now],
+        ).map_err(|e| format!("update_journal_entry_with_tags tag: {e}"))?;
+    }
+
+    tx.commit().map_err(|e| format!("update_journal_entry_with_tags commit: {e}"))?;
+    Ok(())
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JournalEntry {
@@ -89,6 +130,7 @@ pub struct JournalEntry {
     pub guided_answers: Option<String>,
     pub observation_duration: Option<i32>,
     pub keepsake: i32,
+    pub mood_tag: Option<String>,
     pub recorder_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -115,12 +157,39 @@ pub fn get_journal_entries(child_id: String, limit: Option<i32>) -> Result<Vec<J
             guided_answers: row.get(11)?,
             observation_duration: row.get(12)?,
             keepsake: row.get(13)?,
+            mood_tag: None,
             recorder_id: row.get(14)?,
             created_at: row.get(15)?,
             updated_at: row.get(16)?,
         })
     }).map_err(|e| format!("get_journal_entries: {e}"))?;
     rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_journal_entries collect: {e}"))
+}
+
+#[tauri::command]
+pub fn update_journal_keepsake(entry_id: String, keepsake: i32, now: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let updated = conn.execute(
+        "UPDATE journal_entries SET keepsake = ?2, updatedAt = ?3 WHERE entryId = ?1",
+        params![entry_id, keepsake, now],
+    ).map_err(|e| format!("update_journal_keepsake: {e}"))?;
+    if updated == 0 {
+        return Err(format!("update_journal_keepsake: no entry found with id {entry_id}"));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_journal_entry(entry_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let deleted = conn.execute(
+        "DELETE FROM journal_entries WHERE entryId = ?1",
+        params![entry_id],
+    ).map_err(|e| format!("delete_journal_entry: {e}"))?;
+    if deleted == 0 {
+        return Err(format!("delete_journal_entry: no entry found with id {entry_id}"));
+    }
+    Ok(())
 }
 
 #[tauri::command]

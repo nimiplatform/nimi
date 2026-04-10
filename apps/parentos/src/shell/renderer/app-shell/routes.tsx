@@ -11,6 +11,7 @@ const DentalPage = lazy(() => import('../features/profile/dental-page.js'));
 const AllergyPage = lazy(() => import('../features/profile/allergy-page.js'));
 const SleepPage = lazy(() => import('../features/profile/sleep-page.js'));
 const MedicalEventsPage = lazy(() => import('../features/profile/medical-events-page.js'));
+const PosturePage = lazy(() => import('../features/profile/posture-page.js'));
 const TannerPage = lazy(() => import('../features/profile/tanner-page.js'));
 const FitnessPage = lazy(() => import('../features/profile/fitness-page.js'));
 const ReportUploadPage = lazy(() => import('../features/profile/report-upload-page.js'));
@@ -21,6 +22,7 @@ const RemindersPage = lazy(() => import('../features/reminders/reminders-page.js
 const SettingsPage = lazy(() => import('../features/settings/settings-page.js'));
 const ChildrenSettingsPage = lazy(() => import('../features/settings/children-settings-page.js'));
 const NurtureModeSettingsPage = lazy(() => import('../features/settings/nurture-mode-settings-page.js'));
+const ReminderSettingsPage = lazy(() => import('../features/settings/reminder-settings-page.js'));
 
 function PageFallback() {
   return (
@@ -44,6 +46,7 @@ export function AppRoutes() {
         <Route path="/profile/allergies" element={<AllergyPage />} />
         <Route path="/profile/sleep" element={<SleepPage />} />
         <Route path="/profile/medical-events" element={<MedicalEventsPage />} />
+        <Route path="/profile/posture" element={<PosturePage />} />
         <Route path="/profile/tanner" element={<TannerPage />} />
         <Route path="/profile/fitness" element={<FitnessPage />} />
         <Route path="/profile/report-upload" element={<ReportUploadPage />} />
@@ -54,6 +57,7 @@ export function AppRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/children" element={<ChildrenSettingsPage />} />
         <Route path="/settings/nurture-mode" element={<NurtureModeSettingsPage />} />
+        <Route path="/settings/reminders" element={<ReminderSettingsPage />} />
         <Route path="*" element={<Navigate to="/timeline" replace />} />
       </Routes>
     </Suspense>

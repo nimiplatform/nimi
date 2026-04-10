@@ -4,6 +4,7 @@ use serde::Serialize;
 
 mod defaults;
 mod desktop_paths;
+mod child_avatar;
 mod journal_audio;
 mod journal_photo;
 #[path = "../../../shared-tauri/oauth_commands.rs"]
@@ -64,6 +65,7 @@ fn main() {
             journal_audio::save_journal_voice_audio,
             journal_audio::delete_journal_voice_audio,
             journal_photo::save_journal_photo,
+            child_avatar::save_child_avatar,
             journal_photo::delete_journal_photo,
             // Family & Children
             sqlite::queries::create_family,
@@ -75,9 +77,12 @@ fn main() {
             // Growth Measurements
             sqlite::queries::insert_measurement,
             sqlite::queries::get_measurements,
+            sqlite::queries::update_measurement,
+            sqlite::queries::delete_measurement,
             // Milestone Records
             sqlite::queries::upsert_milestone_record,
             sqlite::queries::get_milestone_records,
+            sqlite::queries::delete_milestone_record,
             // Reminder States
             sqlite::queries::upsert_reminder_state,
             sqlite::queries::get_reminder_states,
@@ -88,6 +93,9 @@ fn main() {
             // Journal Entries
             sqlite::queries::insert_journal_entry,
             sqlite::queries::insert_journal_entry_with_tags,
+            sqlite::queries::update_journal_entry_with_tags,
+            sqlite::queries::update_journal_keepsake,
+            sqlite::queries::delete_journal_entry,
             sqlite::queries::get_journal_entries,
             sqlite::queries::insert_journal_tag,
             sqlite::queries::get_journal_tags,
@@ -99,6 +107,7 @@ fn main() {
             // Growth Reports
             sqlite::queries::insert_growth_report,
             sqlite::queries::get_growth_reports,
+            sqlite::queries::update_growth_report_content,
             // App Settings
             sqlite::queries::set_app_setting,
             sqlite::queries::get_app_setting,
@@ -119,9 +128,11 @@ fn main() {
             // Tanner Assessments
             sqlite::queries::insert_tanner_assessment,
             sqlite::queries::get_tanner_assessments,
+            sqlite::queries::delete_tanner_assessment,
             // Fitness Assessments
             sqlite::queries::insert_fitness_assessment,
             sqlite::queries::get_fitness_assessments,
+            sqlite::queries::delete_fitness_assessment,
             // DB init
             sqlite::db_init,
         ])

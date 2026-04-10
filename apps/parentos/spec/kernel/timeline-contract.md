@@ -4,7 +4,7 @@
 
 ## Scope
 
-This contract governs the Phase 1 reminder engine, timeline projection, and sensitive-period guidance.
+This contract governs the reminder agenda engine, timeline projection, and sensitive-period guidance.
 
 Covered Phase 1 features from `feature-matrix.yaml`:
 
@@ -39,7 +39,22 @@ The engine must not invent reminder rules outside the compiled catalog.
 
 `reminder_states` rows are the only persisted state for reminder delivery.
 
-Phase 1 status values are:
+Persisted state is limited to user-action outcomes and agenda stability metadata.
+
+Required persisted fields include:
+
+- `status`
+- `completedAt`
+- `repeatIndex`
+- `snoozedUntil`
+- `scheduledDate`
+- `notApplicable`
+- `plannedForDate`
+- `surfaceRank`
+- `lastSurfacedAt`
+- `surfaceCount`
+
+Legacy status values remain supported for storage compatibility:
 
 - `pending`
 - `active`
@@ -48,6 +63,12 @@ Phase 1 status values are:
 - `overdue`
 
 For repeatable rules, the tuple `(childId, ruleId, repeatIndex)` must remain unique.
+
+The following values must be computed at runtime and must not be persisted:
+
+- agenda bucket labels such as `today`, `thisWeek`, `stageFocus`, `history`
+- derived logical state such as `scheduled`, `snoozed`, or `not applicable`
+- rule-derived date windows
 
 ## PO-TIME-003 P0 Delivery Invariant
 
@@ -61,24 +82,29 @@ This invariant is enforced by `check-parentos-nurture-mode-safety`.
 
 ## PO-TIME-004 Timeline Output Shape
 
-The timeline view must project reminders into structured buckets only.
+The timeline and reminders views must project reminders into structured agenda buckets only.
 
 Required bucket semantics:
 
 | Bucket | Meaning |
 |---|---|
-| `today` | currently actionable reminders |
-| `upcoming` | not yet due but approaching |
-| `recent` | recently completed or dismissed records |
+| `todayFocus` | reminders worth acting on today |
+| `thisWeek` | task reminders that matter soon but do not need immediate action |
+| `stageFocus` | guidance reminders for the current developmental stage |
+| `history` | completed, scheduled, snoozed, and not-applicable records |
+| `overdueSummary` | compressed summary for stale overdue reminders |
 
 Each rendered item must carry at least:
 
 - `ruleId`
 - `priority`
-- `status`
+- runtime lifecycle state
 - `title`
 - `domain`
 - `triggerAge` or scheduled age metadata
+- primary action affordance
+
+Agenda bucket assignment must be recomputed from structured inputs on every evaluation.
 
 ## PO-TIME-005 Sensitive Period Projection
 
@@ -97,6 +123,7 @@ The timeline layer must fail closed when:
 - compiled reminder or sensitive-period assets are missing
 - a reminder references an invalid nurture-mode projection
 - a gated route is reintroduced into navigation as a substitute for timeline output
+- a persisted reminder row contains agenda metadata that cannot be interpreted deterministically
 
 ## Phase 1 Exclusions
 

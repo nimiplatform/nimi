@@ -166,6 +166,13 @@ export interface ReminderStateRow {
   dismissReason: string | null;
   repeatIndex: number;
   nextTriggerAt: string | null;
+  snoozedUntil: string | null;
+  scheduledDate: string | null;
+  notApplicable: number;
+  plannedForDate: string | null;
+  surfaceRank: number | null;
+  lastSurfacedAt: string | null;
+  surfaceCount: number;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -182,10 +189,26 @@ export function upsertReminderState(params: {
   dismissReason: string | null;
   repeatIndex: number;
   nextTriggerAt: string | null;
+  snoozedUntil?: string | null;
+  scheduledDate?: string | null;
+  notApplicable?: number;
+  plannedForDate?: string | null;
+  surfaceRank?: number | null;
+  lastSurfacedAt?: string | null;
+  surfaceCount?: number;
   notes: string | null;
   now: string;
 }) {
-  return invoke<void>('upsert_reminder_state', params);
+  return invoke<void>('upsert_reminder_state', {
+    ...params,
+    snoozedUntil: params.snoozedUntil ?? null,
+    scheduledDate: params.scheduledDate ?? null,
+    notApplicable: params.notApplicable ?? 0,
+    plannedForDate: params.plannedForDate ?? null,
+    surfaceRank: params.surfaceRank ?? null,
+    lastSurfacedAt: params.lastSurfacedAt ?? null,
+    surfaceCount: params.surfaceCount ?? 0,
+  });
 }
 
 export function getReminderStates(childId: string) {
@@ -249,6 +272,7 @@ export interface JournalEntryRow {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  moodTag: string | null;
   recorderId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -269,6 +293,7 @@ export function insertJournalEntry(params: {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  moodTag: string | null;
   recorderId: string | null;
   now: string;
 }) {
@@ -298,11 +323,35 @@ export function insertJournalEntryWithTags(params: {
   guidedAnswers: string | null;
   observationDuration: number | null;
   keepsake: number;
+  moodTag: string | null;
   recorderId: string | null;
   aiTags: JournalTagInsertRow[];
   now: string;
 }) {
   return invoke<void>('insert_journal_entry_with_tags', params);
+}
+
+export function updateJournalEntryWithTags(params: {
+  entryId: string;
+  childId: string;
+  contentType: string;
+  textContent: string | null;
+  voicePath: string | null;
+  photoPaths: string | null;
+  recordedAt: string;
+  ageMonths: number;
+  observationMode: string | null;
+  dimensionId: string | null;
+  selectedTags: string | null;
+  guidedAnswers: string | null;
+  observationDuration: number | null;
+  keepsake: number;
+  moodTag: string | null;
+  recorderId: string | null;
+  aiTags: JournalTagInsertRow[];
+  now: string;
+}) {
+  return invoke<void>('update_journal_entry_with_tags', params);
 }
 
 export function getJournalEntries(childId: string, limit?: number) {
@@ -331,6 +380,14 @@ export function getJournalTags(entryId: string) {
     confidence: number | null;
     createdAt: string;
   }>>('get_journal_tags', { entryId });
+}
+
+export function updateJournalKeepsake(entryId: string, keepsake: 0 | 1, now: string) {
+  return invoke<void>('update_journal_keepsake', { entryId, keepsake, now });
+}
+
+export function deleteJournalEntry(entryId: string) {
+  return invoke<void>('delete_journal_entry', { entryId });
 }
 
 // ── AI Conversations ────────────────────────────────────────
@@ -412,6 +469,10 @@ export function getGrowthReports(childId: string, reportType?: string) {
     generatedAt: string;
     createdAt: string;
   }>>('get_growth_reports', { childId, reportType: reportType ?? null });
+}
+
+export function updateGrowthReportContent(params: { reportId: string; content: string; now: string }) {
+  return invoke<void>('update_growth_report_content', params);
 }
 
 // ── App Settings ────────────────────────────────────────────
@@ -668,6 +729,10 @@ export interface FitnessAssessmentRow {
   pullUps: number | null;
   ropeSkipping: number | null;
   vitalCapacity: number | null;
+  run10mShuttle: number | null;
+  tennisBallThrow: number | null;
+  doubleFootJump: number | null;
+  balanceBeam: number | null;
   footArchStatus: string | null;
   overallGrade: string | null;
   notes: string | null;
@@ -690,6 +755,10 @@ export function insertFitnessAssessment(params: {
   pullUps: number | null;
   ropeSkipping: number | null;
   vitalCapacity: number | null;
+  run10mShuttle: number | null;
+  tennisBallThrow: number | null;
+  doubleFootJump: number | null;
+  balanceBeam: number | null;
   footArchStatus: string | null;
   overallGrade: string | null;
   notes: string | null;
