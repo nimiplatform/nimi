@@ -17,6 +17,7 @@ export type ForgeWorkspaceLifecycle =
 export type ForgeWorkspacePanel =
   | 'OVERVIEW'
   | 'WORLD_TRUTH'
+  | 'ENRICHMENT'
   | 'AGENTS'
   | 'IMPORT'
   | 'REVIEW'
@@ -31,7 +32,15 @@ export type WorldDraftState = {
   worldId: string | null;
   draftId: string | null;
   name: string;
+  tagline: string;
+  motto: string | null;
+  overview: string;
   description: string;
+  genre: string;
+  themes: string[];
+  era: string;
+  bannerUrl: string | null;
+  iconUrl: string | null;
   sourceType: 'MANUAL' | 'CHARACTER_CARD' | 'NOVEL' | 'MIXED';
 };
 
@@ -42,6 +51,12 @@ export type AgentDraftState = {
   displayName: string;
   handle: string;
   concept: string;
+  description: string;
+  scenario: string;
+  greeting: string;
+  avatarUrl: string | null;
+  voiceDemoUrl: string | null;
+  voiceDemoResourceId: string | null;
   ownershipType: 'MASTER_OWNED' | 'WORLD_OWNED';
   worldId: string | null;
   status: 'DRAFT' | 'LINKED' | 'PUBLISHED';
@@ -112,6 +127,8 @@ export type ForgePublishPlan = {
     displayName: string;
     handle: string;
     concept: string;
+    description: string;
+    avatarUrl: string | null;
   }>;
   worldRules: PublishRulePatch[];
   agentRules: PublishAgentRulePatch[];

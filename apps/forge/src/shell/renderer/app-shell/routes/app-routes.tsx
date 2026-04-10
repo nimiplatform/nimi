@@ -7,9 +7,10 @@ const WorkbenchHomePage = lazy(() => import('@renderer/pages/workbench/workbench
 const WorkbenchNewPage = lazy(() => import('@renderer/pages/workbench/workbench-new-page.js'));
 const WorkbenchPage = lazy(() => import('@renderer/pages/workbench/workbench-page.js'));
 const WorkbenchAgentDetailPage = lazy(() => import('@renderer/pages/workbench/workbench-agent-detail-page.js'));
+const WorldEditEntryPage = lazy(() => import('@renderer/app-shell/routes/world-edit-entry-page.js'));
+const AgentEditEntryPage = lazy(() => import('@renderer/app-shell/routes/agent-edit-entry-page.js'));
 const WorldsPage = lazy(() => import('@renderer/pages/worlds/worlds-page.js'));
 const AgentsPage = lazy(() => import('@renderer/pages/agents/agents-page.js'));
-const AgentDetailPage = lazy(() => import('@renderer/pages/agents/agent-detail-page.js'));
 const ImageStudioPage = lazy(() => import('@renderer/pages/content/image-studio-page.js'));
 const VideoStudioPage = lazy(() => import('@renderer/pages/content/video-studio-page.js'));
 const MusicStudioPage = lazy(() => import('@renderer/pages/content/music-studio-page.js'));
@@ -25,7 +26,6 @@ const TemplateDetailPage = lazy(() => import('@renderer/pages/templates/template
 const AdvisorHubPage = lazy(() => import('@renderer/pages/advisors/advisor-hub-page.js'));
 const AnalyticsDashboardPage = lazy(() => import('@renderer/pages/analytics/analytics-dashboard-page.js'));
 const SettingsPage = lazy(() => import('@renderer/pages/settings/settings-page.js'));
-const WorldDetailPage = lazy(() => import('@renderer/pages/worlds/world-detail-page.js'));
 const CharacterCardImportPage = lazy(() => import('@renderer/pages/import/character-card-import-page.js'));
 const NovelImportPage = lazy(() => import('@renderer/pages/import/novel-import-page.js'));
 
@@ -58,11 +58,12 @@ export function AppRoutes() {
 
           {/* Worlds */}
           <Route path="worlds/library" element={<PageSuspense><WorldsPage /></PageSuspense>} />
-          <Route path="worlds/:worldId" element={<PageSuspense><WorldDetailPage /></PageSuspense>} />
+          <Route path="worlds/:worldId" element={<PageSuspense><WorldEditEntryPage /></PageSuspense>} />
+          <Route path="worlds/:worldId/maintain" element={<PageSuspense><WorldEditEntryPage /></PageSuspense>} />
 
           {/* Agents */}
           <Route path="agents/library" element={<PageSuspense><AgentsPage /></PageSuspense>} />
-          <Route path="agents/:agentId" element={<PageSuspense><AgentDetailPage /></PageSuspense>} />
+          <Route path="agents/:agentId" element={<PageSuspense><AgentEditEntryPage /></PageSuspense>} />
 
           {/* Import */}
           {/* Secondary: Content */}

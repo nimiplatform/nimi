@@ -20,13 +20,14 @@ import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 // ---------------------------------------------------------------------------
 
 /** Forge UI capability keys. */
-export type ForgeAiCapability = 'text' | 'image' | 'music';
+export type ForgeAiCapability = 'text' | 'image' | 'music' | 'tts';
 
 /** Mapping from Forge UI keys to canonical runtime capability tokens. */
 const CAPABILITY_MAP: Record<ForgeAiCapability, string> = {
   text: 'text.generate',
   image: 'image.generate',
   music: 'music.generate',
+  tts: 'tts.synthesize',
 };
 
 /** Forge AIScopeRef per FG-ROUTE-004. */

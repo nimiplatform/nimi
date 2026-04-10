@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { ForgeWorkspacePanel } from '@renderer/features/workbench/types.js';
+import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
+import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 import { WorldCreatePageView } from '@renderer/pages/worlds/world-create-page.js';
 import { WorldMaintainPageView } from '@renderer/pages/worlds/world-maintain-page.js';
-import { publishForgeWorkspacePlan, type PublishProgress } from '@renderer/features/import/data/import-publish-client.js';
+import { WorkbenchEnrichmentPanel } from '@renderer/pages/workbench/workbench-enrichment-panel.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';
 import type { ImageGenEntityContext } from '@renderer/data/image-gen-client.js';
+import { buildWorkbenchWorldPackage } from '@renderer/data/workbench-world-package-builder.js';
 import { ForgeEmptyState, ForgeErrorBanner, ForgeStatCard } from '@renderer/components/page-layout.js';
 import { ForgeActionCard, ForgeListCard } from '@renderer/components/card-list.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
@@ -21,6 +24,7 @@ type WorkbenchPanel = ForgeWorkspacePanel;
 const PANELS: WorkbenchPanel[] = [
   'OVERVIEW',
   'WORLD_TRUTH',
+  'ENRICHMENT',
   'IMPORT',
   'REVIEW',
   'AGENTS',
@@ -45,6 +49,8 @@ export default function WorkbenchPage() {
   const attachMasterAgentClone = useForgeWorkspaceStore((state) => state.attachMasterAgentClone);
   const buildPublishPlan = useForgeWorkspaceStore((state) => state.buildPublishPlan);
   const markPublished = useForgeWorkspaceStore((state) => state.markPublished);
+  const userId = useAppStore((state) => state.auth?.user?.id || '');
+  const commitActions = useWorldCommitActions();
 
   const masterAgentsQuery = useAgentListQuery(true);
   const masterAgents = useMemo(
@@ -52,7 +58,6 @@ export default function WorkbenchPage() {
     [masterAgentsQuery.data],
   );
 
-  const [publishProgress, setPublishProgress] = useState<PublishProgress | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const imageGen = useImageGeneration();
   const [visualPrompt, setVisualPrompt] = useState('');
@@ -108,32 +113,127 @@ export default function WorkbenchPage() {
       || Boolean(snapshot.worldDraft.worldId)
     );
 
+  const completenessIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (!snapshot.worldDraft.tagline.trim()) issues.push('World tagline is required.');
+    if (!snapshot.worldDraft.description.trim()) issues.push('World description is required.');
+    if (!snapshot.worldDraft.genre.trim()) issues.push('World genre is required.');
+    if (snapshot.worldDraft.themes.length === 0) issues.push('At least one world theme is required.');
+    if (!snapshot.worldDraft.bannerUrl) issues.push('World banner is required.');
+    if (!snapshot.worldDraft.iconUrl) issues.push('World icon is required.');
+
+    Object.values(snapshot.agentDrafts)
+      .filter((draft) => draft.ownershipType === 'WORLD_OWNED')
+      .forEach((draft) => {
+        if (!draft.description.trim()) issues.push(`${draft.displayName}: description is required.`);
+        if (!draft.scenario.trim()) issues.push(`${draft.displayName}: scenario is required.`);
+        if (!draft.greeting.trim()) issues.push(`${draft.displayName}: greeting is required.`);
+        if (!draft.avatarUrl) issues.push(`${draft.displayName}: avatar is required.`);
+        if (!draft.voiceDemoUrl) issues.push(`${draft.displayName}: voice demo is required.`);
+        if (!draft.voiceDemoResourceId) issues.push(`${draft.displayName}: voice demo resource binding is required.`);
+      });
+
+    return issues;
+  }, [snapshot.agentDrafts, snapshot.worldDraft]);
+
+  const publishReady = reviewReady && completenessIssues.length === 0 && Boolean(userId);
+
   const handlePublish = async () => {
     setPublishError(null);
-    const plan = buildPublishPlan(workspaceId);
-    if (!plan) {
-      setPublishError('Unable to build publish plan.');
+    if (!userId) {
+      setPublishError('Authenticated user is required before official publish.');
       return;
     }
+    if (!reviewReady) {
+      setPublishError('Review guards must pass before official publish.');
+      return;
+    }
+    if (completenessIssues.length > 0) {
+      setPublishError(completenessIssues[0] || 'Completeness gate failed.');
+      return;
+    }
+    let batchRunId: string | null = null;
+    let batchItemId: string | null = null;
     try {
-      const result = await publishForgeWorkspacePlan({
-        plan,
-        worldName: snapshot.worldDraft.name || snapshot.workspace.title,
-        worldDescription: snapshot.worldDraft.description,
-        targetWorldId: snapshot.worldDraft.worldId,
-        agentBundles: snapshot.reviewState.agentBundles,
-        onProgress: setPublishProgress,
+      buildPublishPlan(workspaceId);
+      const pkg = buildWorkbenchWorldPackage({
+        workspaceId,
+        userId,
+        snapshot,
       });
-      if (result.errors.length > 0) {
-        setPublishError(result.errors[0]?.message || 'Publish completed with errors.');
+      const batchRun = await commitActions.createBatchRunMutation.mutateAsync({
+        name: `${pkg.world.name} publish`,
+        requestKey: `${workspaceId}:${pkg.meta.version}`,
+        pipelineStages: ['workbench-completeness-gate', 'package-publish'],
+        retryLimit: 1,
+        executionNotes: 'Forge workbench package publish',
+        items: [{
+          slug: pkg.slug,
+          sourceTitle: pkg.meta.sourceTitle,
+          canonicalTitle: pkg.world.name,
+          sourceMode: pkg.meta.sourceMode,
+          worldId: snapshot.worldDraft.worldId ?? undefined,
+          qualityGate: {
+            status: 'PASS',
+            findingCount: 0,
+          },
+        }],
+      });
+      const batchItem = batchRun.items[0];
+      if (!batchItem) {
+        throw new Error('FORGE_WORKBENCH_BATCH_ITEM_REQUIRED');
       }
+      batchRunId = batchRun.id;
+      batchItemId = batchItem.id;
+      const result = await commitActions.publishPackageMutation.mutateAsync({
+        package: pkg,
+        governance: {
+          officialOwnerId: userId,
+          editorialOperatorId: userId,
+          reviewerId: userId,
+          publisherId: userId,
+          publishActorId: userId,
+          sourceProvenance: snapshot.worldDraft.sourceType === 'NOVEL' ? 'forge-file-source' : 'forge-text-source',
+          reviewVerdict: 'approved',
+          releaseTag: `workbench-${pkg.meta.version}`,
+          releaseSummary: 'Forge workbench package publish',
+          changeSummary: 'Workbench enriched official package publish',
+        },
+        operations: {
+          batchRunId: batchRun.id,
+          batchItemId: batchItem.id,
+          qualityGate: {
+            status: 'PASS',
+            findingCount: 0,
+          },
+          titleLineageReason: 'Forge workbench package publish',
+        },
+      });
       markPublished(workspaceId, {
         worldId: result.worldId,
-        draftAgentIdMap: result.draftAgentIds,
       });
-      openPanel('OVERVIEW');
+      navigate(`/worlds/${result.worldId}/maintain`);
     } catch (error) {
-      setPublishError(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      if (batchRunId && batchItemId) {
+        try {
+          await commitActions.reportBatchItemFailureMutation.mutateAsync({
+            runId: batchRunId,
+            itemId: batchItemId,
+            payload: {
+              reason: message,
+              qualityGate: {
+                status: 'FAIL',
+                findingCount: 1,
+                findings: [message],
+              },
+            },
+          });
+        } catch {
+          // Surface the primary publish error below.
+        }
+      }
+      setPublishError(message);
     }
   };
 
@@ -200,11 +300,43 @@ export default function WorkbenchPage() {
                     onChange={(value) => patchWorldDraft(workspaceId, { name: value })}
                   />
                   <LabeledTextField
+                    label="Tagline"
+                    value={snapshot.worldDraft.tagline}
+                    onChange={(value) => patchWorldDraft(workspaceId, { tagline: value })}
+                  />
+                  <LabeledTextField
                     label="Source Type"
                     value={snapshot.worldDraft.sourceType}
                     readOnly
                   />
                 </div>
+                <LabeledTextField
+                  label="Genre"
+                  value={snapshot.worldDraft.genre}
+                  onChange={(value) => patchWorldDraft(workspaceId, { genre: value })}
+                  className="mt-4"
+                />
+                <LabeledTextField
+                  label="Themes"
+                  value={snapshot.worldDraft.themes.join(', ')}
+                  onChange={(value) => patchWorldDraft(workspaceId, {
+                    themes: value.split(',').map((item) => item.trim()).filter(Boolean),
+                  })}
+                  className="mt-4"
+                />
+                <LabeledTextField
+                  label="Era"
+                  value={snapshot.worldDraft.era}
+                  onChange={(value) => patchWorldDraft(workspaceId, { era: value })}
+                  className="mt-4"
+                />
+                <LabeledTextareaField
+                  label="Overview"
+                  value={snapshot.worldDraft.overview}
+                  onChange={(value) => patchWorldDraft(workspaceId, { overview: value })}
+                  rows={3}
+                  className="mt-4"
+                />
                 <LabeledTextareaField
                   label="Description"
                   value={snapshot.worldDraft.description}
@@ -225,6 +357,7 @@ export default function WorkbenchPage() {
                 <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Next Action</h2>
                 <div className="mt-5 space-y-3">
                   <ForgeActionCard title="Continue World Truth" onClick={() => openPanel('WORLD_TRUTH')} />
+                  <ForgeActionCard title="Run Enrichment" onClick={() => openPanel('ENRICHMENT')} />
                   <ForgeActionCard title="Import Character Card" onClick={() => navigate(`/workbench/${workspaceId}/import/character-card`)} />
                   <ForgeActionCard title="Import Novel" onClick={() => navigate(`/workbench/${workspaceId}/import/novel`)} />
                   <ForgeActionCard title="Review Truth Draft" onClick={() => openPanel('REVIEW')} />
@@ -352,6 +485,11 @@ export default function WorkbenchPage() {
               title={snapshot.workspace.title}
             />
           )
+        ) : null}
+
+        {/* ENRICHMENT panel */}
+        {panel === 'ENRICHMENT' ? (
+          <WorkbenchEnrichmentPanel workspaceId={workspaceId} />
         ) : null}
 
         {/* IMPORT panel */}
@@ -620,18 +758,16 @@ export default function WorkbenchPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Publish Plan</h2>
                   <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
-                    Workspace publish is ordered as world &rarr; agents &rarr; world rules &rarr; agent rules.
+                    Workbench publish now builds one completeness-gated official package and publishes it through the canonical admin package surface.
                   </p>
                 </div>
                 <Button
                   tone="primary"
                   size="sm"
                   onClick={handlePublish}
-                  disabled={!reviewReady}
+                  disabled={!publishReady || commitActions.publishPackageMutation.isPending}
                 >
-                  {publishProgress && publishProgress.phase !== 'DONE'
-                    ? `${publishProgress.phase} (${publishProgress.current}/${publishProgress.total})`
-                    : t('import.publish', 'Publish')}
+                  {commitActions.publishPackageMutation.isPending ? 'Publishing...' : 'Publish'}
                 </Button>
               </div>
 
@@ -653,7 +789,19 @@ export default function WorkbenchPage() {
                 <div className="mt-3 space-y-2 text-sm text-[var(--nimi-text-secondary)]">
                   <p>{snapshot.reviewState.hasPendingConflicts ? 'Blocked: unresolved conflicts remain.' : 'Conflicts resolved.'}</p>
                   <p>{snapshot.reviewState.hasUnmappedCharacters ? 'Blocked: one or more character bundles are not mapped to world-owned agents.' : 'Character bundles mapped to world-owned agents.'}</p>
-                  <p>{snapshot.reviewState.worldRules.length} world rule(s) and {snapshot.reviewState.agentBundles.reduce((sum, bundle) => sum + bundle.rules.length, 0)} agent rule(s) will be written.</p>
+                  <p>{snapshot.reviewState.worldRules.length} world rule(s) and {snapshot.reviewState.agentBundles.reduce((sum, bundle) => sum + bundle.rules.length, 0)} agent rule(s) will be packaged.</p>
+                  <p>{userId ? 'Authenticated publish actor resolved.' : 'Blocked: authenticated user required.'}</p>
+                </div>
+              </Surface>
+
+              <Surface tone="card" padding="sm" className="mt-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">Completeness Gate</p>
+                <div className="mt-3 space-y-2 text-sm text-[var(--nimi-text-secondary)]">
+                  {completenessIssues.length === 0 ? (
+                    <p>All required world and agent completion fields are present.</p>
+                  ) : completenessIssues.map((issue) => (
+                    <p key={issue}>{issue}</p>
+                  ))}
                 </div>
               </Surface>
 

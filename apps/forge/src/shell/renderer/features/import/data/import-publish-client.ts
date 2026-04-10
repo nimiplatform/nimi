@@ -159,6 +159,7 @@ export async function publishCharacterCardImport(params: {
       handle: canonicalizeHandleSeed(characterName),
       displayName: characterName,
       concept: agentRules.find((r) => r.ruleKey === 'identity:self:core')?.statement.slice(0, 200) ?? characterName,
+      description: undefined,
       ownershipType: ownerType as 'MASTER_OWNED' | 'WORLD_OWNED',
       worldId: targetWorldId,
     };
@@ -313,6 +314,8 @@ export async function publishForgeWorkspacePlan(params: {
           handle: item.handle || canonicalizeHandleSeed(item.displayName),
           displayName: item.displayName,
           concept: item.concept || item.displayName,
+          description: item.description.trim() || undefined,
+          referenceImageUrl: item.avatarUrl ?? undefined,
           ownershipType: 'WORLD_OWNED' as const,
           worldId: targetWorldId,
         })),
@@ -345,6 +348,8 @@ export async function publishForgeWorkspacePlan(params: {
               handle: planItem.handle || canonicalizeHandleSeed(planItem.displayName),
               displayName: planItem.displayName,
               concept: planItem.concept || planItem.displayName,
+              description: planItem.description.trim() || undefined,
+              referenceImageUrl: planItem.avatarUrl ?? undefined,
               ownershipType: 'WORLD_OWNED' as const,
               worldId: targetWorldId,
             }));
@@ -384,6 +389,8 @@ export async function publishForgeWorkspacePlan(params: {
     try {
       await retryOperation(() => updateAgent(sourceAgentId, {
         displayName: item.displayName,
+        bio: item.description.trim() || undefined,
+        avatarUrl: item.avatarUrl ?? undefined,
       }));
       result.draftAgentIds![item.draftAgentId] = sourceAgentId;
       result.agentIds[item.displayName] = sourceAgentId;

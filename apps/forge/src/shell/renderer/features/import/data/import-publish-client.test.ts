@@ -94,6 +94,8 @@ describe('publishForgeWorkspacePlan', () => {
           displayName: 'Ari',
           handle: 'ari',
           concept: 'Brave scout',
+          description: 'Ari is a brave scout.',
+          avatarUrl: 'https://cdn.example.com/ari.png',
         }],
         worldRules: [{
           ruleKey: 'world:seed:scenario',
@@ -143,6 +145,12 @@ describe('publishForgeWorkspacePlan', () => {
 
     expect(mockWorldDataClient.createWorldDraft).toHaveBeenCalledOnce();
     expect(mockAgentDataClient.batchCreateCreatorAgents).toHaveBeenCalledOnce();
+    expect(mockAgentDataClient.batchCreateCreatorAgents).toHaveBeenCalledWith(expect.objectContaining({
+      items: [expect.objectContaining({
+        description: 'Ari is a brave scout.',
+        referenceImageUrl: 'https://cdn.example.com/ari.png',
+      })],
+    }));
     expect(mockWorldDataClient.createWorldRule).toHaveBeenCalledWith('world_1', expect.objectContaining({
       ruleKey: 'world:seed:scenario',
     }));

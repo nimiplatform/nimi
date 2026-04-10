@@ -82,6 +82,15 @@ describe('ai-config-store (AIConfig)', () => {
     expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['audio.generate']).toBeUndefined();
   });
 
+  it('setSelection stores tts.synthesize in AIConfig', () => {
+    useAiConfigStore.getState().setSelection('tts', {
+      source: 'cloud', connectorId: 'c-tts', model: 'tts-v1',
+    });
+
+    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize'];
+    expect(binding).toEqual({ source: 'cloud', connectorId: 'c-tts', model: 'tts-v1' });
+  });
+
   it('persists to localStorage on setSelection', () => {
     useAiConfigStore.getState().setSelection('text', {
       source: 'cloud', connectorId: 'c1', model: 'gpt-4.1',

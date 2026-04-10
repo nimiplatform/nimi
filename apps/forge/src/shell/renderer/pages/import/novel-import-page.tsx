@@ -66,7 +66,7 @@ export default function NovelImportPage() {
       agentBundles: agentRules,
     });
     reviewSyncRef.current = true;
-    navigate(`/workbench/${workspaceId}?panel=REVIEW`);
+    navigate(`/workbench/${workspaceId}?panel=AGENTS`);
   }, [
     accumulator,
     applyNovelReviewDraft,

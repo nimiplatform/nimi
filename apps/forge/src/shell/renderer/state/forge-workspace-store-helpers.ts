@@ -89,7 +89,15 @@ export function createWorkspaceSnapshot(input?: CreateWorkspaceInput): ForgeWork
       worldId,
       draftId,
       name: input?.worldName?.trim() || title,
+      tagline: '',
+      motto: null,
+      overview: '',
       description: input?.worldDescription?.trim() || '',
+      genre: '',
+      themes: [],
+      era: '',
+      bannerUrl: null,
+      iconUrl: null,
       sourceType: 'MANUAL',
     },
     agentDrafts: {},
@@ -185,6 +193,36 @@ function toConflictReview(sessionId: string, conflict: ConflictEntry): Workspace
   };
 }
 
+function readFirstMeaningfulLine(value: string): string {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean) ?? '';
+}
+
+function buildDraftConcept(
+  fallbackName: string,
+  rules: LocalAgentRuleDraft[],
+  description?: string,
+): string {
+  const ruleStatement = rules[0]?.statement.slice(0, 200).trim() ?? '';
+  const descriptionLine = readFirstMeaningfulLine(description ?? '').slice(0, 200);
+  return ruleStatement || descriptionLine || fallbackName;
+}
+
+function buildDraftScenario(rules: LocalAgentRuleDraft[]): string {
+  const contextualRule = rules.find((rule) => rule.layer === 'CONTEXTUAL');
+  return contextualRule?.statement.trim() ?? '';
+}
+
+function buildNovelWorldDescription(accumulator: NovelAccumulatorState): string {
+  const summaries = accumulator.chapterArtifacts
+    .map((artifact) => artifact.chapterSummary.trim())
+    .filter(Boolean);
+  const uniqueSummaries = Array.from(new Set(summaries));
+  return uniqueSummaries.slice(0, 3).join('\n\n');
+}
+
 export function buildSessionSummary(input: {
   sessionId: string;
   sessionType: ForgeImportSessionType;
@@ -209,6 +247,10 @@ export function createCharacterCardReviewSnapshot(
   payload: CharacterCardReviewPayload,
   draftAgentId: string,
 ): ForgeWorkspaceSnapshot {
+  if (payload.sourceManifest.sourceType !== 'character_card') {
+    throw new Error('FORGE_CHARACTER_CARD_MANIFEST_REQUIRED');
+  }
+  const card = payload.sourceManifest.normalizedCard.data;
   const sessionSummary = buildSessionSummary({
     sessionId: payload.sessionId,
     sessionType: 'character_card',
@@ -222,7 +264,17 @@ export function createCharacterCardReviewSnapshot(
     originMasterAgentId: null,
     displayName: payload.characterName,
     handle: canonicalizeHandleSeed(payload.characterName),
-    concept: payload.agentRules[0]?.statement.slice(0, 200) ?? payload.characterName,
+    concept: buildDraftConcept(
+      payload.characterName,
+      payload.agentRules,
+      card.description,
+    ),
+    description: card.description.trim(),
+    scenario: card.scenario.trim(),
+    greeting: card.first_mes.trim(),
+    avatarUrl: null,
+    voiceDemoUrl: null,
+    voiceDemoResourceId: null,
     ownershipType: 'WORLD_OWNED',
     worldId: snapshot.worldDraft.worldId,
     status: 'DRAFT',
@@ -249,6 +301,8 @@ export function createCharacterCardReviewSnapshot(
           ? 'MIXED'
           : snapshot.worldDraft.sourceType,
       name: snapshot.worldDraft.name || payload.characterName,
+      tagline: snapshot.worldDraft.tagline || '',
+      overview: snapshot.worldDraft.overview || '',
     },
     agentDrafts: {
       ...snapshot.agentDrafts,
@@ -283,12 +337,15 @@ export function createNovelReviewSnapshot(
   snapshot: ForgeWorkspaceSnapshot,
   payload: NovelReviewPayload,
 ): ForgeWorkspaceSnapshot {
+  const unresolvedConflictCount = payload.accumulator.conflicts.filter(
+    (item) => item.resolution === 'UNRESOLVED',
+  ).length;
   const sessionSummary = buildSessionSummary({
     sessionId: payload.sessionId,
     sessionType: 'novel',
     sourceFile: payload.sourceFile,
     status: 'REVIEWED',
-    unresolvedConflicts: payload.accumulator.conflicts.filter((item) => item.resolution === 'UNRESOLVED').length,
+    unresolvedConflicts: unresolvedConflictCount,
     importedAt: payload.importedAt,
   });
 
@@ -298,6 +355,7 @@ export function createNovelReviewSnapshot(
       (draft) => draft.characterName === bundle.characterName,
     );
     const draftAgentId = existingDraft?.draftAgentId ?? generateId('draft_agent');
+    const discoveredCharacter = payload.accumulator.characters[bundle.characterName];
     if (!existingDraft) {
       nextAgentDrafts[draftAgentId] = {
         draftAgentId,
@@ -305,7 +363,13 @@ export function createNovelReviewSnapshot(
         originMasterAgentId: null,
         displayName: bundle.characterName,
         handle: canonicalizeHandleSeed(bundle.characterName),
-        concept: bundle.rules[0]?.statement.slice(0, 200) ?? bundle.characterName,
+        concept: buildDraftConcept(bundle.characterName, bundle.rules, discoveredCharacter?.description),
+        description: discoveredCharacter?.description.trim() ?? '',
+        scenario: buildDraftScenario(bundle.rules),
+        greeting: '',
+        avatarUrl: null,
+        voiceDemoUrl: null,
+        voiceDemoResourceId: null,
         ownershipType: 'WORLD_OWNED',
         worldId: snapshot.worldDraft.worldId,
         status: 'DRAFT',
@@ -332,8 +396,8 @@ export function createNovelReviewSnapshot(
   const nextSnapshot = touchWorkspace(snapshot, {
     workspace: {
       ...snapshot.workspace,
-      lifecycle: 'REVIEWING',
-      activePanel: 'REVIEW',
+      lifecycle: unresolvedConflictCount > 0 ? 'REVIEWING' : 'DRAFT',
+      activePanel: 'AGENTS',
       selectedAgentIds,
       sourceManifestRefs: snapshot.workspace.sourceManifestRefs.includes(payload.sessionId)
         ? snapshot.workspace.sourceManifestRefs
@@ -347,6 +411,9 @@ export function createNovelReviewSnapshot(
           ? 'MIXED'
           : snapshot.worldDraft.sourceType,
       name: snapshot.worldDraft.name || payload.sourceFile.replace(/\.[^.]+$/, ''),
+      tagline: snapshot.worldDraft.tagline || '',
+      overview: snapshot.worldDraft.overview || '',
+      description: snapshot.worldDraft.description || buildNovelWorldDescription(payload.accumulator),
     },
     agentDrafts: nextAgentDrafts,
     importSessions: [

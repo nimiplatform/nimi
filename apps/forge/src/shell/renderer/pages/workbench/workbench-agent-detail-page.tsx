@@ -12,11 +12,17 @@ import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js
 function buildDraftSystemPrompt(input: {
   displayName: string;
   concept: string;
+  description: string;
+  scenario: string;
+  greeting: string;
   rules: Array<{ title: string; statement: string; layer: string }>;
 }) {
   return [
     `You are roleplaying as ${input.displayName}.`,
     input.concept ? `Concept: ${input.concept}` : '',
+    input.description ? `Description: ${input.description}` : '',
+    input.scenario ? `Scenario: ${input.scenario}` : '',
+    input.greeting ? `Opening Style: ${input.greeting}` : '',
     ...input.rules.slice(0, 12).map((rule) => `[${rule.layer}] ${rule.title}: ${rule.statement}`),
   ].filter(Boolean).join('\n');
 }
@@ -50,6 +56,9 @@ export default function WorkbenchAgentDetailPage() {
   const systemPrompt = buildDraftSystemPrompt({
     displayName: agentDraft.displayName,
     concept: agentDraft.concept,
+    description: agentDraft.description,
+    scenario: agentDraft.scenario,
+    greeting: agentDraft.greeting,
     rules: (bundle?.rules || []).map((rule) => ({
       title: rule.title,
       statement: rule.statement,
@@ -80,6 +89,13 @@ export default function WorkbenchAgentDetailPage() {
         >
           &larr; Back to Workbench
         </Button>
+        <Button
+          tone="ghost"
+          size="sm"
+          onClick={() => navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`)}
+        >
+          Open World Editor
+        </Button>
         <div>
           <h1 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">{agentDraft.displayName}</h1>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">@{agentDraft.handle}</p>
@@ -107,6 +123,35 @@ export default function WorkbenchAgentDetailPage() {
             value={agentDraft.concept}
             onChange={(value) => updateAgentDraft(workspaceId, agentId, { concept: value })}
             rows={4}
+            className="mt-4"
+          />
+          <LabeledTextareaField
+            label="Description"
+            value={agentDraft.description}
+            onChange={(value) => updateAgentDraft(workspaceId, agentId, { description: value })}
+            rows={4}
+            className="mt-4"
+          />
+          <LabeledTextareaField
+            label="Scenario"
+            value={agentDraft.scenario}
+            onChange={(value) => updateAgentDraft(workspaceId, agentId, { scenario: value })}
+            rows={4}
+            className="mt-4"
+          />
+          <LabeledTextareaField
+            label="Greeting"
+            value={agentDraft.greeting}
+            onChange={(value) => updateAgentDraft(workspaceId, agentId, { greeting: value })}
+            rows={3}
+            className="mt-4"
+          />
+          <LabeledTextField
+            label="Avatar URL"
+            value={agentDraft.avatarUrl ?? ''}
+            onChange={(value) => updateAgentDraft(workspaceId, agentId, {
+              avatarUrl: value.trim() ? value : null,
+            })}
             className="mt-4"
           />
 
@@ -145,7 +190,7 @@ export default function WorkbenchAgentDetailPage() {
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-secondary)]">Personality Preview</h2>
               <p className="mt-2 text-sm text-[var(--nimi-text-muted)]">
-                Preview uses the local draft concept and agent rules without requiring a persisted backend agent.
+                Preview uses the local draft profile fields and agent rules without requiring a persisted backend agent.
               </p>
             </div>
             <Button tone="secondary" size="sm" onClick={() => resetMessages([])}>

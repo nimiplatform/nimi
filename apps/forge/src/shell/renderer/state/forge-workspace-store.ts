@@ -116,6 +116,10 @@ type WorkbenchStoreActions = {
       handle: string;
       concept: string;
       worldId: string | null;
+      description?: string;
+      scenario?: string;
+      greeting?: string;
+      avatarUrl?: string | null;
     },
   ) => string;
   buildPublishPlan: (workspaceId: string) => ForgePublishPlan | null;
@@ -377,6 +381,12 @@ export const useForgeWorkspaceStore = create<WorkbenchStoreState & WorkbenchStor
             displayName: input.displayName,
             handle: input.handle,
             concept: input.concept,
+            description: '',
+            scenario: '',
+            greeting: '',
+            avatarUrl: null,
+            voiceDemoUrl: null,
+            voiceDemoResourceId: null,
             ownershipType: 'WORLD_OWNED',
             worldId: snapshot.worldDraft.worldId,
             status: 'DRAFT',
@@ -417,6 +427,12 @@ export const useForgeWorkspaceStore = create<WorkbenchStoreState & WorkbenchStor
             displayName: input.displayName,
             handle: input.handle,
             concept: input.concept,
+            description: input.description?.trim() ?? '',
+            scenario: input.scenario?.trim() ?? '',
+            greeting: input.greeting?.trim() ?? '',
+            avatarUrl: input.avatarUrl ?? null,
+            voiceDemoUrl: null,
+            voiceDemoResourceId: null,
             ownershipType: 'WORLD_OWNED',
             worldId: input.worldId,
             status: 'LINKED',
@@ -452,6 +468,8 @@ export const useForgeWorkspaceStore = create<WorkbenchStoreState & WorkbenchStor
           displayName: draft.displayName,
           handle: draft.handle,
           concept: draft.concept,
+          description: draft.description,
+          avatarUrl: draft.avatarUrl,
         })),
       worldRules: snapshot.reviewState.worldRules,
       agentRules: snapshot.reviewState.agentBundles.map((bundle) => ({

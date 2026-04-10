@@ -81,11 +81,12 @@ describe('AiConfigSection', () => {
     });
   });
 
-  it('renders capability section titles for chat, image, and music', () => {
+  it('renders capability section titles for chat, image, music, and tts', () => {
     renderSection();
     expect(screen.getByText('Chat Model')).toBeTruthy();
     expect(screen.getByText('Image Model')).toBeTruthy();
     expect(screen.getByText('Music Model')).toBeTruthy();
+    expect(screen.getByText('TTS Model')).toBeTruthy();
   });
 
   it('does not render Preview badge — all capabilities are stable', () => {
@@ -106,8 +107,8 @@ describe('AiConfigSection', () => {
     await waitFor(() => {
       const localButtons = screen.getAllByText('Local');
       const cloudButtons = screen.getAllByText('Cloud');
-      expect(localButtons.length).toBeGreaterThanOrEqual(3);
-      expect(cloudButtons.length).toBeGreaterThanOrEqual(3);
+      expect(localButtons.length).toBeGreaterThanOrEqual(4);
+      expect(cloudButtons.length).toBeGreaterThanOrEqual(4);
     });
   });
 });

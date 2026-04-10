@@ -1,7 +1,7 @@
 /**
  * AI Configuration Section for Settings Page
  *
- * All capabilities (text.generate, image.generate, music.generate) use the
+ * All capabilities (text.generate, image.generate, music.generate, tts.synthesize) use the
  * snapshot-driven provider backed by runtime.route.listOptions (FG-ROUTE-001/005).
  */
 
@@ -38,6 +38,7 @@ const CAPABILITIES: CapabilityEntry[] = [
   { key: 'text', labelKey: 'settings.aiText', fallback: 'Chat Model', runtimeCapability: 'text.generate' },
   { key: 'image', labelKey: 'settings.aiImage', fallback: 'Image Model', runtimeCapability: 'image.generate' },
   { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'music.generate' },
+  { key: 'tts', labelKey: 'settings.aiTts', fallback: 'TTS Model', runtimeCapability: 'tts.synthesize' },
 ];
 
 // ---------------------------------------------------------------------------

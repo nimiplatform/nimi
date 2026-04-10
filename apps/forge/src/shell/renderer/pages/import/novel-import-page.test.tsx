@@ -54,7 +54,9 @@ vi.mock('@renderer/features/import/hooks/use-novel-import.js', () => ({
       characters: {},
       agentRulesByCharacter: {},
       conflicts: [],
-      lineage: {},
+      worldRuleLineage: {},
+      agentRuleLineageByCharacter: {},
+      chapterArtifacts: [],
     },
     currentChapterResult: null,
     progress: { current: 1, total: 1 },
@@ -80,7 +82,7 @@ describe('NovelImportPage', () => {
     useForgeWorkspaceStore.getState().reset();
   });
 
-  it('hands final novel extraction back into the owning workspace review state', async () => {
+  it('hands final novel extraction back into the owning workspace editable state', async () => {
     const workspaceId = useForgeWorkspaceStore.getState().createWorkspace({
       mode: 'NEW_WORLD',
       title: 'Novel Workspace',
@@ -104,6 +106,7 @@ describe('NovelImportPage', () => {
     const snapshot = useForgeWorkspaceStore.getState().workspaces[workspaceId]!;
     expect(snapshot.reviewState.worldRules).toHaveLength(1);
     expect(snapshot.reviewState.agentBundles).toHaveLength(1);
+    expect(snapshot.workspace.activePanel).toBe('AGENTS');
     expect(queryByText('Publish')).toBeNull();
   });
 });
