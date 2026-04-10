@@ -13,6 +13,7 @@ export default defineConfig({
       { find: 'react', replacement: path.resolve(__dirname, '../../apps/desktop/node_modules/react/index.js') },
       { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, './src/index.ts') },
       { find: '@nimiplatform/nimi-kit/features/chat', replacement: path.resolve(__dirname, '../features/chat/src') },
+      { find: '@nimiplatform/nimi-kit/features/model-config', replacement: path.resolve(__dirname, '../features/model-config/src') },
       { find: '@nimiplatform/nimi-kit/features/model-picker', replacement: path.resolve(__dirname, '../features/model-picker/src') },
       { find: '@nimiplatform/nimi-kit/features/generation', replacement: path.resolve(__dirname, '../features/generation/src') },
     ],

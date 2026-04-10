@@ -7,11 +7,9 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import type { AIProfile, AIProfileCapabilityIntent } from '@nimiplatform/sdk/mod';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
-  createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,
   type RouteModelPickerSelection,
 } from '@nimiplatform/nimi-kit/features/model-picker';
@@ -31,31 +29,32 @@ import {
   DEFAULT_VIDEO_PARAMS,
   type VideoParamsState,
   CompanionSlotSelector,
-  useLocalAssets,
   FieldRow,
   FieldInput,
   FieldSelect,
   FieldTextarea,
   FieldToggle,
   SubSectionLabel,
-} from '../chat/capability-settings-shared';
+} from '@nimiplatform/nimi-kit/features/model-config';
+import { getDesktopRouteModelPickerProvider } from './desktop-route-model-picker-provider';
+import { useLocalAssets } from '../chat/capability-settings-shared';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const CORE_RUNTIME_MOD_ID = 'core:runtime';
-
 type CapabilitySectionDef = {
   key: string;
   label: string;
   sdkCapability: string;
-  group: 'basic' | 'image' | 'video';
+  group: 'basic' | 'image' | 'video' | 'voice';
 };
 
 const CAPABILITY_SECTIONS: CapabilitySectionDef[] = [
   { key: 'chat', label: 'Chat', sdkCapability: 'text.generate', group: 'basic' },
-  { key: 'tts', label: 'TTS', sdkCapability: 'speech.synthesize', group: 'basic' },
+  { key: 'tts', label: 'TTS', sdkCapability: 'audio.synthesize', group: 'voice' },
+  { key: 'voice_clone', label: 'Voice clone workflow', sdkCapability: 'voice_workflow.tts_v2v', group: 'voice' },
+  { key: 'voice_design', label: 'Voice design workflow', sdkCapability: 'voice_workflow.tts_t2v', group: 'voice' },
   { key: 'image.generate', label: 'Image generation', sdkCapability: 'image.generate', group: 'image' },
   { key: 'image.edit', label: 'Image editing', sdkCapability: 'image.edit', group: 'image' },
   { key: 'video', label: 'Video', sdkCapability: 'video.generate', group: 'video' },
@@ -75,19 +74,6 @@ function EditorFieldLabel(props: { label: string }) {
 // Model picker per capability
 // ---------------------------------------------------------------------------
 
-function createCapabilityProvider(sdkCapability: string): RouteModelPickerDataProvider | null {
-  try {
-    const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-    return createSnapshotRouteDataProvider(
-      () => modClient.route.listOptions({
-        capability: sdkCapability as Parameters<typeof modClient.route.listOptions>[0]['capability'],
-      }),
-    );
-  } catch {
-    return null;
-  }
-}
-
 function CapabilityBindingEditor(props: {
   capabilityKey: string;
   sdkCapability: string;
@@ -98,7 +84,7 @@ function CapabilityBindingEditor(props: {
   const { t } = useTranslation();
   const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
   if (!providerRef.current) {
-    providerRef.current = createCapabilityProvider(props.sdkCapability);
+    providerRef.current = getDesktopRouteModelPickerProvider(props.sdkCapability);
   }
   const provider = providerRef.current;
   const [modalOpen, setModalOpen] = useState(false);
@@ -191,7 +177,10 @@ function ImageParamsEditor(props: {
 
   return (
     <div className="space-y-3 pt-1">
-      <SubSectionLabel label={t('Chat.imageCompanionModels', { defaultValue: 'Companion Models' })} preview />
+      <SubSectionLabel
+        label={t('Chat.imageCompanionModels', { defaultValue: 'Companion Models' })}
+        previewLabel={t('Chat.badgePreview', { defaultValue: 'Preview' })}
+      />
       <div className="grid grid-cols-2 gap-3">
         {COMPANION_SLOTS.map((slot) => (
           <CompanionSlotSelector
@@ -204,7 +193,10 @@ function ImageParamsEditor(props: {
         ))}
       </div>
 
-      <SubSectionLabel label={t('Chat.imageParameters', { defaultValue: 'Parameters' })} preview />
+      <SubSectionLabel
+        label={t('Chat.imageParameters', { defaultValue: 'Parameters' })}
+        previewLabel={t('Chat.badgePreview', { defaultValue: 'Preview' })}
+      />
       <div className="grid grid-cols-2 gap-3">
         <FieldRow label={t('Chat.imageParamSize', { defaultValue: 'Size' })}>
           <FieldSelect
@@ -268,12 +260,15 @@ function VideoParamsEditor(props: {
 
   return (
     <div className="space-y-3 pt-1">
-      <SubSectionLabel label={t('Chat.videoParameters', { defaultValue: 'Parameters' })} preview />
+      <SubSectionLabel
+        label={t('Chat.videoParameters', { defaultValue: 'Parameters' })}
+        previewLabel={t('Chat.badgePreview', { defaultValue: 'Preview' })}
+      />
       <FieldRow label={t('Chat.videoParamMode', { defaultValue: 'Mode' })}>
         <FieldSelect
           value={props.params.mode}
           onChange={(v) => updateParam('mode', v)}
-          options={VIDEO_MODE_OPTIONS.map((m) => ({ value: m.value, label: t(m.i18nKey, { defaultValue: m.defaultLabel }) }))}
+          options={VIDEO_MODE_OPTIONS.map((m) => ({ value: m.value, label: m.label }))}
         />
       </FieldRow>
       <div className="grid grid-cols-2 gap-3">

@@ -118,6 +118,13 @@ const ICON_SHIELD = (
   </svg>
 );
 
+const ICON_TESTER = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 3h6v6l5 8a2 2 0 0 1-1.7 3H5.7A2 2 0 0 1 4 17l5-8V3z" />
+    <path d="M9 3h6" />
+  </svg>
+);
+
 const ICON_LOGOUT = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -143,6 +150,7 @@ export function renderShellNavIcon(icon: string): ReactNode {
   if (normalized === 'terms' || normalized === 'file' || normalized === 'document' || normalized === 'terms-of-service') return ICON_FILE_TEXT;
   if (normalized === 'privacy' || normalized === 'shield' || normalized === 'privacy-policy') return ICON_SHIELD;
   if (normalized === 'logout' || normalized === 'log-out') return ICON_LOGOUT;
+  if (normalized === 'tester' || normalized === 'beaker' || normalized === 'flask') return ICON_TESTER;
   return ICON_PUZZLE;
 }
 
@@ -153,13 +161,14 @@ const BASE_CORE_NAV_ITEMS: NavItem[] = [
   { id: 'world', label: 'World', icon: renderShellNavIcon('world') },
   { id: 'explore', label: 'Explore', icon: renderShellNavIcon('explore') },
   { id: 'runtime', label: 'AI Runtime', icon: renderShellNavIcon('runtime') },
+  { id: 'tester', label: 'AI Tester', icon: renderShellNavIcon('tester') },
   { id: 'settings', label: 'Settings', icon: renderShellNavIcon('settings') },
 ];
 
 export function getCoreNavItems(): NavItem[] {
   const flags = getShellFeatureFlags();
   return BASE_CORE_NAV_ITEMS.filter((item) => {
-    if (item.id === 'runtime') {
+    if (item.id === 'runtime' || item.id === 'tester') {
       return flags.enableRuntimeTab;
     }
     return true;

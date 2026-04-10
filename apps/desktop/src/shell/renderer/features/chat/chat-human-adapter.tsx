@@ -152,7 +152,7 @@ export function useHumanConversationModeHost(
           key: 'voice',
           title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
           hint: t('Chat.settingsVoiceHint', {
-            defaultValue: 'Control how voice replies are triggered, whether voice session mode stays on, and which timbre is used.',
+            defaultValue: 'Review voice playback, transcript visibility, and route readiness for this conversation.',
           }),
           content: canonicalSurface.rightSidebarContent || (
             <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />

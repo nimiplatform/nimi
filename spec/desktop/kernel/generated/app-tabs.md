@@ -10,6 +10,7 @@
 | `world` | `core` | World | `—` |
 | `explore` | `core` | Explore | `—` |
 | `runtime` | `core` | AI Runtime | `enableRuntimeTab` |
+| `tester` | `core` | AI Tester | `enableRuntimeTab` |
 | `settings` | `core` | Settings | `—` |
 | `mods` | `mod-nav` | Mods | `enableModUi` |
 | `profile` | `detail` | Profile | `—` |

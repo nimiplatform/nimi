@@ -89,6 +89,10 @@ const TermsOfServiceView = lazy(async () => {
   const mod = await import('@renderer/features/legal/terms-of-service-view');
   return { default: mod.TermsOfServiceView };
 });
+const TesterPage = lazy(async () => {
+  const mod = await import('@renderer/features/tester/tester-page');
+  return { default: mod.TesterPage };
+});
 const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
   return { default: mod.SlotHost };
@@ -574,6 +578,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'mods' && flags.enableModUi ? (
               <div data-testid={E2E_IDS.panel('mods')} className="flex min-h-0 flex-1 flex-col">
                 <ModsPanel />
+              </div>
+            ) : null}
+
+            {props.activeTab === 'tester' && flags.enableRuntimeTab ? (
+              <div data-testid={E2E_IDS.panel('tester')} className="flex min-h-0 flex-1 flex-col">
+                <TesterPage />
               </div>
             ) : null}
 

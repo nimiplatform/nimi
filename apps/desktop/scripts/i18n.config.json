@@ -37,7 +37,8 @@
       "^OKX Wallet$",
       "^Google$",
       "^Google login$",
-      "^Nimi$"
+      "^Nimi$",
+      "^(mp3|wav|ogg|pcm|auto|base64|url)$"
     ]
   }
 }

@@ -1,432 +1,389 @@
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
-import { ImageCapabilitySettings } from './chat-image-capability-settings';
-import { VideoCapabilitySettings } from './chat-video-capability-settings';
-import { createModRuntimeClient, type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
-import {
-  createSnapshotRouteDataProvider,
-  type RouteModelPickerSelection,
-} from '@nimiplatform/nimi-kit/features/model-picker';
-import {
-  ModelPickerModal,
-  ModelSelectorTrigger,
-} from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type {
+  ModelConfigCapabilityItem,
+  ModelConfigCapabilityStatus,
+  ModelConfigSection,
+} from '@nimiplatform/nimi-kit/features/model-config';
+import {
+  ImageParamsEditor,
+  ModelConfigPanel,
+  VideoParamsEditor,
+  parseImageParams,
+  parseVideoParams,
+  type ImageParamsEditorCopy,
+  type LocalAssetEntry,
+  type VideoParamsEditorCopy,
+} from '@nimiplatform/nimi-kit/features/model-config';
+import { type RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
+import { useLocalAssets } from './capability-settings-shared';
 import {
   type ConversationCapability,
   type ConversationCapabilityProjection,
   toRuntimeCanonicalCapability,
-  toRuntimeRouteBindingFromPickerSelection,
 } from './conversation-capability';
-import {
-  DisabledSettingsNote,
-} from './chat-settings-panel';
-import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
-import {
-  DEFAULT_IMAGE_PARAMS,
-  type ImageParamsState,
-  DEFAULT_VIDEO_PARAMS,
-  type VideoParamsState,
-} from './capability-settings-shared';
-
-const CORE_RUNTIME_MOD_ID = 'core:runtime';
-
-type ConversationCapabilitySettingsSectionProps = {
-  section: 'voice' | 'visual' | 'image' | 'video';
-};
 
 type CapabilityConfig = {
   capability: ConversationCapability;
-  title: string;
+  sectionId: 'chat' | 'tts' | 'image' | 'video';
+  sectionTitle: string;
+  label: string;
   detail: string;
+  editorKind?: 'image' | 'video';
 };
-
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function toSelection(binding: RuntimeRouteBinding | null | undefined): Partial<RouteModelPickerSelection> {
-  if (!binding) {
-    return {
-      source: 'local',
-      connectorId: '',
-      model: '',
-    };
-  }
-  return {
-    source: binding.source === 'cloud' ? 'cloud' : 'local',
-    connectorId: normalizeText(binding.connectorId),
-    model: binding.source === 'local'
-      ? (normalizeText(binding.localModelId) || normalizeText(binding.model))
-      : (normalizeText(binding.model) || normalizeText(binding.modelId)),
-  };
-}
-
-function summarizeRouteBinding(
-  binding: Pick<RuntimeRouteBinding, 'source' | 'connectorId' | 'provider' | 'engine' | 'modelId' | 'model' | 'localModelId'> | null | undefined,
-): { label: string; detail: string | null } {
-  if (!binding) {
-    return {
-      label: 'Route not selected',
-      detail: null,
-    };
-  }
-  if (binding.source === 'local') {
-    const provider = normalizeText(binding.provider) || normalizeText(binding.engine) || 'Local runtime';
-    const model = normalizeText(binding.model) || normalizeText(binding.modelId) || normalizeText(binding.localModelId) || 'Unknown model';
-    return {
-      label: 'Local runtime',
-      detail: [provider, model].filter(Boolean).join(' · '),
-    };
-  }
-  const provider = normalizeText(binding.provider) || normalizeText(binding.connectorId) || 'Cloud route';
-  const model = normalizeText(binding.model) || normalizeText(binding.modelId) || 'Unknown model';
-  return {
-    label: provider,
-    detail: model,
-  };
-}
 
 function buildProjectionStatus(
   t: ReturnType<typeof useTranslation>['t'],
   capabilityLabel: string,
   projection: ConversationCapabilityProjection | null | undefined,
   selectedBinding: RuntimeRouteBinding | null | undefined,
-): {
-  badge: string;
-  value: string;
-  detail: string | null;
-  supported: boolean;
-} {
-  const summary = summarizeRouteBinding(projection?.resolvedBinding || selectedBinding);
+): ModelConfigCapabilityStatus {
+  const fallbackTitle = selectedBinding
+    ? t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
+    : t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' });
+
   if (projection?.supported && projection.resolvedBinding) {
     return {
-      badge: t('Chat.settingsCapabilityReady', { defaultValue: 'Ready' }),
-      value: summary.label,
-      detail: summary.detail,
       supported: true,
+      tone: 'ready',
+      badgeLabel: t('Chat.settingsCapabilityReady', { defaultValue: 'Ready' }),
+      title: t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' }),
+      detail: null,
     };
   }
 
   if (projection?.reasonCode === 'selection_missing' || projection?.reasonCode === 'selection_cleared') {
     return {
-      badge: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-      value: t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+      title: t('Chat.settingsRouteUnavailable', { defaultValue: 'Route unavailable' }),
       detail: t('Chat.settingsCapabilityRouteRequired', {
         defaultValue: 'Select a route for {{capability}}.',
         capability: capabilityLabel,
       }),
-      supported: false,
     };
   }
 
   if (projection?.reasonCode === 'binding_unresolved') {
     return {
-      badge: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-      value: t('Chat.settingsSelectedRouteUnavailable', { defaultValue: 'Selected route unavailable' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+      title: t('Chat.settingsSelectedRouteUnavailable', { defaultValue: 'Selected route unavailable' }),
       detail: t('Chat.settingsSelectedRouteUnavailableHint', {
         defaultValue: 'The selected route can no longer be resolved.',
       }),
-      supported: false,
     };
   }
 
   if (projection?.reasonCode === 'route_unhealthy') {
     return {
-      badge: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-      value: t('Chat.settingsRouteUnhealthy', { defaultValue: 'Route unhealthy' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+      title: t('Chat.settingsRouteUnhealthy', { defaultValue: 'Route unhealthy' }),
       detail: t('Chat.settingsRouteUnhealthyHint', {
         defaultValue: 'The selected route failed the latest health check.',
       }),
-      supported: false,
     };
   }
 
   if (projection?.reasonCode === 'metadata_missing') {
     return {
-      badge: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-      value: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+      title: t('Chat.settingsRouteMetadataUnavailable', { defaultValue: 'Route metadata unavailable' }),
       detail: t('Chat.settingsRouteMetadataUnavailableHint', {
         defaultValue: 'This capability cannot execute until runtime describe metadata is available.',
       }),
-      supported: false,
     };
   }
 
   if (projection?.reasonCode === 'capability_unsupported') {
     return {
-      badge: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-      value: t('Chat.settingsCapabilityUnsupported', { defaultValue: 'Capability unsupported' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+      title: t('Chat.settingsCapabilityUnsupported', { defaultValue: 'Capability unsupported' }),
       detail: t('Chat.settingsCapabilityUnsupportedHint', {
         defaultValue: 'The current runtime does not expose this capability.',
       }),
-      supported: false,
     };
   }
 
   if (projection?.reasonCode === 'host_denied') {
     return {
-      badge: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
-      value: t('Chat.settingsCapabilityDenied', { defaultValue: 'Capability denied' }),
+      supported: false,
+      tone: 'attention',
+      badgeLabel: t('Chat.settingsCapabilityAttention', { defaultValue: 'Attention' }),
+      title: t('Chat.settingsCapabilityDenied', { defaultValue: 'Capability denied' }),
       detail: t('Chat.settingsCapabilityDeniedHint', {
         defaultValue: 'The host denied this capability for the current conversation surface.',
       }),
-      supported: false,
     };
   }
 
   return {
-    badge: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
-    value: summary.label,
-    detail: summary.detail || t('Chat.settingsCapabilityRouteRequired', {
-      defaultValue: 'Select a route for {{capability}}.',
-      capability: capabilityLabel,
-    }),
     supported: false,
+    tone: 'neutral',
+    badgeLabel: t('Chat.settingsCapabilityNeedsSetup', { defaultValue: 'Needs setup' }),
+    title: fallbackTitle,
+    detail: selectedBinding
+      ? null
+      : t('Chat.settingsCapabilityRouteRequired', {
+        defaultValue: 'Select a route for {{capability}}.',
+        capability: capabilityLabel,
+      }),
   };
 }
 
-function supportsImageCapability(value: unknown): boolean {
-  const normalized = normalizeText(value);
-  return normalized === 'image'
-    || normalized === 'image.generate'
-    || normalized === 'image.edit';
+function createImageEditorCopy(t: ReturnType<typeof useTranslation>['t']): ImageParamsEditorCopy {
+  return {
+    companionModelsLabel: t('Chat.imageCompanionModels', { defaultValue: 'Companion Models' }),
+    parametersLabel: t('Chat.imageParameters', { defaultValue: 'Parameters' }),
+    previewBadgeLabel: t('Chat.badgePreview', { defaultValue: 'Preview' }),
+    sizeLabel: t('Chat.imageParamSize', { defaultValue: 'Size' }),
+    responseFormatLabel: t('Chat.imageParamResponseFormat', { defaultValue: 'Response format' }),
+    seedLabel: t('Chat.imageParamSeed', { defaultValue: 'Seed' }),
+    seedHint: t('Chat.imageParamSeedHint', { defaultValue: 'Optional seed for reproducibility' }),
+    timeoutLabel: t('Chat.imageParamTimeout', { defaultValue: 'Timeout (ms)' }),
+    stepsLabel: t('Chat.imageParamSteps', { defaultValue: 'Steps' }),
+    cfgScaleLabel: t('Chat.imageParamCfgScale', { defaultValue: 'CFG Scale' }),
+    samplerLabel: t('Chat.imageParamSampler', { defaultValue: 'Sampler' }),
+    schedulerLabel: t('Chat.imageParamScheduler', { defaultValue: 'Scheduler' }),
+    customOptionsLabel: t('Chat.imageParamCustomOptions', { defaultValue: 'Custom options' }),
+    customOptionsHint: t('Chat.imageParamCustomOptionsHint', { defaultValue: 'One option per line. Example: diffusion_model' }),
+    defaultPlaceholder: t('Chat.placeholderDefault', { defaultValue: 'Default' }),
+    randomPlaceholder: t('Chat.placeholderRandom', { defaultValue: 'Random' }),
+    oneOptionPerLinePlaceholder: t('Chat.placeholderOnePerLine', { defaultValue: 'One option per line' }),
+    noneLabel: t('Chat.companionSlotNone', { defaultValue: 'None' }),
+  };
 }
 
-function useCapabilityModelPickerProvider(capability: string): RouteModelPickerDataProvider | null {
-  const keyRef = useRef<string>(capability);
-  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
-  // Recreate provider when capability changes
-  if (!providerRef.current || keyRef.current !== capability) {
-    keyRef.current = capability;
-    try {
-      const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-      providerRef.current = createSnapshotRouteDataProvider(
-        () => modClient.route.listOptions({
-          capability: capability as Parameters<typeof modClient.route.listOptions>[0]['capability'],
-        }),
-      );
-    } catch {
-      providerRef.current = null;
+function createVideoEditorCopy(t: ReturnType<typeof useTranslation>['t']): VideoParamsEditorCopy {
+  return {
+    parametersLabel: t('Chat.videoParameters', { defaultValue: 'Parameters' }),
+    previewBadgeLabel: t('Chat.badgePreview', { defaultValue: 'Preview' }),
+    modeLabel: t('Chat.videoParamMode', { defaultValue: 'Mode' }),
+    ratioLabel: t('Chat.videoParamRatio', { defaultValue: 'Aspect ratio' }),
+    durationLabel: t('Chat.videoParamDuration', { defaultValue: 'Duration (sec)' }),
+    durationHint: t('Chat.videoParamDurationHint', { defaultValue: 'Range: 1–11 seconds' }),
+    resolutionLabel: t('Chat.videoParamResolution', { defaultValue: 'Resolution' }),
+    fpsLabel: t('Chat.videoParamFps', { defaultValue: 'FPS' }),
+    seedLabel: t('Chat.videoParamSeed', { defaultValue: 'Seed' }),
+    seedHint: t('Chat.videoParamSeedHint', { defaultValue: 'Optional seed for reproducibility' }),
+    timeoutLabel: t('Chat.videoParamTimeout', { defaultValue: 'Timeout (ms)' }),
+    cameraFixedLabel: t('Chat.videoParamCameraFixed', { defaultValue: 'Fixed camera' }),
+    generateAudioLabel: t('Chat.videoParamGenerateAudio', { defaultValue: 'Generate audio' }),
+    defaultPlaceholder: t('Chat.placeholderDefault', { defaultValue: 'Default' }),
+    randomPlaceholder: t('Chat.placeholderRandom', { defaultValue: 'Random' }),
+    modeOptions: [
+      { value: 't2v', label: t('Chat.videoModeT2v', { defaultValue: 'Text to Video' }) },
+      { value: 'i2v-first-frame', label: t('Chat.videoModeI2vFirst', { defaultValue: 'Image to Video (first frame)' }) },
+      { value: 'i2v-reference', label: t('Chat.videoModeI2vRef', { defaultValue: 'Image to Video (reference)' }) },
+    ],
+  };
+}
+
+function useCapabilityProviders(capabilities: string[]): Record<string, RouteModelPickerDataProvider | null> {
+  const capabilityKey = capabilities.join('|');
+  return useMemo(() => {
+    const providers: Record<string, RouteModelPickerDataProvider | null> = {};
+    for (const capability of capabilities) {
+      if (!capability || providers[capability] !== undefined) {
+        continue;
+      }
+      providers[capability] = getDesktopRouteModelPickerProvider(capability);
     }
-  }
-  return providerRef.current;
+    return providers;
+  }, [capabilities, capabilityKey]);
 }
 
-function CapabilityRouteSettingCard(props: CapabilityConfig & { localContent?: ReactNode; onClear?: () => void }) {
+function createCapabilityConfigs(t: ReturnType<typeof useTranslation>['t']): CapabilityConfig[] {
+  return [
+    {
+      capability: 'text.generate',
+      sectionId: 'chat',
+      sectionTitle: t('Chat.settingsChatSection', { defaultValue: 'Chat' }),
+      label: t('Chat.settingsChatModel', { defaultValue: 'Chat Model' }),
+      detail: t('Chat.settingsChatModelHint', { defaultValue: 'The active text route for this conversation scope.' }),
+    },
+    {
+      capability: 'audio.synthesize',
+      sectionId: 'tts',
+      sectionTitle: t('Chat.settingsTtsSection', { defaultValue: 'TTS' }),
+      label: t('Chat.settingsVoiceSpeechTitle', { defaultValue: 'Speech synthesis' }),
+      detail: t('Chat.settingsVoiceSpeechHint', { defaultValue: 'Controls standard text-to-speech playback for the conversation.' }),
+    },
+    {
+      capability: 'voice_workflow.tts_v2v',
+      sectionId: 'tts',
+      sectionTitle: t('Chat.settingsTtsSection', { defaultValue: 'TTS' }),
+      label: t('Chat.settingsVoiceCloneTitle', { defaultValue: 'Voice clone workflow' }),
+      detail: t('Chat.settingsVoiceCloneHint', { defaultValue: 'Independent route for voice-to-voice generation. Does not inherit speech synthesis automatically.' }),
+    },
+    {
+      capability: 'voice_workflow.tts_t2v',
+      sectionId: 'tts',
+      sectionTitle: t('Chat.settingsTtsSection', { defaultValue: 'TTS' }),
+      label: t('Chat.settingsVoiceDesignTitle', { defaultValue: 'Voice design workflow' }),
+      detail: t('Chat.settingsVoiceDesignHint', { defaultValue: 'Independent route for text-to-voice design. Does not inherit speech synthesis automatically.' }),
+    },
+    {
+      capability: 'image.generate',
+      sectionId: 'image',
+      sectionTitle: t('Chat.settingsImageSection', { defaultValue: 'Image' }),
+      label: t('Chat.settingsImageGenerateTitle', { defaultValue: 'Image generation' }),
+      detail: t('Chat.settingsImageGenerateHint', { defaultValue: 'Controls the route used when the conversation generates images.' }),
+      editorKind: 'image',
+    },
+    {
+      capability: 'image.edit',
+      sectionId: 'image',
+      sectionTitle: t('Chat.settingsImageSection', { defaultValue: 'Image' }),
+      label: t('Chat.settingsImageEditTitle', { defaultValue: 'Image editing' }),
+      detail: t('Chat.settingsImageEditHint', { defaultValue: 'Independent route for edit-style image operations.' }),
+      editorKind: 'image',
+    },
+    {
+      capability: 'video.generate',
+      sectionId: 'video',
+      sectionTitle: t('Chat.settingsVideoSection', { defaultValue: 'Video' }),
+      label: t('Chat.settingsVideoGenerateTitle', { defaultValue: 'Video generation' }),
+      detail: t('Chat.settingsVideoGenerateHint', { defaultValue: 'Controls the route used when the conversation generates videos.' }),
+      editorKind: 'video',
+    },
+  ];
+}
+
+export function useConversationModelConfigSections(): ModelConfigSection[] {
   const { t } = useTranslation();
-  const [modalOpen, setModalOpen] = useState(false);
-  const selectedBinding = useAppStore((state) => state.aiConfig.capabilities.selectedBindings[props.capability]) as RuntimeRouteBinding | null | undefined;
-  const projection = useAppStore((state) => state.conversationCapabilityProjectionByCapability[props.capability] || null);
-  const capabilitySurface = useMemo(() => getDesktopAIConfigService(), []);
-  const aiConfigForBinding = useAppStore((state) => state.aiConfig);
-  const runtimeCapability = toRuntimeCanonicalCapability(props.capability);
-  const provider = useCapabilityModelPickerProvider(runtimeCapability);
-  const status = useMemo(
-    () => buildProjectionStatus(t, props.title, projection, selectedBinding),
-    [projection, props.title, selectedBinding, t],
-  );
-  const selection = useMemo(() => toSelection(selectedBinding), [selectedBinding]);
-  const displayLabel = selectedBinding?.modelLabel || null;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Tooltip content={props.detail} placement="top">
-          <span className="text-xs font-medium text-slate-500">{props.title}</span>
-        </Tooltip>
-        {!status.supported ? (
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" title={status.badge} />
-        ) : null}
-      </div>
-
-      {provider ? (
-        <>
-          <ModelSelectorTrigger
-            source={selection.source || null}
-            modelLabel={displayLabel}
-            placeholder={t('Chat.settingsSelectModel', { defaultValue: 'Select a model' })}
-            onClick={() => setModalOpen(true)}
-          />
-          <ModelPickerModal
-            open={modalOpen}
-            onClose={() => setModalOpen(false)}
-            capability={runtimeCapability}
-            capabilityLabel={props.title}
-            provider={provider}
-            initialSelection={selection}
-            onSelect={(pickerSelection: RouteModelPickerSelection) => {
-              const binding = toRuntimeRouteBindingFromPickerSelection({
-                capability: props.capability,
-                selection: pickerSelection,
-              });
-              const nextBindings = { ...aiConfigForBinding.capabilities.selectedBindings };
-              if (binding === undefined) {
-                delete nextBindings[props.capability];
-              } else {
-                nextBindings[props.capability] = binding as RuntimeRouteBinding | null;
-              }
-              const nextConfig = {
-                ...aiConfigForBinding,
-                capabilities: {
-                  ...aiConfigForBinding.capabilities,
-                  selectedBindings: nextBindings,
-                },
-              };
-              capabilitySurface.aiConfig.update(nextConfig.scopeRef, nextConfig);
-            }}
-          />
-        </>
-      ) : (
-        <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
-      )}
-      {props.localContent && selectedBinding?.source === 'local' ? props.localContent : null}
-    </div>
-  );
-}
-
-
-export function ConversationCapabilitySettingsSection(
-  props: ConversationCapabilitySettingsSectionProps,
-) {
-  const { t } = useTranslation();
-  const capabilities = useMemo<CapabilityConfig[]>(() => {
-    if (props.section === 'voice') {
-      return [
-        {
-          capability: 'audio.synthesize',
-          title: t('Chat.settingsVoiceSpeechTitle', { defaultValue: 'Speech synthesis' }),
-          detail: t('Chat.settingsVoiceSpeechHint', { defaultValue: 'Controls standard text-to-speech playback for the conversation.' }),
-        },
-        {
-          capability: 'voice_workflow.tts_v2v',
-          title: t('Chat.settingsVoiceCloneTitle', { defaultValue: 'Voice clone workflow' }),
-          detail: t('Chat.settingsVoiceCloneHint', { defaultValue: 'Independent route for voice-to-voice generation. Does not inherit speech synthesis automatically.' }),
-        },
-        {
-          capability: 'voice_workflow.tts_t2v',
-          title: t('Chat.settingsVoiceDesignTitle', { defaultValue: 'Voice design workflow' }),
-          detail: t('Chat.settingsVoiceDesignHint', { defaultValue: 'Independent route for text-to-voice design. Does not inherit speech synthesis automatically.' }),
-        },
-      ];
-    }
-    if (props.section === 'image') {
-      return [
-        {
-          capability: 'image.generate',
-          title: t('Chat.settingsImageGenerateTitle', { defaultValue: 'Image generation' }),
-          detail: t('Chat.settingsImageGenerateHint', { defaultValue: 'Controls the route used when the conversation generates images.' }),
-        },
-        {
-          capability: 'image.edit',
-          title: t('Chat.settingsImageEditTitle', { defaultValue: 'Image editing' }),
-          detail: t('Chat.settingsImageEditHint', { defaultValue: 'Independent route for edit-style image operations.' }),
-        },
-      ];
-    }
-    if (props.section === 'video') {
-      return [
-        {
-          capability: 'video.generate',
-          title: t('Chat.settingsVideoGenerateTitle', { defaultValue: 'Video generation' }),
-          detail: t('Chat.settingsVideoGenerateHint', { defaultValue: 'Controls the route used when the conversation generates videos.' }),
-        },
-      ];
-    }
-    // legacy 'visual' — image + video combined
-    return [
-      {
-        capability: 'image.generate',
-        title: t('Chat.settingsImageGenerateTitle', { defaultValue: 'Image generation' }),
-        detail: t('Chat.settingsImageGenerateHint', { defaultValue: 'Controls the route used when the conversation generates images.' }),
-      },
-      {
-        capability: 'image.edit',
-        title: t('Chat.settingsImageEditTitle', { defaultValue: 'Image editing' }),
-        detail: t('Chat.settingsImageEditHint', { defaultValue: 'Independent route for edit-style image operations.' }),
-      },
-      {
-        capability: 'video.generate',
-        title: t('Chat.settingsVideoGenerateTitle', { defaultValue: 'Video generation' }),
-        detail: t('Chat.settingsVideoGenerateHint', { defaultValue: 'Controls the route used when the conversation generates videos.' }),
-      },
-    ];
-  }, [props.section, t]);
-
   const aiConfig = useAppStore((state) => state.aiConfig);
+  const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
   const surface = useMemo(() => getDesktopAIConfigService(), []);
+  const assetsQuery = useLocalAssets();
+  const assets = assetsQuery.data || [];
+  const imageEditorCopy = useMemo(() => createImageEditorCopy(t), [t]);
+  const videoEditorCopy = useMemo(() => createVideoEditorCopy(t), [t]);
+  const capabilityConfigs = useMemo(() => createCapabilityConfigs(t), [t]);
+  const providers = useCapabilityProviders(
+    useMemo(
+      () => Array.from(new Set(capabilityConfigs.map((config) => toRuntimeCanonicalCapability(config.capability)))),
+      [capabilityConfigs],
+    ),
+  );
 
-  const updateCapabilityParams = useCallback((capability: string, params: Record<string, unknown>) => {
-    const nextParams = { ...aiConfig.capabilities.selectedParams, [capability]: params };
+  const updateBinding = useCallback((capability: string, binding: RuntimeRouteBinding | null) => {
+    const nextBindings = { ...aiConfig.capabilities.selectedBindings };
+    nextBindings[capability] = binding;
     const nextConfig = {
       ...aiConfig,
-      capabilities: { ...aiConfig.capabilities, selectedParams: nextParams },
+      capabilities: {
+        ...aiConfig.capabilities,
+        selectedBindings: nextBindings,
+      },
     };
     surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
   }, [aiConfig, surface]);
 
-  const resolveLocalContent = (capability: string) => {
-    if (supportsImageCapability(capability)) {
-      const stored = (aiConfig.capabilities.selectedParams[capability] || {}) as Record<string, unknown>;
-      const companionSlots = (stored.companionSlots || {}) as Record<string, string>;
-      const imageParams: ImageParamsState = {
-        size: typeof stored.size === 'string' ? stored.size : DEFAULT_IMAGE_PARAMS.size,
-        responseFormat: typeof stored.responseFormat === 'string' ? stored.responseFormat : DEFAULT_IMAGE_PARAMS.responseFormat,
-        seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_IMAGE_PARAMS.seed,
-        timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_IMAGE_PARAMS.timeoutMs,
-        steps: typeof stored.steps === 'string' ? stored.steps : DEFAULT_IMAGE_PARAMS.steps,
-        cfgScale: typeof stored.cfgScale === 'string' ? stored.cfgScale : DEFAULT_IMAGE_PARAMS.cfgScale,
-        sampler: typeof stored.sampler === 'string' ? stored.sampler : DEFAULT_IMAGE_PARAMS.sampler,
-        scheduler: typeof stored.scheduler === 'string' ? stored.scheduler : DEFAULT_IMAGE_PARAMS.scheduler,
-        optionsText: typeof stored.optionsText === 'string' ? stored.optionsText : DEFAULT_IMAGE_PARAMS.optionsText,
-      };
-      return (
-        <ImageCapabilitySettings
-          capability={capability}
+  const updateParams = useCallback((capability: string, params: Record<string, unknown>) => {
+    const nextParams = { ...aiConfig.capabilities.selectedParams, [capability]: params };
+    const nextConfig = {
+      ...aiConfig,
+      capabilities: {
+        ...aiConfig.capabilities,
+        selectedParams: nextParams,
+      },
+    };
+    surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
+  }, [aiConfig, surface]);
+
+  const items = useMemo<ModelConfigCapabilityItem[]>(() => capabilityConfigs.map((config) => {
+    const binding = (aiConfig.capabilities.selectedBindings[config.capability] || null) as RuntimeRouteBinding | null;
+    const projection = projectionByCapability[config.capability] || null;
+    const status = buildProjectionStatus(t, config.label, projection, binding);
+    const storedParams = (aiConfig.capabilities.selectedParams[config.capability] || {}) as Record<string, unknown>;
+    const routeCapability = toRuntimeCanonicalCapability(config.capability);
+    let editor = undefined as ReactNode | undefined;
+
+    if (config.editorKind === 'image') {
+      const imageParams = parseImageParams(storedParams);
+      const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
+      editor = (
+        <ImageParamsEditor
+          copy={imageEditorCopy}
           params={imageParams}
           companionSlots={companionSlots}
-          onParamsChange={(next) => updateCapabilityParams(capability, { ...next, companionSlots })}
-          onCompanionSlotsChange={(next) => updateCapabilityParams(capability, { ...imageParams, companionSlots: next })}
+          assets={assets as LocalAssetEntry[]}
+          assetsLoading={assetsQuery.isLoading}
+          onParamsChange={(next) => updateParams(config.capability, { ...next, companionSlots })}
+          onCompanionSlotsChange={(next) => updateParams(config.capability, { ...imageParams, companionSlots: next })}
         />
       );
-    }
-    if (capability === 'video.generate') {
-      const stored = (aiConfig.capabilities.selectedParams['video.generate'] || {}) as Record<string, unknown>;
-      const videoParams: VideoParamsState = {
-        mode: typeof stored.mode === 'string' ? stored.mode : DEFAULT_VIDEO_PARAMS.mode,
-        ratio: typeof stored.ratio === 'string' ? stored.ratio : DEFAULT_VIDEO_PARAMS.ratio,
-        durationSec: typeof stored.durationSec === 'string' ? stored.durationSec : DEFAULT_VIDEO_PARAMS.durationSec,
-        resolution: typeof stored.resolution === 'string' ? stored.resolution : DEFAULT_VIDEO_PARAMS.resolution,
-        fps: typeof stored.fps === 'string' ? stored.fps : DEFAULT_VIDEO_PARAMS.fps,
-        seed: typeof stored.seed === 'string' ? stored.seed : DEFAULT_VIDEO_PARAMS.seed,
-        timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : DEFAULT_VIDEO_PARAMS.timeoutMs,
-        negativePrompt: typeof stored.negativePrompt === 'string' ? stored.negativePrompt : DEFAULT_VIDEO_PARAMS.negativePrompt,
-        cameraFixed: typeof stored.cameraFixed === 'boolean' ? stored.cameraFixed : DEFAULT_VIDEO_PARAMS.cameraFixed,
-        generateAudio: typeof stored.generateAudio === 'boolean' ? stored.generateAudio : DEFAULT_VIDEO_PARAMS.generateAudio,
-      };
-      return (
-        <VideoCapabilitySettings
+    } else if (config.editorKind === 'video') {
+      const videoParams = parseVideoParams(storedParams);
+      editor = (
+        <VideoParamsEditor
+          copy={videoEditorCopy}
           params={videoParams}
-          onParamsChange={(next) => updateCapabilityParams('video.generate', next as unknown as Record<string, unknown>)}
+          onParamsChange={(next) => updateParams(config.capability, next as unknown as Record<string, unknown>)}
         />
       );
     }
-    return undefined;
-  };
 
+    return {
+      capabilityId: config.capability,
+      routeCapability,
+      label: config.label,
+      detail: config.detail,
+      binding,
+      provider: providers[routeCapability] || null,
+      onBindingChange: (nextBinding) => updateBinding(config.capability, nextBinding),
+      status,
+      editor,
+      showEditorWhen: config.editorKind ? 'local' : 'always',
+      placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
+      runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
+      clearSelectionLabel: t('Chat.settingsReset', { defaultValue: 'Reset' }),
+    };
+  }), [aiConfig.capabilities.selectedBindings, aiConfig.capabilities.selectedParams, assets, assetsQuery.isLoading, capabilityConfigs, imageEditorCopy, projectionByCapability, providers, t, updateBinding, updateParams, videoEditorCopy]);
+
+  return useMemo(() => {
+    const sections = new Map<string, ModelConfigSection>();
+    for (const config of capabilityConfigs) {
+      if (!sections.has(config.sectionId)) {
+        sections.set(config.sectionId, {
+          id: config.sectionId,
+          title: config.sectionTitle,
+          collapsible: config.sectionId !== 'chat',
+          defaultExpanded: config.sectionId === 'image',
+          items: [],
+        });
+      }
+      sections.get(config.sectionId)!.items!.push(
+        items.find((item) => item.capabilityId === config.capability)!,
+      );
+    }
+    return Array.from(sections.values());
+  }, [capabilityConfigs, items]);
+}
+
+export function ConversationModelConfigPanel(props: {
+  className?: string;
+  sections: ModelConfigSection[];
+  profile?: React.ComponentProps<typeof ModelConfigPanel>['profile'];
+}) {
   return (
-    <div className="space-y-4">
-      {capabilities.map((capability) => (
-        <CapabilityRouteSettingCard
-          key={capability.capability}
-          capability={capability.capability}
-          title={capability.title}
-          detail={capability.detail}
-          localContent={resolveLocalContent(capability.capability)}
-        />
-      ))}
-    </div>
+    <ModelConfigPanel
+      className={props.className}
+      profile={props.profile}
+      sections={props.sections}
+    />
   );
 }

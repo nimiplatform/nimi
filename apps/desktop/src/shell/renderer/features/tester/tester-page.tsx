@@ -1,0 +1,385 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import { ScrollArea, IconButton } from '@nimiplatform/nimi-kit/ui';
+import {
+  SidebarAffordanceStatusDot,
+  SidebarHeader,
+  SidebarItem,
+  SidebarResizeHandle,
+  SidebarSection,
+  SidebarShell,
+} from '@renderer/components/sidebar.js';
+import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
+import {
+  CAPABILITIES,
+  CAPABILITY_LABELS,
+  type CapabilityId,
+  type CapabilityState,
+  type CapabilityStates,
+  type ImageWorkflowDraftState,
+} from './tester-types.js';
+import { loadRouteSnapshot, makeInitialCapabilityStates } from './tester-state.js';
+import { TesterSettingsPanel } from './tester-settings-dialog.js';
+import { TextGeneratePanel } from './panels/panel-text-generate.js';
+import { TextEmbedPanel } from './panels/panel-text-embed.js';
+import { ImageGeneratePanel } from './panels/panel-image-generate.js';
+import { VideoGeneratePanel } from './panels/panel-video-generate.js';
+import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
+import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
+import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
+import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig } from './tester-ai-config';
+
+const SETTINGS_GEAR_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+function StatusIndicator({ states, capabilityId }: { states: CapabilityStates; capabilityId: CapabilityId }) {
+  const state = states[capabilityId];
+  if (state.busy) return <SidebarAffordanceStatusDot color="var(--nimi-accent-info)" />;
+  if (state.result === 'passed') return <SidebarAffordanceStatusDot color="var(--nimi-accent-success)" />;
+  if (state.result === 'failed') return <SidebarAffordanceStatusDot color="var(--nimi-accent-danger)" />;
+  return <SidebarAffordanceStatusDot color="var(--nimi-text-muted)" />;
+}
+
+function createInitialImageWorkflowDraftState(): ImageWorkflowDraftState {
+  return {
+    prompt: 'A cat wearing a top hat in a field of flowers.',
+    negativePrompt: '',
+    size: '1024x1024',
+    n: '1',
+    seed: '',
+    responseFormatMode: 'auto',
+    timeoutMs: '',
+    step: '',
+    cfgScale: '',
+    sampler: '',
+    scheduler: '',
+    optionsText: '',
+    rawProfileOverridesText: '',
+    vaeModel: '',
+    llmModel: '',
+    clipLModel: '',
+    clipGModel: '',
+    controlnetModel: '',
+    loraModel: '',
+    auxiliaryModel: '',
+    componentDrafts: [],
+  };
+}
+
+function imageConfigParamsFromDraft(draft: ImageWorkflowDraftState): Record<string, unknown> {
+  return {
+    size: draft.size,
+    responseFormat: draft.responseFormatMode,
+    seed: draft.seed,
+    timeoutMs: draft.timeoutMs,
+    steps: draft.step,
+    cfgScale: draft.cfgScale,
+    sampler: draft.sampler,
+    scheduler: draft.scheduler,
+    optionsText: draft.optionsText,
+    companionSlots: {
+      vae_path: draft.vaeModel,
+      llm_path: draft.llmModel,
+      clip_l_path: draft.clipLModel,
+      clip_g_path: draft.clipGModel,
+      controlnet_path: draft.controlnetModel,
+      lora_path: draft.loraModel,
+      aux_path: draft.auxiliaryModel,
+    },
+  };
+}
+
+function applyImageConfigToDraft(draft: ImageWorkflowDraftState, config: AIConfig): ImageWorkflowDraftState {
+  const stored = (config.capabilities.selectedParams['image.generate'] || {}) as Record<string, unknown>;
+  const companionSlots = (stored.companionSlots || {}) as Record<string, string>;
+  return {
+    ...draft,
+    size: typeof stored.size === 'string' ? stored.size : draft.size,
+    responseFormatMode: typeof stored.responseFormat === 'string' ? stored.responseFormat as ImageWorkflowDraftState['responseFormatMode'] : draft.responseFormatMode,
+    seed: typeof stored.seed === 'string' ? stored.seed : draft.seed,
+    timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : draft.timeoutMs,
+    step: typeof stored.steps === 'string' ? stored.steps : draft.step,
+    cfgScale: typeof stored.cfgScale === 'string' ? stored.cfgScale : draft.cfgScale,
+    sampler: typeof stored.sampler === 'string' ? stored.sampler : draft.sampler,
+    scheduler: typeof stored.scheduler === 'string' ? stored.scheduler : draft.scheduler,
+    optionsText: typeof stored.optionsText === 'string' ? stored.optionsText : draft.optionsText,
+    vaeModel: companionSlots.vae_path || '',
+    llmModel: companionSlots.llm_path || '',
+    clipLModel: companionSlots.clip_l_path || '',
+    clipGModel: companionSlots.clip_g_path || '',
+    controlnetModel: companionSlots.controlnet_path || '',
+    loraModel: companionSlots.lora_path || '',
+    auxiliaryModel: companionSlots.aux_path || '',
+  };
+}
+
+function videoParamsFromConfig(config: AIConfig) {
+  const stored = (config.capabilities.selectedParams['video.generate'] || {}) as Record<string, unknown>;
+  return {
+    mode: typeof stored.mode === 'string' ? stored.mode : 't2v',
+    ratio: typeof stored.ratio === 'string' ? stored.ratio : '16:9',
+    durationSec: typeof stored.durationSec === 'string' ? stored.durationSec : '5',
+    resolution: typeof stored.resolution === 'string' ? stored.resolution : '',
+    fps: typeof stored.fps === 'string' ? stored.fps : '',
+    seed: typeof stored.seed === 'string' ? stored.seed : '',
+    timeoutMs: typeof stored.timeoutMs === 'string' ? stored.timeoutMs : '',
+    negativePrompt: typeof stored.negativePrompt === 'string' ? stored.negativePrompt : '',
+    cameraFixed: typeof stored.cameraFixed === 'boolean' ? stored.cameraFixed : false,
+    generateAudio: typeof stored.generateAudio === 'boolean' ? stored.generateAudio : false,
+  };
+}
+
+function mergeBindingIntoState(state: CapabilityState, binding: RuntimeRouteBinding | null): CapabilityState {
+  return { ...state, binding };
+}
+
+export function TesterPage() {
+  const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizingRef = useRef(false);
+  const aiConfigSurface = useMemo(() => getDesktopAIConfigService(), []);
+  const [sidebarWidth, setSidebarWidth] = useState(240);
+  const [activeCapability, setActiveCapability] = useState<CapabilityId>('text.generate');
+  const [states, setStates] = useState(makeInitialCapabilityStates);
+  const [imageDraft, setImageDraft] = useState<ImageWorkflowDraftState>(createInitialImageWorkflowDraftState);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [testerConfig, setTesterConfig] = useState<AIConfig>(() => {
+    try {
+      return aiConfigSurface.aiConfig.get(TESTER_AI_SCOPE_REF);
+    } catch {
+      return createEmptyTesterAIConfig();
+    }
+  });
+
+  useEffect(() => {
+    setTesterConfig(aiConfigSurface.aiConfig.get(TESTER_AI_SCOPE_REF));
+    return aiConfigSurface.aiConfig.subscribe(TESTER_AI_SCOPE_REF, (config) => {
+      setTesterConfig(config);
+    });
+  }, [aiConfigSurface]);
+
+  useEffect(() => {
+    setImageDraft((prev) => applyImageConfigToDraft(prev, testerConfig));
+  }, [testerConfig]);
+
+  useEffect(() => {
+    const onMouseMove = (event: globalThis.MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const next = Math.min(400, Math.max(220, Math.round(event.clientX - rect.left)));
+      setSidebarWidth(next);
+    };
+    const onMouseUp = () => {
+      resizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const startResize = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const updateCapabilityState = useCallback((capabilityId: CapabilityId, updater: (prev: CapabilityState) => CapabilityState) => {
+    setStates((prev) => ({ ...prev, [capabilityId]: updater(prev[capabilityId]) }));
+  }, []);
+
+  const persistTesterConfig = useCallback((updater: (current: AIConfig) => AIConfig) => {
+    const current = aiConfigSurface.aiConfig.get(TESTER_AI_SCOPE_REF);
+    const next = updater(current);
+    aiConfigSurface.aiConfig.update(TESTER_AI_SCOPE_REF, next);
+  }, [aiConfigSurface]);
+
+  const handleSettingsBindingChange = useCallback((capabilityId: CapabilityId, binding: RuntimeRouteBinding | null) => {
+    const targetCapability = capabilityId === 'image.create-job' ? 'image.generate' : capabilityId;
+    persistTesterConfig((current) => ({
+      ...current,
+      capabilities: {
+        ...current.capabilities,
+        selectedBindings: {
+          ...current.capabilities.selectedBindings,
+          [targetCapability]: binding,
+        },
+      },
+    }));
+  }, [persistTesterConfig]);
+
+  const handleSettingsParamsChange = useCallback((capabilityId: CapabilityId, params: Record<string, unknown>) => {
+    persistTesterConfig((current) => ({
+      ...current,
+      capabilities: {
+        ...current.capabilities,
+        selectedParams: {
+          ...current.capabilities.selectedParams,
+          [capabilityId]: params,
+        },
+      },
+    }));
+  }, [persistTesterConfig]);
+
+  const handleImageDraftChange = useCallback((updater: React.SetStateAction<ImageWorkflowDraftState>) => {
+    setImageDraft((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      handleSettingsParamsChange('image.generate', imageConfigParamsFromDraft(next));
+      return next;
+    });
+  }, [handleSettingsParamsChange]);
+
+  useEffect(() => {
+    const loadedCapabilities = new Set<string>();
+    for (const capability of CAPABILITIES) {
+      if (!capability.hasRoute || !capability.routeCapability || loadedCapabilities.has(capability.routeCapability)) {
+        continue;
+      }
+      loadedCapabilities.add(capability.routeCapability);
+      void loadRouteSnapshot({ capabilityId: capability.id, setStates });
+    }
+  }, []);
+
+  const activeState = useMemo(
+    () => mergeBindingIntoState(states[activeCapability], bindingFromTesterConfig(testerConfig, activeCapability)),
+    [activeCapability, states, testerConfig],
+  );
+  const activeLabels = CAPABILITY_LABELS[activeCapability];
+  const currentVideoParams = useMemo(() => videoParamsFromConfig(testerConfig), [testerConfig]);
+
+  const renderPanel = () => {
+    switch (activeCapability) {
+      case 'text.generate':
+        return (
+          <TextGeneratePanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('text.generate', updater)}
+          />
+        );
+      case 'text.embed':
+        return (
+          <TextEmbedPanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('text.embed', updater)}
+          />
+        );
+      case 'image.generate':
+        return (
+          <ImageGeneratePanel
+            mode="generate"
+            state={activeState}
+            draft={imageDraft}
+            onDraftChange={handleImageDraftChange}
+            onStateChange={(updater) => updateCapabilityState('image.generate', updater)}
+          />
+        );
+      case 'image.create-job':
+        return (
+          <ImageGeneratePanel
+            mode="job"
+            state={mergeBindingIntoState(states['image.create-job'], bindingFromTesterConfig(testerConfig, 'image.generate'))}
+            draft={imageDraft}
+            onDraftChange={handleImageDraftChange}
+            onStateChange={(updater) => updateCapabilityState('image.create-job', updater)}
+          />
+        );
+      case 'video.generate':
+        return (
+          <VideoGeneratePanel
+            state={activeState}
+            params={currentVideoParams}
+            onParamsChange={(next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>)}
+            onStateChange={(updater) => updateCapabilityState('video.generate', updater)}
+          />
+        );
+      case 'audio.synthesize':
+        return (
+          <AudioSynthesizePanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('audio.synthesize', updater)}
+          />
+        );
+      case 'audio.transcribe':
+        return (
+          <AudioTranscribePanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('audio.transcribe', updater)}
+          />
+        );
+      case 'voice.clone':
+        return (
+          <VoiceClonePanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('voice.clone', updater)}
+          />
+        );
+      case 'voice.design':
+        return (
+          <VoiceDesignPanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('voice.design', updater)}
+          />
+        );
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="flex h-full bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
+      <SidebarShell width={sidebarWidth}>
+        <SidebarHeader title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Tester.title', { defaultValue: 'Tester' })}</h1>} />
+        <ScrollArea className="flex-1" contentClassName="space-y-1 py-1.5">
+          <SidebarSection>
+            {CAPABILITIES.map((capability) => {
+              const labels = CAPABILITY_LABELS[capability.id];
+              const isActive = activeCapability === capability.id;
+              return (
+                <SidebarItem
+                  key={capability.id}
+                  kind="nav-row"
+                  active={isActive}
+                  onClick={() => setActiveCapability(capability.id)}
+                  icon={<StatusIndicator states={states} capabilityId={capability.id} />}
+                  label={labels.label}
+                  description={labels.description}
+                />
+              );
+            })}
+          </SidebarSection>
+        </ScrollArea>
+        <SidebarResizeHandle ariaLabel="Resize sidebar" onMouseDown={startResize} />
+      </SidebarShell>
+
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h2 className="nimi-type-section-title">{activeLabels.label}</h2>
+          <IconButton
+            icon={SETTINGS_GEAR_ICON}
+            onClick={() => setSettingsOpen((prev) => !prev)}
+            aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {renderPanel()}
+        </div>
+      </main>
+
+      <TesterSettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        config={testerConfig}
+        onBindingChange={handleSettingsBindingChange}
+        onParamsChange={handleSettingsParamsChange}
+      />
+    </div>
+  );
+}

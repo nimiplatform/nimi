@@ -2,7 +2,7 @@
 ## Scope
 - Applies to `kit/**`.
 - `@nimiplatform/nimi-kit` is the single cross-app toolkit package.
-- Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/features/chat`, `kit/features/model-picker`, `kit/features/generation`, `kit/features/commerce`.
+- Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/features/chat`, `kit/features/model-picker`, `kit/features/model-config`, `kit/features/generation`, `kit/features/commerce`.
 ## Hard Boundaries
 - `ui` is the design authority; `auth` and `kit/features/*` must not bypass it.
 - Before building new app UI or interaction logic, inspect `kit/README.md`, the target module README, and `spec/platform/kernel/tables/nimi-kit-registry.yaml` to confirm whether a reusable kit surface already exists.

@@ -40,6 +40,12 @@ tabs:
     gated_by: enableRuntimeTab
     source_rule: D-SHELL-001
 
+  - id: tester
+    nav_group: core
+    label: AI Tester
+    gated_by: enableRuntimeTab
+    source_rule: D-SHELL-001
+
   - id: settings
     nav_group: core
     label: Settings

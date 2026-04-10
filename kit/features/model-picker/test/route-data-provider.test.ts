@@ -168,4 +168,44 @@ describe('createSnapshotRouteDataProvider', () => {
     expect(connectors).toHaveLength(1);
     expect(connectorModels).toHaveLength(1);
   });
+
+  it('reuses the cached snapshot across sequential reads until invalidated', async () => {
+    let fetchCount = 0;
+    const provider = createSnapshotRouteDataProvider(async () => {
+      fetchCount += 1;
+      return makeSnapshot({
+        connectors: [{ id: 'c', label: 'C', provider: 'p', models: ['m'] }],
+      });
+    });
+
+    await provider.listLocalModels();
+    await provider.listConnectors();
+    await provider.listConnectorModels('c');
+
+    expect(fetchCount).toBe(1);
+
+    provider.invalidate?.();
+    await provider.listConnectors();
+
+    expect(fetchCount).toBe(2);
+  });
+
+  it('does not cache a failed snapshot fetch forever', async () => {
+    let fetchCount = 0;
+    const provider = createSnapshotRouteDataProvider(async () => {
+      fetchCount += 1;
+      if (fetchCount === 1) {
+        throw new Error('temporary route failure');
+      }
+      return makeSnapshot({
+        connectors: [{ id: 'c', label: 'C', provider: 'p', models: ['m'] }],
+      });
+    });
+
+    await expect(provider.listConnectors()).rejects.toThrow('temporary route failure');
+    const connectors = await provider.listConnectors();
+
+    expect(fetchCount).toBe(2);
+    expect(connectors).toHaveLength(1);
+  });
 });

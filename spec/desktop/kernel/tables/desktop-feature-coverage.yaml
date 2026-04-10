@@ -45,6 +45,7 @@ features:
       - world
       - explore
       - runtime
+      - tester
       - settings
     covers_bootstrap_phases: []
     covers_ipc_commands: []

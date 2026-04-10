@@ -37,7 +37,10 @@
     "./features/commerce": "./features/commerce/src/index.ts",
     "./features/commerce/headless": "./features/commerce/src/headless.ts",
     "./features/commerce/ui": "./features/commerce/src/ui.ts",
-    "./features/commerce/realm": "./features/commerce/src/realm.ts"
+    "./features/commerce/realm": "./features/commerce/src/realm.ts",
+    "./features/model-config": "./features/model-config/src/index.ts",
+    "./features/model-config/headless": "./features/model-config/src/headless.ts",
+    "./features/model-config/ui": "./features/model-config/src/ui.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",

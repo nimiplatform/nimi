@@ -50,6 +50,7 @@ export type AppTab =
   | 'world-detail'
   | 'gift-inbox'
   | 'notification'
+  | 'tester'
   | 'privacy-policy'
   | 'terms-of-service'
   | `mod:${string}`;

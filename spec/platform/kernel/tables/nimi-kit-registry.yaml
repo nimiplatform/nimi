@@ -161,6 +161,29 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-070
+  - id: kit.features.model-config
+    subpath: /features/model-config
+    kind: feature
+    surface_level: headless+ui
+    adapter_contract: ModelConfigPanel consumer-owned binding/profile/status adapter
+    description: Reusable model configuration panel for AI capability bindings, profile apply UX, capability-local params editors, and optional diagnostics or scheduling sections while keeping AIConfig and runtime truth consumer-owned
+    dependencies: [kit.ui, kit.features.model-picker, sdk]
+    peer_dependencies: [react]
+    exports:
+      - ./features/model-config
+      - ./features/model-config/headless
+      - ./features/model-config/ui
+    headless_exports:
+      - ./features/model-config/headless
+    ui_exports:
+      - ./features/model-config/ui
+    planned_consumers: [desktop, forge]
+    reuse_entrypoints:
+      - ./features/model-config/ui
+      - ./features/model-config/headless
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-070
   - id: kit.features.generation
     subpath: /features/generation
     kind: feature

@@ -85,6 +85,43 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalAs
   assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'go runtime unavailable');
 });
 
+test('loadLocalRouteMetadata starts snapshot, node catalog, and local asset reads in parallel', async () => {
+  let releaseSnapshot: (() => void) | null = null;
+  let nodeStarted = false;
+  let assetsStarted = false;
+
+  const metadataPromise = loadLocalRouteMetadata('text.generate', {
+    pollLocalSnapshotWithTimeout: () => new Promise((resolve) => {
+      releaseSnapshot = () => resolve({
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      });
+    }),
+    listNodesCatalog: async () => {
+      nodeStarted = true;
+      return [];
+    },
+    listRuntimeLocalAssets: async () => {
+      assetsStarted = true;
+      return [];
+    },
+  });
+
+  await Promise.resolve();
+  assert.equal(nodeStarted, true);
+  assert.equal(assetsStarted, true);
+
+  const triggerSnapshot = releaseSnapshot;
+  if (!triggerSnapshot) {
+    throw new Error('expected snapshot resolver to be registered');
+  }
+  (triggerSnapshot as () => void)();
+  const metadata = await metadataPromise;
+  assert.equal(metadata.nodeCatalog.length, 0);
+  assert.equal(metadata.runtimeLocalModels.length, 0);
+});
+
 test('D-ERR-009: settings developer page no longer uses silent empty catch', () => {
   assert.ok(
     !settingsDeveloperPageSource.includes('.catch(() => {})'),
@@ -241,4 +278,111 @@ test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models 
   assert.equal(options.selected.source, 'local');
   assert.equal(options.selected.modelId, 'local-import/Qwen3-4B-Q4_K_M');
   assert.equal(options.selected.goRuntimeStatus, 'unavailable');
+});
+
+test('loadRuntimeRouteOptions fetches connector descriptors in parallel', async () => {
+  const descriptorResolvers = new Map<string, () => void>();
+  const descriptorCalls: string[] = [];
+
+  const optionsPromise = loadRuntimeRouteOptions({
+    capability: 'text.generate',
+    modId: 'world.nimi.parallel-route-options',
+  }, {
+    sdkListConnectors: async () => ([
+      {
+        id: 'connector-openai',
+        label: 'OpenAI',
+        provider: 'openai',
+      },
+      {
+        id: 'connector-anthropic',
+        label: 'Anthropic',
+        provider: 'anthropic',
+      },
+    ] as never[]),
+    sdkListConnectorModelDescriptors: (async (connectorId: string) => {
+      descriptorCalls.push(connectorId);
+      return await new Promise((resolve) => {
+        descriptorResolvers.set(connectorId, () => resolve([
+          {
+            modelId: `${connectorId}-model`,
+            capabilities: ['text.generate'],
+          },
+        ]));
+      });
+    }) as never,
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      },
+      nodeCatalog: [],
+      runtimeLocalModels: [],
+    }),
+  });
+
+  for (let attempt = 0; attempt < 20 && descriptorCalls.length < 2; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+  assert.deepEqual(
+    [...descriptorCalls].sort(),
+    ['connector-anthropic', 'connector-openai'],
+  );
+
+  descriptorResolvers.get('connector-openai')?.();
+  descriptorResolvers.get('connector-anthropic')?.();
+
+  const options = await optionsPromise;
+  assert.equal(options.connectors.length, 2);
+});
+
+test('loadRuntimeRouteOptions dedupes concurrent capability reads within the same deps scope', async () => {
+  let connectorListCalls = 0;
+  let descriptorCalls = 0;
+  let localMetadataCalls = 0;
+  const deps = {
+    sdkListConnectors: async () => {
+      connectorListCalls += 1;
+      return ([
+        {
+          id: 'connector-openai',
+          label: 'OpenAI',
+          provider: 'openai',
+        },
+      ] as never[]);
+    },
+    sdkListConnectorModelDescriptors: (async () => {
+      descriptorCalls += 1;
+      return ([
+        {
+          modelId: 'gpt-4.1-mini',
+          capabilities: ['text.generate'],
+        },
+      ] as never[]);
+    }) as never,
+    loadLocalRouteMetadata: async () => {
+      localMetadataCalls += 1;
+      return {
+        snapshot: {
+          assets: [],
+          health: [],
+          generatedAt: new Date().toISOString(),
+        },
+        nodeCatalog: [],
+        runtimeLocalModels: [],
+      };
+    },
+  };
+
+  const [left, right] = await Promise.all([
+    loadRuntimeRouteOptions({ capability: 'text.generate', modId: 'world.nimi.one' }, deps),
+    loadRuntimeRouteOptions({ capability: 'text.generate', modId: 'world.nimi.two' }, deps),
+  ]);
+
+  assert.equal(connectorListCalls, 1);
+  assert.equal(descriptorCalls, 1);
+  assert.equal(localMetadataCalls, 1);
+  assert.equal(left.connectors.length, 1);
+  assert.equal(right.connectors.length, 1);
 });

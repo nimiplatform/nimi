@@ -58,6 +58,7 @@ export interface RouteModelPickerDataProvider {
   listLocalModels(): Promise<RouteLocalModel[]>;
   listConnectors(): Promise<RouteConnector[]>;
   listConnectorModels(connectorId: string): Promise<RouteConnectorModel[]>;
+  invalidate?(): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,16 +155,48 @@ export type RouteOptionsSnapshot = {
 export function createSnapshotRouteDataProvider(
   fetchSnapshot: () => Promise<RouteOptionsSnapshot>,
 ): RouteModelPickerDataProvider {
-  // Cache the snapshot for the current fetch cycle so listLocalModels(),
-  // listConnectors(), and listConnectorModels() all read from the same data.
+  // Keep a short-lived cache so repeated opens do not immediately refetch the
+  // same capability-scoped route options.
+  const SNAPSHOT_CACHE_TTL_MS = 10_000;
+  let cacheEpoch = 0;
+  let cachedSnapshot: RouteOptionsSnapshot | null = null;
+  let cachedAt = 0;
   let cachedPromise: Promise<RouteOptionsSnapshot> | null = null;
 
+  function invalidate(): void {
+    cacheEpoch += 1;
+    cachedSnapshot = null;
+    cachedAt = 0;
+    cachedPromise = null;
+  }
+
   function getSnapshot(): Promise<RouteOptionsSnapshot> {
+    if (cachedSnapshot && (Date.now() - cachedAt) < SNAPSHOT_CACHE_TTL_MS) {
+      return Promise.resolve(cachedSnapshot);
+    }
     if (!cachedPromise) {
-      cachedPromise = fetchSnapshot().finally(() => {
-        // Allow refetch on next cycle (e.g. after user-initiated refresh)
-        setTimeout(() => { cachedPromise = null; }, 0);
-      });
+      const epoch = cacheEpoch;
+      const request = fetchSnapshot()
+        .then((snapshot) => {
+          if (epoch === cacheEpoch) {
+            cachedSnapshot = snapshot;
+            cachedAt = Date.now();
+          }
+          return snapshot;
+        })
+        .catch((error) => {
+          if (epoch === cacheEpoch) {
+            cachedSnapshot = null;
+            cachedAt = 0;
+          }
+          throw error;
+        })
+        .finally(() => {
+          if (cachedPromise === request) {
+            cachedPromise = null;
+          }
+        });
+      cachedPromise = request;
     }
     return cachedPromise;
   }
@@ -216,6 +249,7 @@ export function createSnapshotRouteDataProvider(
           capabilities: connector.modelCapabilities?.[modelId] || [],
         }));
     },
+    invalidate,
   };
 }
 
@@ -591,6 +625,10 @@ export function useRouteModelPickerData({
     panelProps,
     changeSource: onSourceChange,
     changeConnector: onConnectorChange,
-    refresh: () => { void fetchData(); },
+    refresh: () => {
+      provider.invalidate?.();
+      setConnectorModelsMap({});
+      void fetchData();
+    },
   };
 }

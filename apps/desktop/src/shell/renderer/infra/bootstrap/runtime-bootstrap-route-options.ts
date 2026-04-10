@@ -150,8 +150,22 @@ function mergeCloudBindingProvider(binding: RuntimeRouteBinding, connectors: Run
         provider: String(binding.provider || connector.provider || '').trim() || undefined,
     };
 }
+/**
+ * Voice workflow capabilities (`voice_workflow.tts_v2v`, `voice_workflow.tts_t2v`)
+ * are nimi-defined tokens that don't appear on catalog model descriptors. The
+ * underlying models carry voice/TTS capabilities (`audio.synthesize` / `tts`).
+ * Map voice workflow tokens to `audio.synthesize` so the connector model filter
+ * matches; the runtime validates the actual workflow binding at route-describe time.
+ */
+function resolveFilterCapability(capability: RuntimeCanonicalCapability): RuntimeCanonicalCapability {
+    if (capability === 'voice_workflow.tts_v2v' || capability === 'voice_workflow.tts_t2v') {
+        return 'audio.synthesize';
+    }
+    return capability;
+}
 function modelSupportsCapability(capabilities: string[] | undefined, capability: RuntimeCanonicalCapability): boolean {
-    return (capabilities || []).some((item) => normalizeCapabilityToken(item) === capability);
+    const filterCapability = resolveFilterCapability(capability);
+    return (capabilities || []).some((item) => normalizeCapabilityToken(item) === filterCapability);
 }
 function rankRuntimeLocalStatus(value: unknown): number {
     const status = String(value || '').trim().toLowerCase();
@@ -312,7 +326,7 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
         listRuntimeLocalAssets: () => localRuntime.listAssets(),
         ...deps,
     };
-    const snapshot = await resolvedDeps.pollLocalSnapshotWithTimeout().catch((error) => {
+    const snapshotPromise = resolvedDeps.pollLocalSnapshotWithTimeout().catch((error) => {
         const normalized = asNimiError(error, {
             reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
             actionHint: 'check_runtime_daemon_health',
@@ -338,15 +352,18 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
             generatedAt: new Date().toISOString(),
         } satisfies LocalRuntimeSnapshot;
     });
-    const [nodeCatalog, runtimeLocalModels] = await Promise.all([
-        resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error: unknown) => rethrowLocalRouteMetadataError({
+    const nodeCatalogPromise = resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error: unknown) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-nodes-catalog',
-        })),
-        resolvedDeps.listRuntimeLocalAssets().catch((error: unknown) => rethrowLocalRouteMetadataError({
+        }));
+    const runtimeLocalModelsPromise = resolvedDeps.listRuntimeLocalAssets().catch((error: unknown) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-runtime-local-models',
-        })),
+        }));
+    const [snapshot, nodeCatalog, runtimeLocalModels] = await Promise.all([
+        snapshotPromise,
+        nodeCatalogPromise,
+        runtimeLocalModelsPromise,
     ]);
     return {
         snapshot,
@@ -359,6 +376,15 @@ type LoadRuntimeRouteOptionsDeps = {
     sdkListConnectorModelDescriptors: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service').sdkListConnectorModelDescriptors;
     loadLocalRouteMetadata: typeof loadLocalRouteMetadata;
 };
+type LoadRuntimeRouteOptionsData = {
+    connectors: RuntimeRouteConnectorOption[];
+    snapshot: LocalRouteMetadata['snapshot'];
+    nodeCatalog: LocalRouteMetadata['nodeCatalog'];
+    runtimeLocalModels: LocalRouteMetadata['runtimeLocalModels'];
+    localMetadataDegraded: boolean;
+};
+const DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE: Record<string, never> = {};
+const runtimeRouteOptionsInflightByScope = new WeakMap<object, Map<string, Promise<LoadRuntimeRouteOptionsData>>>();
 function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCanonicalCapability, modId?: string): LocalRouteMetadata {
     const normalized = asNimiError(error, {
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
@@ -389,6 +415,76 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
         nodeCatalog: [],
         runtimeLocalModels: [],
     };
+}
+function getRuntimeRouteOptionsInflightMap(scope: object): Map<string, Promise<LoadRuntimeRouteOptionsData>> {
+    const existing = runtimeRouteOptionsInflightByScope.get(scope);
+    if (existing) {
+        return existing;
+    }
+    const created = new Map<string, Promise<LoadRuntimeRouteOptionsData>>();
+    runtimeRouteOptionsInflightByScope.set(scope, created);
+    return created;
+}
+async function loadRuntimeRouteOptionsData(capability: RuntimeCanonicalCapability, modId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps): Promise<LoadRuntimeRouteOptionsData> {
+    const connectorDescriptorsPromise = resolvedDeps.sdkListConnectors();
+    let localMetadataDegraded = false;
+    const localMetadataPromise = resolvedDeps.loadLocalRouteMetadata(capability)
+        .catch((error) => {
+        localMetadataDegraded = true;
+        return buildLocalRouteMetadataFallback(error, capability, modId);
+    });
+    const [connectorDescriptors, localMetadata] = await Promise.all([
+        connectorDescriptorsPromise,
+        localMetadataPromise,
+    ]);
+    const connectorResults: Array<RuntimeRouteConnectorOption | null> = await Promise.all((connectorDescriptors as ConnectorDescriptor[]).map(async (connector) => {
+        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false);
+        const models = descriptors
+            .filter((item) => modelSupportsCapability(item.capabilities, capability))
+            .map((item) => item.modelId);
+        if (models.length === 0) {
+            return null;
+        }
+        const modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
+            if (!modelSupportsCapability(item.capabilities, capability)) {
+                return accumulator;
+            }
+            accumulator[item.modelId] = item.capabilities;
+            return accumulator;
+        }, {});
+        return {
+            id: connector.id,
+            label: String(connector.label || ''),
+            vendor: String(connector.vendor || '').trim() || undefined,
+            provider: String(connector.provider || '').trim() || undefined,
+            models,
+            modelCapabilities,
+            modelProfiles: [],
+        };
+    }));
+    const connectors = connectorResults.filter((connector): connector is RuntimeRouteConnectorOption => connector !== null);
+    return {
+        connectors,
+        snapshot: localMetadata.snapshot,
+        nodeCatalog: localMetadata.nodeCatalog,
+        runtimeLocalModels: localMetadata.runtimeLocalModels,
+        localMetadataDegraded,
+    };
+}
+function loadRuntimeRouteOptionsDataSingleFlight(capability: RuntimeCanonicalCapability, modId: string | undefined, resolvedDeps: LoadRuntimeRouteOptionsDeps, scope: object): Promise<LoadRuntimeRouteOptionsData> {
+    const inflight = getRuntimeRouteOptionsInflightMap(scope);
+    const existing = inflight.get(capability);
+    if (existing) {
+        return existing;
+    }
+    const request = loadRuntimeRouteOptionsData(capability, modId, resolvedDeps)
+        .finally(() => {
+        if (inflight.get(capability) === request) {
+            inflight.delete(capability);
+        }
+    });
+    inflight.set(capability, request);
+    return request;
 }
 function firstAvailableBinding(localModels: RuntimeRouteLocalOption[], connectors: RuntimeRouteConnectorOption[]): RuntimeRouteBinding | null {
   if (localModels.length > 0) {
@@ -465,46 +561,26 @@ export async function loadRuntimeRouteOptions(input: {
     const selectedBinding = input.capability === 'text.embed'
         ? undefined
         : appStore.aiConfig.capabilities.selectedBindings[input.capability] as import('@nimiplatform/sdk/mod').RuntimeRouteBinding | null | undefined;
-    const connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
+    let connectorService: typeof import('@renderer/features/runtime-config/runtime-config-connector-sdk-service') | null = null;
+    const getConnectorService = async () => {
+        if (!connectorService) {
+            connectorService = await import('@renderer/features/runtime-config/runtime-config-connector-sdk-service');
+        }
+        return connectorService;
+    };
     const resolvedDeps: LoadRuntimeRouteOptionsDeps = {
-        sdkListConnectors: connectorService.sdkListConnectors,
-        sdkListConnectorModelDescriptors: connectorService.sdkListConnectorModelDescriptors,
+        sdkListConnectors: deps?.sdkListConnectors || (await getConnectorService()).sdkListConnectors,
+        sdkListConnectorModelDescriptors: deps?.sdkListConnectorModelDescriptors || (await getConnectorService()).sdkListConnectorModelDescriptors,
         loadLocalRouteMetadata,
         ...deps,
     };
-    const connectorDescriptors = await resolvedDeps.sdkListConnectors();
-    const connectors: RuntimeRouteConnectorOption[] = [];
-    for (const connector of connectorDescriptors as ConnectorDescriptor[]) {
-        const descriptors = await resolvedDeps.sdkListConnectorModelDescriptors(connector.id, false);
-        const models = descriptors
-            .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
-            .map((item) => item.modelId);
-        if (models.length === 0) {
-            continue;
-        }
-        const modelCapabilities = descriptors.reduce<Record<string, string[]>>((accumulator, item) => {
-            if (!modelSupportsCapability(item.capabilities, input.capability)) {
-                return accumulator;
-            }
-            accumulator[item.modelId] = item.capabilities;
-            return accumulator;
-        }, {});
-        connectors.push({
-            id: connector.id,
-            label: String(connector.label || ''),
-            vendor: String(connector.vendor || '').trim() || undefined,
-            provider: String(connector.provider || '').trim() || undefined,
-            models,
-            modelCapabilities,
-            modelProfiles: [],
-        });
-    }
-    let localMetadataDegraded = false;
-    const { snapshot, nodeCatalog, runtimeLocalModels } = await resolvedDeps.loadLocalRouteMetadata(input.capability)
-        .catch((error) => {
-        localMetadataDegraded = true;
-        return buildLocalRouteMetadataFallback(error, input.capability, input.modId);
-    });
+    const depsScope = deps || DEFAULT_RUNTIME_ROUTE_OPTIONS_DEPS_SCOPE;
+    const { connectors, snapshot, nodeCatalog, runtimeLocalModels, localMetadataDegraded } = await loadRuntimeRouteOptionsDataSingleFlight(
+        input.capability,
+        input.modId,
+        resolvedDeps,
+        depsScope,
+    );
     const nodeByProvider = new Map<string, {
         provider: string;
         providerHints?: RuntimeRouteLocalOption['providerHints'];
