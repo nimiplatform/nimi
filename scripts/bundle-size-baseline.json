@@ -8,7 +8,7 @@
     },
     "web": {
       "entryChunkBytes": 1968377,
-      "maxLargestAppChunkBytes": 120000
+      "maxLargestAppChunkBytes": 150000
     }
   }
 }

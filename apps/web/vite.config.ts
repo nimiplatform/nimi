@@ -202,6 +202,47 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
+            if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/chat/')) {
+              if (
+                normalizedId.includes('/chat-agent-runtime')
+                || normalizedId.includes('/chat-agent-orchestration')
+                || normalizedId.includes('/chat-agent-continuity')
+                || normalizedId.includes('/chat-agent-turn-plan')
+                || normalizedId.includes('/chat-agent-voice-workflow')
+                || normalizedId.includes('/chat-agent-voice-workflow-tracker')
+                || normalizedId.includes('/chat-agent-voice-capture')
+                || normalizedId.includes('/chat-agent-user-projection')
+              ) {
+                return 'chat-agent-engine';
+              }
+              if (normalizedId.includes('/chat-agent-')) {
+                return 'chat-agent-shell';
+              }
+              if (normalizedId.includes('/chat-ai-')) {
+                return 'chat-ai-core';
+              }
+              if (
+                normalizedId.includes('/chat-human-canonical-components')
+                || normalizedId.includes('/chat-human-canonical-composer-profile')
+              ) {
+                return 'chat-human-ui';
+              }
+              if (normalizedId.includes('/chat-human-')) {
+                return 'chat-human-core';
+              }
+              if (
+                normalizedId.includes('/conversation-capability')
+                || normalizedId.includes('/conversation-submit-readiness')
+                || normalizedId.includes('/chat-conversation-capability-settings')
+                || normalizedId.includes('/capability-settings-shared')
+                || normalizedId.includes('/chat-settings-panel')
+                || normalizedId.includes('/chat-settings-storage')
+                || normalizedId.includes('/chat-thinking')
+                || normalizedId.includes('/chat-execution-scheduling-guard')
+              ) {
+                return 'chat-capabilities';
+              }
+            }
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               if (normalizedId.includes('/sdk/src/runtime/generated/google/')) {
                 return 'vendor-sdk-runtime-google';
