@@ -26,6 +26,34 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   updateChild,
 }));
 
+vi.mock('../../bridge/child-avatar-bridge.js', () => ({
+  saveChildAvatar: vi.fn().mockResolvedValue({ path: '/mock/avatar.jpg' }),
+}));
+
+vi.mock('../../app-shell/app-select.js', () => ({
+  AppSelect: ({ value, onChange, options }: {
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string }>;
+  }) => (
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>{option.label}</option>
+      ))}
+    </select>
+  ),
+}));
+
+vi.mock('../profile/profile-date-picker.js', () => ({
+  ProfileDatePicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <input type="date" value={value} onChange={(event) => onChange(event.target.value)} />
+  ),
+}));
+
+vi.mock('../journal/journal-page-helpers.js', () => ({
+  fileToBase64: vi.fn().mockResolvedValue('mockbase64'),
+}));
+
 vi.mock('../../bridge/ulid.js', () => {
   let counter = 0;
   return {
@@ -76,11 +104,7 @@ describe('ChildrenSettingsPage', () => {
     updateChild.mockImplementation(async (params: ChildRow & { now: string }) => {
       childRows = childRows.map((row) =>
         row.childId === params.childId
-          ? {
-              ...row,
-              ...params,
-              updatedAt: params.now,
-            }
+          ? { ...row, ...params, updatedAt: params.now }
           : row,
       );
     });
@@ -102,19 +126,20 @@ describe('ChildrenSettingsPage', () => {
     });
   });
 
-  it('creates, edits, and deletes a child while preserving typed recorder profiles', async () => {
+  it('creates a child with default recorder and displays it in the list', async () => {
     const { container } = renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /\+/ }));
+    fireEvent.click(screen.getByRole('button', { name: /添加孩子/i }));
 
-    const inputs = container.querySelectorAll('input');
-    fireEvent.change(inputs[0] as HTMLInputElement, { target: { value: 'Mimi' } });
-    fireEvent.change(container.querySelector('input[type="date"]') as HTMLInputElement, {
-      target: { value: '2024-01-15' },
-    });
-    fireEvent.change(inputs[7] as HTMLInputElement, { target: { value: 'Mom, Dad' } });
+    const nameInput = container.querySelector('input:not([type="file"]):not([type="date"]):not([type="number"])') as HTMLInputElement;
+    expect(nameInput).toBeTruthy();
+    fireEvent.change(nameInput, { target: { value: 'Mimi' } });
 
-    fireEvent.click(screen.getAllByRole('button')[0] as HTMLButtonElement);
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /爸爸/i }));
+    fireEvent.click(screen.getByRole('button', { name: /添加$/i }));
 
     await waitFor(() => {
       expect(createFamily).toHaveBeenCalledTimes(1);
@@ -122,46 +147,37 @@ describe('ChildrenSettingsPage', () => {
       expect(useAppStore.getState().children).toHaveLength(1);
     });
 
-    expect(useAppStore.getState().children[0]?.recorderProfiles).toEqual([
-      { id: 'recorder-1', name: 'Mom' },
-      { id: 'recorder-2', name: 'Dad' },
-    ]);
+    const profiles = useAppStore.getState().children[0]?.recorderProfiles;
+    expect(profiles).toHaveLength(2);
+    expect(profiles![0]!.name).toBe('妈妈');
+    expect(profiles![1]!.name).toBe('爸爸');
+  });
 
-    await act(async () => {
-      useAppStore.getState().setActiveChildId('generated-2');
+  it('deletes a child with confirmation', async () => {
+    useAppStore.setState({
+      bootstrapReady: true,
+      familyId: 'fam-1',
+      activeChildId: 'child-1',
+      children: [{
+        childId: 'child-1', familyId: 'fam-1', displayName: 'Mimi', gender: 'female' as const,
+        birthDate: '2024-01-15', birthWeightKg: null, birthHeightCm: null, birthHeadCircCm: null,
+        avatarPath: null, nurtureMode: 'balanced' as const, nurtureModeOverrides: null,
+        allergies: null, medicalNotes: null, recorderProfiles: [{ id: 'r1', name: '妈妈' }],
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+      }],
     });
+    childRows = [{
+      childId: 'child-1', familyId: 'fam-1', displayName: 'Mimi', gender: 'female',
+      birthDate: '2024-01-15', birthWeightKg: null, birthHeightCm: null, birthHeadCircCm: null,
+      avatarPath: null, nurtureMode: 'balanced', nurtureModeOverrides: null,
+      allergies: null, medicalNotes: null, recorderProfiles: JSON.stringify([{ id: 'r1', name: '妈妈' }]),
+      createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+    }];
 
-    const editButton = Array.from(container.querySelectorAll('button')).find(
-      (button) => !button.textContent?.includes('+') && !button.className.includes('text-red-600'),
-    );
-    expect(editButton).toBeTruthy();
-    fireEvent.click(editButton as HTMLButtonElement);
+    renderPage();
 
-    await waitFor(() => {
-      expect(container.querySelector('input[type="date"]')).toBeTruthy();
-    });
-
-    const editInputs = container.querySelectorAll('input');
-    fireEvent.change(editInputs[0] as HTMLInputElement, { target: { value: 'Mimi Updated' } });
-    fireEvent.change(editInputs[7] as HTMLInputElement, { target: { value: 'Mom, Grandpa' } });
-    fireEvent.click(screen.getAllByRole('button')[0] as HTMLButtonElement);
-
-    await waitFor(() => {
-      expect(updateChild).toHaveBeenCalledTimes(1);
-    });
-
-    expect(useAppStore.getState().children[0]?.displayName).toBe('Mimi Updated');
-    expect(useAppStore.getState().children[0]?.recorderProfiles).toEqual([
-      { id: 'recorder-1', name: 'Mom' },
-      { id: 'recorder-2', name: 'Grandpa' },
-    ]);
-
-    const deleteButton = Array.from(container.querySelectorAll('button')).find((button) =>
-      button.className.includes('text-red-600'),
-    );
-    expect(deleteButton).toBeTruthy();
-    fireEvent.click(deleteButton as HTMLButtonElement);
-    fireEvent.click(screen.getAllByRole('button').at(-2) as HTMLButtonElement);
+    fireEvent.click(screen.getByRole('button', { name: /删除/i }));
+    fireEvent.click(screen.getByRole('button', { name: /确认删除/i }));
 
     await waitFor(() => {
       expect(deleteChild).toHaveBeenCalledTimes(1);

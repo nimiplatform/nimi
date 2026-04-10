@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
 :root {
   --color-primary: #1e3a5f;
   --color-primary-light: #2d5a8e;
@@ -48,6 +52,25 @@ html, body, #root {
   background: #b0bab5;
 }
 *::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Style native date/time picker icons to blend with the design */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+
+/* Time picker scroll columns — hidden scrollbar */
+.time-picker-col {
+  scrollbar-width: none;
+}
+.time-picker-col::-webkit-scrollbar {
   display: none;
 }
 

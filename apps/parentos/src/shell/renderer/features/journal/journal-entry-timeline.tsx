@@ -1,3 +1,4 @@
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { S } from '../../app-shell/page-style.js';
 import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
@@ -23,11 +24,12 @@ export interface JournalEntryTimelineProps {
   onFilterChange: (filter: 'all' | 'quick' | 'deep' | 'review' | 'keepsake') => void;
   recorderProfiles: RecorderProfile[] | null | undefined;
   onEditEntry: (entry: JournalEntryRow) => void;
+  onToggleKeepsake?: (entry: JournalEntryRow) => void;
 }
 
 /* ── Constants ── */
 
-const FILTER_OPTIONS = [['all', '全部'], ['quick', '⚡️'], ['deep', '🔍'], ['review', '🌙'], ['keepsake', '⭐']] as const;
+const FILTER_OPTIONS = [['all', '全部'], ['keepsake', '⭐ 珍藏']] as const;
 
 /* ── Component ── */
 
@@ -37,6 +39,7 @@ export function JournalEntryTimeline({
   onFilterChange,
   recorderProfiles,
   onEditEntry,
+  onToggleKeepsake,
 }: JournalEntryTimelineProps) {
   const filteredEntries = entryFilter === 'all'
     ? entries
@@ -84,85 +87,104 @@ export function JournalEntryTimeline({
                 <span className="text-[10px]" style={{ color: S.sub }}>{dayEntries.length} 条</span>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2.5">
                 {dayEntries.map((entry) => {
                   const dimension = OBSERVATION_DIMENSIONS.find((item) => item.dimensionId === entry.dimensionId);
                   const tags = parseSelectedTags(entry.selectedTags);
                   const recorderName = recorderProfiles?.find((item) => item.id === entry.recorderId)?.name ?? null;
                   const bodyText = entry.textContent?.trim() || (entry.voicePath ? '🎙️ 语音记录' : '');
-                  const entryPhotos = parseSelectedTags(entry.photoPaths); // reuse JSON array parser
+                  const entryPhotos = parseSelectedTags(entry.photoPaths);
                   const scene = getSceneForMode(entry.observationMode);
                   const sceneConfig = SCENE_TABS.find((t) => t.key === scene);
+                  const isKeepsake = entry.keepsake === 1;
 
                   return (
                     <div key={entry.entryId}
-                      className={`${S.radiusSm} p-3 transition-all`}
-                      style={{
-                        background: entry.keepsake ? '#fefce8' : S.card,
-                        border: `1px solid ${entry.keepsake ? '#fde68a' : S.border}`,
-                      }}>
-                      {/* Meta row */}
-                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        <span className="text-[10px]" style={{ color: S.sub }}>
-                          {entry.recordedAt.split('T')[1]?.slice(0, 5)}
-                        </span>
-                        <button onClick={() => onEditEntry(entry)}
-                          className="text-[10px] px-1 py-0.5 rounded transition-colors hover:bg-[#f0f0ec]"
-                          style={{ color: S.sub }} title="编辑">
-                          ✏️
-                        </button>
-                        {sceneConfig && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#f0f0ec', color: S.sub }}>
-                            {sceneConfig.emoji} {sceneConfig.label}
-                          </span>
-                        )}
-                        {dimension && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#e8eccc', color: S.accent }}>
-                            {dimension.displayName}
-                          </span>
-                        )}
-                        {entry.voicePath && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                            {entry.contentType === 'mixed' ? '🎙️+文字' : '🎙️'}
-                          </span>
-                        )}
-                        {entryPhotos.length > 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#92400e' }}>
-                            📷 {entryPhotos.length}
-                          </span>
-                        )}
-                        {recorderName && (
-                          <span className="text-[10px]" style={{ color: S.sub }}>{recorderName}</span>
-                        )}
-                        {entry.keepsake === 1 && <span className="text-[10px]">⭐</span>}
-                      </div>
+                      className={`group ${S.radius} overflow-hidden transition-all`}
+                      style={{ boxShadow: S.shadow, background: S.card }}>
 
-                      {/* Body */}
-                      {bodyText && (
-                        <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>{bodyText}</p>
-                      )}
+                      {/* Top accent bar */}
+                      <div className="h-[3px]" style={{ background: isKeepsake ? '#fbbf24' : sceneConfig?.key === 'quick' ? S.accent : sceneConfig?.key === 'deep' ? '#3b82f6' : '#8b5cf6' }} />
 
-                      {/* Photos */}
-                      {entryPhotos.length > 0 && (
-                        <div className="mt-1.5 flex gap-1.5 flex-wrap">
-                          {entryPhotos.map((photoPath, pi) => (
-                            <img key={pi} src={`asset://localhost/${photoPath}`} alt=""
-                              className={`h-16 w-16 ${S.radiusSm} object-cover`} />
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Tags */}
-                      {tags.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {tags.map((tag) => (
-                            <span key={tag} className="rounded-full px-1.5 py-0.5 text-[10px]"
-                              style={{ background: '#f0f0ec', color: S.sub }}>
-                              {tag}
+                      <div className="p-4">
+                        {/* Header: time + scene + dimension + edit */}
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-medium" style={{ color: S.text }}>
+                              {entry.recordedAt.split('T')[1]?.slice(0, 5)}
                             </span>
-                          ))}
+                            {sceneConfig && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                                style={{ background: sceneConfig.key === 'quick' ? '#f4f7ea' : sceneConfig.key === 'deep' ? '#eff6ff' : '#f5f3ff',
+                                  color: sceneConfig.key === 'quick' ? S.accent : sceneConfig.key === 'deep' ? '#3b82f6' : '#7c3aed' }}>
+                                {sceneConfig.emoji} {sceneConfig.label}
+                              </span>
+                            )}
+                            {dimension && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#e8eccc', color: S.accent }}>
+                                {dimension.displayName}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {entry.moodTag && (
+                              <span className="text-[12px]" title={entry.moodTag}>
+                                {entry.moodTag === 'happy' ? '😊' : entry.moodTag === 'neutral' ? '😐' : entry.moodTag === 'sad' ? '😢' : entry.moodTag === 'angry' ? '😤' : '😴'}
+                              </span>
+                            )}
+                            {recorderName && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>{recorderName}</span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onToggleKeepsake?.(entry); }}
+                              className={`text-[10px] px-1.5 py-0.5 rounded transition-all ${isKeepsake ? '' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'}`}
+                              style={isKeepsake ? { background: '#fef9c3', color: '#a16207' } : { color: S.sub }}
+                              title={isKeepsake ? '取消珍藏' : '标记珍藏'}>
+                              {isKeepsake ? '⭐ 留念' : '☆ 珍藏'}
+                            </button>
+                            {entry.voicePath && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                                {entry.contentType === 'mixed' ? '🎙️+文字' : '🎙️ 语音'}
+                              </span>
+                            )}
+                            <button onClick={() => onEditEntry(entry)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors hover:bg-[#f0f0ec]"
+                              style={{ color: '#b0b5bc' }} title="编辑">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
-                      )}
+
+                        {/* Body text */}
+                        {bodyText && (
+                          <p className="text-[13px] leading-[1.7]" style={{ color: S.text }}>{bodyText}</p>
+                        )}
+
+                        {/* Photos */}
+                        {entryPhotos.length > 0 && (
+                          <div className="mt-3 flex gap-2 flex-wrap">
+                            {entryPhotos.map((photoPath, pi) => (
+                              <img key={pi} src={convertFileSrc(photoPath)} alt=""
+                                className={`h-20 w-20 ${S.radiusSm} object-cover`}
+                                style={{ border: `1px solid ${S.border}` }} />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Tags */}
+                        {tags.length > 0 && (
+                          <div className="mt-3 pt-2.5 flex flex-wrap gap-1.5" style={{ borderTop: `1px solid ${S.border}` }}>
+                            {tags.map((tag) => (
+                              <span key={tag} className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                style={{ background: '#f5f3ef', color: S.sub }}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

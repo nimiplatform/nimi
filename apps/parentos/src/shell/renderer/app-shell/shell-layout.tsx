@@ -1,7 +1,7 @@
-import type { ReactNode, ComponentType } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, type LucideProps } from 'lucide-react';
-import { useAppStore } from './app-store.js';
+import { useAppStore, computeAgeMonths } from './app-store.js';
 
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
@@ -11,6 +11,87 @@ const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucidePro
   { to: '/reports', label: '报告', Icon: TrendingUp },
   { to: '/settings', label: '设置', Icon: Settings },
 ];
+
+/* ── Child avatar popover (matches dashboard card switcher) ── */
+
+function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: {
+  childList: Array<{ childId: string; displayName: string; birthDate: string; gender: string }>;
+  activeChildId: string | null;
+  activeChild: { displayName: string } | undefined;
+  onSwitch: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const openPicker = () => { setMounted(true); requestAnimationFrame(() => setOpen(true)); };
+  const closePicker = () => setOpen(false);
+
+  // Click outside to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) closePicker(); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative mt-auto">
+      <button onClick={() => open ? closePicker() : openPicker()}
+        className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all hover:shadow-md"
+        style={{ background: '#86AFDA', color: '#fff' }}>
+        {activeChild?.displayName.charAt(0) ?? '?'}
+      </button>
+
+      {childList.length > 1 && mounted && (
+        <div
+          className="absolute left-0 bottom-12 min-w-[190px] rounded-xl p-1.5"
+          onTransitionEnd={() => { if (!open) setMounted(false); }}
+          style={{
+            background: '#fff',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            opacity: open ? 1 : 0,
+            transform: open ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.95)',
+            transformOrigin: 'bottom left',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+            pointerEvents: open ? 'auto' : 'none',
+          }}>
+          {childList.map((c, idx) => {
+            const am = computeAgeMonths(c.birthDate);
+            const y = Math.floor(am / 12);
+            const m = am % 12;
+            const isActive = c.childId === activeChildId;
+            return (
+              <button key={c.childId}
+                onClick={() => { onSwitch(c.childId); closePicker(); }}
+                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left transition-colors hover:bg-[#f5f3ef]"
+                style={{
+                  ...(isActive ? { background: '#EEF3F1' } : undefined),
+                  opacity: open ? 1 : 0,
+                  transform: open ? 'translateY(0)' : 'translateY(4px)',
+                  transition: `opacity 0.2s ease ${idx * 0.03}s, transform 0.2s ease ${idx * 0.03}s`,
+                }}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                  style={{ background: isActive ? '#86AFDA' : '#e0e4e8', color: isActive ? '#fff' : '#1a2b4a' }}>
+                  {c.displayName.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[12px] font-medium truncate" style={{ color: '#1a2b4a' }}>{c.displayName}</span>
+                  <span className="block text-[10px]" style={{ color: '#8a8f9a' }}>
+                    {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
+                  </span>
+                </div>
+                {isActive && (
+                  <svg className="ml-auto shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86AFDA" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const { children: childList, activeChildId, setActiveChildId } = useAppStore();
@@ -59,27 +140,14 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           ))}
         </div>
 
-        {/* Child avatar + hidden selector */}
+        {/* Child avatar + popover switcher */}
         {childList.length > 0 && (
-          <div className="relative mt-auto">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold" style={{ background: '#1a2b4a', color: '#fff' }}>
-              {activeChild?.displayName.charAt(0) ?? '?'}
-            </div>
-            {childList.length > 1 && (
-              <select
-                value={activeChildId ?? ''}
-                onChange={(event) => setActiveChildId(event.target.value || null)}
-                className="absolute inset-0 cursor-pointer opacity-0"
-                aria-label="切换孩子"
-              >
-                {childList.map((child) => (
-                  <option key={child.childId} value={child.childId}>
-                    {child.displayName}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+          <ChildAvatarPicker
+            childList={childList}
+            activeChildId={activeChildId}
+            activeChild={activeChild}
+            onSwitch={setActiveChildId}
+          />
         )}
       </nav>
 

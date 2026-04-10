@@ -31,7 +31,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"
+      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://asset.localhost asset:; media-src 'self' data: blob: file: https://asset.localhost asset:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"
     }
   },
   "bundle": {

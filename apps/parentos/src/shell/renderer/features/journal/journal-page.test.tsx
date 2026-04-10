@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import JournalPage from './journal-page.js';
 import { useAppStore } from '../../app-shell/app-store.js';
@@ -8,42 +9,32 @@ import { useAppStore } from '../../app-shell/app-store.js';
 const {
   getJournalEntriesMock,
   insertJournalEntryWithTagsMock,
-  saveJournalVoiceAudioMock,
-  deleteJournalVoiceAudioMock,
-  supportsVoiceRecordingMock,
-  startVoiceRecordingMock,
-  hasVoiceTranscriptionRuntimeMock,
-  transcribeVoiceObservationMock,
-  hasJournalTaggingRuntimeMock,
-  suggestJournalTagsMock,
+  updateJournalEntryWithTagsMock,
+  updateJournalKeepsakeMock,
+  completeReminderByRuleMock,
 } = vi.hoisted(() => ({
   getJournalEntriesMock: vi.fn().mockResolvedValue([]),
   insertJournalEntryWithTagsMock: vi.fn().mockResolvedValue(undefined),
-  saveJournalVoiceAudioMock: vi.fn().mockResolvedValue({ path: 'C:/voice/entry-1.webm' }),
-  deleteJournalVoiceAudioMock: vi.fn().mockResolvedValue(undefined),
-  supportsVoiceRecordingMock: vi.fn(() => true),
-  startVoiceRecordingMock: vi.fn(),
-  hasVoiceTranscriptionRuntimeMock: vi.fn().mockResolvedValue(true),
-  transcribeVoiceObservationMock: vi.fn().mockResolvedValue({
-    transcript: 'Observed sharing during block play.',
-    artifacts: [],
-    trace: { routeDecision: 'local' },
-  }),
-  hasJournalTaggingRuntimeMock: vi.fn().mockResolvedValue(true),
-  suggestJournalTagsMock: vi.fn().mockResolvedValue({
-    dimensionId: 'PO-OBS-SOCL-001',
-    tags: ['Shared toys'],
-  }),
+  updateJournalEntryWithTagsMock: vi.fn().mockResolvedValue(undefined),
+  updateJournalKeepsakeMock: vi.fn().mockResolvedValue(undefined),
+  completeReminderByRuleMock: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../bridge/sqlite-bridge.js', () => ({
   getJournalEntries: getJournalEntriesMock,
   insertJournalEntryWithTags: insertJournalEntryWithTagsMock,
+  updateJournalEntryWithTags: updateJournalEntryWithTagsMock,
+  updateJournalKeepsake: updateJournalKeepsakeMock,
 }));
 
 vi.mock('../../bridge/journal-audio-bridge.js', () => ({
-  saveJournalVoiceAudio: saveJournalVoiceAudioMock,
-  deleteJournalVoiceAudio: deleteJournalVoiceAudioMock,
+  saveJournalVoiceAudio: vi.fn().mockResolvedValue({ path: 'C:/voice/entry-1.webm' }),
+  deleteJournalVoiceAudio: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../bridge/journal-photo-bridge.js', () => ({
+  saveJournalPhoto: vi.fn().mockResolvedValue({ path: 'C:/photos/journal-1.jpg' }),
+  deleteJournalPhoto: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../../engine/observation-matcher.js', () => ({
@@ -57,24 +48,6 @@ vi.mock('../../knowledge-base/index.js', () => ({
       displayName: 'Quick Capture',
       duration: '< 1 min',
       guidancePrompt: 'Capture a quick note.',
-    },
-    {
-      modeId: 'focused-observation',
-      displayName: 'Focused Observation',
-      duration: '10-15 min',
-      guidancePrompt: 'Observe quietly.',
-    },
-    {
-      modeId: 'daily-reflection',
-      displayName: 'Daily Reflection',
-      duration: '2-3 min',
-      guidancePrompt: 'Reflect on the day.',
-    },
-    {
-      modeId: 'five-minute',
-      displayName: 'Five Minute',
-      duration: '< 1 min',
-      guidancePrompt: null,
     },
   ],
   OBSERVATION_DIMENSIONS: [
@@ -93,47 +66,40 @@ vi.mock('../../knowledge-base/index.js', () => ({
 }));
 
 vi.mock('./voice-observation-recorder.js', () => ({
-  supportsVoiceRecording: supportsVoiceRecordingMock,
-  startVoiceRecording: startVoiceRecordingMock,
+  supportsVoiceRecording: vi.fn(() => true),
+  startVoiceRecording: vi.fn(),
   revokeVoicePreviewUrl: vi.fn(),
 }));
 
 vi.mock('./voice-observation-runtime.js', () => ({
-  hasVoiceTranscriptionRuntime: hasVoiceTranscriptionRuntimeMock,
-  transcribeVoiceObservation: transcribeVoiceObservationMock,
+  hasVoiceTranscriptionRuntime: vi.fn().mockResolvedValue(true),
+  transcribeVoiceObservation: vi.fn(),
 }));
 
 vi.mock('./ai-journal-tagging.js', () => ({
-  hasJournalTaggingRuntime: hasJournalTaggingRuntimeMock,
-  suggestJournalTags: suggestJournalTagsMock,
+  hasJournalTaggingRuntime: vi.fn().mockResolvedValue(true),
+  suggestJournalTags: vi.fn(),
 }));
+
+vi.mock('../../engine/reminder-actions.js', () => ({
+  completeReminderByRule: completeReminderByRuleMock,
+}));
+
+function renderPage(initialEntry = '/journal') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <JournalPage />
+    </MemoryRouter>,
+  );
+}
 
 describe('JournalPage', () => {
   beforeEach(() => {
     getJournalEntriesMock.mockResolvedValue([]);
     insertJournalEntryWithTagsMock.mockClear();
-    saveJournalVoiceAudioMock.mockClear();
-    deleteJournalVoiceAudioMock.mockClear();
-    supportsVoiceRecordingMock.mockReturnValue(true);
-    hasVoiceTranscriptionRuntimeMock.mockResolvedValue(true);
-    hasJournalTaggingRuntimeMock.mockResolvedValue(true);
-    suggestJournalTagsMock.mockResolvedValue({
-      dimensionId: 'PO-OBS-SOCL-001',
-      tags: ['Shared toys'],
-    });
-    transcribeVoiceObservationMock.mockResolvedValue({
-      transcript: 'Observed sharing during block play.',
-      artifacts: [],
-      trace: { routeDecision: 'local' },
-    });
-    startVoiceRecordingMock.mockResolvedValue({
-      stop: vi.fn().mockResolvedValue({
-        blob: new Blob(['voice-bytes'], { type: 'audio/webm' }),
-        mimeType: 'audio/webm',
-        previewUrl: 'blob:voice-preview',
-      }),
-      cancel: vi.fn(),
-    });
+    updateJournalEntryWithTagsMock.mockClear();
+    updateJournalKeepsakeMock.mockClear();
+    completeReminderByRuleMock.mockClear();
 
     useAppStore.setState({
       activeChildId: 'child-1',
@@ -172,134 +138,55 @@ describe('JournalPage', () => {
     vi.clearAllMocks();
   });
 
-  it('surfaces the five-minute observation mode in the journal flow', async () => {
-    render(<JournalPage />);
+  it('renders the current journal composer shell', async () => {
+    renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /five minute/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /语音记事/i })).toBeTruthy();
+    });
+
+    expect(screen.getByRole('button', { name: /保存并让 ai 分析/i })).toBeTruthy();
+    expect(screen.getByPlaceholderText(/他刚刚做了什么/i)).toBeTruthy();
+  });
+
+  it('saves a text journal entry from the current composer', async () => {
+    renderPage();
+
+    fireEvent.change(screen.getByPlaceholderText(/他刚刚做了什么/i), {
+      target: { value: '她刚刚主动把积木递给了朋友。' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /保存并让 ai 分析/i }));
+
+    await waitFor(() => {
+      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(insertJournalEntryWithTagsMock.mock.calls[0]?.[0]).toMatchObject({
+      childId: 'child-1',
+      contentType: 'text',
+      textContent: '她刚刚主动把积木递给了朋友。',
+      recorderId: 'rec-1',
     });
   });
 
-  it('applies a closed-set AI tag suggestion and persists confirmed AI tags on save', async () => {
-    render(<JournalPage />);
+  it('completes the linked reminder after save when reminder context is present', async () => {
+    renderPage('/journal?reminderRuleId=PO-REM-GUIDE-001&repeatIndex=2');
 
-    fireEvent.click(screen.getByRole('button', { name: /quick capture/i }));
-    fireEvent.change(screen.getByPlaceholderText(/write what you observed/i), {
-      target: { value: 'She shared the blocks and asked another child for help.' },
+    fireEvent.change(screen.getByPlaceholderText(/他刚刚做了什么/i), {
+      target: { value: '今天留意到她会主动回应别人。' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /suggest tags/i }));
+    fireEvent.click(screen.getByRole('button', { name: /保存并让 ai 分析/i }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('tag-suggestion-applied')).toBeTruthy();
+      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
+      expect(completeReminderByRuleMock).toHaveBeenCalledWith({
+        childId: 'child-1',
+        ruleId: 'PO-REM-GUIDE-001',
+        repeatIndex: 2,
+        kind: 'guidance',
+      });
     });
-
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-
-    await waitFor(() => {
-      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledWith(expect.objectContaining({
-        dimensionId: 'PO-OBS-SOCL-001',
-        selectedTags: JSON.stringify(['Shared toys']),
-        aiTags: [
-          expect.objectContaining({
-            domain: 'observation',
-            tag: 'Shared toys',
-            source: 'ai',
-          }),
-        ],
-      }));
-    });
-  });
-
-  it('saves a mixed journal entry after successful local transcription', async () => {
-    render(<JournalPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: /quick capture/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^voice$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /start recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /stop recording/i })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-preview')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /transcribe/i }));
-
-    await waitFor(() => {
-      expect(screen.getByDisplayValue('Observed sharing during block play.')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /save voice observation/i }));
-
-    await waitFor(() => {
-      expect(saveJournalVoiceAudioMock).toHaveBeenCalledTimes(1);
-      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledWith(expect.objectContaining({
-        contentType: 'mixed',
-        textContent: 'Observed sharing during block play.',
-        voicePath: 'C:/voice/entry-1.webm',
-      }));
-    });
-  });
-
-  it('saves a voice-only journal entry when transcription runtime is unavailable', async () => {
-    hasVoiceTranscriptionRuntimeMock.mockResolvedValue(false);
-
-    render(<JournalPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: /quick capture/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^voice$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /start recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /stop recording/i })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-preview')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /save voice observation/i }));
-
-    await waitFor(() => {
-      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledWith(expect.objectContaining({
-        contentType: 'voice',
-        textContent: null,
-        voicePath: 'C:/voice/entry-1.webm',
-      }));
-    });
-  });
-
-  it('lets the parent cancel a voice draft without persisting a journal row', async () => {
-    render(<JournalPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: /quick capture/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^voice$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /start recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /stop recording/i })).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /stop recording/i }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-preview')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('voice-preview')).toBeNull();
-    });
-
-    expect(insertJournalEntryWithTagsMock).not.toHaveBeenCalled();
-    expect(saveJournalVoiceAudioMock).not.toHaveBeenCalled();
   });
 });

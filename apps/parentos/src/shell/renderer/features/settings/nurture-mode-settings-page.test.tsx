@@ -83,8 +83,20 @@ describe('NurtureModeSettingsPage', () => {
     });
     expect(useAppStore.getState().children[0]?.nurtureMode).toBe('relaxed');
 
-    const selects = container.querySelectorAll('select');
-    fireEvent.change(selects[0] as HTMLSelectElement, { target: { value: 'advanced' } });
+    const buttonCountBeforeOpen = document.body.querySelectorAll('button').length;
+    const overrideTrigger = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.querySelector('path[d="M6 9l6 6 6-6"]'),
+    ) as HTMLButtonElement | undefined;
+
+    expect(overrideTrigger).toBeTruthy();
+    fireEvent.click(overrideTrigger!);
+
+    await waitFor(() => {
+      expect(document.body.querySelectorAll('button').length).toBeGreaterThan(buttonCountBeforeOpen);
+    });
+
+    const portalButtons = Array.from(document.body.querySelectorAll('button')).slice(buttonCountBeforeOpen);
+    fireEvent.click(portalButtons[portalButtons.length - 1] as HTMLButtonElement);
 
     await waitFor(() => {
       expect(updateChild).toHaveBeenCalledTimes(2);

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ShellLayout } from './shell-layout.js';
@@ -62,7 +62,7 @@ describe('ShellLayout', () => {
     });
   });
 
-  it('shows /reports in navigation and lets the active child switch in-place', () => {
+  it('shows /reports in navigation and lets the active child switch in-place', async () => {
     const { container } = render(
       <MemoryRouter>
         <ShellLayout>
@@ -73,10 +73,11 @@ describe('ShellLayout', () => {
 
     expect(container.querySelector('a[href="/reports"]')).toBeTruthy();
 
-    const selector = container.querySelector('select');
-    expect(selector).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'M' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Niko/i }));
 
-    fireEvent.change(selector as HTMLSelectElement, { target: { value: 'child-2' } });
-    expect(useAppStore.getState().activeChildId).toBe('child-2');
+    await waitFor(() => {
+      expect(useAppStore.getState().activeChildId).toBe('child-2');
+    });
   });
 });
