@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { SelectField, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState, VoiceOption } from '../tester-types.js';
 import { asString, stripArtifacts, toArtifactPreviewUri, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -98,13 +99,16 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
       }));
     } catch (error) {
       const elapsed = Date.now() - t0;
-      const message = error instanceof Error ? error.message : String(error || t('Tester.audioSynthesize.failed'));
+      const baseMessage = error instanceof Error ? error.message : String(error || t('Tester.audioSynthesize.failed'));
+      const details = (error as Record<string, unknown> | null)?.details as Record<string, unknown> | undefined;
+      const providerMessage = details?.provider_message as string | undefined;
+      const message = providerMessage ? `${baseMessage} [provider: ${providerMessage}]` : baseMessage;
       onStateChange((prev) => ({
         ...prev,
         busy: false,
         result: 'failed',
         error: message,
-        rawResponse: toPrettyJson({ request: requestParams, error: message }),
+        rawResponse: toPrettyJson({ request: requestParams, error: message, details }),
         diagnostics: { requestParams, resolvedRoute: bindingToRouteInfo(binding), responseMetadata: { elapsed } },
       }));
     }
@@ -112,41 +116,41 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
 
   const audioOutput = state.output as { audioUri?: string; mimeType?: string; durationMs?: number } | null;
 
+  const voiceOptions = React.useMemo(() => [
+    { value: '', label: t('Tester.route.none') },
+    ...voices.map((v) => ({ value: v.voiceId, label: `${v.name} [${v.lang}]` })),
+  ], [voices, t]);
+
+  const formatOptions = [
+    { value: 'mp3', label: 'mp3' },
+    { value: 'wav', label: 'wav' },
+    { value: 'ogg', label: 'ogg' },
+    { value: 'pcm', label: 'pcm' },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
-      <textarea className="h-20 w-full resize-y rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={text} onChange={(event) => setText(event.target.value)} placeholder={t('Tester.audioSynthesize.textPlaceholder')} />
+      <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={text} onChange={(event) => setText(event.target.value)} placeholder={t('Tester.audioSynthesize.textPlaceholder')} />
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.audioSynthesize.presetVoice')}</span>
-          <select className="rounded-md border border-gray-300 bg-white px-2 py-1" value={selectedVoiceId} onChange={(event) => setSelectedVoiceId(event.target.value)}>
-            <option value="">{t('Tester.route.none')}</option>
-            {voices.map((voice) => (
-              <option key={voice.voiceId} value={voice.voiceId}>
-                {voice.name} [{voice.lang}]
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.audioSynthesize.audioFormat')}</span>
-          <select className="rounded-md border border-gray-300 bg-white px-2 py-1" value={audioFormat} onChange={(event) => setAudioFormat(event.target.value)}>
-            <option value="mp3">mp3</option>
-            <option value="wav">wav</option>
-            <option value="ogg">ogg</option>
-            <option value="pcm">pcm</option>
-          </select>
-        </label>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.presetVoice')}</span>
+          <SelectField options={voiceOptions} value={selectedVoiceId} onValueChange={setSelectedVoiceId} />
+        </div>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.audioFormat')}</span>
+          <SelectField options={formatOptions} value={audioFormat} onValueChange={setAudioFormat} />
+        </div>
       </div>
-      <label className="flex flex-col gap-1 text-xs">
-        <span className="text-gray-500">{t('Tester.audioSynthesize.manualVoiceOverride')}</span>
-        <input className="rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs" value={manualVoiceId} onChange={(event) => setManualVoiceId(event.target.value)} placeholder={t('Tester.audioSynthesize.manualVoicePlaceholder')} />
-      </label>
+      <div className="flex flex-col gap-1 text-xs">
+        <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.manualVoiceOverride')}</span>
+        <TextField className="font-mono text-xs" value={manualVoiceId} onChange={(event) => setManualVoiceId(event.target.value)} placeholder={t('Tester.audioSynthesize.manualVoicePlaceholder')} />
+      </div>
       <RunButton busy={state.busy} label={t('Tester.audioSynthesize.run')} onClick={() => { void handleRun(); }} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {audioOutput?.audioUri ? (
         <div>
           <audio controls className="w-full" src={audioOutput.audioUri} />
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {audioOutput.mimeType || 'audio'} {'\u00B7'} {audioOutput.durationMs ? `${audioOutput.durationMs}ms` : t('Tester.audioSynthesize.durationUnknown')}
           </div>
         </div>

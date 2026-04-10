@@ -137,3 +137,26 @@ export function scenarioJobEventLabel(value: unknown): string {
     .toLowerCase()
     .replace(/_/g, ' ');
 }
+
+const IMAGE_HISTORY_MAX = 20;
+
+export async function loadImageHistory(): Promise<import('./tester-types.js').ImageGenerationRecord[]> {
+  try {
+    const { invokeTauri } = await import('@runtime/tauri-api.js');
+    const raw = await invokeTauri<string>('tester_image_history_load');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveImageHistory(records: import('./tester-types.js').ImageGenerationRecord[]): Promise<void> {
+  try {
+    const { invokeTauri } = await import('@runtime/tauri-api.js');
+    const trimmed = records.slice(0, IMAGE_HISTORY_MAX);
+    await invokeTauri('tester_image_history_save', { recordsJson: JSON.stringify(trimmed) });
+  } catch {
+    // Tauri invoke failed — silently ignore
+  }
+}

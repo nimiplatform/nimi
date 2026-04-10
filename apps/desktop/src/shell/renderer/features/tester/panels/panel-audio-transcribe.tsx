@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -79,21 +80,21 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <input className="w-full rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={audioUri} onChange={(event) => setAudioUri(event.target.value)} placeholder={t('Tester.audioTranscribe.audioUrlPlaceholder')} />
+      <TextField className="font-mono text-xs" value={audioUri} onChange={(event) => setAudioUri(event.target.value)} placeholder={t('Tester.audioTranscribe.audioUrlPlaceholder')} />
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.audioTranscribe.language')}</span>
-          <input className="rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs" value={language} onChange={(event) => setLanguage(event.target.value)} placeholder={t('Tester.audioTranscribe.languagePlaceholder')} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.audioTranscribe.mimeType')}</span>
-          <input className="rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs" value={mimeType} onChange={(event) => setMimeType(event.target.value)} placeholder={t('Tester.audioTranscribe.mimeTypePlaceholder')} />
-        </label>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioTranscribe.language')}</span>
+          <TextField className="font-mono text-xs" value={language} onChange={(event) => setLanguage(event.target.value)} placeholder={t('Tester.audioTranscribe.languagePlaceholder')} />
+        </div>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioTranscribe.mimeType')}</span>
+          <TextField className="font-mono text-xs" value={mimeType} onChange={(event) => setMimeType(event.target.value)} placeholder={t('Tester.audioTranscribe.mimeTypePlaceholder')} />
+        </div>
       </div>
       <RunButton busy={state.busy} label={t('Tester.audioTranscribe.run')} onClick={() => { void handleRun(); }} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {state.output ? (
-        <pre className="max-h-48 overflow-auto rounded-md bg-gray-50 p-2 text-xs">{asString(state.output)}</pre>
+        <pre className="max-h-48 overflow-auto rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-2 text-xs">{asString(state.output)}</pre>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

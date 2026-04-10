@@ -5,6 +5,7 @@
 @source "../../../kit/features/chat/src/**/*.{ts,tsx}";
 @source "../../../kit/features/commerce/src/**/*.{ts,tsx}";
 @source "../../../kit/features/generation/src/**/*.{ts,tsx}";
+@source "../../../kit/features/model-config/src/**/*.{ts,tsx}";
 @source "../../../kit/features/model-picker/src/**/*.{ts,tsx}";
 @source "../../desktop/src/shell/renderer/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";

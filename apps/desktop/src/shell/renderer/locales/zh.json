@@ -3262,7 +3262,9 @@
       "video": "视频",
       "audioSection": "音频",
       "tts": "TTS",
-      "stt": "STT"
+      "stt": "STT",
+      "voiceClone": "声音克隆",
+      "voiceDesign": "声音设计"
     },
     "profile": {
       "label": "配置预设：",
@@ -3316,6 +3318,26 @@
       "prewarmingNotice": "正在预热本地模型，首次推理可能需要一些时间...",
       "emptyOutput": "（空输出）",
       "failed": "文本生成失败。"
+    },
+    "textStream": {
+      "promptPlaceholder": "输入提示词...",
+      "advancedParams": "高级参数",
+      "systemPrompt": "系统提示",
+      "systemPromptPlaceholder": "可选系统提示",
+      "temperature": "温度",
+      "maxTokens": "最大令牌数",
+      "maxTokensPlaceholder": "默认",
+      "run": "生成",
+      "stop": "停止",
+      "promptEmpty": "提示词为必填项。",
+      "preparingRoute": "准备路由...",
+      "warmingLocal": "预热本地模型...",
+      "streaming": "流式生成中...",
+      "prewarmingNotice": "正在预热本地模型，首次使用可能需要一些时间。",
+      "emptyOutput": "（空）",
+      "aborted": "流已被用户中止。",
+      "failed": "流式生成失败。",
+      "reasoning": "推理过程"
     },
     "textEmbed": {
       "defaultText": "The quick brown fox jumps over the lazy dog.",

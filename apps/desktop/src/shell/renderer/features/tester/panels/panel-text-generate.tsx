@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { getRuntimeClient, resolveCallParams, bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, InfoBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
+import { useMediaAttachments, buildMultimodalInput, ImageAttachmentStrip } from '../tester-multimodal-input.js';
 
 type TextGeneratePanelProps = {
   state: CapabilityState;
@@ -19,6 +21,7 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
   const [system, setSystem] = React.useState('');
   const [temperature, setTemperature] = React.useState('1');
   const [maxTokens, setMaxTokens] = React.useState('');
+  const media = useMediaAttachments();
 
   const handleRun = React.useCallback(async () => {
     if (!asString(prompt)) {
@@ -45,11 +48,12 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
         busy: true,
         busyLabel: binding?.source === 'local' ? t('Tester.textGenerate.warmingLocal') : t('Tester.diagnostics.running'),
       }));
+      const input = buildMultimodalInput(prompt, media.attachments);
       const result = await getRuntimeClient().ai.text.generate({
         model: callParams.model,
         route: callParams.route,
         connectorId: callParams.connectorId,
-        input: prompt,
+        input,
         ...(system ? { system } : {}),
         ...(tempNum !== undefined ? { temperature: tempNum } : {}),
         ...(maxTokNum !== undefined ? { maxTokens: maxTokNum } : {}),
@@ -94,48 +98,58 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <textarea
-        className="h-20 w-full resize-y rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs"
+      <TextareaField
+        className="font-mono text-xs"
+        textareaClassName="h-20"
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
         placeholder={t('Tester.textGenerate.promptPlaceholder')}
       />
-      <details className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs">
-        <summary className="cursor-pointer font-semibold text-gray-600">{t('Tester.textGenerate.advancedParams')}</summary>
+      <ImageAttachmentStrip
+        images={media.attachments}
+        fileInputRef={media.fileInputRef}
+        onAddFiles={media.addFiles}
+        onRemove={media.removeAttachment}
+        onOpenPicker={media.openFilePicker}
+        disabled={state.busy}
+      />
+      <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3 text-xs">
+        <summary className="cursor-pointer font-semibold text-[var(--nimi-text-secondary)]">{t('Tester.textGenerate.advancedParams')}</summary>
         <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-gray-500">{t('Tester.textGenerate.systemPrompt')}</span>
-            <textarea
-              className="h-16 resize-y rounded-md border border-gray-300 bg-white p-2 font-mono text-xs"
+          <div className="flex flex-col gap-1 text-xs">
+            <span className="text-[var(--nimi-text-muted)]">{t('Tester.textGenerate.systemPrompt')}</span>
+            <TextareaField
+              className="font-mono text-xs"
+              textareaClassName="h-16"
               value={system}
               onChange={(event) => setSystem(event.target.value)}
               placeholder={t('Tester.textGenerate.systemPromptPlaceholder')}
             />
-          </label>
+          </div>
           <div className="flex flex-col gap-2">
-            <label className="flex flex-col gap-1 text-xs">
-              <span className="text-gray-500">{t('Tester.textGenerate.temperature')}</span>
-              <input
+            <div className="flex flex-col gap-1 text-xs">
+              <span className="text-[var(--nimi-text-muted)]">{t('Tester.textGenerate.temperature')}</span>
+              <TextField
+                className="font-mono text-xs"
                 type="number"
                 min="0"
                 max="2"
                 step="0.1"
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs"
                 value={temperature}
                 onChange={(event) => setTemperature(event.target.value)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-xs">
-              <span className="text-gray-500">{t('Tester.textGenerate.maxTokens')}</span>
-              <input
+            </div>
+            <div className="flex flex-col gap-1 text-xs">
+              <span className="text-[var(--nimi-text-muted)]">{t('Tester.textGenerate.maxTokens')}</span>
+              <TextField
+                className="font-mono text-xs"
                 type="number"
                 min="1"
-                className="rounded-md border border-gray-300 bg-white px-2 py-1 font-mono text-xs"
                 value={maxTokens}
                 onChange={(event) => setMaxTokens(event.target.value)}
                 placeholder={t('Tester.textGenerate.maxTokensPlaceholder')}
               />
-            </label>
+            </div>
           </div>
         </div>
       </details>
@@ -145,7 +159,7 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
         <InfoBox message={t('Tester.textGenerate.prewarmingNotice')} />
       ) : null}
       {state.output ? (
-        <pre className="max-h-64 overflow-auto rounded-md bg-gray-50 p-3 text-xs whitespace-pre-wrap">{asString(state.output)}</pre>
+        <pre className="max-h-64 overflow-auto rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-3 text-xs whitespace-pre-wrap">{asString(state.output)}</pre>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

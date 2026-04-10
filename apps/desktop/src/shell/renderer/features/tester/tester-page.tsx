@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import { ScrollArea, IconButton } from '@nimiplatform/nimi-kit/ui';
 import {
-  SidebarAffordanceStatusDot,
   SidebarHeader,
   SidebarItem,
   SidebarResizeHandle,
@@ -16,7 +15,6 @@ import {
   CAPABILITY_LABELS,
   type CapabilityId,
   type CapabilityState,
-  type CapabilityStates,
   type ImageWorkflowDraftState,
 } from './tester-types.js';
 import { loadRouteSnapshot, makeInitialCapabilityStates } from './tester-state.js';
@@ -27,8 +25,15 @@ import { ImageGeneratePanel } from './panels/panel-image-generate.js';
 import { VideoGeneratePanel } from './panels/panel-video-generate.js';
 import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
 import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
+import { TextStreamPanel } from './panels/panel-text-stream.js';
 import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig } from './tester-ai-config';
+
+const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
+  { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
+  { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.generate'] },
+  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice.clone', 'voice.design'] },
+];
 
 const SETTINGS_GEAR_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -37,13 +42,6 @@ const SETTINGS_GEAR_ICON = (
   </svg>
 );
 
-function StatusIndicator({ states, capabilityId }: { states: CapabilityStates; capabilityId: CapabilityId }) {
-  const state = states[capabilityId];
-  if (state.busy) return <SidebarAffordanceStatusDot color="var(--nimi-accent-info)" />;
-  if (state.result === 'passed') return <SidebarAffordanceStatusDot color="var(--nimi-accent-success)" />;
-  if (state.result === 'failed') return <SidebarAffordanceStatusDot color="var(--nimi-accent-danger)" />;
-  return <SidebarAffordanceStatusDot color="var(--nimi-text-muted)" />;
-}
 
 function createInitialImageWorkflowDraftState(): ImageWorkflowDraftState {
   return {
@@ -266,6 +264,13 @@ export function TesterPage() {
             onStateChange={(updater) => updateCapabilityState('text.generate', updater)}
           />
         );
+      case 'text.stream':
+        return (
+          <TextStreamPanel
+            state={activeState}
+            onStateChange={(updater) => updateCapabilityState('text.stream', updater)}
+          />
+        );
       case 'text.embed':
         return (
           <TextEmbedPanel
@@ -337,24 +342,24 @@ export function TesterPage() {
     <div ref={containerRef} className="flex h-full bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
       <SidebarShell width={sidebarWidth}>
         <SidebarHeader title={<h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">{t('Tester.title', { defaultValue: 'Tester' })}</h1>} />
-        <ScrollArea className="flex-1" contentClassName="space-y-1 py-1.5">
-          <SidebarSection>
-            {CAPABILITIES.map((capability) => {
-              const labels = CAPABILITY_LABELS[capability.id];
-              const isActive = activeCapability === capability.id;
-              return (
-                <SidebarItem
-                  key={capability.id}
-                  kind="nav-row"
-                  active={isActive}
-                  onClick={() => setActiveCapability(capability.id)}
-                  icon={<StatusIndicator states={states} capabilityId={capability.id} />}
-                  label={labels.label}
-                  description={labels.description}
-                />
-              );
-            })}
-          </SidebarSection>
+        <ScrollArea className="flex-1" contentClassName="space-y-0.5 py-1.5">
+          {SIDEBAR_GROUPS.map((group) => (
+            <SidebarSection key={group.label} label={group.label}>
+              {CAPABILITIES.filter((c) => group.ids.includes(c.id)).map((capability) => {
+                const labels = CAPABILITY_LABELS[capability.id];
+                const isActive = activeCapability === capability.id;
+                return (
+                  <SidebarItem
+                    key={capability.id}
+                    kind="nav-row"
+                    active={isActive}
+                    onClick={() => setActiveCapability(capability.id)}
+                    label={labels.label}
+                  />
+                );
+              })}
+            </SidebarSection>
+          ))}
         </ScrollArea>
         <SidebarResizeHandle ariaLabel="Resize sidebar" onMouseDown={startResize} />
       </SidebarShell>

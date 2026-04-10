@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { toPrettyJson } from '../tester-utils.js';
 import { ErrorBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
@@ -28,11 +29,11 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+      <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] p-3 text-xs text-[var(--nimi-status-warning)]">
         {t('Tester.voiceClone.banner')}
       </div>
-      <input className="w-full rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={refAudioUri} onChange={(event) => setRefAudioUri(event.target.value)} placeholder={t('Tester.voiceClone.refAudioPlaceholder')} />
-      <input className="w-full rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={targetModel} onChange={(event) => setTargetModel(event.target.value)} placeholder={t('Tester.voiceClone.targetModelPlaceholder')} />
+      <TextField className="font-mono text-xs" value={refAudioUri} onChange={(event) => setRefAudioUri(event.target.value)} placeholder={t('Tester.voiceClone.refAudioPlaceholder')} />
+      <TextField className="font-mono text-xs" value={targetModel} onChange={(event) => setTargetModel(event.target.value)} placeholder={t('Tester.voiceClone.targetModelPlaceholder')} />
       <RunButton busy={state.busy} label={t('Tester.voiceClone.run')} onClick={handleRun} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}
@@ -63,10 +64,10 @@ export function VoiceDesignPanel(props: VoiceDesignPanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+      <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] p-3 text-xs text-[var(--nimi-status-warning)]">
         {t('Tester.voiceDesign.banner')}
       </div>
-      <textarea className="h-20 w-full resize-y rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={t('Tester.voiceDesign.instructionPlaceholder')} />
+      <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={instruction} onChange={(event) => setInstruction(event.target.value)} placeholder={t('Tester.voiceDesign.instructionPlaceholder')} />
       <RunButton busy={state.busy} label={t('Tester.voiceDesign.run')} onClick={handleRun} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

@@ -1,6 +1,6 @@
 import type { ModRuntimeLocalAssetKind, RuntimeCanonicalCapability, RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 
-export type CapabilityId = 'text.generate' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'audio.synthesize' | 'audio.transcribe' | 'voice.clone' | 'voice.design';
+export type CapabilityId = 'text.generate' | 'text.stream' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'audio.synthesize' | 'audio.transcribe' | 'voice.clone' | 'voice.design';
 
 export type CapabilityMeta = {
   id: CapabilityId;
@@ -10,14 +10,15 @@ export type CapabilityMeta = {
 
 export const CAPABILITIES: CapabilityMeta[] = [
   { id: 'text.generate', hasRoute: true, routeCapability: 'text.generate' },
+  { id: 'text.stream', hasRoute: true, routeCapability: 'text.generate' },
   { id: 'text.embed', hasRoute: true, routeCapability: 'text.embed' },
   { id: 'image.generate', hasRoute: true, routeCapability: 'image.generate' },
   { id: 'image.create-job', hasRoute: true, routeCapability: 'image.generate' },
   { id: 'video.generate', hasRoute: true, routeCapability: 'video.generate' },
   { id: 'audio.synthesize', hasRoute: true, routeCapability: 'audio.synthesize' },
   { id: 'audio.transcribe', hasRoute: true, routeCapability: 'audio.transcribe' },
-  { id: 'voice.clone', hasRoute: false },
-  { id: 'voice.design', hasRoute: false },
+  { id: 'voice.clone', hasRoute: true, routeCapability: 'voice_workflow.tts_v2v' },
+  { id: 'voice.design', hasRoute: true, routeCapability: 'voice_workflow.tts_t2v' },
 ];
 
 export type VoiceOption = {
@@ -150,8 +151,22 @@ export type CompanionArtifactSelectionsInput = Record<ImageWorkflowPresetSelecti
 
 export const MEDIA_IMAGE_COMPONENTS_REQUIRED_ERROR = 'LocalAI image workflow requires explicit companion artifacts. Select one or more layered companion presets, or add workflow components first. If you are not sure what to pick, install or verify the companion artifacts in desktop first.';
 
+export type ImageGenerationRecord = {
+  id: string;
+  timestamp: number;
+  prompt: string;
+  negativePrompt: string;
+  size: string;
+  result: 'passed' | 'failed';
+  error?: string;
+  imageUris: string[];
+  rawResponse: string;
+  elapsed?: number;
+};
+
 export const CAPABILITY_LABELS: Record<CapabilityId, { label: string; description: string }> = {
   'text.generate': { label: 'Chat', description: 'Text generation' },
+  'text.stream': { label: 'Chat Stream', description: 'Streaming text generation' },
   'text.embed': { label: 'Embed', description: 'Text embeddings' },
   'image.generate': { label: 'Image', description: 'Synchronous image generation' },
   'image.create-job': { label: 'Image Job', description: 'Asynchronous image generation' },

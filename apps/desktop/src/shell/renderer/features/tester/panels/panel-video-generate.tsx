@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { SelectField, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import type { VideoParamsState } from '@nimiplatform/nimi-kit/features/model-config';
 import { asString, stripArtifacts, toPrettyJson } from '../tester-utils.js';
@@ -110,39 +111,43 @@ export function VideoGeneratePanel(props: VideoGeneratePanelProps) {
     }
   }, [isI2v, onStateChange, params, prompt, props.binding, refImageUri, resolvedMode, state.binding, state.snapshot, t]);
 
+  const modeOptions = [
+    { value: 't2v', label: t('Tester.videoGenerate.t2v') },
+    { value: 'i2v-first-frame', label: t('Tester.videoGenerate.i2vFirstFrame') },
+    { value: 'i2v-reference', label: t('Tester.videoGenerate.i2vReference') },
+  ];
+
+  const ratioOptions = [
+    { value: '16:9', label: '16:9' },
+    { value: '9:16', label: '9:16' },
+    { value: '1:1', label: '1:1' },
+    { value: '4:3', label: '4:3' },
+    { value: '3:4', label: '3:4' },
+    { value: '21:9', label: '21:9' },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1 text-xs">
-        <span className="text-gray-500">{t('Tester.videoGenerate.mode')}</span>
-        <select className="rounded-md border border-gray-300 bg-white px-2 py-1" value={params.mode} onChange={(event) => onParamsChange({ ...params, mode: event.target.value })}>
-          <option value="t2v">{t('Tester.videoGenerate.t2v')}</option>
-          <option value="i2v-first-frame">{t('Tester.videoGenerate.i2vFirstFrame')}</option>
-          <option value="i2v-reference">{t('Tester.videoGenerate.i2vReference')}</option>
-        </select>
-      </label>
-      <textarea className="h-20 w-full resize-y rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t('Tester.videoGenerate.promptPlaceholder')} />
+      <div className="flex flex-col gap-1 text-xs">
+        <span className="text-[var(--nimi-text-muted)]">{t('Tester.videoGenerate.mode')}</span>
+        <SelectField options={modeOptions} value={params.mode} onValueChange={(value) => onParamsChange({ ...params, mode: value })} />
+      </div>
+      <TextareaField className="font-mono text-xs" textareaClassName="h-20" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder={t('Tester.videoGenerate.promptPlaceholder')} />
       {isI2v ? (
-        <input className="w-full rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs" value={refImageUri} onChange={(event) => setRefImageUri(event.target.value)} placeholder={t('Tester.videoGenerate.refImagePlaceholder')} />
+        <TextField className="font-mono text-xs" value={refImageUri} onChange={(event) => setRefImageUri(event.target.value)} placeholder={t('Tester.videoGenerate.refImagePlaceholder')} />
       ) : null}
       <div className="grid grid-cols-3 gap-2">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.videoGenerate.ratio')}</span>
-          <select className="rounded-md border border-gray-300 bg-white px-2 py-1" value={params.ratio} onChange={(event) => onParamsChange({ ...params, ratio: event.target.value })}>
-            <option value="16:9">16:9</option>
-            <option value="9:16">9:16</option>
-            <option value="1:1">1:1</option>
-            <option value="4:3">4:3</option>
-            <option value="3:4">3:4</option>
-            <option value="21:9">21:9</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-500">{t('Tester.videoGenerate.duration')}</span>
-          <input type="number" min={1} max={11} className="rounded-md border border-gray-300 bg-white px-2 py-1" value={params.durationSec} onChange={(event) => onParamsChange({ ...params, durationSec: event.target.value || '5' })} />
-        </label>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.videoGenerate.ratio')}</span>
+          <SelectField options={ratioOptions} value={params.ratio} onValueChange={(value) => onParamsChange({ ...params, ratio: value })} />
+        </div>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.videoGenerate.duration')}</span>
+          <TextField type="number" min={1} max={11} value={params.durationSec} onChange={(event) => onParamsChange({ ...params, durationSec: event.target.value || '5' })} />
+        </div>
         <label className="flex items-center gap-1.5 text-xs pt-4">
           <input type="checkbox" checked={params.generateAudio} onChange={(event) => onParamsChange({ ...params, generateAudio: event.target.checked })} />
-          <span className="text-gray-500">{t('Tester.videoGenerate.audio')}</span>
+          <span className="text-[var(--nimi-text-muted)]">{t('Tester.videoGenerate.audio')}</span>
         </label>
       </div>
       <RunButton busy={state.busy} label={t('Tester.videoGenerate.run')} onClick={() => { void handleRun(); }} />

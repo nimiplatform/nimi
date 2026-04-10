@@ -3262,7 +3262,9 @@
       "video": "Video",
       "audioSection": "Audio",
       "tts": "TTS",
-      "stt": "STT"
+      "stt": "STT",
+      "voiceClone": "Voice Clone",
+      "voiceDesign": "Voice Design"
     },
     "profile": {
       "label": "Profile:",
@@ -3316,6 +3318,26 @@
       "prewarmingNotice": "Pre-warming local model. First inference may take a moment...",
       "emptyOutput": "(empty output)",
       "failed": "Text generation failed."
+    },
+    "textStream": {
+      "promptPlaceholder": "Enter a prompt...",
+      "advancedParams": "Advanced Parameters",
+      "systemPrompt": "System prompt",
+      "systemPromptPlaceholder": "Optional system prompt",
+      "temperature": "Temperature",
+      "maxTokens": "Max tokens",
+      "maxTokensPlaceholder": "Default",
+      "run": "Generate",
+      "stop": "Stop",
+      "promptEmpty": "Prompt is required.",
+      "preparingRoute": "Preparing route...",
+      "warmingLocal": "Warming local model...",
+      "streaming": "Streaming...",
+      "prewarmingNotice": "Pre-warming local model. This may take a moment on first use.",
+      "emptyOutput": "(empty)",
+      "aborted": "Stream aborted by user.",
+      "failed": "Stream failed.",
+      "reasoning": "Reasoning trace"
     },
     "textEmbed": {
       "defaultText": "The quick brown fox jumps over the lazy dog.",

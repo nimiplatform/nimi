@@ -1,6 +1,7 @@
 use super::*;
 
 pub(crate) mod system_resources;
+pub(crate) mod tester_storage;
 pub(crate) mod window_and_logs;
 
 fn normalize_loopback_http_url(raw: &str, default_port: u16, trim_trailing_slash: bool) -> String {

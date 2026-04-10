@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -94,8 +95,9 @@ export function TextEmbedPanel(props: TextEmbedPanelProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <textarea
-        className="h-28 w-full resize-y rounded-lg border border-gray-300 bg-white p-2 font-mono text-xs"
+      <TextareaField
+        className="font-mono text-xs"
+        textareaClassName="h-28"
         value={text}
         onChange={(event) => setText(event.target.value)}
         placeholder={t('Tester.textEmbed.inputPlaceholder')}
@@ -103,13 +105,13 @@ export function TextEmbedPanel(props: TextEmbedPanelProps) {
       <RunButton busy={state.busy} busyLabel={state.busyLabel} label={t('Tester.textEmbed.run')} onClick={() => { void handleRun(); }} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {embedOutput ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-3 text-xs">
+        <Surface tone="card" padding="sm" className="text-xs">
           <div className="grid grid-cols-3 gap-2 mb-2">
-            <div><span className="text-gray-500">{t('Tester.textEmbed.vectors')}</span> <span className="font-mono">{embedOutput.vectors ?? 0}</span></div>
-            <div><span className="text-gray-500">{t('Tester.textEmbed.dimensions')}</span> <span className="font-mono">{embedOutput.dimensions ?? 0}</span></div>
+            <div><span className="text-[var(--nimi-text-muted)]">{t('Tester.textEmbed.vectors')}</span> <span className="font-mono">{embedOutput.vectors ?? 0}</span></div>
+            <div><span className="text-[var(--nimi-text-muted)]">{t('Tester.textEmbed.dimensions')}</span> <span className="font-mono">{embedOutput.dimensions ?? 0}</span></div>
           </div>
           {embedOutput.preview ? <InfoBox message={`${t('Tester.textEmbed.previewPrefix')} ${embedOutput.preview}`} /> : null}
-        </div>
+        </Surface>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

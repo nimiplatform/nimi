@@ -7,6 +7,7 @@
 @source "../../features/chat/src/**/*.{ts,tsx}";
 @source "../../features/commerce/src/**/*.{ts,tsx}";
 @source "../../features/generation/src/**/*.{ts,tsx}";
+@source "../../features/model-config/src/**/*.{ts,tsx}";
 @source "../../features/model-picker/src/**/*.{ts,tsx}";
 
 html,

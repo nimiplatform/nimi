@@ -293,7 +293,9 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_append_runtime_audit,
             local_runtime::commands::runtime_local_assets_reveal_in_folder,
             local_runtime::commands::runtime_local_assets_reveal_root_folder,
-            local_runtime::commands::runtime_local_assets_scan_unregistered
+            local_runtime::commands::runtime_local_assets_scan_unregistered,
+            super::defaults_and_commands::tester_storage::tester_image_history_load,
+            super::defaults_and_commands::tester_storage::tester_image_history_save
         ])
         .build(tauri::generate_context!())
 }

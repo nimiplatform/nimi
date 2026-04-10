@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { DiagnosticsInfo } from './tester-types.js';
 import { toPrettyJson } from './tester-utils.js';
 
@@ -11,17 +12,17 @@ function KVRow(props: {
 }) {
   if (props.value === undefined || props.value === null || props.value === '') return null;
   const colorMap = {
-    green: 'text-green-700',
-    red: 'text-red-700',
-    blue: 'text-blue-700',
-    gray: 'text-gray-500',
+    green: 'text-[var(--nimi-status-success)]',
+    red: 'text-[var(--nimi-status-danger)]',
+    blue: 'text-[var(--nimi-status-info)]',
+    gray: 'text-[var(--nimi-text-muted)]',
   };
   const valueClass = props.mono
-    ? `font-mono ${props.highlight ? colorMap[props.highlight] : 'text-gray-900'}`
-    : (props.highlight ? colorMap[props.highlight] : 'text-gray-900');
+    ? `font-mono ${props.highlight ? colorMap[props.highlight] : 'text-[var(--nimi-text-primary)]'}`
+    : (props.highlight ? colorMap[props.highlight] : 'text-[var(--nimi-text-primary)]');
   return (
     <div className="grid grid-cols-[140px_1fr] gap-x-2 py-0.5">
-      <span className="text-gray-400 truncate">{props.field}</span>
+      <span className="text-[var(--nimi-text-muted)] truncate">{props.field}</span>
       <span className={`truncate ${valueClass}`}>{String(props.value)}</span>
     </div>
   );
@@ -39,27 +40,27 @@ export function DiagnosticsPanel(props: { diagnostics: DiagnosticsInfo }) {
   return (
     <div className="flex flex-col gap-2 text-xs">
       {params ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-3">
-          <div className="mb-1.5 font-semibold text-gray-600">{t('Tester.diagnostics.requestParams')}</div>
+        <Surface tone="card" padding="sm">
+          <div className="mb-1.5 font-semibold text-[var(--nimi-text-secondary)]">{t('Tester.diagnostics.requestParams')}</div>
           {Object.entries(params).map(([k, v]) => {
             if (v === undefined || v === null || v === '') return null;
             const displayValue = typeof v === 'object' ? toPrettyJson(v) : String(v);
             if (displayValue.length > 200 || displayValue.includes('\n')) {
               return (
                 <div key={k} className="mb-1">
-                  <span className="text-gray-400">{k}</span>
-                  <pre className="mt-0.5 whitespace-pre-wrap break-all rounded bg-gray-50 px-2 py-1 font-mono text-xs text-gray-900">{displayValue}</pre>
+                  <span className="text-[var(--nimi-text-muted)]">{k}</span>
+                  <pre className="mt-0.5 whitespace-pre-wrap break-all rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-canvas)] px-2 py-1 font-mono text-xs text-[var(--nimi-text-primary)]">{displayValue}</pre>
                 </div>
               );
             }
             return <KVRow key={k} field={k} value={displayValue} mono />;
           })}
-        </div>
+        </Surface>
       ) : null}
 
       {route ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-3">
-          <div className="mb-1.5 font-semibold text-gray-600">{t('Tester.diagnostics.routePreview')}</div>
+        <Surface tone="card" padding="sm">
+          <div className="mb-1.5 font-semibold text-[var(--nimi-text-secondary)]">{t('Tester.diagnostics.routePreview')}</div>
           <KVRow field="source" value={route.source} mono highlight="blue" />
           <KVRow field="provider" value={route.provider} mono />
           <KVRow field="model" value={route.model} mono />
@@ -72,12 +73,12 @@ export function DiagnosticsPanel(props: { diagnostics: DiagnosticsInfo }) {
           <KVRow field="goRuntimeLocalModelId" value={route.goRuntimeLocalModelId} mono />
           <KVRow field="goRuntimeStatus" value={route.goRuntimeStatus} mono />
           <KVRow field="localProviderEndpoint" value={route.localProviderEndpoint} mono />
-        </div>
+        </Surface>
       ) : null}
 
       {meta ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-3">
-          <div className="mb-1.5 font-semibold text-gray-600">{t('Tester.diagnostics.responseMetadata')}</div>
+        <Surface tone="card" padding="sm">
+          <div className="mb-1.5 font-semibold text-[var(--nimi-text-secondary)]">{t('Tester.diagnostics.responseMetadata')}</div>
           {meta.elapsed !== undefined ? <KVRow field="elapsed" value={`${meta.elapsed} ms`} highlight="blue" /> : null}
           {meta.finishReason !== undefined ? (
             <KVRow field="finishReason" value={meta.finishReason} mono highlight={meta.finishReason === 'stop' ? 'green' : meta.finishReason === 'error' ? 'red' : undefined} />
@@ -89,7 +90,7 @@ export function DiagnosticsPanel(props: { diagnostics: DiagnosticsInfo }) {
           {meta.modelResolved ? <KVRow field="modelResolved" value={meta.modelResolved} mono /> : null}
           {meta.jobId ? <KVRow field="jobId" value={meta.jobId} mono /> : null}
           {meta.artifactCount !== undefined ? <KVRow field="artifacts" value={meta.artifactCount} /> : null}
-        </div>
+        </Surface>
       ) : null}
     </div>
   );
@@ -103,34 +104,43 @@ export function RunButton(props: {
 }) {
   const { t } = useTranslation();
   return (
-    <button
-      type="button"
-      className="inline-flex self-start items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+    <Button
+      tone="primary"
+      size="sm"
+      className="self-start"
       disabled={props.busy}
       onClick={props.onClick}
     >
       {props.busy ? (
         <>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/90 [animation-delay:-0.2s]" />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/90 [animation-delay:-0.1s]" />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/90" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-70 [animation-delay:-0.2s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-70 [animation-delay:-0.1s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current opacity-70" />
           </span>
-          <span>{(props.busyLabel || t('Tester.diagnostics.running')).replace(/\.{3}$/, '')}</span>
+          {(props.busyLabel || t('Tester.diagnostics.running')).replace(/\.{3}$/, '')}
         </>
       ) : (
         props.label
       )}
-    </button>
+    </Button>
   );
 }
 
 export function ErrorBox(props: { message: string }) {
-  return <div className="rounded-md bg-red-50 p-2 text-xs text-red-700">{props.message}</div>;
+  return (
+    <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] p-2 text-xs text-[var(--nimi-status-danger)]">
+      {props.message}
+    </div>
+  );
 }
 
 export function InfoBox(props: { message: string }) {
-  return <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-700">{props.message}</div>;
+  return (
+    <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_8%,transparent)] p-2 text-xs text-[var(--nimi-status-info)]">
+      {props.message}
+    </div>
+  );
 }
 
 export function RawJsonSection(props: { content: string }) {
@@ -143,12 +153,8 @@ export function RawJsonSection(props: { content: string }) {
     });
   }, [props.content]);
   return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 active:bg-gray-200"
-    >
+    <Button tone="secondary" size="sm" className="self-start" onClick={handleCopy}>
       {copied ? '\u2713 ' + t('Tester.diagnostics.copied') : t('Tester.diagnostics.copyRawJson')}
-    </button>
+    </Button>
   );
 }

@@ -47,10 +47,15 @@ export function pickerSelectionToBinding(
   if (selection.source === 'local') {
     const localModelId = normalizeText(selection.localModelId) || model;
     const engine = normalizeText(selection.engine) || undefined;
+    // Use assetId (modelId) as the model field for Go runtime compatibility.
+    // The picker sets `model` to localModelId for display, but the runtime
+    // matches by assetId. Fall back to `model` if modelId is not available.
+    const assetId = normalizeText(selection.modelId) || model;
     return {
       source: 'local',
       connectorId: '',
-      model,
+      model: assetId,
+      modelId: assetId,
       modelLabel: normalizeText(selection.modelLabel) || undefined,
       localModelId,
       engine,
