@@ -83,7 +83,10 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
       }));
     } catch (error) {
       const elapsed = Date.now() - t0;
-      const message = error instanceof Error ? error.message : String(error || t('Tester.textGenerate.failed'));
+      const baseMessage = error instanceof Error ? error.message : String(error || t('Tester.textGenerate.failed'));
+      const details = (error as Record<string, unknown>)?.details as Record<string, unknown> | undefined;
+      const providerMessage = details?.provider_message as string | undefined;
+      const message = providerMessage ? `${baseMessage} [provider: ${providerMessage}]` : baseMessage;
       onStateChange((prev) => ({
         ...prev,
         busy: false,

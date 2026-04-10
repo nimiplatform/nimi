@@ -116,8 +116,9 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
 
   const audioOutput = state.output as { audioUri?: string; mimeType?: string; durationMs?: number } | null;
 
+  const VOICE_NONE = '__none__';
   const voiceOptions = React.useMemo(() => [
-    { value: '', label: t('Tester.route.none') },
+    { value: VOICE_NONE, label: t('Tester.route.none') },
     ...voices.map((v) => ({ value: v.voiceId, label: `${v.name} [${v.lang}]` })),
   ], [voices, t]);
 
@@ -134,7 +135,7 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-1 text-xs">
           <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.presetVoice')}</span>
-          <SelectField options={voiceOptions} value={selectedVoiceId} onValueChange={setSelectedVoiceId} />
+          <SelectField options={voiceOptions} value={selectedVoiceId || VOICE_NONE} onValueChange={(v) => setSelectedVoiceId(v === VOICE_NONE ? '' : v)} />
         </div>
         <div className="flex flex-col gap-1 text-xs">
           <span className="text-[var(--nimi-text-muted)]">{t('Tester.audioSynthesize.audioFormat')}</span>

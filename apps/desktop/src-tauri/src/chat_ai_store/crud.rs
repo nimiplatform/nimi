@@ -29,6 +29,10 @@ pub(crate) fn list_threads(conn: &Connection) -> Result<Vec<ChatAiThreadSummary>
               last_message_at_ms,
               archived_at_ms
             FROM ai_threads
+            WHERE archived_at_ms IS NULL
+              AND EXISTS (
+                SELECT 1 FROM ai_messages WHERE ai_messages.thread_id = ai_threads.id
+              )
             ORDER BY updated_at_ms DESC, id DESC
             "#,
         )

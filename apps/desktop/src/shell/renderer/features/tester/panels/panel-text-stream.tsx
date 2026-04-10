@@ -154,7 +154,10 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
       }));
     } catch (error) {
       const elapsed = Date.now() - t0;
-      const message = error instanceof Error ? error.message : String(error || t('Tester.textStream.failed', { defaultValue: 'Stream failed.' }));
+      const baseMessage = error instanceof Error ? error.message : String(error || t('Tester.textStream.failed', { defaultValue: 'Stream failed.' }));
+      const details = (error as Record<string, unknown>)?.details as Record<string, unknown> | undefined;
+      const providerMessage = details?.provider_message as string | undefined;
+      const message = providerMessage ? `${baseMessage} [provider: ${providerMessage}]` : baseMessage;
       onStateChange((prev) => ({
         ...prev,
         busy: false,

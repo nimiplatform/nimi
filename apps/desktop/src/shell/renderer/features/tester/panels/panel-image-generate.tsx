@@ -357,6 +357,14 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
       .filter(Boolean);
     const jobRecord = input.job || {};
     const outcome = buildAsyncImageJobOutcome({ status: jobRecord.status, reasonDetail: jobRecord.reasonDetail, artifactFetchError });
+    const rawResponse = toPrettyJson({
+      request: input.requestParams,
+      jobId: input.jobId,
+      job: input.job,
+      events: jobTimeline,
+      artifacts: stripArtifacts({ artifacts: artifactsResponse.artifacts }),
+      previewUris: uris,
+    });
     onStateChange((prev) => ({
       ...prev,
       busy: false,
@@ -364,14 +372,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
       result: outcome.result,
       error: outcome.error,
       output: uris,
-      rawResponse: toPrettyJson({
-        request: input.requestParams,
-        jobId: input.jobId,
-        job: input.job,
-        events: jobTimeline,
-        artifacts: stripArtifacts({ artifacts: artifactsResponse.artifacts }),
-        previewUris: uris,
-      }),
+      rawResponse,
       diagnostics: {
         requestParams: input.requestParams,
         resolvedRoute: input.routeInfo as any,
@@ -383,7 +384,20 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
         },
       },
     }));
-  }, [jobTimeline, onStateChange]);
+    const reqParams = input.requestParams || {};
+    appendHistory({
+      id: `img-${Date.now().toString(36)}`,
+      timestamp: Date.now(),
+      prompt: asString(reqParams.prompt),
+      negativePrompt: asString(reqParams.negativePrompt),
+      size: asString(reqParams.size),
+      result: outcome.result === 'passed' ? 'passed' : 'failed',
+      error: outcome.error || undefined,
+      imageUris: uris,
+      rawResponse,
+      elapsed: input.elapsed,
+    });
+  }, [appendHistory, jobTimeline, onStateChange]);
 
   const watchAsyncImageJob = React.useCallback(async (input: {
     jobId: string;
@@ -445,71 +459,22 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
       return;
     }
     onStateChange((prev) => ({ ...prev, busy: true, error: '', diagnostics: makeEmptyDiagnostics() }));
-    const t0 = Date.now();
     const binding = requestContext.binding;
     const requestParams = requestContext.requestParams;
     try {
       const routeInfo = bindingToRouteInfo(binding);
-      if (mode === 'job') {
-        const modClient = createModRuntimeClient('core:runtime');
-        const job = await modClient.media.jobs.submit({ modal: 'image', input: requestParams as unknown as ModRuntimeBoundImageGenerateInput });
-        await watchAsyncImageJob({
-          jobId: asString((job as unknown as Record<string, unknown>)?.jobId),
-          requestParams,
-          routeInfo,
-          initialJob: job as unknown as Record<string, unknown>,
-        });
-        return;
-      }
-      const callParams = await resolveCallParams(binding);
-      const result = await getRuntimeClient().media.image.generate({
-        model: callParams.model,
-        route: callParams.route,
-        connectorId: callParams.connectorId,
-        prompt: asString(requestParams.prompt),
-        ...(requestParams.size ? { size: asString(requestParams.size) } : {}),
-        ...(requestParams.seed !== undefined ? { seed: requestParams.seed as number } : {}),
-        ...(requestParams.responseFormat ? { responseFormat: requestParams.responseFormat as 'base64' | 'url' } : {}),
-        ...(requestParams.extensions ? { extensions: requestParams.extensions as Record<string, unknown> } : {}),
-        metadata: callParams.metadata,
-      });
-      const elapsed = Date.now() - t0;
-      const uris = result.artifacts
-        .map((artifact) => toArtifactPreviewUri({ uri: artifact.uri, bytes: artifact.bytes, mimeType: artifact.mimeType, defaultMimeType: 'image/png' }))
-        .filter(Boolean);
-      const rawResponse = toPrettyJson({ request: requestParams, response: stripArtifacts(result), previewUris: uris });
-      onStateChange((prev) => ({
-        ...prev,
-        busy: false,
-        result: 'passed',
-        output: uris,
-        rawResponse,
-        diagnostics: {
-          requestParams,
-          resolvedRoute: routeInfo,
-          responseMetadata: {
-            jobId: (result.job as unknown as Record<string, unknown>)?.jobId as string | undefined,
-            artifactCount: result.artifacts.length,
-            traceId: result.trace?.traceId,
-            modelResolved: result.trace?.modelResolved,
-            elapsed,
-          },
-        },
-      }));
-      appendHistory({
-        id: `img-${Date.now().toString(36)}`,
-        timestamp: Date.now(),
-        prompt: asString(requestParams.prompt),
-        negativePrompt: asString(requestParams.negativePrompt),
-        size: asString(requestParams.size),
-        result: 'passed',
-        imageUris: uris,
-        rawResponse,
-        elapsed,
+      // Both generate and job modes use the async job flow so that
+      // progress events from the runtime are received and displayed.
+      const modClient = createModRuntimeClient('core:runtime');
+      const job = await modClient.media.jobs.submit({ modal: 'image', input: requestParams as unknown as ModRuntimeBoundImageGenerateInput });
+      await watchAsyncImageJob({
+        jobId: asString((job as unknown as Record<string, unknown>)?.jobId),
+        requestParams,
+        routeInfo,
+        initialJob: job as unknown as Record<string, unknown>,
       });
     } catch (error) {
-      const elapsed = Date.now() - t0;
-      const message = error instanceof Error ? error.message : String(error || (mode === 'job' ? 'Job submission failed.' : 'Image generation failed.'));
+      const message = error instanceof Error ? error.message : String(error || 'Image generation failed.');
       const rawResponse = toPrettyJson({ request: requestParams, error: message });
       onStateChange((prev) => ({
         ...prev,
@@ -518,7 +483,7 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
         error: message,
         output: [],
         rawResponse,
-        diagnostics: { requestParams, resolvedRoute: bindingToRouteInfo(binding), responseMetadata: { elapsed } },
+        diagnostics: { requestParams, resolvedRoute: bindingToRouteInfo(binding), responseMetadata: {} },
       }));
       appendHistory({
         id: `img-${Date.now().toString(36)}`,
@@ -530,10 +495,9 @@ export function ImageGeneratePanel(props: ImageGeneratePanelProps) {
         error: message,
         imageUris: [],
         rawResponse,
-        elapsed,
       });
     }
-  }, [appendHistory, buildRequestContext, mode, onStateChange, watchAsyncImageJob]);
+  }, [appendHistory, buildRequestContext, onStateChange, watchAsyncImageJob]);
 
   const imageUris = (state.output as string[] | null) || [];
 
