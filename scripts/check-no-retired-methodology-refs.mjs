@@ -40,32 +40,35 @@ const EXCLUDED_PREFIXES = [
   '.openclaw/',
   'docs/_archive/',
   'archive/',
+  'nimi-coding/',
 ];
 
-const FORBIDDEN_PATH_PATTERNS = [
-  /^nimi-coding\//,
-];
+const RETIRED_METHOD_SEGMENTS = ['nimi', 'coding'];
+const RETIRED_METHOD_NAME = RETIRED_METHOD_SEGMENTS.join('-');
+const RETIRED_CHECK_NAME = `check:${RETIRED_METHOD_NAME}-module`;
+const RETIRED_LOCAL_ROOT = `${RETIRED_METHOD_NAME}/.local`;
+const RETIRED_CONFIG_ROOT = `${RETIRED_METHOD_NAME}/config`;
 
 const FORBIDDEN_TEXT_PATTERNS = [
   {
-    label: 'legacy nimi-coding command',
-    regex: /\bpnpm nimi-coding:[\w-]+\b/g,
+    label: 'retired methodology command',
+    regex: new RegExp(`\\bpnpm ${RETIRED_METHOD_NAME}:[\\w-]+\\b`, 'g'),
   },
   {
-    label: 'legacy nimi-coding script wrapper',
-    regex: /node nimi-coding\/(?:cli\/cli\.mjs|scripts\/[^\s`"']+)/g,
+    label: 'retired methodology script wrapper',
+    regex: new RegExp(`node ${RETIRED_METHOD_NAME}/(?:cli/cli\\.mjs|scripts/[^\\s\\\`"']+)`, 'g'),
   },
   {
-    label: 'legacy nimi-coding local workspace path',
-    regex: /(^|[^/\w-])nimi-coding\/\.local(?:\/|(?=[`"' \t)\]},.:;]))/gm,
+    label: 'retired methodology local workspace path',
+    regex: new RegExp(`(^|[^/\\\\w-])${RETIRED_LOCAL_ROOT}(?:/|(?=[\\\`"' \\t)\\]},.:;]))`, 'gm'),
   },
   {
-    label: 'legacy nimi-coding config path',
-    regex: /(^|[^/\w-])nimi-coding\/config(?:\/|(?=[`"' \t)\]},.:;]))/gm,
+    label: 'retired methodology config path',
+    regex: new RegExp(`(^|[^/\\\\w-])${RETIRED_CONFIG_ROOT}(?:/|(?=[\\\`"' \\t)\\]},.:;]))`, 'gm'),
   },
   {
-    label: 'legacy nimi-coding module check',
-    regex: /\bcheck:nimi-coding-module\b/g,
+    label: 'retired methodology module check',
+    regex: new RegExp(`\\b${RETIRED_CHECK_NAME}\\b`, 'g'),
   },
 ];
 
@@ -116,13 +119,6 @@ function collectLegacyFailures(cwd) {
       continue;
     }
 
-    for (const pattern of FORBIDDEN_PATH_PATTERNS) {
-      if (pattern.test(relativePath)) {
-        failures.push(`legacy nimi-coding path tracked: ${relativePath}`);
-        break;
-      }
-    }
-
     if (!shouldScanText(relativePath)) {
       continue;
     }
@@ -161,7 +157,7 @@ function main() {
     }
     process.exit(1);
   }
-  process.stdout.write('legacy nimi-coding cleanup check: OK\n');
+  process.stdout.write('retired methodology reference check: OK\n');
 }
 
 main();

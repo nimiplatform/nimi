@@ -1,22 +1,6 @@
 import type { DefaultTheme } from 'vitepress'
 
 export const sidebarZh: DefaultTheme.Sidebar = {
-  '/zh/nimi-coding': [
-    {
-      text: 'Nimi Coding',
-      items: [
-        { text: 'Nimi Coding', link: '/zh/nimi-coding' },
-      ],
-    },
-    {
-      text: '架构',
-      items: [
-        { text: '概览', link: '/zh/architecture/' },
-        { text: 'Spec 地图', link: '/zh/architecture/spec-map' },
-      ],
-    },
-  ],
-
   '/zh/user/': [
     {
       text: '使用 Nimi',
@@ -121,7 +105,6 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       text: '架构',
       items: [
         { text: '概览', link: '/zh/architecture/' },
-        { text: 'Nimi Coding', link: '/zh/nimi-coding' },
         { text: 'Spec 地图', link: '/zh/architecture/spec-map' },
         { text: 'Realm 互联范式', link: '/zh/architecture/realm-interconnect-paradigm' },
         { text: 'AI Agent 安全接口', link: '/zh/architecture/ai-agent-security-interface' },

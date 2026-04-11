@@ -1,22 +1,6 @@
 import type { DefaultTheme } from 'vitepress'
 
 export const sidebarEn: DefaultTheme.Sidebar = {
-  '/nimi-coding': [
-    {
-      text: 'Nimi Coding',
-      items: [
-        { text: 'Nimi Coding', link: '/nimi-coding' },
-      ],
-    },
-    {
-      text: 'Architecture',
-      items: [
-        { text: 'Overview', link: '/architecture/' },
-        { text: 'Spec Map', link: '/architecture/spec-map' },
-      ],
-    },
-  ],
-
   '/user/': [
     {
       text: 'Using Nimi',
@@ -121,7 +105,6 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       text: 'Architecture',
       items: [
         { text: 'Overview', link: '/architecture/' },
-        { text: 'Nimi Coding', link: '/nimi-coding' },
         { text: 'Spec Map', link: '/architecture/spec-map' },
         { text: 'Realm Interconnect', link: '/architecture/realm-interconnect-paradigm' },
         { text: 'AI Agent Security', link: '/architecture/ai-agent-security-interface' },

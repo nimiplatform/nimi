@@ -65,7 +65,7 @@ test('passes high-risk design docs with required metadata', () => {
   assert.equal(report.failures.length, 0);
 });
 
-test('accepts preflight-required spec status in nimi-coding frontmatter docs', () => {
+test('accepts preflight-required spec status in high-risk frontmatter docs', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
     path.join(repoRoot, '.local/example-topic/migration-design.md'),

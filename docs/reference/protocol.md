@@ -1,6 +1,6 @@
 # Protocol Reference
 
-Nimi protocol contracts are layered and governed by Nimi Coding's source-of-truth system.
+Nimi protocol contracts are layered and governed by the repository source-of-truth system.
 
 ## Layers
 

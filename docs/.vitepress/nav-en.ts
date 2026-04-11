@@ -1,7 +1,6 @@
 import type { DefaultTheme } from 'vitepress'
 
 export const navEn: DefaultTheme.NavItem[] = [
-  { text: 'Nimi Coding', link: '/nimi-coding' },
   { text: 'Users', link: '/user/' },
   { text: 'App Developers', link: '/app-dev/' },
   { text: 'Mod Developers', link: '/mod-dev/' },
