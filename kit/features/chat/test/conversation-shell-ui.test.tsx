@@ -717,6 +717,69 @@ describe('conversation shell ui', () => {
     expect(container.textContent).toContain('Inspect Payload');
   });
 
+  it('keeps the transcript pinned to the bottom when new messages arrive and the user was already near the bottom', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const firstMessages = [{
+      id: 'user-1',
+      sessionId: 'session-agent',
+      targetId: 'agent:zhao',
+      source: 'agent' as const,
+      role: 'user' as const,
+      text: 'First turn',
+      createdAt: '2026-04-05T00:00:00.000Z',
+      updatedAt: '2026-04-05T00:00:00.000Z',
+      kind: 'text' as const,
+    }];
+
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={firstMessages} />);
+      await flush();
+    });
+
+    const transcriptRoot = container.querySelector('[data-canonical-transcript-root="true"]') as HTMLDivElement | null;
+    expect(transcriptRoot).not.toBeNull();
+    if (!transcriptRoot) {
+      return;
+    }
+
+    let scrollHeightValue = 640;
+    Object.defineProperty(transcriptRoot, 'clientHeight', {
+      configurable: true,
+      get: () => 320,
+    });
+    Object.defineProperty(transcriptRoot, 'scrollHeight', {
+      configurable: true,
+      get: () => scrollHeightValue,
+    });
+    transcriptRoot.scrollTop = 320;
+
+    const nextMessages = [
+      ...firstMessages,
+      {
+        id: 'user-2',
+        sessionId: 'session-agent',
+        targetId: 'agent:zhao',
+        source: 'agent' as const,
+        role: 'user' as const,
+        text: 'Second turn',
+        createdAt: '2026-04-05T00:00:01.000Z',
+        updatedAt: '2026-04-05T00:00:01.000Z',
+        kind: 'text' as const,
+      },
+    ];
+    scrollHeightValue = 960;
+
+    await act(async () => {
+      root?.render(<CanonicalTranscriptView messages={nextMessages} />);
+      await flush();
+    });
+
+    expect(transcriptRoot.scrollTop).toBe(960);
+  });
+
   it('renders shared markdown headings in canonical transcript and stage panels', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

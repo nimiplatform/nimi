@@ -307,10 +307,28 @@ export function CanonicalTranscriptView({
 }: CanonicalTranscriptViewProps) {
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
+  const nearBottomRef = useRef(true);
+  const previousRenderStateRef = useRef<{
+    messageCount: number;
+    lastMessageId: string | null;
+    lastMessageUpdatedAt: string | null;
+    pendingFirstBeat: boolean;
+    footerVisible: boolean;
+  }>({
+    messageCount: 0,
+    lastMessageId: null,
+    lastMessageUpdatedAt: null,
+    pendingFirstBeat: false,
+    footerVisible: false,
+  });
   const showEmptyState = !loading && !error && messages.length === 0 && !content;
+  const lastMessage = messages[messages.length - 1] || null;
+  const footerVisible = Boolean(footerContent) && !pendingFirstBeat && !loading && !error;
 
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
-    onNearBottomChange?.(isNearBottom(event.currentTarget));
+    const nextNearBottom = isNearBottom(event.currentTarget);
+    nearBottomRef.current = nextNearBottom;
+    onNearBottomChange?.(nextNearBottom);
   }, [onNearBottomChange]);
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
@@ -343,15 +361,33 @@ export function CanonicalTranscriptView({
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
     if (!root) {
+      nearBottomRef.current = true;
       onNearBottomChange?.(true);
       return;
     }
+    const previousRenderState = previousRenderStateRef.current;
+    const transcriptChanged = previousRenderState.messageCount !== messages.length
+      || previousRenderState.lastMessageId !== (lastMessage?.id || null)
+      || previousRenderState.lastMessageUpdatedAt !== (lastMessage?.updatedAt || null)
+      || previousRenderState.pendingFirstBeat !== pendingFirstBeat
+      || previousRenderState.footerVisible !== footerVisible;
     if (!didInitialScrollRef.current && messages.length > 0) {
       didInitialScrollRef.current = true;
       root.scrollTop = root.scrollHeight;
+    } else if (transcriptChanged && nearBottomRef.current) {
+      root.scrollTop = root.scrollHeight;
     }
-    onNearBottomChange?.(isNearBottom(root));
-  }, [loading, messages.length, onNearBottomChange]);
+    const nextNearBottom = isNearBottom(root);
+    nearBottomRef.current = nextNearBottom;
+    previousRenderStateRef.current = {
+      messageCount: messages.length,
+      lastMessageId: lastMessage?.id || null,
+      lastMessageUpdatedAt: lastMessage?.updatedAt || null,
+      pendingFirstBeat,
+      footerVisible,
+    };
+    onNearBottomChange?.(nextNearBottom);
+  }, [footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat]);
 
   return (
     <div
