@@ -9,7 +9,7 @@
 - `spec/AGENTS.md` is authoritative for anything under `spec/**`.
 
 ## Hard Boundaries
-- Repo-wide normative product authority lives under `spec/**`. Admitted app-local product authority slices may also live under `apps/**/spec/**` when the owning app declares that landing, keeps normative content inside `kernel/*.md` and `kernel/tables/**`, and does not create parallel truth against `spec/**`. No in-repo methodology package is currently admitted as execution-system authority. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
+- Repo-wide normative product authority lives under `spec/**`. Admitted app-local product authority slices may also live under `apps/**/spec/**` when the owning app declares that landing, keeps normative content inside `kernel/*.md` and `kernel/tables/**`, and does not create parallel truth against `spec/**`. `nimi-coding/**` is an admitted monorepo package for methodology tooling and bootstrap contracts; it is not repo-wide product authority. Package-owned methodology source lives under `nimi-coding/{config,contracts,methodology,spec}/**`. Host-project local truth seeded by the package lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
 - `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
 - High-risk, authority-bearing, cross-layer, or multi-phase work must complete authority preflight before implementation. Small, local, low-risk fixes do not need a formal execution workspace when the authority boundary is already clear.
@@ -25,7 +25,7 @@
 - No file/directory collisions, no forwarding shells outside `index.ts`, max 3-hop debug trace. Structure depth measured from layer source root.
 
 ## Retrieval Defaults
-- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `.local/**`, `config/**`.
+- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Verification Commands
@@ -35,3 +35,21 @@
 - SDK: `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`
 - Desktop/Web: `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`
 - Live gates: `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`, `pnpm check:local-chat-e2e`.
+
+<!-- nimicoding:managed:agents:start -->
+# Nimi Coding Managed Block
+
+- Read .nimi/methodology, .nimi/spec, and .nimi/contracts before high-risk changes.
+- Treat .nimi as the primary AI truth surface for this project.
+- If .nimi/spec remains bootstrap-only, use .nimi/methodology/spec-reconstruction.yaml and .nimi/config/skills.yaml to drive AI-side truth reconstruction.
+- Treat .nimi/methodology/spec-target-truth-profile.yaml as package-owned guidance for reconstruction target outputs; do not bootstrap empty authority files under .nimi/spec.
+- Treat .nimi/contracts/spec-reconstruction-result.yaml, .nimi/contracts/doc-spec-audit-result.yaml, .nimi/contracts/high-risk-execution-result.yaml, and .nimi/contracts/high-risk-admission.schema.yaml as machine contracts for reconstruction, audit, local-only high-risk closeout summaries, and canonical high-risk admission truth.
+- Treat .nimi/config/skill-manifest.yaml, .nimi/config/host-profile.yaml, .nimi/config/host-adapter.yaml, .nimi/config/external-execution-artifacts.yaml, .nimi/config/skill-installer.yaml, .nimi/methodology/skill-runtime.yaml, .nimi/methodology/skill-installer-result.yaml, .nimi/methodology/skill-handoff.yaml, and admitted package-owned adapter profiles under adapters/**/profile.yaml as the canonical bridge to any external AI/skill execution.
+- Treat standalone nimicoding as boundary-complete for bootstrap, handoff, validation, projection, and explicit admission only; do not assume packaged run-kernel, provider, scheduler, notification, or automation ownership.
+- Treat .nimi/config/installer-evidence.yaml and .nimi/methodology/skill-installer-summary-projection.yaml as the operational-to-semantic installer projection boundary; do not promote concrete evidence artifacts into semantic truth.
+- Treat high-risk external execution closeout, decision, ingest, and review payloads under .nimi/local/** as local-only operational projections; they do not promote semantic truth automatically, even when manager-owned.
+- Use high-risk packetized execution only when authority, ownership, or cross-layer risk justifies it.
+- Keep inline manager-worker as the default methodology posture; do not assume a separate worker runtime is mandatory.
+- Keep the methodology continuity-agnostic; do not assume daemon, heartbeat, or persistent manager ownership.
+- Do not treat this managed block as a replacement for project-specific rules outside .nimi.
+<!-- nimicoding:managed:agents:end -->

@@ -1,0 +1,11 @@
+state_id: state-1
+topic_id: topic-1
+packet_ref: .nimi/local/packet.yaml
+run_status: unknown
+current_phase_id: null
+last_completed_phase_id: null
+awaiting_human_action: null
+updated_at: 2026-04-10T00:00:00.000Z
+owner: manager
+notification_refs:
+  event: bad

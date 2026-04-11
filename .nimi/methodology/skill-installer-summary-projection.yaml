@@ -1,0 +1,181 @@
+version: 1
+summary_projection_contract:
+  id: delegated_skill_installer_summary_projection
+  lifecycle_owner: external_ai_host
+  lifecycle_mode: delegated
+  stage_model: collapsed_single_contract
+  evidence_home_ref: .nimi/config/installer-evidence.yaml
+  result_contract_ref: .nimi/methodology/skill-installer-result.yaml
+  truth_mode: fail_closed
+  source_summary_path: .nimi/local/installer-evidence/latest-summary.json
+  required_projected_fields:
+    - skill_id
+    - outcome_class
+    - verified_at
+  optional_projected_fields:
+    - requested_source
+    - requested_version
+    - verifier
+    - evidence_run_id
+  projection_requirements:
+    - local_verified_summary_must_exist_before_projection
+    - projected_skill_identity_must_match_declared_manifest
+    - projected_outcome_class_must_match_result_contract
+    - incomplete_or_ambiguous_summary_must_fail_closed
+  forbidden_projection_fields:
+    - raw_installer_logs
+    - package_manager_output
+    - temp_paths
+    - downloaded_payloads
+    - retry_counters
+    - prompts
+  lifecycle:
+    capture:
+      semantic_outcome_classes:
+        - verified_summary_ready
+        - capture_unavailable
+        - capture_failed
+      forbidden_outcomes:
+        - partial_summary_ready
+        - synthetic_verified_summary
+      required_fields:
+        - skill_id
+        - capture_outcome_class
+        - verified_at
+      optional_fields:
+        - requested_source
+        - requested_version
+        - verifier
+        - evidence_run_id
+      gate_requirements:
+        - complete_verified_summary_must_exist_before_projection
+        - capture_result_must_satisfy_summary_projection_contract
+        - capture_failure_must_not_imply_projection_success
+      operational_only_artifacts:
+        - capture_progress
+        - retry_counters
+        - prompts
+        - raw_installer_logs
+        - package_manager_output
+        - temp_paths
+    production:
+      semantic_outcome_classes:
+        - capture_result_declared
+        - production_unavailable
+        - production_failed
+      forbidden_outcomes:
+        - partial_capture_result_declared
+        - synthetic_capture_result
+      required_fields:
+        - skill_id
+        - production_outcome_class
+        - verified_at
+      optional_fields:
+        - requested_source
+        - requested_version
+        - verifier
+        - evidence_run_id
+      gate_requirements:
+        - complete_verified_summary_must_exist_before_capture_result_declaration
+        - declared_capture_result_must_satisfy_summary_projection_contract
+        - production_failure_must_not_imply_capture_result_success
+      operational_only_artifacts:
+        - production_progress
+        - retry_counters
+        - prompts
+        - raw_installer_logs
+        - package_manager_output
+        - temp_paths
+    status_declaration:
+      semantic_outcome_classes:
+        - status_declared
+        - status_unavailable
+        - status_failed
+      forbidden_outcomes:
+        - partial_status_declared
+        - synthetic_status
+      required_fields:
+        - skill_id
+        - status_outcome_class
+        - verified_at
+      optional_fields:
+        - requested_source
+        - requested_version
+        - verifier
+        - evidence_run_id
+      gate_requirements:
+        - complete_verified_state_must_exist_before_status_declaration
+        - declared_status_must_satisfy_capture_and_production_requirements
+        - status_declaration_failure_must_not_imply_semantic_success
+      operational_only_artifacts:
+        - writing_progress
+        - retry_counters
+        - prompts
+        - raw_installer_logs
+        - package_manager_output
+        - temp_paths
+    semantic_projection:
+      semantic_outcome_classes:
+        - result_ready_for_projection
+        - projection_unavailable
+        - projection_failed
+      forbidden_outcomes:
+        - partial_final_projection
+        - synthetic_final_result
+      required_fields:
+        - skill_id
+        - projection_outcome_class
+        - verified_at
+      optional_fields:
+        - requested_source
+        - requested_version
+        - verifier
+        - evidence_run_id
+      gate_requirements:
+        - complete_verified_state_must_exist_before_semantic_projection
+        - projected_final_result_must_satisfy_prior_projection_stages
+        - projection_failure_must_not_imply_installer_result_success
+      intermediate_only_statuses:
+        - status_declared
+        - capture_result_declared
+      operational_only_artifacts:
+        - projection_progress
+        - retry_counters
+        - prompts
+        - raw_installer_logs
+        - package_manager_output
+        - temp_paths
+    final_result_declaration:
+      semantic_outcome_classes:
+        - installer_result_declared
+        - final_result_unavailable
+        - final_result_failed
+      forbidden_outcomes:
+        - partial_installer_result_declared
+        - synthetic_installer_result
+      required_fields:
+        - skill_id
+        - final_result_outcome_class
+        - verified_at
+      optional_fields:
+        - installer_result_outcome_class
+        - requested_source
+        - requested_version
+        - verifier
+        - evidence_run_id
+      gate_requirements:
+        - complete_projected_verified_state_must_exist_before_final_result_declaration
+        - declared_final_result_must_satisfy_summary_projection_contract
+        - declared_final_result_outcome_class_must_satisfy_result_contract
+        - final_result_declaration_failure_must_not_imply_installer_result_success
+      intermediate_only_outputs:
+        - result_ready_for_projection
+        - projection_unavailable
+        - projection_failed
+      operational_only_artifacts:
+        - writing_progress
+        - retry_counters
+        - prompts
+        - raw_installer_logs
+        - package_manager_output
+        - temp_paths

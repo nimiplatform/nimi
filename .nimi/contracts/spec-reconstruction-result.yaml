@@ -1,0 +1,44 @@
+version: 1
+result_contract:
+  id: delegated_spec_reconstruction_result
+summary_required_fields:
+  - generated_paths
+  - status
+  - summary
+  - verified_at
+summary_status_enum:
+  - reconstructed
+  - partial
+  - blocked
+target_truth_files:
+  - path: .nimi/spec/authority-map.yaml
+    required_top_level_keys:
+      - authorities
+      - ownership_rules
+      - escalation_paths
+  - path: .nimi/spec/boundaries.yaml
+    required_top_level_keys:
+      - boundaries
+      - invariants
+      - fail_closed_rules
+  - path: .nimi/spec/ownership.yaml
+    required_top_level_keys:
+      - surfaces
+      - ownership_modes
+      - approval_requirements
+  - path: .nimi/spec/change-policy.yaml
+    required_top_level_keys:
+      - work_types
+      - authority_gates
+      - parallel_truth_policy
+  - path: .nimi/spec/high-risk-admissions.yaml
+    required_top_level_keys:
+      - admissions
+      - admission_rules
+      - semantic_constraints
+completion_requirements:
+  - all_target_truth_files_present
+  - required_top_level_keys_present_for_all_target_truth_files
+locality: local_only
+semantic_constraints:
+  - do_not_promote_closeout_summary_to_project_truth

@@ -1,0 +1,44 @@
+version: 1
+adapter_profile:
+  id: oh_my_codex
+  host_class: external_execution_host
+  upstream_seed_profile: external_ai_host
+  purpose: >
+    Constrain oh-my-codex to act as an external execution host for
+    nimicoding handoff/prompt/output/evidence exchange without promoting OMX
+    runtime state into semantic truth.
+  semantic_owner:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/config
+  operational_owner:
+    - .omx
+    - .nimi/local
+    - .nimi/cache
+  admitted_skill_surfaces:
+    - spec_reconstruction
+    - doc_spec_audit
+    - high_risk_execution
+  prompt_handoff:
+    bootstrap_surface:
+      - nimicoding handoff --skill spec_reconstruction --prompt
+      - nimicoding handoff --skill doc_spec_audit --prompt
+      - nimicoding handoff --skill high_risk_execution --prompt
+    future_surface:
+      status: future_only_not_packaged
+      commands:
+        - nimicoding run-next-prompt
+  output_handoff:
+    worker_output_target: .nimi/local/outputs/** candidate artifact
+    evidence_target: .nimi/local/evidence/** candidate artifact
+    closeout_target: local-only closeout payload unless later admitted
+  hard_constraints:
+    - omx_must_not_become_semantic_owner
+    - omx_must_not_write_canonical_.nimi/spec_truth_directly_without_validator_admission
+    - omx_must_not_define_acceptance_disposition_or_finding_judgment
+    - omx_runtime_state_must_remain_operational_only
+    - unresolved_authority_or_missing_context_must_fail_closed
+  current_gaps:
+    - automatic_semantic_admission_automation_not_packaged_in_standalone
+    - host_specific_runtime_execution_not_packaged_in_standalone

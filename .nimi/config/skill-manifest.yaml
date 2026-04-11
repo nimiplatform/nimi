@@ -1,0 +1,35 @@
+version: 1
+manifest:
+  runtime_owner: external_ai_host
+  runtime_contract_ref: .nimi/methodology/skill-runtime.yaml
+  host_profile_ref: .nimi/config/host-profile.yaml
+  installer_ref: .nimi/config/skill-installer.yaml
+  installer_result_contract_ref: .nimi/methodology/skill-installer-result.yaml
+  execution_mode: delegated
+  install_state: not_installed
+skills:
+  - id: spec_reconstruction
+    source: external
+    required: true
+    result_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
+    inputs:
+      - .nimi/methodology/spec-reconstruction.yaml
+      - .nimi/methodology/spec-target-truth-profile.yaml
+      - .nimi/spec/bootstrap-state.yaml
+  - id: doc_spec_audit
+    source: external
+    required: true
+    result_contract_ref: .nimi/contracts/doc-spec-audit-result.yaml
+    inputs:
+      - README.md
+      - .nimi/spec
+  - id: high_risk_execution
+    source: external
+    required: false
+    result_contract_ref: .nimi/contracts/high-risk-execution-result.yaml
+    inputs:
+      - .nimi/methodology
+      - .nimi/spec
+      - .nimi/contracts
+      - .nimi/local
+      - .nimi/config/external-execution-artifacts.yaml

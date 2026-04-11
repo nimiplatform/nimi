@@ -1,0 +1,31 @@
+version: 1
+evidence_home:
+  id: local_skill_installer_operational_evidence
+  locality: local_only
+  root: .nimi/local/installer-evidence
+  runs_dir: .nimi/local/installer-evidence/runs
+  latest_summary_path: .nimi/local/installer-evidence/latest-summary.json
+  payload_cache_dir: .nimi/local/installer-evidence/payloads
+  temp_dir: .nimi/local/installer-evidence/temp
+  retention:
+    summaries: retain_verified_history
+    raw_logs: local_prunable
+    payloads: ephemeral_best_effort
+    temp_paths: delete_after_run
+  semantic_projection:
+    mode: verified_summary_only
+    contract_ref: .nimi/methodology/skill-installer-summary-projection.yaml
+    target_result_contract: .nimi/methodology/skill-installer-result.yaml
+    lifecycle_scope:
+      owner: external_ai_host
+      stage_model: collapsed_single_contract
+      semantic_stages:
+        - capture
+        - production
+        - status_declaration
+        - semantic_projection
+        - final_result_declaration
+  hard_constraints:
+    - do_not_promote_concrete_evidence_artifacts
+    - do_not_require_tracked_evidence_files
+    - missing_local_evidence_must_not_imply_success

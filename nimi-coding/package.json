@@ -1,0 +1,41 @@
+{
+  "name": "@nimiplatform/nimi-coding",
+  "version": "0.1.0",
+  "description": "AI-native coding governance toolkit for bootstrapping .nimi/** into arbitrary projects.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "nimicoding": "./bin/nimicoding.mjs"
+  },
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "keywords": [
+    "ai",
+    "coding",
+    "governance",
+    "methodology",
+    "spec",
+    "nimicoding"
+  ],
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "files": [
+    "bin",
+    "cli",
+    "adapters",
+    "config",
+    "contracts",
+    "methodology",
+    "spec",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check:pack": "npm pack --dry-run"
+  }
+}

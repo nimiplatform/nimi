@@ -1,0 +1,47 @@
+version: 1
+state:
+  mode: bootstrap_only
+  reconstruction_required: true
+  reconstruction_owner: ai_skills
+current_truth:
+  admitted_files:
+    - .nimi/methodology/core.yaml
+    - .nimi/methodology/spec-reconstruction.yaml
+    - .nimi/methodology/spec-target-truth-profile.yaml
+    - .nimi/methodology/skill-runtime.yaml
+    - .nimi/methodology/skill-installer-result.yaml
+    - .nimi/methodology/skill-installer-summary-projection.yaml
+    - .nimi/methodology/skill-exchange-projection.yaml
+    - .nimi/methodology/skill-handoff.yaml
+    - .nimi/spec/product-scope.yaml
+    - .nimi/spec/bootstrap-state.yaml
+    - .nimi/config/bootstrap.yaml
+    - .nimi/config/skills.yaml
+    - .nimi/config/skill-manifest.yaml
+    - .nimi/config/host-profile.yaml
+    - .nimi/config/host-adapter.yaml
+    - .nimi/config/external-execution-artifacts.yaml
+    - .nimi/config/skill-installer.yaml
+    - .nimi/config/installer-evidence.yaml
+    - .nimi/contracts/spec-reconstruction-result.yaml
+    - .nimi/contracts/doc-spec-audit-result.yaml
+    - .nimi/contracts/high-risk-execution-result.yaml
+    - .nimi/contracts/high-risk-admission.schema.yaml
+    - .nimi/contracts/external-host-compatibility.yaml
+    - .nimi/contracts/execution-packet.schema.yaml
+    - .nimi/contracts/orchestration-state.schema.yaml
+    - .nimi/contracts/prompt.schema.yaml
+    - .nimi/contracts/worker-output.schema.yaml
+    - .nimi/contracts/acceptance.schema.yaml
+target_truth:
+  missing_files:
+    - .nimi/spec/authority-map.yaml
+    - .nimi/spec/boundaries.yaml
+    - .nimi/spec/ownership.yaml
+    - .nimi/spec/change-policy.yaml
+    - .nimi/spec/high-risk-admissions.yaml
+status:
+  bootstrap_contract_version: 1
+  ready_for_ai_reconstruction: true
+  external_handoff_required: true
+  human_projection_mode: derived_only

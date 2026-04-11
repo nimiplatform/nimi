@@ -1,0 +1,29 @@
+version: 1
+host_profile:
+  id: external_ai_host
+  host_class: ai_native_coding_host
+  runtime_contract_ref: .nimi/methodology/skill-runtime.yaml
+  compatibility_contract_ref: .nimi/contracts/external-host-compatibility.yaml
+  installer_ref: .nimi/config/skill-installer.yaml
+  installer_result_contract_ref: .nimi/methodology/skill-installer-result.yaml
+  ownership_mode: external
+  execution_mode: delegated
+  install_state: not_installed
+  self_hosted: false
+  required_context:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/config/skill-manifest.yaml
+    - .nimi/config/host-profile.yaml
+    - .nimi/config/host-adapter.yaml
+    - .nimi/config/external-execution-artifacts.yaml
+    - .nimi/methodology/skill-handoff.yaml
+  required_capabilities:
+    - read_project_local_nimi_truth
+    - route_declared_external_skills
+    - fail_closed_on_missing_authority
+  hard_constraints:
+    - vendor_neutral_profile_only
+    - do_not_assume_local_runtime_install
+    - do_not_claim_packet_orchestration_ownership

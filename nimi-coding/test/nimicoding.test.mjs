@@ -1,0 +1,2306 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
+
+import { runCli } from "../cli/nimicoding.mjs";
+import { createBootstrapSeedFileMap } from "../cli/seeds/bootstrap.mjs";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const execFile = promisify(execFileCallback);
+
+async function withTempProject(fn) {
+  const previousCwd = process.cwd();
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "nimicoding-test-"));
+
+  process.chdir(tempRoot);
+
+  try {
+    await fn(tempRoot);
+  } finally {
+    process.chdir(previousCwd);
+  }
+}
+
+async function captureRunCli(args) {
+  let stdout = "";
+  let stderr = "";
+
+  const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+  const originalStderrWrite = process.stderr.write.bind(process.stderr);
+
+  process.stdout.write = ((chunk, encoding, callback) => {
+    stdout += String(chunk);
+    if (typeof encoding === "function") {
+      encoding();
+      return true;
+    }
+    if (typeof callback === "function") {
+      callback();
+    }
+    return true;
+  });
+
+  process.stderr.write = ((chunk, encoding, callback) => {
+    stderr += String(chunk);
+    if (typeof encoding === "function") {
+      encoding();
+      return true;
+    }
+    if (typeof callback === "function") {
+      callback();
+    }
+    return true;
+  });
+
+  try {
+    const exitCode = await runCli(args);
+    return { exitCode, stdout, stderr };
+  } finally {
+    process.stdout.write = originalStdoutWrite;
+    process.stderr.write = originalStderrWrite;
+  }
+}
+
+async function runCliSubprocess(args) {
+  try {
+    const result = await execFile(
+      process.execPath,
+      [path.join(repoRoot, "bin", "nimicoding.mjs"), ...args],
+      { cwd: repoRoot },
+    );
+    return {
+      exitCode: 0,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  } catch (error) {
+    return {
+      exitCode: typeof error.code === "number" ? error.code : 1,
+      stdout: error.stdout ?? "",
+      stderr: error.stderr ?? "",
+    };
+  }
+}
+
+async function seedReconstructedTargetTruth(projectRoot) {
+  const targetFiles = {
+    "authority-map.yaml": "authorities: []\nownership_rules: []\nescalation_paths: []\n",
+    "boundaries.yaml": "boundaries: []\ninvariants: []\nfail_closed_rules: []\n",
+    "ownership.yaml": "surfaces: []\nownership_modes: []\napproval_requirements: []\n",
+    "change-policy.yaml": "work_types: []\nauthority_gates: []\nparallel_truth_policy: {}\n",
+    "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
+  };
+
+  for (const [fileName, contents] of Object.entries(targetFiles)) {
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", fileName),
+      contents,
+      "utf8",
+    );
+  }
+
+  const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+  const bootstrapStateText = await readFile(bootstrapStatePath, "utf8");
+  await writeFile(
+    bootstrapStatePath,
+    bootstrapStateText
+      .replace("mode: bootstrap_only", "mode: reconstruction_seeded")
+      .replace("reconstruction_required: true", "reconstruction_required: false")
+      .replace(
+        /target_truth:\n(?:  missing_files:\n(?:    - .+\n)+)/m,
+        "target_truth:\n  missing_files: []\n",
+      )
+      .replace("ready_for_ai_reconstruction: true", "ready_for_ai_reconstruction: false"),
+    "utf8",
+  );
+}
+
+async function seedTargetTruthFilesOnly(projectRoot) {
+  const targetFiles = {
+    "authority-map.yaml": "authorities: []\nownership_rules: []\nescalation_paths: []\n",
+    "boundaries.yaml": "boundaries: []\ninvariants: []\nfail_closed_rules: []\n",
+    "ownership.yaml": "surfaces: []\nownership_modes: []\napproval_requirements: []\n",
+    "change-policy.yaml": "work_types: []\nauthority_gates: []\nparallel_truth_policy: {}\n",
+    "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
+  };
+
+  for (const [fileName, contents] of Object.entries(targetFiles)) {
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", fileName),
+      contents,
+      "utf8",
+    );
+  }
+}
+
+async function seedHighRiskCandidateArtifacts(projectRoot, options = {}) {
+  const artifacts = [
+    {
+      target: ".nimi/local/packets/topic-1.yaml",
+      fixture: options.packetFixture ?? "execution-packet.valid.yaml",
+    },
+    {
+      target: ".nimi/local/orchestration/topic-1.yaml",
+      fixture: options.orchestrationFixture ?? "orchestration-state.valid.yaml",
+    },
+    {
+      target: ".nimi/local/prompts/topic-1.md",
+      fixture: options.promptFixture ?? "prompt.valid.md",
+    },
+    {
+      target: ".nimi/local/outputs/topic-1.worker-output.md",
+      fixture: options.workerOutputFixture ?? "worker-output.valid.md",
+    },
+  ];
+
+  for (const artifact of artifacts) {
+    const targetPath = path.join(projectRoot, artifact.target);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(
+      targetPath,
+      await readFile(path.join(repoRoot, "test", "fixtures", "validators", artifact.fixture), "utf8"),
+      "utf8",
+    );
+  }
+
+  const evidencePath = path.join(projectRoot, ".nimi", "local", "evidence", "topic-1.patch");
+  await mkdir(path.dirname(evidencePath), { recursive: true });
+  await writeFile(evidencePath, "diff --git a/src/example.mjs b/src/example.mjs\n", "utf8");
+}
+
+test("start rejects unknown options without creating bootstrap files", async () => {
+  await withTempProject(async (projectRoot) => {
+    const result = await captureRunCli(["start", "--unknown"]);
+
+    assert.equal(result.exitCode, 2);
+    assert.match(result.stderr, /unknown option --unknown/);
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"), "utf8"));
+  });
+});
+
+test("start bootstraps the project, integrates entrypoints, and prepares spec reconstruction refs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const result = await captureRunCli(["start"]);
+
+    assert.equal(result.exitCode, 0);
+    assert.match(result.stdout, /nimicoding start wizard:/);
+
+    const bootstrapState = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"),
+      "utf8",
+    );
+    const bootstrapConfig = await readFile(
+      path.join(projectRoot, ".nimi", "config", "bootstrap.yaml"),
+      "utf8",
+    );
+    const coreYaml = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "core.yaml"),
+      "utf8",
+    );
+    const hostAdapter = await readFile(
+      path.join(projectRoot, ".nimi", "config", "host-adapter.yaml"),
+      "utf8",
+    );
+    const externalExecutionArtifacts = await readFile(
+      path.join(projectRoot, ".nimi", "config", "external-execution-artifacts.yaml"),
+      "utf8",
+    );
+    const productScope = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"),
+      "utf8",
+    );
+    const exchangeProjection = await readFile(
+      path.join(projectRoot, ".nimi", "methodology", "skill-exchange-projection.yaml"),
+      "utf8",
+    );
+    const specReconstructionContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "spec-reconstruction-result.yaml"),
+      "utf8",
+    );
+    const highRiskExecutionContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "high-risk-execution-result.yaml"),
+      "utf8",
+    );
+    const highRiskAdmissionContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "high-risk-admission.schema.yaml"),
+      "utf8",
+    );
+    const hostCompatibilityContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "external-host-compatibility.yaml"),
+      "utf8",
+    );
+    const executionPacketSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "execution-packet.schema.yaml"),
+      "utf8",
+    );
+    const gitignore = await readFile(path.join(projectRoot, ".gitignore"), "utf8");
+    const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+    const claude = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
+    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
+    assert.match(bootstrapState, /ready_for_ai_reconstruction: true/);
+    assert.match(bootstrapConfig, /initialized_by: "@nimiplatform\/nimi-coding"/);
+    assert.match(bootstrapConfig, /bootstrap_contract: "nimicoding.bootstrap"/);
+    assert.match(bootstrapConfig, /bootstrap_contract_version: 1/);
+    assert.doesNotMatch(coreYaml, /cli_runtime/);
+    assert.match(hostAdapter, /selected_adapter_id: none/);
+    assert.match(hostAdapter, /- oh_my_codex/);
+    assert.match(hostAdapter, /artifact_contract_ref: \.nimi\/config\/external-execution-artifacts\.yaml/);
+    assert.match(externalExecutionArtifacts, /packet_ref: \.nimi\/local\/packets/);
+    assert.match(externalExecutionArtifacts, /worker_output_ref: \.nimi\/local\/outputs/);
+    assert.match(productScope, /bootstrap_repair_surface/);
+    assert.match(productScope, /bootstrap_doctor_surface/);
+    assert.match(productScope, /spec_reconstruction_result_contract_seed/);
+    assert.match(productScope, /doc_spec_audit_result_contract_seed/);
+    assert.match(productScope, /high_risk_admission_contract_seed/);
+    assert.match(productScope, /explicit_handoff_export_surface/);
+    assert.match(productScope, /local_closeout_projection_surface/);
+    assert.match(productScope, /external_closeout_import_surface/);
+    assert.match(productScope, /named_host_profile_overlay_recognition_surface/);
+    assert.match(productScope, /profile: boundary_complete/);
+    assert.match(productScope, /completed_surfaces:/);
+    assert.match(productScope, /deferred_execution_surfaces:/);
+    assert.match(productScope, /packet_bound_run_kernel/);
+    assert.match(agents, /nimicoding:managed:agents:start/);
+    assert.match(claude, /nimicoding:managed:claude:start/);
+    assert.match(handoffJson, /"skill":/);
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"), "utf8"));
+    assert.match(result.stdout, /4\. Paste Prompt/);
+    assert.match(result.stdout, /\.nimi\/local\/handoff\/spec_reconstruction\.json/);
+    assert.match(exchangeProjection, /exchange_surfaces:/);
+    assert.match(exchangeProjection, /contractVersion/);
+    assert.match(exchangeProjection, /- handoff/);
+    assert.match(exchangeProjection, /- closeout/);
+    assert.match(specReconstructionContract, /target_truth_files:/);
+    assert.match(specReconstructionContract, /required_top_level_keys:/);
+    assert.match(highRiskExecutionContract, /delegated_high_risk_execution_result/);
+    assert.match(highRiskExecutionContract, /candidate_ready/);
+    assert.match(highRiskAdmissionContract, /canonical_high_risk_admissions_truth/);
+    assert.match(highRiskAdmissionContract, /source_decision_contract/);
+    assert.match(hostCompatibilityContract, /external_host_boundary_compatibility/);
+    assert.match(hostCompatibilityContract, /supported_host_posture:/);
+    assert.match(hostCompatibilityContract, /host_agnostic_external_host/);
+    assert.match(hostCompatibilityContract, /consume_handoff_json_as_authoritative_contract/);
+    assert.match(executionPacketSchema, /kind: execution-packet/);
+    assert.match(executionPacketSchema, /phase_required:/);
+    assert.match(gitignore, /\.nimi\/local\//);
+    assert.match(gitignore, /\.nimi\/cache\//);
+  });
+});
+
+test("start refreshes managed entrypoints idempotently", async () => {
+  await withTempProject(async (projectRoot) => {
+    const first = await captureRunCli(["start"]);
+    assert.equal(first.exitCode, 0);
+
+    const agentsBefore = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+    const claudeBefore = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
+    const second = await captureRunCli(["start"]);
+    assert.equal(second.exitCode, 0);
+
+    const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+    const claude = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
+
+    assert.match(agents, /nimicoding:managed:agents:start/);
+    assert.match(claude, /nimicoding:managed:claude:start/);
+    assert.equal(agents, agentsBefore);
+    assert.equal(claude, claudeBefore);
+  });
+});
+
+test("clear rejects unknown options", async () => {
+  const result = await captureRunCli(["clear", "--unknown"]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /unknown option --unknown/);
+});
+
+test("clear removes managed entrypoints and package-owned bootstrap files but keeps project-owned truth", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const clearResult = await captureRunCli(["clear", "--yes"]);
+    assert.equal(clearResult.exitCode, 0);
+    assert.match(clearResult.stdout, /nimicoding clear/);
+
+    await assert.rejects(readFile(path.join(projectRoot, "AGENTS.md"), "utf8"));
+    await assert.rejects(readFile(path.join(projectRoot, "CLAUDE.md"), "utf8"));
+
+    const seedMap = await createBootstrapSeedFileMap();
+    for (const [relativePath] of seedMap.entries()) {
+      const absolutePath = path.join(projectRoot, relativePath);
+
+      if (
+        relativePath.startsWith(".nimi/config/")
+        || relativePath.startsWith(".nimi/contracts/")
+        || relativePath.startsWith(".nimi/methodology/")
+      ) {
+        await assert.rejects(readFile(absolutePath, "utf8"), `expected clear to remove ${relativePath}`);
+        continue;
+      }
+
+      const actual = await readFile(absolutePath, "utf8");
+      assert.ok(actual.length > 0, `expected clear to preserve ${relativePath}`);
+    }
+
+    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
+    assert.match(handoffJson, /"skill":/);
+    await assert.doesNotReject(readFile(path.join(projectRoot, ".nimi", "cache"), "utf8").catch((error) => {
+      if (error.code === "EISDIR") {
+        return "";
+      }
+      throw error;
+    }));
+  });
+});
+
+test("clear preserves locally modified managed files and bootstrap truth", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await writeFile(
+      path.join(projectRoot, "AGENTS.md"),
+      `# AGENTS.md
+
+Custom guidance above.
+
+<!-- nimicoding:managed:agents:start -->
+# Nimi Coding Managed Block
+managed content
+<!-- nimicoding:managed:agents:end -->
+
+Custom guidance below.
+`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(projectRoot, ".nimi", "config", "bootstrap.yaml"),
+      "initialized_by: custom-user\n",
+      "utf8",
+    );
+
+    const clearResult = await captureRunCli(["clear", "--yes"]);
+    assert.equal(clearResult.exitCode, 0);
+    assert.match(clearResult.stdout, /kept because it was modified|已保留，因为它已被修改/);
+
+    const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+    const bootstrapConfig = await readFile(path.join(projectRoot, ".nimi", "config", "bootstrap.yaml"), "utf8");
+
+    assert.doesNotMatch(agents, /nimicoding:managed:agents:start/);
+    assert.match(agents, /Custom guidance above\./);
+    assert.match(agents, /Custom guidance below\./);
+    assert.equal(bootstrapConfig, "initialized_by: custom-user\n");
+  });
+});
+
+test("version rejects unexpected trailing arguments", async () => {
+  const result = await captureRunCli(["--version", "extra"]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /version refused: unexpected arguments/);
+});
+
+test("help rejects unexpected trailing arguments", async () => {
+  const result = await captureRunCli(["--help", "extra"]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /help refused: unexpected arguments/);
+});
+
+test("start rejects non-directory .nimi path", async () => {
+  await withTempProject(async (projectRoot) => {
+    await writeFile(path.join(projectRoot, ".nimi"), "not-a-directory", "utf8");
+
+    const result = await captureRunCli(["start"]);
+
+    assert.equal(result.exitCode, 2);
+    assert.match(result.stderr, /exists and is not a directory/);
+    await assert.rejects(readFile(path.join(projectRoot, "AGENTS.md"), "utf8"));
+  });
+});
+
+test("start restores missing bootstrap seed files without overwriting existing truth and pauses on blocking drift", async () => {
+  await withTempProject(async (projectRoot) => {
+    await mkdir(path.join(projectRoot, ".nimi", "spec"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"),
+      "sentinel: preserved\n",
+      "utf8",
+    );
+
+    const result = await captureRunCli(["start"]);
+
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stdout, /nimicoding start paused/);
+    const bootstrapState = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"),
+      "utf8",
+    );
+    const manifest = await readFile(
+      path.join(projectRoot, ".nimi", "config", "skill-manifest.yaml"),
+      "utf8",
+    );
+    const acceptanceSchema = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "acceptance.schema.yaml"),
+      "utf8",
+    );
+    const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+
+    assert.equal(bootstrapState, "sentinel: preserved\n");
+    assert.match(manifest, /result_contract_ref: \.nimi\/contracts\/spec-reconstruction-result\.yaml/);
+    assert.match(manifest, /- \.nimi\/contracts/);
+    assert.match(acceptanceSchema, /kind: acceptance/);
+    assert.match(agents, /nimicoding:managed:agents:start/);
+    assert.match(result.stdout, /bootstrap-state\.yaml is missing required lifecycle fields/);
+  });
+});
+
+test("doctor validates a freshly started bootstrap", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const doctorResult = await captureRunCli(["doctor"]);
+
+    assert.equal(doctorResult.exitCode, 0);
+    assert.match(doctorResult.stdout, /status: ok/);
+    assert.match(doctorResult.stdout, /project truth: incomplete/);
+    assert.match(doctorResult.stdout, /AI entry files: connected/);
+  });
+});
+
+test("doctor emits machine-readable JSON", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.bootstrapPresent, true);
+    assert.equal(payload.reconstructionRequired, true);
+    assert.equal(payload.runtimeInstalled, false);
+    assert.equal(payload.handoffReadiness.ok, true);
+    assert.equal(payload.bootstrapContract.status, "supported");
+    assert.equal(payload.completionProfile, "boundary_complete");
+    assert.equal(payload.completionStatus, "complete");
+    assert.equal(payload.hostCompatibility.contractRef, ".nimi/contracts/external-host-compatibility.yaml");
+    assert.deepEqual(payload.hostCompatibility.supportedHostPosture, ["host_agnostic_external_host"]);
+    assert.deepEqual(payload.hostCompatibility.supportedHostExamples, ["oh_my_codex", "codex", "claude", "gemini"]);
+    assert.ok(payload.hostCompatibility.requiredBehavior.includes("consume_handoff_json_as_authoritative_contract"));
+    assert.ok(payload.hostCompatibility.forbiddenBehavior.includes("assume_packaged_run_kernel"));
+    assert.equal(payload.hostCompatibility.genericExternalHostCompatible, true);
+    assert.equal(payload.hostCompatibility.namedOverlaySupport.mode, "named_admitted_overlay_available");
+    assert.deepEqual(payload.hostCompatibility.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex"]);
+    assert.equal(payload.hostCompatibility.namedOverlaySupport.selectedOverlayId, null);
+    assert.deepEqual(payload.hostCompatibility.futureOnlyHostSurfaces, [
+      {
+        adapterId: "oh_my_codex",
+        status: "future_only_not_packaged",
+        command: "nimicoding run-next-prompt",
+      },
+    ]);
+    assert.deepEqual(payload.completedSurfaces, [
+      "bootstrap",
+      "doctor",
+      "handoff",
+      "validators",
+      "closeout",
+      "ingest",
+      "review",
+      "decision",
+      "admission",
+      "host_overlay_recognition",
+    ]);
+    assert.deepEqual(payload.deferredExecutionSurfaces, [
+      "topic_lifecycle_workspace",
+      "packet_bound_run_kernel",
+      "provider_backed_execution",
+      "scheduler",
+      "notification",
+      "automation_backend",
+      "multi_topic_orchestration",
+    ]);
+    assert.deepEqual(payload.promotedParityGapSummary, [
+      "topic_lifecycle_workspace",
+      "packet_bound_run_kernel",
+      "provider_backed_execution",
+      "scheduler_automation_notification",
+    ]);
+    assert.match(JSON.stringify(payload.checks), /Packaged external host compatibility contract is present and aligned/);
+    assert.equal(payload.delegatedContracts.runtimeOwner, "external_ai_host");
+    assert.equal(payload.delegatedContracts.executionMode, "delegated");
+    assert.equal(payload.delegatedContracts.selectedAdapterId, "none");
+    assert.deepEqual(payload.delegatedContracts.admittedAdapterIds, ["oh_my_codex"]);
+    assert.equal(payload.delegatedContracts.adapterHandoffMode, "prompt_output_evidence_handoff");
+    assert.equal(payload.delegatedContracts.semanticReviewOwner, "nimicoding_manager");
+    assert.equal(payload.adapterProfiles.admitted.length, 1);
+    assert.equal(payload.adapterProfiles.invalid.length, 0);
+    assert.equal(payload.adapterProfiles.admitted[0].id, "oh_my_codex");
+    assert.equal(payload.adapterProfiles.admitted[0].profileRef, "adapters/oh-my-codex/profile.yaml");
+    assert.equal(payload.adapterProfiles.admitted[0].hostClass, "external_execution_host");
+    assert.equal(payload.adapterProfiles.admitted[0].promptHandoff.futureSurfaceStatus, "future_only_not_packaged");
+    assert.deepEqual(payload.adapterProfiles.admitted[0].promptHandoff.futureSurface, ["nimicoding run-next-prompt"]);
+    assert.equal(payload.adapterProfiles.selected, null);
+    assert.equal(payload.targetTruth.missing.length, 5);
+    assert.equal(payload.auditArtifact.present, false);
+    assert.equal(payload.executionContracts.total, 5);
+    assert.equal(payload.executionContracts.valid, 5);
+    assert.equal(payload.executionContracts.invalid.length, 0);
+  });
+});
+
+test("start continues from bootstrap into spec reconstruction handoff prep", async () => {
+  await withTempProject(async (projectRoot) => {
+    const result = await captureRunCli(["start"]);
+
+    assert.equal(result.exitCode, 0);
+    assert.match(result.stdout, /Step 3\. Rebuild project rules/);
+    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
+    assert.match(handoffJson, /"skill":\s*\{\s*"id":\s*"spec_reconstruction"/);
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"), "utf8"));
+  });
+});
+
+test("start continues into doc spec audit handoff once target truth is reconstructed", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const result = await captureRunCli(["start"]);
+
+    assert.equal(result.exitCode, 0);
+    assert.match(result.stdout, /Step 4\. Run a doc\/spec audit/);
+    const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "doc_spec_audit.json"), "utf8");
+    assert.match(handoffJson, /"skill":\s*\{\s*"id":\s*"doc_spec_audit"/);
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "doc_spec_audit.prompt.md"), "utf8"));
+  });
+});
+
+test("start accepts --host and prints a short host-specific paste prompt", async () => {
+  await withTempProject(async () => {
+    const result = await captureRunCli(["start", "--host", "claude"]);
+
+    assert.equal(result.exitCode, 0);
+    assert.match(result.stdout, /selected host: Claude/i);
+    assert.match(result.stdout, /Task package for Claude:/i);
+    assert.match(result.stdout, /Read `\.nimi\/local\/handoff\/spec_reconstruction\.json` first/i);
+  });
+});
+
+test("doctor warns but does not fail when local runtime directories are absent", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await rm(path.join(projectRoot, ".nimi", "local"), { recursive: true, force: true });
+    await rm(path.join(projectRoot, ".nimi", "cache"), { recursive: true, force: true });
+
+    const doctorResult = await captureRunCli(["doctor"]);
+
+    assert.equal(doctorResult.exitCode, 0);
+    assert.match(doctorResult.stdout, /Local state directories are absent and can be recreated on demand/);
+  });
+});
+
+test("doctor text output stays user-facing by default", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const doctorResult = await captureRunCli(["doctor"]);
+
+    assert.equal(doctorResult.exitCode, 0);
+    assert.match(doctorResult.stdout, /Summary:/);
+    assert.match(doctorResult.stdout, /bootstrap: ready/);
+    assert.match(doctorResult.stdout, /handoff: ready/);
+    assert.match(doctorResult.stdout, /Next:/);
+    assert.doesNotMatch(doctorResult.stdout, /Supported Host Posture:/);
+    assert.doesNotMatch(doctorResult.stdout, /runtime_installed:/);
+    assert.doesNotMatch(doctorResult.stdout, /Delegated Contracts:/);
+  });
+});
+
+test("doctor --verbose exposes internal contract detail when requested", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const doctorResult = await captureRunCli(["doctor", "--verbose"]);
+
+    assert.equal(doctorResult.exitCode, 0);
+    assert.match(doctorResult.stdout, /Supported Host Posture:/);
+    assert.match(doctorResult.stdout, /Delegated Contracts:/);
+    assert.match(doctorResult.stdout, /runtime_installed: false/);
+  });
+});
+
+test("doctor fails closed when bootstrap truth is missing", async () => {
+  await withTempProject(async () => {
+    const doctorResult = await captureRunCli(["doctor"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    assert.match(doctorResult.stdout, /\.nimi directory is missing/);
+    assert.match(doctorResult.stdout, /Run `nimicoding start`/);
+  });
+});
+
+test("doctor fails closed when delegated contract posture drifts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const handoffPath = path.join(projectRoot, ".nimi", "methodology", "skill-handoff.yaml");
+    const handoffText = await readFile(handoffPath, "utf8");
+    await writeFile(
+      handoffPath,
+      handoffText.replace("runtime_owner: external_ai_host", "runtime_owner: local_runtime"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.handoffReadiness.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /Delegated runtime ownership, execution mode, or self-hosted posture drifted across contracts/,
+    );
+  });
+});
+
+test("doctor fails closed when host adapter selection is not admitted", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const adapterPath = path.join(projectRoot, ".nimi", "config", "host-adapter.yaml");
+    const adapterText = await readFile(adapterPath, "utf8");
+    await writeFile(
+      adapterPath,
+      adapterText.replace("selected_adapter_id: none", "selected_adapter_id: unknown_adapter"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /selected_adapter_id must be none or one of admitted_adapter_ids/,
+    );
+  });
+});
+
+test("doctor fails closed when an admitted adapter overlay is not packaged", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const adapterPath = path.join(projectRoot, ".nimi", "config", "host-adapter.yaml");
+    const adapterText = await readFile(adapterPath, "utf8");
+    await writeFile(
+      adapterPath,
+      adapterText.replace("- oh_my_codex", "- missing_adapter"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /Package-owned adapter profile overlays are missing or malformed/,
+    );
+    assert.equal(payload.adapterProfiles.invalid[0].id, "missing_adapter");
+  });
+});
+
+test("doctor fails closed when result contract refs drift", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const manifestPath = path.join(projectRoot, ".nimi", "config", "skill-manifest.yaml");
+    const manifestText = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      manifestText.replace(
+        ".nimi/contracts/spec-reconstruction-result.yaml",
+        ".nimi/contracts/wrong-contract.yaml",
+      ),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /Skill manifest result contract refs drifted away from the declared machine contracts/,
+    );
+  });
+});
+
+test("doctor fails closed when standalone completion truth drifts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const productScopePath = path.join(projectRoot, ".nimi", "spec", "product-scope.yaml");
+    const productScopeText = await readFile(productScopePath, "utf8");
+    await writeFile(
+      productScopePath,
+      productScopeText.replace("profile: boundary_complete", "profile: promoted_runtime_parity"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.completionStatus, "drifted");
+    assert.match(
+      JSON.stringify(payload.checks),
+      /product-scope\.yaml is missing or drifted from the package-owned standalone completion truth/,
+    );
+  });
+});
+
+test("doctor fails closed when reconstructed target truth misses required sections", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "authority-map.yaml"),
+      "authorities: []\n",
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.targetTruth.invalid.length, 1);
+    assert.equal(payload.targetTruth.invalid[0].path, ".nimi/spec/authority-map.yaml");
+    assert.match(JSON.stringify(payload.checks), /missing required top-level keys/);
+  });
+});
+
+test("doctor fails closed when canonical admissions truth drifts from the packaged schema contract", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "high-risk-admissions.yaml"),
+      [
+        "admissions:",
+        "  - topic_id: topic-1",
+        "    packet_id: pkt-1",
+        "    disposition: complete",
+        "    admitted_at: not-a-timestamp",
+        "    manager_review_owner: nimicoding_manager",
+        "    summary: bad canonical record",
+        "    source_decision_contract: nimicoding.high-risk-decision.v1",
+        "admission_rules: []",
+        "semantic_constraints: []",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.handoffReadiness.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /Canonical high-risk admissions truth drifted: high-risk admission record admitted_at must be an ISO-8601 UTC timestamp/,
+    );
+  });
+});
+
+test("doctor fails closed when a high-risk execution schema seed drifts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const schemaPath = path.join(projectRoot, ".nimi", "contracts", "execution-packet.schema.yaml");
+    const schemaText = await readFile(schemaPath, "utf8");
+    await writeFile(
+      schemaPath,
+      schemaText.replace("kind: execution-packet", "kind: packet"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /High-risk execution schema seeds are missing or malformed/,
+    );
+  });
+});
+
+test("doctor fails closed when external execution artifact roots drift", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const artifactsPath = path.join(projectRoot, ".nimi", "config", "external-execution-artifacts.yaml");
+    const artifactsText = await readFile(artifactsPath, "utf8");
+    await writeFile(
+      artifactsPath,
+      artifactsText.replace(".nimi/local/outputs", ".nimi/local/runtime-outputs"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /external execution artifact landing-path contract is missing or malformed/,
+    );
+  });
+});
+
+test("doctor fails closed when external host compatibility contract drifts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const contractPath = path.join(projectRoot, ".nimi", "contracts", "external-host-compatibility.yaml");
+    const contractText = await readFile(contractPath, "utf8");
+    await writeFile(
+      contractPath,
+      contractText.replace("host_agnostic_external_host", "named_runtime_owner"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /Packaged external host compatibility contract is present and aligned|\.nimi\/contracts\/external-host-compatibility\.yaml is missing or malformed/,
+    );
+  });
+});
+
+test("handoff exports spec reconstruction payload during bootstrap-only mode", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.contractVersion, "nimicoding.handoff.v1");
+    assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/spec-reconstruction-result.yaml");
+    assert.equal(payload.skill.readiness.ok, true);
+    assert.equal(payload.runtimeOwner, "external_ai_host");
+    assert.equal(payload.handoffSurface.authoritativeMode, "json");
+    assert.equal(payload.handoffSurface.promptMode, "human_projection_only");
+    assert.equal(payload.handoffSurface.hostStrategy, "host_agnostic_external_host");
+    assert.equal(payload.handoffSurface.hostCompatibilityRef, ".nimi/contracts/external-host-compatibility.yaml");
+    assert.deepEqual(payload.handoffSurface.supportedHostPosture, ["host_agnostic_external_host"]);
+    assert.deepEqual(payload.handoffSurface.supportedHostExamples, ["oh_my_codex", "codex", "claude", "gemini"]);
+    assert.ok(payload.handoffSurface.requiredHostBehavior.includes("consume_handoff_json_as_authoritative_contract"));
+    assert.ok(payload.handoffSurface.forbiddenHostBehavior.includes("assume_packaged_run_kernel"));
+    assert.equal(payload.handoffSurface.hostCompatibilitySummary.genericExternalHostCompatible, true);
+    assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.mode, "named_admitted_overlay_available");
+    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.admittedOverlayIds, ["oh_my_codex"]);
+    assert.deepEqual(payload.handoffSurface.hostCompatibilitySummary.futureOnlyHostSurfaces, [
+      {
+        adapterId: "oh_my_codex",
+        status: "future_only_not_packaged",
+        command: "nimicoding run-next-prompt",
+      },
+    ]);
+    assert.equal(payload.adapter.selectedId, "none");
+    assert.deepEqual(payload.adapter.admittedIds, ["oh_my_codex"]);
+    assert.equal(payload.adapter.semanticReviewOwner, "nimicoding_manager");
+    assert.equal(payload.contracts.hostAdapterRef, ".nimi/config/host-adapter.yaml");
+    assert.equal(
+      payload.contracts.exchangeProjectionContractRef,
+      ".nimi/methodology/skill-exchange-projection.yaml",
+    );
+    assert.match(payload.nextAction, /Delegate explicit skill execution/);
+  });
+});
+
+test("handoff projects an external host prompt for spec reconstruction", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--prompt"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    assert.match(handoffResult.stdout, /Prepared local handoff refs for spec_reconstruction/);
+    assert.match(handoffResult.stdout, /\.nimi\/local\/handoff\/spec_reconstruction\.json/);
+    assert.match(handoffResult.stdout, /\.nimi\/local\/handoff\/spec_reconstruction\.prompt\.md/);
+
+    const promptText = await readFile(
+      path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"),
+      "utf8",
+    );
+    const payloadText = await readFile(
+      path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"),
+      "utf8",
+    );
+    const payload = JSON.parse(payloadText);
+
+    assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.match(promptText, /Use the JSON handoff payload as the authoritative machine contract/);
+    assert.match(promptText, /Treat this prompt as a human-readable projection/);
+    assert.match(promptText, /This handoff surface is host-agnostic/);
+    assert.match(promptText, /Host compatibility contract: \.nimi\/contracts\/external-host-compatibility\.yaml/);
+    assert.match(promptText, /Supported host posture: host_agnostic_external_host/);
+    assert.match(promptText, /Supported external host examples: oh_my_codex, codex, claude, gemini/);
+    assert.match(promptText, /Required host behavior: consume_handoff_json_as_authoritative_contract/);
+    assert.match(promptText, /Forbidden host behavior: assume_packaged_run_kernel/);
+    assert.match(promptText, /Generic external host compatible: true/);
+    assert.match(promptText, /Named overlay mode: named_admitted_overlay_available/);
+    assert.match(promptText, /Admitted named overlays: oh_my_codex/);
+    assert.match(promptText, /Future-only host surfaces: oh_my_codex:nimicoding run-next-prompt:future_only_not_packaged/);
+    assert.match(promptText, /You are the external AI host responsible/);
+    assert.match(promptText, /Read this project-local truth first, in order:/);
+    assert.match(promptText, /Do not assume local skill installation or self-hosting/);
+  });
+});
+
+test("handoff fails closed for doc spec audit before target truth exists", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "doc_spec_audit", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 1);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.skill.id, "doc_spec_audit");
+    assert.equal(payload.skill.readiness.ok, false);
+    assert.match(payload.skill.readiness.reason, /requires reconstructed/i);
+  });
+});
+
+test("handoff allows doc spec audit after target truth is reconstructed", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "doc_spec_audit", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.skill.id, "doc_spec_audit");
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/doc-spec-audit-result.yaml");
+    assert.deepEqual(payload.skill.compareTargets, ["README.md", ".nimi/spec"]);
+    assert.deepEqual(payload.skill.expectedCloseoutSummaryFields, [
+      "compared_paths",
+      "finding_count",
+      "status",
+      "summary",
+      "verified_at",
+    ]);
+    assert.equal(payload.skill.readiness.ok, true);
+    assert.equal(payload.targetTruth.missing.length, 0);
+  });
+});
+
+test("handoff allows high risk execution after target truth is reconstructed and includes contracts context", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "high_risk_execution", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.skill.id, "high_risk_execution");
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/high-risk-execution-result.yaml");
+    assert.deepEqual(payload.skill.compareTargets, [".nimi/spec", ".nimi/contracts"]);
+    assert.deepEqual(payload.skill.expectedCloseoutSummaryFields, [
+      "packet_ref",
+      "orchestration_state_ref",
+      "prompt_ref",
+      "worker_output_ref",
+      "evidence_refs",
+      "status",
+      "summary",
+      "verified_at",
+    ]);
+    assert.deepEqual(payload.skill.expectedCloseoutSummaryStatus, [
+      "candidate_ready",
+      "blocked",
+      "failed",
+    ]);
+    assert.deepEqual(payload.skill.expectedArtifactKinds, [
+      "execution-packet",
+      "orchestration-state",
+      "prompt",
+      "worker-output",
+      "acceptance",
+    ]);
+    assert.deepEqual(payload.skill.expectedArtifactRoots, {
+      packet_ref: ".nimi/local/packets",
+      orchestration_state_ref: ".nimi/local/orchestration",
+      prompt_ref: ".nimi/local/prompts",
+      worker_output_ref: ".nimi/local/outputs",
+      evidence_refs: ".nimi/local/evidence",
+    });
+    assert.equal(payload.skill.executionSchemaRefs.length, 5);
+    assert.ok(payload.skill.executionSchemaRefs.includes(".nimi/contracts/execution-packet.schema.yaml"));
+    assert.ok(payload.context.orderedPaths.includes(".nimi/contracts"));
+    assert.ok(payload.context.skillInputs.includes(".nimi/contracts"));
+    assert.ok(payload.context.orderedPaths.includes(".nimi/config/external-execution-artifacts.yaml"));
+  });
+});
+
+test("handoff prompt for high risk execution includes execution schema refs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "high_risk_execution", "--prompt"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    assert.match(handoffResult.stdout, /\.nimi\/local\/handoff\/high_risk_execution\.prompt\.md/);
+
+    const promptText = await readFile(
+      path.join(projectRoot, ".nimi", "local", "handoff", "high_risk_execution.prompt.md"),
+      "utf8",
+    );
+    assert.match(promptText, /Execution schema refs:/);
+    assert.match(promptText, /\.nimi\/contracts\/execution-packet\.schema\.yaml/);
+    assert.match(promptText, /Expected closeout summary status:/);
+    assert.match(promptText, /candidate_ready, blocked, failed/);
+    assert.match(promptText, /Expected local artifact roots:/);
+    assert.match(promptText, /packet_ref=\.nimi\/local\/packets/);
+    assert.match(promptText, /Expected artifact kinds:/);
+  });
+});
+
+test("handoff exposes selected host adapter when one is admitted", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const adapterPath = path.join(projectRoot, ".nimi", "config", "host-adapter.yaml");
+    const adapterText = await readFile(adapterPath, "utf8");
+    await writeFile(
+      adapterPath,
+      adapterText.replace("selected_adapter_id: none", "selected_adapter_id: oh_my_codex"),
+      "utf8",
+    );
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "high_risk_execution", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.adapter.selectedId, "oh_my_codex");
+    assert.equal(payload.adapter.handoffMode, "prompt_output_evidence_handoff");
+    assert.equal(payload.adapter.semanticReviewOwner, "nimicoding_manager");
+    assert.equal(payload.adapter.profileRef, "adapters/oh-my-codex/profile.yaml");
+    assert.equal(payload.adapter.hostClass, "external_execution_host");
+    assert.equal(payload.adapter.upstreamSeedProfile, "external_ai_host");
+    assert.ok(payload.adapter.purpose.includes("external execution host"));
+    assert.deepEqual(payload.adapter.operationalOwner, [".omx", ".nimi/local", ".nimi/cache"]);
+    assert.equal(payload.adapter.futureSurfaceStatus, "future_only_not_packaged");
+    assert.deepEqual(payload.adapter.futureSurface, ["nimicoding run-next-prompt"]);
+    assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.mode, "named_admitted_overlay_selected");
+    assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.selectedOverlayId, "oh_my_codex");
+    assert.equal(payload.handoffSurface.hostCompatibilitySummary.namedOverlaySupport.selectedOverlayProfileRef, "adapters/oh-my-codex/profile.yaml");
+    assert.deepEqual(payload.adapter.currentGaps, [
+      "automatic_semantic_admission_automation_not_packaged_in_standalone",
+      "host_specific_runtime_execution_not_packaged_in_standalone",
+    ]);
+  });
+});
+
+test("handoff prompt includes selected adapter overlay metadata", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const adapterPath = path.join(projectRoot, ".nimi", "config", "host-adapter.yaml");
+    const adapterText = await readFile(adapterPath, "utf8");
+    await writeFile(
+      adapterPath,
+      adapterText.replace("selected_adapter_id: none", "selected_adapter_id: oh_my_codex"),
+      "utf8",
+    );
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "high_risk_execution", "--prompt"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const promptText = await readFile(
+      path.join(projectRoot, ".nimi", "local", "handoff", "high_risk_execution.prompt.md"),
+      "utf8",
+    );
+    assert.match(promptText, /Adapter profile ref: adapters\/oh-my-codex\/profile\.yaml/);
+    assert.match(promptText, /Adapter host class: external_execution_host/);
+    assert.match(promptText, /Adapter operational owner roots: \.omx, \.nimi\/local, \.nimi\/cache/);
+    assert.match(promptText, /Named overlay mode: named_admitted_overlay_selected/);
+    assert.match(promptText, /Adapter future-only surfaces: nimicoding run-next-prompt/);
+    assert.match(promptText, /Adapter future-only surface status: future_only_not_packaged/);
+    assert.match(promptText, /Adapter current gaps: automatic_semantic_admission_automation_not_packaged_in_standalone, host_specific_runtime_execution_not_packaged_in_standalone/);
+  });
+});
+
+test("handoff requires an explicit declared skill id", async () => {
+  const result = await captureRunCli(["handoff"]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /explicit --skill is required/);
+});
+
+test("handoff rejects conflicting output modes", async () => {
+  const result = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json", "--prompt"]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /mutually exclusive/);
+});
+
+test("closeout writes a local-only result artifact after completed reconstruction", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--skill",
+      "spec_reconstruction",
+      "--outcome",
+      "completed",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 0);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.contractVersion, "nimicoding.closeout.v1");
+    assert.equal(payload.localOnly, true);
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/spec-reconstruction-result.yaml");
+    assert.equal(
+      payload.contracts.exchangeProjectionContractRef,
+      ".nimi/methodology/skill-exchange-projection.yaml",
+    );
+
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.skill.id, "spec_reconstruction");
+    assert.equal(stored.outcome, "completed");
+  });
+});
+
+test("closeout fails closed when completed reconstruction lacks target truth", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--skill",
+      "spec_reconstruction",
+      "--outcome",
+      "completed",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 1);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(payload.readiness.reason, /requires all declared `.nimi\/spec\/\*\.yaml` target truth files to exist/i);
+  });
+});
+
+test("closeout allows blocked outcomes without reconstructed target truth", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--skill",
+      "doc_spec_audit",
+      "--outcome",
+      "blocked",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 0);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.outcome, "blocked");
+  });
+});
+
+test("closeout requires ISO-8601 UTC verified timestamps", async () => {
+  const result = await captureRunCli([
+    "closeout",
+    "--skill",
+    "spec_reconstruction",
+    "--outcome",
+    "completed",
+    "--verified-at",
+    "2026-04-10",
+  ]);
+
+  assert.equal(result.exitCode, 2);
+  assert.match(result.stderr, /ISO-8601 UTC timestamp/);
+});
+
+test("closeout imports an external JSON summary before writing local artifact", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "external-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "spec_reconstruction" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          generated_paths: [
+            ".nimi/spec/authority-map.yaml",
+            ".nimi/spec/boundaries.yaml",
+            ".nimi/spec/ownership.yaml",
+            ".nimi/spec/change-policy.yaml",
+            ".nimi/spec/high-risk-admissions.yaml",
+          ],
+          status: "reconstructed",
+          summary: "All declared target truth files were reconstructed.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 0);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.equal(payload.outcome, "completed");
+    assert.equal(payload.summary.status, "reconstructed");
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.verifiedAt, "2026-04-10T00:00:00.000Z");
+    assert.equal(stored.summary.status, "reconstructed");
+  });
+});
+
+test("closeout rejects invalid imported doc spec audit summaries", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "bad-audit-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "doc_spec_audit" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          compared_paths: ["README.md", ".nimi/spec"],
+          finding_count: -1,
+          status: "aligned",
+          summary: "Invalid because finding_count is negative.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /finding_count must be a non-negative integer/);
+  });
+});
+
+test("doctor reports local doc spec audit artifact status", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "doc-audit-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "doc_spec_audit" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          compared_paths: ["README.md", ".nimi/spec"],
+          finding_count: 0,
+          status: "aligned",
+          summary: "README and .nimi/spec are aligned.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--write-local",
+      "--json",
+    ]);
+    assert.equal(closeoutResult.exitCode, 0);
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.auditArtifact.present, true);
+    assert.equal(payload.auditArtifact.ok, true);
+    assert.equal(payload.auditArtifact.outcome, "completed");
+    assert.equal(payload.auditArtifact.summaryStatus, "aligned");
+  });
+});
+
+test("closeout imports a valid high risk execution summary before writing local artifact", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 0);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.skill.id, "high_risk_execution");
+    assert.equal(payload.skill.resultContractRef, ".nimi/contracts/high-risk-execution-result.yaml");
+    assert.equal(payload.localOnly, true);
+    assert.equal(payload.summary.status, "candidate_ready");
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.summary.packet_ref, ".nimi/local/packets/topic-1.yaml");
+    assert.equal(stored.summary.status, "candidate_ready");
+  });
+});
+
+test("closeout rejects invalid high risk execution summaries", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "bad-high-risk-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [],
+          status: "completed",
+          summary: "Invalid summary.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+          extra_ref: ".nimi/local/extra.txt",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(
+      closeoutResult.stderr,
+      /contains unexpected fields|must be a non-empty array of non-empty strings|must be one of/,
+    );
+  });
+});
+
+test("closeout rejects high risk execution refs outside declared local roots", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "bad-high-risk-roots-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".omx/runtime/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "Invalid because orchestration state escaped the declared local root.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /must stay under \.nimi\/local\/orchestration/);
+  });
+});
+
+test("closeout rejects high risk execution summary timestamp drift", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "bad-high-risk-timestamp-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "blocked",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "blocked",
+          summary: "Blocked waiting for authority clarification.",
+          verified_at: "2026-04-11T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /must match the top-level verifiedAt/);
+  });
+});
+
+test("closeout rejects malformed imported JSON summaries", async () => {
+  await withTempProject(async (projectRoot) => {
+    const importPath = path.join(projectRoot, "bad-closeout.json");
+    await writeFile(importPath, "{\"skill\":{}}\n", "utf8");
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /must declare `skill.id`/);
+  });
+});
+
+test("closeout rejects conflicting imported and explicit fields", async () => {
+  const closeoutResult = await captureRunCli([
+    "closeout",
+    "--from",
+    "/tmp/example.json",
+    "--skill",
+    "spec_reconstruction",
+  ]);
+
+  assert.equal(closeoutResult.exitCode, 2);
+  assert.match(closeoutResult.stderr, /cannot be combined/);
+});
+
+test("ingest-high-risk-execution validates referenced candidate artifacts and writes a local payload", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedHighRiskCandidateArtifacts(projectRoot);
+
+    const closeoutPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(ingestResult.exitCode, 0);
+    const payload = JSON.parse(ingestResult.stdout);
+    assert.equal(payload.contractVersion, "nimicoding.high-risk-ingest.v1");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.validations.executionPacket.ok, true);
+    assert.equal(payload.validations.workerOutput.ok, true);
+    assert.equal(payload.validations.workerOutput.signal.status, "complete");
+    assert.equal(payload.validations.evidence[0].ok, true);
+
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.skill.id, "high_risk_execution");
+    assert.equal(stored.validations.prompt.ok, true);
+  });
+});
+
+test("ingest-high-risk-execution refuses non-completed high risk closeout artifacts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const closeoutPath = path.join(projectRoot, "high-risk-blocked-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "blocked",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "blocked",
+          summary: "Blocked waiting for review.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--json",
+    ]);
+
+    assert.equal(ingestResult.exitCode, 2);
+    assert.match(ingestResult.stderr, /requires a completed high_risk_execution closeout artifact/);
+  });
+});
+
+test("ingest-high-risk-execution fails closed when referenced artifacts are mechanically invalid", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedHighRiskCandidateArtifacts(projectRoot, {
+      workerOutputFixture: "worker-output.invalid.md",
+    });
+
+    const closeoutPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--json",
+    ]);
+
+    assert.equal(ingestResult.exitCode, 1);
+    const payload = JSON.parse(ingestResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.validations.workerOutput.ok, false);
+    assert.equal(payload.validations.workerOutput.refusal.code, "RUNNER_SIGNAL_MISSING");
+  });
+});
+
+test("review-high-risk-execution projects a manager-ready local payload from valid ingest", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedHighRiskCandidateArtifacts(projectRoot);
+
+    const closeoutPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--write-local",
+      "--json",
+    ]);
+    assert.equal(ingestResult.exitCode, 0);
+    const ingestPayload = JSON.parse(ingestResult.stdout);
+
+    const reviewResult = await captureRunCli([
+      "review-high-risk-execution",
+      "--from",
+      ingestPayload.artifactPath,
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(reviewResult.exitCode, 0);
+    const payload = JSON.parse(reviewResult.stdout);
+    assert.equal(payload.contractVersion, "nimicoding.high-risk-review.v1");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.reviewStatus, "ready_for_manager_review");
+    assert.equal(payload.managerReviewOwner, "nimicoding_manager");
+    assert.equal(payload.attachmentRefs.worker_output_ref, ".nimi/local/outputs/topic-1.worker-output.md");
+
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.skill.id, "high_risk_execution");
+    assert.equal(stored.reviewStatus, "ready_for_manager_review");
+  });
+});
+
+test("review-high-risk-execution rejects non-ready ingest payloads", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const ingestPath = path.join(projectRoot, "bad-ingest.json");
+    await writeFile(
+      ingestPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-ingest.v1",
+        ok: false,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        validations: {
+          executionPacket: { ok: false },
+          orchestrationState: { ok: true },
+          prompt: { ok: true },
+          workerOutput: { ok: true },
+          evidence: [{ ok: true }],
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const reviewResult = await captureRunCli([
+      "review-high-risk-execution",
+      "--from",
+      ingestPath,
+      "--json",
+    ]);
+
+    assert.equal(reviewResult.exitCode, 2);
+    assert.match(reviewResult.stderr, /requires an ingest payload with ok true/);
+  });
+});
+
+test("decide-high-risk-execution records a manager-owned local decision from review-ready payload", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedHighRiskCandidateArtifacts(projectRoot);
+
+    const closeoutPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestResult = await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--write-local",
+      "--json",
+    ]);
+    assert.equal(ingestResult.exitCode, 0);
+    const ingestPayload = JSON.parse(ingestResult.stdout);
+
+    const reviewResult = await captureRunCli([
+      "review-high-risk-execution",
+      "--from",
+      ingestPayload.artifactPath,
+      "--write-local",
+      "--json",
+    ]);
+    assert.equal(reviewResult.exitCode, 0);
+    const reviewPayload = JSON.parse(reviewResult.stdout);
+
+    const acceptancePath = path.join(projectRoot, ".nimi", "local", "reviews", "topic-1.acceptance.md");
+    await mkdir(path.dirname(acceptancePath), { recursive: true });
+    await writeFile(
+      acceptancePath,
+      await readFile(path.join(repoRoot, "test", "fixtures", "validators", "acceptance.valid.md"), "utf8"),
+      "utf8",
+    );
+
+    const decisionResult = await captureRunCli([
+      "decide-high-risk-execution",
+      "--from",
+      reviewPayload.artifactPath,
+      "--acceptance",
+      acceptancePath,
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--write-local",
+      "--json",
+    ]);
+
+    assert.equal(decisionResult.exitCode, 0);
+    const payload = JSON.parse(decisionResult.stdout);
+    assert.equal(payload.contractVersion, "nimicoding.high-risk-decision.v1");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.decisionStatus, "manager_decision_recorded");
+    assert.equal(payload.acceptanceDisposition, "complete");
+    assert.equal(payload.acceptanceValidation.ok, true);
+    assert.equal(payload.managerReviewOwner, "nimicoding_manager");
+
+    const stored = JSON.parse(await readFile(payload.artifactPath, "utf8"));
+    assert.equal(stored.skill.id, "high_risk_execution");
+    assert.equal(stored.decisionStatus, "manager_decision_recorded");
+  });
+});
+
+test("decide-high-risk-execution rejects invalid manager acceptance artifacts", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const reviewPath = path.join(projectRoot, "review.json");
+    await writeFile(
+      reviewPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-review.v1",
+        ok: true,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        reviewStatus: "ready_for_manager_review",
+        managerReviewOwner: "nimicoding_manager",
+        attachmentRefs: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const acceptancePath = path.join(projectRoot, "bad.acceptance.md");
+    await writeFile(
+      acceptancePath,
+      await readFile(path.join(repoRoot, "test", "fixtures", "validators", "acceptance.invalid.md"), "utf8"),
+      "utf8",
+    );
+
+    const decisionResult = await captureRunCli([
+      "decide-high-risk-execution",
+      "--from",
+      reviewPath,
+      "--acceptance",
+      acceptancePath,
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(decisionResult.exitCode, 1);
+    const payload = JSON.parse(decisionResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.acceptanceValidation.ok, false);
+    assert.equal(payload.acceptanceValidation.refusal.code, "ACCEPTANCE_INVALID");
+  });
+});
+
+test("admit-high-risk-decision updates canonical high-risk admissions truth when explicitly requested", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedHighRiskCandidateArtifacts(projectRoot);
+
+    const closeoutPath = path.join(projectRoot, "high-risk-closeout.json");
+    await writeFile(
+      closeoutPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "high_risk_execution" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [
+            ".nimi/local/evidence/topic-1.patch",
+          ],
+          status: "candidate_ready",
+          summary: "External execution produced a candidate packet/output/evidence bundle.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const ingestPayload = JSON.parse((await captureRunCli([
+      "ingest-high-risk-execution",
+      "--from",
+      closeoutPath,
+      "--write-local",
+      "--json",
+    ])).stdout);
+
+    const reviewPayload = JSON.parse((await captureRunCli([
+      "review-high-risk-execution",
+      "--from",
+      ingestPayload.artifactPath,
+      "--write-local",
+      "--json",
+    ])).stdout);
+
+    const acceptancePath = path.join(projectRoot, ".nimi", "local", "reviews", "topic-1.acceptance.md");
+    await mkdir(path.dirname(acceptancePath), { recursive: true });
+    await writeFile(
+      acceptancePath,
+      await readFile(path.join(repoRoot, "test", "fixtures", "validators", "acceptance.valid.md"), "utf8"),
+      "utf8",
+    );
+
+    const decisionPayload = JSON.parse((await captureRunCli([
+      "decide-high-risk-execution",
+      "--from",
+      reviewPayload.artifactPath,
+      "--acceptance",
+      acceptancePath,
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--write-local",
+      "--json",
+    ])).stdout);
+
+    const admitResult = await captureRunCli([
+      "admit-high-risk-decision",
+      "--from",
+      decisionPayload.artifactPath,
+      "--admitted-at",
+      "2026-04-11T00:00:00.000Z",
+      "--write-spec",
+      "--json",
+    ]);
+
+    assert.equal(admitResult.exitCode, 0);
+    const payload = JSON.parse(admitResult.stdout);
+    assert.equal(payload.contractVersion, "nimicoding.high-risk-admission.v1");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.admissionAction, "created");
+    assert.equal(payload.admissionRecord.topic_id, "topic-1");
+    assert.equal(payload.admissionRecord.packet_id, "pkt-1");
+    assert.equal(payload.admissionRecord.disposition, "complete");
+
+    const admissionsText = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "high-risk-admissions.yaml"),
+      "utf8",
+    );
+    assert.match(admissionsText, /topic_id: topic-1/);
+    assert.match(admissionsText, /packet_id: pkt-1/);
+    assert.match(admissionsText, /disposition: complete/);
+  });
+});
+
+test("admit-high-risk-decision rejects non-recorded decision payloads", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const decisionPath = path.join(projectRoot, "bad-decision.json");
+    await writeFile(
+      decisionPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-decision.v1",
+        ok: false,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        decisionStatus: "blocked",
+        acceptanceValidation: { ok: false },
+        attachmentRefs: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const admitResult = await captureRunCli([
+      "admit-high-risk-decision",
+      "--from",
+      decisionPath,
+      "--admitted-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(admitResult.exitCode, 2);
+    assert.match(admitResult.stderr, /requires a decision payload with ok true/);
+  });
+});
+
+test("package files publish canonical source dirs and start output matches source projection", { concurrency: false }, async () => {
+  const packageJson = JSON.parse(await readFile(path.join(repoRoot, "package.json"), "utf8"));
+  assert.ok(packageJson.files.includes("adapters"));
+  assert.ok(packageJson.files.includes("config"));
+  assert.ok(packageJson.files.includes("contracts"));
+  assert.ok(packageJson.files.includes("methodology"));
+  assert.ok(packageJson.files.includes("spec"));
+  assert.ok(!packageJson.files.includes("templates"));
+
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const seedMap = await createBootstrapSeedFileMap();
+    for (const [relativePath, expected] of seedMap.entries()) {
+      const actual = await readFile(path.join(projectRoot, relativePath), "utf8");
+      assert.equal(actual, expected, `source projection mismatch for ${relativePath}`);
+    }
+  });
+});
+
+test("package repo exposes package source dirs and is not treated as a host project unless initialized", async () => {
+  await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "core.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "product-scope.yaml"), "utf8"));
+  await assert.rejects(readFile(path.join(repoRoot, ".nimicoding-dev", "spec", "authority-map.yaml"), "utf8"));
+  await assert.rejects(readFile(path.join(repoRoot, "templates", "bootstrap", ".nimi", "config", "bootstrap.yaml"), "utf8"));
+  await assert.rejects(readFile(path.join(repoRoot, ".nimi", "config", "bootstrap.yaml"), "utf8"));
+
+  const doctorResult = await runCliSubprocess(["doctor", "--json"]);
+  assert.equal(doctorResult.exitCode, 1);
+
+  const payload = JSON.parse(doctorResult.stdout);
+  assert.equal(payload.ok, false);
+  assert.ok(payload.checks.some((check) => check.id === "nimi_root" && check.ok === false));
+});
+
+test("doctor fails closed when target truth is fully present but bootstrap state stays bootstrap_only", { concurrency: false }, async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedTargetTruthFilesOnly(projectRoot);
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(
+      JSON.stringify(payload.checks),
+      /transition to reconstruction_seeded/i,
+    );
+  });
+});
+
+const validatorCases = [
+  {
+    command: "validate-execution-packet",
+    valid: "execution-packet.valid.yaml",
+    invalid: "execution-packet.invalid.yaml",
+    refusalCode: "EXECUTION_PACKET_INVALID",
+  },
+  {
+    command: "validate-orchestration-state",
+    valid: "orchestration-state.valid.yaml",
+    invalid: "orchestration-state.invalid.yaml",
+    refusalCode: "ORCHESTRATION_STATE_INVALID",
+  },
+  {
+    command: "validate-prompt",
+    valid: "prompt.valid.md",
+    invalid: "prompt.invalid.md",
+    refusalCode: "PROMPT_INVALID",
+  },
+  {
+    command: "validate-worker-output",
+    valid: "worker-output.valid.md",
+    invalid: "worker-output.invalid.md",
+    refusalCode: "RUNNER_SIGNAL_MISSING",
+  },
+  {
+    command: "validate-acceptance",
+    valid: "acceptance.valid.md",
+    invalid: "acceptance.invalid.md",
+    refusalCode: "ACCEPTANCE_INVALID",
+  },
+];
+
+for (const validatorCase of validatorCases) {
+  test(`${validatorCase.command} returns machine-readable success and refusal payloads`, { concurrency: false }, async () => {
+    const validPath = path.join(repoRoot, "test", "fixtures", "validators", validatorCase.valid);
+    const invalidPath = path.join(repoRoot, "test", "fixtures", "validators", validatorCase.invalid);
+
+    const success = await runCliSubprocess([validatorCase.command, validPath]);
+    assert.equal(success.exitCode, 0);
+    const successPayload = JSON.parse(success.stdout);
+    assert.equal(successPayload.contract, "validator-cli-result.v1");
+    assert.equal(successPayload.validator, validatorCase.command);
+    assert.equal(successPayload.ok, true);
+
+    const failure = await runCliSubprocess([validatorCase.command, invalidPath]);
+    assert.equal(failure.exitCode, 1);
+    const failurePayload = JSON.parse(failure.stdout);
+    assert.equal(failurePayload.contract, "validator-cli-result.v1");
+    assert.equal(failurePayload.validator, validatorCase.command);
+    assert.equal(failurePayload.ok, false);
+    assert.equal(failurePayload.refusal.code, validatorCase.refusalCode);
+    assert.ok(Array.isArray(failurePayload.errors));
+    assert.ok(failurePayload.errors.length > 0);
+  });
+}

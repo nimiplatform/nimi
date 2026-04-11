@@ -1,0 +1,23 @@
+version: 1
+truth_contract:
+  id: canonical_high_risk_admissions_truth
+top_level_required_keys:
+  - admissions
+  - admission_rules
+  - semantic_constraints
+admission_required_fields:
+  - topic_id
+  - packet_id
+  - disposition
+  - admitted_at
+  - manager_review_owner
+  - summary
+  - source_decision_contract
+disposition_enum:
+  - complete
+  - partial
+  - deferred
+semantic_constraints:
+  - canonical_admission_records_must_not_promote_operational_runtime_state
+  - canonical_admission_records_must_use_one_record_per_topic_id
+  - canonical_admission_records_must_use_iso_8601_utc_admitted_at

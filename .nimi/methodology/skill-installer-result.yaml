@@ -1,0 +1,27 @@
+version: 1
+result_contract:
+  id: delegated_skill_installer_result_contract
+  installer_ref: .nimi/config/skill-installer.yaml
+  operational_evidence_home_ref: .nimi/config/installer-evidence.yaml
+  summary_projection_contract_ref: .nimi/methodology/skill-installer-summary-projection.yaml
+  truth_mode: fail_closed
+  semantic_outcome_classes:
+    - requested
+    - verified_installed
+    - verified_unavailable
+    - failed
+  forbidden_outcomes:
+    - installed_without_verification
+    - synthetic_success
+  verification_requirements:
+    - declared_skill_identity_matches_result
+    - declared_source_or_version_matches_verified_outcome
+    - unresolved_installation_cannot_be_reported_as_installed
+    - projected_summary_must_satisfy_summary_projection_contract
+    - intermediate_projection_statuses_must_not_be_reported_as_final_result
+  operational_only_artifacts:
+    - raw_installer_logs
+    - package_manager_output
+    - temp_paths
+    - downloaded_payloads
+    - retry_counters

@@ -1,0 +1,19 @@
+version: 1
+result_contract:
+  id: delegated_doc_spec_audit_result
+summary_required_fields:
+  - compared_paths
+  - finding_count
+  - status
+  - summary
+  - verified_at
+summary_status_enum:
+  - aligned
+  - drift_detected
+  - blocked
+default_compared_paths:
+  - README.md
+  - .nimi/spec
+locality: local_only
+semantic_constraints:
+  - do_not_promote_doc_spec_audit_summary_to_project_truth

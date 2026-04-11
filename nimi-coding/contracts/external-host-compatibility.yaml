@@ -1,0 +1,22 @@
+version: 1
+compatibility_contract:
+  id: external_host_boundary_compatibility
+  completion_profile: boundary_complete
+supported_host_posture:
+  - host_agnostic_external_host
+supported_host_examples:
+  - oh_my_codex
+  - codex
+  - claude
+  - gemini
+required_behavior:
+  - consume_handoff_json_as_authoritative_contract
+  - treat_handoff_prompt_as_human_projection_only
+  - read_project_local_nimi_truth
+  - route_declared_external_skills
+  - fail_closed_on_missing_authority
+forbidden_behavior:
+  - assume_packaged_run_kernel
+  - assume_provider_or_scheduler_ownership
+  - promote_runtime_state_to_semantic_truth
+  - redefine_acceptance_disposition_or_finding_judgment

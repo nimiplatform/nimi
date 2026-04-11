@@ -1,0 +1,25 @@
+version: 1
+host_adapter:
+  runtime_owner: external_ai_host
+  selected_adapter_id: none
+  admitted_adapter_ids:
+    - oh_my_codex
+  handoff_mode: prompt_output_evidence_handoff
+  evidence_mode: candidate_only
+  semantic_review_owner: nimicoding_manager
+  host_profile_ref: .nimi/config/host-profile.yaml
+  manifest_ref: .nimi/config/skill-manifest.yaml
+  artifact_contract_ref: .nimi/config/external-execution-artifacts.yaml
+  handoff_ref: .nimi/methodology/skill-handoff.yaml
+  operational_state_roots:
+    - .nimi/local
+    - .nimi/cache
+  semantic_owner_roots:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/config
+  hard_constraints:
+    - adapter_must_not_override_semantic_truth
+    - adapter_must_not_define_acceptance_or_disposition
+    - adapter_runtime_state_must_remain_operational_only

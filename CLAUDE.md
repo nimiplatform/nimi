@@ -29,6 +29,7 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
 | `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |
 | `kit/**` | `kit/AGENTS.md` |
+| `nimi-coding/**` | `nimi-coding/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
@@ -39,19 +40,19 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Methodology
 
-There is no currently admitted in-repo methodology package.
-
 - `spec/**` is the only normative source.
 - High-risk work still requires explicit authority preflight.
 - Small, local, low-risk fixes do not need a formal execution workspace when
   the authority boundary is already clear.
+- `nimi-coding/**` is an admitted monorepo package for methodology tooling and
+  bootstrap contracts, not repo-wide product authority.
 - For high-risk work, follow the nearest authoritative `AGENTS.md` and include
   `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth` in the
   design/plan surface when required.
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. No in-repo methodology package is currently admitted as execution-system authority. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
+- `spec/**` is the only normative contract source. `nimi-coding/**` is an admitted monorepo package for methodology tooling and bootstrap contracts, but it is not repo-wide product authority. Package-owned methodology source lives under `nimi-coding/{config,contracts,methodology,spec}/**`; host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -68,7 +69,7 @@ There is no currently admitted in-repo methodology package.
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `.local/**`, `config/**`.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 `.local/**` is the active local execution workspace family. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
@@ -82,3 +83,24 @@ There is no currently admitted in-repo methodology package.
 
 - `AGENTS.md` files are authoritative.
 - If this file diverges from an `AGENTS.md`, the `AGENTS.md` is correct.
+
+<!-- nimicoding:managed:claude:start -->
+# Nimi Coding Managed Block
+
+Use the project's .nimi layer as the primary AI truth surface.
+
+Priority:
+1. .nimi/methodology
+2. .nimi/spec
+3. .nimi/contracts
+4. .nimi/config
+5. repository-local AI entrypoint files
+
+If the project still exposes only bootstrap seed files, use the reconstruction guidance, reconstruction target-truth profile, result contracts, manifest, host-profile, host-adapter, admitted package-owned adapter profiles, installer, runtime contract, installer result contract, collapsed installer summary projection lifecycle contract, operational evidence guidance, and handoff truth under .nimi rather than assuming skills are already installed.
+
+Default posture:
+- use risk-shaped methodology only for authority-bearing or high-risk work
+- prefer inline manager-worker unless a later admitted packet expands runtime ownership
+- keep continuity-agnostic semantics; do not assume persistent automation or self-hosting
+- treat handoff --json as the authoritative machine contract and handoff --prompt as a human-readable projection only
+<!-- nimicoding:managed:claude:end -->

@@ -1,0 +1,26 @@
+version: 1
+reconstruction:
+  required: true
+  owner: ai_skills
+  target_truth_profile_ref: .nimi/methodology/spec-target-truth-profile.yaml
+  result_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
+  trigger:
+    bootstrap_state: bootstrap_only
+  goals:
+    - extract_project_authority
+    - establish_canonical_nimi_spec_truth
+    - keep_machine_truth_compact
+  target_outputs:
+    - .nimi/spec/authority-map.yaml
+    - .nimi/spec/boundaries.yaml
+    - .nimi/spec/ownership.yaml
+    - .nimi/spec/change-policy.yaml
+  hard_constraints:
+    - no_human_friendly_parallel_truth
+    - no_silent_authority_inference
+    - do_not_seed_empty_target_truth_files
+    - no_project_source_mutation_during_reconstruction
+    - respect_skill_manifest_installer_runtime_result_contract_host_profile_and_handoff_truth
+    - unresolved_ambiguity_must_remain_explicit
+  completion_gate:
+    bootstrap_state_transition: reconstruction_seeded

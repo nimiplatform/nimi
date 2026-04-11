@@ -1,0 +1,118 @@
+version: 1
+projection_contract:
+  id: delegated_skill_exchange_projection
+  owner: package_bootstrap_truth
+  locality: package_truth
+  truth_mode: fail_closed
+  exchange_surfaces:
+    - handoff
+    - closeout
+    - decision
+    - ingest
+    - review
+  output_modes:
+    - human_readable
+    - json
+    - prompt
+  handoff_payload:
+    required_fields:
+      - contractVersion
+      - projectRoot
+      - runtimeOwner
+      - triggerMode
+      - handoffReady
+      - skill.id
+      - skill.required
+      - skill.source
+      - skill.purpose
+      - skill.resultContractRef
+      - skill.readiness.ok
+      - context.orderedPaths
+      - constraints
+      - expectedResults
+      - targetTruth.present
+      - targetTruth.missing
+      - contracts.exchangeProjectionContractRef
+    optional_fields:
+      - doctor
+      - nextAction
+  closeout_payload:
+    required_fields:
+      - contractVersion
+      - projectRoot
+      - skill.id
+      - outcome
+      - verifiedAt
+      - localOnly
+      - artifactPath
+      - readiness.ok
+      - targetTruth.present
+      - targetTruth.missing
+      - contracts.exchangeProjectionContractRef
+    optional_fields:
+      - doctor
+      - nextAction
+      - skill.expectedArtifactRoots
+      - summary
+  ingest_payload:
+    required_fields:
+      - contractVersion
+      - projectRoot
+      - sourceCloseoutRef
+      - skill.id
+      - localOnly
+      - artifactPath
+      - readiness.ok
+      - validations.executionPacket.ok
+      - validations.orchestrationState.ok
+      - validations.prompt.ok
+      - validations.workerOutput.ok
+    optional_fields:
+      - doctor
+      - nextAction
+      - artifactRoots
+      - summary
+  review_payload:
+    required_fields:
+      - contractVersion
+      - projectRoot
+      - sourceIngestRef
+      - skill.id
+      - localOnly
+      - artifactPath
+      - reviewStatus
+      - managerReviewOwner
+      - readiness.ok
+      - attachmentRefs.packet_ref
+      - attachmentRefs.worker_output_ref
+    optional_fields:
+      - doctor
+      - nextAction
+      - summary
+      - ingestValidations
+  decision_payload:
+    required_fields:
+      - contractVersion
+      - projectRoot
+      - sourceReviewRef
+      - skill.id
+      - localOnly
+      - artifactPath
+      - verifiedAt
+      - decisionStatus
+      - acceptanceRef
+      - acceptanceDisposition
+      - acceptanceValidation.ok
+      - readiness.ok
+    optional_fields:
+      - doctor
+      - nextAction
+      - summary
+      - attachmentRefs
+  hard_constraints:
+    - do_not_promote_projection_payloads_to_semantic_truth
+    - imported_closeout_summaries_must_match_current_project
+    - missing_required_projection_fields_must_fail_closed
+    - completed_projection_claims_must_match_declared_target_truth_state
+    - review_projection_must_not_decide_acceptance_disposition_or_finding_judgment
+    - decision_projection_must_remain_local_only_even_when_manager_owned

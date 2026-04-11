@@ -1,0 +1,6 @@
+version: 1
+initialized_by: "@nimiplatform/nimi-coding"
+cli_version: "0.1.0"
+bootstrap_contract: "nimicoding.bootstrap"
+bootstrap_contract_version: 1
+profile: default

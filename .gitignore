@@ -52,3 +52,5 @@ dev/
 
 # local scratch outputs
 .tmp/
+.nimi/local/
+.nimi/cache/

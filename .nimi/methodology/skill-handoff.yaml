@@ -1,0 +1,36 @@
+version: 1
+handoff:
+  runtime_owner: external_ai_host
+  runtime_contract_ref: .nimi/methodology/skill-runtime.yaml
+  host_profile_ref: .nimi/config/host-profile.yaml
+  host_compatibility_contract_ref: .nimi/contracts/external-host-compatibility.yaml
+  installer_ref: .nimi/config/skill-installer.yaml
+  installer_result_contract_ref: .nimi/methodology/skill-installer-result.yaml
+  installer_summary_projection_contract_ref: .nimi/methodology/skill-installer-summary-projection.yaml
+  exchange_projection_contract_ref: .nimi/methodology/skill-exchange-projection.yaml
+  reconstruction_guidance_ref: .nimi/methodology/spec-reconstruction.yaml
+  reconstruction_target_truth_profile_ref: .nimi/methodology/spec-target-truth-profile.yaml
+  self_hosted_runtime: false
+  trigger_mode: explicit
+  required_context_order:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/methodology/spec-target-truth-profile.yaml
+    - .nimi/config/skill-manifest.yaml
+    - .nimi/config/host-profile.yaml
+    - .nimi/config/host-adapter.yaml
+    - .nimi/config/external-execution-artifacts.yaml
+    - .nimi/config/skill-installer.yaml
+    - .nimi/methodology/skill-runtime.yaml
+    - .nimi/methodology/skill-installer-result.yaml
+    - .nimi/methodology/skill-installer-summary-projection.yaml
+    - .nimi/methodology/skill-handoff.yaml
+  hard_constraints:
+    - do_not_assume_runtime_installed
+    - do_not_mutate_project_sources_during_bootstrap_handoff
+    - unresolved_authority_must_fail_closed
+  expected_results:
+    - resolve_against_declared_host_profile
+    - update_.nimi/spec_truth
+    - produce_derived_human_projection_only_when_requested

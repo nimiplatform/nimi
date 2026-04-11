@@ -1,0 +1,16 @@
+version: 1
+external_execution_artifacts:
+  skill_id: high_risk_execution
+  host_adapter_ref: .nimi/config/host-adapter.yaml
+  result_contract_ref: .nimi/contracts/high-risk-execution-result.yaml
+  locality: local_only
+  artifact_roots:
+    packet_ref: .nimi/local/packets
+    orchestration_state_ref: .nimi/local/orchestration
+    prompt_ref: .nimi/local/prompts
+    worker_output_ref: .nimi/local/outputs
+    evidence_refs: .nimi/local/evidence
+  hard_constraints:
+    - external_execution_artifacts_remain_operational_only
+    - imported_refs_must_stay_under_declared_local_roots
+    - candidate_artifacts_must_not_override_semantic_truth

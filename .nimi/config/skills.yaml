@@ -1,0 +1,28 @@
+version: 1
+bootstrap:
+  runtime_installed: false
+  installation_mode: deferred
+canonical_reconstruction_guidance: .nimi/methodology/spec-reconstruction.yaml
+canonical_reconstruction_target_truth_profile: .nimi/methodology/spec-target-truth-profile.yaml
+canonical_contracts_root: .nimi/contracts
+canonical_manifest: .nimi/config/skill-manifest.yaml
+canonical_host_profile: .nimi/config/host-profile.yaml
+canonical_host_adapter: .nimi/config/host-adapter.yaml
+canonical_external_execution_artifacts: .nimi/config/external-execution-artifacts.yaml
+canonical_runtime_contract: .nimi/methodology/skill-runtime.yaml
+canonical_installer: .nimi/config/skill-installer.yaml
+canonical_installer_result_contract: .nimi/methodology/skill-installer-result.yaml
+canonical_installer_operational_evidence: .nimi/config/installer-evidence.yaml
+canonical_installer_summary_projection_contract: .nimi/methodology/skill-installer-summary-projection.yaml
+handoff_contract: .nimi/methodology/skill-handoff.yaml
+runtime_owner: external_ai_host
+expected_skill_surfaces:
+  - id: spec_reconstruction
+    required: true
+    purpose: reconstruct_project_truth_into_.nimi/spec
+  - id: doc_spec_audit
+    required: true
+    purpose: compare_human_docs_against_.nimi/spec
+  - id: high_risk_execution
+    required: false
+    purpose: packetized_execution_after_project_truth_matures

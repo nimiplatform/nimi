@@ -1,0 +1,23 @@
+version: 1
+installer:
+  id: external_delegated_skill_installer
+  installer_owner: external_ai_host
+  installer_mode: delegated
+  install_state: not_installed
+  executable_installation: false
+  self_hosted: false
+  manifest_ref: .nimi/config/skill-manifest.yaml
+  runtime_contract_ref: .nimi/methodology/skill-runtime.yaml
+  host_profile_ref: .nimi/config/host-profile.yaml
+  result_contract_ref: .nimi/methodology/skill-installer-result.yaml
+  evidence_home_ref: .nimi/config/installer-evidence.yaml
+  install_flow:
+    - read_declared_skill_manifest
+    - resolve_against_declared_runtime_contract
+    - resolve_against_declared_host_profile
+    - require_explicit_external_install_action
+  hard_constraints:
+    - do_not_assume_local_installer_runtime
+    - do_not_assume_vendor_specific_package_manager
+    - do_not_claim_self_hosted_installation
+    - unresolved_install_requirement_must_fail_closed

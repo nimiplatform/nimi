@@ -168,7 +168,13 @@
     "docs:build": "pnpm --filter @nimiplatform/docs build",
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
     "lint": "pnpm check:agents-freshness && pnpm check:high-risk-doc-metadata && pnpm check:no-retired-methodology-refs && pnpm check:no-legacy-imports && pnpm check:no-legacy-app-auth-cli && pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands && pnpm check:no-legacy-mod-permissions-field && pnpm check:no-nimid-doc-invocation && pnpm check:no-nimid-source && pnpm check:desktop-cloud-runtime-only && pnpm check:desktop-chat-authority-anti-patterns && pnpm check:desktop-no-legacy-runtime-config-path && pnpm check:desktop-no-e2e-bypass && pnpm check:nimi-kit && pnpm check:nimi-ui-pattern && pnpm check:nimi-ui-lib-drift && pnpm check:no-legacy-cloud-provider-keys && pnpm check:examples && pnpm check:examples-run-comments && pnpm check:markdown && pnpm check:first-run-doc-drift && pnpm check:install-script-smoke && pnpm check:no-absolute-user-paths && pnpm check:no-legacy-doc-contracts && pnpm check:spec-human-doc-drift && pnpm check:spec-semantic-completeness && pnpm check:runtime-proto-spec-linkage && pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift && pnpm check:sdk-spec-kernel-consistency && pnpm check:sdk-spec-kernel-docs-drift && pnpm check:desktop-spec-kernel-consistency && pnpm check:desktop-spec-kernel-docs-drift && pnpm check:platform-spec-kernel-consistency && pnpm check:platform-spec-kernel-docs-drift && pnpm check:realm-spec-kernel-consistency && pnpm check:realm-spec-kernel-docs-drift && pnpm check:future-spec-kernel-consistency && pnpm check:future-spec-kernel-docs-drift && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-catalog-drift && pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-mod-hook-hardcut && pnpm check:runtime-mod-browser-storage-hardcut && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-alias-hardcut && pnpm check:runtime-provider-yaml-first-hardcut && pnpm check:runtime-provider-endpoint-ssot && pnpm check:runtime-video-capability-block-enforcement && pnpm check:runtime-startup-hardcut && pnpm check:desktop-bootstrap-hardcut && pnpm check:scope-catalog-drift && pnpm check:sdk-import-boundary && pnpm check:sdk-single-package-layout && pnpm check:sdk-public-naming && pnpm check:sdk-realm-legacy-clean && pnpm check:realm-sdk-generator-smoke && pnpm check:sdk-generated-type-quality && pnpm check:sdk-fallback-hardcut && pnpm check:sdk-unsafe-raw-usage && pnpm check:no-create-nimi-client && pnpm check:no-openapi-base-assignment && pnpm check:no-openapi-token-assignment && pnpm check:no-openapi-singleton-import && pnpm check:no-app-realm-rest-bypass && pnpm check:no-first-party-sdk-client-construction && pnpm check:runtime-stable-ai-output-typing && pnpm check:reason-code-constants && pnpm check:desktop-no-client-alias && pnpm check:desktop-scroll-shell && pnpm check:package-license-matrix && pnpm check:ai-context-budget && pnpm check:ai-structure-budget && pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/web lint",
-    "test": "pnpm --filter @nimiplatform/install-gateway test && pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test",
+    "test": "pnpm --filter @nimiplatform/install-gateway test && pnpm --filter @nimiplatform/nimi-coding test && pnpm --filter @nimiplatform/sdk test && pnpm --filter @nimiplatform/desktop test && pnpm --filter @nimiplatform/web test",
+    "nimicoding:test": "pnpm --filter @nimiplatform/nimi-coding test",
+    "nimicoding:pack": "pnpm --filter @nimiplatform/nimi-coding check:pack",
+    "nimicoding:start": "pnpm exec nimicoding start",
+    "nimicoding:start:yes": "pnpm exec nimicoding start --yes",
+    "nimicoding:clear": "pnpm exec nimicoding clear",
+    "nimicoding:doctor": "pnpm exec nimicoding doctor",
     "check:no-retired-methodology-refs": "node scripts/check-no-retired-methodology-refs.mjs"
   },
   "pnpm": {
@@ -178,5 +184,8 @@
   },
   "dependencies": {
     "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@nimiplatform/nimi-coding": "workspace:*"
   }
 }

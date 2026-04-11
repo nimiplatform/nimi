@@ -1,0 +1,41 @@
+version: 1
+target_truth_profile:
+  id: delegated_spec_reconstruction_target_truth_profile
+  owner: package_bootstrap_truth
+  mode: guidance_only
+  generated_files_remain_missing_until_reconstruction: true
+  profile_scope:
+    - .nimi/spec/authority-map.yaml
+    - .nimi/spec/boundaries.yaml
+    - .nimi/spec/ownership.yaml
+    - .nimi/spec/change-policy.yaml
+  output_profiles:
+    - path: .nimi/spec/authority-map.yaml
+      purpose: map_project_authority_surfaces_and_declared_owners
+      minimum_sections:
+        - authorities
+        - ownership_rules
+        - escalation_paths
+    - path: .nimi/spec/boundaries.yaml
+      purpose: describe_allowed_and_forbidden_cross-surface_mutation_boundaries
+      minimum_sections:
+        - boundaries
+        - invariants
+        - fail_closed_rules
+    - path: .nimi/spec/ownership.yaml
+      purpose: declare_surface_owners_and_change_approval_modes
+      minimum_sections:
+        - surfaces
+        - ownership_modes
+        - approval_requirements
+    - path: .nimi/spec/change-policy.yaml
+      purpose: define_change_classes_entry_gates_and_parallel_truth_rules
+      minimum_sections:
+        - work_types
+        - authority_gates
+        - parallel_truth_policy
+  hard_constraints:
+    - do_not_seed_empty_target_truth_files_during_bootstrap
+    - do_not_treat_profile_as_generated_project_truth
+    - do_not_allow_vendor_specific_output_contracts
+    - unresolved_target_shape_must_remain_explicit

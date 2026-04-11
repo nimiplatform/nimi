@@ -1,0 +1,20 @@
+version: 1
+result_contract:
+  id: delegated_high_risk_execution_result
+summary_required_fields:
+  - packet_ref
+  - orchestration_state_ref
+  - prompt_ref
+  - worker_output_ref
+  - evidence_refs
+  - status
+  - summary
+  - verified_at
+summary_status_enum:
+  - candidate_ready
+  - blocked
+  - failed
+locality: local_only
+semantic_constraints:
+  - do_not_promote_high_risk_execution_summary_to_project_truth
+  - do_not_treat_external_execution_summary_as_acceptance_or_disposition

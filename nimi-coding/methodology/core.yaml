@@ -1,0 +1,25 @@
+version: 1
+product:
+  package_name: "@nimiplatform/nimi-coding"
+  repository_stage: bootstrap
+truth_model:
+  root: ".nimi"
+  methodology_in_project: true
+  ai_native_first: true
+  human_projection: derived_only
+execution_bootstrap:
+  self_hosting: false
+  current_governance_mode: main_repo_nimi_coding
+  local_topic_runtime_admitted: false
+methodology_posture:
+  risk_shape: authority_bearing_or_high_risk_only
+  execution_default: inline_manager_worker
+  continuity_model: continuity_agnostic
+entry_policy:
+  high_risk_work_requires_methodology: true
+  small_low_risk_changes_need_topic: false
+deferred_surfaces:
+  - skill_runtime
+  - skill_installation_runtime
+  - self_hosting_execution
+  - project_local_topic_runtime
