@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
-import { clearAuthSession as clearPersistedAuthSession } from '../../bridge/auth-session.js';
+import { clearAuthSession as clearPersistedAuthSession } from '../../bridge/index.js';
 import { seedMockData, type SeedProgress } from '../../infra/mock-seed.js';
 
 /* ── design tokens (aligned with dashboard C) ──────────────── */

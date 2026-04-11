@@ -4,8 +4,10 @@ const mockUpdateAuth = vi.fn();
 const mockRequest = vi.fn();
 const mockEnsureMomentBootstrapReady = vi.fn(async () => undefined);
 
-vi.mock('@renderer/bridge/oauth.js', () => ({
+vi.mock('@renderer/bridge', () => ({
   momentTauriOAuthBridge: { openExternalUrl: vi.fn() },
+  clearAuthSession: vi.fn(),
+  saveAuthSession: vi.fn(),
 }));
 
 vi.mock('@renderer/infra/bootstrap/moment-bootstrap.js', () => ({

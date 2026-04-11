@@ -3,7 +3,7 @@ import { persistSharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
 import {
   clearAuthSession as clearPersistedAuthSession,
   saveAuthSession,
-} from '../bridge/auth-session.js';
+} from '../bridge/index.js';
 import { useAppStore } from '../app-shell/app-store.js';
 
 type CurrentUserDto = RealmServiceResult<'MeService', 'getMe'>;

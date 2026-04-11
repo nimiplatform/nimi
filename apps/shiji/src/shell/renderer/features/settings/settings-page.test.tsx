@@ -2,7 +2,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
-import type { RuntimeDefaults } from '@renderer/bridge/types.js';
+import type { RuntimeDefaults } from '@renderer/bridge';
 import SettingsPage from './settings-page.js';
 
 const runtimeModelPickerPanelMock = vi.fn((_props: unknown) => <div data-testid="runtime-model-picker-panel" />);
@@ -32,6 +32,7 @@ const BASE_RUNTIME_DEFAULTS: RuntimeDefaults = {
     realtimeUrl: '',
     accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
+    revocationUrl: '',
     jwtIssuer: 'https://realm.example.com',
     jwtAudience: 'nimi-runtime',
   },

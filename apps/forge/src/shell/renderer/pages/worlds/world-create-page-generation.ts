@@ -9,7 +9,7 @@ import type {
   WorldLorebookDraftRow,
   WorldStudioCreateStep,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import {
   getOfficialFactoryBatchRun,

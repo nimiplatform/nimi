@@ -6,8 +6,8 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { momentTauriOAuthBridge } from '@renderer/bridge';
 import { createMomentDesktopBrowserAuthAdapter } from './moment-auth-adapter.js';
-import { momentTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 
 export function MomentLoginPage() {
   const adapter = useMemo(() => createMomentDesktopBrowserAuthAdapter(), []);

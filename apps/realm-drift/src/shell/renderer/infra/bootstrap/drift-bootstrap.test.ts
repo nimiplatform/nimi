@@ -5,8 +5,11 @@ const mockGetRuntimeDefaults = vi.fn();
 const mockInitializePlatformClient = vi.fn();
 const mockInitI18n = vi.fn();
 
-vi.mock('@renderer/bridge/runtime-defaults.js', () => ({
+vi.mock('@renderer/bridge', () => ({
   getRuntimeDefaults: (...args: unknown[]) => mockGetRuntimeDefaults(...args),
+  clearAuthSession: vi.fn(),
+  loadAuthSession: vi.fn(() => null),
+  saveAuthSession: vi.fn(),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({

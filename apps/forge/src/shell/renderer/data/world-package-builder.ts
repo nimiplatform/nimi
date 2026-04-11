@@ -1,7 +1,7 @@
 import type {
   WorldLorebookDraftRow,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import type { ForgeWorkspaceSnapshot } from '@renderer/state/creator-world-workspace.js';
 import {
   publishableWorldPackageSchema,

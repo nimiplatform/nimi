@@ -1,14 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── Mocks ──────────────────────────────────────────────────
-
-const mockHasTauriInvoke = vi.fn<() => boolean>();
-
-vi.mock('./env.js', () => ({
-  hasTauriInvoke: (...args: unknown[]) => mockHasTauriInvoke(...(args as [])),
-}));
-
-const { BridgeError, invoke, invokeChecked } = await import('./invoke.js');
+const { BridgeError, invoke, invokeChecked } = await import('./index.js');
 
 // ── Tests ──────────────────────────────────────────────────
 
@@ -33,8 +25,6 @@ describe('invoke', () => {
   });
 
   it('throws BridgeError when hasTauriInvoke returns false', async () => {
-    mockHasTauriInvoke.mockReturnValue(false);
-
     await expect(invoke('my_command', { key: 'val' })).rejects.toThrow(BridgeError);
     await expect(invoke('my_command')).rejects.toSatisfy((err: InstanceType<typeof BridgeError>) => {
       return err.command === 'my_command' && err.message === 'Tauri runtime is not available';
@@ -42,7 +32,6 @@ describe('invoke', () => {
   });
 
   it('calls scoped tauri invoke when available', async () => {
-    mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ success: true });
 
     tauriWindow.__NIMI_TAURI_TEST__ = {
@@ -56,7 +45,6 @@ describe('invoke', () => {
   });
 
   it('wraps native errors into BridgeError', async () => {
-    mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue(new Error('network timeout'));
 
     tauriWindow.__NIMI_TAURI_TEST__ = {
@@ -75,7 +63,6 @@ describe('invoke', () => {
   });
 
   it('wraps non-Error rejections into BridgeError', async () => {
-    mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue('string rejection');
 
     tauriWindow.__NIMI_TAURI_TEST__ = {
@@ -104,7 +91,6 @@ describe('invokeChecked', () => {
   });
 
   it('calls parseResult on the invoke result', async () => {
-    mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ value: 123 });
 
     tauriWindow.__NIMI_TAURI_TEST__ = {

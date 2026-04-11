@@ -4,10 +4,10 @@ import {
   type AuthPlatformAdapter,
 } from '@nimiplatform/nimi-kit/auth';
 import {
+  lookdevTauriOAuthBridge,
   clearAuthSession as clearPersistedAuthSession,
   saveAuthSession,
 } from '@renderer/bridge';
-import { lookdevTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { ensureLookdevBootstrapReady } from '@renderer/infra/bootstrap/lookdev-bootstrap.js';

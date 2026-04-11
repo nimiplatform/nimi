@@ -7,7 +7,7 @@ import {
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { createParentOSDesktopBrowserAuthAdapter } from './parentos-auth-adapter.js';
-import { parentosTauriOAuthBridge } from '../../bridge/oauth.js';
+import { parentosTauriOAuthBridge } from '../../bridge/index.js';
 
 export function ParentOSLoginPage() {
   const adapter = useMemo(() => createParentOSDesktopBrowserAuthAdapter(), []);

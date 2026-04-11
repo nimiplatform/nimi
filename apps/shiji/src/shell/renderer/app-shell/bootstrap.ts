@@ -1,4 +1,4 @@
-import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
+import { getRuntimeDefaults, invoke } from '@renderer/bridge';
 import { useAppStore } from './app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
 import {
@@ -7,7 +7,6 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './bootstrap-auth.js';
-import { invoke } from '@renderer/bridge/invoke.js';
 import {
   clearAuthSession as clearPersistedAuthSession,
   getDaemonStatus,

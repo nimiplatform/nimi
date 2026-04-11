@@ -6,7 +6,7 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import {
   batchUpsertWorldResourceBindings,
   createWorldDraft,

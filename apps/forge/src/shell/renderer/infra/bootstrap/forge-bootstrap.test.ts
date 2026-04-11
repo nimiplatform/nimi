@@ -7,12 +7,12 @@ const mockGetDaemonStatus = vi.fn();
 const mockBootstrapAuthSession = vi.fn();
 const mockInitializePlatformClient = vi.fn();
 
-vi.mock('@renderer/bridge/runtime-defaults.js', () => ({
+vi.mock('@renderer/bridge', () => ({
   getRuntimeDefaults: (...args: unknown[]) => mockGetRuntimeDefaults(...args),
-}));
-
-vi.mock('@renderer/bridge/runtime-daemon.js', () => ({
   getDaemonStatus: (...args: unknown[]) => mockGetDaemonStatus(...args),
+  clearAuthSession: vi.fn(),
+  loadAuthSession: vi.fn(() => null),
+  saveAuthSession: vi.fn(),
 }));
 
 vi.mock('./forge-bootstrap-auth.js', () => ({

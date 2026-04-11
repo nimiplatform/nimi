@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-daemon.js';
+import { getDaemonStatus, startDaemon } from '@renderer/bridge';
 import { useAppStore, type RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
 import { loadRuntimeTargetCatalog, pickDefaultRuntimeTargetOption } from '@renderer/features/lookdev/lookdev-route.js';
 

@@ -6,12 +6,12 @@ import {
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import {
+  getRuntimeDefaults,
+  getDaemonStatus,
   clearAuthSession as clearPersistedAuthSession,
   loadAuthSession,
   saveAuthSession,
 } from '@renderer/bridge';
-import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
-import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import { bootstrapAuthSession } from './moment-bootstrap-auth.js';
 
 let bootstrapPromise: Promise<void> | null = null;

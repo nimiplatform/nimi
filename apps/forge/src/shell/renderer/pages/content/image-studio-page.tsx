@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { type JsonObject } from '@renderer/bridge/types.js';
+import { type JsonObject } from '@renderer/bridge';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';

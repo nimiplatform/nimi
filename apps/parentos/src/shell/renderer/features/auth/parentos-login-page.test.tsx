@@ -22,7 +22,7 @@ vi.mock('./parentos-auth-adapter.js', () => ({
   })),
 }));
 
-vi.mock('../../bridge/oauth.js', () => ({
+vi.mock('../../bridge/index.js', () => ({
   parentosTauriOAuthBridge: {
     hasTauriInvoke: vi.fn(() => true),
     oauthListenForCode: vi.fn(),

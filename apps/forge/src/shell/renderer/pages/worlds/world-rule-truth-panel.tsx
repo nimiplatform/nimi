@@ -1,5 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { useEffect, useState } from 'react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { AgentSummary } from '@renderer/hooks/use-agent-queries.js';

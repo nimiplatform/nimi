@@ -7,7 +7,7 @@
 
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 
 function realm() {
   return getPlatformClient().realm;

@@ -10,7 +10,8 @@
       "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],
       "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
       "@nimiplatform/nimi-kit/telemetry": ["../../kit/telemetry/src/telemetry/index.ts"],
-      "@nimiplatform/nimi-kit/telemetry/error-boundary": ["../../kit/telemetry/src/error-boundary/index.ts"]
+      "@nimiplatform/nimi-kit/telemetry/error-boundary": ["../../kit/telemetry/src/error-boundary/index.ts"],
+      "@nimiplatform/nimi-kit/shell/renderer/bridge": ["../../kit/shell/renderer/src/bridge/index.ts"]
     },
     "target": "ES2022",
     "module": "ESNext",

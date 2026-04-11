@@ -2,7 +2,7 @@ import type {
   WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { asRecord } from '@nimiplatform/sdk/mod';
 
 type LegacyWorkspaceSnapshotRecord = Partial<WorldStudioWorkspaceSnapshot> & {

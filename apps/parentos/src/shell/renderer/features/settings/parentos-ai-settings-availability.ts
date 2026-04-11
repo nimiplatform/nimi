@@ -1,5 +1,5 @@
-import { getRuntimeBridgeStatus } from '../../bridge/runtime-daemon.js';
-import type { RuntimeBridgeDaemonStatus } from '../../bridge/types.js';
+import { getDaemonStatus as getRuntimeBridgeStatus } from '../../bridge/index.js';
+import type { RuntimeBridgeDaemonStatus } from '../../bridge/index.js';
 import { loadParentosRuntimeRouteOptions } from '../../infra/parentos-runtime-route-options.js';
 import { describeError, logRendererEvent } from '../../infra/telemetry/renderer-log.js';
 

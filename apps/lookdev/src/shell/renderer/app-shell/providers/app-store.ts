@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { RuntimeDefaults } from '@renderer/bridge/types.js';
+import type { RuntimeDefaults } from '@renderer/bridge';
 import type { LookdevRuntimeTargetOption } from '@renderer/features/lookdev/lookdev-route.js';
 import { loadLookdevRouteSettings, persistLookdevRouteSettings } from './lookdev-route-settings-storage.js';
 

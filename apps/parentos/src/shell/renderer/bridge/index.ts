@@ -32,5 +32,7 @@ export type {
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 
 import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+export const parentosTauriOAuthBridge = createTauriOAuthBridge();
 
-export const lookdevTauriOAuthBridge = createTauriOAuthBridge();
+export type { ParentOSRuntimeDefaults } from './parentos-types.js';
+export { getParentOSRuntimeDefaults } from './parentos-runtime-defaults.js';

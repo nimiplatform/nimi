@@ -1,5 +1,5 @@
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 type CreateWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCreateDraft'>[0];

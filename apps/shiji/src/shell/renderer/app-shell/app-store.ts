@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { RuntimeDefaults } from '@renderer/bridge/types.js';
+import type { RuntimeDefaults } from '@renderer/bridge';
 
 // ── Auth ─────────────────────────────────────────────────────────────────
 

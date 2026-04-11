@@ -1,4 +1,4 @@
-import { hasTauriRuntime, invokeTauri } from '../../bridge/tauri-api.js';
+import { hasTauriRuntime, invokeTauri } from '../../bridge/index.js';
 
 export type ParentosRendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 

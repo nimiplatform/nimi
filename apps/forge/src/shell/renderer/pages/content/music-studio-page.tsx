@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeResource } from '@renderer/data/content-data-client.js';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';

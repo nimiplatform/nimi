@@ -738,6 +738,7 @@ describe('CreateBatchPage', () => {
             realtimeUrl: '',
             accessToken: '',
             jwksUrl: 'http://localhost:3002/api/auth/jwks',
+            revocationUrl: '',
             jwtIssuer: 'http://localhost:3002',
             jwtAudience: 'nimi-runtime',
           },

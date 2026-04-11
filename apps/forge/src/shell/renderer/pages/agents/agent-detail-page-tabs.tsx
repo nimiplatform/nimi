@@ -6,7 +6,7 @@ import {
   useRuntimeChatSession,
   type RuntimeChatSessionMessage,
 } from '@nimiplatform/nimi-kit/features/chat/runtime';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import {
   DNA_PRIMARY_TYPES,
   DNA_SECONDARY_TRAITS,

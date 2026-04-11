@@ -6,8 +6,8 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { lookdevTauriOAuthBridge } from '@renderer/bridge';
 import { createLookdevDesktopBrowserAuthAdapter } from './lookdev-auth-adapter.js';
-import { lookdevTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 
 export function LookdevLoginPage() {
   const adapter = useMemo(() => createLookdevDesktopBrowserAuthAdapter(), []);

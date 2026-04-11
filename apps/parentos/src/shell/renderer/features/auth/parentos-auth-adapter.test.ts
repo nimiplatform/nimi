@@ -4,7 +4,7 @@ const mockUpdateAuth = vi.fn();
 const mockRequest = vi.fn();
 const mockRunParentOSBootstrap = vi.fn(async () => undefined);
 
-vi.mock('../../bridge/oauth.js', () => ({
+vi.mock('../../bridge/index.js', () => ({
   parentosTauriOAuthBridge: { openExternalUrl: vi.fn() },
 }));
 

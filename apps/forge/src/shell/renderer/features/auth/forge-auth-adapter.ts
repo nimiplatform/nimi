@@ -4,10 +4,10 @@ import {
   type AuthPlatformAdapter,
 } from '@nimiplatform/nimi-kit/auth';
 import {
+  forgeTauriOAuthBridge,
   clearAuthSession as clearPersistedAuthSession,
   saveAuthSession,
 } from '@renderer/bridge';
-import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { ensureForgeBootstrapReady } from '@renderer/infra/bootstrap/forge-bootstrap.js';

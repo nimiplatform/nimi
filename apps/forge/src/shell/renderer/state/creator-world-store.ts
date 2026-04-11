@@ -14,7 +14,7 @@ import type {
   WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { cloneDefaultSnapshot } from '@world-engine/state/workspace/defaults.js';
 import { syncSnapshot } from '@world-engine/state/workspace/normalize.js';
 import { asRecord, loadLocalStorageJson, saveLocalStorageJson } from '@nimiplatform/sdk/mod';

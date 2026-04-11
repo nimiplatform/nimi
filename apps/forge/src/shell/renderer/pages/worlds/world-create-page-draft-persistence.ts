@@ -4,7 +4,7 @@ import type {
   WorldStudioCreateStep,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { getWorldDraft } from '@renderer/data/world-data-client.js';
 import type { ForgeWorkspacePatch } from '@renderer/state/creator-world-workspace.js';
 import {

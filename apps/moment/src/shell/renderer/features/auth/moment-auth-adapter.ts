@@ -5,10 +5,10 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  momentTauriOAuthBridge,
   clearAuthSession as clearPersistedAuthSession,
   saveAuthSession,
 } from '@renderer/bridge';
-import { momentTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { ensureMomentBootstrapReady } from '@renderer/infra/bootstrap/moment-bootstrap.js';
 

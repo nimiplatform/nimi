@@ -1,5 +1,5 @@
-import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import {
+  getRuntimeDefaults,
   clearAuthSession as clearPersistedAuthSession,
   loadAuthSession,
   saveAuthSession,

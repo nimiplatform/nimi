@@ -6,8 +6,8 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { forgeTauriOAuthBridge } from '@renderer/bridge';
 import { createForgeDesktopBrowserAuthAdapter } from './forge-auth-adapter.js';
-import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 
 export function ForgeLoginPage() {
   const adapter = useMemo(() => createForgeDesktopBrowserAuthAdapter(), []);

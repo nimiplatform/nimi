@@ -4,9 +4,13 @@ const getRuntimeBridgeStatusMock = vi.fn();
 const loadParentosRuntimeRouteOptionsMock = vi.fn();
 const logRendererEventMock = vi.fn();
 
-vi.mock('../../bridge/runtime-daemon.js', () => ({
-  getRuntimeBridgeStatus: getRuntimeBridgeStatusMock,
-}));
+vi.mock('@nimiplatform/nimi-kit/shell/renderer/bridge', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    getDaemonStatus: getRuntimeBridgeStatusMock,
+  };
+});
 
 vi.mock('../../infra/parentos-runtime-route-options.js', () => ({
   loadParentosRuntimeRouteOptions: loadParentosRuntimeRouteOptionsMock,

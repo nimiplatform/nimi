@@ -1,5 +1,4 @@
-import { hasTauriInvoke } from './env.js';
-import { invoke } from './invoke.js';
+import { hasTauriInvoke, invoke } from './index.js';
 
 export async function startParentosWindowDrag(): Promise<void> {
   if (!hasTauriInvoke()) {

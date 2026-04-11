@@ -4,8 +4,10 @@ const mockUpdateAuth = vi.fn();
 const mockRequest = vi.fn();
 const mockEnsureForgeBootstrapReady = vi.fn(async () => undefined);
 
-vi.mock('@renderer/bridge/oauth.js', () => ({
+vi.mock('@renderer/bridge', () => ({
   forgeTauriOAuthBridge: { openExternalUrl: vi.fn() },
+  clearAuthSession: vi.fn(),
+  saveAuthSession: vi.fn(),
 }));
 
 vi.mock('@renderer/infra/bootstrap/forge-bootstrap.js', () => ({

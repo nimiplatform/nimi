@@ -1,5 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 
 type AgentRuleDto = RealmModel<'AgentRuleDto'>;
 type WorldRuleDto = RealmModel<'WorldRuleDto'>;

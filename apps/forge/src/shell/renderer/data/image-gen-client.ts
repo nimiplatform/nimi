@@ -6,7 +6,7 @@
  */
 
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import {
   createImageDirectUpload,

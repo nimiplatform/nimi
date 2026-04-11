@@ -6,8 +6,8 @@ import {
 import {
   clearAuthSession as clearPersistedAuthSession,
   saveAuthSession,
-} from '../../bridge/auth-session.js';
-import { parentosTauriOAuthBridge } from '../../bridge/oauth.js';
+  parentosTauriOAuthBridge,
+} from '../../bridge/index.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { ensureParentOSBootstrapReady } from '../../infra/parentos-bootstrap.js';

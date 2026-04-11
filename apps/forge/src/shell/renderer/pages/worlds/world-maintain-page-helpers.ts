@@ -1,7 +1,7 @@
 import type {
   EventNodeDraft,
 } from '@world-engine/contracts.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import {
   FORGE_WORLD_HISTORY_EVENT_TYPE,
   FORGE_WORLD_WORKSPACE_TARGET_PATH,

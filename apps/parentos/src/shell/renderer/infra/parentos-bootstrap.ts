@@ -1,9 +1,9 @@
-import { getRuntimeDefaults } from '../bridge/runtime-defaults.js';
+import { getParentOSRuntimeDefaults } from '../bridge/index.js';
 import {
   clearAuthSession as clearPersistedAuthSession,
   loadAuthSession,
   saveAuthSession,
-} from '../bridge/auth-session.js';
+} from '../bridge/index.js';
 import { useAppStore } from '../app-shell/app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
 import {
@@ -68,7 +68,7 @@ async function doRunParentOSBootstrap(): Promise<void> {
 
   try {
     // Step 1: Runtime Defaults
-    const runtimeDefaults = await getRuntimeDefaults();
+    const runtimeDefaults = await getParentOSRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
 
     // Step 2: Resolve persisted auth session

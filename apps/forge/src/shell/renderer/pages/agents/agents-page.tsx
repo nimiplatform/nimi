@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button, SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAgentListQuery, type AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
-import type { JsonObject } from '@renderer/bridge/types.js';
+import type { JsonObject } from '@renderer/bridge';
 import { ForgePage, ForgePageHeader, ForgeEmptyState, ForgeLoadingSpinner } from '@renderer/components/page-layout.js';
 import { ForgeSegmentControl } from '@renderer/components/segment-control.js';
 import { ForgeListCard, ForgeEntityAvatar } from '@renderer/components/card-list.js';

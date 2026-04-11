@@ -1,6 +1,6 @@
-import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
-import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import {
+  getRuntimeDefaults,
+  getDaemonStatus,
   clearAuthSession as clearPersistedAuthSession,
   loadAuthSession,
   saveAuthSession,

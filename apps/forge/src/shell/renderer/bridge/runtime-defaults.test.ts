@@ -1,19 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ── Mocks ──────────────────────────────────────────────────
-
-const mockHasTauriInvoke = vi.fn<() => boolean>();
-const mockInvokeChecked = vi.fn();
-
-vi.mock('./env.js', () => ({
-  hasTauriInvoke: (...args: unknown[]) => mockHasTauriInvoke(...(args as [])),
-}));
-
-vi.mock('./invoke.js', () => ({
-  invokeChecked: (...args: unknown[]) => mockInvokeChecked(...args),
-}));
-
-const { getRuntimeDefaults } = await import('./runtime-defaults.js');
+const { getRuntimeDefaults } = await import('./index.js');
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -35,16 +22,16 @@ function clearEnv() {
 // ── Tests ──────────────────────────────────────────────────
 
 describe('getRuntimeDefaults', () => {
+  const tauriWindow = window as unknown as Record<string, unknown>;
+  const mockTauriInvoke = vi.fn<(cmd: string, payload?: unknown) => Promise<unknown>>();
+
   beforeEach(() => {
     vi.clearAllMocks();
     clearEnv();
+    tauriWindow.__NIMI_TAURI_TEST__ = undefined;
   });
 
   describe('when Tauri is not available (fallback path)', () => {
-    beforeEach(() => {
-      mockHasTauriInvoke.mockReturnValue(false);
-    });
-
     it('returns fallback defaults with http://localhost:3002 as realmBaseUrl', async () => {
       const defaults = await getRuntimeDefaults();
 
@@ -54,8 +41,7 @@ describe('getRuntimeDefaults', () => {
       expect(defaults.runtime.targetType).toBe('AGENT');
       expect(defaults.runtime.userConfirmedUpload).toBe(false);
 
-      // invokeChecked should not have been called
-      expect(mockInvokeChecked).not.toHaveBeenCalled();
+      expect(mockTauriInvoke).not.toHaveBeenCalled();
     });
 
     it('reads NIMI_REALM_URL env override', async () => {
@@ -83,11 +69,13 @@ describe('getRuntimeDefaults', () => {
 
   describe('when Tauri is available (invoke path)', () => {
     beforeEach(() => {
-      mockHasTauriInvoke.mockReturnValue(true);
+      tauriWindow.__NIMI_TAURI_TEST__ = {
+        invoke: mockTauriInvoke,
+      };
     });
 
     it('calls invokeChecked with runtime_defaults command', async () => {
-      mockInvokeChecked.mockResolvedValue({
+      mockTauriInvoke.mockResolvedValue({
         realm: {
           realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: 'ws://localhost:3003',
@@ -112,16 +100,15 @@ describe('getRuntimeDefaults', () => {
 
       const defaults = await getRuntimeDefaults();
 
-      expect(mockInvokeChecked).toHaveBeenCalledWith(
+      expect(mockTauriInvoke).toHaveBeenCalledWith(
         'runtime_defaults',
         {},
-        expect.any(Function),
       );
       expect(defaults.realm.accessToken).toBe('');
     });
 
     it('does not forward env or Tauri access tokens into renderer defaults', async () => {
-      mockInvokeChecked.mockResolvedValue({
+      mockTauriInvoke.mockResolvedValue({
         realm: {
           realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: '',

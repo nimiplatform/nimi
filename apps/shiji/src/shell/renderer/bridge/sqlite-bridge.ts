@@ -1,4 +1,4 @@
-import { invokeChecked } from './invoke.js';
+import { invokeChecked } from './index.js';
 
 export class BridgeError extends Error {
   constructor(message: string) {

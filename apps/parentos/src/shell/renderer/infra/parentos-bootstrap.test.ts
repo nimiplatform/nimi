@@ -9,15 +9,19 @@ const getFamilyMock = vi.fn();
 const getChildrenMock = vi.fn();
 const loadPersistedParentosAIConfigMock = vi.fn();
 
-vi.mock('../bridge/runtime-defaults.js', () => ({
-  getRuntimeDefaults: getRuntimeDefaultsMock,
+vi.mock('../bridge/parentos-runtime-defaults.js', () => ({
+  getParentOSRuntimeDefaults: getRuntimeDefaultsMock,
 }));
 
-vi.mock('../bridge/auth-session.js', () => ({
-  clearAuthSession: vi.fn(),
-  loadAuthSession: vi.fn(),
-  saveAuthSession: vi.fn(),
-}));
+vi.mock('@nimiplatform/nimi-kit/shell/renderer/bridge', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    clearAuthSession: vi.fn(),
+    loadAuthSession: vi.fn(),
+    saveAuthSession: vi.fn(),
+  };
+});
 
 vi.mock('@nimiplatform/sdk', () => ({
   createPlatformClient: createPlatformClientMock,

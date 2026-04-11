@@ -6,8 +6,8 @@ import {
 } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
+import { shijiTauriOAuthBridge } from '@renderer/bridge';
 import { createShiJiDesktopBrowserAuthAdapter } from './shiji-auth-adapter.js';
-import { shijiTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 
 export function ShiJiLoginPage() {
   const adapter = useMemo(() => createShiJiDesktopBrowserAuthAdapter(), []);

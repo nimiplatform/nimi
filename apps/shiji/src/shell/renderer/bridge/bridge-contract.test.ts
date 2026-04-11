@@ -2,16 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeCheckedMock = vi.fn();
 
-vi.mock('./env.js', () => ({
-  hasTauriInvoke: () => false,
-}));
+vi.mock('./index.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./index.js')>();
+  return {
+    ...actual,
+    invokeChecked: (...args: unknown[]) => invokeCheckedMock(...args),
+  };
+});
 
-vi.mock('./invoke.js', () => ({
-  invokeChecked: (...args: unknown[]) => invokeCheckedMock(...args),
-}));
-
-import { getRuntimeDefaults } from './runtime-defaults.js';
-import { parseRuntimeDefaults } from './types.js';
+import { parseRuntimeDefaults } from './index.js';
 import { sqliteGetSession } from './sqlite-bridge.js';
 
 const VALID_RUNTIME_DEFAULTS = {
@@ -20,6 +19,7 @@ const VALID_RUNTIME_DEFAULTS = {
     realtimeUrl: '',
     accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
+    revocationUrl: '',
     jwtIssuer: 'https://realm.example.com',
     jwtAudience: 'nimi-runtime',
   },
@@ -38,14 +38,6 @@ const VALID_RUNTIME_DEFAULTS = {
 };
 
 describe('runtime defaults bridge', () => {
-  beforeEach(() => {
-    invokeCheckedMock.mockReset();
-    const testGlobal = globalThis as { window?: { __SHIJI_TEST_RUNTIME_DEFAULTS__?: unknown } };
-    if (testGlobal.window) {
-      delete testGlobal.window.__SHIJI_TEST_RUNTIME_DEFAULTS__;
-    }
-  });
-
   it('fails closed on missing required runtime defaults fields', () => {
     expect(() =>
       parseRuntimeDefaults({
@@ -58,23 +50,6 @@ describe('runtime defaults bridge', () => {
     ).toThrow(/realmBaseUrl/);
   });
 
-  it('accepts explicit test harness defaults without tauri fallback', async () => {
-    (globalThis as { window?: { __SHIJI_TEST_RUNTIME_DEFAULTS__?: unknown } }).window = {
-      __SHIJI_TEST_RUNTIME_DEFAULTS__: VALID_RUNTIME_DEFAULTS,
-    };
-    await expect(getRuntimeDefaults()).resolves.toEqual(
-      expect.objectContaining({
-        realm: expect.objectContaining({
-          realmBaseUrl: 'https://realm.example.com',
-        }),
-      }),
-    );
-  });
-
-  it('rejects renderer-only runtime defaults when no explicit test harness is present', async () => {
-    (globalThis as { window?: { __SHIJI_TEST_RUNTIME_DEFAULTS__?: unknown } }).window = {};
-    await expect(getRuntimeDefaults()).rejects.toThrow(/Tauri bridge/);
-  });
 });
 
 describe('sqlite bridge strict parsing', () => {

@@ -1,8 +1,36 @@
-export { invoke, invokeChecked, BridgeError } from './invoke.js';
-export { hasTauriInvoke } from './env.js';
-export { hasTauriRuntime, invokeTauri } from './tauri-api.js';
-export { getRuntimeDefaults } from './runtime-defaults.js';
-export { loadAuthSession, saveAuthSession, clearAuthSession } from './auth-session.js';
-export { getDaemonStatus, startDaemon } from './runtime-daemon.js';
-export { shijiTauriOAuthBridge } from './oauth.js';
-export type { RuntimeDefaults, RealmDefaults, RuntimeExecutionDefaults, JsonValue, JsonObject } from './types.js';
+export {
+  hasTauriInvoke,
+  invoke,
+  invokeChecked,
+  BridgeError,
+  getRuntimeDefaults,
+  loadAuthSession,
+  saveAuthSession,
+  clearAuthSession,
+  getDaemonStatus,
+  startDaemon,
+  stopDaemon,
+  restartDaemon,
+  createTauriOAuthBridge,
+  oauthTokenExchange,
+  oauthListenForCode,
+  openExternalUrl,
+  focusMainWindow,
+  parseRuntimeDefaults,
+  parseRuntimeBridgeDaemonStatus,
+  hasTauriRuntime,
+  invokeTauri,
+} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+export type {
+  RuntimeDefaults,
+  RealmDefaults,
+  RuntimeExecutionDefaults,
+  RuntimeBridgeDaemonStatus,
+  JsonValue,
+  JsonObject,
+  JsonPrimitive,
+} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+
+import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+
+export const shijiTauriOAuthBridge = createTauriOAuthBridge();
