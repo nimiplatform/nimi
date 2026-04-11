@@ -6,10 +6,10 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const methodIdsFile = resolve(repoRoot, 'sdk/src/runtime/method-ids.ts');
-const outputFile = resolve(
-  repoRoot,
-  'apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs',
-);
+const outputFiles = [
+  resolve(repoRoot, 'apps/desktop/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
+  resolve(repoRoot, 'apps/forge/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
+];
 
 function parseRuntimeMethodMap(source) {
   const lines = source.split('\n');
@@ -131,31 +131,35 @@ function main() {
 
   const rendered = buildRustSource(allowlistedMethods, streamMethods);
   if (checkMode) {
-    let current = '';
-    try {
-      current = readFileSync(outputFile, 'utf8');
-    } catch {
-      process.stderr.write(
-        `runtime bridge method file missing: ${outputFile}\n` +
-        'run `pnpm generate:runtime-bridge-methods` to regenerate.\n',
-      );
-      process.exitCode = 1;
-      return;
+    for (const outputFile of outputFiles) {
+      let current = '';
+      try {
+        current = readFileSync(outputFile, 'utf8');
+      } catch {
+        process.stderr.write(
+          `runtime bridge method file missing: ${outputFile}\n` +
+          'run `pnpm generate:runtime-bridge-methods` to regenerate.\n',
+        );
+        process.exitCode = 1;
+        return;
+      }
+      if (current !== rendered) {
+        process.stderr.write(
+          `runtime bridge method drift detected: ${outputFile}\n` +
+          'run `pnpm generate:runtime-bridge-methods` to regenerate.\n',
+        );
+        process.exitCode = 1;
+        return;
+      }
     }
-    if (current !== rendered) {
-      process.stderr.write(
-        `runtime bridge method drift detected: ${outputFile}\n` +
-        'run `pnpm generate:runtime-bridge-methods` to regenerate.\n',
-      );
-      process.exitCode = 1;
-      return;
-    }
-    process.stdout.write(`up-to-date ${outputFile}\n`);
+    process.stdout.write(`up-to-date ${outputFiles.join(', ')}\n`);
     return;
   }
 
-  writeFileSync(outputFile, rendered, 'utf8');
-  process.stdout.write(`generated ${outputFile}\n`);
+  for (const outputFile of outputFiles) {
+    writeFileSync(outputFile, rendered, 'utf8');
+  }
+  process.stdout.write(`generated ${outputFiles.join(', ')}\n`);
 }
 
 main();
