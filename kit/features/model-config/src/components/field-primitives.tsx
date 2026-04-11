@@ -1,19 +1,19 @@
 import type { ReactNode } from 'react';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 
-const FIELD_BASE = 'w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-800 outline-none transition-colors hover:border-slate-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100';
+const FIELD_BASE = 'w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_8%,var(--nimi-surface-card,#fff))] px-3 text-[13px] text-[var(--nimi-text-primary,#1e293b)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_32%,transparent)] focus:border-[var(--nimi-field-focus,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100';
 const FIELD_HEIGHT = 'h-10';
-const FIELD_PLACEHOLDER = 'text-slate-400';
+const FIELD_PLACEHOLDER = 'text-[color-mix(in_srgb,var(--nimi-text-muted,#94a3b8)_80%,transparent)]';
 
 export function FieldLabel(props: { label: string; tooltip?: string }) {
   if (props.tooltip) {
     return (
       <Tooltip content={props.tooltip} placement="top">
-        <span className="text-xs font-medium text-slate-500">{props.label}</span>
+        <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>
       </Tooltip>
     );
   }
-  return <span className="text-xs font-medium text-slate-500">{props.label}</span>;
+  return <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>;
 }
 
 export function FieldRow(props: { label: string; tooltip?: string; children: ReactNode }) {
@@ -85,7 +85,7 @@ export function FieldToggle(props: {
 }) {
   return (
     <label className="flex items-center justify-between py-1">
-      <span className="text-xs font-medium text-slate-500">{props.label}</span>
+      <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>
       <button
         type="button"
         role="switch"
@@ -115,16 +115,39 @@ export function PreviewBadge(props: { label: string }) {
   );
 }
 
+export function FieldSlider(props: {
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <input
+        type="range"
+        min={props.min}
+        max={props.max}
+        step={props.step ?? 1}
+        value={props.value}
+        onChange={(event) => props.onChange(Number(event.target.value))}
+        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-500 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-sm"
+      />
+      <span className="w-10 shrink-0 text-right text-[13px] font-medium tabular-nums text-[var(--nimi-text-primary,#1e293b)]">{props.value}</span>
+    </div>
+  );
+}
+
 export function SubSectionLabel(props: {
   label: string;
   previewLabel?: string;
 }) {
   return (
     <div className="flex items-center gap-2 pt-1">
-      <div className="h-px flex-1 bg-slate-100" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-300">{props.label}</span>
+      <div className="h-px flex-1 bg-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_70%,transparent)]" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--nimi-text-muted,#94a3b8)]">{props.label}</span>
       {props.previewLabel ? <PreviewBadge label={props.previewLabel} /> : null}
-      <div className="h-px flex-1 bg-slate-100" />
+      <div className="h-px flex-1 bg-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_70%,transparent)]" />
     </div>
   );
 }

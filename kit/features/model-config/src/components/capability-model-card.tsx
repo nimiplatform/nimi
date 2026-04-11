@@ -56,10 +56,10 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
 
   const labelNode = item.detail ? (
     <Tooltip content={item.detail} placement="top">
-      <span className="text-xs font-medium text-slate-500">{item.label}</span>
+      <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
     </Tooltip>
   ) : (
-    <span className="text-xs font-medium text-slate-500">{item.label}</span>
+    <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
   );
 
   return (
@@ -105,7 +105,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
             </div>
           ) : null}
           {item.status?.detail ? (
-            <div className="text-[11px] text-slate-500">
+            <div className="text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">
               {item.status.detail}
             </div>
           ) : null}
@@ -116,7 +116,7 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
         <button
           type="button"
           onClick={() => item.onBindingChange(null)}
-          className="text-xs text-slate-400 transition-colors hover:text-slate-600"
+          className="text-xs text-[var(--nimi-text-muted,#94a3b8)] transition-colors hover:text-[var(--nimi-action-primary-bg,#10b981)]"
         >
           {item.clearSelectionLabel || 'Clear selection'}
         </button>

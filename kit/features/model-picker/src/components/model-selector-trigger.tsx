@@ -49,7 +49,7 @@ export function ModelSelectorTrigger({
         'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors',
         hasModel
           ? 'border-slate-200 bg-white hover:border-slate-300'
-          : 'border-dashed border-slate-200 bg-slate-50/50 hover:border-slate-300',
+          : 'border-dashed border-slate-200 bg-slate-50/50 hover:border-emerald-400',
         disabled ? 'cursor-not-allowed opacity-60' : '',
         className,
       )}

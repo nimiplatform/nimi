@@ -187,7 +187,7 @@ export function ChatAiSessionListPanel(props: ChatAiSessionListPanelProps) {
 
       {/* Thread list with archive action */}
       {props.threads.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-2 py-8 text-center">
+        <div className="flex min-h-0 flex-1 flex-col items-center gap-2 px-2 py-8 text-center">
           <p className="text-sm font-medium text-slate-500">{t('Chat.noConversationsYet', { defaultValue: 'No conversations yet' })}</p>
           <p className="text-xs text-slate-400">{t('Chat.startNewConversation', { defaultValue: 'Start a new conversation above' })}</p>
         </div>

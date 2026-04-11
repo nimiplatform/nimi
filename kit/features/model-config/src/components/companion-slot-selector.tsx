@@ -3,7 +3,7 @@ import type { CompanionSlotDef, LocalAssetEntry } from '../types.js';
 import { filterAssetsByKind } from '../constants.js';
 import { FieldRow } from './field-primitives.js';
 
-const FIELD_BASE = 'w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-800 outline-none transition-colors hover:border-slate-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100';
+const FIELD_BASE = 'w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_8%,var(--nimi-surface-card,#fff))] px-3 text-[13px] text-[var(--nimi-text-primary,#1e293b)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_32%,transparent)] focus:border-[var(--nimi-field-focus,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100';
 const FIELD_HEIGHT = 'h-10';
 
 export function CompanionSlotSelector(props: {

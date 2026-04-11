@@ -1,13 +1,15 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import { useDesktopModelConfigProfileController } from '../runtime-config/desktop-model-config-profile-controller';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-execution-scheduling-guard';
-import { ConversationModelConfigPanel, useConversationModelConfigSections } from './chat-conversation-capability-settings';
+import { ConversationModelConfigPanel, useConversationCapabilityData } from './chat-conversation-capability-settings';
 import type { ModelConfigProfileCopy, ModelConfigSection } from '@nimiplatform/nimi-kit/features/model-config';
 import { DisabledConfigNote } from '@nimiplatform/nimi-kit/features/model-config';
+import { ChatSettingsSummaryHome } from './chat-settings-summary-home';
+import { ChatSettingsModuleDetail } from './chat-settings-module-detail';
 
 type ChatSettingsPanelProps = {
   mode?: 'ai' | 'human';
@@ -108,21 +110,49 @@ function createProfileCopy(t: ReturnType<typeof useTranslation>['t']): ModelConf
   };
 }
 
-export function ChatSettingsPanel({
-  mode = 'ai',
-  headerSlot,
-  modelPickerContent,
-  diagnosticsContent,
-  unavailableReason,
-}: ChatSettingsPanelProps) {
+// ---------------------------------------------------------------------------
+// Non-AI mode: simple flat sections (unchanged from original)
+// ---------------------------------------------------------------------------
+
+function HumanModeSettings(props: {
+  modelPickerContent?: ReactNode;
+  diagnosticsContent?: ReactNode;
+  unavailableReason: string;
+}) {
+  const { t } = useTranslation();
+  const sections: ModelConfigSection[] = [
+    {
+      id: 'chat',
+      title: t('Chat.settingsChatSection', { defaultValue: 'Chat' }),
+      content: props.modelPickerContent || (
+        <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
+      ),
+    },
+    {
+      id: 'diagnostics',
+      title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
+      content: props.diagnosticsContent || <DisabledSettingsNote label={props.unavailableReason} />,
+    },
+  ];
+  return <ConversationModelConfigPanel sections={sections} />;
+}
+
+// ---------------------------------------------------------------------------
+// AI mode: summary home + module detail view swap
+// ---------------------------------------------------------------------------
+
+function AiModeSettings(props: {
+  headerSlot?: ReactNode;
+  diagnosticsContent?: ReactNode;
+  unavailableReason: string;
+}) {
   const { t } = useTranslation();
   const aiConfig = useAppStore((state) => state.aiConfig);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const aiSections = useConversationModelConfigSections();
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+
+  const { sections, items, imageContext, imageEditorCopy } = useConversationCapabilityData();
   const schedulingJudgement = useSchedulingFeasibility();
-  const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
-    defaultValue: 'This source does not expose runtime inspect yet.',
-  });
 
   const profile = useDesktopModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,
@@ -136,46 +166,86 @@ export function ChatSettingsPanel({
     },
   });
 
-  const sections = useMemo<ModelConfigSection[]>(() => {
-    if (mode !== 'ai') {
-      return [
-        {
-          id: 'chat',
-          title: t('Chat.settingsChatSection', { defaultValue: 'Chat' }),
-          content: modelPickerContent || (
-            <DisabledSettingsNote label={t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })} />
-          ),
-        },
-        {
-          id: 'diagnostics',
-          title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-          content: diagnosticsContent || <DisabledSettingsNote label={resolvedUnavailableReason} />,
-        },
-      ];
+  const schedulingContent = useMemo(() => {
+    if (!schedulingJudgement || schedulingJudgement.state === 'runnable') {
+      return null;
     }
-    return [
-      ...aiSections,
-      {
-        id: 'scheduling',
-        title: t('Chat.schedulingTitle', { defaultValue: 'Scheduling' }),
-        content: <SchedulingWarningSection />,
-        hidden: !schedulingJudgement || schedulingJudgement.state === 'runnable',
-      },
-      {
-        id: 'diagnostics',
-        title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-        content: diagnosticsContent || <DisabledSettingsNote label={resolvedUnavailableReason} />,
-      },
-    ];
-  }, [aiSections, diagnosticsContent, mode, modelPickerContent, resolvedUnavailableReason, schedulingJudgement, t]);
+    return <SchedulingWarningBanner judgement={schedulingJudgement} />;
+  }, [schedulingJudgement]);
+
+  const diagnosticsNode = props.diagnosticsContent || (
+    <DisabledSettingsNote label={props.unavailableReason} />
+  );
+
+  if (activeModuleId) {
+    return (
+      <div className="space-y-5">
+        {props.headerSlot}
+        <div className="animate-in slide-in-from-right-4 duration-200">
+          <ChatSettingsModuleDetail
+            moduleId={activeModuleId}
+            sections={sections}
+            items={items}
+            profile={profile}
+            onBack={() => setActiveModuleId(null)}
+            imageContext={imageContext}
+            imageEditorCopy={imageEditorCopy}
+            schedulingContent={schedulingContent}
+            diagnosticsContent={diagnosticsNode}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      {headerSlot}
-      <ConversationModelConfigPanel
-        profile={mode === 'ai' ? profile : undefined}
+      {props.headerSlot}
+      <ChatSettingsSummaryHome
         sections={sections}
+        profile={profile}
+        onSelectModule={setActiveModuleId}
+        schedulingContent={schedulingContent}
+        diagnosticsContent={diagnosticsNode}
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChatSettingsPanel — public API (unchanged props contract)
+// ---------------------------------------------------------------------------
+
+export function ChatSettingsPanel({
+  mode = 'ai',
+  headerSlot,
+  modelPickerContent,
+  diagnosticsContent,
+  unavailableReason,
+}: ChatSettingsPanelProps) {
+  const { t } = useTranslation();
+  const resolvedUnavailableReason = unavailableReason || t('Chat.settingsUnavailableReason', {
+    defaultValue: 'This source does not expose runtime inspect yet.',
+  });
+
+  if (mode !== 'ai') {
+    return (
+      <div className="space-y-5">
+        {headerSlot}
+        <HumanModeSettings
+          modelPickerContent={modelPickerContent}
+          diagnosticsContent={diagnosticsContent}
+          unavailableReason={resolvedUnavailableReason}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <AiModeSettings
+      headerSlot={headerSlot}
+      diagnosticsContent={diagnosticsContent}
+      unavailableReason={resolvedUnavailableReason}
+    />
   );
 }

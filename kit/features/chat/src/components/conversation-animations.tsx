@@ -91,6 +91,16 @@ export function ConversationAnimationStyles() {
   50%      { transform: translateY(-8px); }
 }
 
+@keyframes hf-ripple {
+  0%   { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes hf-ripple-glow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.65; }
+}
+
 /* ── utility classes ── */
 .conversation-root .conv-animate-slide-up {
   animation: conv-slide-up var(--conv-slide-up-duration) cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -204,18 +214,6 @@ export function ConversationAnimationStyles() {
   background: linear-gradient(180deg, rgba(16,185,129,0.9), rgba(20,184,166,0.7));
 }
 
-.conversation-root .lc-typing-trail {
-  display: inline-flex;
-  gap: 0.25rem;
-}
-
-.conversation-root .lc-typing-trail > span {
-  display: inline-block;
-  width: 10px;
-  height: 2px;
-  border-radius: 999px;
-  background: rgba(148,163,184,0.55);
-}
 
 /* ── reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
@@ -226,7 +224,9 @@ export function ConversationAnimationStyles() {
   .conversation-root .conv-animate-fade-in,
   .conversation-root .lc-current-turn-halo,
   .conversation-root .lc-current-turn-card::before,
-  .conversation-root .lc-current-turn-card::after {
+  .conversation-root .lc-current-turn-card::after,
+  .conversation-root .hf-ripple-ring,
+  .conversation-root .hf-ripple-glow {
     animation: none !important;
   }
 }

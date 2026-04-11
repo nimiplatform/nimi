@@ -11,6 +11,7 @@ export {
   FieldSelect,
   FieldTextarea,
   FieldToggle,
+  FieldSlider,
   SubSectionLabel,
   PreviewBadge,
 } from './components/field-primitives.js';

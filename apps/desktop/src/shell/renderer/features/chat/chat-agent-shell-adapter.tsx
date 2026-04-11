@@ -872,9 +872,26 @@ export function useAgentConversationModeHost(
     agentRouteReady,
   });
 
+  const handsFreeState = useMemo(() => ({
+    mode: voiceSessionState.mode,
+    status: voiceSessionState.status,
+    disabled: Boolean(submittingThreadId)
+      || voiceSessionState.status === 'transcribing'
+      || voiceSessionState.status === 'listening',
+    onEnter: handleEnterHandsFreeVoiceSession,
+    onExit: handleExitHandsFreeVoiceSession,
+  }), [
+    handleEnterHandsFreeVoiceSession,
+    handleExitHandsFreeVoiceSession,
+    submittingThreadId,
+    voiceSessionState.mode,
+    voiceSessionState.status,
+  ]);
+
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
+    handsFreeState,
     onSelectTarget: handleSelectAgent,
     onSelectThread: handleSelectThread,
-  }), [handleSelectAgent, handleSelectThread, presentation]);
+  }), [handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
 }

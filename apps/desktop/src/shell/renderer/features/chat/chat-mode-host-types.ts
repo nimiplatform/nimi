@@ -47,6 +47,14 @@ export type DesktopConversationModeHost = {
   onSelectThread?: (threadId: string) => void;
   /** Content rendered in the new right panel (between conversation pane and contact rail). */
   rightPanelContent?: ReactNode;
+  /** Voice hands-free session state for the right panel. */
+  handsFreeState?: {
+    mode: 'push-to-talk' | 'hands-free';
+    status: 'idle' | 'listening' | 'transcribing' | 'failed';
+    disabled: boolean;
+    onEnter: () => void;
+    onExit: () => void;
+  };
   /** Create a new AI thread/session. Only meaningful for AI mode. */
   onCreateThread?: () => Promise<void>;
   /** Archive a thread by ID. Only meaningful for AI mode. */

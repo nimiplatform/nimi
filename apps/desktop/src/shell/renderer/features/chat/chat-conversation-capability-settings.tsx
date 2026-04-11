@@ -5,6 +5,9 @@ import type {
   ModelConfigCapabilityItem,
   ModelConfigCapabilityStatus,
   ModelConfigSection,
+  ImageParamsState,
+  VideoParamsState,
+  LocalAssetEntry,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import {
   ImageParamsEditor,
@@ -13,7 +16,6 @@ import {
   parseImageParams,
   parseVideoParams,
   type ImageParamsEditorCopy,
-  type LocalAssetEntry,
   type VideoParamsEditorCopy,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import { type RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
@@ -386,4 +388,168 @@ export function ConversationModelConfigPanel(props: {
       sections={props.sections}
     />
   );
+}
+
+// ---------------------------------------------------------------------------
+// useConversationCapabilityData — enriched hook exposing raw params for the
+// redesigned settings detail view. Mirrors useConversationModelConfigSections
+// but also returns image/video context data for custom layouts.
+// ---------------------------------------------------------------------------
+
+export type ConversationCapabilityData = {
+  sections: ModelConfigSection[];
+  items: ModelConfigCapabilityItem[];
+  imageContext: {
+    params: ImageParamsState;
+    companionSlots: Record<string, string>;
+    assets: LocalAssetEntry[];
+    assetsLoading: boolean;
+    onParamsChange: (next: ImageParamsState) => void;
+    onCompanionSlotsChange: (next: Record<string, string>) => void;
+  } | null;
+  videoContext: {
+    params: VideoParamsState;
+    onParamsChange: (next: VideoParamsState) => void;
+  } | null;
+  imageEditorCopy: ImageParamsEditorCopy;
+  videoEditorCopy: VideoParamsEditorCopy;
+};
+
+export function useConversationCapabilityData(): ConversationCapabilityData {
+  const { t } = useTranslation();
+  const aiConfig = useAppStore((state) => state.aiConfig);
+  const projectionByCapability = useAppStore((state) => state.conversationCapabilityProjectionByCapability);
+  const surface = useMemo(() => getDesktopAIConfigService(), []);
+  const assetsQuery = useLocalAssets();
+  const assets = assetsQuery.data || [];
+  const imageEditorCopy = useMemo(() => createImageEditorCopy(t), [t]);
+  const videoEditorCopy = useMemo(() => createVideoEditorCopy(t), [t]);
+  const capabilityConfigs = useMemo(() => createCapabilityConfigs(t), [t]);
+  const providers = useCapabilityProviders(
+    useMemo(
+      () => Array.from(new Set(capabilityConfigs.map((config) => toRuntimeCanonicalCapability(config.capability)))),
+      [capabilityConfigs],
+    ),
+  );
+
+  const updateBinding = useCallback((capability: string, binding: RuntimeRouteBinding | null) => {
+    const nextBindings = { ...aiConfig.capabilities.selectedBindings };
+    nextBindings[capability] = binding;
+    const nextConfig = {
+      ...aiConfig,
+      capabilities: {
+        ...aiConfig.capabilities,
+        selectedBindings: nextBindings,
+      },
+    };
+    surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
+  }, [aiConfig, surface]);
+
+  const updateParams = useCallback((capability: string, params: Record<string, unknown>) => {
+    const nextParams = { ...aiConfig.capabilities.selectedParams, [capability]: params };
+    const nextConfig = {
+      ...aiConfig,
+      capabilities: {
+        ...aiConfig.capabilities,
+        selectedParams: nextParams,
+      },
+    };
+    surface.aiConfig.update(nextConfig.scopeRef, nextConfig);
+  }, [aiConfig, surface]);
+
+  const items = useMemo<ModelConfigCapabilityItem[]>(() => capabilityConfigs.map((config) => {
+    const binding = (aiConfig.capabilities.selectedBindings[config.capability] || null) as RuntimeRouteBinding | null;
+    const projection = projectionByCapability[config.capability] || null;
+    const status = buildProjectionStatus(t, config.label, projection, binding);
+    const storedParams = (aiConfig.capabilities.selectedParams[config.capability] || {}) as Record<string, unknown>;
+    const routeCapability = toRuntimeCanonicalCapability(config.capability);
+    let editor = undefined as ReactNode | undefined;
+
+    if (config.editorKind === 'image') {
+      const imageParams = parseImageParams(storedParams);
+      const companionSlots = (storedParams.companionSlots || {}) as Record<string, string>;
+      editor = (
+        <ImageParamsEditor
+          copy={imageEditorCopy}
+          params={imageParams}
+          companionSlots={companionSlots}
+          assets={assets as LocalAssetEntry[]}
+          assetsLoading={assetsQuery.isLoading}
+          onParamsChange={(next) => updateParams(config.capability, { ...next, companionSlots })}
+          onCompanionSlotsChange={(next) => updateParams(config.capability, { ...imageParams, companionSlots: next })}
+        />
+      );
+    } else if (config.editorKind === 'video') {
+      const videoParams = parseVideoParams(storedParams);
+      editor = (
+        <VideoParamsEditor
+          copy={videoEditorCopy}
+          params={videoParams}
+          onParamsChange={(next) => updateParams(config.capability, next as unknown as Record<string, unknown>)}
+        />
+      );
+    }
+
+    return {
+      capabilityId: config.capability,
+      routeCapability,
+      label: config.label,
+      detail: config.detail,
+      binding,
+      provider: providers[routeCapability] || null,
+      onBindingChange: (nextBinding) => updateBinding(config.capability, nextBinding),
+      status,
+      editor,
+      showEditorWhen: config.editorKind ? 'local' : 'always',
+      placeholder: t('Chat.settingsSelectModel', { defaultValue: 'Select a model' }),
+      runtimeNotReadyLabel: t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' }),
+      clearSelectionLabel: t('Chat.settingsReset', { defaultValue: 'Reset' }),
+    };
+  }), [aiConfig.capabilities.selectedBindings, aiConfig.capabilities.selectedParams, assets, assetsQuery.isLoading, capabilityConfigs, imageEditorCopy, projectionByCapability, providers, t, updateBinding, updateParams, videoEditorCopy]);
+
+  const sections = useMemo(() => {
+    const sectionMap = new Map<string, ModelConfigSection>();
+    for (const config of capabilityConfigs) {
+      if (!sectionMap.has(config.sectionId)) {
+        sectionMap.set(config.sectionId, {
+          id: config.sectionId,
+          title: config.sectionTitle,
+          collapsible: config.sectionId !== 'chat',
+          defaultExpanded: config.sectionId === 'image',
+          items: [],
+        });
+      }
+      sectionMap.get(config.sectionId)!.items!.push(
+        items.find((item) => item.capabilityId === config.capability)!,
+      );
+    }
+    return Array.from(sectionMap.values());
+  }, [capabilityConfigs, items]);
+
+  // Expose raw image context
+  const imageContext = useMemo(() => {
+    const storedImageParams = (aiConfig.capabilities.selectedParams['image.generate'] || {}) as Record<string, unknown>;
+    const imageParams = parseImageParams(storedImageParams);
+    const companionSlots = (storedImageParams.companionSlots || {}) as Record<string, string>;
+    return {
+      params: imageParams,
+      companionSlots,
+      assets: assets as LocalAssetEntry[],
+      assetsLoading: assetsQuery.isLoading,
+      onParamsChange: (next: ImageParamsState) => updateParams('image.generate', { ...next, companionSlots }),
+      onCompanionSlotsChange: (next: Record<string, string>) => updateParams('image.generate', { ...imageParams, companionSlots: next }),
+    };
+  }, [aiConfig.capabilities.selectedParams, assets, assetsQuery.isLoading, updateParams]);
+
+  // Expose raw video context
+  const videoContext = useMemo(() => {
+    const storedVideoParams = (aiConfig.capabilities.selectedParams['video.generate'] || {}) as Record<string, unknown>;
+    const videoParams = parseVideoParams(storedVideoParams);
+    return {
+      params: videoParams,
+      onParamsChange: (next: VideoParamsState) => updateParams('video.generate', next as unknown as Record<string, unknown>),
+    };
+  }, [aiConfig.capabilities.selectedParams, updateParams]);
+
+  return { sections, items, imageContext, videoContext, imageEditorCopy, videoEditorCopy };
 }

@@ -358,6 +358,7 @@ export function ChatPage() {
         thinkingState={activeHost.thinkingState}
         onThinkingToggle={activeHost.onThinkingToggle}
         onToggleFold={toggleRightPanelFold}
+        handsFreeState={activeHost.handsFreeState}
       />
     );
   }, [activeHost, selectedTarget, rightPanelMode, rightPanelFolded, toggleRightPanelSettings, toggleRightPanelFold]);
