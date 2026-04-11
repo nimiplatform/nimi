@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { getUserDisplayLabel, toErrorMessage } from '@nimiplatform/nimi-kit/core/oauth';
+import { getUserDisplayLabel, toErrorMessage } from '../logic/oauth-helpers.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type { AuthView, EmbeddedAuthStage, DesktopCallbackRequest } from '../types/auth-types.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from '../logic/auth-menu-handlers.js';

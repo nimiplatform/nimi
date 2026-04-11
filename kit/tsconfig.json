@@ -13,7 +13,9 @@
       "@nimiplatform/nimi-kit/features/model-picker": ["./features/model-picker/src/index.ts"],
       "@nimiplatform/nimi-kit/features/model-picker/*": ["./features/model-picker/src/*"],
       "@nimiplatform/nimi-kit/features/generation": ["./features/generation/src/index.ts"],
-      "@nimiplatform/nimi-kit/features/generation/*": ["./features/generation/src/*"]
+      "@nimiplatform/nimi-kit/features/generation/*": ["./features/generation/src/*"],
+      "@nimiplatform/nimi-kit/shell/renderer/*": ["./shell/renderer/src/*"],
+      "@nimiplatform/nimi-kit/core/runtime-capabilities": ["./core/src/runtime-capabilities/index.ts"]
     },
     "target": "ES2022",
     "module": "ESNext",
@@ -43,6 +45,8 @@
     "features/**/*.tsx",
     "telemetry/src/**/*.ts",
     "telemetry/src/**/*.tsx",
-    "telemetry/src/**/*.d.ts"
+    "telemetry/src/**/*.d.ts",
+    "shell/renderer/src/**/*.ts",
+    "shell/renderer/src/**/*.tsx"
   ]
 }

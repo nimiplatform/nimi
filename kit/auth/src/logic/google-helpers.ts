@@ -1,5 +1,5 @@
 import type { ShellAuthWindow } from '../types/auth-types.js';
-import { readEnv } from '@nimiplatform/nimi-kit/core/oauth';
+import { readEnv } from './oauth-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';
 
 export function getGoogleClientId(): string {

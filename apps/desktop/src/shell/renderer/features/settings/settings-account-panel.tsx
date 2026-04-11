@@ -6,7 +6,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { ShellAuthWindow } from '@nimiplatform/nimi-kit/auth';
 import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/nimi-kit/auth';
-import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/nimi-kit/core/oauth';
+import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/nimi-kit/auth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import {

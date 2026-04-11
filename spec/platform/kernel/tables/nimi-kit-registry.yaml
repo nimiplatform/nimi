@@ -84,6 +84,65 @@ modules:
     admission_status: active
     owner: platform
     source_rule: P-KIT-030
+  - id: kit.shell.tauri
+    subpath: /shell/tauri
+    kind: infra
+    surface_level: infra
+    adapter_contract: none
+    description: Shared Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults. Delivered as a Rust crate (non-npm) within the single kit authority.
+    dependencies: []
+    peer_dependencies: []
+    exports: []
+    headless_exports: []
+    ui_exports: []
+    planned_consumers: [desktop, forge, parentos, shiji, lookdev, moment, overtone, realm-drift, video-food-map]
+    reuse_entrypoints: []
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-041
+    notes: Non-npm Rust crate. Apps consume via Cargo path dependency, not subpath import. No package.json exports.
+  - id: kit.shell.renderer
+    subpath: /shell/renderer
+    kind: infra
+    surface_level: infra
+    adapter_contract: none
+    description: Shared renderer shell glue — Tauri command wrappers, bridge primitives, bootstrap skeleton. Delivered as subpath exports of the single nimi-kit npm package.
+    dependencies: [kit.core, kit.auth, kit.telemetry, sdk]
+    peer_dependencies: [react]
+    exports:
+      - ./shell/renderer/bridge
+      - ./shell/renderer/bootstrap
+    headless_exports:
+      - ./shell/renderer/bridge
+      - ./shell/renderer/bootstrap
+    ui_exports: []
+    planned_consumers: [desktop, forge, parentos, shiji, lookdev, moment, overtone, realm-drift, video-food-map, web]
+    reuse_entrypoints:
+      - ./shell/renderer/bridge
+      - ./shell/renderer/bootstrap
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-042
+  - id: kit.core.runtime-capabilities
+    subpath: /core/runtime-capabilities
+    kind: logic
+    surface_level: logic
+    adapter_contract: none
+    description: Pure-logic capability normalization, wildcard matching, and codegen capability catalog truth. Runtime-safe and renderer-safe.
+    dependencies: []
+    peer_dependencies: []
+    exports:
+      - ./core/runtime-capabilities
+    headless_exports:
+      - ./core/runtime-capabilities
+    ui_exports: []
+    planned_consumers: [desktop, web, runtime]
+    reuse_entrypoints:
+      - ./core/runtime-capabilities
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-043
+    notes: Runtime-safe — may be consumed by runtime-side code (Go consumers import via kit/core transpiled output or shared contract).
   - id: kit.telemetry
     subpath: /telemetry
     kind: infra

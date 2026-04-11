@@ -5,7 +5,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from 'react';
-import { toDesktopBrowserAuthErrorMessage } from '@nimiplatform/nimi-kit/core/oauth';
+import { toDesktopBrowserAuthErrorMessage } from '../logic/oauth-helpers.js';
 import { useTranslation } from 'react-i18next';
 import type { ShellAuthPageProps } from '../types/auth-types.js';
 import { useAuthFlow } from '../hooks/use-auth-flow.js';

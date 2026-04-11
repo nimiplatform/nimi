@@ -115,7 +115,28 @@ export {
   localizeAuthError,
   toDesktopBrowserAuthErrorMessage,
   getUserDisplayLabel,
-} from '@nimiplatform/nimi-kit/core/oauth';
+  DESKTOP_CALLBACK_TIMEOUT_MS,
+  DESKTOP_CALLBACK_PATH,
+  readEnv,
+  isLoopbackHost,
+  normalizeLoopbackCallbackUrl,
+  createDesktopCallbackState as createDesktopOAuthCallbackState,
+  validateDesktopCallbackState,
+  createDesktopCallbackRedirectUri as createDesktopOAuthCallbackRedirectUri,
+} from './logic/oauth-helpers.js';
+
+export type {
+  SocialOauthProvider,
+  SocialOauthConfig,
+} from './logic/social-oauth.js';
+export {
+  resolveSocialOauthConfig,
+  startSocialOauth,
+  toOauthProvider,
+} from './logic/social-oauth.js';
+
+export type { OAuthLoginInput } from './logic/oauth-login-handler.js';
+export { handleSocialLogin as handleSocialOAuthLogin } from './logic/oauth-login-handler.js';
 
 export {
   performDesktopWebAuth,

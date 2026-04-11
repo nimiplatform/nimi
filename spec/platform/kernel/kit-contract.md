@@ -20,7 +20,8 @@
 - `kit/` is a single workspace package rooted at `kit/package.json`; sub-modules do not carry independent workspace package manifests.
 - Kit sub-modules must not import app-layer code (`apps/**`).
 - Kit sub-modules must not import runtime internal code (`runtime/internal/**`).
-- Apps consume kit through `@nimiplatform/nimi-kit/<subpath>`.
+- Apps consume kit TypeScript surfaces through `@nimiplatform/nimi-kit/<subpath>`.
+- `kit/shell/tauri/**` is an admitted non-npm Rust crate surface within the single kit authority. Apps consume it via Cargo path dependency, not npm import. It has no `package.json` exports and does not carry an independent workspace package manifest.
 
 ## P-KIT-010 — UI Sub-Module (nimi-ui)
 
@@ -52,6 +53,35 @@
 - Telemetry emitters must be structureless (accept caller-supplied payloads without imposing schema).
 - Error boundary must be React-only and must not assume a specific app context.
 - Only peer dependency on React is permitted.
+
+## P-KIT-041 — Tauri Shell Module
+
+- `shell/tauri` is an infra module for shared Tauri host glue: runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults.
+- Delivered as a Rust crate at `kit/shell/tauri/`, consumed by Tauri apps via Cargo path dependency.
+- Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
+- Must not contain app-specific business logic, desktop-only menu bar/runtime-mod, or realm/runtime typed API truth.
+- D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
+- App identity and session prefix must be parameterized; no hardcoded app branding in shared code.
+- Generated runtime bridge method IDs must have a single source owner in this module.
+- Build-time static assets (e.g., OAuth callback HTML template) may be consumed via admitted build inputs, not cross-layer `include_str!` from app paths.
+
+## P-KIT-042 — Renderer Shell Module
+
+- `shell/renderer` is an infra module for shared renderer shell glue: Tauri command wrappers, bridge primitives, and bootstrap skeleton.
+- Delivered as subpath exports of the single `@nimiplatform/nimi-kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
+- Must not contain app-specific stores, navigation, UI rendering, or runtime readiness policy.
+- Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
+- Bootstrap skeleton provides shared orchestration hooks; app-local code retains runtime readiness, daemon policy, and local data bootstrap.
+- Desktop and overtone retain local facade directories for app-specific bridge modules; shared core primitives come from this module.
+- Web-specific UI adapter components (`.web.tsx`) must not be placed in this module.
+
+## P-KIT-043 — Runtime Capabilities Module
+
+- `core/runtime-capabilities` is a logic sub-surface for pure-logic capability normalization, wildcard matching, and codegen capability catalog truth.
+- Must be runtime-safe and renderer-safe: zero UI, CSS, app code, or shell-specific imports.
+- May be consumed by runtime-side code (Go consumers via shared contract) in addition to renderer consumers.
+- Must not be stranded in any single app's runtime directory; this is the single shared truth for capability semantics.
+- Replaces desktop-local `capabilities.ts` and `capability-catalog.ts` as the canonical owner.
 
 ## P-KIT-050 — Future Module Admission
 
@@ -109,6 +139,9 @@
   - a kit sub-module imports from `apps/**`
   - the core sub-module contains UI/CSS imports
   - the telemetry sub-module contains Tauri/Node.js imports
+  - the `shell/renderer` sub-module contains app-specific stores, navigation, or UI rendering
+  - the `shell/renderer` sub-module re-owns auth session truth or telemetry normalization truth
+  - the `core/runtime-capabilities` sub-module contains UI, CSS, or shell-specific imports
   - the auth sub-module defines CSS custom properties outside the `--nimi-*` namespace (except scoped overrides within `data-shell-auth-theme`)
   - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, `ui_exports`, or `planned_consumers`
   - a feature module claims `runtime` or `realm` capability but does not publish the matching surface

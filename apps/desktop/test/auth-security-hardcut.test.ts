@@ -3,12 +3,12 @@ import test from 'node:test';
 
 import {
   DESKTOP_CALLBACK_TIMEOUT_MS,
-  createDesktopCallbackRedirectUri,
-  createDesktopCallbackState,
+  createDesktopOAuthCallbackRedirectUri as createDesktopCallbackRedirectUri,
+  createDesktopOAuthCallbackState as createDesktopCallbackState,
   localizeAuthError,
   toErrorMessage,
   validateDesktopCallbackState,
-} from '@nimiplatform/nimi-kit/core/oauth';
+} from '@nimiplatform/nimi-kit/auth';
 import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../../kit/auth/src/logic/remember-login.js';
 import {
   WEB_AUTH_SESSION_KEY,

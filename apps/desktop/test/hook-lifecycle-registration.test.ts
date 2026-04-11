@@ -72,7 +72,7 @@ test('D-HOOK-006: anyCapabilityMatches returns true on first match', () => {
 const CAPABILITIES_SOURCE = fs.readFileSync(
   path.resolve(
     import.meta.dirname,
-    '../src/runtime/hook/contracts/capabilities.ts',
+    '../../../kit/core/src/runtime-capabilities/capabilities.ts',
   ),
   'utf-8',
 );

@@ -1,4 +1,4 @@
-import { toErrorMessage } from '@nimiplatform/nimi-kit/core/oauth';
+import { toErrorMessage } from './oauth-helpers.js';
 
 export const AUTH_COPY = {
   loginMissingAccessToken: '登录返回缺少访问令牌',

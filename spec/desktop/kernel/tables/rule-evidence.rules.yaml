@@ -360,6 +360,10 @@
     - desktop_lint_gate
     - desktop_test_gate
     - desktop_e2e_journey_gate
+- rule_id: D-IPC-016
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
 - rule_id: D-IPC-010
   status: covered
   evidence_refs:

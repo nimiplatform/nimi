@@ -1,12 +1,12 @@
-import { toErrorMessage } from '@nimiplatform/nimi-kit/core/oauth';
 import type { DesktopCallbackRequest } from '../types/auth-types.js';
 import {
+  toErrorMessage,
   normalizeLoopbackCallbackUrl,
   createDesktopCallbackState as createSharedDesktopCallbackState,
   validateDesktopCallbackState as validateSharedDesktopCallbackState,
   createDesktopCallbackRedirectUri as createSharedDesktopCallbackRedirectUri,
   readEnv,
-} from '@nimiplatform/nimi-kit/core/oauth';
+} from './oauth-helpers.js';
 import { AUTH_COPY } from './auth-copy.js';
 
 const DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID = 'nimi-desktop-callback-success-overlay';

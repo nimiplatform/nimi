@@ -1,5 +1,7 @@
 import { readBundledEnv } from './env.js';
 
+export { readBundledEnv };
+
 export type ShellMode = 'desktop' | 'web' | 'forge';
 
 export type ShellFeatureFlags = {

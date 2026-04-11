@@ -19,6 +19,9 @@
     "./auth/native-oauth-result-page": "./auth/src/logic/native-oauth-result-page.ts",
     "./core/shell-mode": "./core/src/shell-mode.ts",
     "./core/oauth": "./core/src/oauth/index.ts",
+    "./core/runtime-capabilities": "./core/src/runtime-capabilities/index.ts",
+    "./shell/renderer/bridge": "./shell/renderer/src/bridge/index.ts",
+    "./shell/renderer/bootstrap": "./shell/renderer/src/bootstrap/index.ts",
     "./telemetry": "./telemetry/src/telemetry/index.ts",
     "./telemetry/error-boundary": "./telemetry/src/error-boundary/index.ts",
     "./features/chat": "./features/chat/src/index.ts",
@@ -69,7 +72,8 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-i18next": "^16.0.0"
+    "react-i18next": "^16.0.0",
+    "@tauri-apps/api": ">=2.0.0"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -77,9 +81,13 @@
     },
     "react-i18next": {
       "optional": true
+    },
+    "@tauri-apps/api": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@tauri-apps/api": "^2.10.1",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

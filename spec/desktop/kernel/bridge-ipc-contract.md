@@ -169,6 +169,14 @@ Desktop 自更新命令集：
 - `desktop_update_install` 必须仅消费已缓存的 update bytes。调用前必须先停止 managed runtime、失效 channel pool、再进入 updater 安装阶段；未下载时必须 fail-close。
 - `desktop_update_state_get` / desktop update 事件流必须共享同一个状态机语义：`idle -> checking -> available -> downloading -> downloaded -> installing -> readyToRestart -> error`。
 
+## D-IPC-016 — Shared Tauri Bridge Authority
+
+- `kit/shell/tauri/**` (P-KIT-041) is the single shared implementation authority for app-agnostic Tauri host glue.
+- D-IPC-001 (auth session), D-IPC-002 (daemon lifecycle), D-IPC-004 (HTTP proxy), D-IPC-005 (UI commands `open_external_url`), D-IPC-006 (OAuth), D-IPC-009 (invoke infrastructure, `log_renderer_event`) shared implementations live in `kit/shell/tauri/**`.
+- Apps must not duplicate these shared command implementations in app-local Rust code.
+- Apps must not use `#[path = "..."]` to compile another app's Rust source for shared bridge functionality.
+- App-specific Tauri commands (D-IPC-007 mod commands, D-IPC-008 external agent, desktop menu bar, desktop self-update) remain app-local.
+
 ## D-IPC-012 — IPC 桥与 SDK 路径分界
 
 Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不是临时妥协：

@@ -12,8 +12,11 @@
 @nimiplatform/nimi-kit
 ├── foundation
 │   ├── ui
-│   ├── core
+│   ├── core (+ core/runtime-capabilities)
 │   └── telemetry
+├── shell
+│   ├── tauri (Rust crate, non-npm)
+│   └── renderer (TS subpath exports)
 ├── auth
 └── features
     ├── chat
@@ -24,8 +27,11 @@
 
 - Foundation modules:
   - `ui`: design authority, tokens, primitives, themes, generated contracts.
-  - `core`: pure logic and shell/runtime capability helpers.
+  - `core`: pure logic, shell/runtime capability helpers, OAuth contracts. `core/runtime-capabilities` provides capability normalization/matching/catalog truth (runtime-safe + renderer-safe).
   - `telemetry`: renderer-safe telemetry and error boundary primitives.
+- Shell modules:
+  - `shell/tauri`: shared Rust Tauri host glue — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults. Consumed via Cargo path dependency, not npm import.
+  - `shell/renderer`: shared TS renderer shell glue — Tauri command wrappers, bridge primitives, bootstrap skeleton. Consumed via `@nimiplatform/nimi-kit/shell/renderer/*` subpath exports.
 - Top-level capability module:
   - `auth`: shared authentication flows and auth-facing UI.
 - Feature modules:

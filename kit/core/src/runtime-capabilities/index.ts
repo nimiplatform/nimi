@@ -1,12 +1,9 @@
-// Re-export from shared kit/core/runtime-capabilities — single owner for
-// capability normalization, matching, builders, and catalog constants.
-
+// Core normalization, matching, builders, and catalog
 export type {
   HookCapabilityKey,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
-// HookSourceType and TurnHookPoint are exported from ./types.ts to avoid
-// duplicate-export conflict in the barrel index.
-
+  HookSourceType,
+  TurnHookPoint,
+} from './capabilities.js';
 export {
   normalizeCapabilityKey,
   capabilityMatches,
@@ -30,4 +27,18 @@ export {
   DEFAULT_TURN_HOOK_POINTS,
   DEFAULT_UI_SLOTS,
   DEFAULT_SOURCE_ALLOWLIST,
-} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
+} from './capabilities.js';
+
+// Codegen tier classification
+export type {
+  CodegenCapabilityTier,
+  CodegenCapabilityDecision,
+} from './codegen-catalog.js';
+export {
+  CODEGEN_T0_CAPABILITY_PATTERNS,
+  CODEGEN_T1_CAPABILITY_PATTERNS,
+  CODEGEN_T2_CAPABILITY_PATTERNS,
+  normalizeCodegenCapabilityWildcard,
+  classifyCodegenCapability,
+  resolveCodegenCapabilityDecision,
+} from './codegen-catalog.js';

@@ -4,7 +4,7 @@ import { OAuthLoginState } from '@nimiplatform/sdk/realm';
 import {
   startSocialOauth,
   type SocialOauthProvider,
-} from '@nimiplatform/nimi-kit/core/oauth';
+} from './social-oauth.js';
 import type { AuthView, DesktopCallbackRequest, ShellAuthWindow } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { persistAuthSession } from './auth-session-storage.js';
