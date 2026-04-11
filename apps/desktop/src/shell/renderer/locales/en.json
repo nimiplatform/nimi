@@ -3364,6 +3364,10 @@
       "failed": "Embedding generation failed."
     },
     "imageGenerate": {
+      "history": "History",
+      "clearHistory": "Clear All",
+      "deleteHistoryItem": "Delete",
+      "closePreview": "Close preview",
       "promptPlaceholder": "Image generation prompt...",
       "negativePromptPlaceholder": "Negative prompt (optional)...",
       "size": "Size",
@@ -3393,6 +3397,9 @@
       "submitFailed": "Job submission failed.",
       "generateFailed": "Image generation failed.",
       "generatedAlt": "Generated image"
+    },
+    "multimodal": {
+      "attachMedia": "Attach media"
     },
     "videoGenerate": {
       "mode": "Mode",

@@ -25,7 +25,7 @@ test('desktop chat output contract helper exposes beat-action envelope rules', (
   assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
   assert.match(section, /The top-level object must contain "schemaId", "beats", and "actions"\. Do not rename or omit these keys/);
   assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
-  assert.match(section, new RegExp(`Begin your response with \\{\"schemaId\":\"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
+  assert.match(section, new RegExp(`Begin your response with \\{"schemaId":"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.match(section, /Put all user-visible assistant text inside ordered "beats\[\*\]\.text" fields/);
   assert.match(section, /Every beat must include a unique "beatId" string/);
   assert.match(section, /Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request"/);

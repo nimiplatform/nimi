@@ -276,7 +276,10 @@ export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): Agent
     const hint = raw.startsWith('`')
       ? 'leading backticks detected; remove Markdown code fences and return the JSON object directly'
       : 'return the JSON object directly with no wrapper text';
-    throw new Error(`Agent model output must be a raw JSON object with no Markdown code fences or wrapper text: ${hint} (${detail})`);
+    throw new Error(
+      `Agent model output must be a raw JSON object with no Markdown code fences or wrapper text: ${hint} (${detail})`,
+      { cause: error },
+    );
   }
   const record = parseRecord(payload, 'agent model output beat-action envelope');
   const schemaId = parseTrimmedString(record.schemaId, 'schemaId');

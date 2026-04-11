@@ -21,7 +21,7 @@ import {
 } from '../tester-utils.js';
 import { resolveEffectiveBinding, resolveImageResponseFormat } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
-import { getRuntimeClient, resolveCallParams, bindingToRouteInfo } from '../tester-runtime.js';
+import { bindingToRouteInfo } from '../tester-runtime.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection, RunButton } from '../tester-diagnostics.js';
 import { buildLocalProfileExtensions, createModRuntimeClient, type ModRuntimeBoundImageGenerateInput } from '@nimiplatform/sdk/mod';
 
@@ -201,7 +201,7 @@ function ImageHistoryPanel({ records, onDelete, onClear }: {
                 type="button"
                 className="shrink-0 rounded p-1 text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-surface-raised)] hover:text-[var(--nimi-accent-danger)]"
                 onClick={() => onDelete(record.id)}
-                aria-label="Delete"
+                aria-label={t('Tester.imageGenerate.deleteHistoryItem', { defaultValue: 'Delete' })}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </button>
@@ -221,6 +221,7 @@ function ImageHistoryPanel({ records, onDelete, onClear }: {
 }
 
 function ImagePreviewGrid({ uris }: { uris: string[] }) {
+  const { t } = useTranslation();
   const [preview, setPreview] = React.useState<string | null>(null);
   return (
     <>
@@ -237,7 +238,7 @@ function ImagePreviewGrid({ uris }: { uris: string[] }) {
             type="button"
             className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/40"
             onClick={() => setPreview(null)}
-            aria-label="Close preview"
+            aria-label={t('Tester.imageGenerate.closePreview', { defaultValue: 'Close preview' })}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>

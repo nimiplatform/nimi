@@ -3364,6 +3364,10 @@
       "failed": "嵌入生成失败。"
     },
     "imageGenerate": {
+      "history": "历史记录",
+      "clearHistory": "清空全部",
+      "deleteHistoryItem": "删除",
+      "closePreview": "关闭预览",
       "promptPlaceholder": "图片生成提示词...",
       "negativePromptPlaceholder": "负面提示词（可选）...",
       "size": "尺寸",
@@ -3393,6 +3397,9 @@
       "submitFailed": "任务提交失败。",
       "generateFailed": "图片生成失败。",
       "generatedAlt": "生成的图片"
+    },
+    "multimodal": {
+      "attachMedia": "添加媒体"
     },
     "videoGenerate": {
       "mode": "模式",
