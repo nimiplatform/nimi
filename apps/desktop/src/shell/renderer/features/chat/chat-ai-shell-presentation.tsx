@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import {
   CanonicalComposer,
   type ChatComposerSubmitInput,
@@ -91,8 +91,14 @@ export function useAiConversationPresentation(
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
-  const schedulingFeedbackNode = schedulingGuard.feedback ? (
-    <InlineFeedback feedback={schedulingGuard.feedback} />
+
+  const [schedulingDismissed, setSchedulingDismissed] = useState<string | null>(null);
+  const schedulingKey = schedulingGuard.feedback?.message ?? null;
+  const onDismissScheduling = useCallback(() => {
+    setSchedulingDismissed(schedulingKey);
+  }, [schedulingKey]);
+  const schedulingFeedbackNode = schedulingGuard.feedback && schedulingKey !== schedulingDismissed ? (
+    <InlineFeedback feedback={schedulingGuard.feedback} onDismiss={onDismissScheduling} />
   ) : null;
 
   const adapter = useMemo(() => ({
@@ -108,8 +114,9 @@ export function useAiConversationPresentation(
     },
     composerAdapter: input.composerReady
       ? {
-        submit: async (composerInput: ChatComposerSubmitInput<unknown>) => {
-          await input.handleSubmit(composerInput.text);
+        submit: (composerInput: ChatComposerSubmitInput<unknown>) => {
+          void input.handleSubmit(composerInput.text).catch(() => undefined);
+          return Promise.resolve();
         },
         disabled: Boolean(input.submittingThreadId) || schedulingGuard.disabled,
         disabledReason: input.submittingThreadId

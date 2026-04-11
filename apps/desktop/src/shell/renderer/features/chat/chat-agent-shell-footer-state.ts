@@ -25,12 +25,19 @@ export function resolveAgentFooterViewState(input: {
   streamState: StreamState | null;
   lifecycle: AgentTurnLifecycleState;
   currentHostFooterState: AgentHostFlowFooterState;
+  isSubmitting: boolean;
 }): AgentFooterViewState {
   const pendingFirstBeat = Boolean(
-    input.streamState
-    && input.streamState.phase === 'waiting'
-    && !input.streamState.partialText
-    && !input.streamState.partialReasoningText,
+    (
+      input.streamState
+      && input.streamState.phase === 'waiting'
+      && !input.streamState.partialText
+      && !input.streamState.partialReasoningText
+    )
+    || (
+      input.isSubmitting
+      && (!input.streamState || input.streamState.phase === 'idle')
+    ),
   );
 
   if (isStreamingState(input.streamState)) {
@@ -51,6 +58,13 @@ export function resolveAgentFooterViewState(input: {
     return {
       displayState: 'interrupted',
       pendingFirstBeat: false,
+    };
+  }
+
+  if (input.isSubmitting) {
+    return {
+      displayState: 'streaming',
+      pendingFirstBeat: true,
     };
   }
 

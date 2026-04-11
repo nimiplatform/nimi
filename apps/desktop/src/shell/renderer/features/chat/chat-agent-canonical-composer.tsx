@@ -159,11 +159,12 @@ export function AgentCanonicalComposer(props: {
       <CanonicalComposer
         key={props.composerKey}
         adapter={{
-          submit: async ({ text, attachments }) => {
-            await props.onSubmit({
+          submit: ({ text, attachments }) => {
+            void props.onSubmit({
               text,
               attachments: attachments as readonly PendingAttachment[],
             });
+            return Promise.resolve();
           },
         }}
         initialText={props.initialText}

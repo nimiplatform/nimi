@@ -165,6 +165,7 @@ export function footerViewStateForHarness(state: AgentHostHarnessState, threadId
     streamState: getStreamState(threadId),
     lifecycle: footerState?.lifecycle || createInitialAgentTurnLifecycleState(),
     currentHostFooterState: footerState?.footerState || 'hidden',
+    isSubmitting: state.submittingThreadId === threadId,
   });
 }
 

@@ -35,6 +35,7 @@ import {
   createEmptyBundle,
   normalizeReasoningText,
   replaceMessage,
+  stripBeatActionEnvelopeIfPresent,
   toAbortError,
   toConversationHistoryMessages,
   toStructuredProviderError,
@@ -231,48 +232,42 @@ export function useAiConversationHostActions(
     if (!submittedText) {
       return;
     }
-    await ensureAiConversationSubmitRouteReady({
-      t: input.t,
-    });
-    await assertAiSubmitSchedulingAllowed({
-      aiConfig: input.aiConfig,
-      t: input.t,
-    });
-
     let effectiveThreadId = input.activeThreadId;
-    let effectiveThreadRecord = input.selectedThreadRecord;
+    let effectiveThreadRecord = (
+      input.ephemeralThread && input.activeThreadId === input.ephemeralThread.id
+        ? input.ephemeralThread
+        : input.selectedThreadRecord
+    );
+    const createdAtMs = Date.now();
+
     if (!effectiveThreadId || !effectiveThreadRecord) {
-      const timestampMs = Date.now();
-      const newThread = await chatAiStoreClient.createThread({
+      const localThread: ChatAiThreadRecord = {
         id: randomIdV11('ai-thread'),
         title: AI_NEW_CONVERSATION_TITLE,
-        createdAtMs: timestampMs,
-        updatedAtMs: timestampMs,
+        createdAtMs,
+        updatedAtMs: createdAtMs,
         lastMessageAtMs: null,
         archivedAtMs: null,
-      });
-      input.setThreadsCache((current) => upsertThreadSummary(current, newThread));
-      input.queryClient.setQueryData(bundleQueryKey(newThread.id), createEmptyBundle(newThread));
-      syncAiThreadSelectionState(newThread.id);
-      effectiveThreadId = newThread.id;
-      effectiveThreadRecord = newThread;
-    } else if (input.ephemeralThread && input.ephemeralThread.id === effectiveThreadId) {
-      // Persist the ephemeral thread to DB on first message send
-      const persisted = await chatAiStoreClient.createThread({
-        id: input.ephemeralThread.id,
-        title: input.ephemeralThread.title,
-        createdAtMs: input.ephemeralThread.createdAtMs,
-        updatedAtMs: input.ephemeralThread.updatedAtMs,
-        lastMessageAtMs: input.ephemeralThread.lastMessageAtMs,
-        archivedAtMs: input.ephemeralThread.archivedAtMs,
-      });
-      input.setThreadsCache((current) => upsertThreadSummary(current, persisted));
-      input.setEphemeralThread(null);
+      };
+      input.setEphemeralThread(localThread);
+      input.setThreadsCache((current) => upsertThreadSummary(current, localThread));
+      input.queryClient.setQueryData(bundleQueryKey(localThread.id), createEmptyBundle(localThread));
+      syncAiThreadSelectionState(localThread.id);
+      effectiveThreadId = localThread.id;
+      effectiveThreadRecord = localThread;
     }
 
+    const fallbackThreadRecord: ChatAiThreadRecord = (
+      'createdAtMs' in effectiveThreadRecord
+      && typeof effectiveThreadRecord.createdAtMs === 'number'
+    )
+      ? effectiveThreadRecord as ChatAiThreadRecord
+      : {
+        ...effectiveThreadRecord,
+        createdAtMs,
+      };
     const userMessageId = randomIdV11('ai-message-user');
     const assistantMessageId = randomIdV11('ai-message-assistant');
-    const createdAtMs = Date.now();
     const userMessage: ChatAiMessageRecord = {
       id: userMessageId,
       threadId: effectiveThreadId,
@@ -300,7 +295,13 @@ export function useAiConversationHostActions(
       updatedAtMs: createdAtMs + 1,
     };
 
-    input.currentDraftTextRef.current = submittedText;
+    const optimisticThreadRecord: ChatAiThreadRecord = {
+      ...fallbackThreadRecord,
+      updatedAtMs: assistantPlaceholder.updatedAtMs,
+      lastMessageAtMs: assistantPlaceholder.updatedAtMs,
+    };
+
+    input.currentDraftTextRef.current = '';
     input.setSubmittingThreadId(effectiveThreadId);
     let streamedText = '';
     let streamedReasoningText = '';
@@ -308,24 +309,54 @@ export function useAiConversationHostActions(
     let promptTraceId = '';
     let terminalError: ConversationTurnError | null = null;
     let completionEvent: Extract<ConversationTurnEvent, { type: 'turn-completed' }> | null = null;
+    let userMessagePersisted = false;
+    let threadPersisted = !(
+      input.ephemeralThread
+      && input.activeThreadId
+      && input.ephemeralThread.id === input.activeThreadId
+    ) && Boolean(input.selectedThreadRecord && input.activeThreadId === input.selectedThreadRecord.id);
 
     try {
-      await chatAiStoreClient.deleteDraft(effectiveThreadId);
-      input.setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
-
-      await chatAiStoreClient.createMessage(userMessage);
-      await chatAiStoreClient.createMessage(assistantPlaceholder);
+      input.setThreadsCache((current) => upsertThreadSummary(current, optimisticThreadRecord));
       input.setBundleCache(effectiveThreadId, (current) => {
-        const base = current || createEmptyBundle({
-          ...effectiveThreadRecord,
-          createdAtMs,
-        });
+        const base = current || createEmptyBundle(fallbackThreadRecord);
         return {
           ...base,
+          thread: optimisticThreadRecord,
           messages: replaceMessage(replaceMessage(base.messages, userMessage), assistantPlaceholder),
           draft: null,
         };
       });
+
+      await ensureAiConversationSubmitRouteReady({
+        t: input.t,
+      });
+      await assertAiSubmitSchedulingAllowed({
+        aiConfig: input.aiConfig,
+        t: input.t,
+      });
+
+      if (input.ephemeralThread && input.ephemeralThread.id === effectiveThreadId) {
+        const persisted = await chatAiStoreClient.createThread({
+          id: input.ephemeralThread.id,
+          title: input.ephemeralThread.title,
+          createdAtMs: input.ephemeralThread.createdAtMs,
+          updatedAtMs: input.ephemeralThread.updatedAtMs,
+          lastMessageAtMs: input.ephemeralThread.lastMessageAtMs,
+          archivedAtMs: input.ephemeralThread.archivedAtMs,
+        });
+        input.setThreadsCache((current) => upsertThreadSummary(current, persisted));
+        input.setEphemeralThread(null);
+        effectiveThreadRecord = persisted;
+        threadPersisted = true;
+      }
+
+      await chatAiStoreClient.deleteDraft(effectiveThreadId);
+      input.setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
+
+      await chatAiStoreClient.createMessage(userMessage);
+      userMessagePersisted = true;
+      await chatAiStoreClient.createMessage(assistantPlaceholder);
 
       const abortController = startStream(effectiveThreadId, STREAM_TEXT_TOTAL_TIMEOUT_MS);
       const history = toConversationHistoryMessages(input.bundleMessages || []);
@@ -409,7 +440,7 @@ export function useAiConversationHostActions(
       }
 
       const completedState = getStreamState(effectiveThreadId);
-      const finalText = completedState.partialText || streamedText;
+      const finalText = stripBeatActionEnvelopeIfPresent(completedState.partialText || streamedText);
       const finalReasoningText = completedState.partialReasoningText || streamedReasoningText;
 
       const assistantMessage = await chatAiStoreClient.updateMessage({
@@ -458,13 +489,16 @@ export function useAiConversationHostActions(
           traceId: streamSnapshot.traceId || runtimeTraceId || promptTraceId || undefined,
         });
       }
-      const draft = await chatAiStoreClient.putDraft({
-        threadId: effectiveThreadId,
-        text: submittedText,
-        attachments: [],
-        updatedAtMs: Date.now(),
-      });
-      input.setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, draft) || current);
+      const recoveredDraftUpdatedAtMs = Date.now();
+      const draft = threadPersisted
+        ? await chatAiStoreClient.putDraft({
+          threadId: effectiveThreadId,
+          text: submittedText,
+          attachments: [],
+          updatedAtMs: recoveredDraftUpdatedAtMs,
+        }).catch(() => null)
+        : null;
+      input.setThreadsCache((current) => upsertThreadSummary(current, fallbackThreadRecord));
       try {
         const assistantError = await chatAiStoreClient.updateMessage({
           id: assistantMessageId,
@@ -476,31 +510,44 @@ export function useAiConversationHostActions(
           updatedAtMs: Date.now(),
         });
         input.setBundleCache(effectiveThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...effectiveThreadRecord,
-            createdAtMs,
-          });
+          const base = current || createEmptyBundle(fallbackThreadRecord);
+          const messagesWithoutPlaceholder = base.messages.filter((message) => message.id !== assistantMessageId);
           return {
             ...base,
-            messages: replaceMessage(replaceMessage(base.messages, userMessage), assistantError),
-            draft,
+            thread: fallbackThreadRecord,
+            messages: replaceMessage(replaceMessage(messagesWithoutPlaceholder, userMessage), assistantError),
+            draft: draft || {
+              threadId: effectiveThreadId,
+              text: submittedText,
+              attachments: [],
+              updatedAtMs: recoveredDraftUpdatedAtMs,
+            },
           };
         });
       } catch {
         input.setBundleCache(effectiveThreadId, (current) => {
-          const base = current || createEmptyBundle({
-            ...effectiveThreadRecord,
-            createdAtMs,
-          });
+          const base = current || createEmptyBundle(fallbackThreadRecord);
+          const messagesWithoutOptimisticPlaceholder = base.messages
+            .filter((message) => message.id !== assistantMessageId);
           return {
             ...base,
-            messages: replaceMessage(base.messages, userMessage),
-            draft,
+            thread: fallbackThreadRecord,
+            messages: !userMessagePersisted
+              ? messagesWithoutOptimisticPlaceholder.filter((message) => message.id !== userMessageId)
+              : replaceMessage(messagesWithoutOptimisticPlaceholder, userMessage),
+            draft: draft || {
+              threadId: effectiveThreadId,
+              text: submittedText,
+              attachments: [],
+              updatedAtMs: recoveredDraftUpdatedAtMs,
+            },
           };
         });
       }
       input.currentDraftTextRef.current = submittedText;
-      throw new Error(runtimeError.message, { cause: error });
+      const propagatedError = new Error(runtimeError.message, { cause: error });
+      input.reportHostError(propagatedError);
+      throw propagatedError;
     } finally {
       input.setSubmittingThreadId(null);
     }

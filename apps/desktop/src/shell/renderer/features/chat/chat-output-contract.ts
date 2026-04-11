@@ -23,6 +23,8 @@ function buildDesktopChatOutputContractLines(): string[] {
     'Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling".',
     '"deliveryCoupling" must be "after-source-beat" (deliver the action after the referenced beat) or "with-source-beat" (deliver alongside the referenced beat).',
     'Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video".',
+    'Phase 1 limits: emit at most one "image" action and at most one "voice" action in the entire "actions" array.',
+    'Never emit multiple "voice" actions for separate beats in the same turn. If unsure, prefer "actions": [].',
     'Use typed prompt payloads only: image -> {"kind":"image-prompt","promptText":"..."}, voice -> {"kind":"voice-prompt","promptText":"..."}, video -> {"kind":"video-prompt","promptText":"..."}.',
     'For voice actions, use "operation": "audio.synthesize" for narrow playback, "voice_workflow.tts_v2v" for clone workflow, or "voice_workflow.tts_t2v" for design workflow.',
     'If no modality action exists, return "actions": [].',

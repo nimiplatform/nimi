@@ -169,6 +169,31 @@ test('chat ai a4: adapter reads text.generate binding from AIConfig as primary r
   );
 });
 
+test('chat ai a4: composer submit is fire-and-forget and host actions project the user message before route gating', () => {
+  const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-presentation.tsx');
+  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-host-actions.ts');
+  const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
+
+  assert.match(presentationSource, /submit:\s*\(composerInput: ChatComposerSubmitInput<unknown>\)\s*=>\s*\{/);
+  assert.match(presentationSource, /void input\.handleSubmit\(composerInput\.text\)\.catch\(\(\) => undefined\);/);
+  assert.match(presentationSource, /return Promise\.resolve\(\);/);
+  assert.match(adapterSource, /const optimisticWaiting = submittingThreadId === activeThreadId/);
+  assert.match(adapterSource, /optimisticWaiting=\{optimisticWaiting\}/);
+  assert.match(adapterSource, /waitingLabel=\{t\('Chat\.aiSending'/);
+  assert.match(adapterSource, /submittingThreadId === activeThreadId\s*&& \(!streamState \|\| streamState\.phase === 'idle'\)/);
+
+  const optimisticProjectionIndex = hostActionsSource.indexOf(
+    "messages: replaceMessage(replaceMessage(base.messages, userMessage), assistantPlaceholder),",
+  );
+  const routeGateIndex = hostActionsSource.indexOf('await ensureAiConversationSubmitRouteReady');
+  assert.notEqual(optimisticProjectionIndex, -1);
+  assert.notEqual(routeGateIndex, -1);
+  assert.ok(
+    optimisticProjectionIndex < routeGateIndex,
+    'AI host must project the optimistic user message before submit-time route gating',
+  );
+});
+
 test('chat ai a4: switching thread route truth updates selection-store projection and thinking support', async () => {
   const cloudBinding = {
     source: 'cloud' as const,

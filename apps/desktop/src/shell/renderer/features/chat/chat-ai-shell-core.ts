@@ -22,6 +22,35 @@ export function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/**
+ * If `text` is a beat-action JSON envelope produced by the output contract,
+ * extract the human-readable beat text. Otherwise return unchanged.
+ *
+ * This guards the simple-ai path against envelopes that leaked into stored
+ * messages (from before the output contract was removed) or that a model
+ * emits spontaneously after seeing envelope-shaped history.
+ */
+export function stripBeatActionEnvelopeIfPresent(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{')) return text;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (
+      parsed.schemaId === 'nimi.agent.chat.beat-action.v1'
+      && Array.isArray(parsed.beats)
+    ) {
+      const extracted = (parsed.beats as Array<{ text?: unknown }>)
+        .map((beat) => normalizeText(beat.text))
+        .filter(Boolean)
+        .join('\n\n');
+      return extracted || text;
+    }
+  } catch {
+    // Not valid JSON — return as-is.
+  }
+  return text;
+}
+
 export function sortThreadSummaries(threads: readonly ChatAiThreadSummary[]): ChatAiThreadSummary[] {
   return [...threads].sort((left, right) => {
     const timeDelta = right.updatedAtMs - left.updatedAtMs;
@@ -120,7 +149,7 @@ export function toConversationHistoryMessages(
     return [{
       id: message.id,
       role: message.role,
-      text,
+      text: message.role === 'assistant' ? stripBeatActionEnvelopeIfPresent(text) : text,
     }];
   });
 }

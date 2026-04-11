@@ -1,5 +1,4 @@
 import {
-  asNimiError,
   createNimiError,
   ExecutionMode,
   RoutePolicy,
@@ -28,6 +27,7 @@ import {
   resolveAgentChatThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
+import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type { AgentVoiceWorkflowIntent } from './chat-agent-turn-plan';
 import type { AgentChatVoiceReferenceMeaning } from './chat-agent-voice-workflow';
 import type {
@@ -599,11 +599,7 @@ async function resolveRouteInput(
 }
 
 export function toChatAgentRuntimeError(error: unknown): { code: string; message: string } {
-  const normalized = asNimiError(error);
-  return {
-    code: String(normalized.reasonCode || ReasonCode.RUNTIME_CALL_FAILED).trim() || ReasonCode.RUNTIME_CALL_FAILED,
-    message: String(normalized.message || 'Agent response failed').trim() || 'Agent response failed',
-  };
+  return toChatUserFacingRuntimeError(error, 'Agent response failed');
 }
 
 export async function streamChatAgentRuntime(

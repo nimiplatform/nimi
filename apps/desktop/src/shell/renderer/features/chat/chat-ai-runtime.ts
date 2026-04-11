@@ -1,5 +1,4 @@
 import {
-  asNimiError,
   createNimiError,
   type TextMessage,
   type TextStreamOutput,
@@ -21,6 +20,7 @@ import {
   resolveTextExecutionSnapshotThinkingSupport,
   type ChatThinkingPreference,
 } from './chat-thinking';
+import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type { AISnapshot } from './conversation-capability';
 
 export type ChatAiRuntimeInvokeInput = {
@@ -157,11 +157,7 @@ async function resolveInvokeInput(
 }
 
 export function toChatAiRuntimeError(error: unknown): { code: string; message: string } {
-  const normalized = asNimiError(error);
-  return {
-    code: String(normalized.reasonCode || ReasonCode.RUNTIME_CALL_FAILED).trim() || ReasonCode.RUNTIME_CALL_FAILED,
-    message: String(normalized.message || 'AI response failed').trim() || 'AI response failed',
-  };
+  return toChatUserFacingRuntimeError(error, 'AI response failed');
 }
 
 export async function streamChatAiRuntime(

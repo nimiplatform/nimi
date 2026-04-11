@@ -165,12 +165,24 @@ export function RuntimeStreamFooter(props: {
   assistantAvatarUrl: string | null;
   assistantKind: 'agent' | 'human';
   streamState: StreamState | null;
+  optimisticWaiting?: boolean;
   stopLabel: string;
   interruptedLabel: string;
   reasoningLabel: ReactNode;
   waitingLabel?: string;
   showStreamingText?: boolean;
 }) {
+  if (props.optimisticWaiting && (!props.streamState || props.streamState.phase === 'idle')) {
+    return (
+      <ChatStreamStatus
+        mode="streaming"
+        partialText={props.waitingLabel || '...'}
+        reasoningText=""
+        reasoningLabel={props.reasoningLabel}
+      />
+    );
+  }
+
   if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
     const showStreamingText = props.showStreamingText !== false;
     const isPendingFirstBeat = !props.streamState.partialText && !props.streamState.partialReasoningText;
@@ -190,11 +202,13 @@ export function RuntimeStreamFooter(props: {
       <button
         type="button"
         onClick={() => cancelStream(props.chatId)}
-        className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
+        className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-400 shadow-sm transition-all duration-150 hover:border-red-300 hover:bg-red-50 hover:text-red-500 hover:shadow-md active:scale-95"
         aria-label={props.stopLabel}
         title={props.stopLabel}
       >
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><rect width="8" height="8" rx="1" /></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+        </svg>
       </button>
     );
     if (!showStreamingText && !isPendingFirstBeat) {

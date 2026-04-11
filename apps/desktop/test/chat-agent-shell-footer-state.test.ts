@@ -34,6 +34,7 @@ test('agent footer state shows streaming and pending first-beat while waiting wi
     }),
     lifecycle: createInitialAgentTurnLifecycleState(),
     currentHostFooterState: 'hidden',
+    isSubmitting: false,
   });
 
   assert.deepEqual(viewState, {
@@ -50,6 +51,7 @@ test('agent footer state shows streaming but not pending first-beat once partial
     }),
     lifecycle: createInitialAgentTurnLifecycleState(),
     currentHostFooterState: 'hidden',
+    isSubmitting: false,
   });
 
   assert.deepEqual(viewState, {
@@ -82,6 +84,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
     }),
     lifecycle: canceledLifecycle,
     currentHostFooterState: 'interrupted',
+    isSubmitting: false,
   });
   assert.equal(canceledState.displayState, 'interrupted');
 
@@ -111,6 +114,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
     }),
     lifecycle: failedLifecycle,
     currentHostFooterState: 'interrupted',
+    isSubmitting: false,
   });
   assert.equal(failedState.displayState, 'interrupted');
 });
@@ -139,6 +143,7 @@ test('agent footer state hides completed terminals even when done snapshot remai
     }),
     lifecycle,
     currentHostFooterState: 'done',
+    isSubmitting: false,
   });
 
   assert.deepEqual(viewState, {
@@ -173,6 +178,7 @@ test('agent footer state does not regress to interrupted when completed turn lea
     }),
     lifecycle,
     currentHostFooterState: 'done',
+    isSubmitting: false,
   });
 
   assert.deepEqual(viewState, {
@@ -196,10 +202,27 @@ test('agent footer state is unaffected by projection rebuild while terminal has 
     }),
     lifecycle,
     currentHostFooterState: 'hidden',
+    isSubmitting: false,
   });
 
   assert.deepEqual(viewState, {
     displayState: 'streaming',
     pendingFirstBeat: false,
+  });
+});
+
+test('agent footer state shows optimistic streaming and pending first-beat while submitting before stream starts', () => {
+  const viewState = resolveAgentFooterViewState({
+    streamState: streamState({
+      phase: 'idle',
+    }),
+    lifecycle: createInitialAgentTurnLifecycleState(),
+    currentHostFooterState: 'hidden',
+    isSubmitting: true,
+  });
+
+  assert.deepEqual(viewState, {
+    displayState: 'streaming',
+    pendingFirstBeat: true,
   });
 });

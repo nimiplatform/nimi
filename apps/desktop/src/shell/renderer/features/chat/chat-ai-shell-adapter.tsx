@@ -30,7 +30,6 @@ import {
   RuntimeStreamFooter,
   useConversationStreamState,
 } from './chat-runtime-stream-ui';
-import { composeDesktopChatSystemPrompt } from './chat-output-contract';
 import {
   buildAiConversationRouteSummary,
 } from './chat-ai-route-view';
@@ -221,7 +220,7 @@ export function useAiConversationModeHost(
         runtimeConfigState: input.runtimeConfigState,
         runtimeFields: input.runtimeFields,
       }),
-      resolveSystemPrompt: (turnInput) => composeDesktopChatSystemPrompt(turnInput.systemPrompt),
+      resolveSystemPrompt: (turnInput) => turnInput.systemPrompt || null,
     }));
     return registry.require('simple-ai');
   }, [
@@ -392,6 +391,8 @@ export function useAiConversationModeHost(
     if (!activeThreadId) {
       return null;
     }
+    const optimisticWaiting = submittingThreadId === activeThreadId
+      && (!streamState || streamState.phase === 'idle');
     return (
       <RuntimeStreamFooter
         chatId={activeThreadId}
@@ -399,18 +400,28 @@ export function useAiConversationModeHost(
         assistantAvatarUrl={aiCharacterData.avatarUrl || null}
         assistantKind="agent"
         streamState={streamState}
+        optimisticWaiting={optimisticWaiting}
         stopLabel={t('ChatTimeline.stopGenerating', 'Stop generating')}
         interruptedLabel={t('ChatTimeline.streamInterrupted', 'Response interrupted')}
         reasoningLabel={reasoningLabel}
+        waitingLabel={t('Chat.aiSending', {
+          defaultValue: 'Generating response...',
+        })}
       />
     );
-  }, [activeThreadId, aiCharacterData.avatarUrl, aiCharacterData.name, reasoningLabel, streamState, t]);
+  }, [activeThreadId, aiCharacterData.avatarUrl, aiCharacterData.name, reasoningLabel, streamState, submittingThreadId, t]);
 
   const pendingFirstBeat = Boolean(
-    streamState
-    && streamState.phase === 'waiting'
-    && !streamState.partialText
-    && !streamState.partialReasoningText,
+    (
+      streamState
+      && streamState.phase === 'waiting'
+      && !streamState.partialText
+      && !streamState.partialReasoningText
+    )
+    || (
+      submittingThreadId === activeThreadId
+      && (!streamState || streamState.phase === 'idle')
+    ),
   );
 
   const host = useAiConversationPresentation({

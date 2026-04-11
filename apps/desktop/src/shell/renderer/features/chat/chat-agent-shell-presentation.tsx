@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
@@ -129,7 +129,8 @@ export function useAgentConversationPresentation(
     streamState: input.streamState,
     lifecycle: input.currentFooterHostState?.lifecycle || createInitialAgentTurnLifecycleState(),
     currentHostFooterState: input.currentFooterHostState?.footerState || 'hidden',
-  }), [input.currentFooterHostState?.footerState, input.currentFooterHostState?.lifecycle, input.streamState]);
+    isSubmitting: input.submittingThreadId === input.activeThreadId,
+  }), [input.activeThreadId, input.currentFooterHostState?.footerState, input.currentFooterHostState?.lifecycle, input.streamState, input.submittingThreadId]);
   const surfaceState = useMemo(() => resolveAgentConversationSurfaceState({
     composerReady: input.composerReady,
     activeTarget: input.activeTarget,
@@ -204,6 +205,9 @@ export function useAgentConversationPresentation(
           assistantAvatarUrl={characterData.avatarUrl || null}
           assistantKind="agent"
           streamState={input.streamState}
+          optimisticWaiting={footerViewState.displayState === 'streaming'
+            && footerViewState.pendingFirstBeat
+            && (!input.streamState || input.streamState.phase === 'idle')}
           stopLabel={input.t('ChatTimeline.stopGenerating', 'Stop generating')}
           interruptedLabel={input.t('ChatTimeline.streamInterrupted', 'Response interrupted')}
           reasoningLabel={input.reasoningLabel}
@@ -263,8 +267,13 @@ export function useAgentConversationPresentation(
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
-  const schedulingFeedbackNode = schedulingGuard.feedback ? (
-    <InlineFeedback feedback={schedulingGuard.feedback} />
+  const [schedulingDismissed, setSchedulingDismissed] = useState<string | null>(null);
+  const schedulingKey = schedulingGuard.feedback?.message ?? null;
+  const onDismissScheduling = useCallback(() => {
+    setSchedulingDismissed(schedulingKey);
+  }, [schedulingKey]);
+  const schedulingFeedbackNode = schedulingGuard.feedback && schedulingKey !== schedulingDismissed ? (
+    <InlineFeedback feedback={schedulingGuard.feedback} onDismiss={onDismissScheduling} />
   ) : null;
   const adapter = useMemo(() => ({
     mode: 'agent' as const,
@@ -308,43 +317,6 @@ export function useAgentConversationPresentation(
       adapter.composerAdapter ? (
         <div className="space-y-3">
           {hostFeedbackNode}
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-800">
-            <span>
-              {input.voiceSessionState.mode === 'hands-free'
-                ? input.t('Chat.voiceSessionHandsFreeActive', {
-                  defaultValue: 'Hands-free on (foreground only)',
-                })
-                : input.t('Chat.voiceSessionHandsFreeHint', {
-                  defaultValue: 'Foreground hands-free stays inside this thread only.',
-                })}
-            </span>
-            {input.voiceSessionState.mode === 'hands-free' ? (
-              <button
-                type="button"
-                onClick={input.onExitHandsFreeVoiceSession}
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-medium text-emerald-800 transition-colors hover:bg-emerald-50"
-              >
-                {input.t('Chat.voiceSessionHandsFreeExit', {
-                  defaultValue: 'Exit hands-free',
-                })}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={input.onEnterHandsFreeVoiceSession}
-                disabled={
-                  Boolean(input.submittingThreadId)
-                  || input.voiceSessionState.status === 'transcribing'
-                  || input.voiceSessionState.status === 'listening'
-                }
-                className="rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-medium text-emerald-800 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {input.t('Chat.voiceSessionHandsFreeEnter', {
-                  defaultValue: 'Enter hands-free',
-                })}
-              </button>
-            )}
-          </div>
           <AgentCanonicalComposer
             composerKey={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
             initialText={input.bundle?.draft?.text || ''}

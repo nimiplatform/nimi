@@ -1239,6 +1239,11 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionsSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionsSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionsSource, /finally\s*\{[\s\S]*input\.setSubmittingThreadId\(null\);/);
+  assert.ok(
+    hostActionsSource.indexOf('input.setSubmittingThreadId(effectiveThreadId);')
+    < hostActionsSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({'),
+    'agent host actions must enter submitting state before route readiness checks so thinking appears immediately',
+  );
   assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
   assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\);/);
   assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);

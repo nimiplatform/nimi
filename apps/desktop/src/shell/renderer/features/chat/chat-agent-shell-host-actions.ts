@@ -33,6 +33,7 @@ import {
 } from './chat-agent-thread-model';
 import {
   createEmptyAgentThreadBundle,
+  replaceAgentBundleMessage,
   resolveAuthoritativeAgentThreadBundle,
 } from './chat-agent-shell-bundle';
 import {
@@ -373,6 +374,12 @@ export function useAgentConversationHostActions(
   }, [input]);
 
   const handleSubmit = useCallback(async (payload: { text: string; attachments: readonly PendingAttachment[] }) => {
+    let optimisticThreadId: string | null = null;
+    let optimisticUserMessageIds: string[] = [];
+    let optimisticBaseThread: AgentLocalThreadRecord | null = null;
+    let authoritativeUserCommitStored = false;
+    let submittedTextForRecovery = '';
+    let submittingLockToken: number | null = null;
     try {
       const activeTarget = input.activeTarget;
       if (!activeTarget) {
@@ -381,22 +388,31 @@ export function useAgentConversationHostActions(
         }));
       }
       const submittedText = payload.text.trim();
+      submittedTextForRecovery = submittedText;
       if (!submittedText && payload.attachments.length === 0) {
         return;
       }
-      const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
-        t: input.t,
-      });
-      await assertAgentSubmitSchedulingAllowed({
-        aiConfig: input.aiConfig,
-        t: input.t,
-      });
 
+      // ── Optimistic update: show the user message immediately ──
+      // Insert a temporary message record into the bundle cache BEFORE any
+      // async work so the UI renders it on the next frame.
       let effectiveThreadRecord: AgentLocalThreadSummary | AgentLocalThreadRecord | null = input.selectedThreadRecord;
       let effectiveThreadId = input.activeThreadId;
       if (!effectiveThreadId || !effectiveThreadRecord) {
         effectiveThreadRecord = await createOrRestoreThreadForTarget(activeTarget);
         effectiveThreadId = effectiveThreadRecord.id;
+      }
+      let fallbackThreadRecord: AgentLocalThreadRecord;
+      if ('createdAtMs' in effectiveThreadRecord && typeof effectiveThreadRecord.createdAtMs === 'number') {
+        fallbackThreadRecord = {
+          ...effectiveThreadRecord,
+          createdAtMs: effectiveThreadRecord.createdAtMs,
+        };
+      } else {
+        fallbackThreadRecord = {
+          ...effectiveThreadRecord,
+          createdAtMs: Date.now(),
+        };
       }
 
       const existingSubmit = activeSubmitRef.current;
@@ -420,6 +436,51 @@ export function useAgentConversationHostActions(
       const assistantTurnId = randomIdV11('agent-turn');
       const assistantMessageId = `${assistantTurnId}:message:0`;
       const createdAtMs = Date.now();
+      const optimisticUserProjection = payload.attachments.length === 0
+        ? buildAgentUserProjectionCommit({
+          threadId: effectiveThreadId,
+          turnId: userTurnId,
+          submittedText,
+          uploadedAttachments: [],
+          createdAtMs,
+        })
+        : null;
+      if (optimisticUserProjection) {
+        const optimisticThreadRecord: AgentLocalThreadRecord = {
+          ...fallbackThreadRecord,
+          updatedAtMs: createdAtMs,
+          lastMessageAtMs: optimisticUserProjection.lastMessageAtMs,
+          targetSnapshot: activeTarget,
+        };
+        input.currentDraftTextRef.current = '';
+        input.setThreadsCache((current) => upsertThreadSummary(current, optimisticThreadRecord));
+        input.setBundleCache(effectiveThreadId, (current) => {
+          const base = current || createEmptyAgentThreadBundle(optimisticThreadRecord);
+          return {
+            ...base,
+            thread: optimisticThreadRecord,
+            messages: optimisticUserProjection.messages.reduce<AgentLocalMessageRecord[]>(
+              (messages, message) => replaceAgentBundleMessage(messages, message),
+              base.messages,
+            ),
+            draft: null,
+          };
+        });
+        optimisticThreadId = effectiveThreadId;
+        optimisticUserMessageIds = optimisticUserProjection.messages.map((message) => message.id);
+        optimisticBaseThread = fallbackThreadRecord;
+      }
+      submittingLockToken = submittingLockTokenRef.current + 1;
+      submittingLockTokenRef.current = submittingLockToken;
+      input.setSubmittingThreadId(effectiveThreadId);
+      input.setFooterHostState(effectiveThreadId, null);
+      const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
+        t: input.t,
+      });
+      await assertAgentSubmitSchedulingAllowed({
+        aiConfig: input.aiConfig,
+        t: input.t,
+      });
       const uploadedAttachments = payload.attachments.length > 0
         ? await Promise.all(payload.attachments.map((attachment) => uploadPendingAttachment(attachment)))
         : [];
@@ -454,17 +515,10 @@ export function useAgentConversationHostActions(
       const matchedVoiceCapture = latestVoiceCapture?.transcriptText === submittedText
         ? latestVoiceCapture
         : null;
-      const submittingLockToken = submittingLockTokenRef.current + 1;
-      submittingLockTokenRef.current = submittingLockToken;
-      input.setSubmittingThreadId(effectiveThreadId);
-      input.setFooterHostState(effectiveThreadId, null);
       let projectionRefreshPromise: Promise<void> | null = null;
       let projectionRefreshError: unknown = null;
       let submitSession = createInitialAgentSubmitDriverState({
-        fallbackThread: {
-          ...effectiveThreadRecord,
-          createdAtMs,
-        },
+        fallbackThread: fallbackThreadRecord,
         assistantMessageId,
         assistantPlaceholder,
         submittedText,
@@ -472,7 +526,6 @@ export function useAgentConversationHostActions(
       });
 
       await chatAgentStoreClient.deleteDraft(effectiveThreadId);
-      input.setBundleCache(effectiveThreadId, (current) => upsertBundleDraft(current, null) || current);
 
       const userCommitted = await chatAgentStoreClient.commitTurnResult({
         threadId: effectiveThreadId,
@@ -508,6 +561,7 @@ export function useAgentConversationHostActions(
           clearDraft: true,
         },
       });
+      authoritativeUserCommitStored = true;
       const userBundle = resolveAuthoritativeAgentThreadBundle({
         optimisticBundle: userCommitted.bundle,
         refreshedBundle: null,
@@ -520,10 +574,7 @@ export function useAgentConversationHostActions(
       input.queryClient.setQueryData(bundleQueryKey(effectiveThreadId), userBundle);
       input.syncSelectionToThread(userBundle.thread);
       submitSession = createInitialAgentSubmitDriverState({
-        fallbackThread: {
-          ...effectiveThreadRecord,
-          createdAtMs,
-        },
+        fallbackThread: fallbackThreadRecord,
         assistantMessageId,
         assistantPlaceholder,
         submittedText,
@@ -812,6 +863,39 @@ export function useAgentConversationHostActions(
         }
       }
     } catch (error) {
+      if (
+        optimisticThreadId
+        && optimisticBaseThread
+        && !authoritativeUserCommitStored
+        && submittedTextForRecovery
+      ) {
+        const rollbackThread = optimisticBaseThread;
+        const rollbackThreadId = optimisticThreadId;
+        const fallbackDraftUpdatedAtMs = Date.now();
+        const recoveredDraft = await chatAgentStoreClient.putDraft({
+          threadId: rollbackThreadId,
+          text: submittedTextForRecovery,
+          updatedAtMs: fallbackDraftUpdatedAtMs,
+        }).catch(() => null);
+        input.currentDraftTextRef.current = submittedTextForRecovery;
+        input.setThreadsCache((current) => upsertThreadSummary(current, rollbackThread));
+        input.setBundleCache(rollbackThreadId, (current) => {
+          const base = current || createEmptyAgentThreadBundle(rollbackThread);
+          return {
+            ...base,
+            thread: rollbackThread,
+            messages: base.messages.filter((message) => !optimisticUserMessageIds.includes(message.id)),
+            draft: recoveredDraft || {
+              threadId: rollbackThreadId,
+              text: submittedTextForRecovery,
+              updatedAtMs: fallbackDraftUpdatedAtMs,
+            },
+          };
+        });
+      }
+      if (submittingLockToken !== null && submittingLockTokenRef.current === submittingLockToken) {
+        input.setSubmittingThreadId(null);
+      }
       input.reportHostError(error);
       throw error;
     }

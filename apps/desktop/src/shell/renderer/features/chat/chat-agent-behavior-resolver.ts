@@ -128,6 +128,17 @@ function parsePositiveInteger(value: unknown, label: string): number {
   return normalized;
 }
 
+function normalizeMirroredCount(
+  value: unknown,
+  expectedCount: number,
+): number {
+  const normalized = Number(value);
+  if (Number.isInteger(normalized) && normalized > 0 && normalized === expectedCount) {
+    return normalized;
+  }
+  return expectedCount;
+}
+
 function parseBeatIntent(value: unknown, label: string): AgentResolvedBeat['intent'] {
   const intent = parseTrimmedString(value, label) as AgentResolvedBeat['intent'];
   if (!AGENT_BEAT_INTENTS.has(intent)) {
@@ -204,7 +215,7 @@ function parseResolvedTextBeat(
   const beat = {
     beatId: parseTrimmedString(record.beatId, `beats[${beatArrayIndex}].beatId`),
     beatIndex: parseNonNegativeInteger(record.beatIndex, `beats[${beatArrayIndex}].beatIndex`),
-    beatCount: parsePositiveInteger(record.beatCount, `beats[${beatArrayIndex}].beatCount`),
+    beatCount: normalizeMirroredCount(record.beatCount, beatCount),
     intent: parseBeatIntent(record.intent, `beats[${beatArrayIndex}].intent`),
     deliveryPhase: parseDeliveryPhase(record.deliveryPhase, `beats[${beatArrayIndex}].deliveryPhase`),
     text: parseTrimmedString(record.text, `beats[${beatArrayIndex}].text`),
@@ -242,7 +253,7 @@ function parseResolvedModalityAction(
   const action = {
     actionId: parseTrimmedString(record.actionId, `actions[${actionArrayIndex}].actionId`),
     actionIndex: parseNonNegativeInteger(record.actionIndex, `actions[${actionArrayIndex}].actionIndex`),
-    actionCount: parsePositiveInteger(record.actionCount, `actions[${actionArrayIndex}].actionCount`),
+    actionCount: normalizeMirroredCount(record.actionCount, actionCount),
     modality,
     operation: parseTrimmedString(record.operation, `actions[${actionArrayIndex}].operation`),
     promptPayload: parsePromptPayload(record.promptPayload, modality, `actions[${actionArrayIndex}].promptPayload`),
@@ -261,6 +272,52 @@ function parseResolvedModalityAction(
     throw new Error(`actions[${actionArrayIndex}].actionCount must equal ${actionCount}`);
   }
   return action;
+}
+
+function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedModalityAction[]): void {
+  let imageActionCount = 0;
+  let voiceActionCount = 0;
+  for (const action of actions) {
+    if (action.modality === 'image') {
+      imageActionCount += 1;
+      continue;
+    }
+    if (action.modality === 'voice') {
+      voiceActionCount += 1;
+    }
+  }
+  if (imageActionCount > 1) {
+    throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
+  }
+  if (voiceActionCount > 1) {
+    throw new Error('agent-local-chat-v1 admits at most one voice action in phase 1');
+  }
+}
+
+/**
+ * When a small model returns plain text instead of the required JSON envelope,
+ * wrap the text in a minimal single-beat envelope with no modality actions.
+ * Returns null if the output looks like a failed JSON attempt (starts with { or [).
+ */
+export function recoverPlainTextAsEnvelope(rawModelOutput: string): AgentResolvedBeatActionEnvelope | null {
+  const text = rawModelOutput.trim();
+  if (!text || text.startsWith('{') || text.startsWith('[') || text.startsWith('`')) {
+    return null;
+  }
+  return {
+    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
+    beats: [
+      {
+        beatId: 'behavior-beat:0',
+        beatIndex: 0,
+        beatCount: 1,
+        intent: 'reply',
+        deliveryPhase: 'primary',
+        text,
+      },
+    ],
+    actions: [],
+  };
 }
 
 export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): AgentResolvedBeatActionEnvelope {
@@ -322,6 +379,7 @@ export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): Agent
       throw new Error(`action ${action.actionId} source beat reference is inconsistent`);
     }
   }
+  validatePhaseOneActionEnvelopeLimits(actions);
 
   return {
     schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,

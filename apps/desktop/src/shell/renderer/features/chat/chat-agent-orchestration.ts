@@ -34,11 +34,13 @@ import {
   type AgentChatUserAttachment,
 } from './chat-ai-execution-engine';
 import type {
+  AgentResolvedBeatActionEnvelope,
   AgentResolvedBehavior,
 } from './chat-agent-behavior';
 import {
   buildAgentResolvedOutputText,
   parseAgentResolvedBeatActionEnvelope,
+  recoverPlainTextAsEnvelope,
 } from './chat-agent-behavior-resolver';
 import {
   createAgentLocalChatContinuityAdapter,
@@ -461,7 +463,16 @@ export function createAgentLocalChatConversationProvider(
               if (!normalizeText(rawModelOutput)) {
                 throw new Error('agent-local-chat-v1 runtime stream completed without output text');
               }
-              const resolvedEnvelope = parseAgentResolvedBeatActionEnvelope(rawModelOutput);
+              let resolvedEnvelope: AgentResolvedBeatActionEnvelope;
+              try {
+                resolvedEnvelope = parseAgentResolvedBeatActionEnvelope(rawModelOutput);
+              } catch (envelopeError) {
+                const recovered = recoverPlainTextAsEnvelope(rawModelOutput);
+                if (!recovered) {
+                  throw envelopeError;
+                }
+                resolvedEnvelope = recovered;
+              }
               const plannedTextBeats = resolvePlannedTextBeatsFromEnvelope({
                 turnId: input.turnId,
                 envelope: resolvedEnvelope,
