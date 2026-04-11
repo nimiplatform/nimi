@@ -87,10 +87,14 @@ export function hydrateLocalRuntimeBinding(snapshot: RuntimeRouteOptionsSnapshot
       modelId: normalizedModelId || undefined,
     };
   }
+  const authoritativeModelId = asString(localModel.modelId || localModel.model);
+  const effectiveModelId = normalizeLocalRuntimeModelRoot(authoritativeModelId) === normalizedModelId && normalizedModelId
+    ? normalizedModelId
+    : authoritativeModelId;
   return {
     ...localBindingFromOption(localModel),
-    model: normalizedModelId || asString(localModel.modelId || localModel.model),
-    modelId: normalizedModelId || asString(localModel.modelId || localModel.model) || undefined,
+    model: effectiveModelId,
+    modelId: effectiveModelId || undefined,
     localModelId: asString(binding.localModelId || localModel.localModelId) || undefined,
   };
 }

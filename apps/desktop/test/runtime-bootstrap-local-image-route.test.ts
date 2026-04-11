@@ -83,6 +83,45 @@ test('hydrateLocalRouteBindingFromOptions prefers fresh local model go-runtime m
   assert.equal(hydrated.goRuntimeStatus, 'active');
 });
 
+test('hydrateLocalRouteBindingFromOptions rewrites stale ULID model fields to the authoritative assetId', () => {
+  const hydrated = hydrateLocalRouteBindingFromOptions({
+    source: 'local',
+    connectorId: '',
+    model: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+    modelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+    localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+    provider: 'media',
+    engine: 'media',
+  }, {
+    capability: 'image.generate',
+    selected: {
+      source: 'local',
+      connectorId: '',
+      model: 'local-import/z_image_turbo-Q4_K',
+      modelId: 'local-import/z_image_turbo-Q4_K',
+      localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+      provider: 'media',
+      engine: 'media',
+    },
+    resolvedDefault: undefined,
+    local: {
+      models: [{
+        localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
+        model: 'local-import/z_image_turbo-Q4_K',
+        modelId: 'local-import/z_image_turbo-Q4_K',
+        engine: 'media',
+        provider: 'media',
+        capabilities: ['image.generate'],
+      }],
+    },
+    connectors: [],
+  });
+
+  assert.equal(hydrated.model, 'local-import/z_image_turbo-Q4_K');
+  assert.equal(hydrated.modelId, 'local-import/z_image_turbo-Q4_K');
+  assert.equal(hydrated.localModelId, '01KK5M5ZNHWYK9WV1QWKSW48WG');
+});
+
 test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metadata when refreshed model has none', () => {
   const hydrated = hydrateLocalRouteBindingFromOptions({
     source: 'local',
@@ -242,4 +281,53 @@ test('loadRuntimeRouteOptions preserves media routing for managed image workflow
   assert.equal(options.local.models[0]?.endpoint, 'http://127.0.0.1:8321/v1');
   assert.equal(options.selected, null);
   assert.equal(options.resolvedDefault?.endpoint, 'http://127.0.0.1:8321/v1');
+});
+
+test('loadRuntimeRouteOptions keeps local assets selectable when go runtime only exposes kind metadata', async () => {
+  const options = await loadRuntimeRouteOptions({
+    capability: 'text.generate',
+    modId: 'world.nimi.local-chat',
+  }, {
+    sdkListConnectors: async () => ([]),
+    sdkListConnectorModelDescriptors: async () => ([]),
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        assets: [],
+        health: [],
+        generatedAt: new Date().toISOString(),
+      },
+      nodeCatalog: [{
+        provider: 'llama',
+        providerHints: {
+          extra: {
+            local_default_rank: 0,
+          },
+        },
+      }] as never[],
+      runtimeLocalModels: [{
+        localAssetId: '01KLOCALCHAT',
+        assetId: 'local/Gemma-4-27B-it-Q4_K_M',
+        kind: 'chat',
+        engine: 'llama',
+        entry: 'Gemma-4-27B-it-Q4_K_M.gguf',
+        files: ['Gemma-4-27B-it-Q4_K_M.gguf'],
+        license: 'apache-2.0',
+        source: { repo: 'google/gemma', revision: 'main' },
+        integrityMode: 'verified',
+        hashes: {},
+        status: 'active',
+        installedAt: '2026-03-08T00:00:00Z',
+        updatedAt: '2026-03-08T00:00:00Z',
+        endpoint: 'http://127.0.0.1:1234/v1',
+        capabilities: [],
+        engineConfig: {},
+      }] as never[],
+    }),
+  });
+
+  assert.equal(options.local.models.length, 1);
+  assert.equal(options.local.models[0]?.model, 'local/Gemma-4-27B-it-Q4_K_M');
+  assert.deepEqual(options.local.models[0]?.capabilities, ['text.generate']);
+  assert.equal(options.resolvedDefault?.source, 'local');
+  assert.equal(options.resolvedDefault?.model, 'local/Gemma-4-27B-it-Q4_K_M');
 });

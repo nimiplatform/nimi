@@ -85,6 +85,11 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
     if (!localModel) {
         return binding;
     }
+    const authoritativeModelId = String(localModel.modelId || localModel.model || '').trim();
+    const normalizedAuthoritativeModelId = authoritativeModelId.replace(/^(llama|media|speech|sidecar|local)\//i, '');
+    const effectiveModelId = targetModelId && normalizedAuthoritativeModelId === targetModelId
+        ? targetModelId
+        : authoritativeModelId;
     const bindingGoRuntimeStatus = String(binding.goRuntimeStatus || '').trim().toLowerCase();
     const localModelGoRuntimeStatus = String(localModel.goRuntimeStatus || '').trim().toLowerCase();
     const clearStaleBindingGoRuntime = bindingGoRuntimeStatus === 'removed' && !localModelGoRuntimeStatus;
@@ -94,8 +99,8 @@ export function hydrateLocalRouteBindingFromOptions(binding: RuntimeRouteBinding
             || bindingGoRuntimeStatus !== localModelGoRuntimeStatus);
     return {
         ...binding,
-        model: String(binding.model || binding.modelId || localModel.modelId || localModel.model || '').trim(),
-        modelId: String(binding.modelId || localModel.modelId || localModel.model || '').trim() || undefined,
+        model: effectiveModelId,
+        modelId: effectiveModelId || undefined,
         localModelId: String(binding.localModelId || localModel.localModelId || '').trim() || undefined,
         engine: String(binding.engine || localModel.engine || '').trim() || undefined,
         provider: String(binding.provider || localModel.provider || localModel.engine || '').trim() || undefined,

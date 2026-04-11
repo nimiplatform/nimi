@@ -1,10 +1,8 @@
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
   createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,
 } from '@nimiplatform/nimi-kit/features/model-picker';
-
-const CORE_RUNTIME_MOD_ID = 'core:runtime';
+import { loadDesktopRouteOptions } from './desktop-route-options-service';
 
 const providerCache = new Map<string, RouteModelPickerDataProvider | null>();
 
@@ -19,11 +17,10 @@ export function getDesktopRouteModelPickerProvider(capability: string): RouteMod
   }
 
   try {
-    const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
     const provider = createSnapshotRouteDataProvider(
-      () => modClient.route.listOptions({
-        capability: normalizedCapability as Parameters<typeof modClient.route.listOptions>[0]['capability'],
-      }),
+      () => loadDesktopRouteOptions(
+        normalizedCapability as Parameters<typeof loadDesktopRouteOptions>[0],
+      ),
     );
     providerCache.set(normalizedCapability, provider);
     return provider;

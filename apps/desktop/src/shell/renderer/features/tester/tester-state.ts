@@ -1,7 +1,7 @@
 import type React from 'react';
 import { CAPABILITIES, type CapabilityId, type CapabilityState, type CapabilityStates, type DiagnosticsInfo } from './tester-types.js';
 import { ensureRouteOptionsSnapshotShape, linkedRouteCapabilityIds, routeCapabilityFor } from './tester-route.js';
-import { createModRuntimeClient, parseRuntimeRouteOptions } from '@nimiplatform/sdk/mod';
+import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 
 export function makeEmptyDiagnostics(): DiagnosticsInfo {
   return { requestParams: null, resolvedRoute: null, responseMetadata: null };
@@ -45,12 +45,9 @@ export async function loadRouteSnapshot(input: {
     ])),
   }));
   try {
-    const runtimeClient = createModRuntimeClient('core:runtime');
-    const snapshot = ensureRouteOptionsSnapshotShape(parseRuntimeRouteOptions(await runtimeClient.route.listOptions({
-      capability: targetCapability,
-    }), {
-      includeResolvedDefault: true,
-    }));
+    const snapshot = ensureRouteOptionsSnapshotShape(
+      await loadDesktopRouteOptions(targetCapability),
+    );
     if (!snapshot) {
       throw new Error('TESTER_ROUTE_OPTIONS_INVALID');
     }
