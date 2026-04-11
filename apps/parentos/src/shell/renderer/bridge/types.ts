@@ -28,6 +28,19 @@ export type RuntimeDefaults = {
   runtime: RuntimeExecutionDefaults;
 };
 
+export type RuntimeBridgeLaunchMode = 'RUNTIME' | 'RELEASE' | 'INVALID';
+
+export type RuntimeBridgeDaemonStatus = {
+  running: boolean;
+  managed: boolean;
+  launchMode: RuntimeBridgeLaunchMode;
+  grpcAddr: string;
+  pid?: number;
+  version?: string;
+  lastError?: string;
+  debugLogPath?: string;
+};
+
 function assertRecord(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label}: expected object, got ${typeof value}`);
@@ -37,6 +50,16 @@ function assertRecord(value: unknown, label: string): Record<string, unknown> {
 
 function str(value: unknown, fallback = ''): string {
   return String(value ?? '').trim() || fallback;
+}
+
+function optionalStr(value: unknown): string | undefined {
+  const normalized = String(value ?? '').trim();
+  return normalized || undefined;
+}
+
+function optionalNum(value: unknown): number | undefined {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
 }
 
 export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
@@ -65,5 +88,23 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
       provider: str(runtimeRecord.provider),
       userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
     },
+  };
+}
+
+export function parseRuntimeBridgeDaemonStatus(value: unknown): RuntimeBridgeDaemonStatus {
+  const record = assertRecord(value, 'runtime_bridge_status returned invalid payload');
+  const launchModeRaw = String(record.launchMode || '').trim().toUpperCase();
+  const launchMode: RuntimeBridgeLaunchMode = launchModeRaw === 'RUNTIME' || launchModeRaw === 'RELEASE'
+    ? launchModeRaw
+    : 'INVALID';
+  return {
+    running: Boolean(record.running),
+    managed: Boolean(record.managed),
+    launchMode,
+    grpcAddr: str(record.grpcAddr),
+    pid: optionalNum(record.pid),
+    version: optionalStr(record.version),
+    lastError: optionalStr(record.lastError),
+    debugLogPath: optionalStr(record.debugLogPath),
   };
 }

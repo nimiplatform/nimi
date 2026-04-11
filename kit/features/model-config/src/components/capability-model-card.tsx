@@ -34,10 +34,17 @@ function statusToneClasses(status: ModelConfigCapabilityStatus | null | undefine
 
 export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const shouldShowEditor = item.editor && (
+    item.showEditorWhen !== 'local'
+    || item.binding?.source === 'local'
+  );
 
   if (!item.provider) {
     return (
-      <DisabledConfigNote label={item.runtimeNotReadyLabel || 'Runtime not ready'} />
+      <div className="space-y-2">
+        <DisabledConfigNote label={item.runtimeNotReadyLabel || 'Runtime not ready'} />
+        {shouldShowEditor ? item.editor : null}
+      </div>
     );
   }
 
@@ -46,10 +53,6 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   const source = selection.source || null;
   const connectorDetail = source === 'cloud' && selection.connectorId ? selection.connectorId : null;
   const statusClasses = statusToneClasses(item.status);
-  const shouldShowEditor = item.editor && (
-    item.showEditorWhen !== 'local'
-    || item.binding?.source === 'local'
-  );
 
   const labelNode = item.detail ? (
     <Tooltip content={item.detail} placement="top">

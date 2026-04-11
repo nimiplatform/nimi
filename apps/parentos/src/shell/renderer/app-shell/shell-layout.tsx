@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, type ReactNode, type ComponentType } from 'react';
+import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, type LucideProps } from 'lucide-react';
 import { useAppStore, computeAgeMonths } from './app-store.js';
+import { startParentosWindowDrag } from '../bridge/window-drag.js';
 
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
@@ -30,13 +31,13 @@ function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: 
   // Click outside to close
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) closePicker(); };
+    const handler = (e: globalThis.MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) closePicker(); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   return (
-    <div ref={ref} className="relative mt-auto">
+    <div ref={ref} className="relative z-40 mt-auto">
       <button onClick={() => open ? closePicker() : openPicker()}
         className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all hover:shadow-md"
         style={{ background: '#86AFDA', color: '#fff' }}>
@@ -45,7 +46,7 @@ function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: 
 
       {childList.length > 1 && mounted && (
         <div
-          className="absolute left-0 bottom-12 min-w-[190px] rounded-xl p-1.5"
+          className="absolute bottom-12 left-0 z-50 min-w-[190px] rounded-xl p-1.5"
           onTransitionEnd={() => { if (!open) setMounted(false); }}
           style={{
             background: '#fff',
@@ -96,13 +97,19 @@ function ChildAvatarPicker({ childList, activeChildId, activeChild, onSwitch }: 
 export function ShellLayout({ children }: { children: ReactNode }) {
   const { children: childList, activeChildId, setActiveChildId } = useAppStore();
   const activeChild = childList.find((c) => c.childId === activeChildId);
+  const handleWindowDragMouseDown = (event: ReactMouseEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    void startParentosWindowDrag();
+  };
 
   return (
-    <div className="flex h-full" style={{ background: '#E5ECEA' }}>
+    <div className="isolate flex h-full" style={{ background: '#E5ECEA' }}>
       {/* Narrow icon sidebar */}
-      <nav className="flex w-[72px] shrink-0 flex-col items-center py-4" style={{ background: '#E5ECEA' }}>
+      <nav className="relative z-30 flex w-[72px] shrink-0 flex-col items-center overflow-visible py-4" style={{ background: '#E5ECEA' }}>
         {/* Greeting — above nav icons, left-aligned with them, overflows right */}
-        <div className="w-[42px] self-center mb-5 relative">
+        <div className="w-[42px] self-center mb-5 relative" onMouseDown={handleWindowDragMouseDown}>
           <div className="whitespace-nowrap">
             <h1 className="text-[18px] font-bold leading-tight" style={{ color: '#1a2b4a' }}>记录成长，科学育娃</h1>
             <p className="text-[11px] mt-0.5" style={{ color: '#8a94a6' }}>
@@ -152,7 +159,17 @@ export function ShellLayout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="relative z-0 min-w-0 flex-1 overflow-hidden">
+        <div
+          className="absolute top-0 left-0 right-0 z-20 h-[72px]"
+          data-testid="shell-main-drag-region"
+          aria-hidden="true"
+          onMouseDown={handleWindowDragMouseDown}
+        />
+        <div className="h-full">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAppStore } from '../../app-shell/app-store.js';
 import { hasVoiceTranscriptionRuntime, transcribeVoiceObservation } from './voice-observation-runtime.js';
 
 const getPlatformClientMock = vi.fn();
@@ -12,6 +13,7 @@ describe('voice observation runtime', () => {
   beforeEach(() => {
     transcribeMock.mockReset();
     getPlatformClientMock.mockReset();
+    useAppStore.setState({ aiConfig: null });
   });
 
   it('detects when the local transcription surface is available', async () => {

@@ -1,5 +1,6 @@
 import { computeAgeMonthsAt, formatAge, type ChildProfile } from '../../app-shell/app-store.js';
-import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
+import type { TextStreamInput, TextStreamOutput } from '@nimiplatform/sdk/runtime/types-media.js';
+import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
 import type {
   AllergyRecordRow, DentalRecordRow, FitnessAssessmentRow, JournalEntryRow,
   MeasurementRow, MedicalEventRow, MilestoneRecordRow, ReminderStateRow,
@@ -7,9 +8,9 @@ import type {
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
-import { GROWTH_STANDARDS, MILESTONE_CATALOG, NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS, REMINDER_RULES } from '../../knowledge-base/index.js';
+import { MILESTONE_CATALOG, NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS, REMINDER_RULES } from '../../knowledge-base/index.js';
 import { buildMeasurementComparisons, buildSleepComparison, buildStructuredTrendSignals } from './trend-analysis.js';
-import { buildNarrativeActionItems, type NarrativeReportContent, type NarrativeSection, type StructuredGrowthReportMetric, type BuiltStructuredGrowthReport } from './structured-report.js';
+import { buildNarrativeActionItems, type NarrativeReportContent, type NarrativeSection, type BuiltStructuredGrowthReport } from './structured-report.js';
 
 /* ── Types ── */
 
@@ -214,8 +215,13 @@ function safetyFilterString(text: string, fallback: string): string {
 
 /* ── Full Generation Pipeline ── */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RuntimeAI = { ai: { text: { stream: (opts: any) => Promise<{ stream: AsyncIterable<{ type: string; text?: string; error?: unknown }> }> } } };
+type RuntimeAI = {
+  ai: {
+    text: {
+      stream: (input: TextStreamInput) => Promise<TextStreamOutput>;
+    };
+  };
+};
 
 export async function generateNarrativeReport(
   child: ChildProfile, period: ReportPeriod, data: AllDomainData, runtime: RuntimeAI, signal?: AbortSignal,
@@ -227,12 +233,12 @@ export async function generateNarrativeReport(
   const snapshot = buildReportDataSnapshot(child, period, data);
   const monthLabel = new Date(period.end).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
 
-  const aiParams = resolveParentosBinding('text.generate');
+  const aiParams = resolveParentosTextGenerateConfig({ temperature: 0.7, maxTokens: 2048 });
   const out = await runtime.ai.text.stream({
     ...aiParams,
     input: [{ role: 'user', content: buildReportUserMessage(child.displayName, monthLabel, snapshot) }],
     system: buildReportSystemPrompt(child.displayName),
-    temperature: 0.7, maxTokens: 2048, signal,
+    signal,
     metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.report' },
   });
 

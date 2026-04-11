@@ -191,4 +191,44 @@ describe('ReportsPage', () => {
       expect(screen.queryByText(/还没有成长报告/i)).toBeNull();
     });
   });
+
+  it('renders persisted narrative-ai reports from the unified reports store', async () => {
+    reportStore.unshift({
+      reportId: 'report-1',
+      childId: 'child-1',
+      reportType: 'monthly',
+      periodStart: '2026-04-01T00:00:00.000Z',
+      periodEnd: '2026-04-30T23:59:59.999Z',
+      ageMonthsStart: 26,
+      ageMonthsEnd: 27,
+      content: JSON.stringify({
+        version: 2,
+        format: 'narrative-ai',
+        reportType: 'monthly',
+        title: 'Mimi 的四月成长报告',
+        subtitle: '2026-04-01 至 2026-04-30',
+        teaser: '',
+        opening: '这个月继续稳步成长。',
+        generatedAt: '2026-04-30T23:59:59.999Z',
+        narrativeSections: [
+          { id: 'growth', title: '生长发育', narrative: '本月继续稳步成长。' },
+        ],
+        actionItems: [],
+        trendSignals: [],
+        metrics: [],
+        sources: ['local measurements'],
+        safetyNote: '如需详细解读，建议咨询专业人士。',
+      }),
+      generatedAt: '2026-04-30T23:59:59.999Z',
+      createdAt: '2026-04-30T23:59:59.999Z',
+    });
+
+    render(<ReportsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Mimi 的四月成长报告')).toBeTruthy();
+      expect(screen.getByText('AI 撰写')).toBeTruthy();
+      expect(screen.getByText('本月继续稳步成长。')).toBeTruthy();
+    });
+  });
 });

@@ -1,12 +1,10 @@
-import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import {
   createSnapshotRouteDataProvider,
   type RouteModelPickerDataProvider,
 } from '@nimiplatform/nimi-kit/features/model-picker';
+import { loadParentosRuntimeRouteOptions } from '../../infra/parentos-runtime-route-options.js';
 
-const CORE_RUNTIME_MOD_ID = 'core:runtime';
-
-const providerCache = new Map<string, RouteModelPickerDataProvider | null>();
+const providerCache = new Map<string, RouteModelPickerDataProvider>();
 
 export function getParentosRouteModelPickerProvider(capability: string): RouteModelPickerDataProvider | null {
   const normalized = String(capability || '').trim();
@@ -16,17 +14,11 @@ export function getParentosRouteModelPickerProvider(capability: string): RouteMo
     return providerCache.get(normalized) || null;
   }
 
-  try {
-    const modClient = createModRuntimeClient(CORE_RUNTIME_MOD_ID);
-    const provider = createSnapshotRouteDataProvider(
-      () => modClient.route.listOptions({
-        capability: normalized as Parameters<typeof modClient.route.listOptions>[0]['capability'],
-      }),
-    );
-    providerCache.set(normalized, provider);
-    return provider;
-  } catch {
-    providerCache.set(normalized, null);
-    return null;
-  }
+  const provider = createSnapshotRouteDataProvider(
+    () => loadParentosRuntimeRouteOptions(
+      normalized as Parameters<typeof loadParentosRuntimeRouteOptions>[0],
+    ),
+  );
+  providerCache.set(normalized, provider);
+  return provider;
 }

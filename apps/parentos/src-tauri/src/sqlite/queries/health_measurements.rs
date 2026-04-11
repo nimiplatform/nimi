@@ -167,7 +167,7 @@ pub fn insert_growth_report(
 ) -> Result<(), String> {
     if !is_supported_growth_report_type(report_type.trim()) {
         return Err(format!(
-            "unsupported growth reportType \"{}\"; expected monthly | quarterly | quarterly-letter",
+            "unsupported growth reportType \"{}\"; expected monthly | quarterly | quarterly-letter | custom",
             report_type,
         ));
     }

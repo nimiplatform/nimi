@@ -1,5 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
+import { resolveParentosSpeechTranscribeConfig } from '../settings/parentos-ai-runtime.js';
 
 export interface VoiceObservationTranscription {
   transcript: string;
@@ -49,14 +49,15 @@ export async function transcribeVoiceObservation(input: {
     throw new Error('voice observation transcription requires audio bytes');
   }
 
-  const aiParams = resolveParentosBinding('audio.transcribe');
+  const aiParams = resolveParentosSpeechTranscribeConfig({
+    language: 'zh-CN',
+    responseFormat: 'text',
+  });
   const output = await client.runtime.media.stt.transcribe({
     ...aiParams,
     route: aiParams.route ?? 'local',
     audio: { kind: 'bytes', bytes: audioBytes },
     mimeType,
-    language: 'zh-CN',
-    responseFormat: 'text',
     metadata: {
       callerKind: 'third-party-app',
       callerId: 'app.nimi.parentos',

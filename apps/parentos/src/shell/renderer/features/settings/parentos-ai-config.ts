@@ -33,6 +33,12 @@ export function createEmptyParentosAIConfig(): AIConfig {
   return createEmptyAIConfig(PARENTOS_AI_SCOPE_REF);
 }
 
+export function isParentosAIScopeRef(scopeRef: AIScopeRef | null | undefined): boolean {
+  return scopeRef?.kind === PARENTOS_AI_SCOPE_REF.kind
+    && scopeRef?.ownerId === PARENTOS_AI_SCOPE_REF.ownerId
+    && scopeRef?.surfaceId === PARENTOS_AI_SCOPE_REF.surfaceId;
+}
+
 export function bindingFromConfig(config: AIConfig, capabilityId: ParentosCapabilityId): RuntimeRouteBinding | null {
   return (config.capabilities.selectedBindings[capabilityId] || null) as RuntimeRouteBinding | null;
 }

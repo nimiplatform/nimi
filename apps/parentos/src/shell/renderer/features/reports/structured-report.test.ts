@@ -144,6 +144,25 @@ describe('structured-report', () => {
     }))).toThrow(/invalid structured growth report/i);
   });
 
+  it('accepts custom as a persisted report type', () => {
+    const parsed = parseStructuredGrowthReportContent(JSON.stringify({
+      version: 1,
+      format: 'structured-local',
+      reportType: 'custom',
+      title: 'Custom payload',
+      subtitle: '',
+      generatedAt: '2026-04-03T00:00:00.000Z',
+      overview: [],
+      metrics: [],
+      trendSignals: [],
+      sections: [],
+      sources: [],
+      safetyNote: 'facts only',
+    }));
+
+    expect(parsed.reportType).toBe('custom');
+  });
+
   it('parseReportContent dispatches v1 and v2 correctly', () => {
     const v1 = JSON.stringify({ version: 1, format: 'structured-local', reportType: 'monthly', title: 'T', subtitle: '', generatedAt: '', overview: [], metrics: [], trendSignals: [], sections: [], sources: [], safetyNote: 'test' });
     expect(parseReportContent(v1).version).toBe(1);

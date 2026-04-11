@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppStore } from '../../app-shell/app-store.js';
+import { clearAuthSession as clearPersistedAuthSession } from '../../bridge/auth-session.js';
+import { seedMockData, type SeedProgress } from '../../infra/mock-seed.js';
 
 /* ── design tokens (aligned with dashboard C) ──────────────── */
 
 const C = {
   bg: '#E5ECEA', card: '#ffffff', text: '#1a2b4a', sub: '#8a8f9a',
-  accent: '#94A533', blue: '#86AFDA',
+  accent: '#94A533', blue: '#86AFDA', danger: '#e25555',
   shadow: '0 2px 12px rgba(0,0,0,0.06)', radius: 'rounded-[18px]',
 } as const;
 
@@ -27,12 +31,73 @@ const infoCards = [
    ================================================================ */
 
 export default function SettingsPage() {
+  const authUser = useAppStore((s) => s.auth.user);
+  const authStatus = useAppStore((s) => s.auth.status);
+  const clearAuth = useAppStore((s) => s.clearAuthSession);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [seedStatus, setSeedStatus] = useState<'idle' | 'seeding' | 'done' | 'error'>('idle');
+  const [seedLabel, setSeedLabel] = useState('');
+  const [seedResult, setSeedResult] = useState('');
+
+  const handleSeedMock = async () => {
+    setSeedStatus('seeding');
+    setSeedLabel('');
+    setSeedResult('');
+    const result = await seedMockData((p: SeedProgress) => {
+      setSeedLabel(`${p.label} ${p.done}/${p.total}`);
+    });
+    setSeedStatus(result.ok ? 'done' : 'error');
+    setSeedResult(result.summary);
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await clearPersistedAuthSession();
+    } catch {
+      // best-effort clear
+    }
+    clearAuth();
+  };
+
   return (
     <div className="h-full overflow-y-auto" style={{ background: C.bg }}>
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
 
         {/* ── Header ─────────────────────────────────────── */}
         <h1 className="text-xl font-bold mb-6" style={{ color: C.text }}>设置</h1>
+
+        {/* ── Account ────────────────────────────────────── */}
+        {authStatus === 'authenticated' && authUser ? (
+          <div
+            className={`${C.radius} p-5 mb-6 flex items-center gap-4`}
+            style={{ background: C.card, boxShadow: C.shadow }}
+          >
+            <div
+              className="w-[46px] h-[46px] rounded-full flex items-center justify-center text-white text-[18px] font-semibold shrink-0"
+              style={{ background: C.blue }}
+            >
+              {authUser.displayName?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
+                {authUser.displayName || '未命名用户'}
+              </h3>
+              {authUser.email ? (
+                <p className="text-[12px] mt-0.5 truncate" style={{ color: C.sub }}>{authUser.email}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="shrink-0 rounded-full px-4 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50"
+              style={{ color: C.danger, border: `1px solid ${C.danger}` }}
+            >
+              {loggingOut ? '退出中…' : '退出登录'}
+            </button>
+          </div>
+        ) : null}
 
         {/* ── Main settings ──────────────────────────────── */}
         <div className="grid gap-3 mb-6">
@@ -65,6 +130,42 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+
+        {/* ── Dev tools (dev mode only) ─────────────────── */}
+        {import.meta.env.DEV ? (
+          <div className="mt-6">
+            <p className="text-[12px] font-semibold mb-3" style={{ color: C.sub }}>Dev Tools</p>
+            <div
+              className={`${C.radius} p-5`}
+              style={{ background: C.card, boxShadow: C.shadow }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>
+                    {seedStatus === 'seeding' ? `导入中… ${seedLabel}` : '导入测试数据'}
+                  </h3>
+                  <p className="text-[12px] mt-0.5 leading-snug" style={{ color: C.sub }}>
+                    {seedStatus === 'done' ? seedResult
+                      : seedStatus === 'error' ? seedResult
+                      : '从 mock.json 导入 3 个孩子及全部测试数据到 SQLite'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSeedMock}
+                  disabled={seedStatus === 'seeding'}
+                  className="shrink-0 rounded-full px-4 py-1.5 text-[12px] font-medium text-white transition-colors disabled:opacity-50"
+                  style={{ background: seedStatus === 'done' ? C.accent : seedStatus === 'error' ? C.danger : C.blue }}
+                >
+                  {seedStatus === 'seeding' ? '导入中…'
+                    : seedStatus === 'done' ? '已完成'
+                    : seedStatus === 'error' ? '重试'
+                    : '导入'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -24,12 +24,20 @@ vi.mock('../features/profile/vaccine-page.js', () => ({
   default: () => <div>VACCINE_PAGE</div>,
 }));
 
+vi.mock('../features/profile/posture-page.js', () => ({
+  default: () => <div>POSTURE_PAGE</div>,
+}));
+
 vi.mock('../features/journal/journal-page.js', () => ({
   default: () => <div>JOURNAL_PAGE</div>,
 }));
 
 vi.mock('../features/advisor/advisor-page.js', () => ({
   default: () => <div>ADVISOR_PAGE</div>,
+}));
+
+vi.mock('../features/reminders/reminders-page.js', () => ({
+  default: () => <div>REMINDERS_PAGE</div>,
 }));
 
 vi.mock('../features/reports/reports-page.js', () => ({
@@ -48,42 +56,34 @@ vi.mock('../features/settings/nurture-mode-settings-page.js', () => ({
   default: () => <div>NURTURE_MODE_SETTINGS_PAGE</div>,
 }));
 
+vi.mock('../features/settings/reminder-settings-page.js', () => ({
+  default: () => <div>REMINDER_SETTINGS_PAGE</div>,
+}));
+
+vi.mock('../features/settings/ai-settings-page.js', () => ({
+  default: () => <div>AI_SETTINGS_PAGE</div>,
+}));
+
 import { AppRoutes } from './routes.js';
 
 describe('AppRoutes routing', () => {
-  it('registers /reports as the structured reports surface', async () => {
+  it.each([
+    ['/reports', 'REPORTS_PAGE'],
+    ['/profile/posture', 'POSTURE_PAGE'],
+    ['/reminders', 'REMINDERS_PAGE'],
+    ['/settings/children', 'CHILDREN_SETTINGS_PAGE'],
+    ['/settings/nurture-mode', 'NURTURE_MODE_SETTINGS_PAGE'],
+    ['/settings/reminders', 'REMINDER_SETTINGS_PAGE'],
+    ['/settings/ai', 'AI_SETTINGS_PAGE'],
+  ])('keeps %s registered in the current router baseline', async (entry, marker) => {
     render(
-      <MemoryRouter initialEntries={['/reports']}>
+      <MemoryRouter initialEntries={[entry]}>
         <AppRoutes />
       </MemoryRouter>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText('REPORTS_PAGE')).toBeTruthy();
-    });
-  });
-
-  it('keeps the phase 1 settings subroutes registered', async () => {
-    render(
-      <MemoryRouter initialEntries={['/settings/children']}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('CHILDREN_SETTINGS_PAGE')).toBeTruthy();
-    });
-  });
-
-  it('keeps nurture-mode settings reachable in phase 1', async () => {
-    render(
-      <MemoryRouter initialEntries={['/settings/nurture-mode']}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('NURTURE_MODE_SETTINGS_PAGE')).toBeTruthy();
+      expect(screen.getByText(marker)).toBeTruthy();
     });
   });
 });

@@ -12,12 +12,16 @@ const {
   updateJournalEntryWithTagsMock,
   updateJournalKeepsakeMock,
   completeReminderByRuleMock,
+  hasJournalTaggingRuntimeMock,
+  suggestJournalTagsMock,
 } = vi.hoisted(() => ({
   getJournalEntriesMock: vi.fn().mockResolvedValue([]),
   insertJournalEntryWithTagsMock: vi.fn().mockResolvedValue(undefined),
   updateJournalEntryWithTagsMock: vi.fn().mockResolvedValue(undefined),
   updateJournalKeepsakeMock: vi.fn().mockResolvedValue(undefined),
   completeReminderByRuleMock: vi.fn().mockResolvedValue(undefined),
+  hasJournalTaggingRuntimeMock: vi.fn().mockResolvedValue(true),
+  suggestJournalTagsMock: vi.fn(),
 }));
 
 vi.mock('../../bridge/sqlite-bridge.js', () => ({
@@ -77,8 +81,8 @@ vi.mock('./voice-observation-runtime.js', () => ({
 }));
 
 vi.mock('./ai-journal-tagging.js', () => ({
-  hasJournalTaggingRuntime: vi.fn().mockResolvedValue(true),
-  suggestJournalTags: vi.fn(),
+  hasJournalTaggingRuntime: hasJournalTaggingRuntimeMock,
+  suggestJournalTags: suggestJournalTagsMock,
 }));
 
 vi.mock('../../engine/reminder-actions.js', () => ({
@@ -100,6 +104,12 @@ describe('JournalPage', () => {
     updateJournalEntryWithTagsMock.mockClear();
     updateJournalKeepsakeMock.mockClear();
     completeReminderByRuleMock.mockClear();
+    hasJournalTaggingRuntimeMock.mockResolvedValue(true);
+    suggestJournalTagsMock.mockReset();
+    suggestJournalTagsMock.mockResolvedValue({
+      dimensionId: 'PO-OBS-SOCL-001',
+      tags: ['Shared toys'],
+    });
 
     useAppStore.setState({
       activeChildId: 'child-1',
@@ -135,6 +145,7 @@ describe('JournalPage', () => {
       bootstrapReady: false,
       children: [],
     });
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -187,6 +198,29 @@ describe('JournalPage', () => {
         repeatIndex: 2,
         kind: 'guidance',
       });
+    });
+  });
+
+  it('auto-suggests tags after the draft stabilizes', async () => {
+    renderPage();
+
+    await waitFor(() => {
+      expect(hasJournalTaggingRuntimeMock).toHaveBeenCalled();
+    });
+
+    fireEvent.change(screen.getByPlaceholderText(/他刚刚做了什么/i), {
+      target: { value: '她刚刚主动把玩具递给了朋友，并且耐心等待对方回应。' },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+
+    await waitFor(() => {
+      expect(suggestJournalTagsMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(suggestJournalTagsMock.mock.calls[0]?.[0]).toMatchObject({
+      draftText: '她刚刚主动把玩具递给了朋友，并且耐心等待对方回应。',
+      candidateDimensions: [expect.objectContaining({ dimensionId: 'PO-OBS-SOCL-001' })],
     });
   });
 });

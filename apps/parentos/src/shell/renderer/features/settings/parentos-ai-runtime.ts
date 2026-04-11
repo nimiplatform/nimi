@@ -40,3 +40,82 @@ export function resolveParentosBinding(capabilityId: ParentosCapabilityId): Pare
     route: 'local',
   };
 }
+
+export type ParentosTextGenerateParams = ParentosCallParams & {
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  timeoutMs?: number;
+};
+
+export type ParentosSpeechTranscribeParams = ParentosCallParams & {
+  language?: string;
+  responseFormat?: string;
+  timestamps?: boolean;
+  diarization?: boolean;
+  speakerCount?: number;
+  prompt?: string;
+  timeoutMs?: number;
+};
+
+function getCapabilityParams(capabilityId: ParentosCapabilityId): Record<string, unknown> {
+  return (useAppStore.getState().aiConfig?.capabilities.selectedParams?.[capabilityId] || {}) as Record<string, unknown>;
+}
+
+function readFiniteNumber(value: unknown, fallback: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function readPositiveInteger(value: unknown, fallback: number | undefined): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.trunc(value);
+  }
+  return fallback;
+}
+
+function readTrimmedString(value: unknown, fallback: string | undefined): string | undefined {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || fallback;
+}
+
+function readBoolean(value: unknown, fallback: boolean | undefined): boolean | undefined {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+export function resolveParentosTextGenerateConfig(defaults: {
+  temperature?: number;
+  topP?: number;
+  maxTokens?: number;
+  timeoutMs?: number;
+} = {}): ParentosTextGenerateParams {
+  const params = getCapabilityParams('text.generate');
+  return {
+    ...resolveParentosBinding('text.generate'),
+    temperature: readFiniteNumber(params.temperature, defaults.temperature),
+    topP: readFiniteNumber(params.topP, defaults.topP),
+    maxTokens: readPositiveInteger(params.maxTokens, defaults.maxTokens),
+    timeoutMs: readPositiveInteger(params.timeoutMs, defaults.timeoutMs),
+  };
+}
+
+export function resolveParentosSpeechTranscribeConfig(defaults: {
+  language?: string;
+  responseFormat?: string;
+  timestamps?: boolean;
+  diarization?: boolean;
+  speakerCount?: number;
+  prompt?: string;
+  timeoutMs?: number;
+} = {}): ParentosSpeechTranscribeParams {
+  const params = getCapabilityParams('audio.transcribe');
+  return {
+    ...resolveParentosBinding('audio.transcribe'),
+    language: readTrimmedString(params.language, defaults.language),
+    responseFormat: readTrimmedString(params.responseFormat, defaults.responseFormat),
+    timestamps: readBoolean(params.timestamps, defaults.timestamps),
+    diarization: readBoolean(params.diarization, defaults.diarization),
+    speakerCount: readPositiveInteger(params.speakerCount, defaults.speakerCount),
+    prompt: readTrimmedString(params.prompt, defaults.prompt),
+    timeoutMs: readPositiveInteger(params.timeoutMs, defaults.timeoutMs),
+  };
+}

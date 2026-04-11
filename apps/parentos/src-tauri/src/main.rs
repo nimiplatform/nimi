@@ -38,6 +38,21 @@ fn get_storage_dirs() -> Result<ParentOSStorageDirs, String> {
     })
 }
 
+#[tauri::command]
+fn parentos_start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    if window.is_fullscreen().unwrap_or(false) {
+        return Ok(());
+    }
+
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        window.start_dragging().map_err(|error| error.to_string())
+    })) {
+        Ok(result) => result,
+        Err(_) => Err("window drag unavailable".to_string()),
+    }
+}
+
 fn configure_runtime_bridge_env() {
     if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
         std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
@@ -52,6 +67,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
+            parentos_start_window_drag,
             defaults::runtime_defaults,
             auth_session_commands::auth_session_load,
             auth_session_commands::auth_session_save,

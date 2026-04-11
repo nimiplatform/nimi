@@ -72,6 +72,7 @@ describe('ShellLayout', () => {
     );
 
     expect(container.querySelector('a[href="/reports"]')).toBeTruthy();
+    expect(screen.getByTestId('shell-main-drag-region')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'M' }));
     fireEvent.click(await screen.findByRole('button', { name: /Niko/i }));
@@ -79,5 +80,25 @@ describe('ShellLayout', () => {
     await waitFor(() => {
       expect(useAppStore.getState().activeChildId).toBe('child-2');
     });
+  });
+
+  it('keeps sidebar overflow layers above the main content region', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ShellLayout>
+          <div>APP_CONTENT</div>
+        </ShellLayout>
+      </MemoryRouter>,
+    );
+
+    const shellRoot = container.firstElementChild;
+    const nav = container.querySelector('nav');
+    const main = container.querySelector('main');
+
+    expect(shellRoot?.className).toContain('isolate');
+    expect(nav?.className).toContain('relative');
+    expect(nav?.className).toContain('z-30');
+    expect(nav?.className).toContain('overflow-visible');
+    expect(main?.className).toContain('z-0');
   });
 });

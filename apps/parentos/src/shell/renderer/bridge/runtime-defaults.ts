@@ -1,5 +1,6 @@
 import { BridgeError, invokeChecked } from './invoke.js';
 import { parseRuntimeDefaults, type RuntimeDefaults } from './types.js';
+import { describeError, logRendererEvent } from '../infra/telemetry/renderer-log.js';
 
 function trimTrailingSlashes(value: string): string {
   return String(value || '').replace(/\/+$/, '');
@@ -142,6 +143,14 @@ export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
     if (!(error instanceof BridgeError)) {
       throw error;
     }
+    logRendererEvent({
+      level: 'warn',
+      area: 'runtime.defaults',
+      message: 'action:bridge-runtime-defaults-fallback',
+      details: {
+        error: describeError(error),
+      },
+    });
     return readRuntimeDefaultsFallback();
   }
 }

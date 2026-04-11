@@ -14,6 +14,7 @@ import { dbInit, getFamily, getChildren } from '../bridge/sqlite-bridge.js';
 import { mapChildRow } from '../bridge/mappers.js';
 import { bootstrapParentOSAuthSession } from './parentos-bootstrap-auth.js';
 import { loadPersistedParentosAIConfig } from '../features/settings/parentos-ai-config.js';
+import { describeError, logRendererEvent } from './telemetry/renderer-log.js';
 
 let bootstrapPromise: Promise<void> | null = null;
 
@@ -63,6 +64,7 @@ export async function ensureParentOSBootstrapReady(): Promise<void> {
 
 async function doRunParentOSBootstrap(): Promise<void> {
   const store = useAppStore.getState();
+  const flowId = `parentos-bootstrap-${Date.now().toString(36)}`;
 
   try {
     // Step 1: Runtime Defaults
@@ -156,7 +158,6 @@ async function doRunParentOSBootstrap(): Promise<void> {
         },
       },
     });
-
     // Step 4: Auth Session
     await bootstrapParentOSAuthSession({
       realm,
@@ -186,15 +187,32 @@ async function doRunParentOSBootstrap(): Promise<void> {
           useAppStore.getState().setActiveChildId(children[0]!.childId);
         }
       }
-    } catch {
-      // Bridge not available (running in browser dev mode without Tauri)
+    } catch (error) {
+      logRendererEvent({
+        level: 'warn',
+        area: 'bootstrap.local-data',
+        message: 'action:local-data-bootstrap-failed',
+        flowId,
+        details: {
+          error: describeError(error),
+        },
+      });
     }
 
     // Step 6: Runtime SDK Readiness
     try {
       await runtime.ready();
-    } catch {
+    } catch (error) {
       // Runtime readiness is non-blocking; core ParentOS features work without runtime
+      logRendererEvent({
+        level: 'warn',
+        area: 'bootstrap.runtime',
+        message: 'action:runtime-ready-nonblocking-failed',
+        flowId,
+        details: {
+          error: describeError(error),
+        },
+      });
     }
 
     // Step 7: Ready
@@ -202,6 +220,15 @@ async function doRunParentOSBootstrap(): Promise<void> {
     store.setBootstrapError(null);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    logRendererEvent({
+      level: 'error',
+      area: 'bootstrap',
+      message: 'action:bootstrap-failed',
+      flowId,
+      details: {
+        error: describeError(error),
+      },
+    });
     store.setBootstrapError(message);
     store.setBootstrapReady(false);
   }

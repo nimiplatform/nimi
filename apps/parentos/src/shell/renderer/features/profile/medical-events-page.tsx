@@ -11,7 +11,7 @@ import { analyzeMedicalEvents } from '../../engine/smart-alerts.js';
 import type { MedicalAnalysis, MedicalAlert } from '../../engine/smart-alerts.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
-import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
+import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
@@ -229,11 +229,9 @@ export default function MedicalEventsPage() {
       ].join('\n');
 
       const client = getPlatformClient();
-      const insightParams = resolveParentosBinding('text.generate');
+      const insightParams = resolveParentosTextGenerateConfig({ temperature: 0.3, maxTokens: 600 });
       const output = await client.runtime.ai.text.generate({
         ...insightParams,
-        temperature: 0.3,
-        maxTokens: 600,
         input: [{ role: 'user', content: prompt }],
         metadata: {
           callerKind: 'third-party-app' as const,
@@ -334,11 +332,9 @@ export default function MedicalEventsPage() {
         '- 仅输出 JSON，不要输出其他内容。',
       ].join('\n');
 
-      const ocrParams = resolveParentosBinding('text.generate');
+      const ocrParams = resolveParentosTextGenerateConfig({ temperature: 0, maxTokens: 1000 });
       const output = await client.runtime.ai.text.generate({
         ...ocrParams,
-        temperature: 0,
-        maxTokens: 1000,
         input: [{
           role: 'user',
           content: [
@@ -458,7 +454,6 @@ export default function MedicalEventsPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setSubmitError(`保存失败：${msg}`);
-      console.error('[medical-events] insert failed:', err);
     } finally {
       setSaving(false);
     }
@@ -551,11 +546,9 @@ export default function MedicalEventsPage() {
       ].filter(Boolean).join('\n');
 
       const client = getPlatformClient();
-      const eventParams = resolveParentosBinding('text.generate');
+      const eventParams = resolveParentosTextGenerateConfig({ temperature: 0.3, maxTokens: 300 });
       const output = await client.runtime.ai.text.generate({
         ...eventParams,
-        temperature: 0.3,
-        maxTokens: 300,
         input: [{ role: 'user', content: prompt }],
         metadata: {
           callerKind: 'third-party-app' as const,
@@ -883,7 +876,15 @@ export default function MedicalEventsPage() {
                 <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>伴随症状（可多选）</p>
                 <div className="flex flex-wrap gap-1.5">
                   {COMMON_SYMPTOMS.map((s) => (
-                    <button key={s} onClick={() => setFormSymptomTags((prev) => { const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n; })}
+                    <button key={s} onClick={() => setFormSymptomTags((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(s)) {
+                        next.delete(s);
+                      } else {
+                        next.add(s);
+                      }
+                      return next;
+                    })}
                       className="px-2.5 py-1.5 text-[11px] rounded-xl transition-all"
                       style={formSymptomTags.has(s)
                         ? { background: S.accent, color: '#fff' }

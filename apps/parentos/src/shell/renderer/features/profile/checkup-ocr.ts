@@ -1,6 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { TextMessage } from '@nimiplatform/sdk/runtime/types-media.js';
-import { resolveParentosBinding } from '../settings/parentos-ai-runtime.js';
+import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 
 export type OCRImportTypeId = Extract<GrowthTypeId,
@@ -145,12 +145,10 @@ export async function analyzeCheckupSheetOCR(input: {
     throw new Error('ParentOS checkup OCR runtime is unavailable');
   }
 
-  const aiParams = resolveParentosBinding('text.generate');
+  const aiParams = resolveParentosTextGenerateConfig({ temperature: 0, maxTokens: 800 });
   const output = await client.runtime.ai.text.generate({
     ...aiParams,
     route: aiParams.route ?? 'local',
-    temperature: 0,
-    maxTokens: 800,
     input: buildOCRInput(imageUrl),
     metadata: {
       callerKind: 'third-party-app',
