@@ -56,4 +56,4 @@
 
 - kernel 表 `source_rule` 仅允许 `S-*`。
 - domain 文档只引用 kernel Rule ID，不定义本地规则体系。
-- 执行态 topic 工件可写入 `nimi-coding/.local/<topic-id>/**`，local-only 执行证据可写入 `nimi-coding/.local/report/**`；tracked spec 不依赖具体 `.local` 文件。
+- 执行态 topic 工件可写入 `.local/work/<topic-id>/**`，local-only 执行证据可写入 `.local/report/**`；tracked spec 不依赖具体 `.local` 文件。

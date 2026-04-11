@@ -4,7 +4,6 @@
 > Runtime, SDK, and desktop flows are usable today, but contracts and APIs may tighten between releases. Use [`spec/`](https://github.com/nimiplatform/nimi/tree/main/spec) as the normative source of truth, and read `spec/future/` as backlog rather than a release promise.
 
 Documentation for using, building with, and extending Nimi — the open-source AI runtime.
-This portal also includes the public overview for Nimi Coding, which is the repository's methodology plus formal execution system overview, not a replacement for `spec/**` or module contracts.
 
 Nimi gives you one runtime and one SDK for local and cloud AI, instead of stitching together separate model SDKs, local runners, streaming glue, and operational scripts.
 For app entrypoints, prefer `createPlatformClient()` from `@nimiplatform/sdk`; drop to subpath packages only when you explicitly need lower-level control.
@@ -55,7 +54,6 @@ Building extensions for the Nimi desktop app?
 ### Other
 
 - [Runtime Integrator Guide](./guides/runtime-integrator.md) — embed the runtime daemon in a host app
-- [Nimi Coding](./architecture/nimi-coding.md) — methodology and formal execution system overview
 
 ## Reference
 

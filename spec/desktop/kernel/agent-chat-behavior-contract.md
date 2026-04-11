@@ -152,5 +152,5 @@ pacing metadata；某个 beat 是否被 admit 为 delayed follow-up、何时进�
 - `nimi-mods/runtime/local-chat/src/default-settings-store.ts` — product-settings vs inspect-settings split evidence
 - `nimi-mods/runtime/local-chat/src/hooks/turn-send/resolved-experience-policy.ts` — resolved policy boundary evidence
 - `nimi-mods/runtime/local-chat/src/hooks/turn-send/turn-mode-resolver.ts` — turn-mode classifier evidence
-- `nimi-coding/.local/**` — local preflight evidence for desktop agent chat behavior authority / defer decisions (non-authoritative supporting material only)
-- `nimi-coding/.local/**` — local execution-engine boundary audit for AI chat non-owner framing (non-authoritative supporting material only)
+- `.local/**` — local preflight evidence for desktop agent chat behavior authority / defer decisions (non-authoritative supporting material only)
+- `.local/**` — local execution-engine boundary audit for AI chat non-owner framing (non-authoritative supporting material only)

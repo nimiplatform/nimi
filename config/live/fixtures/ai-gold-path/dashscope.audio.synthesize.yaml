@@ -1,0 +1,18 @@
+fixture_id: dashscope.audio.synthesize
+capability: audio.synthesize
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_TTS_MODEL_ID}"
+voice_ref:
+  kind: preset_voice_id
+  id: Cherry
+request:
+  text: "Hello from the Nimi DashScope gold path."
+  language: zh-CN
+  audio_format: mp3
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  min_artifact_count: 1
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_TTS_MODEL_ID

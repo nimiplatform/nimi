@@ -4,7 +4,7 @@ import { generateModCatalog } from './lib/mod-catalog.mjs';
 function parseArgs(argv) {
   const args = {
     sourceDir: path.resolve('nimi-mods'),
-    outDir: path.resolve('nimi-coding/.local/report/mod-catalog-fixture/latest'),
+    outDir: path.resolve('.local/report/mod-catalog-fixture/latest'),
     signersFile: '',
   };
   for (let index = 0; index < argv.length; index += 1) {

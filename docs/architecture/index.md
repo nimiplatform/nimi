@@ -14,8 +14,6 @@ Nimi consists of three developer-facing layers:
 
 ## Next
 
-- [Nimi Coding](./nimi-coding.md)
-- [Nimi Coding（中文）](../zh/nimi-coding.md)
 - [Spec Map](./spec-map.md)
 - [Realm 互联范式：让应用不是孤岛](./realm-interconnect-paradigm.md)
 - [AI Agent 安全调用接口白皮书（Nimi 方案）](./ai-agent-security-interface.md)

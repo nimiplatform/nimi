@@ -36,13 +36,13 @@ const providerCatalogFile = path.join(
   repoRoot,
   'spec/runtime/kernel/tables/provider-catalog.yaml',
 );
-const reportDir = path.join(repoRoot, 'nimi-coding', '.local', 'report');
+const reportDir = path.join(repoRoot, '.local', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
 const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
 const baseLiveEnv = buildMergedEnv({
   baseEnv: process.env,
   filePaths: [
-    path.join(repoRoot, 'dev', 'config', 'dashscope-gold-path.env'),
+    path.join(repoRoot, 'config', 'live', 'dashscope-gold-path.env'),
     path.join(repoRoot, '.env'),
   ],
 });

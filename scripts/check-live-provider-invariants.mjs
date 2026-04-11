@@ -22,8 +22,8 @@ const sourceProviderDir = path.join(repoRoot, 'runtime/catalog/source/providers'
 const providerRegistryPath = path.join(repoRoot, 'runtime/internal/providerregistry/generated.go');
 const runtimeLiveSmokePath = path.join(repoRoot, 'runtime/internal/services/ai/live_provider_smoke_matrix_test.go');
 const sdkLiveSmokePath = path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts');
-const liveEnvTemplatePath = path.join(repoRoot, 'nimi-coding/config/live-test.env.example');
-const defaultBaselinePath = path.join(repoRoot, 'nimi-coding/config/live-gate-baseline.yaml');
+const liveEnvTemplatePath = path.join(repoRoot, 'config/live/live-test.env.example');
+const defaultBaselinePath = path.join(repoRoot, 'config/live/live-gate-baseline.yaml');
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -243,7 +243,7 @@ function main() {
   );
   pushMissing(
     failures,
-    'nimi-coding/config/live-test.env.example missing provider env blocks for cloudProviderEnvBindings providers',
+    'config/live/live-test.env.example missing provider env blocks for cloudProviderEnvBindings providers',
     missingLiveEnvTemplate,
   );
 
@@ -278,7 +278,7 @@ function main() {
     }
   }
   if (missingCapabilityEnvBlocks.length > 0) {
-    failures.push(`nimi-coding/config/live-test.env.example missing capability env blocks: ${missingCapabilityEnvBlocks.sort((a, b) => a.localeCompare(b)).join(', ')}`);
+    failures.push(`config/live/live-test.env.example missing capability env blocks: ${missingCapabilityEnvBlocks.sort((a, b) => a.localeCompare(b)).join(', ')}`);
   }
 
   const localCapabilities = sourceProviderCapabilityMatrix.get('local') || new Set();
@@ -293,7 +293,7 @@ function main() {
       (variable) => !liveEnvTemplateContent.includes(variable),
     );
     if (missingLocalSidecarVars.length > 0) {
-      failures.push(`nimi-coding/config/live-test.env.example missing local sidecar live env vars required for local music coverage: ${missingLocalSidecarVars.join(', ')}`);
+      failures.push(`config/live/live-test.env.example missing local sidecar live env vars required for local music coverage: ${missingLocalSidecarVars.join(', ')}`);
     }
   }
 

@@ -11,7 +11,7 @@
     "!**/.git/**",
     "!_external/**",
     "!archive/**",
-    "!nimi-coding/.local/**",
+    "!.local/**",
     "!**/dist/**",
     "!**/target/**",
     "!**/coverage/**"

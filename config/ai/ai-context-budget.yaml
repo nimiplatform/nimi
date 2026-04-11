@@ -1,0 +1,86 @@
+version: 1
+
+default_profile: production
+
+profiles:
+  production:
+    warning_lines: 500
+    warning_bytes: 61440
+    error_lines: 800
+    error_bytes: 102400
+  tests_and_scripts:
+    warning_lines: 900
+    error_lines: 1400
+  spec_yaml:
+    warning_lines: 800
+    error_lines: 1200
+  generated:
+    warning_lines: 2000
+    error_lines: 4000
+
+classifiers:
+  tests_and_scripts:
+    - "scripts/**"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/*_test.go"
+    - "**/__tests__/**"
+  spec_yaml:
+    - "spec/**/*.yaml"
+    - "spec/**/*.yml"
+    - "apps/**/spec/**/*.yaml"
+    - "apps/**/spec/**/*.yml"
+  generated:
+    - "runtime/internal/providerregistry/generated.go"
+    - "runtime/catalog/providers/**"
+    - "runtime/catalog/generated/**"
+    - "runtime/gen/**"
+    - "sdk/src/runtime/generated/**"
+    - "sdk/src/realm/generated/**"
+    - "spec/**/kernel/generated/**"
+
+exclude:
+  - "_external/**"
+  - ".cache/**"
+  - ".iterate/**"
+  - "archive/**"
+  - "docs/**"
+  - ".local/**"
+  - "**/generated/**"
+  - "**/gen/**"
+  - "runtime/**/*.pb.go"
+  - "runtime/**/*.binpb"
+  - "spec/generated/**"
+  - "pnpm-lock.yaml"
+  - "**/Cargo.lock"
+  - "apps/desktop/src-tauri/gen/**"
+  - "**/*.ico"
+  - "**/*.icns"
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.jpeg"
+  - "**/*.gif"
+  - "**/*.webp"
+  - "**/*.svg"
+  - "**/*.wav"
+  - "**/*.mp3"
+  - "**/*.m4a"
+  - "**/*.ogg"
+  - "**/*.flac"
+  - "**/*.aac"
+  - "**/*.mp4"
+  - "**/*.mov"
+  - "**/*.webm"
+  - "**/*.css"
+  - "**/locales/en.json"
+  - "**/locales/zh.json"
+
+waivers:
+  - path: runtime/internal/services/localservice/service_test.go
+    until: 2026-09-30
+    reason: Large integration coverage suite retained as a single trace narrative.
+  - path: runtime/internal/services/ai/live_provider_smoke_test.go
+    until: 2026-09-30
+    reason: Provider matrix smoke tests retained as one contract matrix file.

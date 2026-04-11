@@ -1,0 +1,15 @@
+fixture_id: dashscope.voice.design
+capability: voice.design
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID}"
+target_model_id: "${NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID}"
+request:
+  instruction_text: "Warm, calm and natural documentary narrator voice."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  require_voice_asset: true
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID
+  - NIMI_LIVE_DASHSCOPE_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID

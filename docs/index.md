@@ -32,10 +32,10 @@ features:
     details: "Recommended app entry: createPlatformClient() from '@nimiplatform/sdk', with typed runtime and realm access from one root package."
     link: /app-dev/
     linkText: Start building
-  - title: Nimi Coding
-    details: AI-readable source-of-truth governance plus the formal execution system overview for contracts, validators, CLI, and execution workflows.
-    link: /nimi-coding
-    linkText: Learn the system
+  - title: Governance And Spec
+    details: Read the current spec map, kernel contracts, and governance docs that define the active repository rules and delivery gates.
+    link: /architecture/spec-map
+    linkText: Read the spec map
 ---
 
 ::: warning Rapid Development Phase

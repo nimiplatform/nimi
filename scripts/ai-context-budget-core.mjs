@@ -172,7 +172,7 @@ function waiverAllowedForProfile(profileId) {
 
 export function evaluateAiContextBudget(options = {}) {
   const cwd = options.cwd || process.cwd();
-  const configRelativePath = options.configRelativePath || 'nimi-coding/config/ai-context-budget.yaml';
+  const configRelativePath = options.configRelativePath || 'config/ai/ai-context-budget.yaml';
   const { parsed, defaultProfile, configPath } = loadBudgetConfig(cwd, configRelativePath);
 
   const excludeMatchers = compileMatchers(parsed.exclude || []);

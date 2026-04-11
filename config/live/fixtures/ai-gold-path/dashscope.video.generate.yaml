@@ -1,0 +1,11 @@
+fixture_id: dashscope.video.generate.reserved
+capability: video.generate
+provider: dashscope
+model_id: RESERVED_UNSUPPORTED
+request:
+  prompt: "Reserved unsupported DashScope video fixture."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  acceptance: reserved
+env_requirements: []

@@ -44,8 +44,8 @@ _external/
 # legacy execution-doc roots are archive/local-only
 dev/
 
-# repo-tracked execution support inputs live under nimi-coding/config and nimi-coding/fixtures
-nimi-coding/.local/report/release/
+# repo-tracked execution support inputs live under config/**
+.local/report/release/
 
 # local AI coding artifacts (never committed)
 .local/

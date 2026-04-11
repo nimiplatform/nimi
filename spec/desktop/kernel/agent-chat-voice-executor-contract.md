@@ -173,5 +173,5 @@ input truth。
   — cached speech artifact playback evidence
 - `apps/forge/src/shell/renderer/infra/bootstrap/forge-runtime-host.ts` — Forge
   host capability wiring evidence only
-- `nimi-coding/.local/**` — local preflight evidence for the narrow first
+- `.local/**` — local preflight evidence for the narrow first
   voice executor packet (non-authoritative supporting material only)

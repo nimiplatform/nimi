@@ -1,0 +1,14 @@
+fixture_id: dashscope.text.generate
+capability: text.generate
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_MODEL_ID}"
+request:
+  prompt: "Reply with the exact text: Nimi DashScope gold path."
+  system_prompt: "You are a concise test assistant."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  min_text_length: 8
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_MODEL_ID

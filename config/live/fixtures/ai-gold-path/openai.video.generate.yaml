@@ -1,0 +1,12 @@
+fixture_id: openai.video.generate
+capability: video.generate
+provider: openai
+model_id: "${NIMI_LIVE_OPENAI_VIDEO_MODEL_ID}"
+request:
+  prompt: "A cinematic 5-second clip of a sunrise over the ocean."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+env_requirements:
+  - NIMI_LIVE_OPENAI_API_KEY
+  - NIMI_LIVE_OPENAI_VIDEO_MODEL_ID

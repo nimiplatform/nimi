@@ -39,9 +39,9 @@
 - Platform → Runtime 错误码对应：`kernel/tables/error-code-mapping.yaml`。
 - 规则证据路由：`kernel/tables/rule-evidence.yaml`。
 
-合规矩阵本身由 Platform kernel 管理；实际执行门与测试证据分别落到 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 local execution report route patterns（如 `nimi-coding/.local/report/**`），Platform domain 不复制下游 gate 细节。P-* 的 formal 证据映射以 `kernel/tables/rule-evidence.yaml` 为唯一事实源。
+合规矩阵本身由 Platform kernel 管理；实际执行门与测试证据分别落到 `spec/runtime/*`、`spec/sdk/testing-gates.md`、`spec/desktop/testing-gates.md` 与 local execution report route patterns（如 `.local/report/**`），Platform domain 不复制下游 gate 细节。P-* 的 formal 证据映射以 `kernel/tables/rule-evidence.yaml` 为唯一事实源。
 
 ## 4. 非目标
 
 - 不在 domain 层新增协议规则号。
-- 不在本文件维护执行快照与门禁结果；结果只能落入 local execution report route patterns（如 `nimi-coding/.local/report/**`）。
+- 不在本文件维护执行快照与门禁结果；结果只能落入 local execution report route patterns（如 `.local/report/**`）。

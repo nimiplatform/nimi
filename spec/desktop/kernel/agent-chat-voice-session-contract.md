@@ -212,5 +212,5 @@ foreground `hands-free` 只在已经显式进入的当前 foreground voice sessi
   — current transcript reveal surface evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-mode-host-types.ts` —
   host transcript / stage shell evidence
-- `nimi-coding/.local/**` — local preflight evidence for broader voice session
+- `.local/**` — local preflight evidence for broader voice session
   admission and defer decisions (non-authoritative supporting material only)

@@ -3,7 +3,7 @@ layout: page
 ---
 
 <script setup>
-if (typeof window !== 'undefined') window.location.replace('/nimi-coding')
+if (typeof window !== 'undefined') window.location.replace('/architecture/spec-map')
 </script>
 
-This page has moved to [Nimi Coding](/nimi-coding).
+This legacy page has moved to the [Spec Map](/architecture/spec-map).

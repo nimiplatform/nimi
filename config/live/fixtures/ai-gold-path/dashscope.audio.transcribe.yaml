@@ -1,0 +1,15 @@
+fixture_id: dashscope.audio.transcribe
+capability: audio.transcribe
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_STT_MODEL_ID}"
+request:
+  audio_path: "${NIMI_LIVE_STT_AUDIO_PATH}"
+  mime_type: audio/wav
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  min_text_length: 1
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_STT_MODEL_ID
+  - NIMI_LIVE_STT_AUDIO_PATH

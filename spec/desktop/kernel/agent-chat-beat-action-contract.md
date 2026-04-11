@@ -201,7 +201,7 @@ modality action plan。本契约拥有这些输出之间的 product relation tru
   — current heuristic delayed beat planning evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts` —
   current single-text-beat commit and image-helper execution evidence
-- `nimi-coding/.local/**` — local preflight evidence for LLM-planned beat /
+- `.local/**` — local preflight evidence for LLM-planned beat /
   modality authority decisions (non-authoritative supporting material only)
-- `nimi-coding/.local/**` — local beat-action landing route evidence
+- `.local/**` — local beat-action landing route evidence
   (non-authoritative supporting material only)

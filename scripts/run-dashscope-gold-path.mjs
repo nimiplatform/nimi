@@ -9,9 +9,9 @@ import { prepareLiveAudioFixtures, mergeMissingEnv } from './lib/live-audio-fixt
 import { buildMergedEnv } from './lib/live-env.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_PROFILE_PATH = path.join(REPO_ROOT, 'dev', 'config', 'dashscope-gold-path.env');
+const DEFAULT_PROFILE_PATH = path.join(REPO_ROOT, 'config', 'live', 'dashscope-gold-path.env');
 const DEFAULT_ENV_FILE = path.join(REPO_ROOT, '.env');
-const DEFAULT_REPORT_PATH = path.join(REPO_ROOT, 'dev', 'report', 'ai-gold-path-report.yaml');
+const DEFAULT_REPORT_PATH = path.join(REPO_ROOT, '.local', 'report', 'ai-gold-path-report.yaml');
 
 function readArg(flag) {
   const index = process.argv.indexOf(flag);

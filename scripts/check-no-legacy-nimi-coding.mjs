@@ -2,7 +2,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { main as validateModule } from '../nimi-coding/scripts/validate-module.mjs';
 
 const TEXT_EXTENSIONS = new Set([
   '.md',
@@ -41,35 +40,32 @@ const EXCLUDED_PREFIXES = [
   '.openclaw/',
   'docs/_archive/',
   'archive/',
-  'nimi/.cache/',
-  'nimi/archive/',
-  'nimi/nimi-coding/.local/',
-  'nimi-coding/.local/',
 ];
 
 const FORBIDDEN_PATH_PATTERNS = [
-  /^dev\//,
-  /^apps\/[^/]+\/dev\//,
-  /^nimi\/dev\//,
-  /^nimi\/apps\/[^/]+\/dev\//,
+  /^nimi-coding\//,
 ];
 
 const FORBIDDEN_TEXT_PATTERNS = [
   {
-    label: 'legacy command',
-    regex: /\bdev:check(?::[\w-]+)?\b/g,
+    label: 'legacy nimi-coding command',
+    regex: /\bpnpm nimi-coding:[\w-]+\b/g,
   },
   {
-    label: 'legacy execution surface',
-    regex: /(^|[^/\w-])dev\/(?:plan|report|brainstorm|research|audits|prompts|audit|config|fixtures)(?:\/|(?=[`"' \t)\]},.:;]))/gm,
+    label: 'legacy nimi-coding script wrapper',
+    regex: /node nimi-coding\/(?:cli\/cli\.mjs|scripts\/[^\s`"']+)/g,
   },
   {
-    label: 'legacy live env surface',
-    regex: /(^|[^/\w-])dev\/live-test\.env\.example\b/gm,
+    label: 'legacy nimi-coding local workspace path',
+    regex: /(^|[^/\w-])nimi-coding\/\.local(?:\/|(?=[`"' \t)\]},.:;]))/gm,
   },
   {
-    label: 'app-local legacy execution surface',
-    regex: /(^|[^/\w-])(?:nimi\/)?apps\/[^/\s`"'()]+\/dev\//gm,
+    label: 'legacy nimi-coding config path',
+    regex: /(^|[^/\w-])nimi-coding\/config(?:\/|(?=[`"' \t)\]},.:;]))/gm,
+  },
+  {
+    label: 'legacy nimi-coding module check',
+    regex: /\bcheck:nimi-coding-module\b/g,
   },
 ];
 
@@ -111,7 +107,7 @@ function lineNumberForIndex(source, index) {
   return line;
 }
 
-function collectLegacySurfaceFailures(cwd) {
+function collectLegacyFailures(cwd) {
   const failures = [];
   const trackedFiles = listWorkingTreeFiles(cwd);
 
@@ -122,7 +118,7 @@ function collectLegacySurfaceFailures(cwd) {
 
     for (const pattern of FORBIDDEN_PATH_PATTERNS) {
       if (pattern.test(relativePath)) {
-        failures.push(`legacy execution-doc path tracked: ${relativePath}`);
+        failures.push(`legacy nimi-coding path tracked: ${relativePath}`);
         break;
       }
     }
@@ -150,27 +146,22 @@ function collectLegacySurfaceFailures(cwd) {
         continue;
       }
       const index = match.index + (match[1] ? match[1].length : 0);
-      failures.push(`${label} reference in ${relativePath}:${lineNumberForIndex(source, index)}`);
+      failures.push(`${label} in ${relativePath}:${lineNumberForIndex(source, index)}`);
     }
   }
 
   return failures;
 }
 
-async function main() {
-  await validateModule();
-
-  const cwd = process.cwd();
-  const failures = collectLegacySurfaceFailures(cwd);
+function main() {
+  const failures = collectLegacyFailures(process.cwd());
   if (failures.length > 0) {
     for (const failure of failures) {
       process.stderr.write(`ERROR: ${failure}\n`);
     }
     process.exit(1);
   }
+  process.stdout.write('legacy nimi-coding cleanup check: OK\n');
 }
 
-main().catch((error) => {
-  process.stderr.write(`ERROR: ${String(error.message || error)}\n`);
-  process.exit(1);
-});
+main();

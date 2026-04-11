@@ -56,7 +56,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
   - menu-bar `Hide` 不得触发进程退出，`Quit` 必须彻底退出
   - runtime unavailable strip 与 settings 跳转路径可见
   - bundled runtime/version strip 在 release 包上可读且无明显错配
-  - failure evidence 必须记录到 local execution report route patterns（如 `nimi-coding/.local/report/**`），不伪装成自动化覆盖
+  - failure evidence 必须记录到 local execution report route patterns（如 `.local/report/**`），不伪装成自动化覆盖
 
 ### Supplementary Hard-Cut Gates (D-BOOT-001, D-HOOK-009, D-IPC-011, D-IPC-012, D-MOD-002, D-CODEGEN-010)
 

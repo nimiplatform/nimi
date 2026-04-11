@@ -1144,7 +1144,7 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 追溯链
 ─────────────────────────────────────────────────
 Research Topic Doc     Backlog Item           Spec Document
-(nimi-coding/.local/<topic-id>/*.md) (backlog-items.yaml)   (spec/**/*.md)
+(.local/work/<topic-id>/*.md) (backlog-items.yaml)   (spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │

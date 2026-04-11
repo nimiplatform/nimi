@@ -1,0 +1,78 @@
+version: 1
+
+allowed_forwarding_shells:
+  - index.ts
+  - index.tsx
+  - mod.rs
+
+rules:
+  - id: runtime_internal
+    include:
+      - "runtime/internal/**"
+    depth_base: "runtime/internal"
+    warning_depth: 4
+    error_depth: 5
+  - id: runtime_cmd
+    include:
+      - "runtime/cmd/nimi/**"
+    depth_base: "runtime/cmd/nimi"
+    warning_depth: 3
+    error_depth: 4
+  - id: sdk_src
+    include:
+      - "sdk/src/**"
+    depth_base: "sdk/src"
+    warning_depth: 4
+    error_depth: 5
+  - id: desktop_tauri
+    include:
+      - "apps/desktop/src-tauri/src/**"
+    depth_base: "apps/desktop/src-tauri/src"
+    warning_depth: 4
+    error_depth: 5
+  - id: desktop_src
+    include:
+      - "apps/desktop/src/**"
+    depth_base: "apps/desktop/src"
+    warning_depth: 6
+    error_depth: 7
+  - id: web_src
+    include:
+      - "apps/web/src/**"
+    depth_base: "apps/web/src"
+    warning_depth: 4
+    error_depth: 5
+  - id: scripts
+    include:
+      - "scripts/**"
+    depth_base: "scripts"
+    warning_depth: 3
+    error_depth: 4
+
+exclude:
+  - "_external/**"
+  - ".cache/**"
+  - ".iterate/**"
+  - "archive/**"
+  - "docs/**"
+  - ".local/**"
+  - "**/generated/**"
+  - "**/gen/**"
+  - "runtime/**/*.pb.go"
+  - "runtime/**/*.binpb"
+  - "spec/generated/**"
+  - "pnpm-lock.yaml"
+  - "**/Cargo.lock"
+  - "apps/desktop/src-tauri/gen/**"
+  - "**/*.ico"
+  - "**/*.png"
+  - "**/*.jpg"
+  - "**/*.jpeg"
+  - "**/*.gif"
+  - "**/*.webp"
+  - "**/*.svg"
+  - "**/*.css"
+  - "**/locales/en.json"
+  - "**/locales/zh.json"
+
+waivers: []

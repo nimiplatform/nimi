@@ -24,7 +24,7 @@ spec/
 │       ├── content-classification.yaml # Content type + truth-mode enums
 │       ├── map-surface.yaml            # Map profile shape for atlas view
 │       └── local-storage.yaml          # Local SQLite schema for learner data
-└── (no execution-plan.md — local execution plans belong in nimi-coding/.local/**)
+└── (no execution-plan.md — local execution plans belong in .local/**)
 ```
 
 ## Rule ID Format

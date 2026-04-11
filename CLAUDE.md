@@ -31,30 +31,27 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `kit/**` | `kit/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
-| `nimi-coding/**` | `nimi-coding/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
 | `spec/**` | `spec/AGENTS.md` |
 | `nimi-mods/runtime/<name>/spec/**` | That mod's `spec/AGENTS.md` |
 
 If the module has sub-level `AGENTS.md` files, read the nearest one to the file being edited.
 
-## Methodology: Nimi Coding
+## Methodology
 
-Use `nimi-coding` through the authoritative `AGENTS.md` surfaces, not through
-this file.
+There is no currently admitted in-repo methodology package.
 
 - `spec/**` is the only normative source.
-- `nimi-coding` is mainly for high-risk, authority-bearing, cross-layer, or
-  multi-phase work.
-- Small, local, low-risk fixes do not need a `nimi-coding` topic when the
-  authority boundary is already clear.
+- High-risk work still requires explicit authority preflight.
+- Small, local, low-risk fixes do not need a formal execution workspace when
+  the authority boundary is already clear.
 - For high-risk work, follow the nearest authoritative `AGENTS.md` and include
   `Spec Status`, `Authority Owner`, `Work Type`, and `Parallel Truth` in the
   design/plan surface when required.
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; local-only execution workspaces and reports may live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
+- `spec/**` is the only normative contract source. No in-repo methodology package is currently admitted as execution-system authority. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -71,10 +68,10 @@ this file.
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `.local/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
-`nimi-coding/.local/**` is the only active local execution workspace. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
+`.local/**` is the active local execution workspace family. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
 
 ## Repo-Wide Verification
 

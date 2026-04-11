@@ -20,8 +20,8 @@
 
 ## 3. 执行材料位置
 
-- topic-bound 本地计划与排期：`nimi-coding/.local/<topic-id>/**`。
-- local-only 审计与结果证据：`nimi-coding/.local/report/**`。
+- topic-bound 本地计划与排期：`.local/work/<topic-id>/**`。
+- local-only 审计与结果证据：`.local/report/**`。
 
 ## 4. 非目标
 

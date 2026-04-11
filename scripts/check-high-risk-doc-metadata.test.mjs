@@ -13,7 +13,7 @@ function writeFile(filePath, content) {
 test('fails high-risk design docs without authority metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'nimi-coding/.local/example-topic/example-design.md'),
+    path.join(repoRoot, '.local/example-topic/example-design.md'),
     [
       '---',
       'title: Example Design',
@@ -39,7 +39,7 @@ test('fails high-risk design docs without authority metadata', () => {
 test('passes high-risk design docs with required metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'nimi-coding/.local/example-topic/example-design.md'),
+    path.join(repoRoot, '.local/example-topic/example-design.md'),
     [
       '---',
       'title: Example Design',
@@ -68,7 +68,7 @@ test('passes high-risk design docs with required metadata', () => {
 test('accepts preflight-required spec status in nimi-coding frontmatter docs', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'nimi-coding/.local/example-topic/migration-design.md'),
+    path.join(repoRoot, '.local/example-topic/migration-design.md'),
     [
       '---',
       'title: Migration Design',
@@ -97,7 +97,7 @@ test('accepts preflight-required spec status in nimi-coding frontmatter docs', (
 test('treats refactor plans as high-risk docs that require authority metadata', () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-high-risk-docs-'));
   writeFile(
-    path.join(repoRoot, 'nimi-coding/.local/example-topic/desktop-chat-refactor.md'),
+    path.join(repoRoot, '.local/example-topic/desktop-chat-refactor.md'),
     [
       '---',
       'title: Desktop Chat Refactor',

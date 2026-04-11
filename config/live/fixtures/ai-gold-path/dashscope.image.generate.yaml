@@ -1,0 +1,13 @@
+fixture_id: dashscope.image.generate
+capability: image.generate
+provider: dashscope
+model_id: "${NIMI_LIVE_DASHSCOPE_IMAGE_MODEL_ID}"
+request:
+  prompt: "A tiny cinematic island floating above a calm sea."
+expected_assertions:
+  route_policy: token-api
+  fallback_policy: deny
+  min_artifact_count: 1
+env_requirements:
+  - NIMI_LIVE_DASHSCOPE_API_KEY
+  - NIMI_LIVE_DASHSCOPE_IMAGE_MODEL_ID

@@ -15,7 +15,7 @@ const localChatDir = path.join(modsWorkspaceDir, 'runtime', 'local-chat');
 const liveEnv = buildMergedEnv({
   baseEnv: process.env,
   filePaths: [
-    path.join(repoRoot, 'dev', 'config', 'dashscope-gold-path.env'),
+    path.join(repoRoot, 'config', 'live', 'dashscope-gold-path.env'),
     path.join(repoRoot, '.env'),
   ],
 });

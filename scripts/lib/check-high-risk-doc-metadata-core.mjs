@@ -3,7 +3,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
-const DEFAULT_DOC_ROOTS = ['nimi-coding/.local'];
+const DEFAULT_DOC_ROOTS = ['.local'];
 const HIGH_RISK_NAME_PATTERNS = [
   /design/iu,
   /audit/iu,

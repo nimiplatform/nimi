@@ -43,13 +43,13 @@
 - 规则证据映射：`kernel/tables/rule-evidence.yaml`。
 - Provider 名称对齐基线：`spec/runtime/kernel/tables/provider-catalog.yaml`。
 - Live smoke 证据由 tracked baseline/config
-  `nimi-coding/config/live-gate-baseline.yaml` 与 local execution report route
-  patterns（如 `nimi-coding/.local/report/**`）共同构成。
+  `config/live/live-gate-baseline.yaml` 与 local execution report route
+  patterns（如 `.local/report/**`）共同构成。
 
 ## 4. 执行材料位置
 
-- topic 工件：`nimi-coding/.local/<topic-id>/**`（local-only）。
-- 报告与审计：`nimi-coding/.local/report/**`（local-only）。
+- topic 工件：`.local/work/<topic-id>/**`（local-only）。
+- 报告与审计：`.local/report/**`（local-only）。
 
 ## 5. 非目标
 

@@ -34,8 +34,8 @@
 - catalog/provider hard-cut 语义锚点：`kernel/model-catalog-contract.md`（K-MCAT-005, K-MCAT-018, K-MCAT-022, K-MCAT-024, K-MCAT-027）与 `kernel/provider-health-contract.md`（K-PROV-005）。
 - local category / manifest token → canonical capability 映射：`kernel/tables/capability-vocabulary-mapping.yaml`（K-LOCAL-026, K-MCAT-024）。
 - proto linkage 语义锚点：`kernel/proto-governance-contract.md`（K-PROTO-007, K-PROTO-010）。
-- topic-bound 本地迭代计划与阶段拆解：`nimi-coding/.local/<topic-id>/**`。
-- Gate 执行结果与证据：local execution report route patterns（如 `nimi-coding/.local/report/**`）；tracked spec 不绑定具体 `.local` 文件名。
+- topic-bound 本地迭代计划与阶段拆解：`.local/work/<topic-id>/**`。
+- Gate 执行结果与证据：local execution report route patterns（如 `.local/report/**`）；tracked spec 不绑定具体 `.local` 文件名。
 
 ## 4. 非目标
 

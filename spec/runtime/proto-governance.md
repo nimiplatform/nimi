@@ -27,7 +27,7 @@
 - proto 源：`proto/runtime/v1/`。
 - 生成产物：`runtime/gen/runtime/v1/`、`sdk/src/runtime/generated/runtime/v1/`。
 - 验证入口：`pnpm proto:lint`、`pnpm proto:generate`、`pnpm proto:drift-check`、`pnpm check:runtime-proto-spec-linkage`。
-- 执行结果：local execution report route patterns（如 `nimi-coding/.local/report/**`）。
+- 执行结果：local execution report route patterns（如 `.local/report/**`）。
 
 ## 4. 非目标
 

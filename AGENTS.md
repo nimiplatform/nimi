@@ -9,10 +9,10 @@
 - `spec/AGENTS.md` is authoritative for anything under `spec/**`.
 
 ## Hard Boundaries
-- Repo-wide normative product authority lives under `spec/**`. Admitted app-local product authority slices may also live under `apps/**/spec/**` when the owning app declares that landing, keeps normative content inside `kernel/*.md` and `kernel/tables/**`, and does not create parallel truth against `spec/**`. Repo-tracked execution-system authority lives under `nimi-coding/**`; local-only execution workspaces and reports may live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
+- Repo-wide normative product authority lives under `spec/**`. Admitted app-local product authority slices may also live under `apps/**/spec/**` when the owning app declares that landing, keeps normative content inside `kernel/*.md` and `kernel/tables/**`, and does not create parallel truth against `spec/**`. No in-repo methodology package is currently admitted as execution-system authority. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
 - `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
-- `nimi-coding` is for high-risk, authority-bearing, cross-layer, or multi-phase work. Small, local, low-risk fixes do not need a topic when the authority boundary is already clear.
+- High-risk, authority-bearing, cross-layer, or multi-phase work must complete authority preflight before implementation. Small, local, low-risk fixes do not need a formal execution workspace when the authority boundary is already clear.
 - Debug/fix by layer order: `runtime` → `sdk` → `apps/desktop`/`apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work; check `kit/README.md` and `spec/platform/kernel/tables/nimi-kit-registry.yaml`.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -25,11 +25,11 @@
 - No file/directory collisions, no forwarding shells outside `index.ts`, max 3-hop debug trace. Structure depth measured from layer source root.
 
 ## Retrieval Defaults
-- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`.
+- Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `.local/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 ## Verification Commands
-- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:nimi-coding-module`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
+- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:no-legacy-nimi-coding`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
 - Spec: run affected consistency + docs drift commands. For `spec/**/kernel/**` changes, also run `pnpm check:spec-human-doc-drift`; if fail, `pnpm generate:spec-human-doc`.
 - Runtime: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`
 - SDK: `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`

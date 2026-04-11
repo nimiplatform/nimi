@@ -228,7 +228,7 @@ agent chat richer voice workflow 的 admitted return path 固定属于当前 thr
   current same-thread projection evidence only
 - `apps/desktop/src/shell/renderer/features/chat/chat-conversation-capability-settings.tsx`
   — current workflow capability settings evidence only
-- `nimi-coding/.local/**` — local preflight evidence for richer workflow /
+- `.local/**` — local preflight evidence for richer workflow /
   voice identity routing decisions (non-authoritative supporting material only)
-- `nimi-coding/.local/**` — local packet baseline and admitted-scope evidence
+- `.local/**` — local packet baseline and admitted-scope evidence
   for this landing (non-authoritative supporting material only)

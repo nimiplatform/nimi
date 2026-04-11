@@ -310,7 +310,7 @@ function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
     }
   }
 
-  const expectedLiveEvidenceRoute = 'nimi-coding/config/live-gate-baseline.yaml,nimi-coding/.local/report/**';
+  const expectedLiveEvidenceRoute = 'config/live/live-gate-baseline.yaml,.local/report/**';
   for (const gate of ['G3', 'G5', 'G7']) {
     const evidenceRoute = String(gateMap.get(gate)?.evidence_route || '').trim();
     if (evidenceRoute !== expectedLiveEvidenceRoute) {
