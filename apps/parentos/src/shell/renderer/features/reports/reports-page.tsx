@@ -9,6 +9,7 @@ import {
   updateGrowthReportContent,
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import {
   buildStructuredGrowthReport, parseReportContent,
   type GrowthReportType, type NarrativeReportContent, type ParsedReportContent,
@@ -202,7 +203,7 @@ export default function ReportsPage() {
   useEffect(() => {
     if (!child) { setReports([]); setExpandedReportId(null); return; }
     const cid = child.childId; let cancelled = false;
-    getGrowthReports(cid).then((rows) => { if (!cancelled) setReports(rows); }).catch(() => {});
+    getGrowthReports(cid).then((rows) => { if (!cancelled) setReports(rows); }).catch(catchLog('reports', 'action:load-growth-reports-failed'));
     return () => { cancelled = true; };
   }, [child]);
 
@@ -244,7 +245,7 @@ export default function ReportsPage() {
   };
 
   const handleCopy = (content: ParsedReportContent) => {
-    navigator.clipboard.writeText(reportToPlainText(content)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+    navigator.clipboard.writeText(reportToPlainText(content)).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(catchLog('reports', 'action:clipboard-write-failed', 'warn'));
   };
 
   return (

@@ -8,6 +8,7 @@ import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* ── Tanner stage descriptions ───────────────────────────── */
 
@@ -260,7 +261,7 @@ export default function TannerPage() {
   };
 
   useEffect(() => {
-    if (activeChildId) loadAll(activeChildId).catch(() => {});
+    if (activeChildId) loadAll(activeChildId).catch(catchLog('tanner', 'action:load-tanner-data-failed'));
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;

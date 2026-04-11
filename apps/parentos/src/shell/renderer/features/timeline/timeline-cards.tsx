@@ -7,6 +7,7 @@ import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { Settings } from 'lucide-react';
 import { C, ALL_METRICS, METRIC_MAP, DEFAULT_METRICS, SETTING_KEY, type MetricDef } from './timeline-data.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* ================================================================
    SHARED UI
@@ -135,12 +136,12 @@ export function ChildOverviewCard({ latest, vaccineCount, vacTotal, vacPct, msPc
   useEffect(() => {
     getAppSetting(SETTING_KEY).then((v) => {
       if (v) { try { const arr = JSON.parse(v); if (Array.isArray(arr) && arr.length >= 3) setSelectedIds(arr); } catch { /* ignore */ } }
-    }).catch(() => {});
+    }).catch(catchLog('timeline', 'action:load-app-setting-failed', 'warn'));
   }, []);
 
   const handleSave = (ids: string[]) => {
     setSelectedIds(ids);
-    setAppSetting(SETTING_KEY, JSON.stringify(ids), isoNow()).catch(() => {});
+    setAppSetting(SETTING_KEY, JSON.stringify(ids), isoNow()).catch(catchLog('timeline', 'action:save-app-setting-failed', 'warn'));
   };
 
   const extra = { sleepDays, vaccineCount, vacTotal, vacPct, msPct };

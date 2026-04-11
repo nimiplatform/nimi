@@ -8,6 +8,7 @@ import type { MilestoneRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
@@ -187,7 +188,7 @@ export default function MilestonePage() {
   const [pastExpanded, setPastExpanded] = useState(false);
 
   useEffect(() => {
-    if (activeChildId) getMilestoneRecords(activeChildId).then(setRecords).catch(() => {});
+    if (activeChildId) getMilestoneRecords(activeChildId).then(setRecords).catch(catchLog('milestone', 'action:load-milestone-records-failed'));
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
@@ -197,7 +198,7 @@ export default function MilestonePage() {
   const recordMap = new Map(records.map((r) => [r.milestoneId, r]));
   const achievedCount = records.filter((r) => r.achievedAt).length;
 
-  const reload = () => { getMilestoneRecords(child.childId).then(setRecords).catch(() => {}); };
+  const reload = () => { getMilestoneRecords(child.childId).then(setRecords).catch(catchLog('milestone', 'action:reload-milestone-records-failed')); };
 
   const handleQuickCheck = async (milestoneId: string) => {
     const existing = recordMap.get(milestoneId);

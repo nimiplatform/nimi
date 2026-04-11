@@ -8,6 +8,7 @@ import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 const SOURCE_OPTIONS = ['school-pe', 'sports-club', 'clinic', 'self'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -132,7 +133,7 @@ export default function FitnessPage() {
 
   useEffect(() => {
     if (activeChildId) {
-      getFitnessAssessments(activeChildId).then(setAssessments).catch(() => {});
+      getFitnessAssessments(activeChildId).then(setAssessments).catch(catchLog('fitness', 'action:load-fitness-assessments-failed'));
     }
   }, [activeChildId]);
 

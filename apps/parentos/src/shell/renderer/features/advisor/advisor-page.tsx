@@ -23,6 +23,7 @@ import {
   inferRequestedDomains,
 } from './advisor-boundary.js';
 import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* design tokens imported from shared page-style */
 
@@ -95,12 +96,12 @@ export default function AdvisorPage() {
 
   useEffect(() => {
     if (!activeChildId) return;
-    getConversations(activeChildId).then(setConversations).catch(() => {});
+    getConversations(activeChildId).then(setConversations).catch(catchLog('advisor', 'action:load-conversations-failed'));
   }, [activeChildId]);
 
   useEffect(() => {
     if (!activeConvId) return;
-    getAiMessages(activeConvId).then(setMessages).catch(() => {});
+    getAiMessages(activeConvId).then(setMessages).catch(catchLog('advisor', 'action:load-ai-messages-failed'));
   }, [activeConvId]);
 
   useEffect(() => {

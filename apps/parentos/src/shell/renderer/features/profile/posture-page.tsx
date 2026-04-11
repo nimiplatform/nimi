@@ -8,6 +8,7 @@ import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { PostureGuide } from './posture-guide.js';
 
 const SHOULDER_OPTIONS = [
@@ -147,7 +148,7 @@ export default function PosturePage() {
     setFitnessAssessments(fa);
   };
 
-  useEffect(() => { if (activeChildId) loadData(activeChildId).catch(() => {}); }, [activeChildId]);
+  useEffect(() => { if (activeChildId) loadData(activeChildId).catch(catchLog('posture', 'action:load-posture-data-failed')); }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 

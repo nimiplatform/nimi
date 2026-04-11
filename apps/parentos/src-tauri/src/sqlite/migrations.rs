@@ -244,7 +244,10 @@ fn apply_v3(conn: &Connection) -> Result<(), String> {
     for row in rows {
         let (state_id, rule_id) =
             row.map_err(|e| format!("migration v3 read dismissed reminder row failed: {e}"))?;
-        let priority = priority_by_rule.get(&rule_id).map(String::as_str).unwrap_or("P1");
+        let priority = priority_by_rule
+            .get(&rule_id)
+            .map(String::as_str)
+            .ok_or_else(|| format!("migration v3: dismissed reminder_state references unknown ruleId '{rule_id}' (stateId={state_id})"))?;
         if matches!(priority, "P0" | "P1") {
             conn.execute(
                 "UPDATE reminder_states SET status = 'active', snoozedUntil = date('now', '+14 day'), dismissReason = NULL, dismissedAt = NULL, updatedAt = datetime('now') WHERE stateId = ?1",
@@ -265,7 +268,7 @@ fn apply_v3(conn: &Connection) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::run_migrations;
+    use super::{run_migrations, V1_SCHEMA_SQL};
     use rusqlite::{params, Connection};
 
     fn seed_family_and_child(conn: &Connection) {
@@ -288,6 +291,47 @@ mod tests {
             ],
         )
         .expect("insert child");
+    }
+
+    #[test]
+    fn migration_v3_rejects_dismissed_reminder_with_unknown_rule_id() {
+        let conn = Connection::open_in_memory().expect("open in-memory db");
+        conn.execute_batch("PRAGMA foreign_keys=ON;")
+            .expect("enable foreign keys");
+        conn.execute_batch(V1_SCHEMA_SQL)
+            .expect("create existing schema");
+        conn.execute_batch(
+            "CREATE TABLE _schema_version (
+                version INTEGER NOT NULL,
+                applied_at TEXT NOT NULL
+            );",
+        )
+        .expect("create schema version table");
+        conn.execute(
+            "INSERT INTO _schema_version (version, applied_at) VALUES (?1, ?2)",
+            params![2i64, "2026-01-01T00:00:00.000Z"],
+        )
+        .expect("seed schema version");
+        seed_family_and_child(&conn);
+        conn.execute(
+            "INSERT INTO reminder_states (stateId, childId, ruleId, status, activatedAt, completedAt, dismissedAt, dismissReason, repeatIndex, nextTriggerAt, snoozedUntil, scheduledDate, notApplicable, plannedForDate, surfaceRank, lastSurfacedAt, surfaceCount, notes, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, NULL, NULL, ?5, ?6, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, ?7, ?7)",
+            params![
+                "state-unknown",
+                "child-1",
+                "PO-REM-UNK-999",
+                "dismissed",
+                "2026-01-10T00:00:00.000Z",
+                "legacy-dismissed",
+                "2026-01-10T00:00:00.000Z"
+            ],
+        )
+        .expect("insert dismissed reminder state");
+
+        let error = run_migrations(&conn).expect_err("migration should fail on unknown rule id");
+        assert!(
+            error.contains("unknown ruleId 'PO-REM-UNK-999'"),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]

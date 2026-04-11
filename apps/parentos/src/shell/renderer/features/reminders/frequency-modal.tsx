@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { S } from '../../app-shell/page-style.js';
 import { saveFreqOverride, clearFreqOverride, loadFreqOverrides, type FreqOverride } from '../../engine/reminder-freq-overrides.js';
+import { catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 interface FrequencyModalProps {
   childId: string;
@@ -29,7 +30,7 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
     loadFreqOverrides(childId, [ruleId]).then((map) => {
       setLoadedOverride(map.get(ruleId) ?? null);
       setLoaded(true);
-    }).catch(() => setLoaded(true));
+    }).catch(catchLogThen('reminders', 'action:load-freq-overrides-failed', () => setLoaded(true)));
   }, [childId, ruleId, existingOverrideProp]);
 
   const existingOverride = loadedOverride;

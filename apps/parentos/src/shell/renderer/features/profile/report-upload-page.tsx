@@ -6,6 +6,7 @@ import { insertMeasurement, getMeasurements } from '../../bridge/sqlite-bridge.j
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import {
   analyzeCheckupSheetOCR,
   hasCheckupOCRRuntime,
@@ -49,15 +50,15 @@ export default function ReportUploadPage() {
   const [activeView, setActiveView] = useState<'upload' | 'library'>('upload');
 
   useEffect(() => {
-    hasCheckupOCRRuntime().then(setRuntimeAvailable).catch(() => setRuntimeAvailable(false));
+    hasCheckupOCRRuntime().then(setRuntimeAvailable).catch(catchLogThen('report-upload', 'action:check-ocr-runtime-failed', () => setRuntimeAvailable(false)));
   }, []);
 
   useEffect(() => {
-    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(() => {});
+    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
   }, [activeChildId]);
 
   const reloadMeasurements = () => {
-    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(() => {});
+    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
   };
 
   // Group OCR-sourced measurements by date for report library

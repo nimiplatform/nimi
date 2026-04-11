@@ -43,6 +43,7 @@ describe('parentos-runtime-route-options', () => {
           realtimeUrl: '',
           accessToken: '',
           jwksUrl: '',
+          revocationUrl: '',
           jwtIssuer: '',
           jwtAudience: '',
         },

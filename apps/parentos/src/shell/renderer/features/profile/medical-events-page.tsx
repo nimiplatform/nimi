@@ -7,6 +7,7 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { analyzeMedicalEvents } from '../../engine/smart-alerts.js';
 import type { MedicalAnalysis, MedicalAlert } from '../../engine/smart-alerts.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
@@ -170,7 +171,7 @@ export default function MedicalEventsPage() {
 
   useEffect(() => {
     if (activeChildId) {
-      getMedicalEvents(activeChildId).then(setEvents).catch(() => {});
+      getMedicalEvents(activeChildId).then(setEvents).catch(catchLog('medical-events', 'action:load-medical-events-failed'));
     }
   }, [activeChildId]);
 

@@ -4,6 +4,7 @@ import { S } from '../../app-shell/page-style.js';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getGrowthReports } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* ── types ────────────────────────────────────────────────── */
 
@@ -91,7 +92,7 @@ export default function ReportHistoryPage() {
 
   useEffect(() => {
     if (activeChildId) {
-      getGrowthReports(activeChildId, 'ocr-upload').then(setReports).catch(() => {});
+      getGrowthReports(activeChildId, 'ocr-upload').then(setReports).catch(catchLog('report-history', 'action:load-growth-reports-failed'));
     }
   }, [activeChildId]);
 

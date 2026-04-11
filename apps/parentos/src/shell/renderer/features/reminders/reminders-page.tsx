@@ -19,6 +19,7 @@ import {
   persistAgendaPlan,
 } from '../../engine/reminder-actions.js';
 import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminder-freq-overrides.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 const C = {
   bg: '#E5ECEC',
@@ -371,7 +372,7 @@ export default function RemindersPage() {
   }, [child, repeatableRuleIds]);
 
   useEffect(() => {
-    void reloadFreqOverrides().catch(() => setFreqOverrides(new Map()));
+    void reloadFreqOverrides().catch(catchLogThen('reminders', 'action:load-freq-overrides-failed', () => setFreqOverrides(new Map())));
   }, [reloadFreqOverrides]);
 
   const agenda = useMemo(() => {
@@ -392,7 +393,7 @@ export default function RemindersPage() {
       if (didPersist) {
         void reload();
       }
-    }).catch(() => {});
+    }).catch(catchLog('reminders', 'action:persist-agenda-plan-failed'));
   }, [child, agenda, states, reload]);
 
   const handleAction = useCallback(async (
@@ -408,7 +409,7 @@ export default function RemindersPage() {
       action,
       scheduledDate: action === 'schedule' ? extra ?? null : undefined,
       snoozedUntil: action === 'snooze' ? extra ?? null : undefined,
-    }).catch(() => {});
+    }).catch(catchLog('reminders', 'action:apply-reminder-action-failed'));
     await reload();
   }, [child, reload]);
 

@@ -17,6 +17,7 @@ import { autoGenerateMonthlyReport } from '../reports/auto-report.js';
 import { parseReportContent } from '../reports/structured-report.js';
 import { FrequencyModal } from '../reminders/frequency-modal.js';
 import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminder-freq-overrides.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 function reminderPrimaryLink(reminder: ActiveReminder) {
   if (reminder.kind === 'guidance') {
@@ -293,7 +294,7 @@ export default function TimelinePage() {
     setFreqOverrides(overrides);
   }, [child, repeatableRuleIds]);
   useEffect(() => {
-    void reloadFreqOverrides().catch(() => setFreqOverrides(new Map()));
+    void reloadFreqOverrides().catch(catchLogThen('timeline', 'action:load-freq-overrides-failed', () => setFreqOverrides(new Map())));
   }, [reloadFreqOverrides]);
 
   const agenda = useMemo(
@@ -337,7 +338,7 @@ export default function TimelinePage() {
       if (didPersist) {
         void reload();
       }
-    }).catch(() => {});
+    }).catch(catchLog('timeline', 'action:persist-agenda-plan-failed'));
   }, [child, agenda, d.reminderStates, reload]);
 
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
@@ -345,7 +346,7 @@ export default function TimelinePage() {
   useEffect(() => {
     if (!child || loading || d.latestMonthlyReport || autoGenTriggered.current) return;
     autoGenTriggered.current = true;
-    autoGenerateMonthlyReport(child).then((id) => { if (id) reload(); }).catch(() => {});
+    autoGenerateMonthlyReport(child).then((id) => { if (id) reload(); }).catch(catchLog('timeline', 'action:auto-generate-monthly-report-failed'));
   }, [child, loading, d.latestMonthlyReport, reload]);
 
   const handleAction = useCallback(async (
@@ -361,7 +362,7 @@ export default function TimelinePage() {
       action,
       scheduledDate: action === 'schedule' ? extra ?? null : undefined,
       snoozedUntil: action === 'snooze' ? extra ?? null : undefined,
-    }).catch(() => {});
+    }).catch(catchLog('timeline', 'action:apply-reminder-action-failed'));
     await reload();
   }, [child, reload]);
 

@@ -8,6 +8,7 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
 /* ── Constants ───────────────────────────────────────────── */
@@ -80,7 +81,7 @@ export default function AllergyPage() {
   const [photoHover, setPhotoHover] = useState(false);
 
   useEffect(() => {
-    if (activeChildId) getAllergyRecords(activeChildId).then(setRecords).catch(() => {});
+    if (activeChildId) getAllergyRecords(activeChildId).then(setRecords).catch(catchLog('allergy', 'action:load-allergy-records-failed'));
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;

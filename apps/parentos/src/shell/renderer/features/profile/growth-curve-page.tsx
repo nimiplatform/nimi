@@ -8,6 +8,7 @@ import { getMeasurements, insertMeasurement } from '../../bridge/sqlite-bridge.j
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { canRenderWHOLMS, loadWHOLMS, PERCENTILE_COLORS, type WHOLMSDataset } from './who-lms-loader.js';
 import { AISummaryCard } from './ai-summary-card.js';
@@ -431,13 +432,11 @@ export default function GrowthCurvePage() {
       return;
     }
 
-    getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
+    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('growth-curve', 'action:load-measurements-failed'));
   }, [activeChildId]);
 
   useEffect(() => {
-    hasCheckupOCRRuntime().then(setOCRRuntimeAvailable).catch(() => {
-      setOCRRuntimeAvailable(false);
-    });
+    hasCheckupOCRRuntime().then(setOCRRuntimeAvailable).catch(catchLogThen('growth-curve', 'action:check-ocr-runtime-failed', () => setOCRRuntimeAvailable(false)));
   }, []);
 
   useEffect(() => {
@@ -454,7 +453,7 @@ export default function GrowthCurvePage() {
 
     loadWHOLMS(selectedType as GrowthTypeId, child.gender)
       .then(setWhoDataset)
-      .catch(() => setWhoDataset(null));
+      .catch(catchLogThen('growth-curve', 'action:load-who-lms-failed', () => setWhoDataset(null)));
   }, [selectedType, child]);
 
   const latestH = useMemo(() => getLatestMeasurement(measurements, 'height'), [measurements]);

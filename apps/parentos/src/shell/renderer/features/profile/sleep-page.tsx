@@ -8,6 +8,7 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { Calendar, Moon, Sun, Clock, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -850,7 +851,7 @@ export default function SleepPage() {
   const [napAddHover, setNapAddHover] = useState(false);
 
   useEffect(() => {
-    if (activeChildId) getSleepRecords(activeChildId).then(setRecords).catch(() => {});
+    if (activeChildId) getSleepRecords(activeChildId).then(setRecords).catch(catchLog('sleep', 'action:load-sleep-records-failed'));
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;

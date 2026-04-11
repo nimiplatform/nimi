@@ -17,6 +17,7 @@ import {
   isParentosAIScopeRef,
   savePersistedParentosAIConfig,
 } from './parentos-ai-config.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 type ConfigSubscription = (config: AIConfig) => void;
 
 const configSubscriptions = new Set<ConfigSubscription>();
@@ -50,7 +51,7 @@ function commitConfig(config: AIConfig): void {
   } satisfies AIConfig;
   useAppStore.getState().setAIConfig(resolvedConfig);
   notifyConfigSubscribers(resolvedConfig);
-  void savePersistedParentosAIConfig(resolvedConfig).catch(() => {});
+  void savePersistedParentosAIConfig(resolvedConfig).catch(catchLog('ai-config', 'action:save-persisted-ai-config-failed'));
 }
 
 function createAIProfileSurface() {

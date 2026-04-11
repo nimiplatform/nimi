@@ -8,6 +8,7 @@ import type { VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
@@ -373,7 +374,7 @@ export default function VaccinePage() {
   const [activeTab, setActiveTab] = useState<'timeline' | 'list'>('timeline');
 
   useEffect(() => {
-    if (activeChildId) getVaccineRecords(activeChildId).then(setRecords).catch(() => {});
+    if (activeChildId) getVaccineRecords(activeChildId).then(setRecords).catch(catchLog('vaccine', 'action:load-vaccine-records-failed'));
   }, [activeChildId]);
 
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
@@ -384,7 +385,7 @@ export default function VaccinePage() {
   const completedCount = vaccineRules.filter((r) => recordedRuleIds.has(r.ruleId)).length;
   const pct = vaccineRules.length > 0 ? Math.round((completedCount / vaccineRules.length) * 100) : 0;
 
-  const reload = () => { getVaccineRecords(child.childId).then(setRecords).catch(() => {}); };
+  const reload = () => { getVaccineRecords(child.childId).then(setRecords).catch(catchLog('vaccine', 'action:reload-vaccine-records-failed')); };
 
   const clearRuleSearch = () => {
     if (!searchParams.has('ruleId')) return;
@@ -552,7 +553,7 @@ export default function VaccinePage() {
             }).then(async () => {
               await completeReminderByRule({ childId: child.childId, ruleId });
               reload();
-            }).catch(() => {});
+            }).catch(catchLog('vaccine', 'action:quick-record-vaccine-failed'));
           }}
           onMarkAll={() => {
             (async () => {

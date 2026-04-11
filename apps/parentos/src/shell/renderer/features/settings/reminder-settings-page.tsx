@@ -4,6 +4,7 @@ import { useAppStore } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { loadAllFreqOverrides, clearFreqOverride, type FreqOverride } from '../../engine/reminder-freq-overrides.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 const DOMAIN_LABELS: Record<string, string> = {
   vaccine: '疫苗', checkup: '体检', vision: '视力', dental: '口腔', 'bone-age': '骨龄',
@@ -41,11 +42,11 @@ export default function ReminderSettingsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { loadOverrides().catch(() => setLoading(false)); }, [child]);
+  useEffect(() => { loadOverrides().catch(catchLogThen('reminder-settings', 'action:load-overrides-failed', () => setLoading(false))); }, [child]);
 
   const handleReset = async (ruleId: string) => {
     if (!child) return;
-    await clearFreqOverride(child.childId, ruleId).catch(() => {});
+    await clearFreqOverride(child.childId, ruleId).catch(catchLog('reminder-settings', 'action:clear-freq-override-failed'));
     await loadOverrides();
   };
 

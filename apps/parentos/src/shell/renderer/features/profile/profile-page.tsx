@@ -4,6 +4,7 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
 import { getMeasurements, getVaccineRecords, getMilestoneRecords, getSleepRecords } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* ── design tokens (same as dashboard) ───────────────────── */
 
@@ -65,10 +66,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!activeChildId) return;
-    getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
-    getVaccineRecords(activeChildId).then((v) => setVaccineCount(v.length)).catch(() => {});
-    getMilestoneRecords(activeChildId).then((m) => setMilestoneCount(m.filter((r) => r.achievedAt).length)).catch(() => {});
-    getSleepRecords(activeChildId, 7).then((s) => setSleepDays(s.length)).catch(() => {});
+    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('profile', 'action:load-measurements-failed'));
+    getVaccineRecords(activeChildId).then((v) => setVaccineCount(v.length)).catch(catchLog('profile', 'action:load-vaccine-records-failed'));
+    getMilestoneRecords(activeChildId).then((m) => setMilestoneCount(m.filter((r) => r.achievedAt).length)).catch(catchLog('profile', 'action:load-milestone-records-failed'));
+    getSleepRecords(activeChildId, 7).then((s) => setSleepDays(s.length)).catch(catchLog('profile', 'action:load-sleep-records-failed'));
   }, [activeChildId]);
 
   if (!activeChild) {

@@ -8,6 +8,7 @@ import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
 import {
@@ -387,15 +388,15 @@ export default function VisionPage() {
 
   useEffect(() => {
     if (!activeChildId) return;
-    getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
-    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(() => {});
+    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
+    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
   }, [activeChildId]);
 
   const records = useMemo(() => groupByDate(measurements), [measurements]);
   const reload = () => {
     if (!activeChildId) return;
-    getMeasurements(activeChildId).then(setMeasurements).catch(() => {});
-    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(() => {});
+    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
+    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
   };
 
   // Filter medical events to vision screenings only (notes starts with "vision:")

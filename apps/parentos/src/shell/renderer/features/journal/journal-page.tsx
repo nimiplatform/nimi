@@ -49,6 +49,7 @@ import {
 import { AutoTagBar, PhotoBar, VoiceCapture } from './journal-sub-components.js';
 import { JournalEntryTimeline } from './journal-entry-timeline.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
+import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 /* ── Emoji Picker (portal) ── */
 
@@ -179,7 +180,7 @@ export default function JournalPage() {
 
   useEffect(() => {
     if (!activeChildId) return;
-    getJournalEntries(activeChildId, 50).then(setEntries).catch(() => {});
+    getJournalEntries(activeChildId, 50).then(setEntries).catch(catchLog('journal', 'action:load-journal-entries-failed'));
   }, [activeChildId]);
 
   useEffect(() => {
@@ -187,8 +188,8 @@ export default function JournalPage() {
   }, [child?.childId, child?.recorderProfiles]);
 
   useEffect(() => {
-    hasVoiceTranscriptionRuntime().then(setVoiceRuntimeAvailable).catch(() => setVoiceRuntimeAvailable(false));
-    hasJournalTaggingRuntime().then(setTaggingRuntimeAvailable).catch(() => setTaggingRuntimeAvailable(false));
+    hasVoiceTranscriptionRuntime().then(setVoiceRuntimeAvailable).catch(catchLogThen('journal', 'action:check-voice-runtime-failed', () => setVoiceRuntimeAvailable(false)));
+    hasJournalTaggingRuntime().then(setTaggingRuntimeAvailable).catch(catchLogThen('journal', 'action:check-tagging-runtime-failed', () => setTaggingRuntimeAvailable(false)));
   }, []);
 
   useEffect(() => () => {
@@ -327,7 +328,7 @@ export default function JournalPage() {
     if (!photoPaths) return;
     try {
       const paths = JSON.parse(photoPaths) as string[];
-      for (const p of paths) await deleteJournalPhoto(p).catch(() => {});
+      for (const p of paths) await deleteJournalPhoto(p).catch(catchLog('journal', 'action:rollback-delete-photo-failed', 'warn'));
     } catch { /* ignore */ }
   };
 
@@ -405,7 +406,7 @@ export default function JournalPage() {
             const payload = resolveVoiceObservationPayload({ voicePath: savedVoicePath, transcript: voiceDraft.transcript });
             await saveJournalEntry({ entryId, contentType: payload.contentType, textContent: payload.textContent, voicePath: payload.voicePath, photoPaths: mergedPhotoPaths, recordedAt, now });
           } catch (error) {
-            if (savedVoicePath) await deleteJournalVoiceAudio(savedVoicePath).catch(() => {});
+            if (savedVoicePath) await deleteJournalVoiceAudio(savedVoicePath).catch(catchLog('journal', 'action:rollback-delete-voice-failed', 'warn'));
             throw error;
           }
         }
@@ -422,7 +423,7 @@ export default function JournalPage() {
           ruleId: reminderRuleId,
           repeatIndex: Number(searchParams.get('repeatIndex') ?? '0') || 0,
           kind: 'guidance',
-        }).catch(() => {});
+        }).catch(catchLog('journal', 'action:complete-reminder-after-journal-failed', 'warn'));
         const next = new URLSearchParams(searchParams);
         next.delete('reminderRuleId');
         next.delete('repeatIndex');

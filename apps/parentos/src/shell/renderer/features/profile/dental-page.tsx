@@ -7,6 +7,7 @@ import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { generateDentalFollowup } from '../../engine/smart-alerts.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 
@@ -173,7 +174,7 @@ export default function DentalPage() {
   const [addEventHover, setAddEventHover] = useState(false);
 
   useEffect(() => {
-    if (activeChildId) getDentalRecords(activeChildId).then(setRecords).catch(() => {});
+    if (activeChildId) getDentalRecords(activeChildId).then(setRecords).catch(catchLog('dental', 'action:load-dental-records-failed'));
   }, [activeChildId]);
 
   // Filter event types by child age
