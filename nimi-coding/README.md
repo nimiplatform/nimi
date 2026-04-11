@@ -6,7 +6,7 @@ It is the promoted, repo-tracked layer that owns methodology contracts, executio
 
 ## Authority Model
 
-- `spec/**` is the only normative product authority. This module does not redefine product truth.
+- `spec/**` is the repo-wide normative product authority family. Admitted app-local product authority slices may also live under `apps/**/spec/**` when they follow the same `kernel/*.md` plus `kernel/tables/**` discipline and do not create parallel truth. This module does not redefine product truth.
 - `nimi-coding/**` is the promoted execution system. Only stable, reusable, decision-complete assets belong here.
 - `nimi-coding/.local/**` is the local-only topic workspace for methodology research and trial artifacts. It is never committed. Promotion into this module follows `gates/promotion-policy.yaml`.
 
@@ -49,7 +49,7 @@ another same-family decomposition topic is an execution-system failure.
 
 ## What This Module Does NOT Own
 
-- Product spec authority (`spec/**`)
+- Product spec authority (`spec/**`, plus admitted `apps/**/spec/**` app-local slices)
 - Repo-wide collaboration hygiene (e.g., `check:agents-freshness`, `check:no-legacy-doc-contracts`)
 - Topic workspace content (`nimi-coding/.local/**`)
 - Runtime, SDK, desktop, web, or mod code

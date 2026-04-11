@@ -4,17 +4,16 @@
 
 ## Scope
 
-This contract governs the AI growth advisor boundary, local snapshot assembly, reviewed-domain runtime use, structured fallback behavior, and the frozen Phase 2 structured report surface.
+This contract governs the AI growth advisor boundary, local snapshot assembly, reviewed-domain advisor chat, reports generation and persistence, and report-specific runtime narration.
 
 Covered features from `feature-matrix.yaml`:
 
 - `PO-FEAT-010` AI growth advisor
-- `PO-FEAT-023` structured growth report generation
-- `PO-FEAT-024` structured local trend analysis
-
-Explicit Phase 1 exclusion from the same matrix:
-
-- `PO-FEAT-013` broad observation-pattern recognition remains out of scope unless separately frozen to a narrower structured-only contract
+- `PO-FEAT-023` growth reports surface
+- `PO-FEAT-024` trend analysis
+- `PO-FEAT-044` narrative growth reports
+- `PO-FEAT-045` report history and narrative editing
+- `PO-FEAT-046` automatic monthly report generation
 
 Governing fact sources:
 
@@ -27,14 +26,15 @@ Governing fact sources:
 - `tables/local-storage.yaml#milestone_records`
 - `tables/local-storage.yaml#journal_entries`
 - `tables/local-storage.yaml#growth_reports`
+- `tables/local-storage.yaml#reminder_states`
 - `tables/routes.yaml#/advisor`
 - `tables/routes.yaml#/reports`
 
 ## PO-ADVS-001 Snapshot Inputs
 
-Phase 1 advisor requests may consume only the current child's structured local snapshot.
+Advisor and reports requests may consume only the current child's structured local snapshot.
 
-Required snapshot sections:
+Required advisor-chat snapshot sections:
 
 - child profile summary
 - age in months
@@ -43,21 +43,23 @@ Required snapshot sections:
 - milestone records
 - journal entries
 
+Reports may additionally consume reminder states and the profile-side health record surfaces already stored locally.
+
 The message-level `contextSnapshot` stored in `ai_messages` must freeze the request-time snapshot and must not be retroactively mutated when local records change later.
 
-## PO-ADVS-002 Runtime Eligibility Gate
+## PO-ADVS-002 Advisor Chat Runtime Eligibility Gate
 
-Runtime free-form generation is allowed only when every inferred requested domain is `reviewed` in `knowledge-source-readiness.yaml`.
+Advisor chat free-form generation is allowed only when every inferred requested domain is `reviewed` in `knowledge-source-readiness.yaml`.
 
-- `reviewed` domains may enter the runtime prompt
-- `needs-review` domains must not enter Phase 1 free-form prompt assembly
+- `reviewed` domains may enter the advisor runtime prompt
+- `needs-review` domains must not enter advisor prompt assembly
 - mixed-domain questions must be treated as not runtime-eligible
 
-This gate is authoritative even when a local structured record exists for the domain.
+This gate applies to advisor chat even when a local structured record exists for the domain.
 
-## PO-ADVS-003 Structured Fallback
+## PO-ADVS-003 Structured Advisor Fallback
 
-When runtime generation is not allowed, the advisor must return a structured fallback composed from local facts.
+When advisor chat runtime generation is not allowed, the advisor must return a structured fallback composed from local facts.
 
 The fallback must:
 
@@ -70,7 +72,7 @@ The fallback must not silently degrade into fake success or unsupported interpre
 
 ## PO-ADVS-004 Safety Language
 
-AI output must not contain the banned diagnostic or treatment wording defined by ParentOS Phase 1.
+AI output must not contain banned diagnostic or treatment wording.
 
 Disallowed examples include:
 
@@ -83,7 +85,7 @@ Disallowed examples include:
 - `danger`
 - `warning`
 
-For anomalous structured data, the advisor may state the objective fact and the fixed phrase `suggest consulting a professional`.
+For anomalous structured data, the advisor or report surface may state the objective fact and the fixed phrase `suggest consulting a professional`.
 
 ## PO-ADVS-005 Source Attribution
 
@@ -109,35 +111,33 @@ Stored messages must preserve:
 
 The persistence layer must not omit `contextSnapshot` for user turns that depend on child data.
 
-## PO-ADVS-007 Structured Report Boundary
+## PO-ADVS-007 Reports Surface Boundary
 
-`PO-FEAT-023` is limited in the current freeze to structured local reports persisted in `growth_reports`.
+The reports surface may generate and persist either deterministic structured reports or runtime-assisted narrative reports from local child records.
 
 Allowed report inputs:
 
 - child profile summary
-- period start / end
+- period start and end
 - growth measurements
 - vaccine records
 - milestone records
 - journal entries
 - reminder states
+- other profile-local health records already stored in the app
 
 Allowed report outputs:
 
-- typed JSON content assembled from local facts
-- fixed, deterministic section titles and summaries
-- source labels derived from spec-backed tables or local record categories
+- `version: 1` `format: structured-local`
+- `version: 2` `format: narrative | narrative-ai`
+- structured trend signals and evidence lines
+- parent-editable narrative text for version 2 payloads
 
-The reports surface must not:
-
-- send `growth`, `milestone`, `vaccine`, or `observation` facts into free-form runtime prompt generation while those domains remain `needs-review`
-- generate diagnosis, treatment, ranking, or causal explanations
-- fabricate empty success content when local report generation fails
+Report narration may summarize `needs-review` domains only as local factual description plus safety wording. Reports must not emit diagnosis, treatment, ranking, or unsupported causal explanation.
 
 ## PO-ADVS-008 Report Persistence
 
-Structured report writes must round-trip through `growth_reports` with these required fields:
+Report writes must round-trip through `growth_reports` with these required fields:
 
 - `reportId`
 - `childId`
@@ -150,47 +150,51 @@ Structured report writes must round-trip through `growth_reports` with these req
 - `generatedAt`
 - `createdAt`
 
-`content` must remain typed JSON. Phase 2 report generation must not store prose-only blobs that discard structure.
+`reportType` is currently limited to:
 
-## PO-ADVS-009 Structured Trend Analysis Boundary
+- `monthly`
+- `quarterly`
+- `quarterly-letter`
+- `custom`
 
-`PO-FEAT-024` is frozen in the current scope as deterministic local trend analysis only.
+`content` must remain typed JSON and may carry either the v1 structured schema or the v2 narrative schema.
 
-Allowed inputs:
+## PO-ADVS-009 Report History, Editing, and Auto-Generation
 
-- local growth measurements
-- local journal entries
-- period metadata already used by structured reports
+Report authority includes:
 
-Allowed outputs:
+- viewing persisted reports from `growth_reports`
+- auto-generating the current month's report from the timeline surface
+- parent editing of version 2 narrative content after generation
 
-- typed structured trend signals persisted inside the same report JSON payload
-- deterministic comparisons such as count changes, latest-versus-previous measurement deltas, and top-recorded observation dimensions
-- fixed evidence lines derived directly from local rows
+Edits must round-trip through the same `growth_reports.content` field. The app must not create shadow copies or out-of-band report text stores.
 
-The trend-analysis surface must not:
+## PO-ADVS-010 Trend Analysis Boundary
 
-- call runtime free-form generation for `growth` or `observation`
-- emit diagnosis, ranking, causal explanation, or treatment guidance
-- use open-vocabulary labels outside the existing spec-backed measurement and observation catalogs
+Trend analysis must stay tied to local evidence lines.
 
-## PO-ADVS-010 Fail-Close Behavior
+- deterministic comparisons and counts are allowed
+- runtime-assisted report narration is allowed only inside the reports surface
+- trend signals must remain anchored to local rows or spec-backed section labels
+- trend narration must not broaden advisor-chat runtime permission for `needs-review` domains
+
+## PO-ADVS-011 Fail-Close Behavior
 
 The advisor layer must fail closed when:
 
-- a request attempts to send `needs-review` knowledge into the runtime prompt
+- an advisor chat request attempts to send `needs-review` knowledge into the runtime prompt
 - a generated answer violates banned wording checks
 - a typed advisor snapshot cannot be assembled from local rows
 - conversation persistence returns malformed typed data
-- a reports request attempts to emit free-form AI explanation for `needs-review` domains
-- a trend-analysis payload contains malformed structured signals
-- a report persistence payload is missing typed JSON content or period metadata
+- a reports request attempts to persist malformed report JSON or invalid `reportType`
+- a reports runtime path emits narrative content without safety filtering
+- a report history or editing path tries to read an unsupported payload shape
 
-## Phase Exclusions
+## Exclusions
 
 The following remain outside this contract:
 
 - broad `PO-FEAT-013` observation-pattern generation
-- broad `PO-FEAT-024` AI trend narration over `needs-review` domains
-- monthly, quarterly, or annual free-form AI narrative generation over `needs-review` domains
-- any promotion of `growth`, `milestone`, `vaccine`, or `observation` into free-form AI knowledge while they remain `needs-review`
+- diagnosis, treatment guidance, or comparative ranking
+- promotion of advisor chat runtime into `needs-review` domains
+- orphan report types or pages that are not admitted by `routes.yaml` and `local-storage.yaml`

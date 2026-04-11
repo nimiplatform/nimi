@@ -9,7 +9,7 @@
 - `spec/AGENTS.md` is authoritative for anything under `spec/**`.
 
 ## Hard Boundaries
-- `spec/**` is the only normative contract source. Repo-tracked execution-system authority lives under `nimi-coding/**`; local-only execution workspaces and reports may live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
+- Repo-wide normative product authority lives under `spec/**`. Admitted app-local product authority slices may also live under `apps/**/spec/**` when the owning app declares that landing, keeps normative content inside `kernel/*.md` and `kernel/tables/**`, and does not create parallel truth against `spec/**`. Repo-tracked execution-system authority lives under `nimi-coding/**`; local-only execution workspaces and reports may live under `nimi-coding/.local/**`; tracked support inputs live under `nimi-coding/config/**` and `nimi-coding/fixtures/**`. `dev/**` is not an active execution-doc surface.
 - High-risk design/refactor/implementation work must complete authority preflight before implementation. Required fields in the design/plan doc: `Spec Status`, `Authority Owner`, `Work Type`, `Parallel Truth`.
 - `Work Type=alignment` means align to existing spec authority and must not introduce parallel truth. `Work Type=redesign` means authority/canonical-model/ownership change and must not proceed to implementation without prior `spec/**` alignment.
 - `nimi-coding` is for high-risk, authority-bearing, cross-layer, or multi-phase work. Small, local, low-risk fixes do not need a topic when the authority boundary is already clear.

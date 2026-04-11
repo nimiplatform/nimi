@@ -25,12 +25,15 @@
 
 ## Spec Authority & Sync
 
-`spec/**` is the highest normative source. **When spec and code conflict, spec wins — fix the code, not the spec.**
+`apps/parentos/spec/**` is ParentOS's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/parentos.md` are guides.
+
+During the current authority realignment, implementation is the fact source for spec catch-up. **When spec and code conflict on a retained product behavior, update the app-local spec to match reality.** Do not promote obvious bugs, fail-open behavior, placeholder data writes, or orphan surfaces into authority; track those as defects instead.
 
 Before making any change:
-1. Read `spec/INDEX.md` — match the question to a reading path.
-2. Read kernel YAML tables — these are structured facts.
-3. Read source code ONLY to verify or fill gaps.
+1. Read `spec/INDEX.md` for the guide path.
+2. Read `spec/kernel/index.md` for the authority map.
+3. Read kernel YAML tables and contracts.
+4. Read source code to verify behavior or identify defects.
 
 ### Key Tables
 
@@ -59,7 +62,7 @@ Rule → Table → Generate → Check → Evidence
 1. Modify the YAML table or contract first.
 2. Regenerate compiled TS constants via the app-level knowledge-base generate step (`pnpm --filter @nimiplatform/parentos generate:knowledge-base`) once that script is landed in this package.
 3. Run the app-level consistency check (`pnpm --filter @nimiplatform/parentos check:spec-consistency`) once that script is landed in this package.
-4. Update code (migrations, routes, types) to match.
+4. Update code (migrations, routes, types) to match when the code is the item being changed.
 5. Run full test suite.
 
 **Drift = CI failure.** The following mismatches are blocking:
@@ -87,6 +90,8 @@ This project starts from zero. There is no prior version, no deployed users, no 
 - Knowledge base load failure → app does not start.
 - AI output violating safety boundary → discard, not display.
 - Missing nurture mode parameter → default to `balanced` (the only permitted fallback).
+
+Current implementation gaps such as silent error swallowing, typed bridge coercion, and placeholder reminder writes remain defects to fix later; they must not be treated as admitted authority.
 
 ## Hard Boundaries
 

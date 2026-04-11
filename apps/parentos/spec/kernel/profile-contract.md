@@ -4,7 +4,7 @@
 
 ## Scope
 
-This contract governs child profile CRUD, growth records, growth charts, vaccine tracking, milestone tracking, and the frozen Phase 2 OCR-assisted measurement import flow.
+This contract governs child profile CRUD, growth records, growth charts, vaccine tracking, milestone tracking, extended health-record surfaces, profile-local AI summaries, medical-event AI adjuncts, posture assessment projection, and OCR-assisted measurement import.
 
 Covered features from `feature-matrix.yaml`:
 
@@ -13,6 +13,15 @@ Covered features from `feature-matrix.yaml`:
 - `PO-FEAT-005` growth chart
 - `PO-FEAT-006` vaccine tracking
 - `PO-FEAT-007` milestone tracking
+- `PO-FEAT-025` profile-local AI summaries
+- `PO-FEAT-034` vision and eye-health records
+- `PO-FEAT-035` dental records
+- `PO-FEAT-036` allergy tracking
+- `PO-FEAT-037` sleep tracking
+- `PO-FEAT-038` medical events
+- `PO-FEAT-039` posture assessment surface
+- `PO-FEAT-040` Tanner puberty tracking
+- `PO-FEAT-041` fitness assessments
 - `PO-FEAT-022` OCR health-sheet ingestion
 
 Governing fact sources:
@@ -31,6 +40,7 @@ Governing fact sources:
 - `tables/milestone-catalog.yaml`
 - `tables/reminder-rules.yaml`
 - `tables/routes.yaml#/profile`
+- `tables/routes.yaml#/profile/posture`
 
 ## PO-PROF-001 Child Record Shape
 
@@ -252,14 +262,41 @@ Blood test results are recorded via `growth_measurements` using reference-range 
 
 Reference ranges are defined in `growth-standards.yaml#referenceRanges`. Values outside reference ranges may trigger descriptive-only wording and the standard "建议咨询专业人士" prompt. The profile surface must not render diagnostic or treatment language for lab results.
 
-## PO-PROF-016 OCR-Assisted Measurement Import
+## PO-PROF-016 Profile-Local AI Summaries
 
-`PO-FEAT-022` is a profile-local ingestion flow for health-sheet photos or screenshots. OCR may now also extract values for the extended eye health and lab result typeIds defined in PO-PROF-014 and PO-PROF-015.
+`PO-FEAT-025` is a bounded profile-local summary surface.
+
+- profile sub-pages may request runtime-generated summaries only from the current page's local structured records plus the active child profile
+- the summary surface is descriptive only; it is not an advisor-chat knowledge gate and it does not expand `needs-review` domains into free-form expert guidance
+- summary output must pass the shared safety filter before display or cache write
+- cached summary text in `app_settings` is an implementation detail only; the source of truth remains the underlying local profile records
+- the profile surface must not generate diagnosis, treatment plans, comparative ranking, or unsupported causal claims
+
+## PO-PROF-017 Medical Event AI Adjuncts
+
+The medical-events surface may use bounded runtime assistance on top of local event records.
+
+Admitted AI adjuncts are:
+
+- local medical-event timeline summary from current child records
+- image-based OCR intake that extracts structured form candidates for the medical-event composer
+- single-event descriptive analysis from an already saved local event row
+
+These adjuncts must obey these invariants:
+
+- they may consume only the current child's local medical-event context and the explicitly selected local image when OCR is invoked
+- OCR intake is extraction-only and must return structured candidate fields for parent review; it must not auto-save
+- smart summaries and event analysis must pass the shared safety filter before display
+- the medical-events surface must not emit diagnosis, treatment recommendations, medication instructions, ranking, or unsupported causal explanation
+
+## PO-PROF-018 OCR-Assisted Measurement Import
+
+`PO-FEAT-022` is a profile-local ingestion flow for health-sheet photos or screenshots. OCR may also extract values for the extended eye health and lab result typeIds defined in PO-PROF-014 and PO-PROF-015.
 
 The import flow is:
 
 1. parent selects one local image
-2. app requests local runtime OCR / vision extraction
+2. app requests local runtime image-aware text extraction
 3. runtime returns structured measurement candidates only
 4. parent confirms or edits candidate values and dates
 5. confirmed rows are written into `growth_measurements` with `source = ocr`
@@ -272,7 +309,16 @@ OCR import must obey these invariants:
 - no measurement row may be written before parent confirmation
 - import failures must not silently create placeholder measurements
 
-## PO-PROF-017 Fail-Close Behavior
+## PO-PROF-019 Posture Surface
+
+`/profile/posture` is an admitted profile surface for local posture and body-alignment review.
+
+- the surface may project posture-related local records, linked medical context, and related profile summaries already available to the app
+- until a dedicated posture persistence contract is introduced, this surface is authority only at the UI/projection level
+- the posture surface must not invent an undocumented hidden storage schema
+- the posture surface must not render diagnosis, treatment plans, or comparative ranking
+
+## PO-PROF-020 Fail-Close Behavior
 
 The profile layer must fail closed when:
 
@@ -280,6 +326,10 @@ The profile layer must fail closed when:
 - a WHO asset lookup is requested for a missing dataset and the UI tries to display fabricated percentile output
 - JSON child fields cannot be decoded into their typed shapes
 - create, edit, or delete operations return a malformed typed payload
+- a profile-local AI summary path attempts to summarize without current local page data
+- a profile-local AI summary path emits text that fails shared safety filtering and still tries to display the unsafe text
+- a medical-event OCR intake emits malformed JSON or unsupported event fields and still tries to prefill the form
+- a medical-event AI adjunct tries to persist or mutate local rows without explicit parent confirmation
 - OCR output is missing required structured measurement fields
 - OCR returns a candidate with an unsupported `typeId`
 - a candidate import path attempts to write rows without a confirmed measurement date and numeric value

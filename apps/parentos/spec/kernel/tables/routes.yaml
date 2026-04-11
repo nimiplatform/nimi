@@ -1,25 +1,23 @@
-# ──────────────────────────────────────────────────────────────
-# routes.yaml — ParentOS 路由表
-# ──────────────────────────────────────────────────────────────
-
 routes:
   - path: /timeline
     displayName: "成长时间线"
     feature: timeline
-    description: "主页。展示今日重点、本周安排预览、阶段关注预览和逾期摘要。"
+    description: "主页。展示今日重点、本周安排、阶段关注和逾期摘要。"
     isDefault: true
+    nav: true
     icon: calendar
 
   - path: /profile
     displayName: "成长档案"
     feature: profile
-    description: "孩子的完整档案：基本信息、生长曲线、里程碑、疫苗记录。"
+    description: "孩子的完整档案入口。"
+    nav: true
     icon: user
 
   - path: /profile/growth
     displayName: "生长曲线"
     feature: profile
-    description: "身高体重头围的生长曲线图表。"
+    description: "身高体重头围与其他结构化测量图表。"
     parent: /profile
 
   - path: /profile/milestones
@@ -35,87 +33,96 @@ routes:
     parent: /profile
 
   - path: /profile/vision
-    displayName: "Vision Record"
+    displayName: "视力档案"
     feature: profile
-    description: "Vision, refraction, axial length, and eye health records."
+    description: "视力、验光、眼轴和眼健康记录。"
     parent: /profile
 
   - path: /profile/dental
     displayName: "口腔发育"
     feature: profile
-    description: "牙齿萌出、换牙、龋齿、口腔检查记录。"
+    description: "牙齿萌出、换牙、龋齿和口腔检查记录。"
     parent: /profile
 
   - path: /profile/allergies
     displayName: "过敏记录"
     feature: profile
-    description: "过敏原追踪、严重程度、状态变化。"
+    description: "过敏原追踪、严重程度和状态变化。"
     parent: /profile
 
   - path: /profile/sleep
     displayName: "睡眠记录"
     feature: profile
-    description: "每日睡眠时长、作息规律、午睡记录。"
+    description: "每日睡眠时长、作息规律和睡眠质量。"
     parent: /profile
 
   - path: /profile/medical-events
     displayName: "就医记录"
     feature: profile
-    description: "伤病、手术、用药、听力筛查等医学事件。"
+    description: "门诊、住院、筛查、用药和其他医学事件。"
+    parent: /profile
+
+  - path: /profile/posture
+    displayName: "体态档案"
+    feature: profile
+    description: "姿态、足弓和身体对齐相关评估。"
     parent: /profile
 
   - path: /profile/tanner
     displayName: "青春期发育"
     feature: profile
-    description: "Tanner 分期评估记录。"
+    description: "Tanner 分期和青春期发育记录。"
     parent: /profile
 
   - path: /profile/fitness
     displayName: "体能测评"
     feature: profile
-    description: "学校体测、体能评估成绩记录。"
+    description: "学校体测和运动能力评估。"
     parent: /profile
 
   - path: /profile/report-upload
-    displayName: "Report Upload"
+    displayName: "智能识别"
     feature: profile
-    description: "Upload a local checkup image, review extracted measurement candidates, and import only after parent confirmation."
+    description: "上传本地图像并在家长确认后导入体检数据。"
     parent: /profile
 
   - path: /journal
     displayName: "观察日记"
     feature: journal
-    description: "家长观察记录，支持文字、语音、照片。"
+    description: "文字、照片、语音观察记录与 AI 标签建议。"
+    nav: true
     icon: book-open
 
   - path: /reminders
-    displayName: "Reminders"
+    displayName: "提醒列表"
     feature: timeline
-    description: "Review today focus, this-week tasks, stage guidance, and reminder history."
+    description: "查看今日重点、本周任务、阶段提醒和提醒历史。"
 
   - path: /advisor
     displayName: "成长顾问"
     feature: advisor
-    description: "AI 成长分析顾问，基于孩子档案的个性化问答。"
+    description: "基于本地档案和审核知识域的顾问问答。"
+    nav: true
     icon: message-circle
 
   - path: /reports
     displayName: "成长报告"
     feature: reports
-    description: "定期成长分析报告。"
+    description: "查看和管理结构化与叙事成长报告。"
+    nav: true
     icon: bar-chart
-    phase: 2
 
   - path: /settings
     displayName: "设置"
     feature: settings
-    description: "家庭管理、孩子档案管理、养育模式配置、提醒偏好。"
+    description: "孩子管理、养育模式、提醒和 AI 设置入口。"
+    nav: true
     icon: settings
 
   - path: /settings/children
     displayName: "孩子管理"
     feature: settings
-    description: "添加/编辑孩子档案。"
+    description: "添加和编辑孩子档案。"
     parent: /settings
 
   - path: /settings/nurture-mode
@@ -124,7 +131,21 @@ routes:
     description: "全局和按领域的养育模式配置。"
     parent: /settings
 
+  - path: /settings/reminders
+    displayName: "提醒管理"
+    feature: settings
+    description: "查看和管理已自定义频率的提醒。"
+    parent: /settings
+
+  - path: /settings/ai
+    displayName: "AI 模型设置"
+    feature: settings
+    description: "配置对话、语音转写和 OCR 等 AI 能力的模型偏好。"
+    parent: /settings
+
 constraints:
-  - "isDefault: true 的路由仅有一个"
-  - "子路由的 feature 跟随父路由"
-  - "gated: true 的路由在对应 phase 实现前不注册到 router，不出现在导航中"
+  - "Exactly one route may have isDefault: true."
+  - "Every route registered in routes.tsx must exist here."
+  - "Every nav: true route must appear in shell-layout navigation, and no other route may appear there."
+  - "Child-route feature values must match the parent route feature."
+  - "Orphan or unrouted pages are not authority surfaces until listed here."

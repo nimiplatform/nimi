@@ -4,13 +4,14 @@
 
 ## Scope
 
-This contract governs the reminder agenda engine, timeline projection, and sensitive-period guidance.
+This contract governs the reminder agenda engine, timeline projection, sensitive-period guidance, and timeline-driven monthly report trigger.
 
-Covered Phase 1 features from `feature-matrix.yaml`:
+Covered features from `feature-matrix.yaml`:
 
 - `PO-FEAT-002` reminder engine
 - `PO-FEAT-003` growth timeline
-- `PO-FEAT-011` sensitive-period guide
+- `PO-FEAT-011` sensitive period guide
+- `PO-FEAT-046` automatic monthly report generation
 
 Governing fact sources:
 
@@ -18,6 +19,7 @@ Governing fact sources:
 - `tables/nurture-modes.yaml`
 - `tables/sensitive-periods.yaml`
 - `tables/local-storage.yaml#reminder_states`
+- `tables/local-storage.yaml#growth_reports`
 - `tables/routes.yaml#/timeline`
 
 ## PO-TIME-001 Reminder Inputs
@@ -54,15 +56,13 @@ Required persisted fields include:
 - `lastSurfacedAt`
 - `surfaceCount`
 
-Legacy status values remain supported for storage compatibility:
+Legacy storage status values remain admitted:
 
 - `pending`
 - `active`
 - `completed`
 - `dismissed`
 - `overdue`
-
-For repeatable rules, the tuple `(childId, ruleId, repeatIndex)` must remain unique.
 
 The following values must be computed at runtime and must not be persisted:
 
@@ -94,16 +94,6 @@ Required bucket semantics:
 | `history` | completed, scheduled, snoozed, and not-applicable records |
 | `overdueSummary` | compressed summary for stale overdue reminders |
 
-Each rendered item must carry at least:
-
-- `ruleId`
-- `priority`
-- runtime lifecycle state
-- `title`
-- `domain`
-- `triggerAge` or scheduled age metadata
-- primary action affordance
-
 Agenda bucket assignment must be recomputed from structured inputs on every evaluation.
 
 ## PO-TIME-005 Sensitive Period Projection
@@ -111,24 +101,33 @@ Agenda bucket assignment must be recomputed from structured inputs on every eval
 Sensitive-period guidance must be a direct lookup against `sensitive-periods.yaml`.
 
 - active periods are determined by current age in months
-- rendered copy must be table-backed and static in Phase 1
+- rendered copy must be table-backed and static
 - the timeline may show current period, peak period, and linked observation cues
 - the timeline must not generate new theory text beyond the reviewed table content
 
-## PO-TIME-006 Fail-Close Behavior
+## PO-TIME-006 Monthly Report Trigger
+
+The timeline may trigger automatic monthly report generation for the active child.
+
+- the trigger is monthly and local-child scoped
+- generated reports must persist through `growth_reports`
+- generated content must obey the reports authority in `advisor-contract.md`
+- missing runtime, missing local inputs, or generation failure must not fabricate placeholder reports
+
+## PO-TIME-007 Fail-Close Behavior
 
 The timeline layer must fail closed when:
 
 - a persisted `ruleId` is not present in the compiled reminder catalog
 - compiled reminder or sensitive-period assets are missing
 - a reminder references an invalid nurture-mode projection
-- a gated route is reintroduced into navigation as a substitute for timeline output
 - a persisted reminder row contains agenda metadata that cannot be interpreted deterministically
+- a report trigger path attempts to persist malformed report payloads
 
-## Phase 1 Exclusions
+## Exclusions
 
-The following are out of scope for this contract in Phase 1:
+The following remain outside this contract:
 
 - AI-generated personalized reminders (`PO-FEAT-032`)
-- `/reports` integration or report-derived timeline cards
-- free-form explanation for `needs-review` domains
+- free-form explanation outside the advisor/report boundaries
+- orphan report history or upload pages that are not registered routes

@@ -22,7 +22,7 @@ Its human-converged autonomous delivery posture is:
 
 ## Core Rules
 
-1. `spec/**` is the only normative product authority.
+1. `spec/**` is the repo-wide normative product authority family. App-local product authority may also land under `apps/**/spec/**` only when repo rules admit that slice, the slice reuses the same `kernel/*.md` plus `kernel/tables/**` discipline, and it does not create parallel truth against `spec/**`.
 2. `.local/**` is local-only and never committed.
 3. `nimi-coding/**` is the promoted system layer for reusable `nimi-coding` components.
 4. Any machine-checkable rule should be enforced by validators or gates.
