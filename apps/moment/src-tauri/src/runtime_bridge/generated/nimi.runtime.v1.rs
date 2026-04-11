@@ -2335,6 +2335,12 @@ pub struct ScenarioJob {
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
     #[prost(message, optional, tag = "19")]
     pub reason_metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(int32, tag = "20")]
+    pub progress_percent: i32,
+    #[prost(int32, tag = "21")]
+    pub progress_current_step: i32,
+    #[prost(int32, tag = "22")]
+    pub progress_total_steps: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -2772,6 +2778,79 @@ pub struct CloseRealtimeSessionResponse {
     #[prost(message, optional, tag = "1")]
     pub ack: ::core::option::Option<Ack>,
 }
+/// K-SCHED-003: Occupancy snapshot at peek time.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingOccupancySnapshot {
+    #[prost(int32, tag = "1")]
+    pub global_used: i32,
+    #[prost(int32, tag = "2")]
+    pub global_cap: i32,
+    #[prost(int32, tag = "3")]
+    pub app_used: i32,
+    #[prost(int32, tag = "4")]
+    pub app_cap: i32,
+}
+/// K-SCHED-002: Scheduling preflight judgement result.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingJudgement {
+    #[prost(enumeration = "SchedulingState", tag = "1")]
+    pub state: i32,
+    #[prost(string, tag = "2")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(string, repeated, tag = "4")]
+    pub resource_warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// K-SCHED-007: Target-scoped scheduling evaluation input.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingResourceHint {
+    #[prost(int64, tag = "1")]
+    pub estimated_vram_bytes: i64,
+    #[prost(int64, tag = "2")]
+    pub estimated_ram_bytes: i64,
+    #[prost(int64, tag = "3")]
+    pub estimated_disk_bytes: i64,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+}
+/// K-SCHED-002: Atomic scheduling evaluation target.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingEvaluationTarget {
+    #[prost(string, tag = "1")]
+    pub capability: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub mod_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub resource_hint: ::core::option::Option<SchedulingResourceHint>,
+}
+/// K-SCHED-002: Per-target scheduling judgement mapping.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SchedulingTargetJudgement {
+    #[prost(message, optional, tag = "1")]
+    pub target: ::core::option::Option<SchedulingEvaluationTarget>,
+    #[prost(message, optional, tag = "2")]
+    pub judgement: ::core::option::Option<SchedulingJudgement>,
+}
+/// K-SCHED-002: PeekScheduling preflight request.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingRequest {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub targets: ::prost::alloc::vec::Vec<SchedulingEvaluationTarget>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeekSchedulingResponse {
+    #[prost(message, optional, tag = "1")]
+    pub occupancy: ::core::option::Option<SchedulingOccupancySnapshot>,
+    #[prost(message, optional, tag = "2")]
+    pub aggregate_judgement: ::core::option::Option<SchedulingJudgement>,
+    #[prost(message, repeated, tag = "3")]
+    pub target_judgements: ::prost::alloc::vec::Vec<SchedulingTargetJudgement>,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Modal {
@@ -2997,7 +3076,7 @@ impl FinishReason {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReasoningMode {
-    Default = 0,
+    Unspecified = 0,
     Off = 1,
     On = 2,
 }
@@ -3008,7 +3087,7 @@ impl ReasoningMode {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Default => "REASONING_MODE_DEFAULT",
+            Self::Unspecified => "REASONING_MODE_UNSPECIFIED",
             Self::Off => "REASONING_MODE_OFF",
             Self::On => "REASONING_MODE_ON",
         }
@@ -3016,7 +3095,7 @@ impl ReasoningMode {
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "REASONING_MODE_DEFAULT" => Some(Self::Default),
+            "REASONING_MODE_UNSPECIFIED" => Some(Self::Unspecified),
             "REASONING_MODE_OFF" => Some(Self::Off),
             "REASONING_MODE_ON" => Some(Self::On),
             _ => None,
@@ -3466,6 +3545,48 @@ impl ScenarioJobEventType {
             "SCENARIO_JOB_EVENT_FAILED" => Some(Self::ScenarioJobEventFailed),
             "SCENARIO_JOB_EVENT_CANCELED" => Some(Self::ScenarioJobEventCanceled),
             "SCENARIO_JOB_EVENT_TIMEOUT" => Some(Self::ScenarioJobEventTimeout),
+            _ => None,
+        }
+    }
+}
+/// K-SCHED-001: Six-value scheduling judgement state enum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SchedulingState {
+    Unspecified = 0,
+    Runnable = 1,
+    QueueRequired = 2,
+    PreemptionRisk = 3,
+    SlowdownRisk = 4,
+    Denied = 5,
+    Unknown = 6,
+}
+impl SchedulingState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCHEDULING_STATE_UNSPECIFIED",
+            Self::Runnable => "SCHEDULING_STATE_RUNNABLE",
+            Self::QueueRequired => "SCHEDULING_STATE_QUEUE_REQUIRED",
+            Self::PreemptionRisk => "SCHEDULING_STATE_PREEMPTION_RISK",
+            Self::SlowdownRisk => "SCHEDULING_STATE_SLOWDOWN_RISK",
+            Self::Denied => "SCHEDULING_STATE_DENIED",
+            Self::Unknown => "SCHEDULING_STATE_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCHEDULING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCHEDULING_STATE_RUNNABLE" => Some(Self::Runnable),
+            "SCHEDULING_STATE_QUEUE_REQUIRED" => Some(Self::QueueRequired),
+            "SCHEDULING_STATE_PREEMPTION_RISK" => Some(Self::PreemptionRisk),
+            "SCHEDULING_STATE_SLOWDOWN_RISK" => Some(Self::SlowdownRisk),
+            "SCHEDULING_STATE_DENIED" => Some(Self::Denied),
+            "SCHEDULING_STATE_UNKNOWN" => Some(Self::Unknown),
             _ => None,
         }
     }
@@ -3927,6 +4048,33 @@ pub mod runtime_ai_service_client {
                     GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "UploadArtifact"),
                 );
             self.inner.client_streaming(req, path, codec).await
+        }
+        /// K-SCHED-002: Non-blocking scheduling preflight assessment.
+        pub async fn peek_scheduling(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PeekSchedulingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PeekSchedulingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAiService/PeekScheduling",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAiService", "PeekScheduling"),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }
@@ -5344,6 +5492,13 @@ pub struct LocalGpuProfile {
     pub vendor: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub model: ::prost::alloc::string::String,
+    /// K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+    #[prost(int64, tag = "4")]
+    pub total_vram_bytes: i64,
+    #[prost(int64, tag = "5")]
+    pub available_vram_bytes: i64,
+    #[prost(enumeration = "GpuMemoryModel", tag = "6")]
+    pub memory_model: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalPythonProfile {
@@ -5388,6 +5543,11 @@ pub struct LocalDeviceProfile {
     pub disk_free_bytes: i64,
     #[prost(message, repeated, tag = "7")]
     pub ports: ::prost::alloc::vec::Vec<LocalPortAvailability>,
+    /// K-DEV-001: Host memory fields. Zero means probe unavailable.
+    #[prost(int64, tag = "8")]
+    pub total_ram_bytes: i64,
+    #[prost(int64, tag = "9")]
+    pub available_ram_bytes: i64,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalExecutionOptionDescriptor {
@@ -6075,6 +6235,36 @@ impl LocalProfileEntryKind {
             "LOCAL_PROFILE_ENTRY_KIND_SERVICE" => Some(Self::Service),
             "LOCAL_PROFILE_ENTRY_KIND_NODE" => Some(Self::Node),
             "LOCAL_PROFILE_ENTRY_KIND_ASSET" => Some(Self::Asset),
+            _ => None,
+        }
+    }
+}
+/// K-DEV-001: GPU memory architecture model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum GpuMemoryModel {
+    Unspecified = 0,
+    Discrete = 1,
+    Unified = 2,
+}
+impl GpuMemoryModel {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "GPU_MEMORY_MODEL_UNSPECIFIED",
+            Self::Discrete => "GPU_MEMORY_MODEL_DISCRETE",
+            Self::Unified => "GPU_MEMORY_MODEL_UNIFIED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "GPU_MEMORY_MODEL_UNSPECIFIED" => Some(Self::Unspecified),
+            "GPU_MEMORY_MODEL_DISCRETE" => Some(Self::Discrete),
+            "GPU_MEMORY_MODEL_UNIFIED" => Some(Self::Unified),
             _ => None,
         }
     }

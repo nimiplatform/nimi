@@ -2,11 +2,12 @@
 
 use serde::Serialize;
 
-mod defaults;
-mod desktop_paths;
-#[path = "../../../shared-tauri/auth_session_commands.rs"]
-mod auth_session_commands;
-mod runtime_bridge;
+// Shared modules from kit/shell/tauri crate
+use nimi_kit_shell_tauri::auth_session_commands;
+use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::runtime_bridge;
+use nimi_kit_shell_tauri::runtime_defaults as defaults;
+use nimi_kit_shell_tauri::session_logging;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -26,6 +27,10 @@ fn get_storage_dirs() -> Result<DriftStorageDirs, String> {
 }
 
 fn main() {
+    session_logging::set_app_session_prefix("realm-drift");
+    session_logging::install_panic_hook();
+    session_logging::log_boot_marker("realm-drift main() entered");
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
@@ -42,6 +47,7 @@ fn main() {
             runtime_bridge::runtime_bridge_restart,
             runtime_bridge::runtime_bridge_config_get,
             runtime_bridge::runtime_bridge_config_set,
+            session_logging::log_renderer_event,
         ])
         .run(tauri::generate_context!())
         .expect("error running realm-drift");

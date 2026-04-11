@@ -2,15 +2,15 @@
 
 use serde::Serialize;
 
-mod defaults;
-mod desktop_paths;
-#[path = "../../../shared-tauri/auth_session_commands.rs"]
-mod auth_session_commands;
-#[path = "../../../shared-tauri/oauth_commands.rs"]
-mod oauth_commands;
-#[path = "../../../forge/src-tauri/src/runtime_bridge/mod.rs"]
-mod runtime_bridge;
-mod session_logging;
+// Shared modules from kit/shell/tauri crate
+use nimi_kit_shell_tauri::auth_session_commands;
+use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::oauth_commands;
+use nimi_kit_shell_tauri::runtime_bridge;
+use nimi_kit_shell_tauri::runtime_defaults as defaults;
+use nimi_kit_shell_tauri::session_logging;
+
+// App-local modules
 mod sqlite;
 
 #[derive(Debug, Serialize)]
@@ -41,6 +41,7 @@ fn configure_runtime_bridge_env() {
 
 fn main() {
     configure_runtime_bridge_env();
+    session_logging::set_app_session_prefix("shiji");
     session_logging::install_panic_hook();
     session_logging::log_boot_marker("shiji main() entered");
 

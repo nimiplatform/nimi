@@ -28,5 +28,6 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 webbrowser = "1"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
 keyring = "3"
+nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
 
 [dev-dependencies]

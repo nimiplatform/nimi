@@ -2,11 +2,14 @@
 
 mod db;
 mod db_queries;
-mod desktop_paths;
 mod probe;
 mod runtime_daemon;
 mod script_runner;
 mod settings;
+
+// Shared modules from kit/shell/tauri crate
+pub use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::session_logging;
 
 use serde::Serialize;
 use std::env;
@@ -328,6 +331,10 @@ fn video_food_map_start_window_drag(window: tauri::WebviewWindow) -> Result<(), 
 }
 
 fn main() {
+    session_logging::set_app_session_prefix("video-food-map");
+    session_logging::install_panic_hook();
+    session_logging::log_boot_marker("video-food-map main() entered");
+
     load_dotenv_files();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![

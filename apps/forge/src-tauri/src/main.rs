@@ -2,14 +2,13 @@
 
 use serde::Serialize;
 
-mod defaults;
-mod desktop_paths;
-#[path = "../../../shared-tauri/auth_session_commands.rs"]
-mod auth_session_commands;
-#[path = "../../../shared-tauri/oauth_commands.rs"]
-mod oauth_commands;
-mod runtime_bridge;
-mod session_logging;
+// Shared modules from kit/shell/tauri crate
+use nimi_kit_shell_tauri::auth_session_commands;
+use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::oauth_commands;
+use nimi_kit_shell_tauri::runtime_bridge;
+use nimi_kit_shell_tauri::runtime_defaults as defaults;
+use nimi_kit_shell_tauri::session_logging;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,6 +28,7 @@ fn get_storage_dirs() -> Result<ForgeStorageDirs, String> {
 }
 
 fn main() {
+    session_logging::set_app_session_prefix("forge");
     session_logging::install_panic_hook();
     session_logging::log_boot_marker("forge main() entered");
 
