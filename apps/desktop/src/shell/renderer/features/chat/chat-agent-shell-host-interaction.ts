@@ -45,6 +45,7 @@ function createHostInteractionPatch(input: {
       streamState: input.streamSnapshot,
       lifecycle: input.lifecycle,
       currentHostFooterState: input.footerState,
+      isSubmitting: false,
     }),
     lifecycle: input.lifecycle,
   };
