@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initI18n } from '@renderer/i18n';
+import { initI18n } from '@desktop-public/i18n';
 import { isWebShellHashRoute } from './site-entry-hash.js';
 import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
@@ -13,7 +13,7 @@ let appI18nInitPromise: Promise<void> | null = null;
 const WebShellApp = lazy(async () => {
   appI18nInitPromise ??= initI18n();
   await appI18nInitPromise;
-  const mod = await import('@renderer/App');
+  const mod = await import('@desktop-public/app');
   return { default: mod.default };
 });
 

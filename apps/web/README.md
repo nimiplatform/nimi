@@ -14,22 +14,42 @@ It serves a landing homepage at `/`, keeps static legal pages in the same build,
 
 - Entry is split by URL hash:
   - `/` renders landing content from `src/landing/**`
-  - `/#/...` lazy-loads `@renderer/App`
+  - `/#/...` lazy-loads the desktop App component
 - Static pages are emitted from the same build:
   - `/terms.html`
   - `/privacy.html`
   - `/blueyard.html`
-- Vite/TS path aliases point to desktop sources:
-  - `@renderer/*` -> `../desktop/src/shell/renderer/*`
-  - `@runtime/*` -> `../desktop/src/runtime/*`
-- Web-only adapters replace desktop runtime/mod entry modules:
-  - `@renderer/infra/bootstrap/runtime-bootstrap`
-  - `@renderer/bridge`
-  - `@renderer/mod-ui/host/slot-host`
-  - `@renderer/mod-ui/host/slot-context`
-  - `@renderer/features/mod-workspace/mod-workspace-tabs`
-  - `@renderer/features/runtime-config/runtime-config-panel-view`
-  - `@renderer/features/mod-hub/mod-hub-page`
+
+### Desktop public-for-web boundary
+
+Web source files consume desktop through an admitted public boundary at
+`apps/desktop/src/public-web/`. This boundary exposes only the surfaces web
+is allowed to use:
+
+- `@desktop-public/app` — App component
+- `@desktop-public/i18n` — i18n initialization
+- `@desktop-public/bridge` — bridge types and functions
+- `@desktop-public/infra` — proxy-fetch, telemetry
+- `@desktop-public/app-store` — application store
+- `@desktop-public/mod-ui-types` — mod UI contract types
+- `@desktop-public/data-sync` — runtime data-sync facade
+
+Wide `@renderer/*` and `@runtime/*` aliases remain in Vite config for
+App.tsx transitive resolution only. Web source files must not add new
+direct `@renderer/*` or `@runtime/*` imports — use `@desktop-public/*`.
+
+### Web-only adapters
+
+These modules replace desktop-specific entry points with web stubs:
+
+- `@renderer/infra/bootstrap/runtime-bootstrap`
+- `@renderer/bridge`
+- `@renderer/mod-ui/host/slot-host`
+- `@renderer/mod-ui/host/slot-context`
+- `@renderer/features/mod-workspace/mod-workspace-tabs`
+- `@renderer/features/runtime-config/runtime-config-panel-view`
+- `@renderer/features/mod-hub/mod-hub-page`
+- `@runtime/mod`
 
 These adapters live in `src/desktop-adapter/`.
 
@@ -110,5 +130,6 @@ Notes:
 When desktop renderer evolves:
 
 1. Keep feature UI changes in desktop renderer.
-2. If change touches desktop-only runtime/mod hooks, update corresponding files in `src/desktop-adapter/`.
-3. Rebuild `@nimiplatform/web` and verify output does not contain desktop runtime-mod bootstrap symbols.
+2. If the change adds a new surface that web needs, expose it through `apps/desktop/src/public-web/` first.
+3. If change touches desktop-only runtime/mod hooks, update corresponding files in `src/desktop-adapter/`.
+4. Rebuild `@nimiplatform/web` and verify output does not contain desktop runtime-mod bootstrap symbols.

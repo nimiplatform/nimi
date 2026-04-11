@@ -1,5 +1,6 @@
 @import "./dapp-globals.css";
-@import "@renderer/styles.css";
+/* Desktop styles imported via the public-for-web boundary. */
+@import "../../desktop/src/public-web/styles.css";
 @source "../../../kit/ui/src/**/*.{ts,tsx}";
 @source "../../../kit/auth/src/**/*.{ts,tsx}";
 @source "../../../kit/features/chat/src/**/*.{ts,tsx}";
@@ -7,5 +8,6 @@
 @source "../../../kit/features/generation/src/**/*.{ts,tsx}";
 @source "../../../kit/features/model-config/src/**/*.{ts,tsx}";
 @source "../../../kit/features/model-picker/src/**/*.{ts,tsx}";
+@source "../../../kit/shell/renderer/src/**/*.{ts,tsx}";
 @source "../../desktop/src/shell/renderer/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";

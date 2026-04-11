@@ -1,4 +1,4 @@
-import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
+import type { UiExtensionContext } from '@desktop-public/mod-ui-types';
 
 type UseUiExtensionContextOptions = {
   sidebarCollapsed?: boolean;

@@ -1,9 +1,9 @@
-type DataSyncFacade = (typeof import('@runtime/data-sync'))['dataSync'];
+type DataSyncFacade = (typeof import('@desktop-public/data-sync'))['dataSync'];
 type DesktopBridgeFacade = (typeof import('@renderer/bridge'))['desktopBridge'];
-type CreateProxyFetch = (typeof import('@renderer/infra/bridge/proxy-fetch'))['createProxyFetch'];
-type CreateRendererFlowId = (typeof import('@renderer/infra/telemetry/renderer-log'))['createRendererFlowId'];
-type LogRendererEvent = (typeof import('@renderer/infra/telemetry/renderer-log'))['logRendererEvent'];
-type UseAppStore = (typeof import('@renderer/app-shell/providers/app-store'))['useAppStore'];
+type CreateProxyFetch = (typeof import('@desktop-public/infra'))['createProxyFetch'];
+type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRendererFlowId'];
+type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
+type UseAppStore = (typeof import('@desktop-public/app-store'))['useAppStore'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['clearPersistedAccessToken'];
 type HasDesktopCallbackRequestInLocation = (typeof import('@nimiplatform/nimi-kit/auth'))['hasDesktopCallbackRequestInLocation'];
 type LoadPersistedAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAuthSession'];
@@ -42,25 +42,23 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
     const [
       dataSyncModule,
       bridgeModule,
-      proxyFetchModule,
-      telemetryModule,
+      infraModule,
       appStoreModule,
       authStorageModule,
     ] = await Promise.all([
-      import('@runtime/data-sync'),
+      import('@desktop-public/data-sync'),
       import('@renderer/bridge'),
-      import('@renderer/infra/bridge/proxy-fetch'),
-      import('@renderer/infra/telemetry/renderer-log'),
-      import('@renderer/app-shell/providers/app-store'),
+      import('@desktop-public/infra'),
+      import('@desktop-public/app-store'),
       import('@nimiplatform/nimi-kit/auth'),
     ]);
 
     return {
       dataSync: dataSyncModule.dataSync,
       desktopBridge: bridgeModule.desktopBridge,
-      createProxyFetch: proxyFetchModule.createProxyFetch,
-      createRendererFlowId: telemetryModule.createRendererFlowId,
-      logRendererEvent: telemetryModule.logRendererEvent,
+      createProxyFetch: infraModule.createProxyFetch,
+      createRendererFlowId: infraModule.createRendererFlowId,
+      logRendererEvent: infraModule.logRendererEvent,
       useAppStore: appStoreModule.useAppStore,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
       hasDesktopCallbackRequestInLocation: authStorageModule.hasDesktopCallbackRequestInLocation,

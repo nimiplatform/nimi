@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { UiExtensionContext, UiSlotId } from '@renderer/mod-ui/contracts';
+import type { UiExtensionContext, UiSlotId } from '@desktop-public/mod-ui-types';
 
 type SlotHostProps = {
   slot: UiSlotId;

@@ -131,6 +131,15 @@ export default defineConfig(({ mode }) => {
           find: /^@runtime\/mod$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/runtime-mod.web.ts'),
         },
+        // Desktop public-for-web boundary: web source files import from here
+        // instead of reaching into desktop internals directly.
+        {
+          find: '@desktop-public',
+          replacement: path.resolve(__dirname, '../desktop/src/public-web'),
+        },
+        // Wide aliases kept for App.tsx transitive resolution only.
+        // Web source files must not add new direct @renderer/* or @runtime/*
+        // imports — use @desktop-public/* instead.
         {
           find: '@runtime',
           replacement: path.resolve(__dirname, '../desktop/src/runtime'),

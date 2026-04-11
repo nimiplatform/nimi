@@ -1,20 +1,38 @@
-import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
-import { logRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
+// Web bridge adapter — uses kit for shared functions, desktop types via alias
+// for type compatibility with the desktop App that web still renders.
+//
+// Residual desktop type coupling tracked as F-011. Full decoupling requires
+// a web-specific app shell that does not render desktop App.
+
 import type { SharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
-import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from '@renderer/bridge/runtime-bridge/menu-bar';
-import { proxyHttp } from '@renderer/bridge/runtime-bridge/http';
 import {
-  getRuntimeBridgeConfig as getDesktopRuntimeBridgeConfig,
-  getRuntimeBridgeStatus as getDesktopRuntimeBridgeStatus,
-  restartRuntimeBridge as restartDesktopRuntimeBridge,
-  setRuntimeBridgeConfig as setDesktopRuntimeBridgeConfig,
-  startRuntimeBridge as startDesktopRuntimeBridge,
-  stopRuntimeBridge as stopDesktopRuntimeBridge,
-} from '@renderer/bridge/runtime-bridge/runtime-daemon';
-import { getSystemResourceSnapshot } from '@renderer/bridge/runtime-bridge/system-resources';
-import { getRuntimeDefaults } from '@renderer/bridge/runtime-bridge/runtime-defaults';
-import { oauthListenForCode, oauthTokenExchange } from '@renderer/bridge/runtime-bridge/oauth';
-import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from '@renderer/bridge/runtime-bridge/ui';
+  hasTauriInvoke,
+  getDaemonStatus,
+  startDaemon,
+  stopDaemon,
+  restartDaemon,
+  getRuntimeDefaults,
+  openExternalUrl,
+  focusMainWindow,
+  oauthListenForCode,
+  oauthTokenExchange,
+  loadAuthSession,
+  saveAuthSession,
+  clearAuthSession,
+} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+
+// Desktop public boundary — types and functions imported via the admitted
+// public-for-web surface instead of reaching into desktop bridge internals.
+import {
+  logRendererEvent,
+  toRendererLogMessage,
+  completeMenuBarQuit,
+  syncMenuBarRuntimeHealth,
+  proxyHttp,
+  getSystemResourceSnapshot,
+  confirmPrivateSync,
+  startWindowDrag,
+} from '@desktop-public/bridge';
 import type {
   DesktopReleaseInfo,
   DesktopUpdateCheckResult,
@@ -58,7 +76,7 @@ import type {
   RuntimeModInstallResult,
   RuntimeModUpdatePayload,
   SystemResourceSnapshot,
-} from '@renderer/bridge/runtime-bridge/types';
+} from '@desktop-public/bridge';
 
 export type {
   DesktopReleaseInfo,
@@ -115,17 +133,7 @@ function unsupportedDesktopRuntime(message: string): never {
   throw new Error(message);
 }
 
-export async function loadAuthSession(): Promise<SharedDesktopAuthSession | null> {
-  return null;
-}
-
-export async function saveAuthSession(_session: SharedDesktopAuthSession): Promise<void> {
-  unsupportedDesktopRuntime('Shared desktop auth session persistence is only available in desktop runtime');
-}
-
-export async function clearAuthSession(): Promise<void> {
-  // Web shell does not persist the shared desktop auth session.
-}
+export { hasTauriInvoke, loadAuthSession, saveAuthSession, clearAuthSession };
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
   unsupportedDesktopRuntime('Application release metadata is only available in desktop runtime');
@@ -304,28 +312,31 @@ export async function subscribeRuntimeModReloadResult(
 }
 
 export async function getRuntimeBridgeStatus(): Promise<RuntimeBridgeDaemonStatus> {
-  return getDesktopRuntimeBridgeStatus();
+  return getDaemonStatus();
 }
 
 export async function getRuntimeBridgeConfig(): Promise<RuntimeBridgeConfigGetResult> {
-  return getDesktopRuntimeBridgeConfig();
+  unsupportedDesktopRuntime('Runtime bridge config is only available in desktop runtime');
 }
 
 export async function startRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  return startDesktopRuntimeBridge();
+  return startDaemon();
 }
 
 export async function stopRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  return stopDesktopRuntimeBridge();
+  return stopDaemon();
 }
 
 export async function restartRuntimeBridge(): Promise<RuntimeBridgeDaemonStatus> {
-  return restartDesktopRuntimeBridge();
+  return restartDaemon();
 }
 
-export async function setRuntimeBridgeConfig(configJson: string): Promise<RuntimeBridgeConfigSetResult> {
-  return setDesktopRuntimeBridgeConfig(configJson);
+export async function setRuntimeBridgeConfig(_configJson: string): Promise<RuntimeBridgeConfigSetResult> {
+  unsupportedDesktopRuntime('Runtime bridge config updates are only available in desktop runtime');
 }
+
+export { getRuntimeDefaults, oauthListenForCode, oauthTokenExchange, openExternalUrl, focusMainWindow };
+export { proxyHttp, getSystemResourceSnapshot, confirmPrivateSync, startWindowDrag };
 
 export const desktopBridge = {
   hasTauriInvoke,

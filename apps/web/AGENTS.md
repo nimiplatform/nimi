@@ -9,7 +9,8 @@
 - Keep landing-specific code under `apps/web/src/landing/**`; do not split the landing surface back out into a separate app.
 - Do not import `@tauri-apps/*` in `apps/web/**`.
 - Do not add local mod file access or runtime-only behaviors to web adapters.
-- Preserve alias contracts for `@renderer/*`, `@runtime/*`, and `@mods/*`.
+- Web source files must import desktop surfaces through `@desktop-public/*` (the admitted public-for-web boundary at `apps/desktop/src/public-web/`). Do not add new direct `@renderer/*` or `@runtime/*` imports in web source files — those wide aliases are kept only for App.tsx transitive resolution.
+- Preserve adapter override aliases for `@renderer/bridge`, `@renderer/infra/bootstrap/runtime-bootstrap`, and other desktop-specific entry points replaced by web stubs.
 
 ## Retrieval Defaults
 - Start in `apps/web/src/landing/**` for marketing/legal entry work, or `apps/web/src/desktop-adapter/**` for web-shell adapter work.

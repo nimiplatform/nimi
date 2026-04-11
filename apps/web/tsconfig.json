@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "@desktop-public/*": ["../desktop/src/public-web/*"],
       "@renderer/infra/bootstrap/runtime-bootstrap": ["./src/desktop-adapter/runtime-bootstrap.web.ts"],
       "@renderer/mod-ui/host/slot-host": ["./src/desktop-adapter/slot-host.web.tsx"],
       "@renderer/mod-ui/host/slot-context": ["./src/desktop-adapter/slot-context.web.ts"],

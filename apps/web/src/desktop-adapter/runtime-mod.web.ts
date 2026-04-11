@@ -2,7 +2,7 @@ import {
   CODEGEN_T0_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T0_CAPABILITY_PATTERNS,
   CODEGEN_T1_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T1_CAPABILITY_PATTERNS,
   CODEGEN_T2_CAPABILITY_PATTERNS as DESKTOP_CODEGEN_T2_CAPABILITY_PATTERNS,
-} from '@runtime/mod/codegen/capability-catalog';
+} from '@nimiplatform/nimi-kit/core/runtime-capabilities';
 
 const emptyArray = Object.freeze([]) as [];
 
