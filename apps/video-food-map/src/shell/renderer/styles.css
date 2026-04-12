@@ -137,3 +137,174 @@ button {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+.vfm-radius-tight {
+  border-radius: 1.375rem;
+}
+
+.vfm-radius-card {
+  border-radius: 1.5rem;
+}
+
+.vfm-radius-panel {
+  border-radius: 1.75rem;
+}
+
+.vfm-radius-shell {
+  border-radius: 2rem;
+}
+
+.vfm-radius-stage {
+  border-radius: 2.25rem;
+}
+
+.vfm-radius-badge {
+  border-radius: 1.125rem;
+}
+
+.vfm-pill-neutral {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 80%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 84%, white);
+  color: var(--nimi-text-secondary);
+}
+
+.vfm-pill-warm {
+  border-color: color-mix(in srgb, var(--nimi-status-warning) 28%, white);
+  background: color-mix(in srgb, var(--nimi-status-warning) 12%, white);
+  color: color-mix(in srgb, var(--nimi-status-warning) 72%, black);
+}
+
+.vfm-pill-danger {
+  border-color: color-mix(in srgb, var(--nimi-status-danger) 24%, white);
+  background: color-mix(in srgb, var(--nimi-status-danger) 10%, white);
+  color: var(--nimi-status-danger);
+}
+
+.vfm-pill-info {
+  border-color: color-mix(in srgb, var(--nimi-status-info) 24%, white);
+  background: color-mix(in srgb, var(--nimi-status-info) 10%, white);
+  color: var(--nimi-status-info);
+}
+
+.vfm-filter-chip {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 82%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 92%, white);
+  color: var(--nimi-text-secondary);
+}
+
+.vfm-search-field {
+  border-color: transparent;
+  background: var(--nimi-sidebar-search);
+  color: var(--nimi-field-text);
+}
+
+.vfm-search-field:focus {
+  border-color: var(--nimi-field-focus);
+  background: var(--nimi-field-bg);
+}
+
+.vfm-skeleton-card {
+  background: color-mix(in srgb, var(--nimi-surface-card) 72%, white);
+}
+
+.vfm-list-card-active {
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 44%, white);
+  background: color-mix(in srgb, var(--nimi-status-warning) 10%, white);
+}
+
+.vfm-list-card-idle {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 72%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 84%, white);
+}
+
+.vfm-list-card-idle:hover {
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 28%, white);
+  background: var(--nimi-surface-card);
+}
+
+.vfm-secondary-list-button {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 72%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 76%, white);
+}
+
+.vfm-secondary-list-button:hover {
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg) 40%, white);
+}
+
+.vfm-icon-button {
+  background: var(--nimi-sidebar-search);
+  color: var(--nimi-text-secondary);
+}
+
+.vfm-icon-button:hover {
+  background: color-mix(in srgb, var(--nimi-sidebar-search) 72%, var(--nimi-surface-card));
+}
+
+.vfm-soft-card {
+  background: color-mix(in srgb, var(--nimi-surface-card) 88%, white);
+}
+
+.vfm-comment-clue {
+  border-color: color-mix(in srgb, var(--nimi-status-info) 20%, white);
+  background: color-mix(in srgb, var(--nimi-status-info) 6%, white);
+}
+
+.vfm-comment-clue-accent {
+  color: var(--nimi-status-info);
+}
+
+.vfm-transcript-panel {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 72%, transparent);
+  background: color-mix(in srgb, var(--nimi-surface-card) 76%, white);
+}
+
+.vfm-map-overlay {
+  background: color-mix(in srgb, var(--nimi-surface-overlay) 88%, white);
+}
+
+.vfm-map-overlay-note {
+  background: color-mix(in srgb, var(--nimi-surface-card) 82%, white);
+  color: var(--nimi-text-secondary);
+}
+
+.vfm-warning-callout {
+  background: color-mix(in srgb, var(--nimi-status-warning) 11%, white);
+  color: color-mix(in srgb, var(--nimi-status-warning) 76%, black);
+}
+
+.vfm-review-index {
+  background: color-mix(in srgb, var(--nimi-status-warning) 10%, white);
+  color: var(--nimi-action-primary-bg-hover);
+}
+
+.vfm-geocode-query {
+  background: color-mix(in srgb, var(--nimi-surface-card) 82%, white);
+}
+
+.vfm-nav-brand {
+  background: var(--nimi-action-primary-bg);
+}
+
+.vfm-mobile-sidebar-button {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 82%, transparent);
+  background: var(--nimi-surface-card);
+  color: var(--nimi-text-primary);
+}
+
+.vfm-intake-input {
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 82%, transparent);
+  background: var(--nimi-field-bg);
+  color: var(--nimi-field-text);
+}
+
+.vfm-intake-input:focus {
+  border-color: var(--nimi-field-focus);
+}
+
+.vfm-intake-submit {
+  background: color-mix(in srgb, var(--nimi-text-primary) 92%, black);
+}
+
+.vfm-intake-submit:hover:not(:disabled) {
+  background: var(--nimi-action-primary-bg);
+}

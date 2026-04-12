@@ -78,12 +78,12 @@ function InfoPill(props: {
   tone?: 'neutral' | 'warm' | 'danger' | 'info';
 }) {
   const toneClass = props.tone === 'danger'
-    ? 'border-[#fecaca] bg-[#fff1f2] text-[#dc2626]'
+    ? 'vfm-pill-danger'
     : props.tone === 'warm'
-      ? 'border-[#fed7aa] bg-[#fff7ed] text-[#c2410c]'
+      ? 'vfm-pill-warm'
       : props.tone === 'info'
-        ? 'border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb]'
-        : 'border-black/8 bg-white/80 text-[#4b5563]';
+        ? 'vfm-pill-info'
+        : 'vfm-pill-neutral';
 
   return (
     <span className={`inline-flex max-w-full items-center overflow-hidden text-ellipsis rounded-full border px-3 py-1.5 text-sm font-medium leading-5 whitespace-nowrap ${toneClass}`}>
@@ -212,7 +212,7 @@ function RuntimeRouteSettingsPanel(props: {
   const textModelOptions = listModelOptions(textCatalog, textSetting);
 
   return (
-    <Surface tone="panel" elevation="base" className="space-y-6 rounded-[28px] p-6">
+    <Surface tone="panel" elevation="base" className="vfm-radius-panel space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-xl font-semibold text-[var(--nimi-text-primary)]">模型设置</div>
@@ -226,7 +226,7 @@ function RuntimeRouteSettingsPanel(props: {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Surface tone="card" elevation="base" className="w-full min-w-0 space-y-4 rounded-[24px] p-5 overflow-hidden">
+        <Surface tone="card" elevation="base" className="vfm-radius-card w-full min-w-0 space-y-4 p-5 overflow-hidden">
           <div>
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">语音转写</div>
             <div className="mt-1 text-sm text-[var(--nimi-text-secondary)]">决定视频音频先走哪一路。</div>
@@ -268,7 +268,7 @@ function RuntimeRouteSettingsPanel(props: {
           </div>
         </Surface>
 
-        <Surface tone="card" elevation="base" className="w-full min-w-0 space-y-4 rounded-[24px] p-5 overflow-hidden">
+        <Surface tone="card" elevation="base" className="vfm-radius-card w-full min-w-0 space-y-4 p-5 overflow-hidden">
           <div>
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">文字提取</div>
             <div className="mt-1 text-sm text-[var(--nimi-text-secondary)]">整理店名、地址和菜品时用哪一路。</div>
@@ -312,15 +312,15 @@ function RuntimeRouteSettingsPanel(props: {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[22px] p-4 overflow-hidden">
+        <Surface tone="card" elevation="base" className="vfm-radius-tight w-full min-w-0 p-4 overflow-hidden">
           <div className="text-xs text-[var(--nimi-text-muted)]">当前语音模型</div>
           <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{formatSelectedModelLabel(sttSetting.model)}</div>
         </Surface>
-        <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[22px] p-4 overflow-hidden">
+        <Surface tone="card" elevation="base" className="vfm-radius-tight w-full min-w-0 p-4 overflow-hidden">
           <div className="text-xs text-[var(--nimi-text-muted)]">当前文字模型</div>
           <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{formatSelectedModelLabel(textSetting.model)}</div>
         </Surface>
-        <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[22px] p-4 overflow-hidden">
+        <Surface tone="card" elevation="base" className="vfm-radius-tight w-full min-w-0 p-4 overflow-hidden">
           <div className="text-xs text-[var(--nimi-text-muted)]">模型来源</div>
           <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">
             {props.runtimeOptionsPending ? '读取中' : '直接来自当前 runtime'}
@@ -353,11 +353,11 @@ function ContextSidebar(props: {
       <div className="border-b border-black/6 px-4 py-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[15px] font-semibold text-[#111827]">视频清单</div>
+            <div className="text-[15px] font-semibold text-[var(--nimi-text-primary)]">视频清单</div>
           </div>
           <button
             type="button"
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-black/8 bg-white px-2.5 text-xs font-medium text-[#6b7280]"
+            className="vfm-filter-chip inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-xs font-medium"
           >
             筛选
           </button>
@@ -368,7 +368,7 @@ function ContextSidebar(props: {
               value={props.searchText}
               onChange={(event) => props.onSearchTextChange(event.target.value)}
               placeholder="搜索视频标题、博主..."
-              className="w-full rounded-xl border border-transparent bg-[#f4f4f5] px-4 py-2.5 text-sm text-[#111827] outline-none transition focus:border-[#fb923c] focus:bg-white"
+              className="vfm-search-field w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition"
             />
           </div>
           <SelectField
@@ -382,7 +382,7 @@ function ContextSidebar(props: {
               { value: 'failed_import', label: '只看解析失败' },
             ]}
           />
-          <div className="flex items-center justify-between text-xs text-[#9ca3af]">
+          <div className="flex items-center justify-between text-xs text-[var(--nimi-text-muted)]">
             <span>{props.filteredImports.length} 条结果</span>
             <span>按时间排序</span>
           </div>
@@ -393,13 +393,13 @@ function ContextSidebar(props: {
         {props.snapshotPending ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Surface key={index} tone="card" elevation="base" className="h-28 animate-pulse rounded-[24px] bg-white/70" />
+              <Surface key={index} tone="card" elevation="base" className="vfm-radius-card vfm-skeleton-card h-28 animate-pulse" />
             ))}
           </div>
         ) : null}
 
         {!props.snapshotPending && props.filteredImports.length === 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-[24px] p-4 text-sm text-[var(--nimi-text-secondary)]">
+          <Surface tone="card" elevation="base" className="vfm-radius-card p-4 text-sm text-[var(--nimi-text-secondary)]">
             还没有可看的记录。先导入一条视频，或者换个筛选条件。
           </Surface>
         ) : null}
@@ -409,25 +409,25 @@ function ContextSidebar(props: {
             key={record.id}
             type="button"
             onClick={() => props.onSelectImport(record)}
-            className={`w-full min-w-0 overflow-hidden rounded-[26px] border p-4 text-left transition ${
+            className={`vfm-radius-card w-full min-w-0 overflow-hidden border p-4 text-left transition ${
               record.id === props.selectedImport?.id
-                ? 'border-[#fdba74] bg-[#fff7ed] shadow-[0_18px_35px_rgba(251,146,60,0.18)]'
-                : 'border-black/6 bg-white/82 hover:border-[#fed7aa] hover:bg-white'
+                ? 'vfm-list-card-active shadow-[0_18px_35px_rgba(251,146,60,0.18)]'
+                : 'vfm-list-card-idle'
             }`}
             title={record.title || record.sourceUrl}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="truncate text-xs font-medium uppercase tracking-[0.16em] text-[#9ca3af]">
+                <div className="truncate text-xs font-medium uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
                   {record.creatorName || '未知作者'}
                 </div>
-                <div className="vfm-clamp-2 vfm-break-anywhere mt-2 text-sm font-semibold leading-6 text-[#111827]">
+                <div className="vfm-clamp-2 vfm-break-anywhere mt-2 text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">
                   {record.title || record.sourceUrl}
                 </div>
               </div>
               <StatusBadge tone={resolveImportTone(record)}>{resolveImportStatusLabel(record)}</StatusBadge>
             </div>
-            <div className="mt-3 flex min-w-0 flex-wrap gap-2 text-xs text-[#6b7280]">
+            <div className="mt-3 flex min-w-0 flex-wrap gap-2 text-xs text-[var(--nimi-text-secondary)]">
               <span className="shrink-0">{formatImportTime(record.createdAt)}</span>
               <span className="shrink-0">{record.venues.length} 家候选</span>
               {record.tags.slice(0, 2).map((tag) => <span key={tag} className="truncate">#{tag}</span>)}
@@ -436,7 +436,7 @@ function ContextSidebar(props: {
         ))}
 
         {!props.snapshotPending && props.favoriteVenues.length > 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-[24px] p-4">
+          <Surface tone="card" elevation="base" className="vfm-radius-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">我的收藏</div>
               <StatusBadge tone="warning">{props.favoriteVenues.length} 家</StatusBadge>
@@ -446,11 +446,11 @@ function ContextSidebar(props: {
                 <button
                   key={entry.venue.id}
                   type="button"
-                  className="w-full rounded-2xl border border-black/6 bg-white/72 px-3 py-3 text-left transition hover:border-[#fdba74]"
+                  className="vfm-secondary-list-button w-full rounded-2xl border px-3 py-3 text-left transition"
                   onClick={() => props.onSelectFavoriteVenue(entry)}
                 >
-                  <div className="text-sm font-medium text-[#111827]">{entry.venue.venueName || '未明确店名'}</div>
-                  <div className="mt-1 text-xs text-[#6b7280]">{entry.record.creatorName || '未知作者'}</div>
+                  <div className="text-sm font-medium text-[var(--nimi-text-primary)]">{entry.venue.venueName || '未明确店名'}</div>
+                  <div className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{entry.record.creatorName || '未知作者'}</div>
                 </button>
               ))}
             </div>
@@ -458,17 +458,17 @@ function ContextSidebar(props: {
         ) : null}
 
         {!props.snapshotPending && props.creatorSyncs.length > 0 ? (
-          <Surface tone="card" elevation="base" className="rounded-[24px] p-4">
+          <Surface tone="card" elevation="base" className="vfm-radius-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">最近同步的博主</div>
               <StatusBadge tone="info">{props.creatorSyncs.length} 个</StatusBadge>
             </div>
             <div className="space-y-2">
               {props.creatorSyncs.slice(0, 3).map((record) => (
-                <div key={record.creatorMid} className="rounded-2xl border border-black/6 bg-white/72 px-3 py-3">
-                  <div className="text-sm font-medium text-[#111827]">{record.creatorName || record.creatorMid}</div>
-                  <div className="mt-1 text-xs text-[#6b7280]">上次扫了 {record.lastScannedCount} 条，新增 {record.lastQueuedCount} 条</div>
-                  <div className="mt-1 text-xs text-[#9ca3af]">{formatImportTime(record.lastSyncedAt)}</div>
+                <div key={record.creatorMid} className="vfm-secondary-list-button rounded-2xl border px-3 py-3">
+                  <div className="text-sm font-medium text-[var(--nimi-text-primary)]">{record.creatorName || record.creatorMid}</div>
+                  <div className="mt-1 text-xs text-[var(--nimi-text-secondary)]">上次扫了 {record.lastScannedCount} 条，新增 {record.lastQueuedCount} 条</div>
+                  <div className="mt-1 text-xs text-[var(--nimi-text-muted)]">{formatImportTime(record.lastSyncedAt)}</div>
                 </div>
               ))}
             </div>
@@ -497,7 +497,7 @@ function DiscoverSurface(props: {
 }) {
   if (!props.selectedImport) {
     return (
-      <Surface tone="panel" elevation="base" className="flex h-full min-h-[540px] items-center justify-center rounded-[32px] p-10 text-center">
+      <Surface tone="panel" elevation="base" className="vfm-radius-shell flex h-full min-h-[540px] items-center justify-center p-10 text-center">
         <div className="max-w-xl space-y-3">
           <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">先导入一条视频</div>
           <div className="text-sm leading-7 text-[var(--nimi-text-secondary)]">
@@ -510,7 +510,7 @@ function DiscoverSurface(props: {
 
   if (props.selectedImport.status === 'failed') {
     return (
-      <Surface tone="panel" elevation="base" className="space-y-5 rounded-[32px] p-6">
+      <Surface tone="panel" elevation="base" className="vfm-radius-shell space-y-5 p-6">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone="danger">导入失败</StatusBadge>
           <StatusBadge tone="info">{props.selectedImport.creatorName || '未知作者'}</StatusBadge>
@@ -543,7 +543,7 @@ function DiscoverSurface(props: {
         <button
           type="button"
           onClick={props.onOpenSource}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#f97316] transition hover:text-[#ea580c]"
+          className="inline-flex items-center gap-1 text-sm font-medium text-[var(--nimi-action-primary-bg)] transition hover:text-[var(--nimi-action-primary-bg-hover)]"
         >
           查看原始视频
           <span aria-hidden="true">›</span>
@@ -551,7 +551,7 @@ function DiscoverSurface(props: {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        <Surface tone="panel" elevation="base" className="col-span-12 rounded-[32px] border border-black/6 p-8 lg:col-span-8">
+        <Surface tone="panel" elevation="base" className="vfm-radius-shell col-span-12 border border-black/6 p-8 lg:col-span-8">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -570,7 +570,7 @@ function DiscoverSurface(props: {
             <div className="flex shrink-0 flex-wrap items-center gap-3">
               <button
                 type="button"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f4f4f5] text-xl text-[#6b7280] transition hover:bg-[#e5e7eb]"
+                className="vfm-icon-button inline-flex h-12 w-12 items-center justify-center rounded-2xl text-xl transition"
                 aria-label="更多操作"
               >
                 …
@@ -597,7 +597,7 @@ function DiscoverSurface(props: {
           </div>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <Surface tone="card" elevation="base" className="rounded-[24px] border border-black/4 bg-[#fafafa] p-5">
+            <Surface tone="card" elevation="base" className="vfm-radius-card vfm-soft-card border border-black/4 p-5">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">推荐菜品</div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {props.selectedVenue?.recommendedDishes.length
@@ -605,7 +605,7 @@ function DiscoverSurface(props: {
                   : <span className="text-sm text-[var(--nimi-text-secondary)]">还没有稳定的菜品线索</span>}
               </div>
             </Surface>
-            <Surface tone="card" elevation="base" className="rounded-[24px] border border-black/4 bg-[#fafafa] p-5">
+            <Surface tone="card" elevation="base" className="vfm-radius-card vfm-soft-card border border-black/4 p-5">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">风味标签</div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {props.selectedVenue && [...props.selectedVenue.flavorTags, ...props.selectedVenue.cuisineTags].length > 0
@@ -616,7 +616,7 @@ function DiscoverSurface(props: {
           </div>
         </Surface>
 
-        <Surface tone="panel" elevation="base" className="col-span-12 rounded-[32px] border border-black/6 p-6 lg:col-span-4">
+        <Surface tone="panel" elevation="base" className="vfm-radius-shell col-span-12 border border-black/6 p-6 lg:col-span-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">评论线索补全</div>
             <StatusBadge tone="info">{props.visibleCommentClues.length} 条</StatusBadge>
@@ -632,12 +632,12 @@ function DiscoverSurface(props: {
               {props.visibleCommentClues.map((clue) => (
                 <div
                   key={clue.commentId}
-                  className="rounded-[24px] border border-[#dbeafe] bg-[#f8fbff] p-4"
+                  className="vfm-radius-card vfm-comment-clue border p-4"
                 >
                   <div className="text-sm leading-7 text-[var(--nimi-text-primary)]">{clue.message}</div>
                   <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--nimi-text-muted)]">
                     <span>{clue.authorName || '匿名评论'}</span>
-                    {clue.addressHint ? <span className="text-[#2563eb]">带地址线索</span> : null}
+                    {clue.addressHint ? <span className="vfm-comment-clue-accent">带地址线索</span> : null}
                   </div>
                 </div>
               ))}
@@ -647,7 +647,7 @@ function DiscoverSurface(props: {
       </div>
 
       <div className="grid grid-cols-12 gap-6">
-        <Surface tone="panel" elevation="base" className="col-span-12 rounded-[28px] border border-black/6 p-5 lg:col-span-4">
+        <Surface tone="panel" elevation="base" className="vfm-radius-panel col-span-12 border border-black/6 p-5 lg:col-span-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">这条视频提到的店</div>
             <StatusBadge tone="neutral">{venueCount} 家</StatusBadge>
@@ -661,24 +661,24 @@ function DiscoverSurface(props: {
                   type="button"
                   data-testid={`discover-venue-${venue.id}`}
                   onClick={() => props.onSelectVenue(venue.id)}
-                  className={`w-full rounded-[22px] border p-4 text-left transition ${
+                  className={`vfm-radius-tight w-full border p-4 text-left transition ${
                     props.selectedDetailVenueId === venue.id
-                      ? 'border-[#fdba74] bg-[#fff7ed]'
-                      : 'border-black/6 bg-white/88 hover:border-[#fed7aa]'
+                      ? 'vfm-list-card-active'
+                      : 'vfm-list-card-idle'
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-semibold text-[#111827]">{venue.venueName || '未明确店名'}</div>
+                    <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{venue.venueName || '未明确店名'}</div>
                     <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
                   </div>
-                  <div className="mt-2 text-sm text-[#6b7280]">{venue.addressText || '还没有可用地址线索'}</div>
+                  <div className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{venue.addressText || '还没有可用地址线索'}</div>
                 </button>
               );
             })}
           </div>
         </Surface>
 
-        <Surface tone="panel" elevation="base" className="col-span-12 rounded-[28px] border border-black/6 p-5 lg:col-span-4">
+        <Surface tone="panel" elevation="base" className="vfm-radius-panel col-span-12 border border-black/6 p-5 lg:col-span-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">证据与转写</div>
             <div className="text-xs text-[var(--nimi-text-muted)]">语音模型：{formatSelectedModelLabel(props.selectedImport.selectedSttModel)}</div>
@@ -692,30 +692,30 @@ function DiscoverSurface(props: {
               ))}
             </div>
           ) : null}
-          <div className="mt-4 max-h-[280px] overflow-auto whitespace-pre-wrap rounded-[22px] border border-black/6 bg-white/72 p-4 text-sm leading-7 text-[var(--nimi-text-secondary)]">
+          <div className="vfm-radius-tight vfm-transcript-panel mt-4 max-h-[280px] overflow-auto whitespace-pre-wrap border p-4 text-sm leading-7 text-[var(--nimi-text-secondary)]">
             {props.selectedImport.transcript || '当前没有转写文本。'}
           </div>
         </Surface>
 
-        <Surface tone="panel" elevation="base" className="col-span-12 rounded-[28px] border border-black/6 p-5 lg:col-span-4">
+        <Surface tone="panel" elevation="base" className="vfm-radius-panel col-span-12 border border-black/6 p-5 lg:col-span-4">
           <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">视频信息</div>
           <div className="mt-4 space-y-4">
-            <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+            <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
               <div className="text-xs text-[var(--nimi-text-muted)]">视频摘要</div>
               <div className="mt-2 text-sm leading-7 text-[var(--nimi-text-secondary)]">
                 {props.selectedImport.videoSummary || props.selectedImport.description || '当前没有摘要。'}
               </div>
             </Surface>
-            <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+            <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
               <div className="text-xs text-[var(--nimi-text-muted)]">原始链接</div>
               <div className="mt-2 break-all text-sm text-[var(--nimi-text-primary)]">{props.selectedImport.sourceUrl}</div>
             </Surface>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+              <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
                 <div className="text-xs text-[var(--nimi-text-muted)]">公开评论</div>
                 <div className="mt-2 text-lg font-semibold text-[var(--nimi-text-primary)]">{props.selectedImport.publicCommentCount}</div>
               </Surface>
-              <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+              <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
                 <div className="text-xs text-[var(--nimi-text-muted)]">处理时间</div>
                 <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{formatCommentTime(props.selectedImport.updatedAt)}</div>
               </Surface>
@@ -773,11 +773,11 @@ function SharedMapSection(props: {
         />
 
         <div className="pointer-events-none absolute inset-x-4 top-4 z-10 xl:left-4 xl:right-auto xl:w-[320px]">
-          <div className="pointer-events-auto rounded-[28px] border border-black/8 bg-white/92 p-5 shadow-[0_22px_48px_rgba(15,23,42,0.14)] backdrop-blur">
+          <div className="vfm-radius-panel vfm-map-overlay pointer-events-auto border border-black/8 p-5 shadow-[0_22px_48px_rgba(15,23,42,0.14)] backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-lg font-semibold text-[#111827]">{title}</div>
-                <div className="mt-1 text-sm leading-6 text-[#6b7280]">{subtitle}</div>
+                <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">{title}</div>
+                <div className="mt-1 text-sm leading-6 text-[var(--nimi-text-secondary)]">{subtitle}</div>
               </div>
               <StatusBadge tone="neutral">{props.points.length} 个点</StatusBadge>
             </div>
@@ -804,7 +804,7 @@ function SharedMapSection(props: {
                     onValueChange={(value) => props.onRadiusChange(Number(value) || 10)}
                   />
                 </div>
-                <div className="rounded-2xl bg-[#f8fafc] px-4 py-3 text-sm leading-6 text-[#6b7280]">
+                <div className="vfm-map-overlay-note rounded-2xl px-4 py-3 text-sm leading-6">
                   {props.currentLocation
                     ? `已按当前位置筛附近店。${formatAccuracyLabel(props.currentLocation.accuracyMeters)} · ${formatLocationCapturedAt(props.currentLocation.capturedAt)} 更新`
                     : props.nearbyLocationState.message || '还没拿当前位置，所以这里先显示当前筛选下的全部上图店。'}
@@ -816,13 +816,13 @@ function SharedMapSection(props: {
       </div>
 
       <div className="space-y-4">
-        <Surface tone="panel" elevation="base" className="w-full min-w-0 rounded-[28px] p-5 overflow-hidden">
+        <Surface tone="panel" elevation="base" className="vfm-radius-panel w-full min-w-0 p-5 overflow-hidden">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[22px] p-4 overflow-hidden">
+            <Surface tone="card" elevation="base" className="vfm-radius-tight w-full min-w-0 p-4 overflow-hidden">
               <div className="text-xs text-[var(--nimi-text-muted)]">{isNearbyMode ? '当前点位' : '当前视频点位'}</div>
               <div className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">{props.points.length}</div>
             </Surface>
-            <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[22px] p-4 overflow-hidden">
+            <Surface tone="card" elevation="base" className="vfm-radius-tight w-full min-w-0 p-4 overflow-hidden">
               <div className="text-xs text-[var(--nimi-text-muted)]">{isNearbyMode ? '当前博主' : '待确认'}</div>
               <div className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">
                 {isNearbyMode
@@ -832,7 +832,7 @@ function SharedMapSection(props: {
             </Surface>
           </div>
           {isNearbyMode && props.currentLocation && props.points.length === 0 ? (
-            <div className="mt-4 rounded-[22px] bg-[#fff7ed] px-4 py-4 text-sm leading-7 text-[#7c2d12]">
+            <div className="vfm-radius-tight vfm-warning-callout mt-4 px-4 py-4 text-sm leading-7">
               {props.nearestDiscoveryDistance != null
                 ? `当前 ${props.nearbyRadiusKm} 公里内暂时没有，最近的一家离你大约 ${formatDistanceLabel(props.nearestDiscoveryDistance)}。`
                 : '你附近还没有已上图的点位，后面导入更多视频后再回来看看。'}
@@ -841,7 +841,7 @@ function SharedMapSection(props: {
         </Surface>
 
         {props.selectedPoint ? (
-          <Surface tone="panel" elevation="base" className="w-full min-w-0 rounded-[28px] p-5 overflow-hidden">
+          <Surface tone="panel" elevation="base" className="vfm-radius-panel w-full min-w-0 p-5 overflow-hidden">
             <div className="text-xs text-[var(--nimi-text-muted)]">当前选中</div>
             <div className="mt-2 text-xl font-semibold text-[var(--nimi-text-primary)]">{props.selectedPoint.venueName || '未明确店名'}</div>
             <div className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{props.selectedPoint.addressText || '无地址线索'}</div>
@@ -864,7 +864,7 @@ function SharedMapSection(props: {
         ) : null}
 
         {!isNearbyMode && props.selectedVenue ? (
-          <Surface tone="panel" elevation="base" className="w-full min-w-0 rounded-[28px] p-5 overflow-hidden">
+          <Surface tone="panel" elevation="base" className="vfm-radius-panel w-full min-w-0 p-5 overflow-hidden">
             <div className="text-xs text-[var(--nimi-text-muted)]">当前店铺信息</div>
             <div className="mt-2 text-lg font-semibold text-[var(--nimi-text-primary)]">{props.selectedVenue.venueName || '未明确店名'}</div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -891,7 +891,7 @@ function ReviewSurface(props: {
 }) {
   if (!props.selectedReviewItem) {
     return (
-      <Surface tone="panel" elevation="base" className="flex h-full min-h-[540px] items-center justify-center rounded-[32px] p-10 text-center">
+      <Surface tone="panel" elevation="base" className="vfm-radius-shell flex h-full min-h-[540px] items-center justify-center p-10 text-center">
         <div className="max-w-xl space-y-3">
           <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">当前没有待确认项</div>
           <div className="text-sm leading-7 text-[var(--nimi-text-secondary)]">
@@ -910,8 +910,8 @@ function ReviewSurface(props: {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div>
-        <Surface tone="panel" elevation="base" className="relative overflow-hidden rounded-[36px] p-8">
-          <div className="absolute right-6 top-6 rounded-[18px] bg-[#fff7ed] px-4 py-3 text-sm font-semibold text-[#ea580c] shadow-sm">
+        <Surface tone="panel" elevation="base" className="vfm-radius-stage relative overflow-hidden p-8">
+          <div className="vfm-radius-badge vfm-review-index absolute right-6 top-6 px-4 py-3 text-sm font-semibold shadow-sm">
             #{props.reviewIndex + 1}
           </div>
           <div className="max-w-3xl">
@@ -920,13 +920,13 @@ function ReviewSurface(props: {
               <StatusBadge tone="info">{record.creatorName || '未知作者'}</StatusBadge>
               {venue.isFavorite ? <StatusBadge tone="warning">已收藏</StatusBadge> : null}
             </div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9ca3af]">提取自：{record.title || record.sourceUrl}</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">提取自：{record.title || record.sourceUrl}</div>
             <div className="mt-4 text-4xl font-semibold tracking-tight text-[var(--nimi-text-primary)]">{venue.venueName || '未明确店名'}</div>
             <div className="mt-3 text-base leading-7 text-[var(--nimi-text-secondary)]">{venue.addressText || '暂无地址线索'}</div>
           </div>
 
           <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[28px] p-5 overflow-hidden">
+            <Surface tone="card" elevation="base" className="vfm-radius-panel w-full min-w-0 p-5 overflow-hidden">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">审核判断</div>
               <div className="mt-3 text-sm leading-7 text-[var(--nimi-text-secondary)]">
                 置信度：{formatConfidenceLabel(venue.confidence)}。{venue.evidence[0] || '当前没有证据句，就按地址和评论线索人工判断。'}
@@ -936,7 +936,7 @@ function ReviewSurface(props: {
                 {venue.flavorTags.map((tag) => <InfoPill key={tag} tone="warm">{tag}</InfoPill>)}
               </div>
             </Surface>
-            <Surface tone="card" elevation="base" className="w-full min-w-0 rounded-[28px] p-5 overflow-hidden">
+            <Surface tone="card" elevation="base" className="vfm-radius-panel w-full min-w-0 p-5 overflow-hidden">
               <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">定位状态</div>
               <div className="mt-3 text-sm leading-7 text-[var(--nimi-text-secondary)]">
                 {venue.geocodeStatus === 'resolved'
@@ -946,7 +946,7 @@ function ReviewSurface(props: {
                     : '这条记录还没有稳定坐标。'}
               </div>
               {venue.geocodeQuery ? (
-                <div className="mt-3 rounded-2xl bg-white/80 px-4 py-3 text-xs text-[var(--nimi-text-muted)]">
+                <div className="vfm-geocode-query mt-3 rounded-2xl px-4 py-3 text-xs text-[var(--nimi-text-muted)]">
                   定位查询词：{venue.geocodeQuery}
                 </div>
               ) : null}
@@ -979,7 +979,7 @@ function ReviewSurface(props: {
       </div>
 
       <div className="space-y-4">
-        <Surface tone="panel" elevation="base" className="rounded-[28px] p-5">
+        <Surface tone="panel" elevation="base" className="vfm-radius-panel p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-lg font-semibold text-[var(--nimi-text-primary)]">待确认队列</div>
@@ -996,17 +996,17 @@ function ReviewSurface(props: {
               type="button"
               data-testid={`review-queue-${item.venue.id}`}
               onClick={() => props.onSelectIndex(index)}
-              className={`w-full rounded-[24px] border p-4 text-left transition ${
+              className={`vfm-radius-card w-full border p-4 text-left transition ${
                 item.venue.id === selectedReviewVenueId
-                  ? 'border-[#fdba74] bg-[#fff7ed] shadow-[0_16px_30px_rgba(251,146,60,0.14)]'
-                  : 'border-black/6 bg-white/88 hover:border-[#fed7aa]'
+                  ? 'vfm-list-card-active shadow-[0_16px_30px_rgba(251,146,60,0.14)]'
+                  : 'vfm-list-card-idle'
               }`}
             >
               <div className="flex flex-wrap items-center gap-2">
-                <div className="text-sm font-semibold text-[#111827]">{item.venue.venueName || '未明确店名'}</div>
+                <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{item.venue.venueName || '未明确店名'}</div>
                 <StatusBadge tone={resolveVenueStatus(item.venue).tone}>{resolveVenueStatus(item.venue).label}</StatusBadge>
               </div>
-              <div className="mt-2 text-sm text-[#6b7280]">{item.venue.addressText || '暂无地址线索'}</div>
+              <div className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{item.venue.addressText || '暂无地址线索'}</div>
             </button>
           ))}
         </ScrollArea>
@@ -1036,7 +1036,7 @@ function SettingsSurface(props: {
 
   return (
     <div className="space-y-6">
-      <Surface tone="panel" elevation="base" className="rounded-[32px] p-6">
+      <Surface tone="panel" elevation="base" className="vfm-radius-shell p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-2xl font-semibold text-[var(--nimi-text-primary)]">偏好与设置</div>
@@ -1063,7 +1063,7 @@ function SettingsSurface(props: {
         />
 
         <div className="space-y-6">
-          <Surface tone="panel" elevation="base" className="rounded-[28px] p-6">
+          <Surface tone="panel" elevation="base" className="vfm-radius-panel p-6">
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge tone="info">Stage 3</StatusBadge>
               <StatusBadge tone="neutral">预留入口</StatusBadge>
@@ -1074,14 +1074,14 @@ function SettingsSurface(props: {
             </div>
           </Surface>
 
-          <Surface tone="panel" elevation="base" className="rounded-[28px] p-6">
+          <Surface tone="panel" elevation="base" className="vfm-radius-panel p-6">
             <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">当前生效模型</div>
             <div className="mt-4 grid gap-3">
-              <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+              <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
                 <div className="text-xs text-[var(--nimi-text-muted)]">语音转写</div>
                 <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{formatSelectedModelLabel(props.currentSettings.stt.model)}</div>
               </Surface>
-              <Surface tone="card" elevation="base" className="rounded-[22px] p-4">
+              <Surface tone="card" elevation="base" className="vfm-radius-tight p-4">
                 <div className="text-xs text-[var(--nimi-text-muted)]">文字提取</div>
                 <div className="mt-2 text-sm font-medium text-[var(--nimi-text-primary)]">{formatSelectedModelLabel(props.currentSettings.text.model)}</div>
               </Surface>
@@ -1469,7 +1469,7 @@ function AppBody() {
       </div>
       <div className="vfm-app-shell flex min-h-0 flex-1 overflow-hidden">
       <nav className="vfm-rail flex w-20 flex-shrink-0 flex-col items-center gap-8 px-3 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f97316] text-base font-bold text-white shadow-[0_16px_36px_rgba(249,115,22,0.28)]">
+        <div className="vfm-nav-brand flex h-10 w-10 items-center justify-center rounded-xl text-base font-bold text-white shadow-[0_16px_36px_rgba(249,115,22,0.28)]">
           图
         </div>
         <div className="flex w-full flex-col gap-4">
@@ -1535,7 +1535,7 @@ function AppBody() {
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/8 bg-white px-4 text-sm font-medium text-[#111827] xl:hidden"
+                  className="vfm-mobile-sidebar-button inline-flex h-12 items-center justify-center rounded-2xl border px-4 text-sm font-medium xl:hidden"
                 >
                   打开清单
                 </button>
@@ -1550,20 +1550,20 @@ function AppBody() {
                         }
                       }}
                       placeholder="粘贴 Bilibili 视频链接或博主主页..."
-                      className="w-full rounded-2xl border border-black/8 bg-white px-5 py-3.5 pr-[150px] text-sm text-[#111827] shadow-sm outline-none transition focus:border-[#fb923c]"
+                      className="vfm-intake-input w-full rounded-2xl border px-5 py-3.5 pr-[150px] text-sm shadow-sm outline-none transition"
                     />
                     <div className="absolute right-2 top-2">
                       <button
                         type="button"
                         onClick={submitUnifiedIntake}
                         disabled={!intakeInput.trim() || intakeBusy}
-                        className="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#171717] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#f97316] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="vfm-intake-submit inline-flex min-h-[40px] items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {intakeBusy ? '处理中...' : `+ ${intakeActionLabel}`}
                       </button>
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b7280]">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-secondary)]">
                     <span>{headerFeedbackText || intakeTarget.helperText}</span>
                   </div>
                 </div>
@@ -1571,18 +1571,18 @@ function AppBody() {
 
               <div className="flex items-center gap-5 self-end xl:self-auto">
                 <div className="text-right">
-                  <div className="text-2xl font-bold leading-none text-[#111827]">{snapshot?.stats.mappedVenueCount || 0}</div>
-                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9ca3af]">已上图店铺</div>
+                  <div className="text-2xl font-bold leading-none text-[var(--nimi-text-primary)]">{snapshot?.stats.mappedVenueCount || 0}</div>
+                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">已上图店铺</div>
                 </div>
                 <div className="h-8 w-px bg-black/8" />
                 <div className="text-right">
-                  <div className="text-2xl font-bold leading-none text-[#f97316]">{reviewItems.length}</div>
-                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#9ca3af]">待确认</div>
+                  <div className="text-2xl font-bold leading-none text-[var(--nimi-action-primary-bg)]">{reviewItems.length}</div>
+                  <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">待确认</div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-3 flex items-center gap-3 text-sm text-[#6b7280]">
+            <div className="mt-3 flex items-center gap-3 text-sm text-[var(--nimi-text-secondary)]">
               <span>{SURFACES.find((item) => item.id === surface)?.description}</span>
             </div>
           </header>
