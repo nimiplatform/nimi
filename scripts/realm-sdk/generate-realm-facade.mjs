@@ -40,6 +40,7 @@ export function writeRealmFacade(repoRoot) {
   lines.push('');
   lines.push('// Realm client exports.');
   lines.push("export { Realm } from './client.js';");
+  lines.push("export { createRealmClient } from './client-factory.js';");
   lines.push("export type { RealmConnectionState, RealmTelemetryEvent, RealmTokenRefreshResult, RealmFetchImpl, RealmAuthOptions, RealmRetryOptions, RealmOptions, RealmUnsafeRawModule, RealmServiceRegistry, RealmEventsModule } from './client-types.js';");
   lines.push("export type { RealmOperationKey, RealmOperationResult, RealmOperationResultMap } from './generated/operation-map.js';");
   lines.push("export * from './generated/property-enums.js';");

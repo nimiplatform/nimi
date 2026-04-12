@@ -1,6 +1,7 @@
 import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { Realm } from '@nimiplatform/sdk/realm';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import { Realm, createRealmClient } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
@@ -73,6 +74,7 @@ export class DataSync {
   private refreshToken = '';
   private fetchImpl: FetchImpl | null = null;
   private realmClient: Realm | null = null;
+  private realmClientOwned = false;
   private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private authCallbacks: DataSyncAuthCallbacks | null = null;
   private readonly polling = new DataSyncPollingManager();
@@ -175,7 +177,21 @@ export class DataSync {
       return this.realmClient;
     }
 
-    const realm = new Realm({
+    const platformClient = (() => {
+      try {
+        return getPlatformClient();
+      } catch {
+        return null;
+      }
+    })();
+    if (platformClient) {
+      const realm = platformClient.realm;
+      this.realmClient = realm;
+      this.realmClientOwned = false;
+      return realm;
+    }
+
+    const realm = createRealmClient({
       baseUrl: this.realmBaseUrl,
       auth: {
         accessToken: () => this.accessToken,
@@ -224,13 +240,16 @@ export class DataSync {
       fetchImpl: this.fetchImpl || undefined,
     });
     this.realmClient = realm;
+    this.realmClientOwned = true;
     return realm;
   }
 
   private resetRealmClient() {
     const currentRealmClient = this.realmClient;
+    const ownedRealmClient = this.realmClientOwned;
     this.realmClient = null;
-    if (currentRealmClient) {
+    this.realmClientOwned = false;
+    if (currentRealmClient && ownedRealmClient) {
       void currentRealmClient.close().catch(() => undefined);
     }
   }

@@ -42,6 +42,7 @@ export { commitAgentMemories, listAgentCoreMemories, listAgentDyadicMemories } f
 
 // Realm client exports.
 export { Realm } from './client.js';
+export { createRealmClient } from './client-factory.js';
 export type { RealmConnectionState, RealmTelemetryEvent, RealmTokenRefreshResult, RealmFetchImpl, RealmAuthOptions, RealmRetryOptions, RealmOptions, RealmUnsafeRawModule, RealmServiceRegistry, RealmEventsModule } from './client-types.js';
 export type { RealmOperationKey, RealmOperationResult, RealmOperationResultMap } from './generated/operation-map.js';
 export * from './generated/property-enums.js';
