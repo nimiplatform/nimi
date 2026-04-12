@@ -31,6 +31,7 @@ Treat the systems as layered rather than merged:
 OMX may read `.nimi/**` and produce execution artifacts, but it must not:
 
 - become the owner of `.nimi/spec/**`
+- treat cutover readiness as an authority flip
 - decide semantic acceptance or final disposition
 - redefine methodology state from `.omx/**` runtime state
 - bypass `nimicoding doctor`, `handoff`, or validator gates
@@ -96,7 +97,8 @@ nimicoding handoff --skill spec_reconstruction --json
 Use the JSON payload as OMX's machine contract. `--prompt` may still be used
 as a host briefing, but it is not the authoritative surface. OMX should
 return only the declared canonical tree outputs and must not invent new semantic
-owners.
+owners. Readiness evidence may show that a future migration is prepared, but it
+does not make `.nimi/spec/**` the current authority root.
 
 Then project the closeout locally:
 

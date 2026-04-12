@@ -46,6 +46,7 @@
     "check:eol-noise": "node scripts/check-eol-noise.mjs",
     "check:eol-noise:staged": "node scripts/check-eol-noise.mjs --staged-only --quiet-success",
     "check:spec-semantic-completeness": "node scripts/check-spec-semantic-completeness.mjs",
+    "check:spec-authority-cutover-readiness": "node scripts/check-spec-authority-cutover-readiness.mjs",
     "check:runtime-proto-spec-linkage": "node scripts/check-runtime-proto-spec-linkage.mjs",
     "check:runtime-bridge-method-drift": "node scripts/generate-runtime-bridge-methods.mjs --check",
     "check:runtime-catalog-drift": "node scripts/check-runtime-catalog-drift.mjs",

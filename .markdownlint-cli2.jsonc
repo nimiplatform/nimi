@@ -12,6 +12,7 @@
     "!_external/**",
     "!archive/**",
     "!.local/**",
+    "!.nimi/local/**",
     "!**/dist/**",
     "!**/target/**",
     "!**/coverage/**"

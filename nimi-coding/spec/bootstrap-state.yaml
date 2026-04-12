@@ -57,6 +57,7 @@ current_truth:
     - .nimi/methodology/skill-handoff.yaml
     - .nimi/spec/_meta/spec-tree-model.yaml
     - .nimi/spec/_meta/command-gating-matrix.yaml
+    - .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
     - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
     - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
     - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
@@ -88,9 +89,11 @@ status:
   canonical_root_candidate: .nimi/spec
   active_authority_root: external_authority
 cutover_readiness:
-  canonical_tree_contract_seeded: true
-  canonical_tree_files_seeded: false
-  equivalence_verified: false
-  governance_routing_ready: false
-  pipeline_routing_ready: false
-  authority_cutover_ready: false
+  authority_contract_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
+  overall_status: no_go
+  gate_status:
+    canonical_generation_gate: pending
+    benchmark_parity_gate: pending
+    drift_pipeline_gate: pending
+    governance_routing_gate: pending
+    authority_admission_gate: pending

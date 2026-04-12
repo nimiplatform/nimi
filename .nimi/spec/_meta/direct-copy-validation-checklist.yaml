@@ -7,6 +7,7 @@ direct_copy_validation_checklist:
     authority_status: active_authority_remains_spec_until_explicit_cutover
   intent:
     - direct_copy_is_an_acceptance_shortcut_not_an_authority_cutover
+    - direct_copy_is_not_a_cutover_readiness_substitute
     - validate_the_copied_tree_before_any_routing_or_pipeline_change
     - use_nimi_spec_as_benchmark_only_not_as_a_second_long_term_truth_source
   prerequisites:

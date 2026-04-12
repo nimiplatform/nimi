@@ -7,6 +7,7 @@
 
 ## Hard Boundaries
 - Write rules and structured facts only in `spec/**/kernel/*.md` and `spec/**/kernel/tables/**`.
+- Treat `spec/**` as the active repo-wide authority until an explicit redesign admission flips that routing; generated `.nimi/spec/**` trees do not replace `spec/**` by implication.
 - Do not place execution state, reports, checklists, dated pass/fail snapshots, or iteration logs in `spec/**`.
 - Do not manually edit `spec/**/kernel/generated/**`.
 - Do not manually edit `spec/generated/nimi-spec.md`; it is derived output and must be regenerated from current kernel sources.

@@ -44,6 +44,7 @@ canonical_spec_model:
   phase_one_contracts:
     - .nimi/spec/_meta/spec-tree-model.yaml
     - .nimi/spec/_meta/command-gating-matrix.yaml
+    - .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
     - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
     - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
     - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml

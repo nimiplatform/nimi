@@ -96,11 +96,12 @@ Priority:
 4. .nimi/config
 5. repository-local AI entrypoint files
 
-If the project still exposes only bootstrap seed files, use the reconstruction guidance, reconstruction target-truth profile, result contracts, manifest, host-profile, host-adapter, admitted package-owned adapter profiles, installer, runtime contract, installer result contract, collapsed installer summary projection lifecycle contract, operational evidence guidance, and handoff truth under .nimi rather than assuming skills are already installed.
+If the project still exposes only bootstrap seed files, use the reconstruction guidance, result contracts, manifest, host-profile, host-adapter, admitted package-owned adapter profiles, installer, runtime contract, installer result contract, collapsed installer summary projection lifecycle contract, operational evidence guidance, and handoff truth under .nimi rather than assuming skills are already installed.
 
 Default posture:
 - use risk-shaped methodology only for authority-bearing or high-risk work
 - prefer inline manager-worker unless a later admitted packet expands runtime ownership
 - keep continuity-agnostic semantics; do not assume persistent automation or self-hosting
 - treat handoff --json as the authoritative machine contract and handoff --prompt as a human-readable projection only
+- treat `spec/**` as today's repo-wide authority, `/.nimi/spec/**` as today's generated canonical tree, and cutover readiness as non-authorizing evidence until a redesign admission says otherwise
 <!-- nimicoding:managed:claude:end -->

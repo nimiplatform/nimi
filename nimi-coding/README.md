@@ -23,6 +23,11 @@ The primary `nimicoding` path is for an ordinary project with mixed inputs:
 but they are support-only or repo-local special cases. They do not define
 default reconstruction completion.
 
+Today, `spec/**` still remains the repo-wide product authority in this
+monorepo. `/.nimi/spec/**` is the generated canonical tree used by the
+methodology. Cutover readiness work may prove that a future migration is
+prepared, but it does not authorize an authority flip by itself.
+
 ## Current Status
 
 This repository is boundary-complete for its intended standalone scope.
@@ -70,6 +75,7 @@ At the current stage it provides:
 - a conservative `nimicoding clear` entrypoint for removing package-managed setup without deleting project-owned truth
 - a bounded `nimicoding doctor`
 - an explicit `nimicoding blueprint-audit` equivalence check for comparing a repo-local blueprint root with the candidate canonical tree under `.nimi/spec`
+- a repo-local `pnpm check:spec-authority-cutover-readiness` gate for proving cutover readiness without performing cutover
 - an explicit `nimicoding handoff` export
 - an explicit `nimicoding admit-high-risk-decision` semantic admission surface
 - a local-only `nimicoding closeout` projection
@@ -123,6 +129,7 @@ At this stage:
 - active repository authority still remains `spec/**`
 - `start`, `doctor`, `handoff`, `closeout`, and high-risk gating already read the canonical tree lifecycle instead of treating the old five-file compact model as authoritative completion
 - `nimicoding blueprint-audit` is the explicit audit surface for benchmark-vs-canonical equivalence checks; it does not perform cutover or routing changes
+- `pnpm check:spec-authority-cutover-readiness` is the repo-local readiness aggregator; it can report `ready_for_admission`, but that still does not flip authority on its own
 - canonical spec generation now reads mixed inputs from `.nimi/config/spec-generation-inputs.yaml` and treats any blueprint root as an optional benchmark rather than a universal host assumption
 - completed canonical reconstruction now requires both structural validity and file-level auditability under `.nimi/spec/_meta/spec-generation-audit.yaml`
 - `nimicoding validate-spec-tree` checks canonical tree structure, while `nimicoding validate-spec-audit` checks per-file grounding, inference, and unresolved-gap tracking

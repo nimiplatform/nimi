@@ -1,0 +1,102 @@
+version: 1
+spec_authority_cutover_readiness:
+  posture: readiness_only_not_physical_migration
+  current_authority_root: spec
+  canonical_generation_root: .nimi/spec
+  benchmark_posture: benchmark_oracle_to_generated_canonical_tree
+  overall_status_enum:
+    - no_go
+    - ready_for_admission
+  gate_families:
+    - id: canonical_generation_gate
+      posture: generic_methodology
+      objective: prove that the generated canonical tree is stable, auditable, and fully reconstructed
+      required_evidence:
+        commands:
+          - pnpm nimicoding:validate-spec-tree
+          - pnpm nimicoding:validate-spec-audit
+        artifacts:
+          - .nimi/local/handoff-results/spec_reconstruction.json
+          - .nimi/local/handoff-results/doc_spec_audit.json
+      pass_criteria:
+        - validate_spec_tree_passes
+        - validate_spec_audit_passes
+        - spec_reconstruction_closeout_outcome_is_completed
+        - spec_reconstruction_closeout_summary_status_is_reconstructed
+        - doc_spec_audit_closeout_outcome_is_completed
+        - doc_spec_audit_closeout_summary_status_is_aligned
+      failure_meaning:
+        - canonical_tree_is_not_yet_a_stable_cutover_candidate
+    - id: benchmark_parity_gate
+      posture: repo_local_special_case_when_blueprint_declared
+      objective: prove that the repo-local benchmark oracle and generated canonical tree are parity-checked without redefining authority
+      required_evidence:
+        commands:
+          - pnpm nimicoding:blueprint-audit
+        files:
+          - .nimi/spec/_meta/blueprint-reference.yaml
+          - .nimi/spec/_meta/direct-copy-validation-checklist.yaml
+      pass_criteria:
+        - blueprint_reference_still_declares_spec_as_benchmark_oracle
+        - blueprint_audit_passes_when_repo_local_blueprint_is_declared
+        - direct_copy_remains_support_only_not_cutover
+      failure_meaning:
+        - benchmark_parity_is_missing_or_is_trying_to_define_authority
+    - id: drift_pipeline_gate
+      posture: repo_local_special_case
+      objective: prove that all spec-root drift and generation pipelines have an explicit root-flip readiness mapping before any authority change
+      required_evidence:
+        files:
+          - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
+        commands:
+          - pnpm check:spec-human-doc-drift
+          - pnpm check:spec-semantic-completeness
+          - pnpm check:runtime-proto-spec-linkage
+          - pnpm check:runtime-spec-kernel-consistency
+          - pnpm check:sdk-spec-kernel-consistency
+          - pnpm check:desktop-spec-kernel-consistency
+          - pnpm check:platform-spec-kernel-consistency
+          - pnpm check:realm-spec-kernel-consistency
+          - pnpm check:future-spec-kernel-consistency
+          - pnpm check:runtime-spec-kernel-docs-drift
+          - pnpm check:sdk-spec-kernel-docs-drift
+          - pnpm check:desktop-spec-kernel-docs-drift
+          - pnpm check:platform-spec-kernel-docs-drift
+          - pnpm check:realm-spec-kernel-docs-drift
+          - pnpm check:future-spec-kernel-docs-drift
+      pass_criteria:
+        - every_required_drift_or_generation_command_is_mapped
+        - no_required_command_is_left_without_a_post_cutover_root
+      failure_meaning:
+        - root_flip_would_break_existing_spec_generation_or_drift_gates
+    - id: governance_routing_gate
+      posture: repo_local_special_case
+      objective: prove that every authority-routing surface states the current authority root, generated canonical root, and non-cutover posture consistently
+      required_evidence:
+        files:
+          - AGENTS.md
+          - CLAUDE.md
+          - spec/AGENTS.md
+          - nimi-coding/README.md
+          - nimi-coding/adapters/oh-my-codex/README.md
+          - nimi-coding/cli/lib/entrypoints.mjs
+          - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
+      pass_criteria:
+        - docs_state_that_spec_remains_current_authority
+        - docs_state_that_dot_nimi_spec_is_generated_canonical_tree
+        - docs_state_that_readiness_is_not_cutover
+      failure_meaning:
+        - humans_or_external_hosts_could_misread_readiness_as_authority_flip
+    - id: authority_admission_gate
+      posture: repo_local_special_case
+      objective: prove that an explicit redesign admission packet exists under spec authority before any cutover execution is considered
+      required_evidence:
+        files:
+          - spec/canonical-authority-cutover-admission.md
+      pass_criteria:
+        - redesign_admission_doc_exists_under_spec_authority
+        - redesign_admission_doc_declares_required_metadata
+        - redesign_admission_doc_states_current_and_future_authority_posture
+        - redesign_admission_doc_forbids_long_lived_parallel_truth
+      failure_meaning:
+        - authority_cutover_has_not_been_preflighted_under_current_spec_authority

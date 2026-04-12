@@ -95,6 +95,27 @@ async function runCliSubprocess(args, options = {}) {
   }
 }
 
+async function runCutoverReadinessCheck(cwd) {
+  try {
+    const result = await execFile(
+      process.execPath,
+      [path.join(repoRoot, "..", "scripts", "check-spec-authority-cutover-readiness.mjs")],
+      { cwd },
+    );
+    return {
+      exitCode: 0,
+      stdout: result.stdout,
+      stderr: result.stderr,
+    };
+  } catch (error) {
+    return {
+      exitCode: typeof error.code === "number" ? error.code : 1,
+      stdout: error.stdout ?? "",
+      stderr: error.stderr ?? "",
+    };
+  }
+}
+
 async function updateSpecGenerationInputs(projectRoot, updater) {
   const configPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
   const config = YAML.parse(await readFile(configPath, "utf8"));
@@ -206,7 +227,7 @@ async function seedReconstructedTargetTruth(projectRoot) {
   bootstrapState.state.tree_state = "canonical_tree_ready";
   bootstrapState.state.reconstruction_required = false;
   bootstrapState.status.ready_for_ai_reconstruction = false;
-  bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
+  bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
   await writeFile(
     bootstrapStatePath,
     YAML.stringify(bootstrapState),
@@ -274,8 +295,28 @@ async function markCanonicalTreeReady(projectRoot) {
   bootstrapState.state.tree_state = "canonical_tree_ready";
   bootstrapState.state.reconstruction_required = false;
   bootstrapState.status.ready_for_ai_reconstruction = false;
-  bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
+  bootstrapState.cutover_readiness.gate_status.canonical_generation_gate = "ready";
   await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+}
+
+async function writeLocalCloseoutArtifact(projectRoot, skillId, outcome, status) {
+  const artifactPath = path.join(projectRoot, ".nimi", "local", "handoff-results", `${skillId}.json`);
+  await mkdir(path.dirname(artifactPath), { recursive: true });
+  await writeFile(
+    artifactPath,
+    `${JSON.stringify({
+      contractVersion: "nimicoding.closeout.v1",
+      ok: true,
+      projectRoot,
+      localOnly: true,
+      artifactPath: `.nimi/local/handoff-results/${skillId}.json`,
+      skill: { id: skillId },
+      outcome,
+      verifiedAt: "2026-04-12T00:00:00.000Z",
+      summary: status ? { status } : undefined,
+    }, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 async function materializeFixtureScenario(projectRoot, fixtureId, scenarioId) {
@@ -594,6 +635,7 @@ test("start projects canonical spec meta contracts and checklists as valid yaml"
     const commandGatingMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"));
     const generateDriftChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "generate-drift-migration-checklist.yaml"));
     const governanceRoutingChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "governance-routing-cutover-checklist.yaml"));
+    const cutoverReadiness = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-authority-cutover-readiness.yaml"));
     const impactedSurfaceMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"));
 
     assert.equal(specTreeModel.spec_tree_model.profile, "minimal");
@@ -605,11 +647,13 @@ test("start projects canonical spec meta contracts and checklists as valid yaml"
     assert.equal(specGenerationInputs.spec_generation_inputs.benchmark_mode, "none");
     assert.ok(!bootstrapState.current_truth.admitted_files.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
     assert.equal(productScope.canonical_spec_model.state_carrier_ref, ".nimi/spec/bootstrap-state.yaml");
+    assert.equal(productScope.canonical_spec_model.phase_one_contracts[2], ".nimi/spec/_meta/spec-authority-cutover-readiness.yaml");
     assert.equal(commandGatingMatrix.command_gating_matrix[0].command, "start");
     assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "handoff" && entry.skill === "high_risk_execution"));
     assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "closeout" && entry.skill === "high_risk_execution"));
-    assert.equal(generateDriftChecklist.generate_drift_migration_checklist[0].command, "pnpm generate:runtime-spec-kernel-docs");
-    assert.equal(governanceRoutingChecklist.governance_routing_cutover_checklist[0].file, "CLAUDE.md");
+    assert.equal(cutoverReadiness.spec_authority_cutover_readiness.gate_families[0].id, "canonical_generation_gate");
+    assert.equal(generateDriftChecklist.generate_drift_migration_checklist.entries[0].command, "pnpm generate:runtime-spec-kernel-docs");
+    assert.equal(governanceRoutingChecklist.governance_routing_cutover_checklist.entries[0].file, "CLAUDE.md");
     assert.equal(impactedSurfaceMatrix.phase2_impacted_surface_matrix[0].surface, "start_command");
     await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"), "utf8"));
   });
@@ -3120,6 +3164,7 @@ test("package files publish canonical source dirs and start output matches sourc
     assert.ok(seedMap.has(".nimi/contracts/spec-generation-audit.schema.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/spec-authority-cutover-readiness.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/generate-drift-migration-checklist.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/governance-routing-cutover-checklist.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/phase2-impacted-surface-matrix.yaml"));
@@ -3193,6 +3238,93 @@ test("doctor fails closed when blueprint mode requires a missing blueprint refer
     const blueprintCheck = payload.checks.find((check) => check.id === "blueprint_reference_contract");
     assert.equal(blueprintCheck.ok, false);
     assert.equal(blueprintCheck.severity, "error");
+  });
+});
+
+test("repo docs keep cutover readiness separate from authority flip", async () => {
+  const agents = await readFile(path.join(repoRoot, "..", "AGENTS.md"), "utf8");
+  const claude = await readFile(path.join(repoRoot, "..", "CLAUDE.md"), "utf8");
+  const specAgents = await readFile(path.join(repoRoot, "..", "spec", "AGENTS.md"), "utf8");
+  const packageReadme = await readFile(path.join(repoRoot, "README.md"), "utf8");
+  const adapterReadme = await readFile(path.join(repoRoot, "adapters", "oh-my-codex", "README.md"), "utf8");
+  const admissionDoc = await readFile(path.join(repoRoot, "..", "spec", "canonical-authority-cutover-admission.md"), "utf8");
+
+  assert.match(agents, /spec\/\*\*.*current repo-wide (product )?authority/i);
+  assert.match(agents, /\.nimi\/spec\/\*\*.*generated canonical tree/i);
+  assert.match(agents, /(readiness green.*separate redesign admission|cutover readiness is evidence only.*explicit redesign admission)/i);
+  assert.match(claude, /spec\/\*\*.*today's repo-wide authority/i);
+  assert.match(claude, /\.nimi\/spec\/\*\*.*generated canonical tree/i);
+  assert.match(specAgents, /generated `?\.nimi\/spec\/\*\*`? trees do not replace `?spec\/\*\*`?/i);
+  assert.match(packageReadme, /Today, `spec\/\*\*` still remains the repo-wide product authority/i);
+  assert.match(packageReadme, /cutover readiness work may prove that a future migration is[\s\S]*does not authorize an authority flip/i);
+  assert.match(adapterReadme, /must not:?\s*[\s\S]*treat cutover readiness as an authority flip/i);
+  assert.match(admissionDoc, /spec_status: preflight-required/);
+  assert.match(admissionDoc, /long_lived_parallel_truth_allowed: false/);
+});
+
+test("cutover readiness check fails when the readiness artifact drops a required gate family", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const readinessPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-authority-cutover-readiness.yaml");
+    const readiness = await readYamlFile(readinessPath);
+    readiness.spec_authority_cutover_readiness.gate_families = readiness.spec_authority_cutover_readiness.gate_families.filter(
+      (entry) => entry.id !== "benchmark_parity_gate",
+    );
+    await writeFile(readinessPath, YAML.stringify(readiness), "utf8");
+
+    const result = await runCutoverReadinessCheck(projectRoot);
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /gate families without implementation|gate family order/i);
+  });
+});
+
+test("cutover readiness check fails when reconstruction is only partial", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "partial");
+    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
+
+    const result = await runCutoverReadinessCheck(projectRoot);
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stdout, /spec-authority-cutover-readiness: NO-GO/);
+    assert.match(result.stdout, /canonical_generation_gate/);
+    assert.match(result.stdout, /summary\.status is not reconstructed/);
+  });
+});
+
+test("cutover readiness check fails when blueprint parity fails", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "dual-domain-benchmark", "rule_id_drift");
+    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "reconstructed");
+    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
+
+    const result = await runCutoverReadinessCheck(projectRoot);
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stdout, /benchmark_parity_gate/);
+    assert.match(result.stdout, /blueprint-audit does not pass/);
+  });
+});
+
+test("cutover readiness check reports ready_for_admission when every gate passes", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+    await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "reconstructed");
+    await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
+
+    const result = await runCutoverReadinessCheck(projectRoot);
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stdout.trim(), "spec-authority-cutover-readiness: ready_for_admission");
   });
 });
 
