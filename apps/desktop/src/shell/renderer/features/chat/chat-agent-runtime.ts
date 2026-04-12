@@ -4,6 +4,7 @@ import {
   RoutePolicy,
   ScenarioJobStatus,
   ScenarioType,
+  toProtoStruct,
   type TextMessage,
   type TextStreamOutput,
 } from '@nimiplatform/sdk/runtime';
@@ -40,6 +41,7 @@ export type ChatAgentRuntimeInvokeInput = {
   prompt?: string;
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
+  maxOutputTokensRequested?: number | null;
   threadId: string;
   reasoningPreference: ChatThinkingPreference;
   agentResolution: AgentEffectiveCapabilityResolution | null;
@@ -72,6 +74,23 @@ export type ChatAgentImageRuntimeInvokeResult = {
   mimeType: string;
   artifactId: string | null;
   traceId: string;
+  diagnostics?: AgentImageExecutionRuntimeDiagnostics | null;
+};
+
+export type AgentImageExecutionRuntimeDiagnostics = {
+  imageJobSubmitMs: number | null;
+  imageLoadMs: number | null;
+  imageGenerateMs: number | null;
+  artifactHydrateMs: number | null;
+  queueWaitMs: number | null;
+  loadCacheHit: boolean | null;
+  residentReused: boolean | null;
+  residentRestarted: boolean | null;
+  queueSerialized: boolean | null;
+  profileOverrideStep: number | null;
+  profileOverrideCfgScale: number | null;
+  profileOverrideSampler: string | null;
+  profileOverrideScheduler: string | null;
 };
 
 export type ChatAgentVoiceRuntimeInvokeInput = {
@@ -141,6 +160,7 @@ export type ChatAgentTranscribeRuntimeInvokeResult = {
 
 export type ChatAgentImageRuntimeInvokeDeps = {
   buildRuntimeRequestMetadataImpl?: typeof buildRuntimeRequestMetadata;
+  buildRuntimeCallOptionsImpl?: typeof buildRuntimeCallOptions;
   getRuntimeClientImpl?: typeof getRuntimeClient;
 };
 
@@ -183,6 +203,7 @@ export type ChatAgentRuntimeStreamDeps = {
 export const CORE_CHAT_AGENT_MOD_ID = 'core.chat-agent';
 const AGENT_CHAT_LOCAL_IMAGE_WORKFLOW_MODEL_ID = 'z_image_turbo';
 const AGENT_CHAT_LOCAL_IMAGE_MAIN_ENTRY_ID = 'agent-chat/image-main-model';
+const AGENT_CHAT_IMAGE_EXTENSION_NAMESPACE = 'nimi.scenario.image.request';
 const AGENT_CHAT_LOCAL_IMAGE_SLOT_DEFS = [
   { slot: 'vae_path', label: 'VAE', assetKind: 'vae' },
   { slot: 'llm_path', label: 'LLM', assetKind: 'chat' },
@@ -269,6 +290,144 @@ function resolveAgentImageResponseFormat(value: unknown): 'base64' | 'url' | und
   return normalized === 'base64' || normalized === 'url'
     ? normalized
     : undefined;
+}
+
+function normalizeOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function normalizeOptionalNonNegativeNumber(value: unknown): number | null {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) && normalized >= 0 ? normalized : null;
+}
+
+function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  if (!signal) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  if (signal.aborted) {
+    return Promise.reject(new DOMException('The operation was aborted.', 'AbortError'));
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+      reject(new DOMException('The operation was aborted.', 'AbortError'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function protoValueToJson(value: unknown): unknown {
+  const kind = (value as {
+    kind?: Record<string, unknown> & { oneofKind?: string };
+  } | undefined)?.kind;
+  switch (kind?.oneofKind) {
+    case 'boolValue':
+      return kind['boolValue'];
+    case 'numberValue':
+      return kind['numberValue'];
+    case 'stringValue':
+      return kind['stringValue'];
+    case 'structValue':
+      return protoStructToJson(kind['structValue']);
+    case 'listValue':
+      return Array.isArray((kind['listValue'] as { values?: unknown[] } | undefined)?.values)
+        ? ((kind['listValue'] as { values?: unknown[] } | undefined)?.values || []).map((entry: unknown) => protoValueToJson(entry))
+        : [];
+    default:
+      return null;
+  }
+}
+
+function protoStructToJson(value: unknown): Record<string, unknown> | null {
+  const fields = (value as { fields?: Record<string, unknown> } | null | undefined)?.fields;
+  if (!fields || typeof fields !== 'object') {
+    return null;
+  }
+  const output: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(fields)) {
+    output[key] = protoValueToJson(item);
+  }
+  return output;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function resolveAgentImageScenarioArtifact(
+  response: {
+    artifacts?: unknown;
+    output?: unknown;
+  } | null | undefined,
+): Record<string, unknown> | null {
+  const hydratedArtifacts = asArray(response?.artifacts)
+    .map((item) => asRecord(item))
+    .filter((item): item is Record<string, unknown> => item !== null);
+  const hydratedByArtifactId = new Map<string, Record<string, unknown>>();
+  for (const artifact of hydratedArtifacts) {
+    const artifactId = normalizeText(artifact.artifactId);
+    if (artifactId) {
+      hydratedByArtifactId.set(artifactId, artifact);
+    }
+  }
+
+  const output = asRecord(response?.output);
+  const outputVariant = asRecord(output?.output);
+  const imageGenerate = asRecord(outputVariant?.imageGenerate);
+  const typedArtifacts = asArray(imageGenerate?.artifacts)
+    .map((item) => asRecord(item))
+    .filter((item): item is Record<string, unknown> => item !== null);
+
+  for (const typedArtifact of typedArtifacts) {
+    const artifactId = normalizeText(typedArtifact.artifactId);
+    const hydrated = artifactId ? hydratedByArtifactId.get(artifactId) : null;
+    const mergedArtifactId = artifactId || normalizeText(hydrated?.artifactId);
+    const mergedMimeType = normalizeText(hydrated?.mimeType) || normalizeText(typedArtifact.mimeType);
+    if (!mergedArtifactId || !mergedMimeType) {
+      continue;
+    }
+    return {
+      ...hydrated,
+      ...typedArtifact,
+      artifactId: mergedArtifactId,
+      mimeType: mergedMimeType,
+      bytes: (hydrated?.bytes instanceof Uint8Array ? hydrated.bytes : undefined)
+        ?? (typedArtifact.bytes instanceof Uint8Array ? typedArtifact.bytes : undefined),
+    };
+  }
+
+  return hydratedArtifacts[0] || null;
+}
+
+function parseAgentImageArtifactDiagnostics(value: unknown): AgentImageExecutionRuntimeDiagnostics | null {
+  const metadata = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+  if (!metadata) {
+    return null;
+  }
+  const diagnostics: AgentImageExecutionRuntimeDiagnostics = {
+    imageJobSubmitMs: null,
+    imageLoadMs: normalizeOptionalNonNegativeNumber(metadata.image_load_ms),
+    imageGenerateMs: normalizeOptionalNonNegativeNumber(metadata.image_generate_ms),
+    artifactHydrateMs: null,
+    queueWaitMs: normalizeOptionalNonNegativeNumber(metadata.queue_wait_ms),
+    loadCacheHit: normalizeOptionalBoolean(metadata.load_cache_hit),
+    residentReused: normalizeOptionalBoolean(metadata.resident_reused),
+    residentRestarted: normalizeOptionalBoolean(metadata.resident_restarted),
+    queueSerialized: normalizeOptionalBoolean(metadata.queue_serialized),
+    profileOverrideStep: normalizeOptionalNonNegativeNumber(metadata.profile_override_step),
+    profileOverrideCfgScale: normalizeOptionalNonNegativeNumber(metadata.profile_override_cfg_scale),
+    profileOverrideSampler: normalizeText(metadata.profile_override_sampler) || null,
+    profileOverrideScheduler: normalizeText(metadata.profile_override_scheduler) || null,
+  };
+  return Object.values(diagnostics).some((entry) => entry !== null) ? diagnostics : null;
 }
 
 function shouldInjectAgentLocalImageWorkflow(resolved: NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>): boolean {
@@ -523,6 +682,10 @@ async function resolveInvokeInput(
   return {
     ...routeInput,
     prompt: requirePrompt(input.prompt),
+    maxTokens: Number.isFinite(Number(input.maxOutputTokensRequested))
+      && Number(input.maxOutputTokensRequested) > 0
+      ? Math.floor(Number(input.maxOutputTokensRequested))
+      : undefined,
     agentId: requireValue(
       input.agentId,
       ReasonCode.AI_INPUT_INVALID,
@@ -633,6 +796,10 @@ export async function streamChatAgentRuntime(
     connectorId: routeInput.connectorId,
     input: resolveRuntimeTextInput(input),
     system: normalizeText(input.systemPrompt) || undefined,
+    maxTokens: Number.isFinite(Number(input.maxOutputTokensRequested))
+      && Number(input.maxOutputTokensRequested) > 0
+      ? Math.floor(Number(input.maxOutputTokensRequested))
+      : undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
       resolveAgentChatThinkingSupport(),
@@ -677,14 +844,6 @@ export async function generateChatAgentImageRuntime(
   }
   const slice = resolveExecutionSlice(input.imageExecutionSnapshot, 'image.generate');
   const resolved = slice.resolvedBinding as NonNullable<import('./conversation-capability').ConversationExecutionSnapshot['resolvedBinding']>;
-  const metadata = await (deps.buildRuntimeRequestMetadataImpl || buildRuntimeRequestMetadata)({
-    source: resolved.source,
-    connectorId: normalizeText(resolved.connectorId) || undefined,
-    providerEndpoint: normalizeText(resolved.endpoint)
-      || normalizeText(resolved.localProviderEndpoint)
-      || normalizeText(resolved.localOpenAiEndpoint)
-      || undefined,
-  });
   const imageCapabilityParams = asRecord(input.imageCapabilityParams);
   const responseFormat = resolveAgentImageResponseFormat(imageCapabilityParams?.responseFormat);
   const size = normalizeText(imageCapabilityParams?.size) || undefined;
@@ -694,25 +853,170 @@ export async function generateChatAgentImageRuntime(
     resolved,
     params: imageCapabilityParams,
   });
-  const response = await (deps.getRuntimeClientImpl || getRuntimeClient)().media.image.generate({
-    model: requireValue(
-      resolved.modelId || resolved.model || resolved.localModelId,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'agent image route model is missing',
-    ),
-    prompt,
-    route: resolved.source,
-    connectorId: normalizeText(resolved.connectorId) || undefined,
-    responseFormat,
-    size,
-    seed,
-    timeoutMs,
-    ...(extensions ? { extensions } : {}),
-    metadata,
-    signal: input.signal,
-  });
-  const artifact = Array.isArray(response.artifacts) ? response.artifacts[0] : null;
+  const extensionPayload = extensions ? toProtoStruct(extensions) : undefined;
+  const modelId = requireValue(
+    resolved.modelId || resolved.model || resolved.localModelId,
+    ReasonCode.AI_INPUT_INVALID,
+    'select_runtime_route_binding',
+    'agent image route model is missing',
+  );
+  const runtimeClient = (deps.getRuntimeClientImpl || getRuntimeClient)();
+  let artifact: Record<string, unknown> | null;
+  let traceId: string;
+  let diagnostics: AgentImageExecutionRuntimeDiagnostics | null = null;
+
+  if (runtimeClient.ai?.submitScenarioJob && runtimeClient.ai?.getScenarioJob && runtimeClient.ai?.getScenarioArtifacts) {
+    const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
+      modId: CORE_CHAT_AGENT_MOD_ID,
+      timeoutMs: timeoutMs ?? 180_000,
+      source: resolved.source,
+      connectorId: normalizeText(resolved.connectorId) || undefined,
+      providerEndpoint: normalizeText(resolved.endpoint)
+        || normalizeText(resolved.localProviderEndpoint)
+        || normalizeText(resolved.localOpenAiEndpoint)
+        || undefined,
+    });
+    const submitStartedAt = Date.now();
+    const submitResponse = await runtimeClient.ai.submitScenarioJob({
+      head: {
+        appId: runtimeClient.appId,
+        modelId,
+        routePolicy: toRuntimeRoutePolicy(resolved.source),
+        timeoutMs: timeoutMs ?? 180_000,
+        connectorId: normalizeText(resolved.connectorId),
+      },
+      scenarioType: ScenarioType.IMAGE_GENERATE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      requestId: callOptions.idempotencyKey,
+      idempotencyKey: callOptions.idempotencyKey,
+      labels: {
+        surface: 'agent-chat',
+      },
+      extensions: extensionPayload
+        ? [{
+          namespace: AGENT_CHAT_IMAGE_EXTENSION_NAMESPACE,
+          payload: extensionPayload,
+        }]
+        : [],
+      spec: {
+        spec: {
+          oneofKind: 'imageGenerate' as const,
+          imageGenerate: {
+            prompt,
+            negativePrompt: '',
+            n: 1,
+            size: size || '',
+            aspectRatio: '',
+            quality: '',
+            style: '',
+            seed: seed !== undefined ? String(seed) : '',
+            referenceImages: [],
+            mask: '',
+            responseFormat: responseFormat || '',
+          },
+        },
+      },
+    }, {
+      timeoutMs: timeoutMs ?? 180_000,
+      metadata: callOptions.metadata,
+    });
+    const jobId = normalizeText(submitResponse.job?.jobId);
+    if (!jobId) {
+      throw createNimiError({
+        message: 'agent image generation did not return a scenario job id',
+        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: 'retry_image_generation',
+        source: 'runtime',
+      });
+    }
+    traceId = normalizeText(submitResponse.job?.traceId) || normalizeText(callOptions.metadata.traceId);
+    diagnostics = {
+      imageJobSubmitMs: Date.now() - submitStartedAt,
+      imageLoadMs: null,
+      imageGenerateMs: null,
+      artifactHydrateMs: null,
+      queueWaitMs: null,
+      loadCacheHit: null,
+      residentReused: null,
+      residentRestarted: null,
+      queueSerialized: null,
+      profileOverrideStep: null,
+      profileOverrideCfgScale: null,
+      profileOverrideSampler: null,
+      profileOverrideScheduler: null,
+    };
+    for (;;) {
+      const jobResponse = await runtimeClient.ai.getScenarioJob({ jobId }, {
+        timeoutMs: timeoutMs ?? 180_000,
+        metadata: callOptions.metadata,
+      });
+      const status = Number(jobResponse.job?.status || 0);
+      traceId = normalizeText(jobResponse.job?.traceId) || traceId;
+      if (status === ScenarioJobStatus.COMPLETED) {
+        break;
+      }
+      if (
+        status === ScenarioJobStatus.FAILED
+        || status === ScenarioJobStatus.CANCELED
+        || status === ScenarioJobStatus.TIMEOUT
+      ) {
+        throw createNimiError({
+          message: normalizeText(jobResponse.job?.reasonDetail)
+            || normalizeText(jobResponse.job?.reasonCode)
+            || 'agent image generation job failed',
+          reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+          actionHint: 'retry_image_generation',
+          source: 'runtime',
+        });
+      }
+      await sleepWithAbort(250, input.signal);
+    }
+    const artifactStartedAt = Date.now();
+    const artifactsResponse = await runtimeClient.ai.getScenarioArtifacts({ jobId }, {
+      timeoutMs: timeoutMs ?? 180_000,
+      metadata: callOptions.metadata,
+    });
+    diagnostics.artifactHydrateMs = Date.now() - artifactStartedAt;
+    traceId = normalizeText(artifactsResponse.traceId) || traceId;
+    artifact = resolveAgentImageScenarioArtifact(artifactsResponse);
+    const artifactDiagnostics = parseAgentImageArtifactDiagnostics(
+      protoStructToJson((artifact as { metadata?: unknown } | null)?.metadata),
+    );
+    if (artifactDiagnostics) {
+      diagnostics = {
+        ...diagnostics,
+        ...artifactDiagnostics,
+        imageJobSubmitMs: diagnostics.imageJobSubmitMs,
+        artifactHydrateMs: diagnostics.artifactHydrateMs,
+      };
+    }
+  } else {
+    const metadata = await (deps.buildRuntimeRequestMetadataImpl || buildRuntimeRequestMetadata)({
+      source: resolved.source,
+      connectorId: normalizeText(resolved.connectorId) || undefined,
+      providerEndpoint: normalizeText(resolved.endpoint)
+        || normalizeText(resolved.localProviderEndpoint)
+        || normalizeText(resolved.localOpenAiEndpoint)
+        || undefined,
+    });
+    const response = await runtimeClient.media.image.generate({
+      model: modelId,
+      prompt,
+      route: resolved.source,
+      connectorId: normalizeText(resolved.connectorId) || undefined,
+      responseFormat,
+      size,
+      seed,
+      timeoutMs,
+      ...(extensions ? { extensions } : {}),
+      metadata,
+      signal: input.signal,
+    });
+    artifact = Array.isArray(response.artifacts)
+      ? response.artifacts[0] as unknown as Record<string, unknown> | null
+      : null;
+    traceId = normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId);
+  }
   if (!artifact) {
     throw createNimiError({
       message: 'agent image generation returned no artifacts',
@@ -737,7 +1041,8 @@ export async function generateChatAgentImageRuntime(
     mediaUrl,
     mimeType,
     artifactId: normalizeText((artifact as { artifactId?: unknown }).artifactId) || null,
-    traceId: normalizeText(response.trace?.traceId) || normalizeText(metadata.traceId),
+    traceId,
+    diagnostics,
   };
 }
 

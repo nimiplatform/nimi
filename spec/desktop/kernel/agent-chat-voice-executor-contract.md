@@ -18,7 +18,7 @@
 capability projection truth、runtime voice workflow truth、state persistence mechanics、或
 voice workflow / voice identity truth、voice session / conversation mode truth。
 
-`agent-chat-beat-action-contract.md`（`D-LLM-030` ~ `D-LLM-033`）继续拥有 `voice`
+`agent-chat-message-action-contract.md`（`D-LLM-029` ~ `D-LLM-033`）继续拥有 `voice`
 action envelope 与 model-generated prompt payload truth；`llm-adapter-contract.md`
 （`D-LLM-005`）继续拥有 runtime-aligned TTS route/API surface；`spec/runtime/kernel/voice-contract.md`
 继续拥有 `voice_workflow.*` 与 voice asset lifecycle truth；
@@ -41,7 +41,7 @@ Desktop agent chat 的 canonical voice executor owner 固定为本文件。
 
 adjacent authority 边界固定为：
 
-- `agent-chat-beat-action-contract.md`（`D-LLM-030` ~ `D-LLM-033`）继续拥有
+- `agent-chat-message-action-contract.md`（`D-LLM-029` ~ `D-LLM-033`）继续拥有
   resolved `voice` action existence、relation、以及 `promptPayload` truth
 - `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）继续拥有 richer
   voice workflow admission、voice identity / `VoiceReference`、preset/custom voice
@@ -62,7 +62,7 @@ truth。
 
 ## D-LLM-035 — Resolved Voice Action Consumption Boundary
 
-agent chat voice executor 只消费已经在 beat-action envelope 中被 resolve 的
+agent chat voice executor 只消费已经在 message-action envelope 中被 resolve 的
 `modality: voice` action。
 
 固定约束：
@@ -155,7 +155,7 @@ input truth。
 
 ## Fact Sources
 
-- `spec/desktop/kernel/agent-chat-beat-action-contract.md` — resolved voice
+- `spec/desktop/kernel/agent-chat-message-action-contract.md` — resolved voice
   action and prompt payload boundary
 - `spec/desktop/kernel/llm-adapter-contract.md` — runtime-aligned
   `audio.synthesize` route/API surface

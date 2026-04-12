@@ -11,6 +11,7 @@ import {
   subscribeStream,
   type StreamState,
 } from '../turns/stream-controller';
+import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 
 function normalizeReasoningText(value: unknown): string | null {
   const normalized = typeof value === 'string' ? value.trim() : '';
@@ -135,6 +136,124 @@ export function RuntimeImageMessageContent(props: {
       </div>
       {caption && captionVisible ? (
         <p className="whitespace-pre-wrap text-xs text-[var(--nimi-text-muted)]">{caption}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function RuntimeAgentDebugMessageAccessory(props: {
+  message: ConversationCanonicalMessage;
+  debugVisible: boolean;
+  summaryLabel: string;
+  copyLabel: string;
+  copiedLabel: string;
+  followUpLabel: string;
+  promptLabel: string;
+  systemPromptLabel: string;
+  rawOutputLabel: string;
+  normalizedOutputLabel: string;
+}) {
+  const debugMetadata = parseAgentTextTurnDebugMetadata(props.message.metadata);
+  if (!debugMetadata) {
+    return null;
+  }
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') {
+      setCopied(false);
+      return;
+    }
+    const payload = JSON.stringify({
+      prompt: debugMetadata.prompt,
+      systemPrompt: debugMetadata.systemPrompt,
+      rawModelOutput: debugMetadata.rawModelOutput,
+      normalizedModelOutput: debugMetadata.normalizedModelOutput,
+      followUpTurn: debugMetadata.followUpTurn,
+      followUpSourceActionId: debugMetadata.followUpSourceActionId,
+      followUpDelayMs: debugMetadata.followUpDelayMs,
+    }, null, 2);
+    void navigator.clipboard.writeText(payload).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {
+      setCopied(false);
+    });
+  }, [
+    debugMetadata.followUpDelayMs,
+    debugMetadata.followUpSourceActionId,
+    debugMetadata.followUpTurn,
+    debugMetadata.normalizedModelOutput,
+    debugMetadata.prompt,
+    debugMetadata.rawModelOutput,
+    debugMetadata.systemPrompt,
+  ]);
+  if (!props.debugVisible && !debugMetadata.followUpTurn) {
+    return null;
+  }
+  return (
+    <div className="mt-2 space-y-2">
+      {debugMetadata.followUpTurn ? (
+        <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+          {props.followUpLabel}
+        </div>
+      ) : null}
+      {props.debugVisible ? (
+        <details className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,white)] px-3 py-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[11px] font-medium text-[var(--nimi-text-muted)]">
+            <span>{props.summaryLabel}</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                handleCopy();
+              }}
+              className="rounded-lg border border-[var(--nimi-border-subtle)] px-2 py-1 text-[10px] font-semibold text-[var(--nimi-text-secondary)] transition hover:bg-white"
+            >
+              {copied ? props.copiedLabel : props.copyLabel}
+            </button>
+          </summary>
+          <div className="mt-2 space-y-2">
+            {debugMetadata.systemPrompt ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  {props.systemPromptLabel}
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {debugMetadata.systemPrompt}
+                </pre>
+              </div>
+            ) : null}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                {props.promptLabel}
+              </div>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                {debugMetadata.prompt}
+              </pre>
+            </div>
+            {debugMetadata.rawModelOutput ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  {props.rawOutputLabel}
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {debugMetadata.rawModelOutput}
+                </pre>
+              </div>
+            ) : null}
+            {debugMetadata.normalizedModelOutput && debugMetadata.normalizedModelOutput !== debugMetadata.rawModelOutput ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  {props.normalizedOutputLabel}
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {debugMetadata.normalizedModelOutput}
+                </pre>
+              </div>
+            ) : null}
+          </div>
+        </details>
       ) : null}
     </div>
   );

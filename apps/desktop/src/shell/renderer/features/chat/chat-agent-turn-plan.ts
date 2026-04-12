@@ -1,7 +1,7 @@
 import { feedStreamEvent } from '../turns/stream-controller';
+import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import type {
-  AgentResolvedBeat,
-  AgentResolvedBeatActionEnvelope,
+  AgentResolvedMessageActionEnvelope,
   AgentResolvedModalityAction,
 } from './chat-agent-behavior';
 import type {
@@ -51,7 +51,7 @@ export type AgentLocalChatVoiceState =
     beatIndex: number;
     projectionMessageId: string;
     prompt: string;
-    sourceBeatId: string;
+    sourceMessageId: string;
     sourceActionId: string;
   }
   | {
@@ -62,7 +62,7 @@ export type AgentLocalChatVoiceState =
     prompt: string;
     transcriptText: string;
     message: string;
-    sourceBeatId: string;
+    sourceMessageId: string;
     workflowIntent: AgentVoiceWorkflowIntent;
     sourceActionId: string;
     metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
@@ -75,7 +75,7 @@ export type AgentLocalChatVoiceState =
     prompt: string;
     transcriptText: string;
     message: string;
-    sourceBeatId: string;
+    sourceMessageId: string;
     sourceActionId: string;
     workflowIntent?: AgentVoiceWorkflowIntent | null;
     metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
@@ -90,7 +90,7 @@ export type AgentLocalChatVoiceState =
     mediaUrl: string;
     mimeType: string;
     artifactId: string | null;
-    sourceBeatId: string;
+    sourceMessageId: string;
     sourceActionId: string;
     metadata?: AgentChatVoiceWorkflowMessageMetadata | null;
   };
@@ -101,18 +101,11 @@ export type AgentVoiceWorkflowIntent = {
   operation: string;
 };
 
-export type AgentLocalTextBeatState = {
-  beatId: string;
-  beatIndex: number;
+export type AgentLocalTextMessageState = {
+  messageId: string;
   projectionMessageId: string;
   text: string;
-};
-
-export type AgentLocalPlannedTextBeat = Pick<
-  AgentLocalTextBeatState,
-  'beatId' | 'beatIndex' | 'projectionMessageId'
-> & {
-  deliveryPhase: AgentResolvedBeat['deliveryPhase'];
+  metadataJson: JsonObject | null;
 };
 
 function normalizeText(value: unknown): string {
@@ -193,32 +186,21 @@ function resolveVoiceActionWorkflowIntent(
   throw new Error(`voice action ${action.actionId} declares unsupported operation ${action.operation}`);
 }
 
-export function resolvePlannedTextBeatsFromEnvelope(input: {
+export function resolveCompletedTextMessageStateFromEnvelope(input: {
   turnId: string;
-  envelope: AgentResolvedBeatActionEnvelope;
-}): AgentLocalPlannedTextBeat[] {
-  return input.envelope.beats.map((beat) => ({
-    beatId: `${input.turnId}:beat:${beat.beatIndex}`,
-    beatIndex: beat.beatIndex,
-    projectionMessageId: `${input.turnId}:message:${beat.beatIndex}`,
-    deliveryPhase: beat.deliveryPhase,
-  }));
-}
-
-export function resolveCompletedTextBeatStatesFromEnvelope(input: {
-  turnId: string;
-  envelope: AgentResolvedBeatActionEnvelope;
-}): AgentLocalTextBeatState[] {
-  return input.envelope.beats.map((beat) => ({
-    beatId: `${input.turnId}:beat:${beat.beatIndex}`,
-    beatIndex: beat.beatIndex,
-    projectionMessageId: `${input.turnId}:message:${beat.beatIndex}`,
-    text: beat.text,
-  }));
+  envelope: AgentResolvedMessageActionEnvelope;
+  metadataJson?: JsonObject | null;
+}): AgentLocalTextMessageState {
+  return {
+    messageId: input.envelope.message.messageId,
+    projectionMessageId: `${input.turnId}:message:0`,
+    text: input.envelope.message.text,
+    metadataJson: input.metadataJson ?? null,
+  };
 }
 
 export function findSingleExecutableImageAction(
-  envelope: AgentResolvedBeatActionEnvelope,
+  envelope: AgentResolvedMessageActionEnvelope,
 ): AgentResolvedModalityAction | null {
   const imageActions = envelope.actions.filter((action) => action.modality === 'image');
   if (imageActions.length === 0) {
@@ -231,7 +213,7 @@ export function findSingleExecutableImageAction(
 }
 
 export function findSingleExecutableVoiceAction(
-  envelope: AgentResolvedBeatActionEnvelope,
+  envelope: AgentResolvedMessageActionEnvelope,
 ): AgentResolvedModalityAction | null {
   const voiceActions = envelope.actions.filter((action) => action.modality === 'voice');
   if (voiceActions.length === 0) {
@@ -243,14 +225,27 @@ export function findSingleExecutableVoiceAction(
   return voiceActions[0] || null;
 }
 
+export function findSingleExecutableFollowUpAction(
+  envelope: AgentResolvedMessageActionEnvelope,
+): AgentResolvedModalityAction | null {
+  const followUpActions = envelope.actions.filter((action) => action.modality === 'follow-up-turn');
+  if (followUpActions.length === 0) {
+    return null;
+  }
+  if (followUpActions.length > 1) {
+    throw new Error('agent-local-chat-v1 admits at most one follow-up-turn action per turn');
+  }
+  return followUpActions[0] || null;
+}
+
 export function resolveImageStateFromResolvedAction(input: {
   turnId: string;
   action: AgentResolvedModalityAction;
-  textBeatCount: number;
+  textMessageCount: number;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   imageExecutionSnapshot: AISnapshot | null;
 }): AgentLocalChatImageState {
-  const beatIndex = input.textBeatCount + input.action.actionIndex;
+  const beatIndex = input.textMessageCount + input.action.actionIndex;
   const storageBeatId = `${input.turnId}:beat:${beatIndex}`;
   const projectionMessageId = `${input.turnId}:message:${beatIndex}`;
   const prompt = input.action.promptPayload.kind === 'image-prompt'
@@ -298,13 +293,13 @@ export function resolveImageStateFromResolvedAction(input: {
 export function resolveVoiceStateFromResolvedAction(input: {
   turnId: string;
   action: AgentResolvedModalityAction;
-  textBeatCount: number;
+  textMessageCount: number;
   transcriptText: string;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   voiceExecutionSnapshot: AISnapshot | null;
   voiceWorkflowExecutionSnapshotByCapability: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>>;
 }): AgentLocalChatVoiceState {
-  const beatIndex = input.textBeatCount + input.action.actionIndex;
+  const beatIndex = input.textMessageCount + input.action.actionIndex;
   const storageBeatId = `${input.turnId}:beat:${beatIndex}`;
   const projectionMessageId = `${input.turnId}:message:${beatIndex}`;
   const prompt = input.action.promptPayload.kind === 'voice-prompt'
@@ -332,7 +327,7 @@ export function resolveVoiceStateFromResolvedAction(input: {
       projectionMessageId,
       prompt,
       transcriptText,
-      sourceBeatId: input.action.sourceBeatId,
+      sourceMessageId: input.action.sourceMessageId,
       sourceActionId: input.action.actionId,
       message: !workflowProjection?.selectedBinding
         ? `${workflowLabel} is unavailable because no workflow route is configured.`
@@ -347,7 +342,7 @@ export function resolveVoiceStateFromResolvedAction(input: {
       projectionMessageId,
       prompt,
       transcriptText,
-      sourceBeatId: input.action.sourceBeatId,
+      sourceMessageId: input.action.sourceMessageId,
       sourceActionId: input.action.actionId,
       message: `${workflowLabel} started in the current thread.`,
       workflowIntent,
@@ -364,7 +359,7 @@ export function resolveVoiceStateFromResolvedAction(input: {
       projectionMessageId,
       prompt,
       transcriptText,
-      sourceBeatId: input.action.sourceBeatId,
+      sourceMessageId: input.action.sourceMessageId,
       sourceActionId: input.action.actionId,
       message: !voiceProjection?.selectedBinding
         ? 'Voice playback is unavailable because no voice route is configured.'
@@ -378,7 +373,7 @@ export function resolveVoiceStateFromResolvedAction(input: {
     beatIndex,
     projectionMessageId,
     prompt,
-    sourceBeatId: input.action.sourceBeatId,
+    sourceMessageId: input.action.sourceMessageId,
     sourceActionId: input.action.actionId,
   };
 }

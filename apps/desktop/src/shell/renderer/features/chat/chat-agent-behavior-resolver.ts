@@ -1,15 +1,13 @@
 import {
-  AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
+  AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
 } from './chat-agent-behavior';
 import type {
-  AgentResolvedBeat,
-  AgentResolvedBeatActionEnvelope,
-  AgentResolvedBeatPlan,
   AgentResolvedBehavior,
   AgentResolvedExperiencePolicy,
+  AgentResolvedMessage,
+  AgentResolvedMessageActionEnvelope,
   AgentResolvedModalityAction,
   AgentResolvedModalityActionPromptPayload,
-  AgentResolvedTextBeat,
   AgentResolvedTurnMode,
 } from './chat-agent-behavior';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
@@ -21,27 +19,100 @@ const INTIMATE_RE = /亲|抱|想你|暧昧|恋人|喜欢你|爱你|想抱你|亲
 const EXPLICIT_MEDIA_RE = /发图|来张图|发一张|看看你|照片|图片|视频|发个视频|自拍|给我看/u;
 const EXPLICIT_VOICE_RE = /语音|说话|声音|读给我听|直接说|用语音/u;
 const CHECKIN_RE = /^(在吗|早安|晚安|想你了|喂|hi|hello|hey|你好|嗨)[\s!,.?？！，。~]*$/iu;
-const AGENT_BEAT_INTENTS: ReadonlySet<AgentResolvedBeat['intent']> = new Set([
-  'reply',
-  'follow-up',
-  'comfort',
-  'checkin',
-  'media-request',
-  'voice-request',
-]);
-const AGENT_DELIVERY_PHASES: ReadonlySet<AgentResolvedBeat['deliveryPhase']> = new Set([
-  'primary',
-  'tail',
-]);
+
 const AGENT_ACTION_MODALITIES: ReadonlySet<AgentResolvedModalityAction['modality']> = new Set([
   'image',
   'voice',
   'video',
+  'follow-up-turn',
 ]);
 const AGENT_ACTION_DELIVERY_COUPLINGS: ReadonlySet<AgentResolvedModalityAction['deliveryCoupling']> = new Set([
-  'after-source-beat',
-  'with-source-beat',
+  'after-message',
+  'with-message',
 ]);
+const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
+  'strict-json',
+  'json-fenced',
+  'json-wrapper',
+  'plain-text',
+  'partial-json',
+  'invalid-json',
+] as const;
+const AGENT_MODEL_OUTPUT_RECOVERY_PATHS = [
+  'none',
+  'strip-fence',
+  'extract-json-object',
+  'plain-text-envelope',
+] as const;
+
+export type AgentModelOutputClassification = (typeof AGENT_MODEL_OUTPUT_CLASSIFICATIONS)[number];
+export type AgentModelOutputRecoveryPath = (typeof AGENT_MODEL_OUTPUT_RECOVERY_PATHS)[number];
+export type AgentPromptContextWindowSource = 'route-profile' | 'default-estimate';
+export type AgentModelOutputUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+};
+export type AgentImageExecutionDiagnostics = {
+  textPlanningMs: number | null;
+  imageJobSubmitMs: number | null;
+  imageLoadMs: number | null;
+  imageGenerateMs: number | null;
+  artifactHydrateMs: number | null;
+  queueWaitMs: number | null;
+  loadCacheHit: boolean | null;
+  residentReused: boolean | null;
+  residentRestarted: boolean | null;
+  queueSerialized: boolean | null;
+  profileOverrideStep: number | null;
+  profileOverrideCfgScale: number | null;
+  profileOverrideSampler: string | null;
+  profileOverrideScheduler: string | null;
+};
+export type AgentModelOutputDiagnostics = {
+  classification: AgentModelOutputClassification;
+  recoveryPath: AgentModelOutputRecoveryPath;
+  suspectedTruncation: boolean;
+  parseErrorDetail: string | null;
+  rawOutputChars: number;
+  normalizedOutputChars: number;
+  finishReason: string | null;
+  traceId: string | null;
+  promptTraceId: string | null;
+  usage: AgentModelOutputUsage | null;
+  contextWindowSource: AgentPromptContextWindowSource;
+  maxOutputTokensRequested: number | null;
+  promptOverflow: boolean;
+  requestPrompt: string | null;
+  requestSystemPrompt: string | null;
+  rawModelOutputText: string | null;
+  normalizedModelOutputText: string | null;
+  image?: AgentImageExecutionDiagnostics | null;
+};
+export type ResolveAgentModelOutputEnvelopeInput = {
+  modelOutput: string;
+  requestPrompt?: string | null;
+  requestSystemPrompt?: string | null;
+  finishReason?: string | null;
+  trace?: {
+    traceId?: string | null;
+    promptTraceId?: string | null;
+  } | null;
+  usage?: AgentModelOutputUsage;
+  contextWindowSource: AgentPromptContextWindowSource;
+  maxOutputTokensRequested?: number | null;
+  promptOverflow: boolean;
+};
+export type ResolveAgentModelOutputEnvelopeResult =
+  | {
+    ok: true;
+    envelope: AgentResolvedMessageActionEnvelope;
+    diagnostics: AgentModelOutputDiagnostics;
+  }
+  | {
+    ok: false;
+    diagnostics: AgentModelOutputDiagnostics;
+  };
 
 export function resolveAgentTurnMode(userText: string): AgentResolvedTurnMode {
   const text = String(userText || '').trim();
@@ -62,39 +133,6 @@ export function resolveAgentExperiencePolicy(input: {
     contentBoundary: input.turnMode === 'explicit-media' ? 'explicit-media-request' : 'default',
     autonomyPolicy: 'guarded',
   };
-}
-
-function createBeat(input: {
-  beatIndex: number;
-  beatCount: number;
-  intent: AgentResolvedBeat['intent'];
-  deliveryPhase: AgentResolvedBeat['deliveryPhase'];
-  delayMs?: number;
-}): AgentResolvedBeat {
-  return {
-    beatId: `behavior-beat:${input.beatIndex}`,
-    beatIndex: input.beatIndex,
-    beatCount: input.beatCount,
-    intent: input.intent,
-    deliveryPhase: input.deliveryPhase,
-    ...(input.delayMs ? { delayMs: input.delayMs } : {}),
-  };
-}
-
-function resolvePrimaryBeatIntent(turnMode: AgentResolvedTurnMode): AgentResolvedBeat['intent'] {
-  if (turnMode === 'explicit-media') {
-    return 'media-request';
-  }
-  if (turnMode === 'explicit-voice') {
-    return 'voice-request';
-  }
-  if (turnMode === 'emotional') {
-    return 'comfort';
-  }
-  if (turnMode === 'checkin') {
-    return 'checkin';
-  }
-  return 'reply';
 }
 
 function parseRecord(value: unknown, label: string): Record<string, unknown> {
@@ -128,38 +166,12 @@ function parsePositiveInteger(value: unknown, label: string): number {
   return normalized;
 }
 
-function normalizeMirroredCount(
-  value: unknown,
-  expectedCount: number,
-): number {
+function normalizeMirroredCount(value: unknown, expectedCount: number): number {
   const normalized = Number(value);
   if (Number.isInteger(normalized) && normalized > 0 && normalized === expectedCount) {
     return normalized;
   }
   return expectedCount;
-}
-
-function parseBeatIntent(value: unknown, label: string): AgentResolvedBeat['intent'] {
-  const intent = parseTrimmedString(value, label) as AgentResolvedBeat['intent'];
-  if (!AGENT_BEAT_INTENTS.has(intent)) {
-    throw new Error(`${label} is invalid`);
-  }
-  return intent;
-}
-
-function parseDeliveryPhase(value: unknown, label: string): AgentResolvedBeat['deliveryPhase'] {
-  const deliveryPhase = parseTrimmedString(value, label) as AgentResolvedBeat['deliveryPhase'];
-  if (!AGENT_DELIVERY_PHASES.has(deliveryPhase)) {
-    throw new Error(`${label} is invalid`);
-  }
-  return deliveryPhase;
-}
-
-function parseOptionalPositiveDelayMs(value: unknown, label: string): number | undefined {
-  if (value === null || value === undefined || value === '') {
-    return undefined;
-  }
-  return parsePositiveInteger(value, label);
 }
 
 function parseActionModality(value: unknown, label: string): AgentResolvedModalityAction['modality'] {
@@ -174,10 +186,7 @@ function parseActionDeliveryCoupling(
   value: unknown,
   label: string,
 ): AgentResolvedModalityAction['deliveryCoupling'] {
-  const deliveryCoupling = parseTrimmedString(
-    value,
-    label,
-  ) as AgentResolvedModalityAction['deliveryCoupling'];
+  const deliveryCoupling = parseTrimmedString(value, label) as AgentResolvedModalityAction['deliveryCoupling'];
   if (!AGENT_ACTION_DELIVERY_COUPLINGS.has(deliveryCoupling)) {
     throw new Error(`${label} is invalid`);
   }
@@ -192,55 +201,40 @@ function parsePromptPayload(
   const record = parseRecord(value, label);
   const kind = parseTrimmedString(record.kind, `${label}.kind`);
   const promptText = parseTrimmedString(record.promptText, `${label}.promptText`);
-  const expectedKind = modality === 'image'
-    ? 'image-prompt'
-    : modality === 'voice'
-      ? 'voice-prompt'
-      : 'video-prompt';
-  if (kind !== expectedKind) {
-    throw new Error(`${label}.kind must match modality ${modality}`);
+  if (modality === 'image') {
+    if (kind !== 'image-prompt') {
+      throw new Error(`${label}.kind must match modality image`);
+    }
+    return { kind, promptText };
+  }
+  if (modality === 'voice') {
+    if (kind !== 'voice-prompt') {
+      throw new Error(`${label}.kind must match modality voice`);
+    }
+    return { kind, promptText };
+  }
+  if (modality === 'video') {
+    if (kind !== 'video-prompt') {
+      throw new Error(`${label}.kind must match modality video`);
+    }
+    return { kind, promptText };
+  }
+  if (kind !== 'follow-up-turn') {
+    throw new Error(`${label}.kind must match modality follow-up-turn`);
   }
   return {
-    kind: expectedKind,
+    kind,
     promptText,
+    delayMs: parsePositiveInteger(record.delayMs, `${label}.delayMs`),
   };
 }
 
-function parseResolvedTextBeat(
-  value: unknown,
-  beatArrayIndex: number,
-  beatCount: number,
-): AgentResolvedTextBeat {
-  const record = parseRecord(value, `beats[${beatArrayIndex}]`);
-  const beat = {
-    beatId: parseTrimmedString(record.beatId, `beats[${beatArrayIndex}].beatId`),
-    beatIndex: parseNonNegativeInteger(record.beatIndex, `beats[${beatArrayIndex}].beatIndex`),
-    beatCount: normalizeMirroredCount(record.beatCount, beatCount),
-    intent: parseBeatIntent(record.intent, `beats[${beatArrayIndex}].intent`),
-    deliveryPhase: parseDeliveryPhase(record.deliveryPhase, `beats[${beatArrayIndex}].deliveryPhase`),
-    text: parseTrimmedString(record.text, `beats[${beatArrayIndex}].text`),
-    delayMs: parseOptionalPositiveDelayMs(record.delayMs, `beats[${beatArrayIndex}].delayMs`),
-  } satisfies AgentResolvedTextBeat;
-
-  if (beat.beatIndex !== beatArrayIndex) {
-    throw new Error(`beats[${beatArrayIndex}].beatIndex must equal ${beatArrayIndex}`);
-  }
-  if (beat.beatCount !== beatCount) {
-    throw new Error(`beats[${beatArrayIndex}].beatCount must equal ${beatCount}`);
-  }
-  if (beatArrayIndex === 0 && beat.deliveryPhase !== 'primary') {
-    throw new Error('beats[0].deliveryPhase must be primary');
-  }
-  if (beatArrayIndex > 0 && beat.deliveryPhase !== 'tail') {
-    throw new Error(`beats[${beatArrayIndex}].deliveryPhase must be tail`);
-  }
-  if (beat.deliveryPhase === 'tail' && beat.delayMs === undefined) {
-    throw new Error(`beats[${beatArrayIndex}].delayMs is required for delayed tail beats`);
-  }
-  if (beat.deliveryPhase === 'primary' && beat.delayMs !== undefined) {
-    throw new Error(`beats[${beatArrayIndex}].delayMs is not allowed on the primary beat`);
-  }
-  return beat;
+function parseResolvedMessage(value: unknown): AgentResolvedMessage {
+  const record = parseRecord(value, 'message');
+  return {
+    messageId: parseTrimmedString(record.messageId, 'message.messageId'),
+    text: parseTrimmedString(record.text, 'message.text'),
+  };
 }
 
 function parseResolvedModalityAction(
@@ -257,14 +251,12 @@ function parseResolvedModalityAction(
     modality,
     operation: parseTrimmedString(record.operation, `actions[${actionArrayIndex}].operation`),
     promptPayload: parsePromptPayload(record.promptPayload, modality, `actions[${actionArrayIndex}].promptPayload`),
-    sourceBeatId: parseTrimmedString(record.sourceBeatId, `actions[${actionArrayIndex}].sourceBeatId`),
-    sourceBeatIndex: parseNonNegativeInteger(record.sourceBeatIndex, `actions[${actionArrayIndex}].sourceBeatIndex`),
+    sourceMessageId: parseTrimmedString(record.sourceMessageId, `actions[${actionArrayIndex}].sourceMessageId`),
     deliveryCoupling: parseActionDeliveryCoupling(
       record.deliveryCoupling,
       `actions[${actionArrayIndex}].deliveryCoupling`,
     ),
   } satisfies AgentResolvedModalityAction;
-
   if (action.actionIndex !== actionArrayIndex) {
     throw new Error(`actions[${actionArrayIndex}].actionIndex must equal ${actionArrayIndex}`);
   }
@@ -277,14 +269,11 @@ function parseResolvedModalityAction(
 function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedModalityAction[]): void {
   let imageActionCount = 0;
   let voiceActionCount = 0;
+  let followUpActionCount = 0;
   for (const action of actions) {
-    if (action.modality === 'image') {
-      imageActionCount += 1;
-      continue;
-    }
-    if (action.modality === 'voice') {
-      voiceActionCount += 1;
-    }
+    if (action.modality === 'image') imageActionCount += 1;
+    if (action.modality === 'voice') voiceActionCount += 1;
+    if (action.modality === 'follow-up-turn') followUpActionCount += 1;
   }
   if (imageActionCount > 1) {
     throw new Error('agent-local-chat-v1 admits at most one image action in phase 0');
@@ -292,38 +281,517 @@ function validatePhaseOneActionEnvelopeLimits(actions: readonly AgentResolvedMod
   if (voiceActionCount > 1) {
     throw new Error('agent-local-chat-v1 admits at most one voice action in phase 1');
   }
+  if (followUpActionCount > 1) {
+    throw new Error('agent-local-chat-v1 admits at most one follow-up-turn action per turn');
+  }
 }
 
-/**
- * When a small model returns plain text instead of the required JSON envelope,
- * wrap the text in a minimal single-beat envelope with no modality actions.
- * Returns null if the output looks like a failed JSON attempt (starts with { or [).
- */
-export function recoverPlainTextAsEnvelope(rawModelOutput: string): AgentResolvedBeatActionEnvelope | null {
+function parseAgentResolvedMessageActionEnvelopeFromPayload(payload: unknown): AgentResolvedMessageActionEnvelope {
+  const record = parseRecord(payload, 'agent model output message-action envelope');
+  const schemaId = parseTrimmedString(record.schemaId, 'schemaId');
+  if (schemaId !== AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID) {
+    throw new Error(`schemaId must equal ${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}`);
+  }
+  if (!record.message) {
+    throw new Error('message is required');
+  }
+  if (!Array.isArray(record.actions)) {
+    throw new Error('actions must be an array');
+  }
+
+  const message = parseResolvedMessage(record.message);
+  const actionValues = record.actions as unknown[];
+  const actions = actionValues.map((action, index) => parseResolvedModalityAction(action, index, actionValues.length));
+  const actionIds = new Set<string>();
+  for (const action of actions) {
+    if (actionIds.has(action.actionId)) {
+      throw new Error(`duplicate actionId: ${action.actionId}`);
+    }
+    actionIds.add(action.actionId);
+    if (action.sourceMessageId !== message.messageId) {
+      throw new Error(`action ${action.actionId} source message reference is inconsistent`);
+    }
+    if (action.modality === 'follow-up-turn' && action.operation !== 'assistant.turn.schedule') {
+      throw new Error(`follow-up-turn action ${action.actionId} must use assistant.turn.schedule`);
+    }
+  }
+  validatePhaseOneActionEnvelopeLimits(actions);
+  return {
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message,
+    actions,
+  };
+}
+
+function normalizeModelOutputText(value: unknown): string {
+  return String(value || '')
+    .replace(/^\uFEFF+/u, '')
+    .replace(/\r\n?/gu, '\n')
+    .trim();
+}
+
+function normalizeOptionalPositiveInteger(value: unknown): number | null {
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized <= 0) {
+    return null;
+  }
+  return normalized;
+}
+
+function normalizeNullableText(value: unknown): string | null {
+  const normalized = String(value || '').trim();
+  return normalized || null;
+}
+
+function normalizeUsage(value: AgentModelOutputUsage | undefined): AgentModelOutputUsage | null {
+  if (!value) {
+    return null;
+  }
+  const inputTokens = Number(value.inputTokens);
+  const outputTokens = Number(value.outputTokens);
+  const totalTokens = Number(value.totalTokens);
+  const normalized: AgentModelOutputUsage = {};
+  if (Number.isFinite(inputTokens) && inputTokens >= 0) normalized.inputTokens = inputTokens;
+  if (Number.isFinite(outputTokens) && outputTokens >= 0) normalized.outputTokens = outputTokens;
+  if (Number.isFinite(totalTokens) && totalTokens >= 0) normalized.totalTokens = totalTokens;
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+function normalizeOptionalNonNegativeNumber(value: unknown): number | null {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) && normalized >= 0 ? normalized : null;
+}
+
+function normalizeOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null;
+}
+
+function parseAgentImageExecutionDiagnostics(value: unknown): AgentImageExecutionDiagnostics | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const diagnostics: AgentImageExecutionDiagnostics = {
+    textPlanningMs: normalizeOptionalNonNegativeNumber(record.textPlanningMs),
+    imageJobSubmitMs: normalizeOptionalNonNegativeNumber(record.imageJobSubmitMs),
+    imageLoadMs: normalizeOptionalNonNegativeNumber(record.imageLoadMs),
+    imageGenerateMs: normalizeOptionalNonNegativeNumber(record.imageGenerateMs),
+    artifactHydrateMs: normalizeOptionalNonNegativeNumber(record.artifactHydrateMs),
+    queueWaitMs: normalizeOptionalNonNegativeNumber(record.queueWaitMs),
+    loadCacheHit: normalizeOptionalBoolean(record.loadCacheHit),
+    residentReused: normalizeOptionalBoolean(record.residentReused),
+    residentRestarted: normalizeOptionalBoolean(record.residentRestarted),
+    queueSerialized: normalizeOptionalBoolean(record.queueSerialized),
+    profileOverrideStep: normalizeOptionalNonNegativeNumber(record.profileOverrideStep),
+    profileOverrideCfgScale: normalizeOptionalNonNegativeNumber(record.profileOverrideCfgScale),
+    profileOverrideSampler: normalizeNullableText(record.profileOverrideSampler),
+    profileOverrideScheduler: normalizeNullableText(record.profileOverrideScheduler),
+  };
+  return Object.values(diagnostics).some((entry) => entry !== null) ? diagnostics : null;
+}
+
+function buildAgentModelOutputDiagnostics(input: {
+  classification: AgentModelOutputClassification;
+  recoveryPath: AgentModelOutputRecoveryPath;
+  suspectedTruncation: boolean;
+  parseErrorDetail?: string | null;
+  rawModelOutput: string;
+  normalizedModelOutput: string;
+  requestPrompt?: string | null;
+  requestSystemPrompt?: string | null;
+  finishReason?: string | null;
+  trace?: {
+    traceId?: string | null;
+    promptTraceId?: string | null;
+  } | null;
+  usage?: AgentModelOutputUsage;
+  contextWindowSource: AgentPromptContextWindowSource;
+  maxOutputTokensRequested?: number | null;
+  promptOverflow: boolean;
+}): AgentModelOutputDiagnostics {
+  return {
+    classification: input.classification,
+    recoveryPath: input.recoveryPath,
+    suspectedTruncation: input.suspectedTruncation,
+    parseErrorDetail: normalizeNullableText(input.parseErrorDetail),
+    rawOutputChars: String(input.rawModelOutput || '').length,
+    normalizedOutputChars: String(input.normalizedModelOutput || '').length,
+    finishReason: normalizeNullableText(input.finishReason),
+    traceId: normalizeNullableText(input.trace?.traceId),
+    promptTraceId: normalizeNullableText(input.trace?.promptTraceId),
+    usage: normalizeUsage(input.usage),
+    contextWindowSource: input.contextWindowSource,
+    maxOutputTokensRequested: normalizeOptionalPositiveInteger(input.maxOutputTokensRequested),
+    promptOverflow: Boolean(input.promptOverflow),
+    requestPrompt: normalizeNullableText(input.requestPrompt),
+    requestSystemPrompt: normalizeNullableText(input.requestSystemPrompt),
+    rawModelOutputText: typeof input.rawModelOutput === 'string' ? input.rawModelOutput : null,
+    normalizedModelOutputText: typeof input.normalizedModelOutput === 'string' ? input.normalizedModelOutput : null,
+    image: null,
+  };
+}
+
+function stripFencedJsonBlock(rawModelOutput: string): string | null {
+  const match = rawModelOutput.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/iu);
+  if (!match) {
+    return null;
+  }
+  return normalizeModelOutputText(match[1] || '');
+}
+
+function extractSingleWrappedJsonObject(rawModelOutput: string): string | null {
+  let startIndex = -1;
+  let curlyDepth = 0;
+  let squareDepth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < rawModelOutput.length; index += 1) {
+    const char = rawModelOutput[index];
+    if (startIndex === -1) {
+      if (char === '{') {
+        startIndex = index;
+        curlyDepth = 1;
+      }
+      continue;
+    }
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === '{') {
+      curlyDepth += 1;
+      continue;
+    }
+    if (char === '}') {
+      curlyDepth -= 1;
+      if (curlyDepth === 0 && squareDepth === 0) {
+        const before = rawModelOutput.slice(0, startIndex).trim();
+        const after = rawModelOutput.slice(index + 1).trim();
+        if (!before && !after) {
+          return null;
+        }
+        return normalizeModelOutputText(rawModelOutput.slice(startIndex, index + 1));
+      }
+      continue;
+    }
+    if (char === '[') {
+      squareDepth += 1;
+      continue;
+    }
+    if (char === ']') {
+      squareDepth = Math.max(0, squareDepth - 1);
+    }
+  }
+  return null;
+}
+
+function hasUnbalancedJsonDelimiters(rawModelOutput: string): boolean {
+  let curlyDepth = 0;
+  let squareDepth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of rawModelOutput) {
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === '{') {
+      curlyDepth += 1;
+      continue;
+    }
+    if (char === '}') {
+      curlyDepth -= 1;
+      continue;
+    }
+    if (char === '[') {
+      squareDepth += 1;
+      continue;
+    }
+    if (char === ']') {
+      squareDepth -= 1;
+    }
+  }
+  return curlyDepth !== 0 || squareDepth !== 0;
+}
+
+function looksLikeJsonAttempt(rawModelOutput: string): boolean {
+  return rawModelOutput.startsWith('{')
+    || rawModelOutput.startsWith('[')
+    || rawModelOutput.startsWith('```')
+    || rawModelOutput.includes('{"schemaId"')
+    || rawModelOutput.includes('"schemaId"');
+}
+
+function isLikelyPartialJsonDetail(detail: string): boolean {
+  const normalized = String(detail || '').trim().toLowerCase();
+  return normalized.includes('unexpected end of json input')
+    || normalized.includes('unexpected end of input')
+    || normalized.includes("expected '}'")
+    || normalized.includes("expected ']'")
+    || normalized.includes('end of json input');
+}
+
+function classifyJsonFailure(rawModelOutput: string, detail: string): AgentModelOutputClassification {
+  if (isLikelyPartialJsonDetail(detail) || hasUnbalancedJsonDelimiters(rawModelOutput)) {
+    return 'partial-json';
+  }
+  return looksLikeJsonAttempt(rawModelOutput) ? 'invalid-json' : 'invalid-json';
+}
+
+function tryParseEnvelopeCandidate(rawModelOutput: string): {
+  envelope: AgentResolvedMessageActionEnvelope | null;
+  parseErrorDetail: string | null;
+} {
+  try {
+    const payload = JSON.parse(rawModelOutput) as unknown;
+    return {
+      envelope: parseAgentResolvedMessageActionEnvelopeFromPayload(payload),
+      parseErrorDetail: null,
+    };
+  } catch (error) {
+    return {
+      envelope: null,
+      parseErrorDetail: error instanceof Error ? error.message : String(error || 'invalid JSON'),
+    };
+  }
+}
+
+export function parseAgentModelOutputDiagnostics(value: unknown): AgentModelOutputDiagnostics | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const classification = normalizeNullableText(record.classification) as AgentModelOutputClassification | null;
+  const recoveryPath = normalizeNullableText(record.recoveryPath) as AgentModelOutputRecoveryPath | null;
+  const contextWindowSource = normalizeNullableText(record.contextWindowSource) as AgentPromptContextWindowSource | null;
+  if (
+    !classification
+    || !AGENT_MODEL_OUTPUT_CLASSIFICATIONS.includes(classification)
+    || !recoveryPath
+    || !AGENT_MODEL_OUTPUT_RECOVERY_PATHS.includes(recoveryPath)
+    || !contextWindowSource
+    || (contextWindowSource !== 'route-profile' && contextWindowSource !== 'default-estimate')
+  ) {
+    return null;
+  }
+  return {
+    classification,
+    recoveryPath,
+    suspectedTruncation: record.suspectedTruncation === true,
+    parseErrorDetail: normalizeNullableText(record.parseErrorDetail),
+    rawOutputChars: Math.max(0, Number(record.rawOutputChars) || 0),
+    normalizedOutputChars: Math.max(0, Number(record.normalizedOutputChars) || 0),
+    finishReason: normalizeNullableText(record.finishReason),
+    traceId: normalizeNullableText(record.traceId),
+    promptTraceId: normalizeNullableText(record.promptTraceId),
+    usage: normalizeUsage(record.usage as AgentModelOutputUsage | undefined),
+    contextWindowSource,
+    maxOutputTokensRequested: normalizeOptionalPositiveInteger(record.maxOutputTokensRequested),
+    promptOverflow: record.promptOverflow === true,
+    requestPrompt: normalizeNullableText(record.requestPrompt),
+    requestSystemPrompt: normalizeNullableText(record.requestSystemPrompt),
+    rawModelOutputText: normalizeNullableText(record.rawModelOutputText),
+    normalizedModelOutputText: normalizeNullableText(record.normalizedModelOutputText),
+    image: parseAgentImageExecutionDiagnostics(record.image),
+  };
+}
+
+export function toAgentModelOutputTurnError(
+  diagnostics: AgentModelOutputDiagnostics,
+): { code: string; message: string } {
+  if (diagnostics.suspectedTruncation) {
+    return {
+      code: 'AGENT_OUTPUT_INVALID',
+      message: 'Agent response was truncated before the structured reply completed.',
+    };
+  }
+  return {
+    code: 'AGENT_OUTPUT_INVALID',
+    message: 'Agent response format was invalid.',
+  };
+}
+
+export function recoverPlainTextAsEnvelope(rawModelOutput: string): AgentResolvedMessageActionEnvelope | null {
   const text = rawModelOutput.trim();
   if (!text || text.startsWith('{') || text.startsWith('[') || text.startsWith('`')) {
     return null;
   }
   return {
-    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
-    beats: [
-      {
-        beatId: 'behavior-beat:0',
-        beatIndex: 0,
-        beatCount: 1,
-        intent: 'reply',
-        deliveryPhase: 'primary',
-        text,
-      },
-    ],
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message: {
+      messageId: 'message-0',
+      text,
+    },
     actions: [],
   };
 }
 
-export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): AgentResolvedBeatActionEnvelope {
+export function resolveAgentModelOutputEnvelope(
+  input: ResolveAgentModelOutputEnvelopeInput,
+): ResolveAgentModelOutputEnvelopeResult {
+  const rawModelOutput = String(input.modelOutput || '');
+  const normalizedModelOutput = normalizeModelOutputText(rawModelOutput);
+  const strictCandidate = tryParseEnvelopeCandidate(normalizedModelOutput);
+  if (strictCandidate.envelope) {
+    return {
+      ok: true,
+      envelope: strictCandidate.envelope,
+      diagnostics: buildAgentModelOutputDiagnostics({
+        classification: 'strict-json',
+        recoveryPath: 'none',
+        suspectedTruncation: false,
+        rawModelOutput,
+        normalizedModelOutput,
+        finishReason: input.finishReason,
+        trace: input.trace,
+        usage: input.usage,
+        contextWindowSource: input.contextWindowSource,
+        maxOutputTokensRequested: input.maxOutputTokensRequested,
+        promptOverflow: input.promptOverflow,
+        requestPrompt: input.requestPrompt,
+        requestSystemPrompt: input.requestSystemPrompt,
+      }),
+    };
+  }
+
+  const fencedCandidateText = stripFencedJsonBlock(normalizedModelOutput);
+  if (fencedCandidateText) {
+    const fencedCandidate = tryParseEnvelopeCandidate(fencedCandidateText);
+    if (fencedCandidate.envelope) {
+      return {
+        ok: true,
+        envelope: fencedCandidate.envelope,
+        diagnostics: buildAgentModelOutputDiagnostics({
+          classification: 'json-fenced',
+          recoveryPath: 'strip-fence',
+          suspectedTruncation: false,
+          rawModelOutput,
+          normalizedModelOutput,
+          finishReason: input.finishReason,
+          trace: input.trace,
+          usage: input.usage,
+          contextWindowSource: input.contextWindowSource,
+          maxOutputTokensRequested: input.maxOutputTokensRequested,
+          promptOverflow: input.promptOverflow,
+          requestPrompt: input.requestPrompt,
+          requestSystemPrompt: input.requestSystemPrompt,
+        }),
+      };
+    }
+  }
+
+  const wrappedJsonObject = extractSingleWrappedJsonObject(normalizedModelOutput);
+  if (wrappedJsonObject) {
+    const wrappedCandidate = tryParseEnvelopeCandidate(wrappedJsonObject);
+    if (wrappedCandidate.envelope) {
+      return {
+        ok: true,
+        envelope: wrappedCandidate.envelope,
+        diagnostics: buildAgentModelOutputDiagnostics({
+          classification: 'json-wrapper',
+          recoveryPath: 'extract-json-object',
+          suspectedTruncation: false,
+          rawModelOutput,
+          normalizedModelOutput,
+          finishReason: input.finishReason,
+          trace: input.trace,
+          usage: input.usage,
+          contextWindowSource: input.contextWindowSource,
+          maxOutputTokensRequested: input.maxOutputTokensRequested,
+          promptOverflow: input.promptOverflow,
+          requestPrompt: input.requestPrompt,
+          requestSystemPrompt: input.requestSystemPrompt,
+        }),
+      };
+    }
+  }
+
+  const plainTextEnvelope = recoverPlainTextAsEnvelope(normalizedModelOutput);
+  if (plainTextEnvelope) {
+    return {
+      ok: true,
+      envelope: plainTextEnvelope,
+      diagnostics: buildAgentModelOutputDiagnostics({
+        classification: 'plain-text',
+        recoveryPath: 'plain-text-envelope',
+        suspectedTruncation: false,
+        rawModelOutput,
+        normalizedModelOutput,
+        finishReason: input.finishReason,
+        trace: input.trace,
+        usage: input.usage,
+        contextWindowSource: input.contextWindowSource,
+        maxOutputTokensRequested: input.maxOutputTokensRequested,
+        promptOverflow: input.promptOverflow,
+        requestPrompt: input.requestPrompt,
+        requestSystemPrompt: input.requestSystemPrompt,
+      }),
+    };
+  }
+
+  const parseErrorDetail = normalizeNullableText(strictCandidate.parseErrorDetail)
+    || normalizeNullableText(
+      fencedCandidateText ? tryParseEnvelopeCandidate(fencedCandidateText).parseErrorDetail : null,
+    )
+    || normalizeNullableText(
+      wrappedJsonObject ? tryParseEnvelopeCandidate(wrappedJsonObject).parseErrorDetail : null,
+    );
+  const suspectedTruncation = normalizeNullableText(input.finishReason) === 'length'
+    || Boolean(parseErrorDetail && isLikelyPartialJsonDetail(parseErrorDetail))
+    || hasUnbalancedJsonDelimiters(normalizedModelOutput);
+  return {
+    ok: false,
+    diagnostics: buildAgentModelOutputDiagnostics({
+      classification: classifyJsonFailure(normalizedModelOutput, parseErrorDetail || 'invalid JSON'),
+      recoveryPath: 'none',
+      suspectedTruncation,
+      parseErrorDetail,
+      rawModelOutput,
+      normalizedModelOutput,
+      finishReason: input.finishReason,
+      trace: input.trace,
+      usage: input.usage,
+      contextWindowSource: input.contextWindowSource,
+      maxOutputTokensRequested: input.maxOutputTokensRequested,
+      promptOverflow: input.promptOverflow,
+      requestPrompt: input.requestPrompt,
+      requestSystemPrompt: input.requestSystemPrompt,
+    }),
+  };
+}
+
+export function parseAgentResolvedMessageActionEnvelope(modelOutput: string): AgentResolvedMessageActionEnvelope {
   const raw = String(modelOutput || '').trim();
   if (!raw) {
-    throw new Error('Agent model output beat-action envelope is required');
+    throw new Error('Agent model output message-action envelope is required');
   }
   let payload: unknown;
   try {
@@ -338,111 +806,11 @@ export function parseAgentResolvedBeatActionEnvelope(modelOutput: string): Agent
       { cause: error },
     );
   }
-  const record = parseRecord(payload, 'agent model output beat-action envelope');
-  const schemaId = parseTrimmedString(record.schemaId, 'schemaId');
-  if (schemaId !== AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID) {
-    throw new Error(`schemaId must equal ${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}`);
-  }
-
-  if (!Array.isArray(record.beats) || record.beats.length === 0) {
-    throw new Error('beats must be a non-empty array');
-  }
-  if (!Array.isArray(record.actions)) {
-    throw new Error('actions must be an array');
-  }
-  const beatValues = record.beats as unknown[];
-  const actionValues = record.actions as unknown[];
-
-  const beats = beatValues.map((beat, index) => parseResolvedTextBeat(beat, index, beatValues.length));
-  const beatIds = new Set<string>();
-  for (const beat of beats) {
-    if (beatIds.has(beat.beatId)) {
-      throw new Error(`duplicate beatId: ${beat.beatId}`);
-    }
-    beatIds.add(beat.beatId);
-  }
-
-  const actions = actionValues.map((action, index) => (
-    parseResolvedModalityAction(action, index, actionValues.length)
-  ));
-  const actionIds = new Set<string>();
-  for (const action of actions) {
-    if (actionIds.has(action.actionId)) {
-      throw new Error(`duplicate actionId: ${action.actionId}`);
-    }
-    actionIds.add(action.actionId);
-    const sourceBeat = beats[action.sourceBeatIndex];
-    if (!sourceBeat) {
-      throw new Error(`action ${action.actionId} references missing sourceBeatIndex ${action.sourceBeatIndex}`);
-    }
-    if (sourceBeat.beatId !== action.sourceBeatId) {
-      throw new Error(`action ${action.actionId} source beat reference is inconsistent`);
-    }
-  }
-  validatePhaseOneActionEnvelopeLimits(actions);
-
-  return {
-    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
-    beats,
-    actions,
-  };
+  return parseAgentResolvedMessageActionEnvelopeFromPayload(payload);
 }
 
-export function buildAgentResolvedBeatPlanFromEnvelope(
-  envelope: AgentResolvedBeatActionEnvelope,
-): AgentResolvedBeatPlan {
-  return {
-    beats: envelope.beats.map((beat) => ({
-      beatId: beat.beatId,
-      beatIndex: beat.beatIndex,
-      beatCount: beat.beatCount,
-      intent: beat.intent,
-      deliveryPhase: beat.deliveryPhase,
-      ...(beat.delayMs !== undefined ? { delayMs: beat.delayMs } : {}),
-    })),
-  };
-}
-
-export function buildAgentResolvedOutputText(envelope: AgentResolvedBeatActionEnvelope): string {
-  return envelope.beats.map((beat) => beat.text).join('\n\n').trim();
-}
-
-export function resolveAgentBeatPlan(input: {
-  turnMode: AgentResolvedTurnMode;
-}): AgentResolvedBeatPlan {
-  if (
-    input.turnMode === 'emotional'
-    || input.turnMode === 'intimate'
-    || input.turnMode === 'checkin'
-  ) {
-    return {
-      beats: [
-        createBeat({
-          beatIndex: 0,
-          beatCount: 2,
-          intent: input.turnMode === 'emotional' ? 'comfort' : input.turnMode === 'checkin' ? 'checkin' : 'reply',
-          deliveryPhase: 'primary',
-        }),
-        createBeat({
-          beatIndex: 1,
-          beatCount: 2,
-          intent: 'follow-up',
-          deliveryPhase: 'tail',
-          delayMs: 400,
-        }),
-      ],
-    };
-  }
-  return {
-    beats: [
-      createBeat({
-        beatIndex: 0,
-        beatCount: 1,
-        intent: resolvePrimaryBeatIntent(input.turnMode),
-        deliveryPhase: 'primary',
-      }),
-    ],
-  };
+export function buildAgentResolvedOutputText(envelope: AgentResolvedMessageActionEnvelope): string {
+  return envelope.message.text.trim();
 }
 
 export function resolveAgentChatBehavior(input: {
@@ -457,8 +825,5 @@ export function resolveAgentChatBehavior(input: {
     settings: input.settings,
     resolvedTurnMode,
     resolvedExperiencePolicy,
-    resolvedBeatPlan: resolveAgentBeatPlan({
-      turnMode: resolvedTurnMode,
-    }),
   };
 }

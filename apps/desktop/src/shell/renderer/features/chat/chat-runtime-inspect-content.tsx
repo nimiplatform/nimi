@@ -31,7 +31,7 @@ export function RuntimeInspectCard(props: {
         {props.value}
       </div>
       {props.detail ? (
-        <div className="mt-1 text-xs leading-5 text-gray-500">
+        <div className="mt-1 whitespace-pre-wrap text-xs leading-5 text-gray-500">
           {props.detail}
         </div>
       ) : null}

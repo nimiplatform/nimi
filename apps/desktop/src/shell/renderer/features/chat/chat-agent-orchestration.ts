@@ -1,4 +1,5 @@
 import type {
+  ConversationProjectionRebuildResult,
   ConversationRuntimeTextMessage,
   ConversationRuntimeTextStreamPart,
   ConversationTurnEvent,
@@ -7,11 +8,15 @@ import type {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { normalizeConversationRuntimeTextStreamPart } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import type { RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
+import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { feedStreamEvent } from '../turns/stream-controller';
 import type {
   AgentLocalTargetSnapshot,
 } from '@renderer/bridge/runtime-bridge/types';
-import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
+import {
+  randomIdV11,
+  type RuntimeConfigStateV11,
+} from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   generateChatAgentImageRuntime,
   invokeChatAgentRuntime,
@@ -34,14 +39,16 @@ import {
   type AgentChatUserAttachment,
 } from './chat-ai-execution-engine';
 import type {
-  AgentResolvedBeatActionEnvelope,
+  AgentResolvedMessageActionEnvelope,
   AgentResolvedBehavior,
 } from './chat-agent-behavior';
 import {
   buildAgentResolvedOutputText,
-  parseAgentResolvedBeatActionEnvelope,
-  recoverPlainTextAsEnvelope,
+  resolveAgentModelOutputEnvelope,
+  toAgentModelOutputTurnError,
+  type AgentModelOutputDiagnostics,
 } from './chat-agent-behavior-resolver';
+import { buildAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 import {
   createAgentLocalChatContinuityAdapter,
   commitProviderOutcome,
@@ -52,17 +59,16 @@ import {
   type AgentChatVoiceWorkflowStatus,
 } from './chat-agent-voice-workflow';
 import {
+  findSingleExecutableFollowUpAction,
   findSingleExecutableImageAction,
   findSingleExecutableVoiceAction,
-  resolveCompletedTextBeatStatesFromEnvelope,
+  resolveCompletedTextMessageStateFromEnvelope,
   resolveImageStateFromResolvedAction,
-  resolvePlannedTextBeatsFromEnvelope,
   resolveVoiceStateFromResolvedAction,
   waitForResolvedDelay,
   type AgentLocalChatImageState,
   type AgentLocalChatVoiceState,
-  type AgentLocalTextBeatState,
-  type AgentLocalPlannedTextBeat,
+  type AgentLocalTextMessageState,
 } from './chat-agent-turn-plan';
 
 export { buildAgentLocalChatPrompt } from './chat-ai-execution-engine';
@@ -71,7 +77,7 @@ export { createAgentLocalChatContinuityAdapter } from './chat-agent-continuity';
 const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   reasoning: true,
   continuity: true,
-  firstBeat: true,
+  firstBeat: false,
   voiceInput: false,
   voiceOutput: true,
   imageGeneration: true,
@@ -83,6 +89,7 @@ export type AgentLocalChatRuntimeRequest = {
   prompt?: string;
   messages?: readonly ConversationRuntimeTextMessage[];
   systemPrompt?: string | null;
+  maxOutputTokensRequested?: number | null;
   threadId: string;
   agentResolution: AgentEffectiveCapabilityResolution | null;
   textExecutionSnapshot: AISnapshot | null;
@@ -116,7 +123,13 @@ export interface AgentLocalChatRuntimeAdapter {
   ) => Promise<{ text: string; traceId: string; promptTraceId: string }>;
   generateImage: (
     request: AgentLocalChatImageRequest,
-  ) => Promise<{ mediaUrl: string; mimeType: string; artifactId: string | null; traceId: string }>;
+  ) => Promise<{
+    mediaUrl: string;
+    mimeType: string;
+    artifactId: string | null;
+    traceId: string;
+    diagnostics?: import('./chat-agent-runtime').AgentImageExecutionRuntimeDiagnostics | null;
+  }>;
   synthesizeVoice: (
     request: AgentLocalChatVoiceRequest,
   ) => Promise<{ mediaUrl: string; mimeType: string; artifactId: string | null; traceId: string }>;
@@ -145,6 +158,8 @@ export type AgentLocalChatProviderMetadata = {
   runtimeConfigState: RuntimeConfigStateV11 | null;
   runtimeFields: RuntimeFieldMap;
   reasoningPreference: ChatThinkingPreference;
+  textModelContextTokens: number | null;
+  textMaxOutputTokensRequested: number | null;
   resolvedBehavior?: AgentResolvedBehavior | null;
 };
 
@@ -155,6 +170,46 @@ export type AgentLocalChatProviderOptions = {
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizePositiveInteger(value: unknown): number | null {
+  const normalized = Number(value);
+  if (!Number.isInteger(normalized) || normalized <= 0) {
+    return null;
+  }
+  return normalized;
+}
+
+function mergeAgentImageDiagnostics(
+  diagnostics: AgentModelOutputDiagnostics | null,
+  imageDiagnostics: Partial<NonNullable<AgentModelOutputDiagnostics['image']>> | null | undefined,
+): AgentModelOutputDiagnostics | null {
+  if (!diagnostics || !imageDiagnostics) {
+    return diagnostics;
+  }
+  const mergedImage = {
+    ...(diagnostics.image || {
+      textPlanningMs: null,
+      imageJobSubmitMs: null,
+      imageLoadMs: null,
+      imageGenerateMs: null,
+      artifactHydrateMs: null,
+      queueWaitMs: null,
+      loadCacheHit: null,
+      residentReused: null,
+      residentRestarted: null,
+      queueSerialized: null,
+      profileOverrideStep: null,
+      profileOverrideCfgScale: null,
+      profileOverrideSampler: null,
+      profileOverrideScheduler: null,
+    }),
+    ...imageDiagnostics,
+  };
+  return {
+    ...diagnostics,
+    image: mergedImage,
+  };
 }
 
 function isTextStreamIdleTimeoutState(threadId: string): boolean {
@@ -212,6 +267,8 @@ function requireProviderMetadata(metadata: Record<string, unknown> | undefined):
     runtimeConfigState: (nextRecord.runtimeConfigState ?? null) as RuntimeConfigStateV11 | null,
     runtimeFields: (nextRecord.runtimeFields ?? {}) as RuntimeFieldMap,
     reasoningPreference,
+    textModelContextTokens: normalizePositiveInteger(nextRecord.textModelContextTokens),
+    textMaxOutputTokensRequested: normalizePositiveInteger(nextRecord.textMaxOutputTokensRequested),
     resolvedBehavior: (nextRecord.resolvedBehavior ?? null) as AgentResolvedBehavior | null,
   };
 }
@@ -257,7 +314,7 @@ function buildVoiceWorkflowMetadata(input: {
     kind: 'voice-workflow',
     version: 'v1',
     sourceTurnId: input.turnId,
-    sourceBeatId: input.voiceDecision.sourceBeatId,
+    sourceMessageId: input.voiceDecision.sourceMessageId,
     sourceActionId: input.voiceDecision.sourceActionId,
     beatId: input.voiceDecision.beatId,
     workflowCapability: input.voiceDecision.workflowIntent.capability,
@@ -282,6 +339,7 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
         prompt: request.prompt,
         messages: request.messages,
         systemPrompt: request.systemPrompt,
+        maxOutputTokensRequested: request.maxOutputTokensRequested,
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
         agentResolution: request.agentResolution,
@@ -300,6 +358,7 @@ export function createAgentLocalChatConversationRuntimeAdapter(): AgentLocalChat
         prompt: request.prompt,
         messages: request.messages,
         systemPrompt: request.systemPrompt,
+        maxOutputTokensRequested: request.maxOutputTokensRequested,
         threadId: request.threadId,
         reasoningPreference: request.reasoningPreference,
         agentResolution: request.agentResolution,
@@ -356,6 +415,162 @@ async function* normalizeAgentLocalRuntimeStream(
   }
 }
 
+async function runScheduledFollowUpTurn(input: {
+  baseInput: ConversationTurnInput;
+  metadata: AgentLocalChatProviderMetadata;
+  runtimeAdapter: AgentLocalChatRuntimeAdapter;
+  continuityAdapter: AgentLocalChatContinuityAdapter;
+  followUpAction: AgentResolvedMessageActionEnvelope['actions'][number];
+  priorAssistantText: string;
+}): Promise<ConversationProjectionRebuildResult | null> {
+  if (
+    input.followUpAction.modality !== 'follow-up-turn'
+    || input.followUpAction.promptPayload.kind !== 'follow-up-turn'
+  ) {
+    throw new Error(`follow-up-turn action ${input.followUpAction.actionId} requires a follow-up-turn payload`);
+  }
+  await waitForResolvedDelay({
+    delayMs: input.followUpAction.promptPayload.delayMs,
+    signal: input.baseInput.signal,
+    threadId: input.baseInput.threadId,
+  });
+
+  const followUpTurnId = randomIdV11('agent-turn');
+  const followUpUserMessageId = randomIdV11('agent-turn-followup');
+  const followUpHistory = [
+    ...input.baseInput.history,
+    {
+      id: input.baseInput.userMessage.id,
+      role: 'user' as const,
+      text: input.baseInput.userMessage.text,
+    },
+    {
+      id: `${input.baseInput.turnId}:message:0`,
+      role: 'assistant' as const,
+      text: input.priorAssistantText,
+    },
+  ];
+  const turnContext = await input.continuityAdapter.loadTurnContext({
+    modeId: 'agent-local-chat-v1',
+    threadId: input.baseInput.threadId,
+    turnId: followUpTurnId,
+    signal: input.baseInput.signal,
+  });
+  const executionRequest = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
+    targetSnapshot: input.metadata.targetSnapshot,
+    history: followUpHistory,
+    userText: input.followUpAction.promptPayload.promptText,
+    userAttachments: [],
+    context: turnContext,
+    resolvedBehavior: null,
+    modelContextTokens: input.metadata.textModelContextTokens,
+    maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
+  });
+  const invokeResult = await input.runtimeAdapter.invokeText({
+    agentId: input.metadata.agentId,
+    prompt: executionRequest.prompt,
+    messages: executionRequest.messages,
+    systemPrompt: executionRequest.systemPrompt,
+    maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+    threadId: input.baseInput.threadId,
+    agentResolution: input.metadata.agentResolution,
+    textExecutionSnapshot: input.metadata.textExecutionSnapshot,
+    runtimeConfigState: input.metadata.runtimeConfigState,
+    runtimeFields: input.metadata.runtimeFields,
+    reasoningPreference: input.metadata.reasoningPreference,
+    signal: input.baseInput.signal,
+  });
+  const resolvedOutput = resolveAgentModelOutputEnvelope({
+    modelOutput: invokeResult.text,
+    requestPrompt: executionRequest.prompt,
+    requestSystemPrompt: executionRequest.systemPrompt,
+    trace: {
+      traceId: invokeResult.traceId,
+      promptTraceId: invokeResult.promptTraceId,
+    },
+    contextWindowSource: executionRequest.diagnostics.contextWindowSource,
+    maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+    promptOverflow: executionRequest.diagnostics.promptOverflow,
+  });
+  if (!resolvedOutput.ok) {
+    logRendererEvent({
+      level: 'warn',
+      area: 'agent-chat-output',
+      message: 'action:agent-local-chat-v1-follow-up-parse-failed',
+      details: {
+        classification: resolvedOutput.diagnostics.classification,
+        recoveryPath: resolvedOutput.diagnostics.recoveryPath,
+        suspectedTruncation: resolvedOutput.diagnostics.suspectedTruncation,
+        parseErrorDetail: resolvedOutput.diagnostics.parseErrorDetail,
+        traceId: resolvedOutput.diagnostics.traceId,
+        promptTraceId: resolvedOutput.diagnostics.promptTraceId,
+      },
+    });
+    return null;
+  }
+
+  const followUpEnvelope = resolvedOutput.envelope;
+  const followUpOutputText = buildAgentResolvedOutputText(followUpEnvelope);
+  const textMessageState = resolveCompletedTextMessageStateFromEnvelope({
+    turnId: followUpTurnId,
+    envelope: followUpEnvelope,
+    metadataJson: buildAgentTextTurnDebugMetadata(resolvedOutput.diagnostics, {
+      followUpTurn: true,
+      followUpSourceActionId: input.followUpAction.actionId,
+      followUpDelayMs: input.followUpAction.promptPayload.delayMs,
+    }),
+  });
+  const emittedEvents: ConversationTurnEvent[] = [
+    {
+      type: 'turn-started',
+      modeId: 'agent-local-chat-v1',
+      threadId: input.baseInput.threadId,
+      turnId: followUpTurnId,
+    },
+    {
+      type: 'message-sealed',
+      turnId: followUpTurnId,
+      messageId: textMessageState.messageId,
+      beatId: `${followUpTurnId}:beat:0`,
+      text: followUpOutputText,
+    },
+  ];
+  const terminalEvent: ConversationTurnEvent = {
+    type: 'turn-completed',
+    turnId: followUpTurnId,
+    outputText: followUpOutputText,
+    trace: {
+      traceId: invokeResult.traceId,
+      promptTraceId: invokeResult.promptTraceId,
+    },
+    diagnostics: resolvedOutput.diagnostics as Record<string, unknown>,
+  };
+  const commitResult = await commitProviderOutcome({
+    continuityAdapter: input.continuityAdapter,
+    baseInput: {
+      ...input.baseInput,
+      turnId: followUpTurnId,
+      userMessage: {
+        id: followUpUserMessageId,
+        text: input.followUpAction.promptPayload.promptText,
+        attachments: [],
+      },
+      history: followUpHistory,
+    },
+    emittedEvents,
+    terminalEvent,
+    outcome: 'completed',
+    outputText: followUpOutputText,
+    reasoningText: '',
+    textMessageState,
+  });
+  return {
+    threadId: input.baseInput.threadId,
+    projectionVersion: commitResult.projectionVersion,
+  };
+}
+
 export function createAgentLocalChatConversationProvider(
   options: AgentLocalChatProviderOptions = {},
 ): ConversationOrchestrationProvider {
@@ -388,6 +603,8 @@ export function createAgentLocalChatConversationProvider(
         userAttachments,
         context: turnContext,
         resolvedBehavior: metadata.resolvedBehavior,
+        modelContextTokens: metadata.textModelContextTokens,
+        maxOutputTokensRequested: metadata.textMaxOutputTokensRequested,
       });
 
       const emittedEvents: ConversationTurnEvent[] = [];
@@ -402,28 +619,11 @@ export function createAgentLocalChatConversationProvider(
 
       let rawModelOutput = '';
       let outputText = '';
-      let firstBeatText = '';
       let reasoningText = '';
-      let textBeatEmitted = false;
       let terminalEventEmitted = false;
-      let completedTextBeatStates: AgentLocalTextBeatState[] | undefined;
-      let primaryTextBeat: AgentLocalPlannedTextBeat | null = null;
-
-      const emitFirstBeat = async function* () {
-        if (textBeatEmitted || !firstBeatText || !primaryTextBeat) {
-          return;
-        }
-
-        const sealedEvent: ConversationTurnEvent = {
-          type: 'first-beat-sealed',
-          turnId: input.turnId,
-          beatId: primaryTextBeat.beatId,
-          text: firstBeatText,
-        };
-        emittedEvents.push(sealedEvent);
-        yield sealedEvent;
-        textBeatEmitted = true;
-      };
+      let textMessageState: AgentLocalTextMessageState | null = null;
+      let outputDiagnostics: AgentModelOutputDiagnostics | null = null;
+      const textPlanningStartedAt = Date.now();
 
       try {
         const runtimeResult = await runtimeAdapter.streamText({
@@ -431,6 +631,7 @@ export function createAgentLocalChatConversationProvider(
           prompt: executionRequest.prompt,
           messages: executionRequest.messages,
           systemPrompt: executionRequest.systemPrompt,
+          maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
           threadId: input.threadId,
           agentResolution: metadata.agentResolution,
           textExecutionSnapshot: metadata.textExecutionSnapshot,
@@ -463,89 +664,97 @@ export function createAgentLocalChatConversationProvider(
               if (!normalizeText(rawModelOutput)) {
                 throw new Error('agent-local-chat-v1 runtime stream completed without output text');
               }
-              let resolvedEnvelope: AgentResolvedBeatActionEnvelope;
-              try {
-                resolvedEnvelope = parseAgentResolvedBeatActionEnvelope(rawModelOutput);
-              } catch (envelopeError) {
-                const recovered = recoverPlainTextAsEnvelope(rawModelOutput);
-                if (!recovered) {
-                  throw envelopeError;
-                }
-                resolvedEnvelope = recovered;
-              }
-              const plannedTextBeats = resolvePlannedTextBeatsFromEnvelope({
-                turnId: input.turnId,
-                envelope: resolvedEnvelope,
+              const resolvedOutput = resolveAgentModelOutputEnvelope({
+                modelOutput: rawModelOutput,
+                requestPrompt: executionRequest.prompt,
+                requestSystemPrompt: executionRequest.systemPrompt,
+                finishReason: part.finishReason,
+                trace: part.trace,
+                usage: part.usage,
+                contextWindowSource: executionRequest.diagnostics.contextWindowSource,
+                maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+                promptOverflow: executionRequest.diagnostics.promptOverflow,
               });
-              primaryTextBeat = plannedTextBeats[0] || null;
-              completedTextBeatStates = resolveCompletedTextBeatStatesFromEnvelope({
+              outputDiagnostics = resolvedOutput.diagnostics;
+              outputDiagnostics = mergeAgentImageDiagnostics(outputDiagnostics, {
+                textPlanningMs: Date.now() - textPlanningStartedAt,
+              });
+              if (!resolvedOutput.ok) {
+                const resolvedDiagnostics = outputDiagnostics || resolvedOutput.diagnostics;
+                const outputError = toAgentModelOutputTurnError(resolvedDiagnostics);
+                logRendererEvent({
+                  level: 'warn',
+                  area: 'agent-chat-output',
+                  message: 'action:agent-local-chat-v1-output-parse-failed',
+                  details: {
+                    classification: resolvedDiagnostics.classification,
+                    recoveryPath: resolvedDiagnostics.recoveryPath,
+                    suspectedTruncation: resolvedDiagnostics.suspectedTruncation,
+                    parseErrorDetail: resolvedDiagnostics.parseErrorDetail,
+                    rawOutputChars: resolvedDiagnostics.rawOutputChars,
+                    normalizedOutputChars: resolvedDiagnostics.normalizedOutputChars,
+                    finishReason: resolvedDiagnostics.finishReason,
+                    traceId: resolvedDiagnostics.traceId,
+                    promptTraceId: resolvedDiagnostics.promptTraceId,
+                  },
+                });
+                const terminalEvent: ConversationTurnEvent = {
+                  type: 'turn-failed',
+                  turnId: input.turnId,
+                  error: outputError,
+                  outputText: outputText || undefined,
+                  reasoningText: reasoningText || undefined,
+                  finishReason: part.finishReason,
+                  usage: part.usage,
+                  trace: part.trace,
+                  diagnostics: outputDiagnostics as Record<string, unknown>,
+                };
+                const commitResult = await commitProviderOutcome({
+                  continuityAdapter,
+                  baseInput: input,
+                  emittedEvents,
+                  terminalEvent,
+                  outcome: 'failed',
+                  outputText,
+                  reasoningText,
+                  error: outputError,
+                  textMessageState: textMessageState || undefined,
+                });
+                yield {
+                  type: 'projection-rebuilt',
+                  threadId: input.threadId,
+                  projectionVersion: commitResult.projectionVersion,
+                };
+                terminalEventEmitted = true;
+                yield terminalEvent;
+                return;
+              }
+              const resolvedEnvelope: AgentResolvedMessageActionEnvelope = resolvedOutput.envelope;
+              textMessageState = resolveCompletedTextMessageStateFromEnvelope({
                 turnId: input.turnId,
                 envelope: resolvedEnvelope,
+                metadataJson: buildAgentTextTurnDebugMetadata(resolvedOutput.diagnostics),
               });
               outputText = buildAgentResolvedOutputText(resolvedEnvelope);
-              firstBeatText = completedTextBeatStates[0]?.text || outputText;
-
-              for (const plannedTextBeat of plannedTextBeats) {
-                const plannedEvent: ConversationTurnEvent = {
-                  type: 'beat-planned',
-                  turnId: input.turnId,
-                  beatId: plannedTextBeat.beatId,
-                  beatIndex: plannedTextBeat.beatIndex,
-                  modality: 'text',
-                };
-                emittedEvents.push(plannedEvent);
-                yield plannedEvent;
-              }
-              for await (const beatEvent of emitFirstBeat()) {
-                yield beatEvent;
-              }
-              if (textBeatEmitted && primaryTextBeat) {
-                const deliveredEvent: ConversationTurnEvent = {
-                  type: 'beat-delivered',
-                  turnId: input.turnId,
-                  beatId: primaryTextBeat.beatId,
-                  projectionMessageId: primaryTextBeat.projectionMessageId,
-                };
-                emittedEvents.push(deliveredEvent);
-                yield deliveredEvent;
-              }
-              if (completedTextBeatStates && completedTextBeatStates.length > 1) {
-                for (const textBeatState of completedTextBeatStates.slice(1)) {
-                  const resolvedBeat = resolvedEnvelope.beats[textBeatState.beatIndex];
-                  if (!resolvedBeat || resolvedBeat.deliveryPhase !== 'tail' || resolvedBeat.delayMs === undefined) {
-                    throw new Error(`Delayed tail beat ${textBeatState.beatId} is missing resolved wait fields`);
-                  }
-                  await waitForResolvedDelay({
-                    delayMs: resolvedBeat.delayMs,
-                    signal: input.signal,
-                    threadId: input.threadId,
-                  });
-                  const deliveryStartedEvent: ConversationTurnEvent = {
-                    type: 'beat-delivery-started',
-                    turnId: input.turnId,
-                    beatId: textBeatState.beatId,
-                  };
-                  emittedEvents.push(deliveryStartedEvent);
-                  yield deliveryStartedEvent;
-                  const deliveredEvent: ConversationTurnEvent = {
-                    type: 'beat-delivered',
-                    turnId: input.turnId,
-                    beatId: textBeatState.beatId,
-                    projectionMessageId: textBeatState.projectionMessageId,
-                  };
-                  emittedEvents.push(deliveredEvent);
-                  yield deliveredEvent;
-                }
-              }
+              const sealedEvent: ConversationTurnEvent = {
+                type: 'message-sealed',
+                turnId: input.turnId,
+                messageId: textMessageState.messageId,
+                beatId: `${input.turnId}:beat:0`,
+                text: outputText,
+              };
+              emittedEvents.push(sealedEvent);
+              yield sealedEvent;
               let voiceState: AgentLocalChatVoiceState = { status: 'none' };
               let imageState: AgentLocalChatImageState = { status: 'none' };
+              const followUpAction = findSingleExecutableFollowUpAction(resolvedEnvelope);
               const voiceAction = findSingleExecutableVoiceAction(resolvedEnvelope);
               const voiceDecision = voiceAction
                 ? resolveVoiceStateFromResolvedAction({
                   turnId: input.turnId,
                   action: voiceAction,
-                  textBeatCount: resolvedEnvelope.beats.length,
-                  transcriptText: resolvedEnvelope.beats[voiceAction.sourceBeatIndex]?.text || '',
+                  textMessageCount: 1,
+                  transcriptText: resolvedEnvelope.message.text,
                   agentResolution: metadata.agentResolution,
                   voiceExecutionSnapshot: metadata.voiceExecutionSnapshot,
                   voiceWorkflowExecutionSnapshotByCapability: metadata.voiceWorkflowExecutionSnapshotByCapability,
@@ -556,7 +765,7 @@ export function createAgentLocalChatConversationProvider(
                 ? resolveImageStateFromResolvedAction({
                   turnId: input.turnId,
                   action: imageAction,
-                  textBeatCount: resolvedEnvelope.beats.length,
+                  textMessageCount: 1,
                   agentResolution: metadata.agentResolution,
                   imageExecutionSnapshot: metadata.imageExecutionSnapshot,
                 })
@@ -612,7 +821,7 @@ export function createAgentLocalChatConversationProvider(
                             projectionMessageId: voiceDecision.projectionMessageId,
                             prompt: voiceDecision.prompt,
                             transcriptText: voiceDecision.transcriptText,
-                            sourceBeatId: voiceDecision.sourceBeatId,
+                            sourceMessageId: voiceDecision.sourceMessageId,
                             sourceActionId: voiceDecision.sourceActionId,
                             workflowIntent: voiceDecision.workflowIntent,
                             message: toChatAgentRuntimeError(voiceError).message,
@@ -651,7 +860,7 @@ export function createAgentLocalChatConversationProvider(
                           projectionMessageId: voiceDecision.projectionMessageId,
                           prompt: voiceDecision.prompt,
                           transcriptText: voiceDecision.prompt,
-                          sourceBeatId: voiceDecision.sourceBeatId,
+                          sourceMessageId: voiceDecision.sourceMessageId,
                           sourceActionId: voiceDecision.sourceActionId,
                           mediaUrl: generatedVoice.mediaUrl,
                           mimeType: generatedVoice.mimeType,
@@ -679,7 +888,7 @@ export function createAgentLocalChatConversationProvider(
                           projectionMessageId: voiceDecision.projectionMessageId,
                           prompt: voiceDecision.prompt,
                           transcriptText: voiceDecision.prompt,
-                          sourceBeatId: voiceDecision.sourceBeatId,
+                          sourceMessageId: voiceDecision.sourceMessageId,
                           sourceActionId: voiceDecision.sourceActionId,
                           message: toChatAgentRuntimeError(voiceError).message,
                         };
@@ -719,6 +928,7 @@ export function createAgentLocalChatConversationProvider(
                         } finally {
                           clearInterval(keepaliveInterval);
                         }
+                        outputDiagnostics = mergeAgentImageDiagnostics(outputDiagnostics, generatedImage.diagnostics || null);
                         imageState = {
                           status: 'complete',
                           beatId: imageDecision.beatId,
@@ -779,6 +989,9 @@ export function createAgentLocalChatConversationProvider(
                 finishReason: part.finishReason,
                 usage: part.usage,
                 trace: part.trace,
+                diagnostics: outputDiagnostics
+                  ? outputDiagnostics as Record<string, unknown>
+                  : undefined,
               };
               const commitResult = await commitProviderOutcome({
                 continuityAdapter,
@@ -790,14 +1003,32 @@ export function createAgentLocalChatConversationProvider(
                 reasoningText,
                 imageState,
                 voiceState,
-                textBeatStates: completedTextBeatStates,
+                textMessageState: textMessageState || undefined,
               });
               yield {
                 type: 'projection-rebuilt',
                 threadId: input.threadId,
                 projectionVersion: commitResult.projectionVersion,
               };
+              terminalEventEmitted = true;
               yield terminalEvent;
+              if (followUpAction && followUpAction.modality === 'follow-up-turn') {
+                const followUpProjection = await runScheduledFollowUpTurn({
+                  baseInput: input,
+                  metadata,
+                  runtimeAdapter,
+                  continuityAdapter,
+                  followUpAction,
+                  priorAssistantText: outputText,
+                });
+                if (followUpProjection) {
+                  yield {
+                    type: 'projection-rebuilt',
+                    threadId: followUpProjection.threadId,
+                    projectionVersion: followUpProjection.projectionVersion,
+                  };
+                }
+              }
               return;
             }
             case 'error': {
@@ -807,6 +1038,9 @@ export function createAgentLocalChatConversationProvider(
                 error: part.error,
                 outputText: outputText || undefined,
                 reasoningText: reasoningText || undefined,
+                diagnostics: outputDiagnostics
+                  ? outputDiagnostics as Record<string, unknown>
+                  : undefined,
                 trace: part.trace,
               };
               const commitResult = await commitProviderOutcome({
@@ -818,7 +1052,7 @@ export function createAgentLocalChatConversationProvider(
                 outputText,
                 reasoningText,
                 error: part.error,
-                textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
+                textMessageState: textMessageState || undefined,
               });
               yield {
                 type: 'projection-rebuilt',
@@ -841,9 +1075,12 @@ export function createAgentLocalChatConversationProvider(
           const terminalEvent: ConversationTurnEvent = {
             type: 'turn-canceled',
             turnId: input.turnId,
-            scope: textBeatEmitted ? 'tail' : 'turn',
+            scope: 'turn',
             outputText: outputText || undefined,
             reasoningText: reasoningText || undefined,
+            diagnostics: outputDiagnostics
+              ? outputDiagnostics as Record<string, unknown>
+              : undefined,
           };
           const commitResult = await commitProviderOutcome({
             continuityAdapter,
@@ -857,7 +1094,7 @@ export function createAgentLocalChatConversationProvider(
               code: 'OPERATION_ABORTED',
               message: toAbortLikeErrorMessage(error),
             },
-            textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
+            textMessageState: textMessageState || undefined,
           });
           yield {
             type: 'projection-rebuilt',
@@ -874,6 +1111,9 @@ export function createAgentLocalChatConversationProvider(
           error: runtimeError,
           outputText: outputText || undefined,
           reasoningText: reasoningText || undefined,
+          diagnostics: outputDiagnostics
+            ? outputDiagnostics as Record<string, unknown>
+            : undefined,
         };
         const commitResult = await commitProviderOutcome({
           continuityAdapter,
@@ -884,7 +1124,7 @@ export function createAgentLocalChatConversationProvider(
           outputText,
           reasoningText,
           error: runtimeError,
-          textBeatStates: textBeatEmitted ? completedTextBeatStates : undefined,
+          textMessageState: textMessageState || undefined,
         });
         yield {
           type: 'projection-rebuilt',

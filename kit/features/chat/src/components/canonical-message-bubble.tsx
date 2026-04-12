@@ -201,6 +201,7 @@ export type CanonicalMessageBubbleProps = {
   isVoiceTranscriptVisible?: boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 export function CanonicalMessageBubble({
@@ -216,6 +217,7 @@ export function CanonicalMessageBubble({
   isVoiceTranscriptVisible = false,
   onPlayVoiceMessage,
   onVoiceContextMenu,
+  onMessageContextMenu,
 }: CanonicalMessageBubbleProps) {
   const isUser = message.role === 'user' || message.role === 'human';
   const isVoice = message.kind === 'voice';
@@ -445,7 +447,10 @@ export function CanonicalMessageBubble({
         style={{ animation: `${animationName} 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) ${animationDelayMs}ms both` }}
       >
         {resolvedAvatar}
-        <div className={mediaContainerClassName}>
+        <div
+          className={mediaContainerClassName}
+          onContextMenu={onMessageContextMenu ? (event) => onMessageContextMenu(message, event) : undefined}
+        >
           {content === undefined ? (
             <div
               className={cn(

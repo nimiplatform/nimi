@@ -9,7 +9,7 @@ import type {
   AgentLocalTurnBeatRecord,
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
-import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID, type AgentResolvedBehavior } from './chat-agent-behavior';
+import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID, type AgentResolvedBehavior } from './chat-agent-behavior';
 import { buildDesktopChatOutputContractSection } from './chat-output-contract';
 
 const DEFAULT_MODEL_CONTEXT_TOKENS = 4096;
@@ -48,7 +48,7 @@ export type AgentLocalChatPromptDiagnostics = {
   engineId: typeof AI_CHAT_EXECUTION_ENGINE_ID;
   diagnosticsVersion: typeof AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION;
   firstConsumerId: 'agent-local-chat-v1';
-  contextWindowSource: 'explicit' | 'default';
+  contextWindowSource: 'route-profile' | 'default-estimate';
   budget: AgentLocalChatContextBudget;
   estimate: AgentLocalChatPromptEstimate;
   continuity: {
@@ -63,6 +63,7 @@ export type AgentLocalChatPromptDiagnostics = {
     emittedMessages: number;
     trimmedLeadingAssistantMessages: number;
   };
+  maxOutputTokensRequested: number | null;
   promptOverflow: boolean;
 };
 
@@ -144,6 +145,7 @@ export type BuildAgentLocalChatExecutionTextRequestInput = {
   context: AgentLocalTurnContext;
   resolvedBehavior?: AgentResolvedBehavior | null;
   modelContextTokens?: number | null;
+  maxOutputTokensRequested?: number | null;
 };
 
 type HistoryCandidate = {
@@ -351,7 +353,7 @@ function buildResolvedBehaviorSection(resolvedBehavior: AgentResolvedBehavior | 
   return stringifyJson({
     resolvedTurnMode: resolvedBehavior.resolvedTurnMode,
     resolvedExperiencePolicy: resolvedBehavior.resolvedExperiencePolicy,
-    resolvedBeatPlan: resolvedBehavior.resolvedBeatPlan,
+    textReplyShape: 'single-message',
   });
 }
 
@@ -369,7 +371,7 @@ function buildSystemPrompt(input: {
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
     buildDesktopChatOutputContractSection(),
-    `Instruction:\nReply as the target agent through the beat-action envelope. The top-level object must include "schemaId", "beats", and "actions". Begin exactly with {"schemaId":"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}". Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.`,
+    `Instruction:\nReply as the target agent through the message-action envelope. The top-level object must include "schemaId", "message", and "actions". Begin exactly with {"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}". Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.`,
   ].filter(Boolean);
 
   return sections.length > 0 ? sections.join('\n\n') : null;
@@ -543,18 +545,18 @@ function packHistoryMessages(input: {
 
 function resolveModelContextTokens(modelContextTokens: number | null | undefined): {
   value: number;
-  source: 'explicit' | 'default';
+  source: 'route-profile' | 'default-estimate';
 } {
   const normalized = Number(modelContextTokens);
   if (Number.isFinite(normalized) && normalized > 0) {
     return {
       value: Math.floor(normalized),
-      source: 'explicit',
+      source: 'route-profile',
     };
   }
   return {
     value: DEFAULT_MODEL_CONTEXT_TOKENS,
-    source: 'default',
+    source: 'default-estimate',
   };
 }
 
@@ -658,6 +660,10 @@ export function buildAgentLocalChatExecutionTextRequest(
         emittedMessages: packedHistory.messages.length,
         trimmedLeadingAssistantMessages: packedHistory.trimmedLeadingAssistantMessages,
       },
+      maxOutputTokensRequested: Number.isFinite(Number(input.maxOutputTokensRequested))
+        && Number(input.maxOutputTokensRequested) > 0
+        ? Math.floor(Number(input.maxOutputTokensRequested))
+        : null,
       promptOverflow: estimate.totalInputTokens > budget.promptBudgetTokens,
     },
   };
@@ -675,6 +681,7 @@ export function inspectAgentLocalChatPromptDiagnostics(
     estimate: { ...diagnostics.estimate },
     continuity: { ...diagnostics.continuity },
     transcript: { ...diagnostics.transcript },
+    maxOutputTokensRequested: diagnostics.maxOutputTokensRequested,
     promptOverflow: diagnostics.promptOverflow,
   };
 }

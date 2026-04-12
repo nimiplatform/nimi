@@ -349,7 +349,11 @@ pub(crate) async fn http_request(
     };
     eprintln!(
         "[http] ← {} {} {} {:.1}ms{}",
-        method, url, status.as_u16(), elapsed_ms, resp_body_tag
+        method,
+        url,
+        status.as_u16(),
+        elapsed_ms,
+        resp_body_tag
     );
     append_diag_log_entry(
         "http-request",

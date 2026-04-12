@@ -25,18 +25,18 @@
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
 | `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged desktop 自更新、bundled runtime staging 与 release 真值契约 |
-| `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending beat / action lifecycle projection boundary |
+| `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
 | `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
-| `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 delayed beat / modality action truth |
-| `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、multi-beat ordering / turn-mode / experience-policy authority；不拥有 delayed beat / modality action truth |
-| `agent-chat-beat-action-contract.md` | `D-LLM-*` | Agent chat delayed beat / pending invalidation / modality action envelope authority、model-generated modality prompt semantics、proactive and richer assistant expansion defer boundary |
+| `conversation-capability-contract.md` | `D-LLM-*` | Conversation capability selection/projection、agent overlay、execution snapshot；不拥有 resolved message / action truth |
+| `agent-chat-behavior-contract.md` | `D-LLM-*` | Agent chat generic behavior semantics、single-message / turn-mode / experience-policy authority；不拥有 message-action truth |
+| `agent-chat-message-action-contract.md` | `D-LLM-*` | Agent chat single-message / unified action envelope authority、model-generated modality prompt semantics、follow-up-turn defer boundary |
 | `agent-chat-voice-executor-contract.md` | `D-LLM-*` | Agent chat resolved voice action consumption、`audio.synthesize` first-packet execution semantics、playback-ready speech artifact outcome authority；不拥有 voice workflow / voice asset / broader session truth |
 | `agent-chat-voice-session-contract.md` | `D-LLM-*` | Agent chat broader voice session authority：explicit entry / exit、same-thread text/voice continuity、admitted listening modes（`push-to-talk` / foreground `hands-free`）、interruption、transcript/caption rules；不拥有 voice executor / workflow / wake-word / background continuation truth |
-| `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 beat-action envelope / runtime workflow substrate / broader voice session truth |
+| `agent-chat-voice-workflow-contract.md` | `D-LLM-*` | Agent chat richer voice workflow authority：`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` admission、voice identity / `VoiceReference`、preset/custom voice selection、packet-bounded clone/design trigger、workflow return-path truth；不拥有 message-action envelope / runtime workflow substrate / broader voice session truth |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
 | `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |

@@ -177,7 +177,7 @@ test('agent submit driver emits stream effects before bundle effects across reas
   const firstBeat = reduceAgentSubmitDriverEvent({
     state,
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',
@@ -205,7 +205,7 @@ test('agent submit driver accepts projection refresh in running state and keeps 
   state = reduceAgentSubmitDriverEvent({
     state,
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',
@@ -340,7 +340,7 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
   state = reduceAgentSubmitDriverEvent({
     state,
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',

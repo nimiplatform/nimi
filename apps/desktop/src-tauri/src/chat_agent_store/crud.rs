@@ -1,8 +1,7 @@
 use super::codec::{
-    map_sql_error, message_kind_to_db_value, message_role_to_db_value,
-    message_status_to_db_value, normalize_message_error, normalize_optional_string,
-    normalize_required_string, normalize_structured_json, normalize_target_snapshot,
-    require_non_negative_ms,
+    map_sql_error, message_kind_to_db_value, message_role_to_db_value, message_status_to_db_value,
+    normalize_message_error, normalize_optional_string, normalize_required_string,
+    normalize_structured_json, normalize_target_snapshot, require_non_negative_ms,
 };
 use super::rows::{draft_record_from_row, message_record_from_row, thread_record_from_row};
 use super::types::*;
@@ -456,4 +455,85 @@ pub(crate) fn delete_draft(conn: &Connection, thread_id: &str) -> Result<(), Str
     )
     .map_err(|error| map_sql_error("delete chat_agent draft failed", error))?;
     Ok(())
+}
+
+pub(crate) fn delete_thread(conn: &Connection, thread_id: &str) -> Result<(), String> {
+    let thread_id = normalize_required_string(thread_id, "threadId")?;
+    conn.execute(
+        "DELETE FROM agent_threads WHERE id = ?1",
+        params![thread_id],
+    )
+    .map_err(|error| map_sql_error("delete chat_agent thread failed", error))?;
+    Ok(())
+}
+
+pub(crate) fn delete_message(
+    conn: &Connection,
+    message_id: &str,
+) -> Result<ChatAgentThreadBundle, String> {
+    let message_id = normalize_required_string(message_id, "messageId")?;
+    let thread = conn
+        .query_row(
+            r#"
+            SELECT
+              t.id,
+              t.agent_id,
+              t.title,
+              t.created_at_ms,
+              t.updated_at_ms,
+              t.last_message_at_ms,
+              t.archived_at_ms,
+              t.target_snapshot_json
+            FROM agent_threads t
+            INNER JOIN agent_messages m ON m.thread_id = t.id
+            WHERE m.id = ?1
+            "#,
+            params![&message_id],
+            thread_record_from_row,
+        )
+        .optional()
+        .map_err(|error| format!("query chat_agent message thread failed: {error}"))?
+        .ok_or_else(|| "chat_agent message not found".to_string())?;
+
+    conn.execute(
+        "UPDATE agent_messages SET parent_message_id = NULL WHERE parent_message_id = ?1",
+        params![&message_id],
+    )
+    .map_err(|error| map_sql_error("clear chat_agent child message parent failed", error))?;
+    conn.execute(
+        "UPDATE agent_turn_beats SET projection_message_id = NULL WHERE projection_message_id = ?1",
+        params![&message_id],
+    )
+    .map_err(|error| map_sql_error("clear chat_agent beat projection message failed", error))?;
+    conn.execute(
+        "DELETE FROM agent_messages WHERE id = ?1",
+        params![&message_id],
+    )
+    .map_err(|error| map_sql_error("delete chat_agent message failed", error))?;
+
+    let last_message_at_ms = conn
+        .query_row(
+            "SELECT MAX(updated_at_ms) FROM agent_messages WHERE thread_id = ?1",
+            params![&thread.id],
+            |row| row.get::<_, Option<i64>>(0),
+        )
+        .map_err(|error| format!("query chat_agent remaining messages failed: {error}"))?;
+    let next_updated_at_ms = last_message_at_ms.unwrap_or(thread.created_at_ms);
+    conn.execute(
+        r#"
+        UPDATE agent_threads
+        SET updated_at_ms = ?2, last_message_at_ms = ?3
+        WHERE id = ?1
+        "#,
+        params![&thread.id, next_updated_at_ms, last_message_at_ms],
+    )
+    .map_err(|error| {
+        map_sql_error(
+            "update chat_agent thread after message delete failed",
+            error,
+        )
+    })?;
+
+    get_thread_bundle(conn, &thread.id)?
+        .ok_or_else(|| "delete chat_agent message failed: missing thread after delete".to_string())
 }

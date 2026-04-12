@@ -2,6 +2,10 @@ import type {
   ConversationTurnError,
   ConversationTurnEvent,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
+import {
+  parseAgentModelOutputDiagnostics,
+  type AgentModelOutputDiagnostics,
+} from './chat-agent-behavior-resolver';
 
 type AgentTurnTerminalState = 'running' | 'completed' | 'failed' | 'canceled';
 
@@ -14,6 +18,7 @@ export type AgentTurnLifecycleState = {
   promptTraceId: string | null;
   error: ConversationTurnError | null;
   usage: { inputTokens?: number; outputTokens?: number } | undefined;
+  diagnostics: AgentModelOutputDiagnostics | null;
 };
 
 function normalizeText(value: unknown): string {
@@ -34,6 +39,7 @@ export function createInitialAgentTurnLifecycleState(): AgentTurnLifecycleState 
     promptTraceId: null,
     error: null,
     usage: undefined,
+    diagnostics: null,
   };
 }
 
@@ -56,6 +62,7 @@ export function reduceAgentTurnLifecycleState(
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
         usage: event.usage,
+        diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
       };
     case 'turn-failed':
       return {
@@ -66,6 +73,8 @@ export function reduceAgentTurnLifecycleState(
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
         error: event.error,
+        usage: event.usage || state.usage,
+        diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
       };
     case 'turn-canceled':
       return {
@@ -75,6 +84,8 @@ export function reduceAgentTurnLifecycleState(
         reasoningText: normalizeReasoningText(event.reasoningText) || state.reasoningText,
         traceId: normalizeText(event.trace?.traceId) || state.traceId,
         promptTraceId: normalizeText(event.trace?.promptTraceId) || state.promptTraceId,
+        usage: event.usage || state.usage,
+        diagnostics: parseAgentModelOutputDiagnostics(event.diagnostics) || state.diagnostics,
       };
     default:
       return state;

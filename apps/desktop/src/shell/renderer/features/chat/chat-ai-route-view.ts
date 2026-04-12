@@ -4,6 +4,7 @@ import {
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
   RuntimeRouteBinding,
+  RuntimeRouteModelProfile,
   RuntimeRouteOptionsSnapshot,
 } from '@nimiplatform/sdk/mod';
 import type { ConversationCapabilityProjection } from './conversation-capability';
@@ -104,6 +105,45 @@ export function isAiConversationRouteOptionSelected(
   return normalizeText(option.binding.connectorId) === normalizeText(binding.connectorId)
     && (normalizeText(option.binding.modelId) || normalizeText(option.binding.model))
       === (normalizeText(binding.modelId) || normalizeText(binding.model));
+}
+
+export function findRuntimeRouteModelProfile(
+  snapshot: RuntimeRouteOptionsSnapshot | null | undefined,
+  binding: RuntimeRouteBinding | null | undefined,
+): RuntimeRouteModelProfile | null {
+  if (!snapshot || !binding) {
+    return null;
+  }
+  if (
+    Number.isFinite(Number(binding.maxContextTokens))
+    || Number.isFinite(Number(binding.maxOutputTokens))
+  ) {
+    return {
+      model: normalizeText(binding.modelId) || normalizeText(binding.model),
+      ...(Number.isFinite(Number(binding.maxContextTokens)) && Number(binding.maxContextTokens) > 0
+        ? { maxContextTokens: Math.floor(Number(binding.maxContextTokens)) }
+        : {}),
+      ...(Number.isFinite(Number(binding.maxOutputTokens)) && Number(binding.maxOutputTokens) > 0
+        ? { maxOutputTokens: Math.floor(Number(binding.maxOutputTokens)) }
+        : {}),
+    };
+  }
+  if (binding.source !== 'cloud') {
+    return null;
+  }
+  const connector = snapshot.connectors.find((item) => (
+    normalizeText(item.id) === normalizeText(binding.connectorId)
+  )) || null;
+  if (!connector) {
+    return null;
+  }
+  const targetModel = normalizeText(binding.modelId) || normalizeText(binding.model);
+  if (!targetModel) {
+    return null;
+  }
+  return connector.modelProfiles?.find((profile) => (
+    normalizeText(profile.model) === targetModel
+  )) || null;
 }
 
 function setupDetailForReasonCode(

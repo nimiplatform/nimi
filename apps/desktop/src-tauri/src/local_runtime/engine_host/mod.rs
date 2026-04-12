@@ -457,7 +457,8 @@ mod tests {
             "nimi/test-model",
         )
         .join("mmproj-BF16.gguf");
-        fs::create_dir_all(mmproj_path.parent().expect("mmproj parent")).expect("create mmproj dir");
+        fs::create_dir_all(mmproj_path.parent().expect("mmproj parent"))
+            .expect("create mmproj dir");
         fs::write(&mmproj_path, b"mmproj").expect("write mmproj");
         let model = model_fixture_with_mmproj(
             "llama",

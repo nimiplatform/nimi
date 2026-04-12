@@ -26,7 +26,7 @@ import {
   buildAgentLocalChatExecutionTextRequest,
   inspectAgentLocalChatPromptDiagnostics,
 } from '../src/shell/renderer/features/chat/chat-ai-execution-engine.js';
-import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import { resolveAgentChatBehavior } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
 import {
@@ -255,23 +255,20 @@ function createBeatActionEnvelopeText(input: {
   actions?: Array<{
     actionId?: string;
     actionIndex: number;
-    modality: 'image' | 'voice' | 'video';
+    modality: 'image' | 'voice' | 'video' | 'follow-up-turn';
     operation?: string;
     promptText: string;
-    sourceBeatId: string;
-    sourceBeatIndex: number;
-    deliveryCoupling?: 'after-source-beat' | 'with-source-beat';
+    sourceMessageId: string;
+    sourceBeatIndex?: number;
+    deliveryCoupling?: 'after-message' | 'with-message';
   }>;
 }): string {
-  const beats = input.beats.map((beat) => ({
-    beatId: beat.beatId ?? `beat-${beat.beatIndex}`,
-    beatIndex: beat.beatIndex,
-    beatCount: input.beats.length,
-    intent: beat.intent ?? (beat.beatIndex === 0 ? 'reply' : 'follow-up'),
-    deliveryPhase: beat.deliveryPhase ?? (beat.beatIndex === 0 ? 'primary' : 'tail'),
-    text: beat.text,
-    ...(beat.delayMs !== undefined ? { delayMs: beat.delayMs } : {}),
-  }));
+  const primaryBeat = input.beats[0];
+  if (!primaryBeat) {
+    throw new Error('message-action test helper requires at least one message beat');
+  }
+  const messageId = 'message-0';
+  const followUpBeat = input.beats[1];
   const actions = (input.actions || []).map((action) => ({
     actionId: action.actionId ?? `action-${action.actionIndex}`,
     actionIndex: action.actionIndex,
@@ -283,17 +280,45 @@ function createBeatActionEnvelopeText(input: {
         ? 'image-prompt'
         : action.modality === 'voice'
           ? 'voice-prompt'
-          : 'video-prompt',
+          : action.modality === 'video'
+            ? 'video-prompt'
+            : 'follow-up-turn',
       promptText: action.promptText,
+      ...(action.modality === 'follow-up-turn'
+        ? { delayMs: 400 }
+        : {}),
     },
-    sourceBeatId: action.sourceBeatId,
-    sourceBeatIndex: action.sourceBeatIndex,
-    deliveryCoupling: action.deliveryCoupling ?? 'after-source-beat',
+    sourceMessageId: action.sourceMessageId.startsWith('beat-') ? messageId : action.sourceMessageId,
+    deliveryCoupling: action.deliveryCoupling ?? 'after-message',
+  }));
+  if (followUpBeat) {
+    actions.push({
+      actionId: `action-${actions.length}`,
+      actionIndex: actions.length,
+      actionCount: actions.length + 1,
+      modality: 'follow-up-turn',
+      operation: 'assistant.turn.schedule',
+      promptPayload: {
+        kind: 'follow-up-turn',
+        promptText: followUpBeat.text,
+        delayMs: followUpBeat.delayMs ?? 400,
+      },
+      sourceMessageId: messageId,
+      deliveryCoupling: 'after-message',
+    });
+  }
+  const normalizedActions = actions.map((action, index) => ({
+    ...action,
+    actionIndex: index,
+    actionCount: actions.length,
   }));
   return JSON.stringify({
-    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
-    beats,
-    actions,
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message: {
+      messageId,
+      text: primaryBeat.text,
+    },
+    actions: normalizedActions,
   });
 }
 
@@ -417,7 +442,7 @@ function sampleTurnContext(): AgentLocalTurnContext {
       slotType: 'preference',
       summary: 'User prefers concise answers',
       sourceTurnId: 'turn-prev-1',
-      sourceBeatId: 'beat-prev-1',
+      sourceMessageId: 'beat-prev-1',
       score: 0.9,
       updatedAtMs: 14,
     }],
@@ -425,7 +450,7 @@ function sampleTurnContext(): AgentLocalTurnContext {
       id: 'recall-1',
       threadId: 'thread-1',
       sourceTurnId: 'turn-prev-1',
-      sourceBeatId: 'beat-prev-1',
+      sourceMessageId: 'beat-prev-1',
       summary: 'Summarize the plan',
       searchText: 'plan summary',
       updatedAtMs: 15,
@@ -533,7 +558,7 @@ test('agent local chat prompt includes continuity and transcript context', () =>
   assert.match(prompt, /What should we do next/);
   assert.match(prompt, /Output Contract:/);
   assert.match(prompt, /Return exactly one JSON object/);
-  assert.match(prompt, new RegExp(AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(prompt, new RegExp(AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(prompt, new RegExp(buildDesktopChatOutputContractSection().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
@@ -565,8 +590,9 @@ test('agent local chat execution seam shapes system prompt and transcript messag
   assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
   assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
   assert.equal(request.diagnostics.firstConsumerId, 'agent-local-chat-v1');
-  assert.equal(request.diagnostics.contextWindowSource, 'default');
+  assert.equal(request.diagnostics.contextWindowSource, 'default-estimate');
   assert.equal(request.diagnostics.budget.modelContextTokens, 4096);
+  assert.equal(request.diagnostics.maxOutputTokensRequested, null);
   assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
   assert.equal(request.diagnostics.continuity.snapshotIncluded, true);
   assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 0);
@@ -618,7 +644,7 @@ test('agent local chat execution seam compacts continuity and packs history by b
           slotType: 'preference',
           summary: 'User prefers concise answers',
           sourceTurnId: 'turn-prev-1',
-          sourceBeatId: 'beat-prev-1',
+          sourceMessageId: 'beat-prev-1',
           score: 0.8,
           updatedAtMs: 16,
         },
@@ -628,7 +654,7 @@ test('agent local chat execution seam compacts continuity and packs history by b
           slotType: 'context',
           summary: 'The user is planning a summary reply',
           sourceTurnId: 'turn-prev-1',
-          sourceBeatId: 'beat-prev-1',
+          sourceMessageId: 'beat-prev-1',
           score: 0.7,
           updatedAtMs: 17,
         },
@@ -639,7 +665,7 @@ test('agent local chat execution seam compacts continuity and packs history by b
           id: 'recall-2',
           threadId: 'thread-1',
           sourceTurnId: 'turn-prev-1',
-          sourceBeatId: 'beat-prev-1',
+          sourceMessageId: 'beat-prev-1',
           summary: 'Summarize the plan',
           searchText: 'duplicate search text should not leak',
           updatedAtMs: 18,
@@ -667,8 +693,9 @@ test('agent local chat execution seam compacts continuity and packs history by b
     modelContextTokens: 1200,
   });
 
-  assert.equal(request.diagnostics.contextWindowSource, 'explicit');
+  assert.equal(request.diagnostics.contextWindowSource, 'route-profile');
   assert.equal(request.diagnostics.budget.modelContextTokens, 1200);
+  assert.equal(request.diagnostics.maxOutputTokensRequested, null);
   assert.ok(request.diagnostics.estimate.droppedHistoryMessages > 0);
   assert.ok(request.diagnostics.estimate.droppedRecallEntries > 0);
   assert.ok(request.diagnostics.estimate.historyTokens <= request.diagnostics.budget.historyBudgetTokens);
@@ -770,6 +797,7 @@ test('agent local chat diagnostics inspection returns a stable copy surface', ()
   inspection.estimate.droppedHistoryMessages = 99;
   inspection.continuity.retainedMemoryEntries = 0;
   inspection.transcript.emittedMessages = 0;
+  inspection.maxOutputTokensRequested = 99;
 
   assert.equal(request.diagnostics.engineId, AI_CHAT_EXECUTION_ENGINE_ID);
   assert.equal(request.diagnostics.diagnosticsVersion, AI_CHAT_EXECUTION_ENGINE_DIAGNOSTICS_VERSION);
@@ -777,6 +805,7 @@ test('agent local chat diagnostics inspection returns a stable copy surface', ()
   assert.equal(request.diagnostics.estimate.droppedHistoryMessages, 1);
   assert.equal(request.diagnostics.continuity.retainedMemoryEntries, 0);
   assert.equal(request.diagnostics.transcript.emittedMessages, 1);
+  assert.equal(request.diagnostics.maxOutputTokensRequested, null);
 });
 
 test('ai chat execution engine reuse readiness requires text scope and existing consumer ownership', () => {
@@ -816,7 +845,7 @@ test('ai chat execution engine reuse readiness requires text scope and existing 
   assert.ok(preflight.reasons.includes('policy_authority_change_required'));
 });
 
-test('agent local chat provider emits first-beat before terminal and commits completed turn', async () => {
+test('agent local chat provider seals a single message before terminal and commits completed turn', async () => {
   const runtimeCalls: Array<{
     prompt?: string;
     systemPrompt?: string | null;
@@ -875,16 +904,16 @@ test('agent local chat provider emits first-beat before terminal and commits com
     [
       'turn-started',
       'reasoning-delta',
-      'beat-planned',
-      'first-beat-sealed',
-      'beat-delivered',
+      'message-sealed',
       'projection-rebuilt',
       'turn-completed',
     ],
   );
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.outcome, 'completed');
-  assert.equal(committed[0]?.events.some((event) => event.type === 'first-beat-sealed'), true);
+  assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /UserMessage:/);
+  assert.match(String(committed[0]?.textMessageState?.metadataJson?.rawModelOutput || ''), /schemaId/);
+  assert.equal(committed[0]?.events.some((event) => event.type === 'message-sealed'), true);
   assert.equal(events.at(-1)?.type, 'turn-completed');
 });
 
@@ -913,7 +942,7 @@ test('agent local chat provider commits canceled turns with turn scope before th
   assert.equal(canceledEvent?.type === 'turn-canceled' ? canceledEvent.scope : null, 'turn');
 });
 
-test('agent local chat provider resolves delayed follow-up beats from the model envelope', async () => {
+test('agent local chat provider schedules a follow-up turn from the model envelope', async () => {
   const fakeTimers = installFakeTimers();
   const committed: AgentCommitInput[] = [];
   try {
@@ -949,63 +978,80 @@ test('agent local chat provider resolves delayed follow-up beats from the model 
           }
           return { stream: stream() };
         },
+        async invokeText(request) {
+          assert.equal(request.threadId, 'thread-1');
+          assert.equal(request.messages?.at(-1)?.role, 'user');
+          assert.equal(request.messages?.at(-1)?.text, '过一会儿我再补一句跟进。');
+          return {
+            text: JSON.stringify({
+              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: {
+                messageId: 'message-follow-up',
+                text: '过一会儿我再补一句跟进。',
+              },
+              actions: [],
+            }),
+            traceId: 'trace-follow-up-turn-2',
+            promptTraceId: 'prompt-follow-up-turn-2',
+          };
+        },
       }),
       continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
     });
 
     const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
-    const firstFiveEvents = [
-      await iterator.next(),
+    const firstFourEvents = [
       await iterator.next(),
       await iterator.next(),
       await iterator.next(),
       await iterator.next(),
     ].map((entry) => entry.value);
     assert.deepEqual(
-      firstFiveEvents.map((event) => event.type),
+      firstFourEvents.map((event) => event.type),
       [
         'turn-started',
-        'beat-planned',
-        'beat-planned',
-        'first-beat-sealed',
-        'beat-delivered',
-      ],
-    );
-
-    const pendingTailStart = iterator.next();
-    await Promise.resolve();
-
-    const timerIds = fakeTimers.getTimerIds();
-    const delayTimerId = timerIds.find((id) => fakeTimers.getTimerDelay(id) === 400);
-    assert.ok(delayTimerId, 'expected delay timer from resolved wait field');
-
-    let settled = false;
-    void pendingTailStart.then(() => {
-      settled = true;
-    });
-    await Promise.resolve();
-    assert.equal(settled, false);
-
-    fakeTimers.runTimer(delayTimerId);
-
-    const remainingEvents = [
-      (await pendingTailStart).value,
-      (await iterator.next()).value,
-      (await iterator.next()).value,
-      (await iterator.next()).value,
-    ];
-    assert.deepEqual(
-      remainingEvents.map((event) => event.type),
-      [
-        'beat-delivery-started',
-        'beat-delivered',
+        'message-sealed',
         'projection-rebuilt',
         'turn-completed',
       ],
     );
-    assert.equal(committed[0]?.textBeatStates?.length, 2);
-    assert.equal(committed[0]?.textBeatStates?.[0]?.text, '先给你一句短答。');
-    assert.equal(committed[0]?.textBeatStates?.[1]?.text, '过一会儿我再补一句跟进。');
+    assert.equal(committed.length, 1);
+    assert.equal(committed[0]?.textMessageState?.text, '先给你一句短答。');
+    assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /What should we do next/);
+
+    const pendingFollowUpProjection = iterator.next();
+    await Promise.resolve();
+    const timerIds = fakeTimers.getTimerIds();
+    const delayTimerId = timerIds.find((id) => fakeTimers.getTimerDelay(id) === 400);
+    assert.ok(delayTimerId, 'expected delay timer from follow-up-turn action');
+
+    fakeTimers.runTimer(delayTimerId);
+
+    const followUpProjection = await pendingFollowUpProjection;
+    assert.equal(followUpProjection.value?.type, 'projection-rebuilt');
+    assert.equal(followUpProjection.value?.threadId, 'thread-1');
+
+    const completion = await iterator.next();
+    assert.equal(completion.done, true);
+    assert.equal(completion.value, undefined);
+
+    assert.equal(committed.length, 2);
+    assert.equal(committed[0]?.outcome, 'completed');
+    assert.equal(committed[1]?.outcome, 'completed');
+    assert.equal(committed[1]?.textMessageState?.text, '过一会儿我再补一句跟进。');
+    assert.match(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /过一会儿我再补一句跟进/);
+    assert.match(String(committed[1]?.textMessageState?.metadataJson?.rawModelOutput || ''), /message-follow-up/);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpSourceActionId, 'action-0');
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDelayMs, 400);
+    assert.deepEqual(
+      committed[1]?.events.map((event) => event.type),
+      [
+        'turn-started',
+        'message-sealed',
+        'turn-completed',
+      ],
+    );
   } finally {
     fakeTimers.restore();
   }
@@ -1027,7 +1073,7 @@ test('agent local chat provider can emit a second image beat from the resolved m
             actionIndex: 0,
             modality: 'image',
             promptText: '一张图片',
-            sourceBeatId: 'beat-primary',
+            sourceMessageId: 'beat-primary',
             sourceBeatIndex: 0,
           }],
         });
@@ -1052,6 +1098,21 @@ test('agent local chat provider can emit a second image beat from the resolved m
           mimeType: 'image/png',
           artifactId: 'artifact-image-1',
           traceId: 'trace-image-1',
+          diagnostics: {
+            imageJobSubmitMs: 40,
+            imageLoadMs: 1200,
+            imageGenerateMs: 5400,
+            artifactHydrateMs: 30,
+            queueWaitMs: 250,
+            loadCacheHit: false,
+            residentReused: false,
+            residentRestarted: true,
+            queueSerialized: true,
+            profileOverrideStep: 25,
+            profileOverrideCfgScale: 6,
+            profileOverrideSampler: 'euler',
+            profileOverrideScheduler: 'karras',
+          },
         };
       },
     }),
@@ -1093,9 +1154,7 @@ test('agent local chat provider can emit a second image beat from the resolved m
     events.map((event) => event.type),
     [
       'turn-started',
-      'beat-planned',
-      'first-beat-sealed',
-      'beat-delivered',
+      'message-sealed',
       'beat-planned',
       'beat-delivery-started',
       'artifact-ready',
@@ -1107,6 +1166,13 @@ test('agent local chat provider can emit a second image beat from the resolved m
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.imageState?.status, 'complete');
   assert.equal(committed[0]?.imageState?.mediaUrl, 'https://cdn.nimi.test/agent-image.png');
+  const completedEvent = events.at(-1);
+  assert.equal(completedEvent?.type, 'turn-completed');
+  const diagnostics = (completedEvent as { diagnostics?: Record<string, unknown> } | undefined)?.diagnostics;
+  const imageDiagnostics = diagnostics?.image as Record<string, unknown> | undefined;
+  assert.equal(imageDiagnostics?.imageLoadMs, 1200);
+  assert.equal(imageDiagnostics?.queueSerialized, true);
+  assert.equal(imageDiagnostics?.profileOverrideSampler, 'euler');
 });
 
 test('agent local chat provider uses the resolved image prompt payload verbatim', async () => {
@@ -1125,7 +1191,7 @@ test('agent local chat provider uses the resolved image prompt payload verbatim'
             actionIndex: 0,
             modality: 'image',
             promptText: '自拍照，柔和自然光，近景',
-            sourceBeatId: 'beat-selfie',
+            sourceMessageId: 'beat-selfie',
             sourceBeatIndex: 0,
           }],
         });
@@ -1315,14 +1381,14 @@ test('agent local chat provider executes voice actions and keeps video deferred 
             actionIndex: 0,
             modality: 'voice',
             promptText: '一段轻声回应',
-            sourceBeatId: 'beat-voice-video',
+            sourceMessageId: 'beat-voice-video',
             sourceBeatIndex: 0,
           }, {
             actionId: 'action-video-1',
             actionIndex: 1,
             modality: 'video',
             promptText: '镜头缓慢推进的夜景',
-            sourceBeatId: 'beat-voice-video',
+            sourceMessageId: 'beat-voice-video',
             sourceBeatIndex: 0,
           }],
         });
@@ -1393,9 +1459,7 @@ test('agent local chat provider executes voice actions and keeps video deferred 
     events.map((event) => event.type),
     [
       'turn-started',
-      'beat-planned',
-      'first-beat-sealed',
-      'beat-delivered',
+      'message-sealed',
       'beat-planned',
       'beat-delivery-started',
       'artifact-ready',
@@ -1426,7 +1490,7 @@ test('agent local chat provider consumes typed image prompt payloads from the mo
             actionIndex: 0,
             modality: 'image',
             promptText: 'subject: 客栈老板娘\nscene: 抬头看向来客的瞬间\nstyle: 写实电影感插画\nmood: 克制、略带审视\ncontinuity: 古风客栈, 夜色室内\navoid: 不要多余人物, 不要夸张表情',
-            sourceBeatId: 'beat-innkeeper',
+            sourceMessageId: 'beat-innkeeper',
             sourceBeatIndex: 0,
           }],
         });
@@ -1516,7 +1580,7 @@ test('agent local chat provider submits workflow voice actions without silently 
             modality: 'voice',
             operation: 'voice_workflow.tts_v2v',
             promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
-            sourceBeatId: 'beat-voice-clone',
+            sourceMessageId: 'beat-voice-clone',
             sourceBeatIndex: 0,
           }],
         });
@@ -1640,7 +1704,7 @@ test('agent local chat provider submits workflow voice actions without silently 
   assert.equal(workflowMetadata?.workflowStatus, 'submitted');
   assert.equal(workflowMetadata?.jobId, 'voice-workflow-job-clone');
   assert.equal(workflowMetadata?.voiceReference?.kind, 'voice_asset_id');
-  assert.equal(workflowMetadata?.sourceBeatId, 'beat-voice-clone');
+  assert.equal(workflowMetadata?.sourceMessageId, 'message-0');
   assert.equal(workflowMetadata?.sourceActionId, 'action-voice-clone');
 });
 
@@ -1663,7 +1727,7 @@ test('agent local chat provider fails close when workflow voice clone has no cur
             modality: 'voice',
             operation: 'voice_workflow.tts_v2v',
             promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
-            sourceBeatId: 'beat-voice-clone',
+            sourceMessageId: 'beat-voice-clone',
             sourceBeatIndex: 0,
           }],
         });
@@ -1806,6 +1870,210 @@ test('agent local chat provider fails close when runtime stream finishes without
   assert.match(failedEvent?.type === 'turn-failed' ? failedEvent.error.message : '', /without output text/);
 });
 
+test('agent local chat provider completes fenced JSON outputs with recovery diagnostics', async () => {
+  const committed: AgentCommitInput[] = [];
+  let capturedRequest: AgentRuntimeStreamRequest | null = null;
+  const rawModelOutput = `\`\`\`json\n${createBeatActionEnvelopeText({
+    beats: [{ beatIndex: 0, text: 'Recovered from fenced JSON.' }],
+  })}\n\`\`\``;
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText(request) {
+        capturedRequest = request;
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield {
+            type: 'text-delta',
+            textDelta: rawModelOutput,
+          };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              inputTokens: 12,
+              outputTokens: 18,
+            },
+            trace: {
+              traceId: 'trace-fenced',
+              promptTraceId: 'prompt-fenced',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:144:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    agentLocalChat: {
+      textModelContextTokens: 2048,
+      textMaxOutputTokensRequested: 321,
+    },
+  }));
+
+  if (!capturedRequest) {
+    assert.fail('expected runtime stream request to be captured');
+  }
+  const fencedRequest = capturedRequest as AgentRuntimeStreamRequest;
+  assert.equal(fencedRequest.maxOutputTokensRequested, 321);
+  assert.equal(committed[0]?.outcome, 'completed');
+  const completedEvent = events.at(-1);
+  assert.equal(completedEvent?.type, 'turn-completed');
+  if (completedEvent?.type !== 'turn-completed') {
+    assert.fail('expected a completed terminal event');
+  }
+  assert.equal(completedEvent.finishReason, 'stop');
+  assert.equal(completedEvent.trace?.traceId, 'trace-fenced');
+  assert.equal(completedEvent.trace?.promptTraceId, 'prompt-fenced');
+  assert.equal(completedEvent.usage?.inputTokens, 12);
+  assert.equal(completedEvent.usage?.outputTokens, 18);
+  const diagnostics = completedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'json-fenced');
+  assert.equal(diagnostics?.recoveryPath, 'strip-fence');
+  assert.equal(diagnostics?.suspectedTruncation, false);
+  assert.equal(diagnostics?.parseErrorDetail, null);
+  assert.equal(diagnostics?.rawOutputChars, rawModelOutput.length);
+  assert.equal(diagnostics?.normalizedOutputChars, rawModelOutput.length);
+  assert.equal(diagnostics?.finishReason, 'stop');
+  assert.equal(diagnostics?.traceId, 'trace-fenced');
+  assert.equal(diagnostics?.promptTraceId, 'prompt-fenced');
+  assert.deepEqual(diagnostics?.usage, {
+    inputTokens: 12,
+    outputTokens: 18,
+  });
+  assert.equal(diagnostics?.contextWindowSource, 'route-profile');
+  assert.equal(diagnostics?.maxOutputTokensRequested, 321);
+  assert.equal(diagnostics?.promptOverflow, false);
+  assert.match(String(diagnostics?.requestPrompt || ''), /UserMessage:/);
+  assert.match(String(diagnostics?.requestSystemPrompt || ''), /Output Contract:/);
+  assert.equal(diagnostics?.rawModelOutputText, rawModelOutput);
+  assert.equal(diagnostics?.normalizedModelOutputText, rawModelOutput);
+});
+
+test('agent local chat provider completes wrapped JSON outputs with recovery diagnostics', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield {
+            type: 'text-delta',
+            textDelta: `Here is the envelope:\n${createBeatActionEnvelopeText({
+              beats: [{ beatIndex: 0, text: 'Recovered from wrapper text.' }],
+            })}\nThanks.`,
+          };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              inputTokens: 9,
+              outputTokens: 14,
+            },
+            trace: {
+              traceId: 'trace-wrapper',
+              promptTraceId: 'prompt-wrapper',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:145:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.equal(committed[0]?.outcome, 'completed');
+  const completedEvent = events.at(-1);
+  assert.equal(completedEvent?.type, 'turn-completed');
+  if (completedEvent?.type !== 'turn-completed') {
+    assert.fail('expected a completed terminal event');
+  }
+  const diagnostics = completedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'json-wrapper');
+  assert.equal(diagnostics?.recoveryPath, 'extract-json-object');
+  assert.equal(diagnostics?.finishReason, 'stop');
+});
+
+test('agent local chat provider fails partial JSON outputs with truncation diagnostics', async () => {
+  const committed: AgentCommitInput[] = [];
+  let capturedRequest: AgentRuntimeStreamRequest | null = null;
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText(request) {
+        capturedRequest = request;
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield {
+            type: 'text-delta',
+            textDelta: `{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}","beats":[{"beatId":"beat-0"`,
+          };
+          yield {
+            type: 'finish',
+            finishReason: 'length',
+            usage: {
+              inputTokens: 40,
+              outputTokens: 41,
+            },
+            trace: {
+              traceId: 'trace-partial',
+              promptTraceId: 'prompt-partial',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:146:t1:b0:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    history: [{
+      id: 'history-overflow-1',
+      role: 'assistant',
+      text: `Old answer ${'detail '.repeat(300)}`,
+    }],
+    agentLocalChat: {
+      targetSnapshot: {
+        ...sampleTarget(),
+        bio: `Long bio ${'detail '.repeat(600)}`,
+      },
+      textModelContextTokens: 80,
+      textMaxOutputTokensRequested: 111,
+    },
+  }));
+
+  if (!capturedRequest) {
+    assert.fail('expected runtime stream request to be captured');
+  }
+  const partialRequest = capturedRequest as AgentRuntimeStreamRequest;
+  assert.equal(partialRequest.maxOutputTokensRequested, 111);
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
+  }
+  assert.match(failedEvent.error.message, /truncated/i);
+  assert.equal(failedEvent.finishReason, 'length');
+  assert.equal(failedEvent.trace?.traceId, 'trace-partial');
+  assert.equal(failedEvent.trace?.promptTraceId, 'prompt-partial');
+  assert.equal(failedEvent.usage?.inputTokens, 40);
+  assert.equal(failedEvent.usage?.outputTokens, 41);
+  const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'partial-json');
+  assert.equal(diagnostics?.recoveryPath, 'none');
+  assert.equal(diagnostics?.suspectedTruncation, true);
+  assert.equal(diagnostics?.finishReason, 'length');
+  assert.equal(diagnostics?.traceId, 'trace-partial');
+  assert.equal(diagnostics?.promptTraceId, 'prompt-partial');
+  assert.equal(diagnostics?.contextWindowSource, 'route-profile');
+  assert.equal(diagnostics?.maxOutputTokensRequested, 111);
+  assert.equal(diagnostics?.promptOverflow, true);
+});
+
 test('agent local chat provider fails close when runtime stream ends without terminal event', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
@@ -1873,7 +2141,7 @@ test('agent local chat continuity adapter maps committed turn events to truth so
         modality: 'text',
       },
       {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'turn-1:beat:0',
         text: 'hello',
@@ -2007,7 +2275,7 @@ test('agent local chat continuity adapter commits canonical voice projection mes
       mediaUrl: 'file:///tmp/voice-turn-1.mp3',
       mimeType: 'audio/mpeg',
       artifactId: 'voice-artifact-1',
-      sourceBeatId: 'turn-voice-1:beat:0',
+      sourceMessageId: 'turn-voice-1:message:0',
       sourceActionId: 'action-voice-1',
     },
   });
@@ -2027,22 +2295,40 @@ test('agent local chat continuity adapter commits canonical voice projection mes
       completedAtMs: 240,
       abortedAtMs: null,
     },
-    beats: [{
-      ...createAgentTurnBeat({
-        id: 'turn-voice-1:beat:1',
-        turnId: 'turn-voice-1',
-        beatIndex: 1,
-        modality: 'voice',
-        status: 'delivered',
-        textShadow: '晚安，记得早点休息。',
-        artifactId: 'voice-artifact-1',
-        mimeType: 'audio/mpeg',
-        mediaUrl: 'file:///tmp/voice-turn-1.mp3',
-        projectionMessageId: 'turn-voice-1:message:1',
-        createdAtMs: 240,
-        deliveredAtMs: 240,
-      }),
-    }],
+    beats: [
+      {
+        ...createAgentTurnBeat({
+          id: 'turn-voice-1:beat:0',
+          turnId: 'turn-voice-1',
+          beatIndex: 0,
+          modality: 'text',
+          status: 'delivered',
+          textShadow: '我给你留一段语音。',
+          artifactId: null,
+          mimeType: 'text/plain',
+          mediaUrl: null,
+          projectionMessageId: 'turn-voice-1:message:0',
+          createdAtMs: 240,
+          deliveredAtMs: 240,
+        }),
+      },
+      {
+        ...createAgentTurnBeat({
+          id: 'turn-voice-1:beat:1',
+          turnId: 'turn-voice-1',
+          beatIndex: 1,
+          modality: 'voice',
+          status: 'delivered',
+          textShadow: '晚安，记得早点休息。',
+          artifactId: 'voice-artifact-1',
+          mimeType: 'audio/mpeg',
+          mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+          projectionMessageId: 'turn-voice-1:message:1',
+          createdAtMs: 240,
+          deliveredAtMs: 240,
+        }),
+      },
+    ],
     interactionSnapshot: null,
     relationMemorySlots: [],
     recallEntries: [],
@@ -2055,18 +2341,30 @@ test('agent local chat continuity adapter commits canonical voice projection mes
         archivedAtMs: null,
         targetSnapshot: sampleTarget(),
       },
-      messages: [createAgentVoiceMessage({
-        id: 'turn-voice-1:message:1',
-        threadId: 'thread-1',
-        role: 'assistant',
-        status: 'complete',
-        contentText: '晚安，记得早点休息。',
-        mediaUrl: 'file:///tmp/voice-turn-1.mp3',
-        mediaMimeType: 'audio/mpeg',
-        artifactId: 'voice-artifact-1',
-        createdAtMs: 240,
-        updatedAtMs: 240,
-      })],
+      messages: [
+        createAgentTextMessage({
+          id: 'turn-voice-1:message:0',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          contentText: '我给你留一段语音。',
+          traceId: 'trace-voice-1',
+          createdAtMs: 240,
+          updatedAtMs: 240,
+        }),
+        createAgentVoiceMessage({
+          id: 'turn-voice-1:message:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          contentText: '晚安，记得早点休息。',
+          mediaUrl: 'file:///tmp/voice-turn-1.mp3',
+          mediaMimeType: 'audio/mpeg',
+          artifactId: 'voice-artifact-1',
+          createdAtMs: 240,
+          updatedAtMs: 240,
+        }),
+      ],
       draft: null,
       clearDraft: true,
     },

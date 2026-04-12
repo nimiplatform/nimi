@@ -96,6 +96,9 @@ test('agent shell view model resolves canonical messages with user/agent sender 
       error: null,
       metadata: {
         reasoningText: 'thinking',
+        debugType: 'agent-text-turn',
+        followUpTurn: true,
+        followUpDelayMs: 400,
       },
     }],
     activeThreadId: 'thread-agent-1',
@@ -113,6 +116,8 @@ test('agent shell view model resolves canonical messages with user/agent sender 
   assert.equal(messages[1]?.senderKind, 'agent');
   assert.equal(messages[1]?.sessionId, 'thread-agent-1');
   assert.equal(messages[1]?.targetId, 'agent-1');
+  assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpTurn, true);
+  assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpDelayMs, 400);
 });
 
 test('agent shell view model maps image messages to canonical image kinds with media metadata', () => {
@@ -185,12 +190,11 @@ test('agent behavior resolver produces a canonical resolved behavior object from
 
   assert.equal(resolved.settings.thinkingPreference, 'on');
   assert.equal(resolved.resolvedTurnMode, 'intimate');
-  assert.equal(resolved.resolvedBeatPlan.beats.length, 2);
-  assert.equal(resolved.resolvedBeatPlan.beats[0]?.deliveryPhase, 'primary');
-  assert.equal(resolved.resolvedBeatPlan.beats[1]?.deliveryPhase, 'tail');
+  assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
+  assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'default');
 });
 
-test('agent behavior resolver keeps explicit-media turns single-beat without user toggles', () => {
+test('agent behavior resolver keeps explicit-media turns single-message without user toggles', () => {
   const resolved = resolveAgentChatBehaviorFromResolver({
     userText: '发张图给我看看',
     settings: {
@@ -200,6 +204,5 @@ test('agent behavior resolver keeps explicit-media turns single-beat without use
 
   assert.equal(resolved.resolvedTurnMode, 'explicit-media');
   assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
-  assert.equal(resolved.resolvedBeatPlan.beats.length, 1);
-  assert.equal(resolved.resolvedBeatPlan.beats[0]?.intent, 'media-request');
+  assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
 });

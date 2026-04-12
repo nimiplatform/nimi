@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type {
+  CanonicalMessageAccessorySlot,
   CanonicalMessageContentSlot,
   ConversationTargetSummary,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
@@ -25,6 +26,8 @@ export function resolveAgentConversationHostView(input: {
     loadingLabel: string;
   };
   renderMessageContent: CanonicalMessageContentSlot;
+  renderMessageAccessory?: CanonicalMessageAccessorySlot;
+  onMessageContextMenu?: (message: import('@nimiplatform/nimi-kit/features/chat/headless').ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
   onStopGenerating?: () => void;
 }): AgentConversationHostView {
   return {
@@ -45,12 +48,16 @@ export function resolveAgentConversationHostView(input: {
       loadingLabel: input.labels.loadingLabel,
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
+      renderMessageAccessory: input.renderMessageAccessory,
+      onMessageContextMenu: input.onMessageContextMenu,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
       onStopGenerating: input.onStopGenerating,
     },
     stagePanelProps: {
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
+      renderMessageAccessory: input.renderMessageAccessory,
+      onMessageContextMenu: input.onMessageContextMenu,
       pendingFirstBeat: input.footerViewState.pendingFirstBeat,
     },
   };

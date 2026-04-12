@@ -9,6 +9,7 @@ import {
   initI18n,
   i18n,
   onI18nIssue,
+  resetI18nIssueTrackingForTests,
 } from '../src/shell/renderer/i18n';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
@@ -102,6 +103,7 @@ let restoreDomGlobals: () => void = () => {};
 
 test.beforeEach(() => {
   restoreDomGlobals = installDomGlobals();
+  resetI18nIssueTrackingForTests();
 });
 
 test.afterEach(() => {
@@ -152,6 +154,33 @@ test('missing renderer translation keys emit issues and return fallback copy wit
     assert.deepEqual(captured, [{
       code: 'i18n:missing-key',
       key: 'I18nSpecRegression.missingRendererCopy',
+      source: 'parseMissingKeyHandler',
+    }]);
+  } finally {
+    unsubscribe();
+  }
+});
+
+test('duplicate missing renderer translation keys emit a single issue per session fingerprint', async () => {
+  await initI18n();
+
+  const captured: Array<{ code: string; key: string; source: string }> = [];
+  const unsubscribe = onI18nIssue((issue) => {
+    if (issue.key === 'I18nSpecRegression.duplicateMissingRendererCopy') {
+      captured.push({
+        code: issue.code,
+        key: issue.key,
+        source: issue.source,
+      });
+    }
+  });
+
+  try {
+    assert.equal(i18n.t('I18nSpecRegression.duplicateMissingRendererCopy'), 'Duplicate Missing Renderer Copy');
+    assert.equal(i18n.t('I18nSpecRegression.duplicateMissingRendererCopy'), 'Duplicate Missing Renderer Copy');
+    assert.deepEqual(captured, [{
+      code: 'i18n:missing-key',
+      key: 'I18nSpecRegression.duplicateMissingRendererCopy',
       source: 'parseMissingKeyHandler',
     }]);
   } finally {
@@ -221,6 +250,57 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
   ] as const;
   const requiredKeys = [
     'SecuritySettings.copySecretSuccess',
+    'Menu.profile',
+    'Menu.wallet',
+    'Menu.settings',
+    'Menu.termsOfService',
+    'Menu.privacyPolicy',
+    'Menu.logout',
+    'ModHub.statusFailed',
+    'ModHub.statusConflict',
+    'ModHub.statusUpdateReady',
+    'ModHub.statusEnabled',
+    'ModHub.statusDisabled',
+    'ModHub.statusAvailable',
+    'ModHub.actionInstall',
+    'ModHub.actionUpdate',
+    'ModHub.actionOpen',
+    'ModHub.actionEnable',
+    'ModHub.actionDisable',
+    'ModHub.actionRemove',
+    'ModHub.actionRetry',
+    'ModHub.actionOpenFolder',
+    'ModHub.actionSettings',
+    'ModHub.actionLoading',
+    'NotificationPanel.filters.all',
+    'NotificationPanel.filters.gift',
+    'NotificationPanel.filters.request',
+    'NotificationPanel.filters.mention',
+    'NotificationPanel.filters.like',
+    'NotificationPanel.filters.system',
+    'NotificationPanel.typeNotifications.friendRequestReceived',
+    'NotificationPanel.typeNotifications.friendRequestAccepted',
+    'NotificationPanel.typeNotifications.friendRequestRejected',
+    'NotificationPanel.typeNotifications.giftReceived',
+    'NotificationPanel.typeNotifications.giftAccepted',
+    'NotificationPanel.typeNotifications.giftRejected',
+    'NotificationPanel.typeNotifications.giftStatusUpdated',
+    'NotificationPanel.typeNotifications.reviewReceived',
+    'NotificationPanel.typeNotifications.system',
+    'Chat.schedulingDeniedTitle',
+    'Chat.schedulingQueueRequiredTitle',
+    'Chat.schedulingPreemptionRiskTitle',
+    'Chat.schedulingSlowdownRiskTitle',
+    'Chat.schedulingUnknownTitle',
+    'Chat.schedulingDeniedDetail',
+    'Chat.schedulingQueueRequiredDetail',
+    'Chat.schedulingPreemptionRiskDetail',
+    'Chat.schedulingSlowdownRiskDetail',
+    'Chat.schedulingSlowdownRiskBusyDetail',
+    'Chat.schedulingUnknownDetail',
+    'Chat.agentDebugCopyLabel',
+    'Chat.agentDebugCopiedLabel',
+    'Chat.agentDebugFollowUpLabel',
   ];
 
   for (const [locale, localeData] of localeEntries) {

@@ -44,18 +44,15 @@ pub fn tester_image_history_save(payload: TesterImageHistorySavePayload) -> Resu
             .map_err(|e| format!("创建临时文件失败 ({}): {e}", temp_path.display()))?;
         file.write_all(payload.records_json.as_bytes())
             .map_err(|e| format!("写入临时文件失败: {e}"))?;
-        file.flush()
-            .map_err(|e| format!("刷新临时文件失败: {e}"))?;
+        file.flush().map_err(|e| format!("刷新临时文件失败: {e}"))?;
         file.sync_all()
             .map_err(|e| format!("同步临时文件失败: {e}"))?;
         drop(file);
 
         if let Err(rename_err) = fs::rename(&temp_path, &path) {
             if path.exists() {
-                fs::remove_file(&path)
-                    .map_err(|e| format!("删除旧文件失败: {e}"))?;
-                fs::rename(&temp_path, &path)
-                    .map_err(|e| format!("提交文件失败: {e}"))?;
+                fs::remove_file(&path).map_err(|e| format!("删除旧文件失败: {e}"))?;
+                fs::rename(&temp_path, &path).map_err(|e| format!("提交文件失败: {e}"))?;
             } else {
                 return Err(format!("提交文件失败: {rename_err}"));
             }

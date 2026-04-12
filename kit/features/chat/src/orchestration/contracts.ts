@@ -186,9 +186,10 @@ export type ConversationTurnEvent =
     textDelta: string;
   }
   | {
-    type: 'first-beat-sealed';
+    type: 'message-sealed';
     turnId: string;
-    beatId: string;
+    messageId?: string;
+    beatId?: string;
     text: string;
   }
   | {
@@ -230,6 +231,7 @@ export type ConversationTurnEvent =
     finishReason?: string;
     usage?: ConversationRuntimeUsage;
     trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
   }
   | {
     type: 'turn-failed';
@@ -237,7 +239,10 @@ export type ConversationTurnEvent =
     error: ConversationTurnError;
     outputText?: string;
     reasoningText?: string;
+    finishReason?: string;
+    usage?: ConversationRuntimeUsage;
     trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
   }
   | {
     type: 'turn-canceled';
@@ -245,7 +250,10 @@ export type ConversationTurnEvent =
     scope: 'turn' | 'tail' | 'projection';
     outputText?: string;
     reasoningText?: string;
+    finishReason?: string;
+    usage?: ConversationRuntimeUsage;
     trace?: ConversationRuntimeTrace;
+    diagnostics?: Record<string, unknown>;
   };
 
 export type ConversationTurnEventByType<TType extends ConversationTurnEvent['type']> = Extract<
@@ -268,8 +276,8 @@ export function matchConversationTurnEvent<TResult>(
       return handlers['reasoning-delta'](event);
     case 'text-delta':
       return handlers['text-delta'](event);
-    case 'first-beat-sealed':
-      return handlers['first-beat-sealed'](event);
+    case 'message-sealed':
+      return handlers['message-sealed'](event);
     case 'beat-planned':
       return handlers['beat-planned'](event);
     case 'beat-delivery-started':

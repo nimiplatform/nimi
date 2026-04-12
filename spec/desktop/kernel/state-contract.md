@@ -7,10 +7,10 @@
 Desktop 状态管理契约。定义 Zustand store 的 slice 架构、运行时字段映射、持久化策略。
 
 本契约只拥有 store 结构、字段映射与持久化 mechanics；Agent chat 的
-multi-beat、turn-mode、experience-policy / settings 语义继续由
+single-message、turn-mode、experience-policy / settings 语义继续由
 `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）拥有；delayed beat、
 pending beat invalidation、modality action envelope、以及 model-generated
-modality prompt semantics 继续由 `agent-chat-beat-action-contract.md`
+modality prompt semantics 继续由 `agent-chat-message-action-contract.md`
 （`D-LLM-027` ~ `D-LLM-033`）拥有。State surface 只能承载这些语义的存储或
 lifecycle projection，不得成为平行语义 owner。
 
@@ -50,12 +50,12 @@ lifecycle projection，不得成为平行语义 owner。
 `agent-chat-behavior-contract.md`（`D-LLM-023`）定义的
 `AgentChatExperienceSettings` product-facing preference truth。`runtimeFields`、
 slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
-`ResolvedExperiencePolicy`、`resolvedTurnMode`、`resolvedBeatPlan` 的 canonical
+`ResolvedExperiencePolicy`、`resolvedTurnMode` 的 canonical
 语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
 
 若 Desktop 为 delayed beat 建立 pending entry、为 modality action 建立执行投影或
 历史记录，这些字段也只能承载
-`agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
+`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
 projection / lifecycle evidence。store、hydration、migration、timer recovery、或
 UI state 不得决定 delayed beat 是否存在、是否继续有效、是否应被 delivery、或
 `promptPayload` 应是什么；缺失合法 resolved beat/action outputs 时必须 fail-close。
@@ -100,6 +100,6 @@ Desktop host 对 mod workspace tab 的产品规则固定为：
 ## Fact Sources
 
 - `agent-chat-behavior-contract.md` — D-LLM-022 ~ D-LLM-026 behavior authority boundary
-- `agent-chat-beat-action-contract.md` — D-LLM-027 ~ D-LLM-033 beat/action authority boundary
+- `agent-chat-message-action-contract.md` — D-LLM-027 ~ D-LLM-033 message/action authority boundary
 - `tables/store-slices.yaml` — Slice 枚举
 - `tables/app-tabs.yaml` — AppTab 枚举

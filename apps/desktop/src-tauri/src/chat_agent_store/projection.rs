@@ -1,8 +1,8 @@
 use super::codec::{
-    map_sql_error, message_kind_to_db_value, message_role_to_db_value,
-    message_status_to_db_value, normalize_message_error, normalize_optional_string,
-    normalize_required_string, normalize_structured_json, parse_beat_modality,
-    parse_beat_status, parse_message_role, require_non_negative_ms,
+    map_sql_error, message_kind_to_db_value, message_role_to_db_value, message_status_to_db_value,
+    normalize_message_error, normalize_optional_string, normalize_required_string,
+    normalize_structured_json, parse_beat_modality, parse_beat_status, parse_message_role,
+    require_non_negative_ms,
 };
 use super::crud::get_thread_bundle;
 use super::types::*;
@@ -135,7 +135,10 @@ pub(super) fn upsert_projection_message(
             normalize_optional_string(input.artifact_id.as_deref()),
             metadata_json
                 .as_ref()
-                .map(|value| super::codec::serialize_json_value(value, "projection.messages[].metadataJson"))
+                .map(|value| super::codec::serialize_json_value(
+                    value,
+                    "projection.messages[].metadataJson"
+                ))
                 .transpose()?,
             created_at_ms,
             updated_at_ms,

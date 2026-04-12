@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-04-10
+> 生成时间: 2026-04-12
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -2076,12 +2076,12 @@ Desktop 的应用状态采用 Zustand slice 架构。为什么不用 Redux 或 C
 `agent-chat-behavior-contract.md`（`D-LLM-023`）定义的
 `AgentChatExperienceSettings` product-facing preference truth。`runtimeFields`、
 slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
-`ResolvedExperiencePolicy`、`resolvedTurnMode`、`resolvedBeatPlan` 的 canonical
+`ResolvedExperiencePolicy`、`resolvedTurnMode` 的 canonical
 语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
 
 若 Desktop 为 delayed beat 建立 pending entry、为 modality action 建立执行投影或
 历史记录，这些字段也只能承载
-`agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
+`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
 projection / lifecycle evidence。store、hydration、migration、timer recovery、或
 UI state 不得决定 delayed beat 是否存在、是否继续有效、是否应被 delivery、或
 `promptPayload` 应是什么；缺失合法 resolved beat/action outputs 时必须 fail-close。

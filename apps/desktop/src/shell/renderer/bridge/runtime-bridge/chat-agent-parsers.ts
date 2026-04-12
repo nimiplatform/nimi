@@ -306,6 +306,7 @@ export function parseAgentLocalRelationMemorySlotRecord(value: unknown): AgentLo
     summary: parseRequiredString(record.summary, 'summary', 'chat_agent relation memory slot record'),
     sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
     sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
+    sourceMessageId: parseOptionalString(record.sourceMessageId) || null,
     score: Number(record.score),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent relation memory slot record'),
   };
@@ -318,6 +319,7 @@ export function parseAgentLocalRecallEntryRecord(value: unknown): AgentLocalReca
     threadId: parseRequiredString(record.threadId, 'threadId', 'chat_agent recall entry record'),
     sourceTurnId: parseOptionalString(record.sourceTurnId) || null,
     sourceBeatId: parseOptionalString(record.sourceBeatId) || null,
+    sourceMessageId: parseOptionalString(record.sourceMessageId) || null,
     summary: parseRequiredString(record.summary, 'summary', 'chat_agent recall entry record'),
     searchText: parseRequiredString(record.searchText, 'searchText', 'chat_agent recall entry record'),
     updatedAtMs: parseFiniteInteger(record.updatedAtMs, 'updatedAtMs', 'chat_agent recall entry record'),

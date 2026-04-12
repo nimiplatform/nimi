@@ -166,7 +166,7 @@ test('agent submit session keeps assistant invisible until first-beat and then g
 
   const firstBeatStep = reduceAgentSubmitSessionEvent(session, {
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',
@@ -209,7 +209,7 @@ test('agent submit session shows a pending image card when an image beat is plan
   assert.equal(imageMessage?.contentText, 'Generating image...');
 });
 
-test('agent submit session records a pending tail text beat when a follow-up beat is planned', () => {
+test('agent submit session ignores text beat planning because follow-up now uses a separate turn', () => {
   const session = createSession();
 
   const step = reduceAgentSubmitSessionEvent(session, {
@@ -224,54 +224,32 @@ test('agent submit session records a pending tail text beat when a follow-up bea
   });
 
   const tailMessage = step.state.workingBundle?.messages.find((message) => message.id.endsWith(':message:1'));
-  assert.equal(tailMessage?.kind, 'text');
-  assert.equal(tailMessage?.status, 'pending');
-  assert.equal(tailMessage?.contentText, '');
-  assert.equal(tailMessage?.parentMessageId, 'assistant-1:message:0');
+  assert.equal(tailMessage, undefined);
 });
 
-test('agent submit session ignores the echoed first text-delta that immediately follows first-beat-sealed', () => {
+test('agent submit session keeps the sealed message visible', () => {
   let session = createSession();
 
   const firstBeatStep = reduceAgentSubmitSessionEvent(session, {
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
+      messageId: 'message-1',
       text: 'hello',
     },
     updatedAtMs: 130,
   });
   session = firstBeatStep.state;
   assert.equal(firstBeatStep.visibleBundle?.messages.at(-1)?.contentText, 'hello');
-
-  const echoedDelta = reduceAgentSubmitSessionEvent(session, {
-    event: {
-      type: 'text-delta',
-      turnId: 'turn-1',
-      textDelta: 'hello',
-    },
-    updatedAtMs: 140,
-  });
-  session = echoedDelta.state;
-  assert.equal(echoedDelta.visibleBundle?.messages.at(-1)?.contentText, 'hello');
-
-  const nextDelta = reduceAgentSubmitSessionEvent(session, {
-    event: {
-      type: 'text-delta',
-      turnId: 'turn-1',
-      textDelta: ' world',
-    },
-    updatedAtMs: 150,
-  });
-  assert.equal(nextDelta.visibleBundle?.messages.at(-1)?.contentText, 'hello world');
+  assert.equal(session.assistantVisible, true);
 });
 
 test('agent submit session keeps authoritative projection when stale text delta arrives after projection rebuild', () => {
   let session = createSession();
   session = reduceAgentSubmitSessionEvent(session, {
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',
@@ -397,7 +375,7 @@ test('agent submit session preserves visible first-beat when the turn is cancele
   let session = createSession();
   session = reduceAgentSubmitSessionEvent(session, {
     event: {
-      type: 'first-beat-sealed',
+      type: 'message-sealed',
       turnId: 'turn-1',
       beatId: 'beat-1',
       text: 'sealed first beat',

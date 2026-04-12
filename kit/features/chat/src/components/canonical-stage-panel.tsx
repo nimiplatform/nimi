@@ -120,6 +120,7 @@ export type CanonicalStagePanelProps = {
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 function toStageRenderContext(
@@ -254,6 +255,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
                       onPlayVoiceMessage={props.onPlayVoiceMessage}
                       onVoiceContextMenu={props.onVoiceContextMenu}
+                      onMessageContextMenu={props.onMessageContextMenu}
                     />
                   ))}
                   {slice.assistantMessages.map((message, index) => (
@@ -280,6 +282,7 @@ export function CanonicalStagePanel(props: CanonicalStagePanelProps) {
                       isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(message)}
                       onPlayVoiceMessage={props.onPlayVoiceMessage}
                       onVoiceContextMenu={props.onVoiceContextMenu}
+                      onMessageContextMenu={props.onMessageContextMenu}
                     />
                   ))}
                   {slice.pendingFirstBeat ? (

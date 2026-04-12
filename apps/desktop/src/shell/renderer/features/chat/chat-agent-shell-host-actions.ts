@@ -96,6 +96,8 @@ type AgentRunTurn = (input: {
   voiceExecutionSnapshot: AISnapshot | null;
   voiceWorkflowExecutionSnapshotByCapability: Partial<Record<AgentVoiceWorkflowCapability, AISnapshot | null>>;
   latestVoiceCapture: ChatAgentVoiceWorkflowReferenceAudio | null;
+  textModelContextTokens: number | null;
+  textMaxOutputTokensRequested: number | null;
   target: AgentLocalTargetSnapshot;
 }) => AsyncIterable<ConversationTurnEvent>;
 
@@ -127,11 +129,15 @@ type UseAgentConversationHostActionsInput = {
       lifecycle: AgentTurnLifecycleState;
     } | null,
   ) => void;
+  setSelectionForAgent: (agentId: string | null) => void;
   setSubmittingThreadId: (threadId: string | null) => void;
   setThreadsCache: (updater: (current: AgentLocalThreadSummary[]) => AgentLocalThreadSummary[]) => void;
+  clearSelectedTarget: () => void;
   submittingThreadId: string | null;
   syncSelectionToThread: (thread: AgentLocalThreadSummary | AgentLocalThreadRecord | null) => void;
   t: TFunction;
+  textModelContextTokens: number | null;
+  textMaxOutputTokensRequested: number | null;
   targetByAgentId: Map<string, AgentLocalTargetSnapshot>;
   targetsReady: boolean;
   threads: readonly AgentLocalThreadSummary[];
@@ -176,6 +182,8 @@ export async function assertAgentSubmitSchedulingAllowed(input: {
 export function useAgentConversationHostActions(
   input: UseAgentConversationHostActionsInput,
 ): {
+  handleDeleteMessage: (messageId: string) => Promise<void>;
+  handleDeleteThread: (threadId: string) => Promise<void>;
   handleSelectAgent: (agentId: string | null) => void;
   handleSelectThread: (threadId: string) => void;
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
@@ -307,6 +315,47 @@ export function useAgentConversationHostActions(
       input.syncSelectionToThread(nextThread);
     })().catch(input.reportHostError);
   }, [input, persistDraftForThread]);
+
+  const handleDeleteThread = useCallback(async (threadId: string) => {
+    const normalizedThreadId = normalizeText(threadId);
+    if (!normalizedThreadId) {
+      return;
+    }
+    const thread = input.threads.find((item) => item.id === normalizedThreadId) || null;
+    if (!thread) {
+      return;
+    }
+    await chatAgentStoreClient.deleteThread(normalizedThreadId);
+    input.queryClient.removeQueries({ queryKey: bundleQueryKey(normalizedThreadId) });
+    input.setFooterHostState(normalizedThreadId, null);
+    input.setThreadsCache((current) => current.filter((item) => item.id !== normalizedThreadId));
+    if (input.activeThreadId === normalizedThreadId) {
+      input.currentDraftTextRef.current = '';
+      if (input.activeTarget?.agentId === thread.agentId) {
+        input.setSelectionForAgent(thread.agentId);
+      } else {
+        input.syncSelectionToThread(null);
+        input.clearSelectedTarget();
+      }
+    }
+  }, [input]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    const normalizedMessageId = normalizeText(messageId);
+    if (!normalizedMessageId || !input.activeThreadId) {
+      return;
+    }
+    const bundle = input.bundle;
+    if (!bundle || bundle.thread.id !== input.activeThreadId) {
+      return;
+    }
+    if (!bundle.messages.some((message) => message.id === normalizedMessageId)) {
+      return;
+    }
+    const nextBundle = await chatAgentStoreClient.deleteMessage(normalizedMessageId);
+    input.setThreadsCache((current) => upsertThreadSummary(current, nextBundle.thread));
+    input.queryClient.setQueryData(bundleQueryKey(nextBundle.thread.id), nextBundle);
+  }, [input.activeThreadId, input.bundle, input.queryClient, input.setThreadsCache]);
 
   const handleSelectAgent = useCallback((agentId: string | null) => {
     if (input.submittingThreadId) {
@@ -668,8 +717,7 @@ export function useAgentConversationHostActions(
         effectiveThreadId,
         resolveAgentTurnTotalTimeoutMs(input.aiConfig),
       );
-      let delayedTailPending = false;
-      let submittingReleasedForPendingTail = false;
+      let submittingReleasedForVisibleMessage = false;
       const activeSubmit: ActiveAgentSubmit = {
         threadId: effectiveThreadId,
         turnId: assistantTurnId,
@@ -697,17 +745,12 @@ export function useAgentConversationHostActions(
           voiceExecutionSnapshot,
           voiceWorkflowExecutionSnapshotByCapability,
           latestVoiceCapture: matchedVoiceCapture,
+          textModelContextTokens: input.textModelContextTokens,
+          textMaxOutputTokensRequested: input.textMaxOutputTokensRequested,
           target: activeTarget,
         })) {
-          if (event.type === 'beat-planned' && event.modality === 'text' && event.beatIndex > 0) {
-            delayedTailPending = true;
-          }
-          if (
-            event.type === 'first-beat-sealed'
-            && delayedTailPending
-            && !submittingReleasedForPendingTail
-          ) {
-            submittingReleasedForPendingTail = true;
+          if (event.type === 'message-sealed' && !submittingReleasedForVisibleMessage) {
+            submittingReleasedForVisibleMessage = true;
             activeSubmit.interruptible = true;
             if (submittingLockTokenRef.current === submittingLockToken) {
               input.setSubmittingThreadId(null);
@@ -729,7 +772,7 @@ export function useAgentConversationHostActions(
                 updatedAtMs: Date.now(),
               }));
             },
-            'first-beat-sealed': (nextEvent) => {
+            'message-sealed': (nextEvent) => {
               submitSession = input.applyDriverEffects(effectiveThreadId, reduceAgentSubmitDriverEvent({
                 state: submitSession,
                 event: nextEvent,
@@ -902,6 +945,8 @@ export function useAgentConversationHostActions(
   }, [input, uploadPendingAttachment]);
 
   return {
+    handleDeleteMessage,
+    handleDeleteThread,
     handleSelectAgent,
     handleSelectThread,
     handleSubmit,

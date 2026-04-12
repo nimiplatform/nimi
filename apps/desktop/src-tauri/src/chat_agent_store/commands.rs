@@ -1,13 +1,14 @@
 use super::{
-    cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, get_draft,
-    get_thread_bundle, list_threads, load_turn_context, open_db, put_draft, rebuild_projection,
-    update_message, update_thread_metadata, update_turn_beat, ChatAgentCancelTurnInput,
-    ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput, ChatAgentCreateMessageInput,
-    ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput, ChatAgentDraftRecord,
-    ChatAgentLoadTurnContextInput, ChatAgentMessageRecord, ChatAgentProjectionRebuildResult,
-    ChatAgentPutDraftInput, ChatAgentThreadBundle, ChatAgentThreadLookupPayload,
-    ChatAgentThreadRecord, ChatAgentThreadSummary, ChatAgentTurnContext, ChatAgentTurnRecord,
-    ChatAgentUpdateMessageInput, ChatAgentUpdateThreadMetadataInput, ChatAgentUpdateTurnBeatInput,
+    cancel_turn, commit_turn_result, create_message, create_thread, delete_draft, delete_message,
+    delete_thread, get_draft, get_thread_bundle, list_threads, load_turn_context, open_db,
+    put_draft, rebuild_projection, update_message, update_thread_metadata, update_turn_beat,
+    ChatAgentCancelTurnInput, ChatAgentCommitTurnResult, ChatAgentCommitTurnResultInput,
+    ChatAgentCreateMessageInput, ChatAgentCreateThreadInput, ChatAgentDeleteDraftInput,
+    ChatAgentDraftRecord, ChatAgentLoadTurnContextInput, ChatAgentMessageLookupPayload,
+    ChatAgentMessageRecord, ChatAgentProjectionRebuildResult, ChatAgentPutDraftInput,
+    ChatAgentThreadBundle, ChatAgentThreadLookupPayload, ChatAgentThreadRecord,
+    ChatAgentThreadSummary, ChatAgentTurnContext, ChatAgentTurnRecord, ChatAgentUpdateMessageInput,
+    ChatAgentUpdateThreadMetadataInput, ChatAgentUpdateTurnBeatInput,
 };
 
 #[tauri::command]
@@ -84,6 +85,22 @@ pub(crate) fn chat_agent_put_draft(
 pub(crate) fn chat_agent_delete_draft(payload: ChatAgentDeleteDraftInput) -> Result<(), String> {
     let conn = open_db()?;
     delete_draft(&conn, &payload.thread_id)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_delete_thread(
+    payload: ChatAgentThreadLookupPayload,
+) -> Result<(), String> {
+    let conn = open_db()?;
+    delete_thread(&conn, &payload.thread_id)
+}
+
+#[tauri::command]
+pub(crate) fn chat_agent_delete_message(
+    payload: ChatAgentMessageLookupPayload,
+) -> Result<ChatAgentThreadBundle, String> {
+    let conn = open_db()?;
+    delete_message(&conn, &payload.message_id)
 }
 
 #[tauri::command]

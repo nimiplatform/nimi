@@ -23,8 +23,8 @@ export function normalizeText(value: unknown): string {
 }
 
 /**
- * If `text` is a beat-action JSON envelope produced by the output contract,
- * extract the human-readable beat text. Otherwise return unchanged.
+ * If `text` is a message-action JSON envelope produced by the output contract,
+ * extract the human-readable message text. Otherwise return unchanged.
  *
  * This guards the simple-ai path against envelopes that leaked into stored
  * messages (from before the output contract was removed) or that a model
@@ -36,13 +36,11 @@ export function stripBeatActionEnvelopeIfPresent(text: string): string {
   try {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>;
     if (
-      parsed.schemaId === 'nimi.agent.chat.beat-action.v1'
-      && Array.isArray(parsed.beats)
+      parsed.schemaId === 'nimi.agent.chat.message-action.v1'
+      && parsed.message
+      && typeof parsed.message === 'object'
     ) {
-      const extracted = (parsed.beats as Array<{ text?: unknown }>)
-        .map((beat) => normalizeText(beat.text))
-        .filter(Boolean)
-        .join('\n\n');
+      const extracted = normalizeText((parsed.message as { text?: unknown }).text);
       return extracted || text;
     }
   } catch {

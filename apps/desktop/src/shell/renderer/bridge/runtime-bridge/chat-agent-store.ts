@@ -113,6 +113,26 @@ export async function deleteDraft(threadId: string): Promise<void> {
   }, () => undefined);
 }
 
+export async function deleteThread(threadId: string): Promise<void> {
+  requireTauri('chat_agent_delete_thread');
+  await invokeChecked('chat_agent_delete_thread', {
+    payload: { threadId },
+  }, () => undefined);
+}
+
+export async function deleteMessage(messageId: string): Promise<AgentLocalThreadBundle> {
+  requireTauri('chat_agent_delete_message');
+  return invokeChecked('chat_agent_delete_message', {
+    payload: { messageId },
+  }, (value) => {
+    const parsed = parseAgentLocalThreadBundle(value);
+    if (!parsed) {
+      throw new Error('chat_agent_delete_message returned null bundle');
+    }
+    return parsed;
+  });
+}
+
 export async function loadTurnContext(input: AgentLocalLoadTurnContextInput): Promise<AgentLocalTurnContext> {
   requireTauri('chat_agent_load_turn_context');
   return invokeChecked('chat_agent_load_turn_context', {
@@ -152,6 +172,8 @@ export const chatAgentStoreClient = {
   getDraft,
   putDraft,
   deleteDraft,
+  deleteThread,
+  deleteMessage,
   loadTurnContext,
   commitTurnResult,
   cancelTurn,

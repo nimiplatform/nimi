@@ -37,7 +37,6 @@ export type AgentSubmitSessionState = {
   runtimeTraceId: string | null;
   promptTraceId: string | null;
   assistantVisible: boolean;
-  pendingFirstBeatEchoTextDelta: string | null;
   workingBundle: AgentLocalThreadBundle | null;
   lifecycle: AgentTurnLifecycleState;
 };
@@ -134,39 +133,6 @@ function overlayPendingImageBeat(input: {
   };
 }
 
-function overlayPendingTextBeat(input: {
-  state: AgentSubmitSessionState;
-  beatIndex: number;
-  updatedAtMs: number;
-}): AgentLocalThreadBundle {
-  const base = input.state.workingBundle || createEmptyAgentThreadBundle(input.state.fallbackThread);
-  const messageId = `${input.state.assistantMessageId.split(':message:')[0]}:message:${input.beatIndex}`;
-  const parentMessageId = input.beatIndex > 0
-    ? `${input.state.assistantMessageId.split(':message:')[0]}:message:${input.beatIndex - 1}`
-    : null;
-  return {
-    ...base,
-    messages: replaceAgentBundleMessage(base.messages, {
-      id: messageId,
-      threadId: base.thread.id,
-      role: 'assistant',
-      status: 'pending',
-      kind: 'text',
-      contentText: '',
-      reasoningText: null,
-      error: null,
-      traceId: null,
-      parentMessageId,
-      mediaUrl: null,
-      mediaMimeType: null,
-      artifactId: null,
-      metadataJson: null,
-      createdAtMs: input.updatedAtMs,
-      updatedAtMs: input.updatedAtMs,
-    }),
-  };
-}
-
 function resolveTraceId(
   state: AgentSubmitSessionState,
   streamSnapshot: StreamState,
@@ -195,7 +161,6 @@ export function createInitialAgentSubmitSessionState(input: {
     runtimeTraceId: null,
     promptTraceId: null,
     assistantVisible: false,
-    pendingFirstBeatEchoTextDelta: null,
     workingBundle: input.workingBundle,
     lifecycle: createInitialAgentTurnLifecycleState(),
   };
@@ -215,20 +180,6 @@ export function reduceAgentSubmitSessionEvent(
     case 'artifact-ready':
       return { state };
     case 'beat-planned': {
-      if (input.event.modality === 'text' && input.event.beatIndex > 0) {
-        const pendingTextBundle = overlayPendingTextBeat({
-          state,
-          beatIndex: input.event.beatIndex,
-          updatedAtMs: input.updatedAtMs,
-        });
-        return {
-          state: {
-            ...state,
-            workingBundle: pendingTextBundle,
-          },
-          visibleBundle: pendingTextBundle,
-        };
-      }
       if (input.event.modality !== 'image') {
         return { state };
       }
@@ -257,17 +208,9 @@ export function reduceAgentSubmitSessionEvent(
         },
       };
     case 'text-delta': {
-      const echoedFirstBeatDelta = state.pendingFirstBeatEchoTextDelta;
-      const shouldSkipEcho = Boolean(
-        echoedFirstBeatDelta
-        && echoedFirstBeatDelta === input.event.textDelta,
-      );
       const nextStateBase = {
         ...state,
-        streamedText: shouldSkipEcho
-          ? state.streamedText
-          : state.streamedText + input.event.textDelta,
-        pendingFirstBeatEchoTextDelta: null,
+        streamedText: state.streamedText + input.event.textDelta,
       };
       if (!nextStateBase.assistantVisible) {
         return {
@@ -295,11 +238,8 @@ export function reduceAgentSubmitSessionEvent(
         visibleBundle,
       };
     }
-    case 'first-beat-sealed': {
+    case 'message-sealed': {
       const sealedText = input.event.text || state.streamedText;
-      const echoedDelta = sealedText.startsWith(state.streamedText)
-        ? sealedText.slice(state.streamedText.length)
-        : sealedText;
       const visibleBundle = createVisibleBundle({
         ...state,
         assistantVisible: true,
@@ -314,7 +254,6 @@ export function reduceAgentSubmitSessionEvent(
           ...state,
           assistantVisible: true,
           streamedText: sealedText,
-          pendingFirstBeatEchoTextDelta: echoedDelta || null,
           workingBundle: visibleBundle,
         },
         visibleBundle,

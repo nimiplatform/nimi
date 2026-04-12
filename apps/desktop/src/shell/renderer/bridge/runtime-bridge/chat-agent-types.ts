@@ -108,7 +108,8 @@ export type AgentLocalRelationMemorySlotRecord = {
   slotType: string;
   summary: string;
   sourceTurnId: string | null;
-  sourceBeatId: string | null;
+  sourceBeatId?: string | null;
+  sourceMessageId?: string | null;
   score: number;
   updatedAtMs: number;
 };
@@ -117,7 +118,8 @@ export type AgentLocalRecallEntryRecord = {
   id: string;
   threadId: string;
   sourceTurnId: string | null;
-  sourceBeatId: string | null;
+  sourceBeatId?: string | null;
+  sourceMessageId?: string | null;
   summary: string;
   searchText: string;
   updatedAtMs: number;

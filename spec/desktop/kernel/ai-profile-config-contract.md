@@ -11,7 +11,7 @@
 在 desktop surface 中，Desktop host 既是 app scope 也是 mod scope 的 `AIConfig` / `AISnapshot` host-local persistence owner；mod business code 只能通过 formal host bridge 消费本 authority，不能自持久化平行真相。
 
 Agent chat behavior semantics 不由本契约拥有。`AIProfile` / `AIConfig` /
-`AISnapshot` 只拥有 AI configuration authority；multi-beat、turn-mode、
+`AISnapshot` 只拥有 AI configuration authority；single-message、turn-mode、
 experience-policy / settings semantics 继续由
 `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）拥有。
 
@@ -71,7 +71,7 @@ Desktop AI 配置 authority 固定为三段式：
 - `profileOrigin?: AIProfileRef | null` — 最近一次 apply 的 profile 来源（仅用于 UX 溯源展示，不构成 live reference）
 
 `AIConfig` 不得把 agent chat 的 `AgentChatExperienceSettings`、
-`ResolvedExperiencePolicy`、`resolvedTurnMode`、`resolvedBeatPlan` 收编为新的
+`ResolvedExperiencePolicy`、`resolvedTurnMode`、以及 resolved message/action outputs 收编为新的
 top-level live config truth。若 chat consumer 需要这些 behavior semantics，必须回到
 `agent-chat-behavior-contract.md` 定义的 authority surface。
 

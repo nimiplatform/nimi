@@ -260,7 +260,7 @@ test('agent visible state converges to idle composer and hidden footer after com
       submitSession,
       threadId,
       event: {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'beat-1',
         text: 'sealed first beat',
@@ -348,7 +348,7 @@ test('agent visible state preserves idle composer and hidden footer after tail c
       submitSession,
       threadId,
       event: {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'beat-1',
         text: 'sealed first beat',

@@ -31,7 +31,7 @@ function createWorkflowMetadata(
     kind: 'voice-workflow',
     version: 'v1',
     sourceTurnId: 'turn-source',
-    sourceBeatId: 'beat-source',
+    sourceMessageId: 'beat-source',
     sourceActionId: 'action-source',
     beatId: 'beat-workflow',
     workflowCapability: 'voice_workflow.tts_t2v',

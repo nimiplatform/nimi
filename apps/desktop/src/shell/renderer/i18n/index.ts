@@ -23,6 +23,17 @@ export type I18nIssue = {
 type I18nIssueListener = (issue: I18nIssue) => void;
 
 const issueListeners = new Set<I18nIssueListener>();
+const reportedIssueFingerprints = new Set<string>();
+
+function getI18nIssueFingerprint(issue: I18nIssue): string {
+  return [
+    issue.code,
+    issue.locale,
+    issue.namespace,
+    issue.key,
+    issue.source,
+  ].join('|');
+}
 
 function translateOrFallback(
   key: string,
@@ -42,6 +53,11 @@ function translateOrFallback(
 }
 
 function emitI18nIssue(issue: I18nIssue): void {
+  const fingerprint = getI18nIssueFingerprint(issue);
+  if (reportedIssueFingerprints.has(fingerprint)) {
+    return;
+  }
+  reportedIssueFingerprints.add(fingerprint);
   issueListeners.forEach((listener) => {
     try {
       listener(issue);
@@ -54,6 +70,10 @@ function emitI18nIssue(issue: I18nIssue): void {
 export function onI18nIssue(listener: I18nIssueListener): () => void {
   issueListeners.add(listener);
   return () => issueListeners.delete(listener);
+}
+
+export function resetI18nIssueTrackingForTests(): void {
+  reportedIssueFingerprints.clear();
 }
 
 const LOCALE_LABELS: Record<SupportedLocale, string> = {

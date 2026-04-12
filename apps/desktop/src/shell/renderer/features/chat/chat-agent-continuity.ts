@@ -14,7 +14,7 @@ import type {
 import type {
   AgentLocalChatImageState,
   AgentLocalChatVoiceState,
-  AgentLocalTextBeatState,
+  AgentLocalTextMessageState,
 } from './chat-agent-turn-plan';
 
 type AgentLocalChatStoreClient = Pick<
@@ -38,7 +38,7 @@ export type AgentLocalChatContinuityAdapter = ConversationContinuityAdapter<
     signal?: AbortSignal;
     imageState?: AgentLocalChatImageState;
     voiceState?: AgentLocalChatVoiceState;
-    textBeatStates?: readonly AgentLocalTextBeatState[];
+    textMessageState?: AgentLocalTextMessageState;
   }) => Promise<AgentLocalCommitTurnResult>;
 };
 
@@ -46,58 +46,32 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function resolveTextBeatState(
-  events: readonly ConversationTurnEvent[],
+function resolveTextMessageState(
   turnId: string,
   outputText?: string,
-): AgentLocalTextBeatState | null {
-  const plannedTextBeats = events.filter((
-    event,
-  ): event is Extract<ConversationTurnEvent, { type: 'beat-planned' }> => (
-    event.type === 'beat-planned'
-      && event.turnId === turnId
-      && event.modality === 'text'
-  ));
-  if (plannedTextBeats.length === 0) {
+): AgentLocalTextMessageState | null {
+  const text = normalizeText(outputText);
+  if (!text) {
     return null;
   }
-  if (plannedTextBeats.length !== 1) {
-    throw new Error('agent-local-chat-v1 commit only supports one text beat per turn');
-  }
-  const plannedBeat = plannedTextBeats[0]!;
-  const sealedBeat = events.find((
-    event,
-  ): event is Extract<ConversationTurnEvent, { type: 'first-beat-sealed' }> => (
-    event.type === 'first-beat-sealed'
-      && event.turnId === turnId
-      && event.beatId === plannedBeat.beatId
-  ));
-  const deliveredBeat = events.find((
-    event,
-  ): event is Extract<ConversationTurnEvent, { type: 'beat-delivered' }> => (
-    event.type === 'beat-delivered'
-      && event.turnId === turnId
-      && event.beatId === plannedBeat.beatId
-  ));
   return {
-    beatId: plannedBeat.beatId,
-    beatIndex: plannedBeat.beatIndex,
-    projectionMessageId: deliveredBeat?.projectionMessageId || `${turnId}:message:${plannedBeat.beatIndex}`,
-    text: normalizeText(outputText) || sealedBeat?.text || '',
+    messageId: `${turnId}:message-source:0`,
+    projectionMessageId: `${turnId}:message:0`,
+    text,
+    metadataJson: null,
   };
 }
 
-function resolveTextBeatStates(input: {
-  events: readonly ConversationTurnEvent[];
+function resolveTextMessageStates(input: {
   turnId: string;
   outputText?: string;
-  textBeatStates?: readonly AgentLocalTextBeatState[] | undefined;
-}): AgentLocalTextBeatState[] {
-  if (input.textBeatStates) {
-    return [...input.textBeatStates];
+  textMessageState?: AgentLocalTextMessageState | undefined;
+}): AgentLocalTextMessageState[] {
+  if (input.textMessageState) {
+    return [input.textMessageState];
   }
-  const textBeat = resolveTextBeatState(input.events, input.turnId, input.outputText);
-  return textBeat ? [textBeat] : [];
+  const textMessage = resolveTextMessageState(input.turnId, input.outputText);
+  return textMessage ? [textMessage] : [];
 }
 
 function mapOutcomeToTurnStatus(outcome: 'completed' | 'failed' | 'canceled') {
@@ -156,7 +130,7 @@ function resolveTerminalPromptTraceId(events: readonly ConversationTurnEvent[]):
 
 function buildTextProjectionMessages(
   thread: AgentLocalThreadRecord,
-  textBeats: readonly AgentLocalTextBeatState[],
+  textMessages: readonly AgentLocalTextMessageState[],
   input: {
     outcome: 'completed' | 'failed' | 'canceled';
     outputText?: string;
@@ -176,21 +150,21 @@ function buildTextProjectionMessages(
         ? 'Generation stopped.'
         : normalizeText(input.error?.message) || 'Agent response failed',
     };
-  return textBeats.map((textBeat, index) => ({
-    id: textBeat.projectionMessageId,
+  return textMessages.map((textMessage) => ({
+    id: textMessage.projectionMessageId,
     threadId: thread.id,
     role: 'assistant' as const,
     status: input.outcome === 'completed' ? 'complete' as const : 'error' as const,
     kind: 'text' as const,
-    contentText: textBeat.text,
+    contentText: textMessage.text,
     reasoningText: null,
     error,
     traceId: resolveTerminalTraceId(input.events),
-    parentMessageId: index > 0 ? textBeats[index - 1]?.projectionMessageId || null : null,
+    parentMessageId: null,
     mediaUrl: null,
     mediaMimeType: null,
     artifactId: null,
-    metadataJson: null,
+    metadataJson: textMessage.metadataJson,
     createdAtMs: committedAtMs,
     updatedAtMs: committedAtMs,
   }));
@@ -281,16 +255,15 @@ export function createAgentLocalChatContinuityAdapter(
     });
     const committedAtMs = now();
     const thread = context.thread;
-    const textBeats = resolveTextBeatStates({
-      events: input.events,
+    const textMessages = resolveTextMessageStates({
       turnId: input.turnId,
       outputText: input.outputText,
-      textBeatStates: input.textBeatStates,
+      textMessageState: input.textMessageState,
     });
     const imageState = input.imageState || { status: 'none' as const };
     const voiceState = input.voiceState || { status: 'none' as const };
     const projectionMessages = [
-      ...buildTextProjectionMessages(thread, textBeats, input, committedAtMs),
+      ...buildTextProjectionMessages(thread, textMessages, input, committedAtMs),
       ...((voiceState.status === 'pending' || voiceState.status === 'complete' || voiceState.status === 'error')
         ? [buildVoiceProjectionMessage(thread, voiceState, committedAtMs)]
         : []),
@@ -313,17 +286,17 @@ export function createAgentLocalChatContinuityAdapter(
         abortedAtMs: input.outcome === 'canceled' ? committedAtMs : null,
       },
       beats: [
-        ...textBeats.map((textBeat) => ({
-          id: textBeat.beatId,
+        ...textMessages.map((textMessage) => ({
+          id: `${input.turnId}:beat:0`,
           turnId: input.turnId,
-          beatIndex: textBeat.beatIndex,
+          beatIndex: 0,
           modality: 'text' as const,
           status: mapOutcomeToBeatStatus(input.outcome),
-          textShadow: textBeat.text || null,
+          textShadow: textMessage.text || null,
           artifactId: null,
           mimeType: 'text/plain',
           mediaUrl: null,
-          projectionMessageId: textBeat.projectionMessageId,
+          projectionMessageId: textMessage.projectionMessageId,
           createdAtMs: committedAtMs,
           deliveredAtMs: input.outcome === 'completed' ? committedAtMs : null,
         })),
@@ -424,7 +397,7 @@ export async function commitProviderOutcome(input: {
   error?: ConversationTurnError;
   imageState?: AgentLocalChatImageState;
   voiceState?: AgentLocalChatVoiceState;
-  textBeatStates?: readonly AgentLocalTextBeatState[];
+  textMessageState?: AgentLocalTextMessageState;
 }): Promise<AgentLocalCommitTurnResult> {
   return input.continuityAdapter.commitAgentTurnResult({
     modeId: 'agent-local-chat-v1',
@@ -441,6 +414,6 @@ export async function commitProviderOutcome(input: {
     signal: input.baseInput.signal,
     imageState: input.imageState,
     voiceState: input.voiceState,
-    textBeatStates: input.textBeatStates,
+    textMessageState: input.textMessageState,
   });
 }

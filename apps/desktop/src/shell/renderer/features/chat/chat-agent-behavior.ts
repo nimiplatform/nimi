@@ -1,6 +1,6 @@
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
 
-export const AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID = 'nimi.agent.chat.beat-action.v1' as const;
+export const AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID = 'nimi.agent.chat.message-action.v1' as const;
 
 export type AgentResolvedTurnMode =
   | 'information'
@@ -16,16 +16,8 @@ export type AgentResolvedExperiencePolicy = {
   autonomyPolicy: 'guarded';
 };
 
-export type AgentResolvedBeat = {
-  beatId: string;
-  beatIndex: number;
-  beatCount: number;
-  intent: 'reply' | 'follow-up' | 'comfort' | 'checkin' | 'media-request' | 'voice-request';
-  deliveryPhase: 'primary' | 'tail';
-  delayMs?: number;
-};
-
-export type AgentResolvedTextBeat = AgentResolvedBeat & {
+export type AgentResolvedMessage = {
+  messageId: string;
   text: string;
 };
 
@@ -41,33 +33,32 @@ export type AgentResolvedModalityActionPromptPayload =
   | {
     kind: 'video-prompt';
     promptText: string;
+  }
+  | {
+    kind: 'follow-up-turn';
+    promptText: string;
+    delayMs: number;
   };
 
 export type AgentResolvedModalityAction = {
   actionId: string;
   actionIndex: number;
   actionCount: number;
-  modality: 'image' | 'voice' | 'video';
+  modality: 'image' | 'voice' | 'video' | 'follow-up-turn';
   operation: string;
   promptPayload: AgentResolvedModalityActionPromptPayload;
-  sourceBeatId: string;
-  sourceBeatIndex: number;
-  deliveryCoupling: 'after-source-beat' | 'with-source-beat';
+  sourceMessageId: string;
+  deliveryCoupling: 'after-message' | 'with-message';
 };
 
-export type AgentResolvedBeatActionEnvelope = {
-  schemaId: typeof AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID;
-  beats: AgentResolvedTextBeat[];
+export type AgentResolvedMessageActionEnvelope = {
+  schemaId: typeof AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID;
+  message: AgentResolvedMessage;
   actions: AgentResolvedModalityAction[];
-};
-
-export type AgentResolvedBeatPlan = {
-  beats: AgentResolvedBeat[];
 };
 
 export type AgentResolvedBehavior = {
   settings: AgentChatExperienceSettings;
   resolvedTurnMode: AgentResolvedTurnMode;
   resolvedExperiencePolicy: AgentResolvedExperiencePolicy;
-  resolvedBeatPlan: AgentResolvedBeatPlan;
 };

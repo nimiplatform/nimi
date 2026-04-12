@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  type MouseEvent,
   useRef,
   useState,
 } from 'react';
@@ -10,6 +11,7 @@ import {
   createReadyConversationSetupState,
 } from '@nimiplatform/nimi-kit/features/chat';
 import {
+  type CanonicalMessageAccessorySlot,
   ConversationOrchestrationRegistry,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { dataSync } from '@runtime/data-sync';
@@ -28,6 +30,7 @@ import {
   toAgentFriendTargetsFromSocialSnapshot,
   toConversationMessageViewModel,
 } from './chat-agent-thread-model';
+import { findRuntimeRouteModelProfile } from './chat-ai-route-view';
 import {
   type AgentTurnLifecycleState,
 } from './chat-agent-shell-lifecycle';
@@ -37,6 +40,7 @@ import {
 import { createAgentLocalChatConversationProvider } from './chat-agent-orchestration';
 import type { AgentConversationSelection } from './chat-shell-types';
 import {
+  RuntimeAgentDebugMessageAccessory,
   RuntimeImageMessageContent,
   createReasoningMessageContentRenderer,
   useConversationStreamState,
@@ -50,6 +54,10 @@ import {
   persistStoredAgentChatExperienceSettings,
   type AgentChatExperienceSettings,
 } from './chat-settings-storage';
+import {
+  loadStoredPerformancePreferences,
+  subscribeStoredPerformancePreferences,
+} from '../settings/settings-storage';
 import { resolveAgentChatBehavior } from './chat-agent-behavior-resolver';
 import { type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import {
@@ -90,6 +98,8 @@ import {
 } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { clearPendingAttachments } from '../turns/turn-input-attachments';
+import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
+import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
 
 function resolveIsVoiceSessionForeground(): boolean {
   if (typeof document === 'undefined') {
@@ -119,6 +129,7 @@ export function useAgentConversationModeHost(
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const agentAdapterAiConfig = useAppStore((state) => state.aiConfig);
   const textCapabilityProjection = useAppStore(
     (state) => state.conversationCapabilityProjectionByCapability['text.generate'] || null,
@@ -137,6 +148,9 @@ export function useAgentConversationModeHost(
   const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
     () => loadStoredAgentChatExperienceSettings(),
   );
+  const [developerModeEnabled, setDeveloperModeEnabled] = useState(
+    () => loadStoredPerformancePreferences().developerMode === true,
+  );
   const schedulingJudgement = useSchedulingFeasibility();
   const [footerHostStateByThreadId, setFooterHostStateByThreadId] = useState<
     Record<string, {
@@ -148,6 +162,7 @@ export function useAgentConversationModeHost(
     () => createInitialAgentVoiceSessionShellState(),
   );
   const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
+  const [messageContextMenu, setMessageContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
   const [isVoiceSessionForeground, setIsVoiceSessionForeground] = useState<boolean>(
     () => resolveIsVoiceSessionForeground(),
   );
@@ -192,9 +207,31 @@ export function useAgentConversationModeHost(
     persistStoredAgentChatExperienceSettings(nextSettings);
     setBehaviorSettingsState(nextSettings);
   }, []);
+  useEffect(() => subscribeStoredPerformancePreferences((preferences) => {
+    setDeveloperModeEnabled(preferences.developerMode === true);
+  }), []);
   useEffect(() => {
     pendingAttachmentsByThreadRef.current = pendingAttachmentsByThreadId;
   }, [pendingAttachmentsByThreadId]);
+  useEffect(() => {
+    if (!messageContextMenu) {
+      return undefined;
+    }
+    const handlePointerDown = () => {
+      setMessageContextMenu(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMessageContextMenu(null);
+      }
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [messageContextMenu]);
   useEffect(() => () => {
     for (const attachments of Object.values(pendingAttachmentsByThreadRef.current)) {
       clearPendingAttachments([...attachments], (url) => URL.revokeObjectURL(url));
@@ -217,6 +254,16 @@ export function useAgentConversationModeHost(
   const selectedTextBinding = hasExplicitTextGenerateSelection
     ? (textGenerateBinding ?? null)
     : null;
+  const textRouteOptionsQuery = useQuery({
+    queryKey: ['chat-agent-route-options', 'text.generate'],
+    queryFn: () => loadDesktopRouteOptions('text.generate'),
+    enabled: bootstrapReady,
+    staleTime: 60_000,
+  });
+  const textRouteModelProfile = useMemo(
+    () => findRuntimeRouteModelProfile(textRouteOptionsQuery.data, selectedTextBinding),
+    [selectedTextBinding, textRouteOptionsQuery.data],
+  );
 
   const handleModelSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
     if (!selection.model) {
@@ -407,7 +454,7 @@ export function useAgentConversationModeHost(
   });
 
   const agentAiConfig = useAppStore((state) => state.aiConfig);
-  const { handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
+  const { handleDeleteMessage, handleDeleteThread, handleSelectAgent, handleSelectThread, handleSubmit } = useAgentConversationHostActions({
     activeTarget,
     activeThreadId,
     aiConfig: agentAiConfig,
@@ -442,6 +489,8 @@ export function useAgentConversationModeHost(
           runtimeConfigState: input.runtimeConfigState,
           runtimeFields: input.runtimeFields,
           reasoningPreference: behaviorSettings.thinkingPreference,
+          textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
+          textMaxOutputTokensRequested: textRouteModelProfile?.maxOutputTokens ?? null,
           resolvedBehavior: resolveAgentChatBehavior({
             userText: turnInput.userMessage.text,
             settings: behaviorSettings,
@@ -453,8 +502,14 @@ export function useAgentConversationModeHost(
     selectedThreadRecord,
     setBundleCache,
     setFooterHostState,
+    setSelectionForAgent: (agentId) => setSelection({
+      threadId: null,
+      agentId,
+      targetId: agentId,
+    }),
     setSubmittingThreadId,
     setThreadsCache,
+    clearSelectedTarget: () => setSelectedTargetForSource('agent', null),
     submittingThreadId,
     syncSelectionToThread,
     t,
@@ -462,6 +517,8 @@ export function useAgentConversationModeHost(
     targetsReady: targetsQuery.isSuccess,
     threads,
     threadsReady: threadsQuery.isSuccess,
+    textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
+    textMaxOutputTokensRequested: textRouteModelProfile?.maxOutputTokens ?? null,
   });
 
   const reasoningLabel = t('Chat.reasoningLabel', { defaultValue: 'Thought process' });
@@ -487,6 +544,39 @@ export function useAgentConversationModeHost(
       return renderReasoningMessageContent(message, context);
     }
   ), [renderReasoningMessageContent, t]);
+  const renderMessageAccessory = useMemo<CanonicalMessageAccessorySlot>(() => (
+    (message) => {
+      if ((message.kind || 'text') !== 'text' || (message.role !== 'assistant' && message.role !== 'agent')) {
+        return undefined;
+      }
+      return (
+        <RuntimeAgentDebugMessageAccessory
+          message={message}
+          debugVisible={developerModeEnabled}
+          summaryLabel={t('Chat.agentDebugSummary', { defaultValue: 'Show debug prompt / returned data' })}
+          copyLabel={t('Chat.agentDebugCopyLabel', { defaultValue: 'Copy' })}
+          copiedLabel={t('Chat.agentDebugCopiedLabel', { defaultValue: 'Copied' })}
+          followUpLabel={t('Chat.agentDebugFollowUpLabel', { defaultValue: 'Auto follow-up' })}
+          promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
+          systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
+          rawOutputLabel={t('Chat.agentDebugRawOutputLabel', { defaultValue: 'Raw Model Output' })}
+          normalizedOutputLabel={t('Chat.agentDebugNormalizedOutputLabel', { defaultValue: 'Normalized Model Output' })}
+        />
+      );
+    }
+  ), [developerModeEnabled, t]);
+  const handleMessageContextMenu = useCallback((message: import('@nimiplatform/nimi-kit/features/chat/headless').ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => {
+    if (Boolean(submittingThreadId) || message.status === 'pending') {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setMessageContextMenu({
+      messageId: message.id,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }, [submittingThreadId]);
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
   const activePendingAttachments = activeThreadId
     ? (pendingAttachmentsByThreadId[activeThreadId] || [])
@@ -847,8 +937,10 @@ export function useAgentConversationModeHost(
     pendingAttachments: activePendingAttachments,
     onDismissHostFeedback: () => setHostFeedback(null),
     onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
+    onMessageContextMenu: handleMessageContextMenu,
     onModelSelectionChange: handleModelSelectionChange,
     reasoningLabel,
+    renderMessageAccessory,
     renderMessageContent,
     routeReady: !activeTarget || agentRouteReady,
     schedulingJudgement,
@@ -888,10 +980,58 @@ export function useAgentConversationModeHost(
     voiceSessionState.status,
   ]);
 
+  const handleDeleteCurrentThread = useCallback((threadId: string) => {
+    setMessageContextMenu(null);
+    setPendingAttachmentsForThread(threadId, []);
+    delete latestVoiceCaptureByThreadRef.current[threadId];
+    void handleDeleteThread(threadId).catch(reportHostError);
+  }, [handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
+
+  const handleDeleteMessageFromMenu = useCallback(() => {
+    if (!messageContextMenu) {
+      return;
+    }
+    const { messageId } = messageContextMenu;
+    setMessageContextMenu(null);
+    void handleDeleteMessage(messageId).catch(reportHostError);
+  }, [handleDeleteMessage, messageContextMenu, reportHostError]);
+
+  const settingsContent = useMemo(() => (
+    <div className="space-y-4">
+      {presentation.settingsContent}
+      {activeTarget ? (
+        <ChatAgentHistoryPanel
+          targetTitle={activeTarget.displayName}
+          activeThreadId={activeThreadId}
+          disabled={Boolean(submittingThreadId)}
+          onClearAgentHistory={handleDeleteCurrentThread}
+        />
+      ) : null}
+    </div>
+  ), [activeTarget, activeThreadId, handleDeleteCurrentThread, presentation.settingsContent, submittingThreadId]);
+
+  const auxiliaryOverlayContent = messageContextMenu ? (
+    <div
+      className="fixed z-50 min-w-[160px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
+      style={{ left: `${messageContextMenu.x}px`, top: `${messageContextMenu.y}px`, animation: 'panel-scale-in 0.15s ease-out both' }}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="w-full rounded-lg px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+        onClick={handleDeleteMessageFromMenu}
+      >
+        {t('Chat.deleteMessage', { defaultValue: 'Delete' })}
+      </button>
+    </div>
+  ) : null;
+
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
+    auxiliaryOverlayContent,
     handsFreeState,
+    settingsContent,
     onSelectTarget: handleSelectAgent,
     onSelectThread: handleSelectThread,
-  }), [handleSelectAgent, handleSelectThread, handsFreeState, presentation]);
+  }), [auxiliaryOverlayContent, handleSelectAgent, handleSelectThread, handsFreeState, presentation, settingsContent]);
 }

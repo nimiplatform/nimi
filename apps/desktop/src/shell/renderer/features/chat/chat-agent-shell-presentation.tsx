@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type MouseEvent } from 'react';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
 import type {
+  CanonicalMessageAccessorySlot,
   CanonicalMessageContentSlot,
+  ConversationCanonicalMessage,
   ConversationMessageViewModel,
   ConversationSetupState,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
@@ -15,9 +17,6 @@ import type {
 } from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-mode-host-types';
 import { ChatSettingsPanel } from './chat-settings-panel';
-import {
-  RuntimeInspectCard,
-} from './chat-runtime-inspect-content';
 import { RuntimeStreamFooter } from './chat-runtime-stream-ui';
 import { cancelStream } from '../turns/stream-controller';
 import type { AgentConversationSelection } from './chat-shell-types';
@@ -47,6 +46,7 @@ import {
 } from './chat-agent-voice-session';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
+import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
 
 type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -68,8 +68,10 @@ type UseAgentConversationPresentationInput = {
   pendingAttachments: readonly PendingAttachment[];
   onDismissHostFeedback: () => void;
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
+  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
   onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
   reasoningLabel: string;
+  renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
   routeReady: boolean;
   schedulingJudgement: AISchedulingJudgement | null;
@@ -107,11 +109,13 @@ export function useAgentConversationPresentation(
   | 'composerContent'
   | 'messages'
   | 'mode'
+  | 'onThinkingToggle'
   | 'selectedTargetId'
   | 'settingsContent'
   | 'setupDescription'
   | 'stagePanelProps'
   | 'targets'
+  | 'thinkingState'
   | 'transcriptProps'
 > {
   const schedulingGuard = useMemo(
@@ -227,6 +231,8 @@ export function useAgentConversationPresentation(
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
     },
     renderMessageContent: input.renderMessageContent,
+    renderMessageAccessory: input.renderMessageAccessory,
+    onMessageContextMenu: input.onMessageContextMenu,
     onStopGenerating: handleStopGenerating,
   }), [
     characterData.avatarUrl,
@@ -235,7 +241,9 @@ export function useAgentConversationPresentation(
     input.bundleError,
     input.isBundleLoading,
     input.reasoningLabel,
+    input.renderMessageAccessory,
     input.renderMessageContent,
+    input.onMessageContextMenu,
     input.streamState,
     input.t,
     handleStopGenerating,
@@ -252,18 +260,14 @@ export function useAgentConversationPresentation(
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
   const diagnosticsContent = useMemo(() => (
-    <RuntimeInspectCard
-      label={input.t('Chat.diagnosticsRuntimeLabel', { defaultValue: 'Runtime' })}
-      value={input.targetsPending
-        ? input.t('Chat.settingsLoading', { defaultValue: 'Loading models...' })
-        : input.routeReady
-          ? input.t('Chat.settingsRuntimeReady', { defaultValue: 'Runtime ready' })
-          : input.t('Chat.settingsRuntimeNotReady', { defaultValue: 'Runtime not ready' })}
-      detail={input.activeTarget?.ownershipType || input.activeTarget?.worldName || input.t('Chat.agentRouteRequired', {
-        defaultValue: 'Agent mode requires a local or cloud runtime route. Configure one in runtime settings.',
-      })}
+    <AgentDiagnosticsPanel
+      activeTarget={input.activeTarget}
+      lifecycle={input.currentFooterHostState?.lifecycle || null}
+      routeReady={input.routeReady}
+      t={input.t}
+      targetsPending={input.targetsPending}
     />
-  ), [input.activeTarget?.ownershipType, input.activeTarget?.worldName, input.routeReady, input.t, input.targetsPending]);
+  ), [input.activeTarget, input.currentFooterHostState?.lifecycle, input.routeReady, input.t, input.targetsPending]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;

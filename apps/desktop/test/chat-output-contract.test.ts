@@ -3,8 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
-import { parseAgentResolvedBeatActionEnvelope, recoverPlainTextAsEnvelope } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
+import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
+import {
+  parseAgentResolvedMessageActionEnvelope,
+  recoverPlainTextAsEnvelope,
+  resolveAgentModelOutputEnvelope,
+} from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import {
   buildDesktopChatEnvelopeSkeleton,
   buildDesktopChatOutputContractSection,
@@ -15,30 +19,43 @@ function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
 }
 
-test('desktop chat output contract helper exposes beat-action envelope rules', () => {
+function buildMinimalEnvelopeText(
+  text: string,
+  schemaId: string = AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+): string {
+  return JSON.stringify({
+    schemaId,
+    message: {
+      messageId: 'message-0',
+      text,
+    },
+    actions: [],
+  });
+}
+
+test('desktop chat output contract helper exposes message-action envelope rules', () => {
   const section = buildDesktopChatOutputContractSection();
 
   assert.match(section, /^Output Contract:/m);
-  assert.match(section, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
+  assert.match(section, /Return exactly one JSON object that matches the Agent Message-Action Envelope schema/);
   assert.match(section, /Do not output prose, Markdown, code fences, comments, XML, or any wrapper text before or after the JSON object/);
   assert.match(section, /The first character of your response must be "\{" and the final character must be "\}"/);
   assert.match(section, /Never wrap the JSON object in ```json, backticks, quotes, or any Markdown block/);
-  assert.match(section, /The top-level object must contain "schemaId", "beats", and "actions"\. Do not rename or omit these keys/);
-  assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
-  assert.match(section, new RegExp(`Begin your response with \\{"schemaId":"${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
-  assert.match(section, /Put all user-visible assistant text inside ordered "beats\[\*\]\.text" fields/);
-  assert.match(section, /Every beat must include a unique "beatId" string/);
-  assert.match(section, /Every beat must include "intent": one of "reply", "follow-up", "comfort", "checkin", "media-request", or "voice-request"/);
-  assert.match(section, /The first visible reply beat must be "beatIndex": 0 and "deliveryPhase": "primary"/);
-  assert.match(section, /Any delayed follow-up beat must stay in the same "beats" array, use "deliveryPhase": "tail", and include a positive "delayMs"/);
+  assert.match(section, /The top-level object must contain "schemaId", "message", and "actions"\. Do not rename or omit these keys/);
+  assert.match(section, new RegExp(`Set "schemaId" to "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"\\.`));
+  assert.match(section, new RegExp(`Begin your response with \\{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
+  assert.match(section, /Put all user-visible assistant text inside exactly one "message\.text" field/);
+  assert.match(section, /The "message" object must include "messageId" and "text"/);
   assert.match(section, /Keep "actionIndex" zero-based and contiguous; every action must repeat the same "actionCount" equal to the actions array length/);
-  assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceBeatId", "sourceBeatIndex", and "deliveryCoupling"/);
-  assert.match(section, /"deliveryCoupling" must be "after-source-beat".*or "with-source-beat"/);
-  assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", or "video"/);
+  assert.match(section, /Every action must include "actionId", "actionIndex", "actionCount", "modality", "operation", "promptPayload", "sourceMessageId", and "deliveryCoupling"/);
+  assert.match(section, /"deliveryCoupling" must be "after-message".*or "with-message"/);
+  assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", "video", or "follow-up-turn"/);
   assert.match(section, /Phase 1 limits: emit at most one "image" action and at most one "voice" action in the entire "actions" array/);
-  assert.match(section, /Never emit multiple "voice" actions for separate beats in the same turn/);
-  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}/);
+  assert.match(section, /At most one "follow-up-turn" action may appear in the entire "actions" array/);
+  assert.match(section, /Never emit multiple "voice" actions in the same turn/);
+  assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}, follow-up-turn -> \{"kind":"follow-up-turn","promptText":"\.\.\.","delayMs":400\}/);
   assert.match(section, /For voice actions, use "operation": "audio\.synthesize" for narrow playback, "voice_workflow\.tts_v2v" for clone workflow, or "voice_workflow\.tts_t2v" for design workflow/);
+  assert.match(section, /For follow-up-turn actions, use "operation": "assistant\.turn\.schedule"/);
   assert.match(section, /If no modality action exists, return "actions": \[\]/);
   assert.doesNotMatch(section, /Only output the user-visible reply body/);
   assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);
@@ -49,10 +66,10 @@ test('desktop chat output contract helper appends contract after existing system
 
   assert.match(prompt, /^Be concise\./);
   assert.match(prompt, /\n\nOutput Contract:\n/);
-  assert.match(prompt, /Return exactly one JSON object that matches the Agent Beat-Action Envelope schema/);
+  assert.match(prompt, /Return exactly one JSON object that matches the Agent Message-Action Envelope schema/);
   assert.match(prompt, /The first character of your response must be "\{" and the final character must be "\}"/);
   assert.match(prompt, /Response Skeleton:/);
-  assert.match(prompt, new RegExp(`"schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
+  assert.match(prompt, new RegExp(`"schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
   assert.doesNotMatch(prompt, /fall back to plain text instead of partial Markdown/);
 });
 
@@ -60,22 +77,17 @@ test('desktop chat output contract helper exposes a minimal envelope skeleton', 
   const skeleton = buildDesktopChatEnvelopeSkeleton();
 
   assert.match(skeleton, /^\{/m);
-  assert.match(skeleton, new RegExp(`"schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
-  assert.match(skeleton, /"beats": \[/);
+  assert.match(skeleton, new RegExp(`"schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replaceAll('.', '\\.')}"`));
+  assert.match(skeleton, /"message": \{/);
   assert.match(skeleton, /"actions": \[\]/);
 });
 
-test('recoverPlainTextAsEnvelope wraps plain text in a minimal single-beat envelope', () => {
+test('recoverPlainTextAsEnvelope wraps plain text in a minimal single-message envelope', () => {
   const envelope = recoverPlainTextAsEnvelope('我无法提供照片，但我可以描述一个舞蹈场景。');
   assert.ok(envelope);
-  assert.equal(envelope.schemaId, AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID);
-  assert.equal(envelope.beats.length, 1);
-  const beat = envelope.beats[0]!;
-  assert.equal(beat.beatIndex, 0);
-  assert.equal(beat.beatCount, 1);
-  assert.equal(beat.intent, 'reply');
-  assert.equal(beat.deliveryPhase, 'primary');
-  assert.equal(beat.text, '我无法提供照片，但我可以描述一个舞蹈场景。');
+  assert.equal(envelope.schemaId, AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID);
+  assert.equal(envelope.message.messageId, 'message-0');
+  assert.equal(envelope.message.text, '我无法提供照片，但我可以描述一个舞蹈场景。');
   assert.deepEqual(envelope.actions, []);
 });
 
@@ -87,12 +99,108 @@ test('recoverPlainTextAsEnvelope returns null for malformed JSON attempts', () =
   assert.equal(recoverPlainTextAsEnvelope('   '), null);
 });
 
-test('agent beat-action envelope parser fails close on fenced JSON with a contract-specific error', () => {
-  assert.throws(() => {
-    parseAgentResolvedBeatActionEnvelope([
-      '```json',
+test('resolveAgentModelOutputEnvelope recovers fenced JSON output', () => {
+  const modelOutput = `\uFEFF\`\`\`json\r\n${buildMinimalEnvelopeText('Recovered fenced output.')}\r\n\`\`\``;
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput,
+    finishReason: 'stop',
+    trace: {
+      traceId: 'trace-fenced',
+      promptTraceId: 'prompt-fenced',
+    },
+    usage: {
+      inputTokens: 10,
+      outputTokens: 12,
+      totalTokens: 22,
+    },
+    contextWindowSource: 'route-profile',
+    maxOutputTokensRequested: 256,
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) {
+    assert.fail('expected fenced JSON to recover');
+  }
+  assert.equal(resolved.envelope.message.text, 'Recovered fenced output.');
+  assert.equal(resolved.diagnostics.classification, 'json-fenced');
+  assert.equal(resolved.diagnostics.recoveryPath, 'strip-fence');
+  assert.equal(resolved.diagnostics.suspectedTruncation, false);
+  assert.equal(resolved.diagnostics.finishReason, 'stop');
+  assert.equal(resolved.diagnostics.traceId, 'trace-fenced');
+  assert.equal(resolved.diagnostics.promptTraceId, 'prompt-fenced');
+  assert.equal(resolved.diagnostics.usage?.totalTokens, 22);
+});
+
+test('resolveAgentModelOutputEnvelope recovers wrapper text around a single JSON object', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: `Here is the envelope:\n${buildMinimalEnvelopeText('Recovered wrapper output.')}\nThanks.`,
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) {
+    assert.fail('expected wrapped JSON to recover');
+  }
+  assert.equal(resolved.envelope.message.text, 'Recovered wrapper output.');
+  assert.equal(resolved.diagnostics.classification, 'json-wrapper');
+  assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
+});
+
+test('resolveAgentModelOutputEnvelope degrades pure plain text to a minimal envelope', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: '我可以先帮你整理下一步计划。',
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) {
+    assert.fail('expected plain text to recover');
+  }
+  assert.equal(resolved.envelope.message.text, '我可以先帮你整理下一步计划。');
+  assert.deepEqual(resolved.envelope.actions, []);
+  assert.equal(resolved.diagnostics.classification, 'plain-text');
+  assert.equal(resolved.diagnostics.recoveryPath, 'plain-text-envelope');
+});
+
+test('resolveAgentModelOutputEnvelope marks incomplete JSON as partial and suspected truncation', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: `{"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}","message":{"messageId":"message-0"`,
+    finishReason: 'length',
+    trace: {
+      traceId: 'trace-partial',
+      promptTraceId: 'prompt-partial',
+    },
+    usage: {
+      inputTokens: 15,
+      outputTokens: 16,
+    },
+    contextWindowSource: 'route-profile',
+    maxOutputTokensRequested: 128,
+    promptOverflow: true,
+  });
+
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected partial JSON to fail');
+  }
+  assert.equal(resolved.diagnostics.classification, 'partial-json');
+  assert.equal(resolved.diagnostics.recoveryPath, 'none');
+  assert.equal(resolved.diagnostics.suspectedTruncation, true);
+  assert.equal(resolved.diagnostics.finishReason, 'length');
+  assert.equal(resolved.diagnostics.maxOutputTokensRequested, 128);
+  assert.equal(resolved.diagnostics.promptOverflow, true);
+});
+
+test('resolveAgentModelOutputEnvelope does not recover malformed JSON attempts with actions', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: [
       '{',
-      `  "schemaId": "${AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID}",`,
+      `  "schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}",`,
       '  "beats": [{',
       '    "beatId": "beat-0",',
       '    "beatIndex": 0,',
@@ -101,6 +209,54 @@ test('agent beat-action envelope parser fails close on fenced JSON with a contra
       '    "deliveryPhase": "primary",',
       '    "text": "hello"',
       '  }],',
+      '  "actions": [{',
+      '    "actionId": "action-0",',
+      '    "actionIndex": 0,',
+      '    "actionCount": 1,',
+      '    "modality": "image",',
+      '    "operation": "images.generate"',
+      '  }]',
+      '}',
+    ].join('\n'),
+    finishReason: 'stop',
+    contextWindowSource: 'route-profile',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected malformed JSON attempt to fail');
+  }
+  assert.equal(resolved.diagnostics.classification, 'invalid-json');
+  assert.equal(resolved.diagnostics.recoveryPath, 'none');
+});
+
+test('resolveAgentModelOutputEnvelope fails close on schema-invalid JSON', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: buildMinimalEnvelopeText('Wrong schema.', 'agent.schema.invalid'),
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected schema-invalid JSON to fail');
+  }
+  assert.equal(resolved.diagnostics.classification, 'invalid-json');
+  assert.equal(resolved.diagnostics.suspectedTruncation, false);
+});
+
+test('agent message-action envelope parser fails close on fenced JSON with a contract-specific error', () => {
+  assert.throws(() => {
+    parseAgentResolvedMessageActionEnvelope([
+      '```json',
+      '{',
+      `  "schemaId": "${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}",`,
+      '  "message": {',
+      '    "messageId": "message-0",',
+      '    "text": "hello"',
+      '  },',
       '  "actions": []',
       '}',
       '```',
@@ -108,29 +264,14 @@ test('agent beat-action envelope parser fails close on fenced JSON with a contra
   }, /raw JSON object with no Markdown code fences or wrapper text/);
 });
 
-test('agent beat-action envelope parser fails close on multiple voice actions in phase 1', () => {
+test('agent message-action envelope parser fails close on multiple voice actions in phase 1', () => {
   assert.throws(() => {
-    parseAgentResolvedBeatActionEnvelope(JSON.stringify({
-      schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
-      beats: [
-        {
-          beatId: 'beat-0',
-          beatIndex: 0,
-          beatCount: 2,
-          intent: 'checkin',
-          deliveryPhase: 'primary',
-          text: '你好呀。',
-        },
-        {
-          beatId: 'beat-1',
-          beatIndex: 1,
-          beatCount: 2,
-          intent: 'follow-up',
-          deliveryPhase: 'tail',
-          delayMs: 400,
-          text: '今天过得怎么样？',
-        },
-      ],
+    parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+      schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+      message: {
+        messageId: 'message-0',
+        text: '你好呀。',
+      },
       actions: [
         {
           actionId: 'voice-0',
@@ -142,9 +283,8 @@ test('agent beat-action envelope parser fails close on multiple voice actions in
             kind: 'voice-prompt',
             promptText: '用轻柔语气读出第一句。',
           },
-          sourceBeatId: 'beat-0',
-          sourceBeatIndex: 0,
-          deliveryCoupling: 'with-source-beat',
+          sourceMessageId: 'message-0',
+          deliveryCoupling: 'with-message',
         },
         {
           actionId: 'voice-1',
@@ -156,28 +296,21 @@ test('agent beat-action envelope parser fails close on multiple voice actions in
             kind: 'voice-prompt',
             promptText: '用轻柔语气读出第二句。',
           },
-          sourceBeatId: 'beat-1',
-          sourceBeatIndex: 1,
-          deliveryCoupling: 'after-source-beat',
+          sourceMessageId: 'message-0',
+          deliveryCoupling: 'after-message',
         },
       ],
     }));
   }, /agent-local-chat-v1 admits at most one voice action in phase 1/);
 });
 
-test('agent beat-action envelope parser normalizes redundant beatCount and actionCount mirrors', () => {
-  const envelope = parseAgentResolvedBeatActionEnvelope(JSON.stringify({
-    schemaId: AGENT_RESOLVED_BEAT_ACTION_SCHEMA_ID,
-    beats: [
-      {
-        beatId: 'beat-0',
-        beatIndex: 0,
-        beatCount: 0,
-        intent: 'reply',
-        deliveryPhase: 'primary',
-        text: 'hello',
-      },
-    ],
+test('agent message-action envelope parser normalizes redundant actionCount mirrors', () => {
+  const envelope = parseAgentResolvedMessageActionEnvelope(JSON.stringify({
+    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+    message: {
+      messageId: 'message-0',
+      text: 'hello',
+    },
     actions: [
       {
         actionId: 'action-0',
@@ -189,22 +322,21 @@ test('agent beat-action envelope parser normalizes redundant beatCount and actio
           kind: 'image-prompt',
           promptText: 'A warm portrait',
         },
-        sourceBeatId: 'beat-0',
-        sourceBeatIndex: 0,
-        deliveryCoupling: 'after-source-beat',
+        sourceMessageId: 'message-0',
+        deliveryCoupling: 'after-message',
       },
     ],
   }));
 
-  assert.equal(envelope.beats[0]?.beatCount, 1);
+  assert.equal(envelope.message.messageId, 'message-0');
   assert.equal(envelope.actions[0]?.actionCount, 1);
 });
 
-test('desktop AI host does NOT inject the beat-action output contract into simple-ai systemPrompt', () => {
+test('desktop AI host does NOT inject the message-action output contract into simple-ai systemPrompt', () => {
   const source = readWorkspaceFile('src/shell/renderer/features/chat/chat-ai-shell-adapter.tsx');
 
   // The simple-ai provider streams raw text-deltas directly and does not parse
-  // beat-action envelopes. Injecting the output contract would cause the model
+  // message-action envelopes. Injecting the output contract would cause the model
   // to return JSON that the simple-ai provider displays verbatim.
   assert.doesNotMatch(source, /composeDesktopChatSystemPrompt/);
 });

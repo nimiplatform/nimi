@@ -12,11 +12,11 @@
 
 Agent chat 的行为语义 owner 不在本文件。本契约只允许 capability surface 消费
 `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-026`）产出的
-`resolvedTurnMode`、`resolvedExperiencePolicy`、`resolvedBeatPlan`，以及
-`agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）产出的 resolved
-beat/action outputs。selection、projection、overlay、snapshot 或 bootstrap
-builder 不得重定义 delayed beat、pending invalidation、modality action envelope、
-model-generated modality prompt payload、或这些 behavior truths。
+`resolvedTurnMode`、`resolvedExperiencePolicy`，以及
+`agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）产出的 resolved
+message/action outputs。selection、projection、overlay、snapshot 或 bootstrap
+builder 不得重定义 single-message semantics、follow-up-turn action、modality action
+envelope、model-generated modality prompt payload、或这些 behavior truths。
 
 ## D-LLM-015 — Authority Map And Bootstrap Home
 
@@ -155,7 +155,7 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   turn mode 升格为新的 route truth、image gate truth、或 video-generation admission
 - `imageReady=true` 或未来 voice/video workflow projection healthy 只表达 execution
   readiness；resolved modality action 是否存在、其 relation 是什么、以及
-  `promptPayload` 是什么，固定由 `agent-chat-beat-action-contract.md` 拥有，capability
+  `promptPayload` 是什么，固定由 `agent-chat-message-action-contract.md` 拥有，capability
   layer 不得从 healthy projection 反推 action existence
 - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` projection healthy 同样只表达
   execution readiness；某个 richer workflow 是否被 admit、属于哪种 workflow type、
@@ -180,14 +180,14 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
 - `executionId` 必须是 ULID
 - snapshot 必须固化本次执行消费的 capability、selection evidence、resolved binding evidence 与 agent overlay evidence
 - snapshot 可以引用 projection 结果，但不得替代 `SelectionStore` 或 `ConversationCapabilityProjection` 成为新的 owner
-- snapshot 若携带 `resolvedTurnMode`、`resolvedExperiencePolicy`、
-  `resolvedBeatPlan` 的 execution evidence，也只能作为对
-  `agent-chat-behavior-contract.md`（`D-LLM-022` ~ `D-LLM-025`）的只读引用或副本；
-  snapshot 不得成为 behavior resolution 的平行 owner
-- snapshot 若携带 delayed beat、pending beat invalidation、resolved modality
-  action、或 `promptPayload` evidence，也只能作为对
-  `agent-chat-beat-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）的只读引用或副本；
-  snapshot 不得成为 beat/action resolution 的平行 owner
+- snapshot 若携带 `resolvedTurnMode`、`resolvedExperiencePolicy` 的 execution
+  evidence，也只能作为对 `agent-chat-behavior-contract.md`
+  （`D-LLM-022` ~ `D-LLM-025`）的只读引用或副本；snapshot 不得成为 behavior
+  resolution 的平行 owner
+- snapshot 若携带 resolved message、follow-up-turn、resolved modality action、或
+  `promptPayload` evidence，也只能作为对
+  `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）的只读引用或副本；
+  snapshot 不得成为 message/action resolution 的平行 owner
 - snapshot 若携带 richer voice workflow admission、workflow type、voice identity /
   `VoiceReference`、preset/custom voice selection、或 workflow return-path evidence，
   也只能作为对 `agent-chat-voice-workflow-contract.md`
@@ -215,15 +215,14 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 - Runtime Config 的角色是 authority editor：只编辑 SelectionStore/default refs
 - Runtime Config 不得持久化 resolved binding、health、metadata 或 projection reason
 - AI / Agent submit path 只允许消费 `ConversationCapabilityProjection` 与 `ConversationExecutionSnapshot`；不得重新从可写 `runtimeFields` 拼装 capability truth
-- AI / Agent submit path 若还需要 `resolvedTurnMode`、`resolvedExperiencePolicy`、
-  `resolvedBeatPlan`，必须消费
+- AI / Agent submit path 若还需要 `resolvedTurnMode`、`resolvedExperiencePolicy`，必须消费
   `agent-chat-behavior-contract.md` 定义的 behavior outputs；不得经由
   `runtimeFields` 再派生一份平行 behavior truth
-- AI / Agent submit path 若还需要 delayed beat、pending invalidation、resolved
-  modality action、或 model-generated modality prompt payload，必须消费
-  `agent-chat-beat-action-contract.md` 定义的 resolved beat/action outputs；不得经由
+- AI / Agent submit path 若还需要 resolved message、follow-up-turn、resolved modality
+  action、或 model-generated modality prompt payload，必须消费
+  `agent-chat-message-action-contract.md` 定义的 resolved message/action outputs；不得经由
   capability health、metadata、`runtimeFields`、或 connector/model 默认值派生一份
-  平行 beat/action truth
+  平行 message/action truth
 - AI / Agent submit path 若还需要 richer voice workflow admission、workflow type、
   agent chat voice identity / `VoiceReference`、preset/custom voice selection、或
   workflow return-path 决策，必须消费

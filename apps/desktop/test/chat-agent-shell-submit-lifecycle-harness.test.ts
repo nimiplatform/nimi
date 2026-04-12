@@ -216,7 +216,7 @@ test('agent host submit harness converges completed submit to authoritative bund
       submitSession,
       threadId,
       event: {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'beat-1',
         text: 'sealed first beat',
@@ -328,7 +328,7 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
       submitSession,
       threadId,
       event: {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'beat-1',
         text: 'sealed first beat',
@@ -418,7 +418,7 @@ test('agent host submit harness preserves sealed first-beat, restores draft, and
   }
 });
 
-test('agent host submit harness converges a planned tail text beat to authoritative multi-message projection', () => {
+test('agent host submit harness does not create a pending second text message for follow-up planning', () => {
   const threadId = 'thread-1';
   const harness = createAgentHostHarness({
     threadId,
@@ -444,16 +444,17 @@ test('agent host submit harness converges a planned tail text beat to authoritat
       },
       updatedAtMs: 125,
     });
-    assert.equal(harness.bundles[threadId]?.messages.some((message) => message.id.endsWith(':message:1')), true);
+    assert.equal(harness.bundles[threadId]?.messages.some((message) => message.id.endsWith(':message:1')), false);
 
     submitSession = applySubmitDriverEventToHarness({
       state: harness,
       submitSession,
       threadId,
       event: {
-        type: 'first-beat-sealed',
+        type: 'message-sealed',
         turnId: 'turn-1',
         beatId: 'beat-1',
+        messageId: 'message-1',
         text: 'First beat.',
       },
       updatedAtMs: 130,

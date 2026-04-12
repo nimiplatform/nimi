@@ -27,6 +27,8 @@ export type RuntimeRouteBinding = {
   engine?: string;
   adapter?: LocalProviderAdapter;
   providerHints?: LocalProviderHints;
+  maxContextTokens?: number;
+  maxOutputTokens?: number;
   endpoint?: string;
   goRuntimeLocalModelId?: string;
   goRuntimeStatus?: 'installed' | 'active' | 'unhealthy' | 'removed' | string;

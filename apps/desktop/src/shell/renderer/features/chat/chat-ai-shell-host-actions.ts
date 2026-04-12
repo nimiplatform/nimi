@@ -412,8 +412,8 @@ export function useAiConversationHostActions(
             promptTraceId = (nextEvent.trace?.promptTraceId || '').trim() || promptTraceId;
             throw toAbortError(input.t('Chat.aiGenerationStopped', { defaultValue: 'Generation stopped.' }));
           },
-          'first-beat-sealed': () => {
-            throw new Error('simple-ai provider emitted unsupported first-beat event');
+          'message-sealed': () => {
+            throw new Error('simple-ai provider emitted unsupported message-sealed event');
           },
           'beat-planned': () => {
             throw new Error('simple-ai provider emitted unsupported beat-planned event');

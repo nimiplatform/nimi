@@ -98,11 +98,16 @@ fn chat_agent_store_round_trip_thread_message_and_draft() {
                 thread_id: thread.id.clone(),
                 role: ChatAgentMessageRole::User,
                 status: ChatAgentMessageStatus::Complete,
+                kind: ChatAgentMessageKind::Text,
                 content_text: "hello".to_string(),
                 reasoning_text: Some("thinking".to_string()),
                 error: None,
                 trace_id: Some("trace-001".to_string()),
                 parent_message_id: None,
+                media_url: None,
+                media_mime_type: None,
+                artifact_id: None,
+                metadata_json: None,
                 created_at_ms: 130,
                 updated_at_ms: 130,
             },
@@ -158,11 +163,16 @@ fn chat_agent_store_rejects_missing_thread_duplicate_agent_and_invalid_json() {
                 thread_id: "missing-thread".to_string(),
                 role: ChatAgentMessageRole::User,
                 status: ChatAgentMessageStatus::Complete,
+                kind: ChatAgentMessageKind::Text,
                 content_text: "hello".to_string(),
                 reasoning_text: None,
                 error: None,
                 trace_id: None,
                 parent_message_id: None,
+                media_url: None,
+                media_mime_type: None,
+                artifact_id: None,
+                metadata_json: None,
                 created_at_ms: 100,
                 updated_at_ms: 100,
             },
@@ -271,6 +281,160 @@ fn chat_agent_draft_put_overwrites_and_delete_clears() {
 }
 
 #[test]
+fn chat_agent_delete_message_and_delete_thread_remove_local_history() {
+    let home = temp_home("delete-history");
+    with_env(&[("HOME", home.to_str())], || {
+        let path = crate::desktop_paths::resolve_nimi_data_dir()
+            .expect("nimi data dir")
+            .join("chat-agent")
+            .join("main.db");
+        fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+        let conn = Connection::open(&path).expect("open");
+        super::schema::init_schema(&conn).expect("init schema");
+
+        let first_thread = create_thread(
+            &conn,
+            &ChatAgentCreateThreadInput {
+                id: "thread-agent-delete-1".to_string(),
+                agent_id: "agent-delete-1".to_string(),
+                title: "Agent Delete One".to_string(),
+                created_at_ms: 100,
+                updated_at_ms: 120,
+                last_message_at_ms: Some(130),
+                archived_at_ms: None,
+                target_snapshot: sample_target_snapshot("agent-delete-1"),
+            },
+        )
+        .expect("create first thread");
+        let second_thread = create_thread(
+            &conn,
+            &ChatAgentCreateThreadInput {
+                id: "thread-agent-delete-2".to_string(),
+                agent_id: "agent-delete-2".to_string(),
+                title: "Agent Delete Two".to_string(),
+                created_at_ms: 200,
+                updated_at_ms: 220,
+                last_message_at_ms: Some(230),
+                archived_at_ms: None,
+                target_snapshot: sample_target_snapshot("agent-delete-2"),
+            },
+        )
+        .expect("create second thread");
+
+        conn.execute(
+            r#"
+            INSERT INTO agent_messages (
+              id, thread_id, role, status, kind, content_text, reasoning_text, error_code, error_message,
+              trace_id, parent_message_id, media_url, media_mime_type, artifact_id, metadata_json,
+              created_at_ms, updated_at_ms
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?7, ?8)
+            "#,
+            params![
+                "message-delete-1",
+                &first_thread.id,
+                "user",
+                "complete",
+                "text",
+                "hello",
+                130_i64,
+                130_i64,
+            ],
+        )
+        .expect("insert first message");
+        conn.execute(
+            r#"
+            INSERT INTO agent_messages (
+              id, thread_id, role, status, kind, content_text, reasoning_text, error_code, error_message,
+              trace_id, parent_message_id, media_url, media_mime_type, artifact_id, metadata_json,
+              created_at_ms, updated_at_ms
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?7, ?8)
+            "#,
+            params![
+                "message-delete-2",
+                &second_thread.id,
+                "user",
+                "complete",
+                "text",
+                "hi",
+                230_i64,
+                230_i64,
+            ],
+        )
+        .expect("insert second message");
+        put_draft(
+            &conn,
+            &ChatAgentPutDraftInput {
+                thread_id: first_thread.id.clone(),
+                text: "draft".to_string(),
+                updated_at_ms: 140,
+            },
+        )
+        .expect("put first draft");
+        conn.execute(
+            r#"
+            INSERT INTO agent_turns (
+              id, thread_id, role, status, provider_mode, trace_id, prompt_trace_id,
+              started_at_ms, completed_at_ms, aborted_at_ms
+            ) VALUES (?1, ?2, ?3, ?4, ?5, NULL, NULL, ?6, NULL, NULL)
+            "#,
+            params![
+                "turn-delete-1",
+                &first_thread.id,
+                "assistant",
+                "completed",
+                "agent-local-chat-v1",
+                150_i64,
+            ],
+        )
+        .expect("insert turn");
+
+        delete_thread(&conn, &first_thread.id).expect("delete first thread");
+        let remaining_threads = list_threads(&conn).expect("list remaining threads");
+        assert_eq!(remaining_threads.len(), 1);
+        assert_eq!(remaining_threads[0].id, second_thread.id);
+        assert!(get_thread_bundle(&conn, &first_thread.id)
+            .expect("deleted bundle lookup")
+            .is_none());
+
+        let deleted_message_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM agent_messages WHERE thread_id = ?1",
+                params![&first_thread.id],
+                |row| row.get(0),
+            )
+            .expect("deleted message count");
+        assert_eq!(deleted_message_count, 0);
+        let deleted_draft_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM agent_thread_drafts WHERE thread_id = ?1",
+                params![&first_thread.id],
+                |row| row.get(0),
+            )
+            .expect("deleted draft count");
+        assert_eq!(deleted_draft_count, 0);
+        let deleted_turn_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM agent_turns WHERE thread_id = ?1",
+                params![&first_thread.id],
+                |row| row.get(0),
+            )
+            .expect("deleted turn count");
+        assert_eq!(deleted_turn_count, 0);
+
+        let bundle_after_message_delete =
+            delete_message(&conn, "message-delete-2").expect("delete second thread message");
+        assert!(bundle_after_message_delete.messages.is_empty());
+        assert_eq!(bundle_after_message_delete.thread.last_message_at_ms, None);
+
+        delete_thread(&conn, &second_thread.id).expect("delete second thread");
+        let thread_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM agent_threads", [], |row| row.get(0))
+            .expect("thread count");
+        assert_eq!(thread_count, 0);
+    });
+}
+
+#[test]
 fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_trip() {
     let home = temp_home("truth-source");
     with_env(&[("HOME", home.to_str())], || {
@@ -333,6 +497,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                         text_shadow: Some("first beat".to_string()),
                         artifact_id: None,
                         mime_type: Some("text/plain".to_string()),
+                        media_url: None,
                         projection_message_id: Some("message-001".to_string()),
                         created_at_ms: 210,
                         delivered_at_ms: Some(220),
@@ -346,6 +511,7 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                         text_shadow: Some("tail beat".to_string()),
                         artifact_id: None,
                         mime_type: Some("text/plain".to_string()),
+                        media_url: None,
                         projection_message_id: Some("message-002".to_string()),
                         created_at_ms: 230,
                         delivered_at_ms: Some(260),
@@ -395,11 +561,16 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                             thread_id: thread.id.clone(),
                             role: ChatAgentMessageRole::Assistant,
                             status: ChatAgentMessageStatus::Pending,
+                            kind: ChatAgentMessageKind::Text,
                             content_text: "first beat".to_string(),
                             reasoning_text: None,
                             error: None,
                             trace_id: Some("trace-turn-001".to_string()),
                             parent_message_id: None,
+                            media_url: None,
+                            media_mime_type: None,
+                            artifact_id: None,
+                            metadata_json: None,
                             created_at_ms: 210,
                             updated_at_ms: 220,
                         },
@@ -408,11 +579,16 @@ fn chat_agent_truth_source_commit_context_cancel_and_rebuild_projection_round_tr
                             thread_id: thread.id.clone(),
                             role: ChatAgentMessageRole::Assistant,
                             status: ChatAgentMessageStatus::Complete,
+                            kind: ChatAgentMessageKind::Text,
                             content_text: "tail beat".to_string(),
                             reasoning_text: None,
                             error: None,
                             trace_id: Some("trace-turn-001".to_string()),
                             parent_message_id: Some("message-001".to_string()),
+                            media_url: None,
+                            media_mime_type: None,
+                            artifact_id: None,
+                            metadata_json: None,
                             created_at_ms: 230,
                             updated_at_ms: 260,
                         },

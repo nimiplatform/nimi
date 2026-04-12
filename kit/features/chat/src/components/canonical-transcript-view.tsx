@@ -168,6 +168,7 @@ function TranscriptMessageGroups(props: {
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   const visualGroups = buildMessageVisualGroups(props.messages);
   const focusGroupIndex = visualGroups.length > 0 && visualGroups[visualGroups.length - 1]?.role === 'assistant'
@@ -216,6 +217,7 @@ function TranscriptMessageGroups(props: {
           isVoiceTranscriptVisible={props.isVoiceTranscriptVisible?.(item.message)}
           onPlayVoiceMessage={props.onPlayVoiceMessage}
           onVoiceContextMenu={props.onVoiceContextMenu}
+          onMessageContextMenu={props.onMessageContextMenu}
         />,
       );
     }
@@ -271,6 +273,7 @@ export type CanonicalTranscriptViewProps = {
   isVoiceTranscriptVisible?: (message: ConversationCanonicalMessage) => boolean;
   onPlayVoiceMessage?: (message: ConversationCanonicalMessage) => void;
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
   /** Called when the user scrolls down past the bottom of the transcript, signaling intent to return to stage view. */
   onIntentReturnToStage?: () => void;
   /** Called when the user wants to stop generating (shown inline in the typing bubble). */
@@ -302,6 +305,7 @@ export function CanonicalTranscriptView({
   isVoiceTranscriptVisible,
   onPlayVoiceMessage,
   onVoiceContextMenu,
+  onMessageContextMenu,
   onIntentReturnToStage,
   onStopGenerating,
 }: CanonicalTranscriptViewProps) {
@@ -462,6 +466,7 @@ export function CanonicalTranscriptView({
               isVoiceTranscriptVisible={isVoiceTranscriptVisible}
               onPlayVoiceMessage={onPlayVoiceMessage}
               onVoiceContextMenu={onVoiceContextMenu}
+              onMessageContextMenu={onMessageContextMenu}
             />
             {pendingFirstBeat ? (
               <div className="py-1">

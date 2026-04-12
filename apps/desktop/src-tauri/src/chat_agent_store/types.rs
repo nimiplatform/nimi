@@ -316,6 +316,12 @@ pub struct ChatAgentThreadLookupPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ChatAgentMessageLookupPayload {
+    pub message_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatAgentPutDraftInput {
     pub thread_id: String,
     pub text: String,

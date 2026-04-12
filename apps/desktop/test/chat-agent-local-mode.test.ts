@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { ScenarioJobStatus, toProtoStruct } from '@nimiplatform/sdk/runtime';
 
 import {
   CORE_CHAT_AGENT_MOD_ID,
@@ -10,6 +11,7 @@ import {
   streamChatAgentRuntime,
   synthesizeChatAgentVoiceRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
+import { findRuntimeRouteModelProfile } from '../src/shell/renderer/features/chat/chat-ai-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
   findAgentConversationThreadByAgentId,
@@ -38,6 +40,7 @@ type CapturedRuntimeTextStreamInput = {
     name?: string | undefined;
   }>;
   system?: string | null;
+  maxTokens?: number;
   reasoning?: unknown;
 };
 
@@ -303,6 +306,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
     reasoningPreference: 'off',
     agentResolution,
     executionSnapshot,
+    maxOutputTokensRequested: 222,
     runtimeConfigState: null,
     runtimeFields: {
       targetType: '',
@@ -327,6 +331,7 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
       assert.equal(input.provider, 'openai');
       assert.equal(input.connectorId, 'connector-openai');
       assert.equal(input.localProviderModel, 'gpt-5.4-mini');
+      assert.equal(input.maxTokens, 222);
       return {
         text: 'hi cloud',
         traceId: 'trace-cloud',
@@ -366,6 +371,7 @@ test('agent runtime stream admits structured messages and system prompt', async 
     systemPrompt: 'Be warm and concise.',
     threadId: 'thread-structured',
     reasoningPreference: 'off',
+    maxOutputTokensRequested: 321,
     agentResolution: null,
     executionSnapshot: null,
     runtimeConfigState: null,
@@ -423,10 +429,43 @@ test('agent runtime stream admits structured messages and system prompt', async 
     },
   ]);
   assert.equal(streamInput.system, 'Be warm and concise.');
+  assert.equal(streamInput.maxTokens, 321);
   assert.deepEqual(
     streamInput.reasoning,
     resolveChatThinkingConfig('off', resolveAgentChatThinkingSupport()),
   );
+});
+
+test('agent route view finds cloud model profiles by connector and model', () => {
+  const profile = findRuntimeRouteModelProfile({
+    selected: null,
+    local: {
+      defaultEndpoint: 'http://127.0.0.1:11434/v1',
+      models: [],
+    },
+    connectors: [{
+      id: 'connector-openai',
+      provider: 'openai',
+      label: 'OpenAI',
+      models: ['gpt-5.4-mini'],
+      modelProfiles: [{
+        model: 'gpt-5.4-mini',
+        maxContextTokens: 128000,
+        maxOutputTokens: 4096,
+      }],
+    }],
+  }, {
+    source: 'cloud',
+    connectorId: 'connector-openai',
+    model: 'gpt-5.4-mini',
+    modelId: 'gpt-5.4-mini',
+  });
+
+  assert.deepEqual(profile, {
+    model: 'gpt-5.4-mini',
+    maxContextTokens: 128000,
+    maxOutputTokens: 4096,
+  });
 });
 
 test('agent local runtime invoke falls back to resolved endpoint when provider-specific endpoints are absent', async () => {
@@ -652,6 +691,197 @@ test('agent image runtime encodes artifact bytes to stable data url when uri is 
   assert.equal(result.mediaUrl, 'data:image/png;base64,QUJD');
   assert.equal(result.mimeType, 'image/png');
   assert.equal(result.artifactId, 'artifact-bytes');
+});
+
+test('agent image runtime captures staged diagnostics from scenario job metadata on raw ai path', async () => {
+  const projection = {
+    capability: 'image.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'local-import/z_image_turbo-Q4_K',
+    },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:media:local-import/z_image_turbo-Q4_K',
+      source: 'local' as const,
+      provider: 'media',
+      engine: 'media',
+      model: 'local-import/z_image_turbo-Q4_K',
+      modelId: 'local-import/z_image_turbo-Q4_K',
+      localModelId: '01-main',
+      goRuntimeLocalModelId: '01-main',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:8321/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    imageProjection: projection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection,
+    agentResolution,
+  });
+
+  const result = await generateChatAgentImageRuntime({
+    prompt: 'draw the inn at sunset',
+    imageExecutionSnapshot,
+    imageCapabilityParams: {
+      steps: 25,
+      cfgScale: 6,
+      sampler: 'euler',
+      scheduler: 'karras',
+    },
+  }, {
+    getRuntimeClientImpl: () => ({
+      appId: CORE_CHAT_AGENT_MOD_ID,
+      ai: {
+        submitScenarioJob: async () => ({
+          job: {
+            jobId: 'job-image-1',
+            traceId: 'trace-image-job',
+          },
+        }),
+        getScenarioJob: async () => ({
+          job: {
+            status: ScenarioJobStatus.COMPLETED,
+            traceId: 'trace-image-job',
+          },
+        }),
+        getScenarioArtifacts: async () => ({
+          traceId: 'trace-image-artifacts',
+          artifacts: [{
+            artifactId: 'artifact-ai-path',
+            mimeType: 'image/png',
+            uri: 'https://cdn.nimi.test/generated-ai-path.png',
+            metadata: toProtoStruct({
+              image_load_ms: 1100,
+              image_generate_ms: 5200,
+              queue_wait_ms: 180,
+              load_cache_hit: false,
+              resident_reused: false,
+              resident_restarted: true,
+              queue_serialized: true,
+              profile_override_step: 25,
+              profile_override_cfg_scale: 6,
+              profile_override_sampler: 'euler',
+              profile_override_scheduler: 'karras',
+            }),
+          }],
+        }),
+      },
+    }) as never,
+  });
+
+  assert.equal(result.mediaUrl, 'https://cdn.nimi.test/generated-ai-path.png');
+  assert.equal(result.traceId, 'trace-image-artifacts');
+  assert.equal(result.diagnostics?.imageLoadMs, 1100);
+  assert.equal(result.diagnostics?.imageGenerateMs, 5200);
+  assert.equal(result.diagnostics?.queueSerialized, true);
+  assert.equal(result.diagnostics?.residentRestarted, true);
+  assert.equal(result.diagnostics?.profileOverrideSampler, 'euler');
+  assert.ok((result.diagnostics?.imageJobSubmitMs || 0) >= 0);
+  assert.ok((result.diagnostics?.artifactHydrateMs || 0) >= 0);
+});
+
+test('agent image runtime merges typed output artifact with hydrated raw ai artifact payload', async () => {
+  const projection = {
+    capability: 'image.generate' as const,
+    selectedBinding: {
+      source: 'local' as const,
+      connectorId: '',
+      model: 'local-import/z_image_turbo-Q4_K',
+    },
+    resolvedBinding: {
+      capability: 'image.generate' as const,
+      resolvedBindingRef: 'local:media:local-import/z_image_turbo-Q4_K',
+      source: 'local' as const,
+      provider: 'media',
+      engine: 'media',
+      model: 'local-import/z_image_turbo-Q4_K',
+      modelId: 'local-import/z_image_turbo-Q4_K',
+      localModelId: '01-main',
+      goRuntimeLocalModelId: '01-main',
+      connectorId: '',
+      endpoint: 'http://127.0.0.1:8321/v1',
+    },
+    health: {
+      healthy: true,
+      status: 'healthy' as const,
+      detail: 'ready',
+    },
+    metadata: null,
+    supported: true,
+    reasonCode: null,
+  };
+  const agentResolution = buildAgentEffectiveCapabilityResolution({
+    textProjection: null,
+    imageProjection: projection,
+  });
+  const imageExecutionSnapshot = createAISnapshot({
+    config: createEmptyAIConfig(),
+    capability: 'image.generate',
+    projection,
+    agentResolution,
+  });
+
+  const result = await generateChatAgentImageRuntime({
+    prompt: 'draw the inn at sunset',
+    imageExecutionSnapshot,
+  }, {
+    getRuntimeClientImpl: () => ({
+      appId: CORE_CHAT_AGENT_MOD_ID,
+      ai: {
+        submitScenarioJob: async () => ({
+          job: {
+            jobId: 'job-image-merge-1',
+            traceId: 'trace-image-job-merge',
+          },
+        }),
+        getScenarioJob: async () => ({
+          job: {
+            status: ScenarioJobStatus.COMPLETED,
+            traceId: 'trace-image-job-merge',
+          },
+        }),
+        getScenarioArtifacts: async () => ({
+          traceId: 'trace-image-artifacts-merge',
+          output: {
+            output: {
+              oneofKind: 'imageGenerate',
+              imageGenerate: {
+                artifacts: [{
+                  artifactId: 'artifact-merge-1',
+                  mimeType: 'image/png',
+                }],
+              },
+            },
+          },
+          artifacts: [{
+            artifactId: 'artifact-merge-1',
+            mimeType: 'image/png',
+            uri: 'https://cdn.nimi.test/generated-merged.png',
+          }],
+        }),
+      },
+    }) as never,
+  });
+
+  assert.equal(result.mediaUrl, 'https://cdn.nimi.test/generated-merged.png');
+  assert.equal(result.mimeType, 'image/png');
+  assert.equal(result.artifactId, 'artifact-merge-1');
+  assert.equal(result.traceId, 'trace-image-artifacts-merge');
 });
 
 test('agent voice runtime returns cached playback artifact from audio.synthesize routes', async () => {
