@@ -36,10 +36,11 @@ function translateCloseoutReason(reason) {
     ["high_risk_execution result contract is missing or malformed", "high_risk_execution 结果契约缺失或格式错误"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再投影 closeout 结果"],
     ["Non-completed outcomes may be projected as local-only closeout artifacts", "非 completed 的 outcome 可以仅投影为本地 closeout 产物"],
-    ["Completed spec reconstruction requires all declared `.nimi/spec/*.yaml` target truth files to exist and satisfy the section contract", "完成 spec reconstruction 需要所有声明的 `.nimi/spec/*.yaml` target truth 文件存在且满足 section contract"],
-    ["Completed spec reconstruction is consistent with reconstructed target truth", "已完成的 spec reconstruction 与重建后的 target truth 一致"],
-    ["Completed closeout for this skill requires reconstructed `.nimi/spec/*.yaml` target truth", "该 skill 的 completed closeout 需要已重建的 `.nimi/spec/*.yaml` target truth"],
-    ["Completed closeout is consistent with the current project-local truth", "completed closeout 与当前项目本地 truth 一致"],
+    ["Completed closeout is not allowed in the current lifecycle state", "当前生命周期状态不允许完成该 closeout"],
+    ["Completed closeout requires declared canonical tree files to be valid", "完成 closeout 需要声明的 canonical tree 文件有效"],
+    ["Completed doc_spec_audit closeout must compare against `.nimi/spec`", "完成 doc_spec_audit closeout 时必须对 `.nimi/spec` 进行比较"],
+    ["Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`", "完成 high_risk_execution closeout 需要 canonical admissions truth 继续落在 `.nimi/spec/high-risk-admissions.yaml`"],
+    ["Completed closeout is consistent with the current canonical tree state", "completed closeout 与当前 canonical tree 状态一致"],
   ]);
 
   if (translations.has(reason)) {
@@ -136,7 +137,7 @@ function validateOutcomeStatusConsistency(skillId, outcome, summary) {
   return { ok: true };
 }
 
-function evaluateCloseoutReadiness(skillId, outcome, doctorResult) {
+function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
   if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
     return {
       ok: false,
@@ -151,32 +152,55 @@ function evaluateCloseoutReadiness(skillId, outcome, doctorResult) {
     };
   }
 
-  if (skillId === "spec_reconstruction") {
-    if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
-      return {
-        ok: false,
-        reason: "Completed spec reconstruction requires all declared `.nimi/spec/*.yaml` target truth files to exist and satisfy the section contract",
-      };
-    }
-
+  const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "closeout" && entry.skill === skillId) ?? null;
+  if (!rule?.completedRequires) {
     return {
-      ok: true,
-      reason: "Completed spec reconstruction is consistent with reconstructed target truth",
+      ok: false,
+      reason: "Completed closeout is not allowed in the current lifecycle state",
     };
   }
 
-  if (skillId === "doc_spec_audit" || skillId === "high_risk_execution") {
-    if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
+  const treeState = doctorResult.lifecycleState?.treeState;
+  if (rule.completedRequires.tree_state && rule.completedRequires.tree_state !== treeState) {
+    return {
+      ok: false,
+      reason: "Completed closeout is not allowed in the current lifecycle state",
+    };
+  }
+
+  if (rule.completedRequires.canonical_required_files_valid === true && doctorResult.canonicalTree?.requiredFilesValid !== true) {
+    return {
+      ok: false,
+      reason: "Completed closeout requires declared canonical tree files to be valid",
+    };
+  }
+
+  if (rule.completedRequires.audit_references_canonical_root === true) {
+    const comparedPaths = Array.isArray(summary?.compared_paths) ? summary.compared_paths : [];
+    if (!comparedPaths.includes(".nimi/spec")) {
       return {
         ok: false,
-        reason: "Completed closeout for this skill requires reconstructed `.nimi/spec/*.yaml` target truth",
+        reason: "Completed doc_spec_audit closeout must compare against `.nimi/spec`",
+      };
+    }
+  }
+
+  if (rule.completedRequires.high_risk_admissions_truth_ref) {
+    const admissionsTruthPath = rule.completedRequires.high_risk_admissions_truth_ref;
+    const expectedAdmissionsPath = doctorResult.commandGating.entries.find(
+      (entry) => entry.command === "admit-high-risk-decision" && entry.requires?.canonical_admissions_truth,
+    )?.requires?.canonical_admissions_truth ?? ".nimi/spec/high-risk-admissions.yaml";
+    if (admissionsTruthPath !== expectedAdmissionsPath) {
+      return {
+        ok: false,
+        reason: "Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`",
       };
     }
   }
 
   return {
     ok: true,
-    reason: "Completed closeout is consistent with the current project-local truth",
+    reason: "Completed closeout is consistent with the current canonical tree state",
   };
 }
 
@@ -374,7 +398,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
     };
   }
 
-  const readiness = evaluateCloseoutReadiness(options.skill, options.outcome, doctorResult);
+  const readiness = evaluateCloseoutReadiness(options.skill, options.outcome, doctorResult, options.summary);
   const localArtifactPath = path.join(projectRoot, ".nimi", "local", "handoff-results", `${options.skill}.json`);
   const payload = {
     contractVersion: CLOSEOUT_PAYLOAD_CONTRACT_VERSION,

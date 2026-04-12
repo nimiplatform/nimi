@@ -1,0 +1,25 @@
+version: 1
+contract_ref: .nimi/contracts/spec-generation-inputs.schema.yaml
+spec_generation_inputs:
+  mode: mixed
+  canonical_target_root: .nimi/spec
+  code_roots: []
+  docs_roots:
+    - README.md
+  structure_roots:
+    - .
+  human_note_paths: []
+  benchmark_blueprint_root: null
+  benchmark_mode: none
+  acceptance_mode: canonical_tree_validity_without_blueprint
+  generation_order:
+    - index
+    - kernel_markdown
+    - kernel_tables
+    - generated_views
+    - thin_guides
+  inference_rules:
+    - infer_domains_from_available_source_materials_when_no_blueprint_exists
+    - separate_normative_kernel_from_generated_and_guidance_surfaces
+    - establish_kernel_markdown_before_thin_guides
+    - establish_kernel_tables_before_generated_views

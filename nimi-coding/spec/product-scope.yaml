@@ -1,4 +1,4 @@
-version: 1
+version: 2
 product:
   package_name: "@nimiplatform/nimi-coding"
   mission: ai_native_coding_governance_toolkit
@@ -6,7 +6,8 @@ target_experience:
   install_step: "npm install -D @nimiplatform/nimi-coding"
   bootstrap_step: "npx nimicoding start"
   reconstruction_owner: ai_skills
-  human_access_mode: derived_projection
+  canonical_spec_root: ".nimi/spec"
+  phase_one_posture: contract_and_checklist_only
 methodology_posture:
   risk_shape: authority_bearing_or_high_risk_only
   execution_default: inline_manager_worker
@@ -37,57 +38,19 @@ standalone_completion:
     - packet_bound_run_kernel
     - provider_backed_execution
     - scheduler_automation_notification
-bootstrap_state:
-  admitted_surfaces:
-    - repository_foundation
-    - cli_identity_surface
-    - bootstrap_config_seed
-    - bootstrap_contract_versioning_surface
-    - bootstrap_repair_surface
-    - bootstrap_doctor_surface
-    - structural_target_truth_validation_surface
-    - explicit_handoff_export_surface
-    - local_closeout_projection_surface
-    - external_closeout_import_surface
-    - high_risk_execution_semantic_admission_surface
-    - high_risk_execution_decision_projection_surface
-    - high_risk_execution_ingest_projection_surface
-    - high_risk_execution_review_projection_surface
-    - doc_spec_audit_local_closeout_surface
-    - bootstrap_template_asset_surface
-    - mechanical_validation_surface
-    - root_ai_entrypoint
-    - nimi_methodology_seed
-    - nimi_spec_seed
-    - nimi_contract_seed
-    - nimi_reconstruction_guidance_seed
-    - nimi_reconstruction_target_truth_profile_seed
-    - skill_manifest_seed
-    - spec_reconstruction_result_contract_seed
-    - doc_spec_audit_result_contract_seed
-    - high_risk_execution_result_contract_seed
-    - high_risk_admission_contract_seed
-    - execution_packet_schema_seed
-    - orchestration_state_schema_seed
-    - prompt_schema_seed
-    - worker_output_schema_seed
-    - acceptance_schema_seed
-    - external_host_profile_seed
-    - external_host_compatibility_contract_seed
-    - external_host_adapter_seed
-    - named_host_profile_overlay_recognition_surface
-    - external_execution_artifact_contract_seed
-    - external_skill_runtime_contract_seed
-    - skill_installer_seed
-    - skill_installer_semantic_result_seed
-    - skill_installer_operational_evidence_seed
-    - skill_installer_summary_projection_lifecycle_seed
-    - external_handoff_seed
-  deferred_surfaces:
-    - topic_lifecycle_workspace
-    - packet_bound_run_kernel
-    - provider_backed_execution
-    - scheduler
-    - notification
-    - automation_backend
-    - multi_topic_orchestration
+canonical_spec_model:
+  state_carrier_ref: .nimi/spec/bootstrap-state.yaml
+  posture_carrier_ref: .nimi/spec/product-scope.yaml
+  phase_one_contracts:
+    - .nimi/spec/_meta/spec-tree-model.yaml
+    - .nimi/spec/_meta/command-gating-matrix.yaml
+    - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
+    - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
+    - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
+    - .nimi/spec/bootstrap-state.yaml
+    - .nimi/spec/product-scope.yaml
+  blocked_until_phase_two:
+    - command_behavior_rewrites_not_admitted
+    - authority_cutover_not_admitted
+    - physical_spec_tree_migration_not_admitted
+  high_risk_admissions_truth: .nimi/spec/high-risk-admissions.yaml

@@ -242,10 +242,10 @@ function evaluateAdmissionReadiness(doctorResult, admissionsSpec, packetIdentity
     };
   }
 
-  if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
+  if (doctorResult.lifecycleState?.treeState !== "canonical_tree_ready" || doctorResult.canonicalTree?.requiredFilesValid !== true) {
     return {
       ok: false,
-      reason: "Canonical admission requires reconstructed `.nimi/spec/*.yaml` target truth",
+      reason: "Canonical admission requires canonical_tree_ready with declared canonical files present",
     };
   }
 

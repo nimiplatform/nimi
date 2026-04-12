@@ -163,10 +163,10 @@ function evaluateDecisionReadiness(doctorResult, acceptanceReport) {
     };
   }
 
-  if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
+  if (doctorResult.lifecycleState?.treeState !== "canonical_tree_ready" || doctorResult.canonicalTree?.requiredFilesValid !== true) {
     return {
       ok: false,
-      reason: "High-risk decision projection requires reconstructed `.nimi/spec/*.yaml` target truth",
+      reason: "High-risk decision projection requires canonical_tree_ready with declared canonical files present",
     };
   }
 

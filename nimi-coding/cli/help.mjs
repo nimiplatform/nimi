@@ -21,6 +21,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding doctor")}`,
     `  ${styleCommand("nimicoding doctor --verbose")}`,
     `  ${styleCommand("nimicoding doctor --json")}`,
+    `  ${styleCommand("nimicoding blueprint-audit [--blueprint-root <path>] [--canonical-root <path>] [--json] [--write-local]")}`,
     `  ${styleCommand("nimicoding handoff --skill <skill-id>")}`,
     `  ${styleCommand("nimicoding handoff --skill <skill-id> --json")}`,
     `  ${styleCommand("nimicoding handoff --skill <skill-id> --prompt")}`,
@@ -62,6 +63,10 @@ export function helpText() {
     styleMuted(localize(
       "  - `nimicoding doctor` shows the user-facing summary; add `--verbose` for internal contract detail",
       "  - `nimicoding doctor` 默认显示用户视图；加 `--verbose` 可查看内部契约细节",
+    )),
+    styleMuted(localize(
+      "  - `nimicoding blueprint-audit` compares a repo-local blueprint root against the candidate canonical tree under `.nimi/spec`",
+      "  - `nimicoding blueprint-audit` 会把仓库本地 blueprint root 与 `.nimi/spec` 下的候选 canonical tree 进行比对",
     )),
     styleMuted(localize(
       "  - `nimicoding handoff --prompt` writes local prompt/json refs under .nimi/local/handoff/",

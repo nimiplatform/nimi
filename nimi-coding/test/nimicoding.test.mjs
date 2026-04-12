@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
+import YAML from "yaml";
 
 import { runCli } from "../cli/nimicoding.mjs";
 import { createBootstrapSeedFileMap } from "../cli/seeds/bootstrap.mjs";
@@ -87,7 +88,50 @@ async function runCliSubprocess(args) {
   }
 }
 
+async function copyFixtureTree(projectRoot, fixtureRelativePath, targetRelativePath) {
+  const sourcePath = path.join(repoRoot, "test", "fixtures", "spec-generation", fixtureRelativePath);
+  const targetPath = path.join(projectRoot, targetRelativePath);
+  await mkdir(path.dirname(targetPath), { recursive: true });
+  await cp(sourcePath, targetPath, { recursive: true, force: true });
+}
+
+async function updateSpecGenerationInputs(projectRoot, updater) {
+  const configPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
+  const config = YAML.parse(await readFile(configPath, "utf8"));
+  updater(config.spec_generation_inputs);
+  await writeFile(configPath, YAML.stringify(config), "utf8");
+}
+
+async function writeBlueprintReference(projectRoot, root = "spec") {
+  const blueprintReferencePath = path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml");
+  const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+  await mkdir(path.dirname(blueprintReferencePath), { recursive: true });
+  await writeFile(
+    blueprintReferencePath,
+    YAML.stringify({
+      version: 1,
+      blueprint_reference: {
+        mode: "repo_spec_blueprint",
+        root,
+        canonical_target_root: ".nimi/spec",
+        equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+      },
+    }),
+    "utf8",
+  );
+
+  const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+  bootstrapState.state.blueprint_mode = root === "spec" ? "repo_spec_blueprint" : "custom_blueprint";
+  await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+}
+
 async function seedReconstructedTargetTruth(projectRoot) {
+  const canonicalFiles = {
+    "INDEX.md": "# Project Spec\n\n- Canonical root for project rules.\n",
+    "project/kernel/index.md": "# Project Kernel\n\n- Canonical kernel index.\n",
+    "project/kernel/core-rules.md": "# Core Rules\n\n- Rule 1: fail closed on authority ambiguity.\n",
+    "project/kernel/tables/rule-catalog.yaml": "rules:\n  - id: rule-1\n    title: fail_closed_on_authority_ambiguity\n",
+  };
   const targetFiles = {
     "authority-map.yaml": "authorities: []\nownership_rules: []\nescalation_paths: []\n",
     "boundaries.yaml": "boundaries: []\ninvariants: []\nfail_closed_rules: []\n",
@@ -95,6 +139,12 @@ async function seedReconstructedTargetTruth(projectRoot) {
     "change-policy.yaml": "work_types: []\nauthority_gates: []\nparallel_truth_policy: {}\n",
     "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
   };
+
+  for (const [relativePath, contents] of Object.entries(canonicalFiles)) {
+    const absolutePath = path.join(projectRoot, ".nimi", "spec", relativePath);
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, contents, "utf8");
+  }
 
   for (const [fileName, contents] of Object.entries(targetFiles)) {
     await writeFile(
@@ -105,17 +155,16 @@ async function seedReconstructedTargetTruth(projectRoot) {
   }
 
   const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
-  const bootstrapStateText = await readFile(bootstrapStatePath, "utf8");
+  const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+  bootstrapState.state.mode = "reconstruction_seeded";
+  bootstrapState.state.tree_state = "canonical_tree_ready";
+  bootstrapState.state.reconstruction_required = false;
+  bootstrapState.target_truth = { missing_files: [] };
+  bootstrapState.status.ready_for_ai_reconstruction = false;
+  bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
   await writeFile(
     bootstrapStatePath,
-    bootstrapStateText
-      .replace("mode: bootstrap_only", "mode: reconstruction_seeded")
-      .replace("reconstruction_required: true", "reconstruction_required: false")
-      .replace(
-        /target_truth:\n(?:  missing_files:\n(?:    - .+\n)+)/m,
-        "target_truth:\n  missing_files: []\n",
-      )
-      .replace("ready_for_ai_reconstruction: true", "ready_for_ai_reconstruction: false"),
+    YAML.stringify(bootstrapState),
     "utf8",
   );
 }
@@ -173,6 +222,10 @@ async function seedHighRiskCandidateArtifacts(projectRoot, options = {}) {
   await writeFile(evidencePath, "diff --git a/src/example.mjs b/src/example.mjs\n", "utf8");
 }
 
+async function readYamlFile(filePath) {
+  return YAML.parse(await readFile(filePath, "utf8"));
+}
+
 test("start rejects unknown options without creating bootstrap files", async () => {
   await withTempProject(async (projectRoot) => {
     const result = await captureRunCli(["start", "--unknown"]);
@@ -198,6 +251,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "config", "bootstrap.yaml"),
       "utf8",
     );
+    const specGenerationInputs = await readFile(
+      path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml"),
+      "utf8",
+    );
     const coreYaml = await readFile(
       path.join(projectRoot, ".nimi", "methodology", "core.yaml"),
       "utf8",
@@ -212,6 +269,26 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     );
     const productScope = await readFile(
       path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"),
+      "utf8",
+    );
+    const specTreeModel = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"),
+      "utf8",
+    );
+    const commandGatingMatrix = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"),
+      "utf8",
+    );
+    const generateDriftChecklist = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "generate-drift-migration-checklist.yaml"),
+      "utf8",
+    );
+    const governanceRoutingChecklist = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "governance-routing-cutover-checklist.yaml"),
+      "utf8",
+    );
+    const impactedSurfaceMatrix = await readFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"),
       "utf8",
     );
     const exchangeProjection = await readFile(
@@ -230,6 +307,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "contracts", "high-risk-admission.schema.yaml"),
       "utf8",
     );
+    const specGenerationInputsContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "spec-generation-inputs.schema.yaml"),
+      "utf8",
+    );
     const hostCompatibilityContract = await readFile(
       path.join(projectRoot, ".nimi", "contracts", "external-host-compatibility.yaml"),
       "utf8",
@@ -246,25 +327,29 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(bootstrapConfig, /initialized_by: "@nimiplatform\/nimi-coding"/);
     assert.match(bootstrapConfig, /bootstrap_contract: "nimicoding.bootstrap"/);
     assert.match(bootstrapConfig, /bootstrap_contract_version: 1/);
+    assert.match(specGenerationInputs, /mode: mixed/);
+    assert.match(specGenerationInputs, /canonical_target_root: \.nimi\/spec/);
+    assert.match(specGenerationInputs, /benchmark_mode: none/);
     assert.doesNotMatch(coreYaml, /cli_runtime/);
     assert.match(hostAdapter, /selected_adapter_id: none/);
     assert.match(hostAdapter, /- oh_my_codex/);
     assert.match(hostAdapter, /artifact_contract_ref: \.nimi\/config\/external-execution-artifacts\.yaml/);
     assert.match(externalExecutionArtifacts, /packet_ref: \.nimi\/local\/packets/);
     assert.match(externalExecutionArtifacts, /worker_output_ref: \.nimi\/local\/outputs/);
-    assert.match(productScope, /bootstrap_repair_surface/);
-    assert.match(productScope, /bootstrap_doctor_surface/);
-    assert.match(productScope, /spec_reconstruction_result_contract_seed/);
-    assert.match(productScope, /doc_spec_audit_result_contract_seed/);
-    assert.match(productScope, /high_risk_admission_contract_seed/);
-    assert.match(productScope, /explicit_handoff_export_surface/);
-    assert.match(productScope, /local_closeout_projection_surface/);
-    assert.match(productScope, /external_closeout_import_surface/);
-    assert.match(productScope, /named_host_profile_overlay_recognition_surface/);
+    assert.match(productScope, /canonical_spec_root: "\.nimi\/spec"/);
+    assert.match(productScope, /phase_one_posture: contract_and_checklist_only/);
+    assert.match(productScope, /phase_one_contracts:/);
+    assert.match(productScope, /blocked_until_phase_two:/);
+    assert.match(productScope, /high_risk_admissions_truth: \.nimi\/spec\/high-risk-admissions\.yaml/);
     assert.match(productScope, /profile: boundary_complete/);
     assert.match(productScope, /completed_surfaces:/);
     assert.match(productScope, /deferred_execution_surfaces:/);
     assert.match(productScope, /packet_bound_run_kernel/);
+    assert.match(specTreeModel, /canonical_root: \.nimi\/spec/);
+    assert.match(commandGatingMatrix, /command_gating_matrix:/);
+    assert.match(generateDriftChecklist, /generate_drift_migration_checklist:/);
+    assert.match(governanceRoutingChecklist, /governance_routing_cutover_checklist:/);
+    assert.match(impactedSurfaceMatrix, /phase2_impacted_surface_matrix:/);
     assert.match(agents, /nimicoding:managed:agents:start/);
     assert.match(claude, /nimicoding:managed:claude:start/);
     assert.match(handoffJson, /"skill":/);
@@ -275,12 +360,14 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(exchangeProjection, /contractVersion/);
     assert.match(exchangeProjection, /- handoff/);
     assert.match(exchangeProjection, /- closeout/);
-    assert.match(specReconstructionContract, /target_truth_files:/);
-    assert.match(specReconstructionContract, /required_top_level_keys:/);
+    assert.match(specReconstructionContract, /canonical_tree_completion:/);
+    assert.match(specReconstructionContract, /required_tree_state: canonical_tree_ready/);
     assert.match(highRiskExecutionContract, /delegated_high_risk_execution_result/);
     assert.match(highRiskExecutionContract, /candidate_ready/);
     assert.match(highRiskAdmissionContract, /canonical_high_risk_admissions_truth/);
     assert.match(highRiskAdmissionContract, /source_decision_contract/);
+    assert.match(specGenerationInputsContract, /canonical_spec_generation_inputs/);
+    assert.match(specGenerationInputsContract, /acceptance_mode_enum:/);
     assert.match(hostCompatibilityContract, /external_host_boundary_compatibility/);
     assert.match(hostCompatibilityContract, /supported_host_posture:/);
     assert.match(hostCompatibilityContract, /host_agnostic_external_host/);
@@ -309,6 +396,38 @@ test("start refreshes managed entrypoints idempotently", async () => {
     assert.match(claude, /nimicoding:managed:claude:start/);
     assert.equal(agents, agentsBefore);
     assert.equal(claude, claudeBefore);
+  });
+});
+
+test("start projects canonical spec meta contracts and checklists as valid yaml", async () => {
+  await withTempProject(async (projectRoot) => {
+    const result = await captureRunCli(["start"]);
+    assert.equal(result.exitCode, 0);
+
+    const specTreeModel = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml"));
+    const bootstrapState = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml"));
+    const productScope = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "product-scope.yaml"));
+    const specGenerationInputs = await readYamlFile(path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml"));
+    const commandGatingMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml"));
+    const generateDriftChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "generate-drift-migration-checklist.yaml"));
+    const governanceRoutingChecklist = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "governance-routing-cutover-checklist.yaml"));
+    const impactedSurfaceMatrix = await readYamlFile(path.join(projectRoot, ".nimi", "spec", "_meta", "phase2-impacted-surface-matrix.yaml"));
+
+    assert.equal(specTreeModel.spec_tree_model.profile, "minimal");
+    assert.equal(specTreeModel.spec_tree_model.canonical_root, ".nimi/spec");
+    assert.equal(specTreeModel.spec_tree_model.blueprint_source, undefined);
+    assert.equal(bootstrapState.state.tree_state, "bootstrap_only");
+    assert.equal(bootstrapState.state.authority_mode, "external_blueprint_active");
+    assert.equal(specGenerationInputs.spec_generation_inputs.mode, "mixed");
+    assert.equal(specGenerationInputs.spec_generation_inputs.benchmark_mode, "none");
+    assert.equal(productScope.canonical_spec_model.state_carrier_ref, ".nimi/spec/bootstrap-state.yaml");
+    assert.equal(commandGatingMatrix.command_gating_matrix[0].command, "start");
+    assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "handoff" && entry.skill === "high_risk_execution"));
+    assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "closeout" && entry.skill === "high_risk_execution"));
+    assert.equal(generateDriftChecklist.generate_drift_migration_checklist[0].command, "pnpm generate:runtime-spec-kernel-docs");
+    assert.equal(governanceRoutingChecklist.governance_routing_cutover_checklist[0].file, "CLAUDE.md");
+    assert.equal(impactedSurfaceMatrix.phase2_impacted_surface_matrix[0].surface, "start_command");
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"), "utf8"));
   });
 });
 
@@ -470,7 +589,7 @@ test("doctor validates a freshly started bootstrap", async () => {
 
     assert.equal(doctorResult.exitCode, 0);
     assert.match(doctorResult.stdout, /status: ok/);
-    assert.match(doctorResult.stdout, /project truth: incomplete/);
+    assert.match(doctorResult.stdout, /project rules: incomplete/);
     assert.match(doctorResult.stdout, /AI entry files: connected/);
   });
 });
@@ -489,6 +608,10 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.reconstructionRequired, true);
     assert.equal(payload.runtimeInstalled, false);
     assert.equal(payload.handoffReadiness.ok, true);
+    assert.equal(payload.specGenerationInputs.mode, "mixed");
+    assert.equal(payload.specGenerationInputs.benchmarkMode, "none");
+    assert.equal(payload.benchmarkAuditReadiness.available, false);
+    assert.equal(payload.benchmarkAuditReadiness.ready, false);
     assert.equal(payload.bootstrapContract.status, "supported");
     assert.equal(payload.completionProfile, "boundary_complete");
     assert.equal(payload.completionStatus, "complete");
@@ -555,6 +678,241 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.executionContracts.total, 5);
     assert.equal(payload.executionContracts.valid, 5);
     assert.equal(payload.executionContracts.invalid.length, 0);
+  });
+});
+
+test("blueprint-audit refuses to run without a declared or explicit blueprint root", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const auditResult = await captureRunCli(["blueprint-audit"]);
+
+    assert.equal(auditResult.exitCode, 2);
+    assert.match(auditResult.stderr, /no blueprint root is declared|没有声明 blueprint root/);
+  });
+});
+
+test("blueprint-audit reports missing canonical coverage when a blueprint root is provided", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, "spec", "runtime", "kernel", "tables"), { recursive: true });
+    await writeFile(path.join(projectRoot, "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "runtime", "kernel", "index.md"), "# Runtime Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "runtime", "kernel", "tables", "rules.yaml"), "rules: []\n", "utf8");
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--blueprint-root", "spec", "--json"]);
+
+    assert.equal(auditResult.exitCode, 1);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.blueprintRoot, "spec");
+    assert.equal(payload.canonicalRoot, ".nimi/spec");
+    assert.equal(payload.specGenerationInputs.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.ok(payload.inventory.missingDomains.includes("runtime"));
+    assert.equal(payload.comparison.kernelMarkdown.missing, 1);
+    assert.equal(payload.comparison.kernelTables.missing, 1);
+    assert.equal(payload.comparison.kernelGenerated.missing, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds.length, 0);
+    assert.equal(payload.inventory.indexPresent, false);
+  });
+});
+
+test("blueprint-audit uses repo-local blueprint reference and can write a local report", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      YAML.stringify({
+        version: 1,
+        blueprint_reference: {
+          mode: "repo_spec_blueprint",
+          root: "spec",
+          canonical_target_root: ".nimi/spec",
+          equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+        },
+      }),
+      "utf8",
+    );
+
+    await mkdir(path.join(projectRoot, "spec", "project", "kernel", "tables"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables"), { recursive: true });
+    await writeFile(path.join(projectRoot, "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules: []\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules: []\n", "utf8");
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--json", "--write-local"]);
+
+    assert.equal(auditResult.exitCode, 0);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.blueprintRoot, "spec");
+    assert.equal(payload.specGenerationInputs.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.equal(payload.comparison.kernelMarkdown.missing, 0);
+    assert.equal(payload.comparison.kernelTables.missing, 0);
+    assert.equal(payload.inventory.indexPresent, true);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds.length, 0);
+
+    const reportText = await readFile(path.join(projectRoot, ".nimi", "local", "report", "blueprint-equivalence-audit.json"), "utf8");
+    const reportPayload = JSON.parse(reportText);
+    assert.equal(reportPayload.ok, true);
+    assert.equal(reportPayload.blueprintRoot, "spec");
+  });
+});
+
+test("blueprint-audit accepts absolute blueprint and canonical roots", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, "spec", "project", "kernel", "tables"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables"), { recursive: true });
+    await writeFile(path.join(projectRoot, "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules:\n  - id: alpha\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables", "rule-catalog.yaml"), "rules:\n  - id: alpha\n", "utf8");
+
+    const auditResult = await captureRunCli([
+      "blueprint-audit",
+      "--blueprint-root",
+      path.join(projectRoot, "spec"),
+      "--canonical-root",
+      path.join(projectRoot, ".nimi", "spec"),
+      "--json",
+    ]);
+
+    assert.equal(auditResult.exitCode, 0);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds.length, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.extraRuleIds.length, 0);
+  });
+});
+
+test("blueprint-audit reports rule-id preservation gaps when table ids drift", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, "spec", "project", "kernel", "tables"), { recursive: true });
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables"), { recursive: true });
+    await writeFile(path.join(projectRoot, "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "INDEX.md"), "# Blueprint Spec\n", "utf8");
+    await writeFile(path.join(projectRoot, "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(path.join(projectRoot, ".nimi", "spec", "project", "kernel", "index.md"), "# Project Kernel\n", "utf8");
+    await writeFile(
+      path.join(projectRoot, "spec", "project", "kernel", "tables", "rule-catalog.yaml"),
+      "rules:\n  - id: alpha\n",
+      "utf8",
+    );
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "project", "kernel", "tables", "rule-catalog.yaml"),
+      "rules:\n  - id: beta\n",
+      "utf8",
+    );
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--blueprint-root", "spec", "--json"]);
+
+    assert.equal(auditResult.exitCode, 1);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.deepEqual(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds, ["alpha"]);
+    assert.deepEqual(payload.semanticMappingGaps.ruleIdPreservation.extraRuleIds, ["beta"]);
+  });
+});
+
+test("blueprint-audit accepts a mini benchmark fixture modeled on nimi/spec structure", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await copyFixtureTree(projectRoot, "mini-benchmark/blueprint/spec", "spec");
+    await copyFixtureTree(projectRoot, "mini-benchmark/canonical/.nimi/spec", ".nimi/spec");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/code", "src");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/docs", "docs");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/notes", ".nimi/local/notes");
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.code_roots = ["src"];
+      inputs.docs_roots = ["docs"];
+      inputs.structure_roots = ["src", "docs"];
+      inputs.human_note_paths = [".nimi/local/notes/reconstruction-note.md"];
+      inputs.benchmark_blueprint_root = "spec";
+      inputs.benchmark_mode = "repo_spec_blueprint";
+      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    });
+    await writeBlueprintReference(projectRoot, "spec");
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
+
+    assert.equal(auditResult.exitCode, 0);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.blueprintRoot, "spec");
+    assert.equal(payload.specGenerationInputs.mode, "mixed");
+    assert.equal(payload.specGenerationInputs.acceptanceMode, "semantic_and_structural_parity_when_blueprint_exists");
+    assert.equal(payload.comparison.kernelMarkdown.missing, 0);
+    assert.equal(payload.comparison.kernelTables.missing, 0);
+    assert.equal(payload.comparison.kernelGenerated.missing, 0);
+    assert.equal(payload.comparison.domainGuides.missing, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds.length, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.extraRuleIds.length, 0);
+  });
+});
+
+test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-input acceptance target", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await copyFixtureTree(projectRoot, "mini-benchmark/blueprint/spec", "spec");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/code", "src");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/docs", "docs");
+    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/notes", ".nimi/local/notes");
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.code_roots = ["src"];
+      inputs.docs_roots = ["docs"];
+      inputs.structure_roots = ["src", "docs"];
+      inputs.human_note_paths = [".nimi/local/notes/reconstruction-note.md"];
+      inputs.benchmark_blueprint_root = "spec";
+      inputs.benchmark_mode = "repo_spec_blueprint";
+      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    });
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 0);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.equal(payload.generationContext.canonicalTargetRoot, ".nimi/spec");
+    assert.deepEqual(payload.generationContext.codeRoots, ["src"]);
+    assert.deepEqual(payload.generationContext.docsRoots, ["docs"]);
+    assert.deepEqual(payload.generationContext.structureRoots, ["src", "docs"]);
+    assert.deepEqual(payload.generationContext.humanNotePaths, [".nimi/local/notes/reconstruction-note.md"]);
+    assert.equal(payload.generationContext.benchmarkBlueprintRoot, "spec");
+    assert.equal(payload.generationContext.benchmarkMode, "repo_spec_blueprint");
+    assert.equal(payload.generationContext.acceptanceMode, "semantic_and_structural_parity_when_blueprint_exists");
+
+    const promptResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--prompt"]);
+    assert.equal(promptResult.exitCode, 0);
+    const promptText = await readFile(
+      path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"),
+      "utf8",
+    );
+    assert.match(promptText, /Benchmark blueprint root: spec/);
+    assert.match(promptText, /Code roots: src/);
+    assert.match(promptText, /Docs roots: docs/);
+    assert.match(promptText, /Human note paths: \.nimi\/local\/notes\/reconstruction-note\.md/);
+    assert.match(promptText, /aim for semantic and structural parity/i);
   });
 });
 
@@ -931,6 +1289,17 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     assert.equal(payload.skill.id, "spec_reconstruction");
     assert.equal(payload.skill.resultContractRef, ".nimi/contracts/spec-reconstruction-result.yaml");
     assert.equal(payload.skill.readiness.ok, true);
+    assert.deepEqual(payload.skill.compareTargets, [".nimi/spec"]);
+    assert.equal(payload.generationContext.canonicalTargetRoot, ".nimi/spec");
+    assert.equal(payload.generationContext.mode, "mixed");
+    assert.deepEqual(payload.generationContext.requiredFileClasses, [
+      "INDEX.md",
+      "domain kernel/*.md",
+      "domain kernel/tables/**",
+    ]);
+    assert.equal(payload.generationContext.benchmarkBlueprintRoot, null);
+    assert.equal(payload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.ok(payload.context.orderedPaths.includes(".nimi/config/spec-generation-inputs.yaml"));
     assert.equal(payload.runtimeOwner, "external_ai_host");
     assert.equal(payload.handoffSurface.authoritativeMode, "json");
     assert.equal(payload.handoffSurface.promptMode, "human_projection_only");
@@ -1000,6 +1369,11 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.match(promptText, /You are the external AI host responsible/);
     assert.match(promptText, /Read this project-local truth first, in order:/);
     assert.match(promptText, /Do not assume local skill installation or self-hosting/);
+    assert.match(promptText, /Canonical target root: \.nimi\/spec/);
+    assert.match(promptText, /Required file classes: INDEX\.md, domain kernel\/\*\.md, domain kernel\/tables\/\*\*/);
+    assert.match(promptText, /Code roots: none/);
+    assert.match(promptText, /Docs roots: README\.md/);
+    assert.match(promptText, /For ordinary projects without a benchmark blueprint/);
   });
 });
 
@@ -1015,7 +1389,7 @@ test("handoff fails closed for doc spec audit before target truth exists", async
     assert.equal(payload.ok, false);
     assert.equal(payload.skill.id, "doc_spec_audit");
     assert.equal(payload.skill.readiness.ok, false);
-    assert.match(payload.skill.readiness.reason, /requires reconstructed/i);
+    assert.match(payload.skill.readiness.reason, /current lifecycle state/i);
   });
 });
 
@@ -1264,7 +1638,7 @@ test("closeout fails closed when completed reconstruction lacks target truth", a
     assert.equal(closeoutResult.exitCode, 1);
     const payload = JSON.parse(closeoutResult.stdout);
     assert.equal(payload.ok, false);
-    assert.match(payload.readiness.reason, /requires all declared `.nimi\/spec\/\*\.yaml` target truth files to exist/i);
+    assert.match(payload.readiness.reason, /current lifecycle state|declared canonical tree files/i);
   });
 });
 
@@ -2207,6 +2581,13 @@ test("package files publish canonical source dirs and start output matches sourc
     assert.equal(startResult.exitCode, 0);
 
     const seedMap = await createBootstrapSeedFileMap();
+    assert.ok(seedMap.has(".nimi/config/spec-generation-inputs.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/spec-generation-inputs.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/generate-drift-migration-checklist.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/governance-routing-cutover-checklist.yaml"));
+    assert.ok(seedMap.has(".nimi/spec/_meta/phase2-impacted-surface-matrix.yaml"));
     for (const [relativePath, expected] of seedMap.entries()) {
       const actual = await readFile(path.join(projectRoot, relativePath), "utf8");
       assert.equal(actual, expected, `source projection mismatch for ${relativePath}`);
@@ -2216,7 +2597,10 @@ test("package files publish canonical source dirs and start output matches sourc
 
 test("package repo exposes package source dirs and is not treated as a host project unless initialized", async () => {
   await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "core.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "config", "spec-generation-inputs.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "spec-generation-inputs.schema.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "product-scope.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "_meta", "spec-tree-model.yaml"), "utf8"));
   await assert.rejects(readFile(path.join(repoRoot, ".nimicoding-dev", "spec", "authority-map.yaml"), "utf8"));
   await assert.rejects(readFile(path.join(repoRoot, "templates", "bootstrap", ".nimi", "config", "bootstrap.yaml"), "utf8"));
   await assert.rejects(readFile(path.join(repoRoot, ".nimi", "config", "bootstrap.yaml"), "utf8"));
@@ -2229,12 +2613,19 @@ test("package repo exposes package source dirs and is not treated as a host proj
   assert.ok(payload.checks.some((check) => check.id === "nimi_root" && check.ok === false));
 });
 
-test("doctor fails closed when target truth is fully present but bootstrap state stays bootstrap_only", { concurrency: false }, async () => {
+test("doctor fails closed when canonical tree files are present but bootstrap state stays bootstrap_only", { concurrency: false }, async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await seedTargetTruthFilesOnly(projectRoot);
+    await seedReconstructedTargetTruth(projectRoot);
+    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.mode = "bootstrap_only";
+    bootstrapState.state.tree_state = "bootstrap_only";
+    bootstrapState.state.reconstruction_required = true;
+    bootstrapState.status.ready_for_ai_reconstruction = true;
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
     assert.equal(doctorResult.exitCode, 1);
@@ -2243,8 +2634,28 @@ test("doctor fails closed when target truth is fully present but bootstrap state
     assert.equal(payload.ok, false);
     assert.match(
       JSON.stringify(payload.checks),
-      /transition to reconstruction_seeded/i,
+      /canonical_tree_ready but required canonical files are still missing|lifecycle drifted away from the current canonical tree readiness/i,
     );
+  });
+});
+
+test("doctor fails closed when blueprint mode requires a missing blueprint reference", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    const blueprintCheck = payload.checks.find((check) => check.id === "blueprint_reference_contract");
+    assert.equal(blueprintCheck.ok, false);
+    assert.equal(blueprintCheck.severity, "error");
   });
 });
 

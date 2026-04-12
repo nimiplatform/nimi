@@ -1,3 +1,4 @@
+import { runBlueprintAudit } from "./commands/blueprint-audit.mjs";
 import { runClear } from "./commands/clear.mjs";
 import { runCloseout } from "./commands/closeout.mjs";
 import { runAdmitHighRiskDecision } from "./commands/admit-high-risk-decision.mjs";
@@ -20,6 +21,7 @@ const COMMANDS = {
   start: runStart,
   clear: runClear,
   doctor: runDoctor,
+  "blueprint-audit": runBlueprintAudit,
   handoff: runHandoff,
   closeout: runCloseout,
   "admit-high-risk-decision": runAdmitHighRiskDecision,

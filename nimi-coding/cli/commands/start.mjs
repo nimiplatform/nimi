@@ -342,8 +342,13 @@ function buildTaskStageLines(mode) {
   return lines;
 }
 
+function canonicalTreeReady(doctorResult) {
+  return doctorResult.lifecycleState?.treeState === "canonical_tree_ready"
+    && doctorResult.canonicalTree?.requiredFilesValid === true;
+}
+
 function determineWizardStage(doctorResult) {
-  if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
+  if (!canonicalTreeReady(doctorResult)) {
     return {
       title: localize("Step 3. Rebuild project rules", "第 3 步：重建项目规则"),
       detail: localize(
@@ -373,7 +378,7 @@ function determineWizardStage(doctorResult) {
 }
 
 function isReconstructionContinuable(doctorResult) {
-  if (doctorResult.targetTruth.missing.length === 0 && doctorResult.targetTruth.invalid.length === 0) {
+  if (canonicalTreeReady(doctorResult)) {
     return false;
   }
 
@@ -383,8 +388,7 @@ function isReconstructionContinuable(doctorResult) {
   }
 
   const tolerated = new Set([
-    "target_truth_structure",
-    "high_risk_admissions_truth",
+    "canonical_tree_progress",
     "bootstrap_lifecycle_alignment",
     "doc_spec_audit_state_alignment",
   ]);
@@ -599,7 +603,7 @@ ${formatDoctorResult(doctorResult)}`);
       return 1;
     }
 
-    if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
+    if (!canonicalTreeReady(doctorResult)) {
       if (canPromptInteractively() && !parsed.options.yes) {
         printStage(
           localize("Step 3. Prepare the next AI task", "第 3 步：准备下一项 AI 任务"),
@@ -643,7 +647,7 @@ ${formatDoctorResult(doctorResult)}`);
       continuationLines.push(`  - ${localize("selected host", "已选择的 Host")}: ${localize(getStartHostOption(applied.handoff.hostId)?.label ?? "Generic external host", getStartHostOption(applied.handoff.hostId)?.zhLabel ?? "通用外部 Host")}`);
     } else if (applied.handoff?.skipped) {
       continuationLines.push(`  - ${localize("AI task package preparation was skipped for now", "本次已跳过 AI 任务包准备")}`);
-    } else if (doctorResult.targetTruth.missing.length === 0 && doctorResult.targetTruth.invalid.length === 0 && doctorResult.auditArtifact.present) {
+    } else if (canonicalTreeReady(doctorResult) && doctorResult.auditArtifact.present) {
       continuationLines.push(`  - ${localize("no AI task package is needed right now", "当前不需要准备 AI 任务包")}`);
     }
 

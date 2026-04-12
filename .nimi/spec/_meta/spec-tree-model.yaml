@@ -1,0 +1,72 @@
+version: 1
+spec_tree_model:
+  profile: minimal
+  canonical_root: .nimi/spec
+  authority_mode: external_blueprint_active
+  domains:
+    - id: project
+      root: .nimi/spec/project
+      normative_root: .nimi/spec/project/kernel
+      tables_root: .nimi/spec/project/kernel/tables
+      guide_paths: []
+  normative_classes:
+    - id: kernel_markdown
+      path_patterns:
+        - .nimi/spec/**/kernel/*.md
+      allowed_extensions:
+        - .md
+      normative: true
+    - id: kernel_tables
+      path_patterns:
+        - .nimi/spec/**/kernel/tables/**/*.yaml
+        - .nimi/spec/**/kernel/tables/**/*.yml
+      allowed_extensions:
+        - .yaml
+        - .yml
+      normative: true
+  derived_classes:
+    - id: kernel_generated
+      path_patterns:
+        - .nimi/spec/**/kernel/generated/**/*.md
+      generator_refs:
+        - pnpm generate:spec-human-doc
+      normative: false
+  guidance_classes:
+    - id: domain_guides
+      path_patterns:
+        - .nimi/spec/**/*.md
+      excluded_path_patterns:
+        - .nimi/spec/**/kernel/*.md
+        - .nimi/spec/**/kernel/generated/**/*.md
+      must_reference_normative_ids: true
+      normative: false
+  required_files:
+    minimal:
+      - .nimi/spec/INDEX.md
+      - .nimi/spec/_meta/spec-tree-model.yaml
+      - .nimi/spec/project/kernel/index.md
+      - .nimi/spec/project/kernel/core-rules.md
+      - .nimi/spec/project/kernel/tables/rule-catalog.yaml
+    standard:
+      - .nimi/spec/INDEX.md
+      - .nimi/spec/_meta/spec-tree-model.yaml
+    mature:
+      - .nimi/spec/INDEX.md
+      - .nimi/spec/_meta/spec-tree-model.yaml
+  generated_pipelines:
+    - id: spec_human_doc
+      owner_surface: repository_root_scripts
+      input_roots:
+        - .nimi/spec
+      output_roots:
+        - spec/generated
+      generate_command: pnpm generate:spec-human-doc
+      drift_check_command: pnpm check:spec-human-doc-drift
+  fail_closed_rules:
+    - unknown_profile_is_invalid
+    - canonical_root_outside_.nimi/spec_is_invalid
+    - domain_roots_must_not_escape_canonical_root
+    - normative_and_derived_path_overlap_is_invalid
+    - required_files_must_stay_under_declared_domain_roots
+    - generated_outputs_must_not_overlap_normative_roots
+    - canonical_active_requires_no_other_active_normative_root

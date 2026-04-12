@@ -10,35 +10,17 @@ summary_status_enum:
   - reconstructed
   - partial
   - blocked
-target_truth_files:
-  - path: .nimi/spec/authority-map.yaml
-    required_top_level_keys:
-      - authorities
-      - ownership_rules
-      - escalation_paths
-  - path: .nimi/spec/boundaries.yaml
-    required_top_level_keys:
-      - boundaries
-      - invariants
-      - fail_closed_rules
-  - path: .nimi/spec/ownership.yaml
-    required_top_level_keys:
-      - surfaces
-      - ownership_modes
-      - approval_requirements
-  - path: .nimi/spec/change-policy.yaml
-    required_top_level_keys:
-      - work_types
-      - authority_gates
-      - parallel_truth_policy
-  - path: .nimi/spec/high-risk-admissions.yaml
-    required_top_level_keys:
-      - admissions
-      - admission_rules
-      - semantic_constraints
+canonical_tree_completion:
+  profile_ref: .nimi/spec/_meta/spec-tree-model.yaml
+  generation_inputs_ref: .nimi/config/spec-generation-inputs.yaml
+  required_tree_state: canonical_tree_ready
+  required_files_valid: true
 completion_requirements:
-  - all_target_truth_files_present
-  - required_top_level_keys_present_for_all_target_truth_files
+  - canonical_tree_ready
+  - declared_profile_required_files_valid
+  - declared_file_class_constraints_valid
+  - semantic_and_structural_parity_when_blueprint_exists
 locality: local_only
 semantic_constraints:
   - do_not_promote_closeout_summary_to_project_truth
+  - treat_declared_blueprint_as_benchmark_only_not_canonical_output_root

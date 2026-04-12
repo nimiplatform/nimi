@@ -14,7 +14,9 @@ import {
   loadDocSpecAuditContract,
   loadExternalHostCompatibilityContract,
   loadHighRiskSchemaContracts,
+  loadSpecGenerationInputsConfig,
   loadSpecReconstructionContract,
+  loadSpecTreeModelContract,
 } from "./contracts.mjs";
 import { inspectDoctorState } from "./doctor.mjs";
 import { loadExternalExecutionArtifactsConfig } from "./external-execution.mjs";
@@ -30,8 +32,9 @@ import { mergeOrderedPaths, parseSkillSection, readYamlList } from "./yaml-helpe
 function translateHandoffReason(reason) {
   const translations = new Map([
     ["Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再导出 handoff payload"],
-    ["Projects may delegate spec reconstruction to an external AI host when lifecycle repair or reconstruction work is needed", "当需要 lifecycle repair 或 reconstruction 工作时，项目可以将 spec reconstruction 委托给外部 AI host"],
-    ["This skill requires reconstructed `.nimi/spec/*.yaml` target truth before handoff", "该 skill 在 handoff 前需要已重建的 `.nimi/spec/*.yaml` target truth"],
+    ["Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed", "当需要 canonical tree 工作时，项目可以将 spec reconstruction 委托给外部 AI host"],
+    ["This skill is not allowed in the current lifecycle state", "当前生命周期状态不允许执行该 skill"],
+    ["This skill is not allowed in the current authority mode", "当前 authority mode 不允许执行该 skill"],
     ["Skill prerequisites are satisfied by the current project-local truth", "当前项目本地 truth 已满足该 skill 的前置条件"],
   ]);
   const delegatePrefix = "Delegate explicit skill execution for `";
@@ -40,6 +43,36 @@ function translateHandoffReason(reason) {
     return `将 \`${skillId}\` 的显式 skill 执行委托给 external_ai_host。`;
   }
   return translations.get(reason) ?? reason;
+}
+
+function commandRuleAllowsCurrentState(rule, doctorResult) {
+  if (!rule) {
+    return {
+      ok: false,
+      reason: "This skill is not allowed in the current lifecycle state",
+    };
+  }
+
+  const treeState = doctorResult.lifecycleState?.treeState;
+  const authorityMode = doctorResult.lifecycleState?.authorityMode;
+  if (Array.isArray(rule.allowedTreeStates) && rule.allowedTreeStates.length > 0 && !rule.allowedTreeStates.includes(treeState)) {
+    return {
+      ok: false,
+      reason: "This skill is not allowed in the current lifecycle state",
+    };
+  }
+
+  if (Array.isArray(rule.allowedAuthorityModes) && rule.allowedAuthorityModes.length > 0 && !rule.allowedAuthorityModes.includes(authorityMode)) {
+    return {
+      ok: false,
+      reason: "This skill is not allowed in the current authority mode",
+    };
+  }
+
+  return {
+    ok: true,
+    reason: "Skill prerequisites are satisfied by the current project-local truth",
+  };
 }
 
 function evaluateSkillReadiness(skillId, doctorResult) {
@@ -53,21 +86,12 @@ function evaluateSkillReadiness(skillId, doctorResult) {
   if (skillId === "spec_reconstruction") {
     return {
       ok: true,
-      reason: "Projects may delegate spec reconstruction to an external AI host when lifecycle repair or reconstruction work is needed",
+      reason: "Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed",
     };
   }
 
-  if (doctorResult.targetTruth.missing.length > 0 || doctorResult.targetTruth.invalid.length > 0) {
-    return {
-      ok: false,
-      reason: "This skill requires reconstructed `.nimi/spec/*.yaml` target truth before handoff",
-    };
-  }
-
-  return {
-    ok: true,
-    reason: "Skill prerequisites are satisfied by the current project-local truth",
-  };
+  const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "handoff" && entry.skill === skillId) ?? null;
+  return commandRuleAllowsCurrentState(rule, doctorResult);
 }
 
 function getSkillSpecificExpectations(
@@ -80,15 +104,16 @@ function getSkillSpecificExpectations(
 ) {
   if (skillId === "spec_reconstruction") {
     return {
-      compareTargets: [],
+      compareTargets: [".nimi/spec"],
       closeoutSummaryFields: specContract.summaryRequiredFields,
       closeoutSummaryStatus: specContract.summaryStatusEnum,
       executionSchemaRefs: [],
       artifactRoots: {},
       expectedArtifactKinds: [],
       skillExpectedResults: [
-        "produce_all_declared_target_truth_files",
-        `satisfy_top_level_section_contract_declared_in_${resultContractRef}`,
+        "generate_canonical_tree_under_.nimi/spec",
+        "establish_kernel_markdown_and_kernel_tables_before_generated_views_or_guides",
+        `satisfy_canonical_tree_completion_declared_in_${resultContractRef}`,
       ],
     };
   }
@@ -162,6 +187,8 @@ export async function buildHandoffPayload(projectRoot, skillId) {
   const handoffText = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "skill-handoff.yaml"));
   const specReconstructionText = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "spec-reconstruction.yaml"));
   const specContract = await loadSpecReconstructionContract(projectRoot);
+  const specTreeModel = await loadSpecTreeModelContract(projectRoot);
+  const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   const auditContract = await loadDocSpecAuditContract(projectRoot);
   const hostCompatibilityContract = await loadExternalHostCompatibilityContract(projectRoot);
   const externalExecutionArtifacts = await loadExternalExecutionArtifactsConfig(projectRoot);
@@ -187,6 +214,9 @@ export async function buildHandoffPayload(projectRoot, skillId) {
   const handoffContextOrder = readYamlList(handoffText, "required_context_order");
   const skillInputs = manifestSkill.inputs ?? [];
   const orderedContext = mergeOrderedPaths(handoffContextOrder, skillInputs, [resultContractRef]);
+  const contextWithBlueprint = doctorResult.blueprintReference?.present
+    ? mergeOrderedPaths(orderedContext, [doctorResult.blueprintReference.path])
+    : orderedContext;
   const hardConstraints = mergeOrderedPaths(
     readYamlList(handoffText, "hard_constraints"),
     skillId === "spec_reconstruction" ? readYamlList(specReconstructionText, "hard_constraints") : [],
@@ -201,6 +231,30 @@ export async function buildHandoffPayload(projectRoot, skillId) {
     externalExecutionArtifacts,
   );
   const expectedResults = mergeOrderedPaths(baseExpectedResults, skillSpecific.skillExpectedResults);
+  const generationContext = skillId === "spec_reconstruction"
+    ? {
+      canonicalTargetRoot: specGenerationInputs.canonicalTargetRoot ?? specTreeModel.canonicalRoot ?? ".nimi/spec",
+      mode: specGenerationInputs.mode ?? "mixed",
+      codeRoots: specGenerationInputs.codeRoots ?? [],
+      docsRoots: specGenerationInputs.docsRoots ?? [],
+      structureRoots: specGenerationInputs.structureRoots ?? [],
+      humanNotePaths: specGenerationInputs.humanNotePaths ?? [],
+      benchmarkBlueprintRoot: specGenerationInputs.benchmarkBlueprintRoot ?? doctorResult.blueprintReference?.root ?? null,
+      benchmarkMode: specGenerationInputs.benchmarkMode ?? doctorResult.blueprintReference?.mode ?? "none",
+      acceptanceMode: specGenerationInputs.acceptanceMode ?? "canonical_tree_validity_without_blueprint",
+      generationOrder: specGenerationInputs.generationOrder ?? [],
+      inferenceRules: specGenerationInputs.inferenceRules ?? [],
+      requiredFileClasses: [
+        "INDEX.md",
+        "domain kernel/*.md",
+        "domain kernel/tables/**",
+      ],
+      optionalFileClasses: [
+        "domain kernel/generated/**",
+        "thin domain guides",
+      ],
+    }
+    : null;
 
   return {
     contractVersion: HANDOFF_PAYLOAD_CONTRACT_VERSION,
@@ -251,6 +305,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       expectedArtifactKinds: skillSpecific.expectedArtifactKinds,
       readiness,
     },
+    generationContext,
     contracts: {
       handoffRef: ".nimi/methodology/skill-handoff.yaml",
       runtimeContractRef: ".nimi/methodology/skill-runtime.yaml",
@@ -267,7 +322,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       resultContractRef,
     },
     context: {
-      orderedPaths: orderedContext,
+      orderedPaths: contextWithBlueprint,
       handoffRequiredContextOrder: handoffContextOrder,
       skillInputs,
     },
@@ -339,18 +394,39 @@ export function formatHandoffPayload(payload) {
     `  - ordered_paths: ${payload.context.orderedPaths.length}`,
     `  - skill_inputs: ${payload.context.skillInputs.length}`,
     "",
-    styleLabel(localize("Target Truth:", "目标 Truth：")),
-    `  - present: ${payload.targetTruth.present.length}`,
-    `  - missing: ${payload.targetTruth.missing.length}`,
-    "",
+  ];
+
+  if (payload.generationContext) {
+    lines.push(
+      styleLabel(localize("Generation:", "生成：")),
+      `  - target_root: ${payload.generationContext.canonicalTargetRoot}`,
+      `  - mode: ${payload.generationContext.mode}`,
+      `  - benchmark_root: ${payload.generationContext.benchmarkBlueprintRoot ?? "none"}`,
+      `  - acceptance_mode: ${payload.generationContext.acceptanceMode}`,
+      `  - code_roots: ${payload.generationContext.codeRoots.length}`,
+      `  - docs_roots: ${payload.generationContext.docsRoots.length}`,
+      `  - structure_roots: ${payload.generationContext.structureRoots.length}`,
+      "",
+    );
+  } else {
+    lines.push(
+      styleLabel(localize("Target Truth:", "目标 Truth：")),
+      `  - present: ${payload.targetTruth.present.length}`,
+      `  - missing: ${payload.targetTruth.missing.length}`,
+      "",
+    );
+  }
+
+  lines.push(
     styleLabel(localize("Next:", "下一步：")),
     `  - ${localize(payload.nextAction, translateHandoffReason(payload.nextAction))}`,
-  ];
+  );
 
   return `${lines.join("\n")}\n`;
 }
 
 export function formatHandoffPrompt(payload) {
+  const isSpecReconstruction = payload.skill.id === "spec_reconstruction" && payload.generationContext;
   const lines = [
     localize(
       `You are the external AI host responsible for the declared \`${payload.skill.id}\` skill in project \`${payload.projectRoot}\`.`,
@@ -440,6 +516,20 @@ export function formatHandoffPrompt(payload) {
     lines.push(`- ${localize("Compare targets", "比较目标")}: ${payload.skill.compareTargets.join(", ")}`);
   }
 
+  if (isSpecReconstruction) {
+    lines.push(`- ${localize("Canonical target root", "Canonical 目标根")}: ${payload.generationContext.canonicalTargetRoot}`);
+    lines.push(`- ${localize("Generation mode", "生成模式")}: ${payload.generationContext.mode}`);
+    lines.push(`- ${localize("Required file classes", "必需文件类别")}: ${payload.generationContext.requiredFileClasses.join(", ")}`);
+    lines.push(`- ${localize("Optional file classes", "可选文件类别")}: ${payload.generationContext.optionalFileClasses.join(", ")}`);
+    lines.push(`- ${localize("Code roots", "代码根")}: ${payload.generationContext.codeRoots.join(", ") || "none"}`);
+    lines.push(`- ${localize("Docs roots", "文档根")}: ${payload.generationContext.docsRoots.join(", ") || "none"}`);
+    lines.push(`- ${localize("Structure roots", "结构根")}: ${payload.generationContext.structureRoots.join(", ") || "none"}`);
+    lines.push(`- ${localize("Human note paths", "人工说明路径")}: ${payload.generationContext.humanNotePaths.join(", ") || "none"}`);
+    lines.push(`- ${localize("Benchmark blueprint root", "Benchmark blueprint root")}: ${payload.generationContext.benchmarkBlueprintRoot ?? "none"}`);
+    lines.push(`- ${localize("Acceptance rule", "验收规则")}: ${payload.generationContext.acceptanceMode}`);
+    lines.push(`- ${localize("Generation order", "生成顺序")}: ${payload.generationContext.generationOrder.join(", ")}`);
+  }
+
   if (payload.skill.expectedCloseoutSummaryFields.length > 0) {
     lines.push(`- ${localize("Expected closeout summary fields", "预期 closeout summary 字段")}: ${payload.skill.expectedCloseoutSummaryFields.join(", ")}`);
   }
@@ -467,6 +557,21 @@ export function formatHandoffPrompt(payload) {
     localize("- Fail closed on unresolved authority, missing context, or contract drift.", "- 在 authority 未解决、上下文缺失或契约漂移时必须 fail-close。"),
     localize("- Treat `.nimi/**` as the primary truth surface.", "- 将 `.nimi/**` 视为主要 truth surface。"),
   );
+
+  if (isSpecReconstruction) {
+    lines.push(localize(
+      "- Build the canonical tree directly under `.nimi/spec/**`; do not produce a compact summary as the primary output.",
+      "- 直接在 `.nimi/spec/**` 下构建 canonical tree；不要把 compact summary 当作主要输出。",
+    ));
+    lines.push(localize(
+      "- When a benchmark blueprint root is declared, aim for semantic and structural parity with that benchmark rather than byte-for-byte duplication.",
+      "- 当声明了 benchmark blueprint root 时，目标应是与该 benchmark 保持语义和结构等价，而不是逐字节复制。",
+    ));
+    lines.push(localize(
+      "- For ordinary projects without a benchmark blueprint, infer the domain set from the declared mixed inputs and build kernel markdown/tables first.",
+      "- 对于没有 benchmark blueprint 的普通项目，请根据声明的 mixed inputs 推断域集合，并优先生成 kernel markdown/tables。",
+    ));
+  }
 
   if (payload.targetTruth.missing.length > 0) {
     lines.push(`- ${localize("Remaining target truth gaps", "剩余 target truth 缺口")}: ${payload.targetTruth.missing.join(", ")}`);
@@ -560,6 +665,32 @@ export function formatStartPastePrompt(payload, options) {
       `4. 完成 \`${payload.skill.id}\`，并按 \`${payload.skill.resultContractRef ?? "声明的结果契约"}\` 格式返回结果。`,
     ),
   ];
+
+  if (payload.skill.id === "spec_reconstruction" && payload.generationContext) {
+    lines.splice(3, 0, localize(
+      `- Canonical target root: \`${payload.generationContext.canonicalTargetRoot}\``,
+      `- Canonical 目标根：\`${payload.generationContext.canonicalTargetRoot}\``,
+    ));
+    lines.push(localize(
+      `5. Inspect the declared source materials: code roots (${payload.generationContext.codeRoots.join(", ") || "none"}), docs roots (${payload.generationContext.docsRoots.join(", ") || "none"}), structure roots (${payload.generationContext.structureRoots.join(", ") || "none"}).`,
+      `5. 检查声明的源材料：代码根（${payload.generationContext.codeRoots.join(", ") || "none"}）、文档根（${payload.generationContext.docsRoots.join(", ") || "none"}）、结构根（${payload.generationContext.structureRoots.join(", ") || "none"}）。`,
+    ));
+    lines.push(localize(
+      `6. Build real canonical files first: ${payload.generationContext.requiredFileClasses.join(", ")}.`,
+      `6. 先生成真实 canonical 文件：${payload.generationContext.requiredFileClasses.join(", ")}。`,
+    ));
+    if (payload.generationContext.benchmarkBlueprintRoot) {
+      lines.push(localize(
+        `7. Use benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` as an acceptance benchmark. Aim for semantic and structural parity; do not optimize for file-by-file copying.`,
+        `7. 将 benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` 作为验收基准。目标是语义和结构等价；不要追求逐文件复制。`,
+      ));
+    } else {
+      lines.push(localize(
+        "7. No benchmark blueprint is declared. Infer the domain set from the mixed inputs and keep the canonical tree explicit and fail-closed.",
+        "7. 当前没有声明 benchmark blueprint。请根据 mixed inputs 推断域集合，并保持 canonical tree 显式且 fail-close。",
+      ));
+    }
+  }
 
   if (hostId === "oh-my-codex") {
     lines.push(localize(

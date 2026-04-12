@@ -1,8 +1,51 @@
-version: 1
+version: 2
 state:
   mode: bootstrap_only
+  tree_state: bootstrap_only
+  authority_mode: external_blueprint_active
+  blueprint_mode: repo_spec_blueprint
   reconstruction_required: true
   reconstruction_owner: ai_skills
+lifecycle_contract:
+  id: nimicoding.spec-bootstrap-state.v2
+  state_carrier_ref: .nimi/spec/bootstrap-state.yaml
+  posture_carrier_ref: .nimi/spec/product-scope.yaml
+  tree_state_enum:
+    - bootstrap_only
+    - spec_tree_seeded
+    - canonical_tree_in_progress
+    - canonical_tree_ready
+  authority_mode_enum:
+    - external_blueprint_active
+    - canonical_cutover_ready
+    - canonical_active
+  blueprint_mode_enum:
+    - none
+    - repo_spec_blueprint
+    - custom_blueprint
+  blueprint_mode_semantics:
+    none: external_blueprint_reference_is_not_declared_in_project_local_truth
+    repo_spec_blueprint: project_local_blueprint_reference_declares_repo_spec_root_for_redesign_or_audit
+    custom_blueprint: project_local_blueprint_reference_declares_a_non_repo_blueprint_root
+  legacy_mode_mapping:
+    - legacy_mode: bootstrap_only
+      tree_state: bootstrap_only
+      authority_mode: external_blueprint_active
+      blueprint_mode: none
+      reconstruction_required: true
+      ready_for_ai_reconstruction: true
+    - legacy_mode: reconstruction_seeded
+      tree_state: canonical_tree_in_progress
+      authority_mode: external_blueprint_active
+      blueprint_mode: none
+      reconstruction_required: false
+      ready_for_ai_reconstruction: false
+  fail_closed_rules:
+    - unknown_tree_state_is_invalid
+    - unknown_authority_mode_is_invalid
+    - unknown_blueprint_mode_is_invalid
+    - legacy_mode_must_map_to_declared_multi_axis_state
+    - canonical_active_requires_explicit_cutover_readiness
 current_truth:
   admitted_files:
     - .nimi/methodology/core.yaml
@@ -13,6 +56,11 @@ current_truth:
     - .nimi/methodology/skill-installer-summary-projection.yaml
     - .nimi/methodology/skill-exchange-projection.yaml
     - .nimi/methodology/skill-handoff.yaml
+    - .nimi/spec/_meta/spec-tree-model.yaml
+    - .nimi/spec/_meta/command-gating-matrix.yaml
+    - .nimi/spec/_meta/generate-drift-migration-checklist.yaml
+    - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
+    - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
     - .nimi/spec/product-scope.yaml
     - .nimi/spec/bootstrap-state.yaml
     - .nimi/config/bootstrap.yaml
@@ -45,3 +93,12 @@ status:
   ready_for_ai_reconstruction: true
   external_handoff_required: true
   human_projection_mode: derived_only
+  canonical_root_candidate: .nimi/spec
+  active_authority_root: spec
+cutover_readiness:
+  canonical_tree_contract_seeded: true
+  canonical_tree_files_seeded: false
+  equivalence_verified: false
+  governance_routing_ready: false
+  pipeline_routing_ready: false
+  authority_cutover_ready: false

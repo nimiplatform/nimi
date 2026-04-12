@@ -2,6 +2,8 @@ import path from "node:path";
 
 import {
   ACCEPTANCE_SCHEMA_REF,
+  BLUEPRINT_REFERENCE_REF,
+  COMMAND_GATING_MATRIX_REF,
   DOC_SPEC_AUDIT_DEFAULT_COMPARED_PATHS,
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
   DOC_SPEC_AUDIT_SUMMARY_REQUIRED_FIELDS,
@@ -22,6 +24,9 @@ import {
   HIGH_RISK_SCHEMA_SPECS,
   ORCHESTRATION_STATE_SCHEMA_REF,
   PROMPT_SCHEMA_REF,
+  SPEC_TREE_MODEL_REF,
+  SPEC_GENERATION_INPUTS_CONTRACT_REF,
+  SPEC_GENERATION_INPUTS_REF,
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS,
   SPEC_RECONSTRUCTION_SUMMARY_STATUS,
@@ -33,34 +38,362 @@ import { readTextIfFile } from "./fs-helpers.mjs";
 import { isIsoUtcTimestamp, isPlainObject, arraysEqual, toStringArray } from "./value-helpers.mjs";
 import { parsePathRequirements, parseYamlText } from "./yaml-helpers.mjs";
 
+const SPEC_TREE_PROFILE_ENUM = ["minimal", "standard", "mature"];
+const AUTHORITY_MODE_ENUM = [
+  "external_blueprint_active",
+  "canonical_cutover_ready",
+  "canonical_active",
+];
+const BLUEPRINT_MODE_ENUM = [
+  "none",
+  "repo_spec_blueprint",
+  "custom_blueprint",
+];
+const SPEC_GENERATION_MODE_ENUM = ["mixed"];
+const SPEC_GENERATION_ACCEPTANCE_MODE_ENUM = [
+  "canonical_tree_validity_without_blueprint",
+  "semantic_and_structural_parity_when_blueprint_exists",
+];
+const SPEC_GENERATION_ORDER_ENUM = [
+  "index",
+  "kernel_markdown",
+  "kernel_tables",
+  "generated_views",
+  "thin_guides",
+];
+
+function toStringOrNull(value) {
+  return typeof value === "string" ? value : null;
+}
+
+function normalizePathClass(entry) {
+  if (!isPlainObject(entry)) {
+    return null;
+  }
+
+  return {
+    id: toStringOrNull(entry.id),
+    pathPatterns: toStringArray(entry.path_patterns),
+    excludedPathPatterns: toStringArray(entry.excluded_path_patterns),
+    allowedExtensions: toStringArray(entry.allowed_extensions),
+    generatorRefs: toStringArray(entry.generator_refs),
+    mustReferenceNormativeIds: entry.must_reference_normative_ids === true,
+    normative: entry.normative === true,
+  };
+}
+
+function normalizeSpecDomain(entry) {
+  if (!isPlainObject(entry)) {
+    return null;
+  }
+
+  return {
+    id: toStringOrNull(entry.id),
+    root: toStringOrNull(entry.root),
+    normativeRoot: toStringOrNull(entry.normative_root),
+    tablesRoot: toStringOrNull(entry.tables_root),
+    generatedRoot: toStringOrNull(entry.generated_root),
+    guidePaths: toStringArray(entry.guide_paths),
+  };
+}
+
+function normalizeGeneratedPipeline(entry) {
+  if (!isPlainObject(entry)) {
+    return null;
+  }
+
+  return {
+    id: toStringOrNull(entry.id),
+    ownerSurface: toStringOrNull(entry.owner_surface),
+    inputRoots: toStringArray(entry.input_roots),
+    outputRoots: toStringArray(entry.output_roots),
+    generateCommand: toStringOrNull(entry.generate_command),
+    driftCheckCommand: toStringOrNull(entry.drift_check_command),
+  };
+}
+
+function pathStartsWithRoot(targetPath, root) {
+  if (typeof targetPath !== "string" || typeof root !== "string") {
+    return false;
+  }
+
+  return targetPath === root || targetPath.startsWith(`${root}/`);
+}
+
 function parseSpecReconstructionContract(text) {
   const parsed = parseYamlText(text);
-  const targetTruthFiles = parsePathRequirements(text, "target_truth_files");
   const summaryRequiredFields = toStringArray(parsed?.summary_required_fields);
   const summaryStatusEnum = toStringArray(parsed?.summary_status_enum);
   const completionRequirements = toStringArray(parsed?.completion_requirements);
-
-  const targetPathOk = arraysEqual(
-    targetTruthFiles.map((entry) => entry.path),
-    TARGET_SPEC_FILES,
-  );
-  const targetKeysOk = targetTruthFiles.every((entry) => {
-    const expectedKeys = TARGET_SPEC_REQUIRED_KEYS[entry.path] ?? [];
-    return arraysEqual(entry.required_top_level_keys, expectedKeys);
-  });
+  const canonicalTreeCompletion = isPlainObject(parsed?.canonical_tree_completion)
+    ? {
+      profileRef: toStringOrNull(parsed.canonical_tree_completion.profile_ref),
+      generationInputsRef: toStringOrNull(parsed.canonical_tree_completion.generation_inputs_ref),
+      requiredTreeState: toStringOrNull(parsed.canonical_tree_completion.required_tree_state),
+      requiredFilesValid: parsed.canonical_tree_completion.required_files_valid === true,
+    }
+    : null;
 
   return {
-    ok: targetTruthFiles.length === TARGET_SPEC_FILES.length
-      && targetPathOk
-      && targetKeysOk
-      && arraysEqual(summaryRequiredFields, SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS)
+    ok: arraysEqual(summaryRequiredFields, SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS)
       && arraysEqual(summaryStatusEnum, SPEC_RECONSTRUCTION_SUMMARY_STATUS)
-      && completionRequirements.includes("all_target_truth_files_present")
-      && completionRequirements.includes("required_top_level_keys_present_for_all_target_truth_files"),
-    targetTruthFiles,
+      && completionRequirements.includes("canonical_tree_ready")
+      && completionRequirements.includes("declared_profile_required_files_valid")
+      && completionRequirements.includes("declared_file_class_constraints_valid")
+      && completionRequirements.includes("semantic_and_structural_parity_when_blueprint_exists")
+      && canonicalTreeCompletion?.profileRef === SPEC_TREE_MODEL_REF
+      && canonicalTreeCompletion?.generationInputsRef === SPEC_GENERATION_INPUTS_REF
+      && canonicalTreeCompletion?.requiredTreeState === "canonical_tree_ready"
+      && canonicalTreeCompletion?.requiredFilesValid === true,
+    targetTruthFiles: parsePathRequirements(text, "target_truth_files"),
+    canonicalTreeCompletion,
     summaryRequiredFields,
     summaryStatusEnum,
+    completionRequirements,
   };
+}
+
+function parseSpecGenerationInputsContract(text) {
+  const parsed = parseYamlText(text);
+  const contract = parsed?.input_contract;
+  const requiredFields = toStringArray(parsed?.required_fields);
+  const generationOrderEnum = toStringArray(parsed?.generation_order_enum);
+  const hardConstraints = toStringArray(parsed?.hard_constraints);
+
+  return {
+    ok: parsed?.version === 1
+      && String(contract?.id ?? "") === "canonical_spec_generation_inputs"
+      && String(contract?.target_root ?? "") === ".nimi/spec"
+      && arraysEqual(toStringArray(contract?.mode_enum), SPEC_GENERATION_MODE_ENUM)
+      && arraysEqual(toStringArray(contract?.acceptance_mode_enum), SPEC_GENERATION_ACCEPTANCE_MODE_ENUM)
+      && arraysEqual(generationOrderEnum, SPEC_GENERATION_ORDER_ENUM)
+      && requiredFields.includes("mode")
+      && requiredFields.includes("canonical_target_root")
+      && requiredFields.includes("benchmark_blueprint_root")
+      && hardConstraints.includes("canonical_target_root_must_be_.nimi/spec"),
+    requiredFields,
+    generationOrderEnum,
+    hardConstraints,
+  };
+}
+
+function parseSpecGenerationInputsConfig(text) {
+  const parsed = parseYamlText(text);
+  const config = parsed?.spec_generation_inputs;
+  const mode = toStringOrNull(config?.mode);
+  const canonicalTargetRoot = toStringOrNull(config?.canonical_target_root);
+  const codeRoots = toStringArray(config?.code_roots);
+  const docsRoots = toStringArray(config?.docs_roots);
+  const structureRoots = toStringArray(config?.structure_roots);
+  const humanNotePaths = toStringArray(config?.human_note_paths);
+  const benchmarkBlueprintRoot = typeof config?.benchmark_blueprint_root === "string"
+    ? config.benchmark_blueprint_root
+    : null;
+  const benchmarkMode = toStringOrNull(config?.benchmark_mode);
+  const acceptanceMode = toStringOrNull(config?.acceptance_mode);
+  const generationOrder = toStringArray(config?.generation_order);
+  const inferenceRules = toStringArray(config?.inference_rules);
+
+  return {
+    ok: parsed?.version === 1
+      && String(parsed?.contract_ref ?? "") === SPEC_GENERATION_INPUTS_CONTRACT_REF
+      && SPEC_GENERATION_MODE_ENUM.includes(mode)
+      && canonicalTargetRoot === ".nimi/spec"
+      && Array.isArray(codeRoots)
+      && Array.isArray(docsRoots)
+      && Array.isArray(structureRoots)
+      && Array.isArray(humanNotePaths)
+      && BLUEPRINT_MODE_ENUM.includes(benchmarkMode)
+      && SPEC_GENERATION_ACCEPTANCE_MODE_ENUM.includes(acceptanceMode)
+      && generationOrder.length > 0
+      && generationOrder.every((entry) => SPEC_GENERATION_ORDER_ENUM.includes(entry))
+      && inferenceRules.length > 0
+      && (
+        benchmarkMode === "none"
+          ? benchmarkBlueprintRoot === null
+          : typeof benchmarkBlueprintRoot === "string" && benchmarkBlueprintRoot.length > 0
+      ),
+    mode,
+    canonicalTargetRoot,
+    codeRoots,
+    docsRoots,
+    structureRoots,
+    humanNotePaths,
+    benchmarkBlueprintRoot,
+    benchmarkMode,
+    acceptanceMode,
+    generationOrder,
+    inferenceRules,
+  };
+}
+
+function parseSpecTreeModel(text) {
+  const parsed = parseYamlText(text);
+  const model = parsed?.spec_tree_model;
+  const profile = toStringOrNull(model?.profile);
+  const canonicalRoot = toStringOrNull(model?.canonical_root);
+  const authorityMode = toStringOrNull(model?.authority_mode);
+  const domains = Array.isArray(model?.domains)
+    ? model.domains.map(normalizeSpecDomain).filter(Boolean)
+    : [];
+  const normativeClasses = Array.isArray(model?.normative_classes)
+    ? model.normative_classes.map(normalizePathClass).filter(Boolean)
+    : [];
+  const derivedClasses = Array.isArray(model?.derived_classes)
+    ? model.derived_classes.map(normalizePathClass).filter(Boolean)
+    : [];
+  const guidanceClasses = Array.isArray(model?.guidance_classes)
+    ? model.guidance_classes.map(normalizePathClass).filter(Boolean)
+    : [];
+  const requiredFilesByProfile = SPEC_TREE_PROFILE_ENUM.reduce((acc, currentProfile) => {
+    acc[currentProfile] = toStringArray(model?.required_files?.[currentProfile]);
+    return acc;
+  }, {});
+  const generatedPipelines = Array.isArray(model?.generated_pipelines)
+    ? model.generated_pipelines.map(normalizeGeneratedPipeline).filter(Boolean)
+    : [];
+  const failClosedRules = toStringArray(model?.fail_closed_rules);
+  const blueprintSource = isPlainObject(model?.blueprint_source)
+    ? {
+      mode: toStringOrNull(model.blueprint_source.mode),
+      root: toStringOrNull(model.blueprint_source.root),
+      equivalenceContractRef: toStringOrNull(model.blueprint_source.equivalence_contract_ref),
+    }
+    : null;
+
+  const canonicalRootValid = canonicalRoot === ".nimi/spec";
+  const profileValid = SPEC_TREE_PROFILE_ENUM.includes(profile);
+  const authorityModeValid = AUTHORITY_MODE_ENUM.includes(authorityMode);
+  const domainRootsValid = domains.length > 0 && domains.every((domain) => (
+    typeof domain.id === "string"
+    && typeof domain.root === "string"
+    && typeof domain.normativeRoot === "string"
+    && typeof domain.tablesRoot === "string"
+    && pathStartsWithRoot(domain.root, canonicalRoot)
+    && pathStartsWithRoot(domain.normativeRoot, domain.root)
+    && pathStartsWithRoot(domain.tablesRoot, domain.normativeRoot)
+    && (!domain.generatedRoot || pathStartsWithRoot(domain.generatedRoot, domain.normativeRoot))
+    && domain.guidePaths.every((guidePath) => pathStartsWithRoot(guidePath, domain.root))
+  ));
+  const requiredFilesValid = SPEC_TREE_PROFILE_ENUM.every((currentProfile) => (
+    requiredFilesByProfile[currentProfile].length > 0
+    && requiredFilesByProfile[currentProfile].every((requiredPath) => pathStartsWithRoot(requiredPath, canonicalRoot))
+  ));
+  const fileClassIdsPresent = normativeClasses.every((entry) => entry.id && entry.pathPatterns.length > 0)
+    && derivedClasses.every((entry) => entry.id && entry.pathPatterns.length > 0)
+    && guidanceClasses.every((entry) => entry.id && entry.pathPatterns.length > 0);
+  const generatedPipelinesValid = generatedPipelines.every((entry) => (
+    entry.id
+    && entry.ownerSurface
+    && entry.generateCommand
+    && entry.inputRoots.length > 0
+    && entry.outputRoots.length > 0
+  ));
+  const blueprintSourceValid = !blueprintSource || (
+    typeof blueprintSource.mode === "string"
+    && ["repo_spec_blueprint", "custom_blueprint"].includes(blueprintSource.mode)
+    && typeof blueprintSource.root === "string"
+    && typeof blueprintSource.equivalenceContractRef === "string"
+  );
+
+  return {
+    ok: parsed?.version === 1
+      && profileValid
+      && canonicalRootValid
+      && authorityModeValid
+      && domainRootsValid
+      && requiredFilesValid
+      && fileClassIdsPresent
+      && generatedPipelinesValid
+      && failClosedRules.length > 0
+      && blueprintSourceValid,
+    version: parsed?.version ?? null,
+    profile,
+    canonicalRoot,
+    authorityMode,
+    domains,
+    normativeClasses,
+    derivedClasses,
+    guidanceClasses,
+    requiredFilesByProfile,
+    generatedPipelines,
+    failClosedRules,
+    blueprintSource,
+  };
+}
+
+function parseCommandGatingMatrix(text) {
+  const parsed = parseYamlText(text);
+  const entries = Array.isArray(parsed?.command_gating_matrix)
+    ? parsed.command_gating_matrix
+      .filter((entry) => isPlainObject(entry) && typeof entry.command === "string")
+      .map((entry) => ({
+        command: entry.command,
+        skill: toStringOrNull(entry.skill),
+        allowedTreeStates: toStringArray(entry.allowed_tree_states),
+        allowedAuthorityModes: toStringArray(entry.allowed_authority_modes),
+        completedRequires: isPlainObject(entry.completed_requires) ? entry.completed_requires : null,
+        requires: isPlainObject(entry.requires) ? entry.requires : null,
+        notes: toStringArray(entry.notes),
+        reports: toStringArray(entry.reports),
+      }))
+    : [];
+
+  return {
+    ok: parsed?.version === 1 && entries.length > 0,
+    entries,
+  };
+}
+
+function parseBlueprintReference(text) {
+  if (!text) {
+    return {
+      ok: true,
+      present: false,
+      mode: null,
+      root: null,
+      canonicalTargetRoot: null,
+      equivalenceContractRef: null,
+    };
+  }
+
+  const parsed = parseYamlText(text);
+  const reference = parsed?.blueprint_reference;
+  const mode = toStringOrNull(reference?.mode);
+  const root = toStringOrNull(reference?.root);
+  const canonicalTargetRoot = toStringOrNull(reference?.canonical_target_root);
+  const equivalenceContractRef = toStringOrNull(reference?.equivalence_contract_ref);
+
+  return {
+    ok: parsed?.version === 1
+      && ["repo_spec_blueprint", "custom_blueprint"].includes(mode)
+      && typeof root === "string"
+      && typeof canonicalTargetRoot === "string"
+      && typeof equivalenceContractRef === "string",
+    present: true,
+    mode,
+    root,
+    canonicalTargetRoot,
+    equivalenceContractRef,
+  };
+}
+
+export function findCommandGatingRule(commandGatingMatrix, command, skillId = null) {
+  if (!commandGatingMatrix?.entries) {
+    return null;
+  }
+
+  return commandGatingMatrix.entries.find((entry) => {
+    if (entry.command !== command) {
+      return false;
+    }
+
+    if (skillId === null) {
+      return !entry.skill;
+    }
+
+    return entry.skill === skillId;
+  }) ?? null;
 }
 
 function parseDocSpecAuditContract(text) {
@@ -139,6 +472,66 @@ export async function loadSpecReconstructionContract(projectRoot) {
     path: SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
     text: contractText,
     ...parseSpecReconstructionContract(contractText),
+  };
+}
+
+export async function loadSpecTreeModelContract(projectRoot) {
+  const contractText = await readTextIfFile(
+    path.join(projectRoot, SPEC_TREE_MODEL_REF),
+  );
+
+  return {
+    path: SPEC_TREE_MODEL_REF,
+    text: contractText,
+    ...parseSpecTreeModel(contractText),
+  };
+}
+
+export async function loadSpecGenerationInputsContract(projectRoot) {
+  const contractText = await readTextIfFile(
+    path.join(projectRoot, SPEC_GENERATION_INPUTS_CONTRACT_REF),
+  );
+
+  return {
+    path: SPEC_GENERATION_INPUTS_CONTRACT_REF,
+    text: contractText,
+    ...parseSpecGenerationInputsContract(contractText),
+  };
+}
+
+export async function loadSpecGenerationInputsConfig(projectRoot) {
+  const configText = await readTextIfFile(
+    path.join(projectRoot, SPEC_GENERATION_INPUTS_REF),
+  );
+
+  return {
+    path: SPEC_GENERATION_INPUTS_REF,
+    text: configText,
+    ...parseSpecGenerationInputsConfig(configText),
+  };
+}
+
+export async function loadCommandGatingMatrix(projectRoot) {
+  const contractText = await readTextIfFile(
+    path.join(projectRoot, COMMAND_GATING_MATRIX_REF),
+  );
+
+  return {
+    path: COMMAND_GATING_MATRIX_REF,
+    text: contractText,
+    ...parseCommandGatingMatrix(contractText),
+  };
+}
+
+export async function loadBlueprintReference(projectRoot) {
+  const contractText = await readTextIfFile(
+    path.join(projectRoot, BLUEPRINT_REFERENCE_REF),
+  );
+
+  return {
+    path: BLUEPRINT_REFERENCE_REF,
+    text: contractText,
+    ...parseBlueprintReference(contractText),
   };
 }
 

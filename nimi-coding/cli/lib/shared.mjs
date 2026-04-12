@@ -1,4 +1,9 @@
 export {
+  buildBlueprintAuditPayload,
+  formatBlueprintAuditPayload,
+  writeBlueprintAuditArtifact,
+} from "./blueprint-audit.mjs";
+export {
   loadAdmittedAdapterProfiles,
   loadAdapterProfile,
   selectAdapterProfile,
@@ -32,11 +37,17 @@ export {
   writeMissingBootstrapFiles,
 } from "./bootstrap.mjs";
 export {
+  findCommandGatingRule,
+  loadBlueprintReference,
+  loadCommandGatingMatrix,
   loadDocSpecAuditContract,
   loadExternalHostCompatibilityContract,
   loadHighRiskAdmissionContract,
   loadHighRiskExecutionContract,
   loadHighRiskSchemaContracts,
+  loadSpecGenerationInputsConfig,
+  loadSpecGenerationInputsContract,
+  loadSpecTreeModelContract,
   loadSpecReconstructionContract,
   validateDocSpecAuditSummary,
   validateHighRiskAdmissionsSpec,

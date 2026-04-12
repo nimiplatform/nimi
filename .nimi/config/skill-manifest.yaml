@@ -13,8 +13,10 @@ skills:
     required: true
     result_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
     inputs:
+      - .nimi/config/spec-generation-inputs.yaml
       - .nimi/methodology/spec-reconstruction.yaml
       - .nimi/methodology/spec-target-truth-profile.yaml
+      - .nimi/spec/_meta/spec-tree-model.yaml
       - .nimi/spec/bootstrap-state.yaml
   - id: doc_spec_audit
     source: external

@@ -2,13 +2,15 @@ version: 1
 target_truth_profile:
   id: delegated_spec_reconstruction_target_truth_profile
   owner: package_bootstrap_truth
-  mode: guidance_only
+  mode: transition_only
   generated_files_remain_missing_until_reconstruction: true
+  canonical_completion_authority: .nimi/contracts/spec-reconstruction-result.yaml
   profile_scope:
     - .nimi/spec/authority-map.yaml
     - .nimi/spec/boundaries.yaml
     - .nimi/spec/ownership.yaml
     - .nimi/spec/change-policy.yaml
+    - .nimi/spec/high-risk-admissions.yaml
   output_profiles:
     - path: .nimi/spec/authority-map.yaml
       purpose: map_project_authority_surfaces_and_declared_owners
@@ -34,8 +36,15 @@ target_truth_profile:
         - work_types
         - authority_gates
         - parallel_truth_policy
+    - path: .nimi/spec/high-risk-admissions.yaml
+      purpose: record_explicit_high_risk_semantic_admissions_as_canonical_truth
+      minimum_sections:
+        - admissions
+        - admission_rules
+        - semantic_constraints
   hard_constraints:
     - do_not_seed_empty_target_truth_files_during_bootstrap
+    - do_not_treat_profile_as_canonical_tree_completion
     - do_not_treat_profile_as_generated_project_truth
     - do_not_allow_vendor_specific_output_contracts
     - unresolved_target_shape_must_remain_explicit

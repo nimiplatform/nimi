@@ -208,6 +208,15 @@ export const DOC_SPEC_AUDIT_DEFAULT_COMPARED_PATHS = [
   ".nimi/spec",
 ];
 
+export const SPEC_TREE_MODEL_REF = ".nimi/spec/_meta/spec-tree-model.yaml";
+export const BLUEPRINT_REFERENCE_REF = ".nimi/spec/_meta/blueprint-reference.yaml";
+export const COMMAND_GATING_MATRIX_REF = ".nimi/spec/_meta/command-gating-matrix.yaml";
+export const GENERATE_DRIFT_MIGRATION_CHECKLIST_REF = ".nimi/spec/_meta/generate-drift-migration-checklist.yaml";
+export const GOVERNANCE_ROUTING_CUTOVER_CHECKLIST_REF = ".nimi/spec/_meta/governance-routing-cutover-checklist.yaml";
+export const PHASE2_IMPACTED_SURFACE_MATRIX_REF = ".nimi/spec/_meta/phase2-impacted-surface-matrix.yaml";
+export const SPEC_GENERATION_INPUTS_REF = ".nimi/config/spec-generation-inputs.yaml";
+export const SPEC_GENERATION_INPUTS_CONTRACT_REF = ".nimi/contracts/spec-generation-inputs.schema.yaml";
+
 export const SKILL_RESULT_CONTRACT_REFS = {
   spec_reconstruction: SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   doc_spec_audit: DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
@@ -223,11 +232,17 @@ export const REQUIRED_BOOTSTRAP_FILES = [
   ".nimi/methodology/skill-installer-summary-projection.yaml",
   ".nimi/methodology/skill-exchange-projection.yaml",
   ".nimi/methodology/skill-handoff.yaml",
+  SPEC_TREE_MODEL_REF,
+  COMMAND_GATING_MATRIX_REF,
+  GENERATE_DRIFT_MIGRATION_CHECKLIST_REF,
+  GOVERNANCE_ROUTING_CUTOVER_CHECKLIST_REF,
+  PHASE2_IMPACTED_SURFACE_MATRIX_REF,
   ".nimi/spec/product-scope.yaml",
   ".nimi/spec/bootstrap-state.yaml",
   ".nimi/config/bootstrap.yaml",
   ".nimi/config/skills.yaml",
   ".nimi/config/skill-manifest.yaml",
+  SPEC_GENERATION_INPUTS_REF,
   ".nimi/config/host-profile.yaml",
   HOST_ADAPTER_CONFIG_REF,
   EXTERNAL_EXECUTION_ARTIFACTS_CONFIG_REF,
@@ -237,6 +252,7 @@ export const REQUIRED_BOOTSTRAP_FILES = [
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
   HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF,
   HIGH_RISK_ADMISSION_CONTRACT_REF,
+  SPEC_GENERATION_INPUTS_CONTRACT_REF,
   EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF,
   EXECUTION_PACKET_SCHEMA_REF,
   ORCHESTRATION_STATE_SCHEMA_REF,

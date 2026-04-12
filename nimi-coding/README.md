@@ -53,6 +53,7 @@ At the current stage it provides:
 - a primary `nimicoding start` entrypoint for bootstrap, resume, and next-stage AI task prep
 - a conservative `nimicoding clear` entrypoint for removing package-managed setup without deleting project-owned truth
 - a bounded `nimicoding doctor`
+- an explicit `nimicoding blueprint-audit` equivalence check for comparing a repo-local blueprint root with the candidate canonical tree under `.nimi/spec`
 - an explicit `nimicoding handoff` export
 - an explicit `nimicoding admit-high-risk-decision` semantic admission surface
 - a local-only `nimicoding closeout` projection
@@ -93,6 +94,20 @@ Current `nimicoding clear` behavior is intentionally narrow:
 - preserve locally modified bootstrap files even when they live under those package-owned bootstrap paths
 - preserve `.nimi/spec/**`, `.nimi/local/**`, and `.nimi/cache/**`
 - avoid deleting project-owned truth or local operational artifacts implicitly
+
+## Canonical Spec Redesign Prep
+
+The package now seeds Phase 0 / Phase 1 canonical-spec redesign contracts under
+`.nimi/spec/_meta/**` together with rewritten `bootstrap-state.yaml` and
+`product-scope.yaml`.
+
+At this stage:
+
+- these files are machine contracts and implementation authority for canonical spec generation
+- active repository authority still remains `spec/**`
+- `start`, `doctor`, `handoff`, `closeout`, and high-risk gating already read the canonical tree lifecycle instead of treating the old five-file compact model as authoritative completion
+- `nimicoding blueprint-audit` is the explicit audit surface for benchmark-vs-canonical equivalence checks; it does not perform cutover or routing changes
+- canonical spec generation now reads mixed inputs from `.nimi/config/spec-generation-inputs.yaml` and treats any blueprint root as an optional benchmark rather than a universal host assumption
 
 Current `nimicoding doctor` behavior is intentionally narrow:
 

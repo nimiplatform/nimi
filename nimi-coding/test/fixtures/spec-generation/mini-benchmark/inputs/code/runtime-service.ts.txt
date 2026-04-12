@@ -1,0 +1,9 @@
+export type RuntimeRule = {
+  id: string;
+  title: string;
+};
+
+export const runtimeRules: RuntimeRule[] = [
+  { id: "rt-001", title: "fail_closed_on_authority_ambiguity" },
+  { id: "rt-002", title: "generated_views_are_derived" },
+];

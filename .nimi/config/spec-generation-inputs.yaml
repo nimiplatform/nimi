@@ -1,0 +1,34 @@
+version: 1
+contract_ref: .nimi/contracts/spec-generation-inputs.schema.yaml
+spec_generation_inputs:
+  mode: mixed
+  canonical_target_root: .nimi/spec
+  code_roots:
+    - runtime
+    - sdk
+    - apps/desktop
+    - apps/web
+    - kit
+    - scripts
+  docs_roots:
+    - README.md
+    - spec
+  structure_roots:
+    - .
+  human_note_paths:
+    - .nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md
+  benchmark_blueprint_root: spec
+  benchmark_mode: repo_spec_blueprint
+  acceptance_mode: semantic_and_structural_parity_when_blueprint_exists
+  generation_order:
+    - index
+    - kernel_markdown
+    - kernel_tables
+    - generated_views
+    - thin_guides
+  inference_rules:
+    - treat_spec_root_as_blueprint_and_acceptance_benchmark_only
+    - infer_domain_structure_from_source_materials_and_benchmark_shape
+    - separate_normative_kernel_from_generated_and_guidance_surfaces
+    - establish_kernel_markdown_before_thin_guides
+    - establish_kernel_tables_before_generated_views

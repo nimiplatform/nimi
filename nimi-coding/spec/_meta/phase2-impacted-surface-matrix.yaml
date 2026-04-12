@@ -1,0 +1,44 @@
+version: 1
+phase2_impacted_surface_matrix:
+  - surface: start_command
+    paths:
+      - nimi-coding/cli/commands/start.mjs
+    phase_dependency: phase_2
+    rewrite_reason: replace_compact_target_truth_gating_with_canonical_tree_gating
+  - surface: doctor_logic
+    paths:
+      - nimi-coding/cli/lib/doctor.mjs
+      - nimi-coding/cli/constants.mjs
+    phase_dependency: phase_2
+    rewrite_reason: replace_target_truth_completion_model_with_tree_state_and_authority_mode
+  - surface: handoff_logic
+    paths:
+      - nimi-coding/cli/lib/handoff.mjs
+    phase_dependency: phase_2
+    rewrite_reason: gate_skill_handoff_on_command_gating_matrix
+  - surface: closeout_logic
+    paths:
+      - nimi-coding/cli/lib/closeout.mjs
+    phase_dependency: phase_2
+    rewrite_reason: completed_outcomes_must_use_canonical_tree_readiness
+  - surface: high_risk_ingest_review_decision_admission
+    paths:
+      - nimi-coding/cli/lib/high-risk-ingest.mjs
+      - nimi-coding/cli/lib/high-risk-review.mjs
+      - nimi-coding/cli/lib/high-risk-decision.mjs
+      - nimi-coding/cli/lib/high-risk-admission.mjs
+    phase_dependency: phase_2
+    rewrite_reason: replace_legacy_target_truth_gates_with_tree_state_gates
+  - surface: contracts_and_methodology
+    paths:
+      - nimi-coding/contracts/spec-reconstruction-result.yaml
+      - nimi-coding/methodology/spec-reconstruction.yaml
+      - nimi-coding/methodology/spec-target-truth-profile.yaml
+    phase_dependency: phase_2
+    rewrite_reason: compact_target_truth_contracts_are_transition_only
+  - surface: tests_and_fixtures
+    paths:
+      - nimi-coding/test/nimicoding.test.mjs
+      - nimi-coding/test/fixtures/validators/execution-packet.valid.yaml
+    phase_dependency: phase_2
+    rewrite_reason: legacy_helpers_and_assertions_assume_five_file_target_truth

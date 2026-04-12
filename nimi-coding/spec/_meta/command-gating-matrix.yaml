@@ -1,0 +1,95 @@
+version: 1
+command_gating_matrix:
+  - command: start
+    allowed_tree_states:
+      - bootstrap_only
+      - spec_tree_seeded
+      - canonical_tree_in_progress
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
+    notes:
+      - seeds_or_continues_canonical_tree_work
+      - must_not_infer_completion_from_compact_target_files
+  - command: doctor
+    allowed_tree_states:
+      - bootstrap_only
+      - spec_tree_seeded
+      - canonical_tree_in_progress
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
+    reports:
+      - tree_state
+      - authority_mode
+      - blueprint_mode
+      - file_class_validity
+      - pipeline_readiness
+  - command: handoff
+    skill: spec_reconstruction
+    allowed_tree_states:
+      - bootstrap_only
+      - spec_tree_seeded
+      - canonical_tree_in_progress
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
+  - command: handoff
+    skill: doc_spec_audit
+    allowed_tree_states:
+      - canonical_tree_in_progress
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
+  - command: handoff
+    skill: high_risk_execution
+    allowed_tree_states:
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
+  - command: closeout
+    skill: spec_reconstruction
+    completed_requires:
+      tree_state: canonical_tree_ready
+      canonical_required_files_valid: true
+  - command: closeout
+    skill: doc_spec_audit
+    completed_requires:
+      tree_state: canonical_tree_ready
+      audit_references_canonical_root: true
+  - command: closeout
+    skill: high_risk_execution
+    completed_requires:
+      tree_state: canonical_tree_ready
+      canonical_required_files_valid: true
+      high_risk_admissions_truth_ref: .nimi/spec/high-risk-admissions.yaml
+  - command: ingest-high-risk-execution
+    requires:
+      tree_state: canonical_tree_ready
+      authority_mode:
+        - external_blueprint_active
+        - canonical_cutover_ready
+        - canonical_active
+  - command: review-high-risk-execution
+    requires:
+      tree_state: canonical_tree_ready
+  - command: decide-high-risk-execution
+    requires:
+      tree_state: canonical_tree_ready
+  - command: admit-high-risk-decision
+    requires:
+      tree_state: canonical_tree_ready
+      canonical_admissions_truth: .nimi/spec/high-risk-admissions.yaml
+    allowed_authority_modes:
+      - external_blueprint_active
+      - canonical_cutover_ready
+      - canonical_active
