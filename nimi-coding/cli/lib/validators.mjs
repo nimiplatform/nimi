@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readdir } from "node:fs/promises";
 
 import {
   ACCEPTANCE_SCHEMA_REF,
@@ -8,6 +9,7 @@ import {
   PROMPT_SCHEMA_REF,
   WORKER_OUTPUT_SCHEMA_REF,
 } from "../constants.mjs";
+import { loadSpecTreeModelContract } from "./contracts.mjs";
 import { readTextIfFile } from "./fs-helpers.mjs";
 import { isPlainObject } from "./value-helpers.mjs";
 import { parseYamlText } from "./yaml-helpers.mjs";
@@ -27,6 +29,8 @@ export const VALIDATOR_NATIVE_REFUSAL_CODES = {
   RUNNER_SIGNAL_INVALID: "RUNNER_SIGNAL_INVALID",
   ACCEPTANCE_MISSING: "ACCEPTANCE_MISSING",
   ACCEPTANCE_INVALID: "ACCEPTANCE_INVALID",
+  SPEC_TREE_MISSING: "SPEC_TREE_MISSING",
+  SPEC_TREE_INVALID: "SPEC_TREE_INVALID",
 };
 
 function makeValidatorRefusal(code, message) {
@@ -540,6 +544,241 @@ export async function validateAcceptance(filePath) {
   return validateAcceptanceText(text, filePath);
 }
 
+function posixRelative(targetRoot, absolutePath) {
+  return path.relative(targetRoot, absolutePath).split(path.sep).join(path.posix.sep);
+}
+
+async function collectTreeFiles(rootPath) {
+  const text = await readTextIfFile(path.join(rootPath, "INDEX.md"));
+  if (text === null) {
+    const info = await readTextIfFile(rootPath);
+    if (info !== null) {
+      return [];
+    }
+  }
+
+  async function walk(currentPath) {
+    let entries;
+    try {
+      entries = await readdir(currentPath, { withFileTypes: true });
+    } catch {
+      return [];
+    }
+
+    const files = [];
+    for (const entry of entries) {
+      const childPath = path.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...await walk(childPath));
+      } else if (entry.isFile()) {
+        files.push(posixRelative(rootPath, childPath));
+      }
+    }
+    return files.sort();
+  }
+
+  return walk(rootPath);
+}
+
+function escapeRegexLiteral(value) {
+  return value.replace(/[|\\{}()[\]^$+?.]/g, "\\$&");
+}
+
+function globToRegex(pattern) {
+  const DOUBLE_STAR_SLASH = "__DOUBLE_STAR_SLASH__";
+  const DOUBLE_STAR = "__DOUBLE_STAR__";
+  const SINGLE_STAR = "__SINGLE_STAR__";
+
+  let source = pattern
+    .replaceAll("**/", DOUBLE_STAR_SLASH)
+    .replaceAll("**", DOUBLE_STAR)
+    .replaceAll("*", SINGLE_STAR);
+
+  source = escapeRegexLiteral(source)
+    .replaceAll(DOUBLE_STAR_SLASH, "(?:.*/)?")
+    .replaceAll(DOUBLE_STAR, ".*")
+    .replaceAll(SINGLE_STAR, "[^/]*");
+
+  return new RegExp(`^${source}$`);
+}
+
+function compilePathClassMatchers(specTreeModel) {
+  const classes = [
+    ...specTreeModel.normativeClasses.map((entry) => ({ ...entry, category: "normative" })),
+    ...specTreeModel.derivedClasses.map((entry) => ({ ...entry, category: "derived" })),
+    ...specTreeModel.guidanceClasses.map((entry) => ({ ...entry, category: "guidance" })),
+  ];
+
+  return classes.map((entry) => ({
+    ...entry,
+    includeMatchers: entry.pathPatterns.map(globToRegex),
+    excludeMatchers: (entry.excludedPathPatterns ?? []).map(globToRegex),
+  }));
+}
+
+function isAllowedTopLevelSupportFile(relativePath) {
+  return [
+    "INDEX.md",
+    "bootstrap-state.yaml",
+    "product-scope.yaml",
+    "high-risk-admissions.yaml",
+    "authority-map.yaml",
+    "boundaries.yaml",
+    "ownership.yaml",
+    "change-policy.yaml",
+  ].includes(relativePath);
+}
+
+function classifySpecTreeFiles(canonicalRoot, files, specTreeModel) {
+  const matchers = compilePathClassMatchers(specTreeModel);
+  const classifications = [];
+  const unexpected = [];
+  const conflicts = [];
+
+  for (const relativePath of files) {
+    const canonicalRelativePath = path.posix.join(canonicalRoot, relativePath);
+
+    if (relativePath.startsWith("_meta/")) {
+      classifications.push({ path: relativePath, classId: "_meta", category: "meta" });
+      continue;
+    }
+
+    if (isAllowedTopLevelSupportFile(relativePath)) {
+      classifications.push({ path: relativePath, classId: "support", category: "support" });
+      continue;
+    }
+
+    const matched = matchers.filter((matcher) => (
+      matcher.includeMatchers.some((regex) => regex.test(canonicalRelativePath))
+      && !matcher.excludeMatchers.some((regex) => regex.test(canonicalRelativePath))
+    ));
+
+    if (matched.length === 0) {
+      unexpected.push(relativePath);
+      continue;
+    }
+
+    if (matched.length > 1) {
+      conflicts.push({
+        path: relativePath,
+        classes: matched.map((entry) => entry.id),
+      });
+      continue;
+    }
+
+    classifications.push({
+      path: relativePath,
+      classId: matched[0].id,
+      category: matched[0].category,
+    });
+  }
+
+  return {
+    classifications,
+    unexpected,
+    conflicts,
+  };
+}
+
+export async function validateSpecTree(rootPath, options = {}) {
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const specTreeModel = await loadSpecTreeModelContract(projectRoot);
+  const errors = [];
+  const warnings = [];
+
+  if (!specTreeModel.ok) {
+    return {
+      ok: false,
+      errors: [`invalid spec tree model contract: ${specTreeModel.path}`],
+      warnings,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.SPEC_TREE_INVALID,
+        "spec tree validation requires a valid spec-tree-model contract",
+      ),
+    };
+  }
+
+  const expectedRoot = path.resolve(projectRoot, specTreeModel.canonicalRoot);
+  const targetRoot = path.resolve(rootPath);
+
+  if (targetRoot !== expectedRoot) {
+    errors.push(`spec tree root mismatch: expected ${expectedRoot} but received ${targetRoot}`);
+  }
+
+  const files = await collectTreeFiles(targetRoot);
+  if (files.length === 0) {
+    return {
+      ok: false,
+      errors: errors.length > 0 ? errors : [`missing spec tree root: ${targetRoot}`],
+      warnings,
+      refusal: makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.SPEC_TREE_MISSING,
+        "spec tree root is missing or empty",
+      ),
+    };
+  }
+
+  const requiredFiles = specTreeModel.requiredFilesByProfile[specTreeModel.profile] ?? [];
+  const missingRequired = requiredFiles
+    .map((entry) => path.posix.relative(specTreeModel.canonicalRoot, entry))
+    .filter((entry) => !files.includes(entry));
+
+  if (missingRequired.length > 0) {
+    errors.push(`missing required canonical files: ${missingRequired.join(", ")}`);
+  }
+
+  for (const domain of specTreeModel.domains) {
+    const domainRoot = path.posix.relative(specTreeModel.canonicalRoot, domain.root);
+    const normativeRoot = path.posix.relative(specTreeModel.canonicalRoot, domain.normativeRoot);
+    const tablesRoot = path.posix.relative(specTreeModel.canonicalRoot, domain.tablesRoot);
+    const domainHasFiles = files.some((entry) => entry.startsWith(`${domainRoot}/`));
+    const normativeHasFiles = files.some((entry) => entry.startsWith(`${normativeRoot}/`));
+    const tablesHasFiles = files.some((entry) => entry.startsWith(`${tablesRoot}/`));
+
+    if (!domainHasFiles) {
+      errors.push(`declared domain root has no files: ${domainRoot}`);
+    }
+    if (!normativeHasFiles) {
+      errors.push(`declared normative root has no files: ${normativeRoot}`);
+    }
+    if (!tablesHasFiles) {
+      errors.push(`declared tables root has no files: ${tablesRoot}`);
+    }
+  }
+
+  const classification = classifySpecTreeFiles(specTreeModel.canonicalRoot, files, specTreeModel);
+  if (classification.unexpected.length > 0) {
+    errors.push(`unexpected files outside declared spec classes: ${classification.unexpected.join(", ")}`);
+  }
+  if (classification.conflicts.length > 0) {
+    errors.push(
+      `files matched multiple spec classes: ${classification.conflicts.map((entry) => `${entry.path} -> ${entry.classes.join("|")}`).join(", ")}`,
+    );
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    refusal: errors.length === 0
+      ? null
+      : makeValidatorRefusal(
+        VALIDATOR_NATIVE_REFUSAL_CODES.SPEC_TREE_INVALID,
+        `spec tree is invalid: ${path.basename(targetRoot)}`,
+      ),
+    summary: {
+      profile: specTreeModel.profile,
+      canonicalRoot: specTreeModel.canonicalRoot,
+      totalFiles: files.length,
+      requiredFiles: requiredFiles.length,
+      missingRequired,
+      classifiedFiles: classification.classifications.length,
+      unexpectedFiles: classification.unexpected,
+      conflictingFiles: classification.conflicts,
+    },
+  };
+}
+
 export function buildValidatorCliReport(validator, filePath, report) {
   return {
     contract: VALIDATOR_CLI_RESULT_CONTRACT,
@@ -549,6 +788,7 @@ export function buildValidatorCliReport(validator, filePath, report) {
     refusal: report.refusal || null,
     errors: report.errors || [],
     warnings: report.warnings || [],
+    ...(report.summary ? { summary: report.summary } : {}),
     ...(report.signal ? { signal: report.signal } : {}),
   };
 }

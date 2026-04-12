@@ -35,6 +35,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding review-high-risk-execution --from <json> [--json] [--write-local]")}`,
     `  ${styleCommand("nimicoding validate-execution-packet <path>")}`,
     `  ${styleCommand("nimicoding validate-orchestration-state <path>")}`,
+    `  ${styleCommand("nimicoding validate-spec-tree [.nimi/spec]")}`,
     `  ${styleCommand("nimicoding validate-prompt <path>")}`,
     `  ${styleCommand("nimicoding validate-worker-output <path>")}`,
     `  ${styleCommand("nimicoding validate-acceptance <path>")}`,

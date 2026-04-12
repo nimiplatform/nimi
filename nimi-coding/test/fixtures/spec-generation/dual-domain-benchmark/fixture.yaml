@@ -1,0 +1,110 @@
+fixture:
+  id: dual_domain_benchmark
+  blueprint:
+    source: blueprint/spec
+    target: spec
+  canonical:
+    source: canonical/.nimi/spec
+    target: .nimi/spec
+    include_by_default: true
+  inputs:
+    - source: inputs/code
+      target: src
+    - source: inputs/docs
+      target: docs
+    - source: inputs/notes
+      target: .nimi/local/notes
+  generation_inputs:
+    code_roots:
+      - src
+    docs_roots:
+      - docs
+    structure_roots:
+      - src
+      - docs
+    human_note_paths:
+      - .nimi/local/notes/reconstruction-note.md
+    benchmark_blueprint_root: spec
+    benchmark_mode: repo_spec_blueprint
+    acceptance_mode: semantic_and_structural_parity_when_blueprint_exists
+  spec_tree_model:
+    domains:
+      - id: runtime
+        root: .nimi/spec/runtime
+        normative_root: .nimi/spec/runtime/kernel
+        tables_root: .nimi/spec/runtime/kernel/tables
+        generated_root: .nimi/spec/runtime/kernel/generated
+        guide_paths: []
+      - id: desktop
+        root: .nimi/spec/desktop
+        normative_root: .nimi/spec/desktop/kernel
+        tables_root: .nimi/spec/desktop/kernel/tables
+        generated_root: .nimi/spec/desktop/kernel/generated
+        guide_paths: []
+    required_files:
+      minimal:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+        - .nimi/spec/runtime/kernel/index.md
+        - .nimi/spec/runtime/kernel/core-rules.md
+        - .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
+        - .nimi/spec/desktop/kernel/index.md
+        - .nimi/spec/desktop/kernel/ui-rules.md
+        - .nimi/spec/desktop/kernel/tables/component-catalog.yaml
+      standard:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+      mature:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+    generated_pipelines:
+      - id: spec_human_doc
+        owner_surface: repository_root_scripts
+        input_roots:
+          - .nimi/spec
+        output_roots:
+          - spec/generated
+        generate_command: pnpm generate:spec-human-doc
+        drift_check_command: pnpm check:spec-human-doc-drift
+  blueprint_reference:
+    include_by_default: true
+    root: spec
+  scenarios:
+    - id: benchmark_success
+      apply_blueprint: true
+      apply_canonical: true
+      include_blueprint_reference: true
+      expected:
+        closeout_ok: true
+        blueprint_audit: pass
+        failure_category: none
+    - id: missing_generated_view
+      apply_blueprint: true
+      apply_canonical: true
+      include_blueprint_reference: true
+      mutations:
+        - op: delete
+          target: .nimi/spec/desktop/kernel/generated/overview.md
+      expected:
+        closeout_ok: true
+        blueprint_audit: fail
+        failure_category: derived_view_gaps
+        missing_kernel_generated:
+          - desktop/kernel/generated/overview.md
+    - id: rule_id_drift
+      apply_blueprint: true
+      apply_canonical: true
+      include_blueprint_reference: true
+      mutations:
+        - op: replace_text
+          target: .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
+          search: "rt-001"
+          replace: "rt-999"
+      expected:
+        closeout_ok: true
+        blueprint_audit: fail
+        failure_category: semantic_mapping_gaps
+        missing_rule_ids:
+          - rt-001
+        extra_rule_ids:
+          - rt-999

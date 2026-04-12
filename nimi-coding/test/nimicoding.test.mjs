@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -10,6 +10,11 @@ import YAML from "yaml";
 
 import { runCli } from "../cli/nimicoding.mjs";
 import { createBootstrapSeedFileMap } from "../cli/seeds/bootstrap.mjs";
+import {
+  applyFixtureScenario,
+  buildSpecReconstructionCloseoutImport,
+  loadFixtureManifest,
+} from "./spec-generation-scenarios.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const execFile = promisify(execFileCallback);
@@ -21,7 +26,7 @@ async function withTempProject(fn) {
   process.chdir(tempRoot);
 
   try {
-    await fn(tempRoot);
+    return await fn(tempRoot);
   } finally {
     process.chdir(previousCwd);
   }
@@ -67,12 +72,12 @@ async function captureRunCli(args) {
   }
 }
 
-async function runCliSubprocess(args) {
+async function runCliSubprocess(args, options = {}) {
   try {
     const result = await execFile(
       process.execPath,
       [path.join(repoRoot, "bin", "nimicoding.mjs"), ...args],
-      { cwd: repoRoot },
+      { cwd: options.cwd ?? repoRoot },
     );
     return {
       exitCode: 0,
@@ -86,13 +91,6 @@ async function runCliSubprocess(args) {
       stderr: error.stderr ?? "",
     };
   }
-}
-
-async function copyFixtureTree(projectRoot, fixtureRelativePath, targetRelativePath) {
-  const sourcePath = path.join(repoRoot, "test", "fixtures", "spec-generation", fixtureRelativePath);
-  const targetPath = path.join(projectRoot, targetRelativePath);
-  await mkdir(path.dirname(targetPath), { recursive: true });
-  await cp(sourcePath, targetPath, { recursive: true, force: true });
 }
 
 async function updateSpecGenerationInputs(projectRoot, updater) {
@@ -224,6 +222,101 @@ async function seedHighRiskCandidateArtifacts(projectRoot, options = {}) {
 
 async function readYamlFile(filePath) {
   return YAML.parse(await readFile(filePath, "utf8"));
+}
+
+async function markCanonicalTreeReady(projectRoot) {
+  const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+  const bootstrapState = await readYamlFile(bootstrapStatePath);
+  bootstrapState.state.mode = "reconstruction_seeded";
+  bootstrapState.state.tree_state = "canonical_tree_ready";
+  bootstrapState.state.reconstruction_required = false;
+  bootstrapState.target_truth = { missing_files: [] };
+  bootstrapState.status.ready_for_ai_reconstruction = false;
+  bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
+  await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+}
+
+async function runSpecReconstructionFixtureLoop(fixtureId, scenarioId) {
+  return withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const fixture = await loadFixtureManifest(repoRoot, fixtureId);
+    const scenario = fixture.scenarios.find((entry) => entry.id === scenarioId);
+    assert.ok(scenario, `Unknown fixture scenario '${scenarioId}'`);
+
+    if (scenario.pre_handoff_scenario) {
+      await applyFixtureScenario({
+        repoRoot,
+        projectRoot,
+        fixtureId,
+        scenarioId: scenario.pre_handoff_scenario,
+        updateSpecGenerationInputs,
+        writeBlueprintReference,
+      });
+    } else {
+      await applyFixtureScenario({
+        repoRoot,
+        projectRoot,
+        fixtureId,
+        scenarioId,
+        updateSpecGenerationInputs,
+        writeBlueprintReference,
+        scenarioOverrides: {
+          apply_canonical: false,
+          mutations: [],
+        },
+      });
+    }
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
+    assert.equal(handoffResult.exitCode, 0);
+    const handoffPayload = JSON.parse(handoffResult.stdout);
+
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId,
+      scenarioId,
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+
+    if (scenario.apply_canonical ?? fixture.canonical.include_by_default) {
+      await markCanonicalTreeReady(projectRoot);
+    }
+
+    const importPayload = await buildSpecReconstructionCloseoutImport(projectRoot);
+    const importPath = path.join(projectRoot, `${fixture.id}-${scenario.id}.closeout.json`);
+    await writeFile(importPath, `${JSON.stringify(importPayload, null, 2)}\n`, "utf8");
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--write-local",
+      "--json",
+    ]);
+    const closeoutPayload = JSON.parse(closeoutResult.stdout);
+
+    let blueprintAuditResult = null;
+    let blueprintAuditPayload = null;
+    if (scenario.expected.blueprint_audit !== "skip") {
+      blueprintAuditResult = await captureRunCli(["blueprint-audit", "--json"]);
+      blueprintAuditPayload = JSON.parse(blueprintAuditResult.stdout);
+    }
+
+    return {
+      projectRoot,
+      fixture,
+      scenario,
+      handoffPayload,
+      closeoutResult,
+      closeoutPayload,
+      blueprintAuditResult,
+      blueprintAuditPayload,
+    };
+  });
 }
 
 test("start rejects unknown options without creating bootstrap files", async () => {
@@ -835,22 +928,14 @@ test("blueprint-audit accepts a mini benchmark fixture modeled on nimi/spec stru
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await copyFixtureTree(projectRoot, "mini-benchmark/blueprint/spec", "spec");
-    await copyFixtureTree(projectRoot, "mini-benchmark/canonical/.nimi/spec", ".nimi/spec");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/code", "src");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/docs", "docs");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/notes", ".nimi/local/notes");
-
-    await updateSpecGenerationInputs(projectRoot, (inputs) => {
-      inputs.code_roots = ["src"];
-      inputs.docs_roots = ["docs"];
-      inputs.structure_roots = ["src", "docs"];
-      inputs.human_note_paths = [".nimi/local/notes/reconstruction-note.md"];
-      inputs.benchmark_blueprint_root = "spec";
-      inputs.benchmark_mode = "repo_spec_blueprint";
-      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "mini-benchmark",
+      scenarioId: "benchmark_success",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
     });
-    await writeBlueprintReference(projectRoot, "spec");
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
 
@@ -869,24 +954,78 @@ test("blueprint-audit accepts a mini benchmark fixture modeled on nimi/spec stru
   });
 });
 
+test("blueprint-audit accepts a dual-domain benchmark fixture modeled on nimi/spec structure", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "dual-domain-benchmark",
+      scenarioId: "benchmark_success",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
+
+    assert.equal(auditResult.exitCode, 0);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, true);
+    assert.deepEqual(payload.inventory.blueprintDomains, ["desktop", "runtime"]);
+    assert.deepEqual(payload.inventory.canonicalDomains, ["desktop", "runtime"]);
+    assert.equal(payload.inventory.missingDomains.length, 0);
+    assert.equal(payload.comparison.kernelMarkdown.missing, 0);
+    assert.equal(payload.comparison.kernelTables.missing, 0);
+    assert.equal(payload.comparison.kernelGenerated.missing, 0);
+    assert.equal(payload.comparison.domainGuides.missing, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.missingRuleIds.length, 0);
+    assert.equal(payload.semanticMappingGaps.ruleIdPreservation.extraRuleIds.length, 0);
+  });
+});
+
+test("blueprint-audit fails dual-domain benchmark acceptance when a generated view is missing", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "dual-domain-benchmark",
+      scenarioId: "missing_generated_view",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+
+    const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
+
+    assert.equal(auditResult.exitCode, 1);
+    const payload = JSON.parse(auditResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.deepEqual(payload.derivedViewGaps.missingKernelGenerated, [
+      "desktop/kernel/generated/overview.md",
+    ]);
+    assert.match(
+      JSON.stringify(payload.nextSteps),
+      /Regenerate derived kernel docs after canonical blueprint content is built out/,
+    );
+  });
+});
+
 test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-input acceptance target", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await copyFixtureTree(projectRoot, "mini-benchmark/blueprint/spec", "spec");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/code", "src");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/docs", "docs");
-    await copyFixtureTree(projectRoot, "mini-benchmark/inputs/notes", ".nimi/local/notes");
-
-    await updateSpecGenerationInputs(projectRoot, (inputs) => {
-      inputs.code_roots = ["src"];
-      inputs.docs_roots = ["docs"];
-      inputs.structure_roots = ["src", "docs"];
-      inputs.human_note_paths = [".nimi/local/notes/reconstruction-note.md"];
-      inputs.benchmark_blueprint_root = "spec";
-      inputs.benchmark_mode = "repo_spec_blueprint";
-      inputs.acceptance_mode = "semantic_and_structural_parity_when_blueprint_exists";
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "mini-benchmark",
+      scenarioId: "benchmark_inputs_only",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
     });
     const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
 
@@ -914,6 +1053,75 @@ test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-inp
     assert.match(promptText, /Human note paths: \.nimi\/local\/notes\/reconstruction-note\.md/);
     assert.match(promptText, /aim for semantic and structural parity/i);
   });
+});
+
+test("fixture loop completes single-domain benchmark reconstruction through closeout and blueprint audit", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "benchmark_success");
+
+  assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.closeoutPayload.outcome, "completed");
+  assert.equal(result.closeoutPayload.summary.status, "reconstructed");
+  assert.equal(result.blueprintAuditResult.exitCode, 0);
+  assert.equal(result.blueprintAuditPayload.ok, true);
+});
+
+test("fixture loop completes dual-domain benchmark reconstruction through closeout and blueprint audit", async () => {
+  const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "benchmark_success");
+
+  assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.blueprintAuditResult.exitCode, 0);
+  assert.equal(result.blueprintAuditPayload.ok, true);
+  assert.deepEqual(result.blueprintAuditPayload.inventory.blueprintDomains, ["desktop", "runtime"]);
+});
+
+test("fixture loop fails benchmark acceptance when a generated view is missing", async () => {
+  const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "missing_generated_view");
+
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.blueprintAuditResult.exitCode, 1);
+  assert.equal(result.blueprintAuditPayload.ok, false);
+  assert.deepEqual(
+    result.blueprintAuditPayload.derivedViewGaps.missingKernelGenerated,
+    ["desktop/kernel/generated/overview.md"],
+  );
+});
+
+test("fixture loop fails completed reconstruction closeout when a domain kernel file is missing", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "missing_domain_file");
+
+  assert.equal(result.closeoutResult.exitCode, 1);
+  assert.equal(result.closeoutPayload.ok, false);
+  assert.match(result.closeoutPayload.readiness.reason, /bootstrap or handoff validation is failing/i);
+  assert.equal(result.blueprintAuditResult, null);
+  assert.equal(result.blueprintAuditPayload, null);
+});
+
+test("fixture loop fails benchmark acceptance when kernel table rule ids drift", async () => {
+  const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "rule_id_drift");
+
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.blueprintAuditResult.exitCode, 1);
+  assert.equal(result.blueprintAuditPayload.ok, false);
+  assert.deepEqual(result.blueprintAuditPayload.semanticMappingGaps.ruleIdPreservation.missingRuleIds, ["rt-001"]);
+  assert.deepEqual(result.blueprintAuditPayload.semanticMappingGaps.ruleIdPreservation.extraRuleIds, ["rt-999"]);
+});
+
+test("fixture loop allows ordinary-project reconstruction without a benchmark blueprint", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "ordinary_project_success");
+
+  assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.handoffPayload.generationContext.benchmarkBlueprintRoot, null);
+  assert.equal(result.handoffPayload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.blueprintAuditResult, null);
+  assert.equal(result.blueprintAuditPayload, null);
 });
 
 test("start continues from bootstrap into spec reconstruction handoff prep", async () => {
@@ -2659,7 +2867,61 @@ test("doctor fails closed when blueprint mode requires a missing blueprint refer
   });
 });
 
+test("validate-spec-tree accepts a canonical benchmark tree after direct materialization", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "mini-benchmark",
+      scenarioId: "benchmark_success",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+
+    const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-tree");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.profile, "minimal");
+    assert.equal(payload.summary.missingRequired.length, 0);
+  });
+});
+
+test("validate-spec-tree fails when a required canonical file is missing after direct materialization", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId: "mini-benchmark",
+      scenarioId: "missing_domain_file",
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+
+    const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 1);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-tree");
+    assert.equal(payload.ok, false);
+    assert.equal(payload.refusal.code, "SPEC_TREE_INVALID");
+    assert.match(JSON.stringify(payload.errors), /missing required canonical files/i);
+  });
+});
+
 const validatorCases = [
+  {
+    command: "validate-spec-tree",
+    valid: null,
+    invalid: null,
+    refusalCode: "SPEC_TREE_INVALID",
+  },
   {
     command: "validate-execution-packet",
     valid: "execution-packet.valid.yaml",
@@ -2694,6 +2956,49 @@ const validatorCases = [
 
 for (const validatorCase of validatorCases) {
   test(`${validatorCase.command} returns machine-readable success and refusal payloads`, { concurrency: false }, async () => {
+    if (validatorCase.command === "validate-spec-tree") {
+      await withTempProject(async (projectRoot) => {
+        const startResult = await captureRunCli(["start"]);
+        assert.equal(startResult.exitCode, 0);
+
+        await applyFixtureScenario({
+          repoRoot,
+          projectRoot,
+          fixtureId: "mini-benchmark",
+          scenarioId: "benchmark_success",
+          updateSpecGenerationInputs,
+          writeBlueprintReference,
+        });
+
+        const success = await runCliSubprocess([validatorCase.command], { cwd: projectRoot });
+        assert.equal(success.exitCode, 0);
+        const successPayload = JSON.parse(success.stdout);
+        assert.equal(successPayload.contract, "validator-cli-result.v1");
+        assert.equal(successPayload.validator, validatorCase.command);
+        assert.equal(successPayload.ok, true);
+
+        await applyFixtureScenario({
+          repoRoot,
+          projectRoot,
+          fixtureId: "mini-benchmark",
+          scenarioId: "missing_domain_file",
+          updateSpecGenerationInputs,
+          writeBlueprintReference,
+        });
+
+        const failure = await runCliSubprocess([validatorCase.command], { cwd: projectRoot });
+        assert.equal(failure.exitCode, 1);
+        const failurePayload = JSON.parse(failure.stdout);
+        assert.equal(failurePayload.contract, "validator-cli-result.v1");
+        assert.equal(failurePayload.validator, validatorCase.command);
+        assert.equal(failurePayload.ok, false);
+        assert.equal(failurePayload.refusal.code, validatorCase.refusalCode);
+        assert.ok(Array.isArray(failurePayload.errors));
+        assert.ok(failurePayload.errors.length > 0);
+      });
+      return;
+    }
+
     const validPath = path.join(repoRoot, "test", "fixtures", "validators", validatorCase.valid);
     const invalidPath = path.join(repoRoot, "test", "fixtures", "validators", validatorCase.invalid);
 
