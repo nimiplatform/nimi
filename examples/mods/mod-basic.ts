@@ -66,6 +66,17 @@ function writeLine(line: string): void {
 function cloneValue<T>(value: T): T {
     return structuredClone(value);
 }
+
+function requireSelectedBinding(
+    capability: RuntimeCanonicalCapability,
+    snapshot: RuntimeRouteOptionsSnapshot,
+): RuntimeRouteBinding {
+    if (!snapshot.selected) {
+        throw new Error(`No selected runtime route binding for ${capability}`);
+    }
+    return snapshot.selected;
+}
+
 function createMockHost() {
     const eventHandlers = new Map<string, HookEventHandler[]>();
     const dataProviders = new Map<string, DataProviderHandler>();
@@ -535,14 +546,15 @@ async function registerHooks() {
 async function useRuntimeFacade() {
     const runtime = createModRuntimeClient(MOD_ID);
     const textRoutes = await runtime.route.listOptions({ capability: 'text.generate' });
+    const selectedTextBinding = requireSelectedBinding('text.generate', textRoutes);
     const textBindingResolved = await runtime.route.resolve({
         capability: 'text.generate',
-        binding: textRoutes.selected,
+        binding: selectedTextBinding,
     });
     writeLine(`[route] text.generate -> ${JSON.stringify(textBindingResolved)}`);
     const textResult = await runtime.ai.text.generate({
-        binding: textRoutes.selected,
-        model: textRoutes.selected.model,
+        binding: selectedTextBinding,
+        model: selectedTextBinding.model,
         input: 'Generate 5 grade-3 daily math questions.',
         system: 'Return concise JSON.',
         temperature: 0.2,
@@ -550,8 +562,8 @@ async function useRuntimeFacade() {
     });
     writeLine(`[runtime.ai.text.generate] ${textResult.text}`);
     const streamed = await runtime.ai.text.stream({
-        binding: textRoutes.selected,
-        model: textRoutes.selected.model,
+        binding: selectedTextBinding,
+        model: selectedTextBinding.model,
         input: 'Say hello in one short sentence.',
     });
     process.stdout.write('[runtime.ai.text.stream] ');
@@ -562,14 +574,15 @@ async function useRuntimeFacade() {
     }
     process.stdout.write('\n');
     const ttsRoutes = await runtime.route.listOptions({ capability: 'audio.synthesize' });
+    const selectedTtsBinding = requireSelectedBinding('audio.synthesize', ttsRoutes);
     const voices = await runtime.media.tts.listVoices({
-        binding: ttsRoutes.selected,
-        model: ttsRoutes.selected.model,
+        binding: selectedTtsBinding,
+        model: selectedTtsBinding.model,
     });
     writeLine(`[runtime.media.tts.listVoices] ${JSON.stringify(voices.voices)}`);
     const speech = await runtime.media.tts.synthesize({
-        binding: ttsRoutes.selected,
-        model: ttsRoutes.selected.model,
+        binding: selectedTtsBinding,
+        model: selectedTtsBinding.model,
         voice: voices.voices[0]?.voiceId,
         text: 'Hello from the runtime-aligned mod example.',
     });
