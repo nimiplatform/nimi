@@ -209,3 +209,53 @@ groups:
       - SendAppMessage
       - SubscribeAppMessages
     source_rule: S-SURFACE-002
+  - group: memory_service_projection
+    service: RuntimeMemoryService
+    phase: 2
+    status: deferred
+    note: >
+      Final-state runtime-owned memory substrate. Public projection is reserved
+      for Nimi-owned bank/retain/recall/history/reflect operations only; provider
+      wire shape remains internal. Default engine is the runtime-managed Hindsight
+      daemon. App-private and workspace-private scopes may project here, but
+      canonical agent memory writes do not route through this service directly.
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - CreateBank
+      - GetBank
+      - ListBanks
+      - DeleteBank
+      - Retain
+      - Recall
+      - History
+      - Reflect
+      - DeleteMemory
+      - SubscribeMemoryEvents
+    source_rule: S-SURFACE-002
+  - group: agent_core_service_projection
+    service: RuntimeAgentCoreService
+    phase: 2
+    status: deferred
+    note: >
+      Final-state runtime-owned live agent substrate. SDK projection is the
+      app-facing authority for lifecycle, state, autonomy, hook inspection, and
+      canonical agent memory policy. Agent canonical memory writes must project
+      through runtime.agentCore, not through direct Realm memory mutation or
+      raw MemoryService scope writes.
+    source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - InitializeAgent
+      - TerminateAgent
+      - GetAgent
+      - ListAgents
+      - GetAgentState
+      - UpdateAgentState
+      - EnableAutonomy
+      - DisableAutonomy
+      - SetAutonomyConfig
+      - ListPendingHooks
+      - CancelHook
+      - QueryAgentMemory
+      - WriteAgentMemory
+      - SubscribeAgentEvents
+    source_rule: S-SURFACE-002

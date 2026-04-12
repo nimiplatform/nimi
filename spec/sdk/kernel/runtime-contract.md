@@ -17,6 +17,13 @@ Runtime 子路径公开方法集合由 `runtime-method-groups.yaml` 约束，必
 
 允许在 `Runtime` 类上提供 ergonomic convenience 方法（如 `generate()` / `stream()`），但必须是对既有 runtime text surface 的薄投影，不得分叉推理语义、错误语义或 trace/usage 语义。
 
+当 `RuntimeMemoryService` 与 `RuntimeAgentCoreService` 进入 public projection 后，runtime 子路径必须保持以下 authority split：
+
+- `runtime.memory.*` 投影 runtime-owned memory substrate contract
+- `runtime.agentCore.*` 投影 runtime-owned live agent control plane
+- canonical agent memory 的 app-facing mutation 统一经 `runtime.agentCore.*`
+- `runtime.memory.*` 不得被 app 误用为 canonical agent memory 直写捷径
+
 `runtime.route.describe(...)` 的 app-facing route metadata projection 边界由 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`）约束；在 runtime transport authority 定稿前，它不得被表述为新的 daemon convenience method。
 
 media convenience 也必须遵守同一原则：新增 ergonomic API 只能封装既有 `ScenarioJob` + artifact 主链，不得引入新的推理语义或绕过 runtime 校验。`runtime.media.music.iterate()` 属于允许的薄投影，必须复用 `MUSIC_GENERATE` 与 `nimi.scenario.music_generate.request` 扩展面。

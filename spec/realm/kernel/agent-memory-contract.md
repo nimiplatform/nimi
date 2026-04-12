@@ -38,3 +38,15 @@ User-private deletion rights apply to `DYADIC` memory and must not silently dama
 ## R-MEM-006
 
 History and state may inform memory writes, but they do not auto-materialize memory by default. `REPLAY` / `PRIVATE_CONTINUITY` / `CANON_MUTATION` permissions must stay explicit and observable through the commit authorization matrix.
+
+## R-MEM-006a
+
+Realm Agent Memory is the cloud/shared replicated plane for continuity memory. Once runtime-owned memory authority is admitted, app and SDK consumers must not bypass runtime to mutate canonical agent memory directly.
+
+Fixed rules:
+
+- runtime-owned local memory is the operational authority for agent continuity execution
+- replication from runtime into Realm must preserve provenance and version history
+- conflict handling must stay explicit and auditable
+- direct app- or SDK-owned canonical memory mutation is not admitted as a parallel truth path
+- governance or moderation invalidation committed in Realm must propagate down to runtime local memory and must not be masked by stale local copies

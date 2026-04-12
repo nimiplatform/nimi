@@ -179,3 +179,41 @@ Source: `K-APP-001`
 |---|---|
 | `SendAppMessage` | `unary` |
 | `SubscribeAppMessages` | `server_stream` |
+
+## RuntimeMemoryService
+
+Source: `K-RPC-004a`
+
+| Method | Type |
+|---|---|
+| `CreateBank` | `unary` |
+| `GetBank` | `unary` |
+| `ListBanks` | `unary` |
+| `DeleteBank` | `unary` |
+| `Retain` | `unary` |
+| `Recall` | `unary` |
+| `History` | `unary` |
+| `Reflect` | `unary` |
+| `DeleteMemory` | `unary` |
+| `SubscribeMemoryEvents` | `server_stream` |
+
+## RuntimeAgentCoreService
+
+Source: `K-RPC-004b`
+
+| Method | Type |
+|---|---|
+| `InitializeAgent` | `unary` |
+| `TerminateAgent` | `unary` |
+| `GetAgent` | `unary` |
+| `ListAgents` | `unary` |
+| `GetAgentState` | `unary` |
+| `UpdateAgentState` | `unary` |
+| `EnableAutonomy` | `unary` |
+| `DisableAutonomy` | `unary` |
+| `SetAutonomyConfig` | `unary` |
+| `ListPendingHooks` | `unary` |
+| `CancelHook` | `unary` |
+| `QueryAgentMemory` | `unary` |
+| `WriteAgentMemory` | `unary` |
+| `SubscribeAgentEvents` | `server_stream` |

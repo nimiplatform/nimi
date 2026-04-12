@@ -8,5 +8,6 @@
 | `proto_generate` | `pnpm proto:generate` | `K-PROTO-007` |
 | `proto_drift` | `pnpm proto:drift-check` | `K-PROTO-007` |
 | `proto_spec_linkage` | `pnpm check:runtime-proto-spec-linkage` | `K-PROTO-010` |
+| `no_admitted_proto_before_cut` | `policy/no-admitted-proto-before-cut` | `K-PROTO-011` |
 | `proto_breaking` | `pnpm proto:breaking` | `K-PROTO-004` |
 | `release_no_go_on_failure` | `policy/no-go` | `K-PROTO-009` |

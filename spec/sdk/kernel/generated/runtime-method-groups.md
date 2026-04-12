@@ -176,3 +176,41 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 |---|---|
 | `SendAppMessage` | `S-SURFACE-002` |
 | `SubscribeAppMessages` | `S-SURFACE-002` |
+
+## memory_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `CreateBank` | `S-SURFACE-002` |
+| `GetBank` | `S-SURFACE-002` |
+| `ListBanks` | `S-SURFACE-002` |
+| `DeleteBank` | `S-SURFACE-002` |
+| `Retain` | `S-SURFACE-002` |
+| `Recall` | `S-SURFACE-002` |
+| `History` | `S-SURFACE-002` |
+| `Reflect` | `S-SURFACE-002` |
+| `DeleteMemory` | `S-SURFACE-002` |
+| `SubscribeMemoryEvents` | `S-SURFACE-002` |
+
+## agent_core_service_projection
+
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+
+| Method | Source Rule |
+|---|---|
+| `InitializeAgent` | `S-SURFACE-002` |
+| `TerminateAgent` | `S-SURFACE-002` |
+| `GetAgent` | `S-SURFACE-002` |
+| `ListAgents` | `S-SURFACE-002` |
+| `GetAgentState` | `S-SURFACE-002` |
+| `UpdateAgentState` | `S-SURFACE-002` |
+| `EnableAutonomy` | `S-SURFACE-002` |
+| `DisableAutonomy` | `S-SURFACE-002` |
+| `SetAutonomyConfig` | `S-SURFACE-002` |
+| `ListPendingHooks` | `S-SURFACE-002` |
+| `CancelHook` | `S-SURFACE-002` |
+| `QueryAgentMemory` | `S-SURFACE-002` |
+| `WriteAgentMemory` | `S-SURFACE-002` |
+| `SubscribeAgentEvents` | `S-SURFACE-002` |

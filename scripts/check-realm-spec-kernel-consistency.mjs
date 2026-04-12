@@ -104,7 +104,7 @@ function hasAnchor(content, anchor) {
 function collectMarkdownRuleIds(absPath) {
   const lines = fs.readFileSync(absPath, 'utf8').split(/\r?\n/);
   return lines
-    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
+    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
     .filter(Boolean);
 }
 

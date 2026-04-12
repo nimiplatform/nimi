@@ -181,8 +181,8 @@ function checkLocalPaginationAndAuditFields() {
     read('proto/runtime/v1/local_runtime_types.proto'),
   ].join('\n');
 
-  const localModelRecord = getProtoMessageBlock(content, 'LocalModelRecord', rel);
-  assertMessageHasFields(localModelRecord, 'LocalModelRecord', rel, ['local_invoke_profile_id']);
+  const localAssetRecord = getProtoMessageBlock(content, 'LocalAssetRecord', rel);
+  assertMessageHasFields(localAssetRecord, 'LocalAssetRecord', rel, ['local_invoke_profile_id']);
 
   const localAuditEvent = getProtoMessageBlock(content, 'LocalAuditEvent', rel);
   assertMessageHasFields(localAuditEvent, 'LocalAuditEvent', rel, [
@@ -194,8 +194,8 @@ function checkLocalPaginationAndAuditFields() {
   ]);
 
   const pagingPairs = [
-    ['ListLocalModelsRequest', 'ListLocalModelsResponse'],
-    ['ListVerifiedModelsRequest', 'ListVerifiedModelsResponse'],
+    ['ListLocalAssetsRequest', 'ListLocalAssetsResponse'],
+    ['ListVerifiedAssetsRequest', 'ListVerifiedAssetsResponse'],
     ['SearchCatalogModelsRequest', 'SearchCatalogModelsResponse'],
     ['ListLocalServicesRequest', 'ListLocalServicesResponse'],
     ['ListNodeCatalogRequest', 'ListNodeCatalogResponse'],
@@ -219,8 +219,8 @@ function checkLocalPaginationAndAuditFields() {
 
   const specPagination = read('spec/runtime/kernel/pagination-filtering.md');
   for (const method of [
-    'ListLocalModels',
-    'ListVerifiedModels',
+    'ListLocalAssets',
+    'ListVerifiedAssets',
     'SearchCatalogModels',
     'ListLocalServices',
     'ListNodeCatalog',

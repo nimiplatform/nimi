@@ -143,6 +143,26 @@ const specs = [
     render: renderProviderExtensionRegistry,
   },
   {
+    input: 'runtime-memory-bank-scope.yaml',
+    output: 'runtime-memory-bank-scope.md',
+    render: renderRuntimeMemoryBankScope,
+  },
+  {
+    input: 'runtime-memory-hook-trigger.yaml',
+    output: 'runtime-memory-hook-trigger.md',
+    render: renderRuntimeMemoryHookTrigger,
+  },
+  {
+    input: 'runtime-memory-replication-outcome.yaml',
+    output: 'runtime-memory-replication-outcome.md',
+    render: renderRuntimeMemoryReplicationOutcome,
+  },
+  {
+    input: 'runtime-agent-core-typed-family.yaml',
+    output: 'runtime-agent-core-typed-family.md',
+    render: renderRuntimeAgentCoreTypedFamily,
+  },
+  {
     input: 'scenario-profile-fields.yaml',
     output: 'scenario-profile-fields.md',
     render: renderScenarioProfileFields,
@@ -916,6 +936,90 @@ function renderProviderExtensionRegistry(doc, sourceName) {
   }
   out += '\n';
 
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeMemoryBankScope(doc, sourceName) {
+  const scopes = Array.isArray(doc?.scopes) ? doc.scopes : [];
+  let out = header('Generated Runtime Memory Bank Scope', sourceName);
+  out += '| Scope | Owner Kind | Direct App Access | Public Bank Create | Canonical Agent Scope | Source |\n';
+  out += '|---|---|---:|---:|---:|---|\n';
+  for (const item of scopes) {
+    const scope = String(item?.scope || '').trim();
+    if (!scope) continue;
+    out += `| \`${scope}\` | \`${String(item?.owner_kind || '').trim()}\` | \`${mdBool(Boolean(item?.direct_app_access))}\` | \`${mdBool(Boolean(item?.public_bank_create_allowed))}\` | \`${mdBool(Boolean(item?.canonical_agent_scope))}\` | \`${String(item?.source_rule || '').trim()}\` |\n`;
+  }
+  out += '\n';
+  for (const item of scopes) {
+    const scope = String(item?.scope || '').trim();
+    const description = String(item?.description || '').trim();
+    if (!scope || !description) continue;
+    out += `- \`${scope}\`: ${description}\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeMemoryHookTrigger(doc, sourceName) {
+  const triggers = Array.isArray(doc?.trigger_kinds) ? doc.trigger_kinds : [];
+  let out = header('Generated Runtime Memory Hook Trigger', sourceName);
+  out += '| Trigger Kind | Host Owned | Source |\n';
+  out += '|---|---:|---|\n';
+  for (const item of triggers) {
+    const trigger = String(item?.trigger_kind || '').trim();
+    if (!trigger) continue;
+    out += `| \`${trigger}\` | \`${mdBool(Boolean(item?.host_owned))}\` | \`${String(item?.source_rule || '').trim()}\` |\n`;
+  }
+  out += '\n';
+  for (const item of triggers) {
+    const trigger = String(item?.trigger_kind || '').trim();
+    const description = String(item?.description || '').trim();
+    if (!trigger || !description) continue;
+    out += `- \`${trigger}\`: ${description}\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeMemoryReplicationOutcome(doc, sourceName) {
+  const outcomes = Array.isArray(doc?.outcomes) ? doc.outcomes : [];
+  let out = header('Generated Runtime Memory Replication Outcome', sourceName);
+  out += '| Outcome | Terminal | Source |\n';
+  out += '|---|---:|---|\n';
+  for (const item of outcomes) {
+    const outcome = String(item?.outcome || '').trim();
+    if (!outcome) continue;
+    out += `| \`${outcome}\` | \`${mdBool(Boolean(item?.terminal))}\` | \`${String(item?.source_rule || '').trim()}\` |\n`;
+  }
+  out += '\n';
+  for (const item of outcomes) {
+    const outcome = String(item?.outcome || '').trim();
+    const description = String(item?.description || '').trim();
+    if (!outcome || !description) continue;
+    out += `- \`${outcome}\`: ${description}\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeAgentCoreTypedFamily(doc, sourceName) {
+  const families = Array.isArray(doc?.families) ? doc.families : [];
+  let out = header('Generated Runtime Agent Core Typed Family', sourceName);
+  out += '| Family | Mutable By App | Source |\n';
+  out += '|---|---:|---|\n';
+  for (const item of families) {
+    const family = String(item?.family || '').trim();
+    if (!family) continue;
+    out += `| \`${family}\` | \`${mdBool(Boolean(item?.mutable_by_app))}\` | \`${String(item?.source_rule || '').trim()}\` |\n`;
+  }
+  out += '\n';
+  for (const item of families) {
+    const family = String(item?.family || '').trim();
+    const description = String(item?.description || '').trim();
+    if (!family || !description) continue;
+    out += `- \`${family}\`: ${description}\n`;
+  }
+  out += '\n';
   return normalizeMarkdown(out);
 }
 

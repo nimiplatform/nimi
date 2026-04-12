@@ -236,8 +236,9 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：catalog 搜索命令保留 `runtime_local_models_catalog_*` 前缀（对应 proto `SearchCatalogModels` / `ResolveModelInstallPlan`，搜索对象是 model catalog entry 而非 asset inventory）：
 
 - `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
-- `runtime_local_assets_import` / `runtime_local_assets_import_file`：asset 导入，权威执行面为 `RuntimeLocalService`。
+- `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_import_bundle`：asset 导入，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_remove` / `runtime_local_assets_start` / `runtime_local_assets_stop` / `runtime_local_assets_health`：asset 生命周期管理。
+- `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
 - `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输管理。
 - `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：服务管理。
 - `runtime_local_nodes_catalog_list`：节点目录。
@@ -247,6 +248,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
+- `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。

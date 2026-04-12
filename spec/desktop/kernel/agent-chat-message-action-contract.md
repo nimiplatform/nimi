@@ -197,4 +197,3 @@ product relation truth；执行层只消费。
   current resolved message/action vocabulary evidence
 - `apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts` —
   current agent local chat execution / action wiring evidence
-

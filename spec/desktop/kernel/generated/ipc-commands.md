@@ -85,6 +85,7 @@
 | `runtime_bridge_config_set` | `runtime-daemon` | Set runtime bridge configuration | `D-IPC-003` |
 | `runtime_local_audits_list` | `local-runtime` | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative | `D-IPC-011` |
 | `runtime_local_pick_asset_manifest_path` | `local-runtime` | Pick a local AI asset.manifest.json path under the runtime models root via native file dialog | `D-IPC-011` |
+| `runtime_local_pick_asset_directory` | `local-runtime` | Pick a local asset bundle directory for bundle import or rescan helper flows | `D-IPC-011` |
 | `runtime_local_assets_install_verified` | `local-runtime` | Install a verified asset through the runtime-authoritative verified asset catalog | `D-IPC-011` |
 | `runtime_local_assets_import` | `local-runtime` | Import a local asset from an asset.manifest.json file | `D-IPC-011` |
 | `runtime_local_models_catalog_search` | `local-runtime` | Host catalog helper; catalog/install-plan truth must remain runtime-owned | `D-IPC-011` |
@@ -103,6 +104,7 @@
 | `runtime_local_nodes_catalog_list` | `local-runtime` | Host node-catalog helper; node availability truth remains runtime-owned | `D-IPC-011` |
 | `runtime_local_assets_install` | `local-runtime` | Install an asset from catalog parameters; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_import_file` | `local-runtime` | Import a local asset file; execution truth is RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_assets_import_bundle` | `local-runtime` | Import a local asset bundle directory; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_remove` | `local-runtime` | Remove an installed asset; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_start` | `local-runtime` | Start a runnable asset; lifecycle truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_stop` | `local-runtime` | Stop a running asset; lifecycle truth is RuntimeLocalService | `D-IPC-011` |
@@ -117,3 +119,4 @@
 | `runtime_local_assets_reveal_in_folder` | `local-runtime` | Reveal installed asset files in system file manager | `D-IPC-011` |
 | `runtime_local_assets_reveal_root_folder` | `local-runtime` | Reveal the runtime models root folder in the system file manager | `D-IPC-011` |
 | `runtime_local_assets_scan_unregistered` | `local-runtime` | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source | `D-IPC-011` |
+| `runtime_local_assets_rescan_bundle` | `local-runtime` | Re-scan a previously imported asset bundle directory; execution truth is RuntimeLocalService | `D-IPC-011` |

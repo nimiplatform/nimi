@@ -140,7 +140,6 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 - passive asset 也必须走同一 schema；区别仅在 `kind` 与可选 runtime-native 扩展字段，而不是另一套 manifest 类型
 - Desktop / renderer / bridge / runtime 的稳定输入输出面都必须 fail-close，不得继续兼容旧 manifest 名称或旧字段别名
 
-
 ## K-LOCAL-011 模型目录来源
 
 Phase 1 模型目录来源：

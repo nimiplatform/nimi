@@ -12,6 +12,9 @@ gates:
   - gate: proto_spec_linkage
     command: pnpm check:runtime-proto-spec-linkage
     source_rule: K-PROTO-010
+  - gate: no_admitted_proto_before_cut
+    command: policy/no-admitted-proto-before-cut
+    source_rule: K-PROTO-011
   - gate: proto_breaking
     command: pnpm proto:breaking
     source_rule: K-PROTO-004

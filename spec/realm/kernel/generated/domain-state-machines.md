@@ -69,4 +69,3 @@ Updated: `2026-03-26`
 - Transitions:
   - DRAFT -> PUBLISHED on `publish`
   - PUBLISHED -> ARCHIVED on `archive`
-

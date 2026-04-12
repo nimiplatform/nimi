@@ -235,3 +235,57 @@ services:
         type: unary
       - name: SubscribeAppMessages
         type: server_stream
+  - name: RuntimeMemoryService
+    source_rule: K-RPC-004a
+    methods:
+      - name: CreateBank
+        type: unary
+      - name: GetBank
+        type: unary
+      - name: ListBanks
+        type: unary
+      - name: DeleteBank
+        type: unary
+      - name: Retain
+        type: unary
+      - name: Recall
+        type: unary
+      - name: History
+        type: unary
+      - name: Reflect
+        type: unary
+      - name: DeleteMemory
+        type: unary
+      - name: SubscribeMemoryEvents
+        type: server_stream
+  - name: RuntimeAgentCoreService
+    source_rule: K-RPC-004b
+    methods:
+      - name: InitializeAgent
+        type: unary
+      - name: TerminateAgent
+        type: unary
+      - name: GetAgent
+        type: unary
+      - name: ListAgents
+        type: unary
+      - name: GetAgentState
+        type: unary
+      - name: UpdateAgentState
+        type: unary
+      - name: EnableAutonomy
+        type: unary
+      - name: DisableAutonomy
+        type: unary
+      - name: SetAutonomyConfig
+        type: unary
+      - name: ListPendingHooks
+        type: unary
+      - name: CancelHook
+        type: unary
+      - name: QueryAgentMemory
+        type: unary
+      - name: WriteAgentMemory
+        type: unary
+      - name: SubscribeAgentEvents
+        type: server_stream

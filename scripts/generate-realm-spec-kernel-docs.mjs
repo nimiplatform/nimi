@@ -201,6 +201,9 @@ function renderStateMachines(doc, sourceFile) {
     }
     lines.push('');
   }
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
   return withPreamble('Domain State Machines (Generated)', sourceFile, lines);
 }
 

@@ -1,7 +1,8 @@
 {
   "allowed_non_rule_token_patterns": [
     "^HTTP-(401|403|404|425|429|500|501|502|503|504)$",
-    "^RESEARCH-[A-Z0-9]+-\\d{3}$"
+    "^RESEARCH-[A-Z0-9]+-\\d{3}$",
+    "^AGRT-PILOT-\\d{3}$"
   ],
   "allowed_unresolved_rule_refs": [
     {

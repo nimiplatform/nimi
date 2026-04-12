@@ -64,7 +64,7 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
 
 **K-RPC-001 — 服务范围**
 
-Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
+Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 
 **Phase 1（AI 执行平面 + Auth Core）：**
 
@@ -80,7 +80,14 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeKnowledgeService`（`K-KNOW-*`）
+- `RuntimeMemoryService`（`K-MEM-*`, `K-RPC-004a`）
+- `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
+
+补充约束：
+
+- `rpc-migration-map.yaml` 标记为 `design_only_pending_proto` 的 service 仍属于 design surface，不构成已 admitted 的 proto contract
+- 设计态 service 进入 implementation-facing proto 前，仍受 `proto-governance-contract.md` 的 `K-PROTO-011` 约束
 
 其中每个服务的完整方法列表如下：
 
@@ -1377,6 +1384,12 @@ Runtime SDK 对外方法投影按服务分组，方法集合必须与 `spec/runt
 
 app-facing route metadata / projection surface 是例外的 host-typed logical surface，遵循 `runtime-route-contract.md`（`S-RUNTIME-074` ~ `S-RUNTIME-078`），不得被误写成新增 daemon 顶层 RPC 投影。
 
+当 `RuntimeMemoryService` / `RuntimeAgentCoreService` 进入 SDK 投影时，公开 surface 必须维持 runtime-owned authority cut：
+
+- `runtime.memory.*` 仅投影 Nimi-owned memory substrate contract
+- `runtime.agentCore.*` 负责 app-facing canonical agent control plane
+- app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
+
 **S-SURFACE-009 — Runtime 方法投影表治理**
 
 `tables/runtime-method-groups.yaml` 是 SDK 对外方法投影的结构化事实源，采用”显式维护 + 一致性校验”模式：
@@ -1985,8 +1998,9 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：catalog 搜索命令保留 `runtime_local_models_catalog_*` 前缀（对应 proto `SearchCatalogModels` / `ResolveModelInstallPlan`，搜索对象是 model catalog entry 而非 asset inventory）：
 
 - `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
-- `runtime_local_assets_import` / `runtime_local_assets_import_file`：asset 导入，权威执行面为 `RuntimeLocalService`。
+- `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_import_bundle`：asset 导入，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_remove` / `runtime_local_assets_start` / `runtime_local_assets_stop` / `runtime_local_assets_health`：asset 生命周期管理。
+- `runtime_local_assets_rescan_bundle`：对已导入 bundle 目录执行 host-assisted re-scan，执行真源仍为 `RuntimeLocalService`。
 - `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输管理。
 - `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：服务管理。
 - `runtime_local_nodes_catalog_list`：节点目录。
@@ -1996,6 +2010,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 - `runtime_local_assets_reveal_in_folder` / `runtime_local_assets_reveal_root_folder`：在系统文件管理器中打开目录。
 - `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<local-asset-id>/asset.manifest.json`。
+- `runtime_local_pick_asset_directory`：选取 bundle 目录，供 bundle import / rescan helper 使用。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
 - `runtime_local_pick_asset_file`：选取任意待导入的 asset 文件。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
@@ -3503,6 +3518,40 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | SendAppMessage | unary |
 | SubscribeAppMessages | server_stream |
 
+**RuntimeMemoryService**
+
+| 方法 | 类型 |
+|---|---|
+| CreateBank | unary |
+| GetBank | unary |
+| ListBanks | unary |
+| DeleteBank | unary |
+| Retain | unary |
+| Recall | unary |
+| History | unary |
+| Reflect | unary |
+| DeleteMemory | unary |
+| SubscribeMemoryEvents | server_stream |
+
+**RuntimeAgentCoreService**
+
+| 方法 | 类型 |
+|---|---|
+| InitializeAgent | unary |
+| TerminateAgent | unary |
+| GetAgent | unary |
+| ListAgents | unary |
+| GetAgentState | unary |
+| UpdateAgentState | unary |
+| EnableAutonomy | unary |
+| DisableAutonomy | unary |
+| SetAutonomyConfig | unary |
+| ListPendingHooks | unary |
+| CancelHook | unary |
+| QueryAgentMemory | unary |
+| WriteAgentMemory | unary |
+| SubscribeAgentEvents | server_stream |
+
 ### 12.2 Runtime — ReasonCode 错误码表
 
 | 名称 | 值 | 族 |
@@ -4073,6 +4122,36 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 - SendAppMessage
 - SubscribeAppMessages
 
+**memory_service_projection** → RuntimeMemoryService
+
+- CreateBank
+- GetBank
+- ListBanks
+- DeleteBank
+- Retain
+- Recall
+- History
+- Reflect
+- DeleteMemory
+- SubscribeMemoryEvents
+
+**agent_core_service_projection** → RuntimeAgentCoreService
+
+- InitializeAgent
+- TerminateAgent
+- GetAgent
+- ListAgents
+- GetAgentState
+- UpdateAgentState
+- EnableAutonomy
+- DisableAutonomy
+- SetAutonomyConfig
+- ListPendingHooks
+- CancelHook
+- QueryAgentMemory
+- WriteAgentMemory
+- SubscribeAgentEvents
+
 ### 12.11 Desktop — 启动阶段
 
 | 阶段 | 顺序 | 描述 |
@@ -4171,6 +4250,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_bridge_config_set | Set runtime bridge configuration |
 | runtime_local_audits_list | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative |
 | runtime_local_pick_asset_manifest_path | Pick a local AI asset.manifest.json path under the runtime models root via native file dialog |
+| runtime_local_pick_asset_directory | Pick a local asset bundle directory for bundle import or rescan helper flows |
 | runtime_local_assets_install_verified | Install a verified asset through the runtime-authoritative verified asset catalog |
 | runtime_local_assets_import | Import a local asset from an asset.manifest.json file |
 | runtime_local_models_catalog_search | Host catalog helper; catalog/install-plan truth must remain runtime-owned |
@@ -4189,6 +4269,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_local_nodes_catalog_list | Host node-catalog helper; node availability truth remains runtime-owned |
 | runtime_local_assets_install | Install an asset from catalog parameters; execution truth is RuntimeLocalService |
 | runtime_local_assets_import_file | Import a local asset file; execution truth is RuntimeLocalService |
+| runtime_local_assets_import_bundle | Import a local asset bundle directory; execution truth is RuntimeLocalService |
 | runtime_local_assets_remove | Remove an installed asset; execution truth is RuntimeLocalService |
 | runtime_local_assets_start | Start a runnable asset; lifecycle truth is RuntimeLocalService |
 | runtime_local_assets_stop | Stop a running asset; lifecycle truth is RuntimeLocalService |
@@ -4203,6 +4284,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_local_assets_reveal_in_folder | Reveal installed asset files in system file manager |
 | runtime_local_assets_reveal_root_folder | Reveal the runtime models root folder in the system file manager |
 | runtime_local_assets_scan_unregistered | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source |
+| runtime_local_assets_rescan_bundle | Re-scan a previously imported asset bundle directory; execution truth is RuntimeLocalService |
 
 ### 12.13 Desktop — App Tabs
 

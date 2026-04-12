@@ -1,6 +1,6 @@
 # Runtime Kernel Contracts
 
-> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
+> Scope: Runtime 全量服务契约（AI 执行平面 / Auth Core / Workflow / Voice / Audit / Model / Knowledge / Memory / Agent Core / App / Daemon / Config / Connector / Multimodal / Proto Governance）。
 
 ## 1. 目标
 
@@ -21,7 +21,7 @@
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
-  - `AIEXEC` `SCHED` `WEV`
+  - `AIEXEC` `SCHED` `WEV` `MEM` `AGCORE`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
@@ -50,6 +50,8 @@
 | `voice-contract.md` | `K-VOICE-*` | Voice 工作流、VoiceAsset 生命周期与引用契约 |
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
 | `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
+| `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
+| `runtime-agent-core-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、agent memory policy |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
@@ -94,6 +96,10 @@
 - `tables/multimodal-canonical-fields.yaml`
 - `tables/multimodal-artifact-fields.yaml`
 - `tables/provider-extension-registry.yaml`
+- `tables/runtime-memory-bank-scope.yaml`
+- `tables/runtime-memory-hook-trigger.yaml`
+- `tables/runtime-memory-replication-outcome.yaml`
+- `tables/runtime-agent-core-typed-family.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`

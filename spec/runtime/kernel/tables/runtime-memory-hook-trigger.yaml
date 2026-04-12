@@ -1,0 +1,30 @@
+version: 1
+trigger_kinds:
+  - trigger_kind: TURN_COMPLETED
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered after a successfully committed life or chat turn.
+  - trigger_kind: SCHEDULED_TIME
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered at a host-scheduled absolute or relative time.
+  - trigger_kind: USER_IDLE
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered only after host-owned idle detection admits a life check.
+  - trigger_kind: CHAT_ENDED
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered after chat continuity closes and host admission allows life execution.
+  - trigger_kind: STATE_CONDITION
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered when runtime state satisfies an admitted condition.
+  - trigger_kind: WORLD_EVENT
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered when world or realm state changes require life evaluation.
+  - trigger_kind: COMPOUND
+    source_rule: K-AGCORE-003
+    host_owned: true
+    description: Triggered only by an explicit conjunction or disjunction of admitted trigger kinds.

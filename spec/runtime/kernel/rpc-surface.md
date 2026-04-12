@@ -4,7 +4,7 @@
 
 ## K-RPC-001 服务范围
 
-Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
+Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 
 **Phase 1（AI 执行平面 + Auth Core）：**
 
@@ -20,7 +20,14 @@ Runtime kernel 的 RPC 覆盖范围为全量 proto 服务：
 - `RuntimeAuditService`（`K-AUDIT-*`）
 - `RuntimeModelService`（`K-MODEL-*`）
 - `RuntimeKnowledgeService`（`K-KNOW-*`）
+- `RuntimeMemoryService`（`K-MEM-*`, `K-RPC-004a`）
+- `RuntimeAgentCoreService`（`K-AGCORE-*`, `K-RPC-004b`）
 - `RuntimeAppService`（`K-APP-*`）
+
+补充约束：
+
+- `rpc-migration-map.yaml` 标记为 `design_only_pending_proto` 的 service 仍属于 design surface，不构成已 admitted 的 proto contract
+- 设计态 service 进入 implementation-facing proto 前，仍受 `proto-governance-contract.md` 的 `K-PROTO-011` 约束
 
 ## K-RPC-002 AIService 方法集合（design 权威）
 
@@ -143,6 +150,74 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 39. `GetEngineStatus`
 
 `WarmLocalAsset` 的语义限定为 runtime-owned 的”就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
+
+## K-RPC-004a RuntimeMemoryService 方法集合
+
+`RuntimeMemoryService` 是 runtime-owned memory substrate 的唯一稳定 RPC 面。
+
+方法固定为：
+
+1. `CreateBank`
+2. `GetBank`
+3. `ListBanks`
+4. `DeleteBank`
+5. `Retain`
+6. `Recall`
+7. `History`
+8. `Reflect`
+9. `DeleteMemory`
+10. `SubscribeMemoryEvents`
+
+固定约束：
+
+- public surface 只暴露 Nimi-owned memory contract，不暴露 provider-native API truth
+- `Working memory` 不属于 RuntimeMemoryService 方法范围
+- canonical agent memory scope 的直接写入不得通过 app direct path 完成
+- `Retain` / `Recall` / `History` / `SubscribeMemoryEvents` 的 primary semantic payload 必须使用 typed memory messages；`metadata` / `extensions` 才允许动态 envelope
+- `CreateBank` / `DeleteBank` 的 app-facing路径只服务 infra scopes；canonical scopes 通过 runtime internal provisioning path 建立
+
+最小 access matrix：
+
+- `CreateBank` / `DeleteBank`：`runtime.memory.admin`
+- `GetBank` / `ListBanks` / `Recall` / `History` / `SubscribeMemoryEvents`：`runtime.memory.read`
+- `Retain` / `Reflect` / `DeleteMemory`：`runtime.memory.write`
+- `RuntimeAgentCoreService` 通过 runtime internal path 调用 `RuntimeMemoryService` 时，不经 app-facing public authz surface
+
+## K-RPC-004b RuntimeAgentCoreService 方法集合
+
+`RuntimeAgentCoreService` 是 runtime-owned live agent substrate 的唯一稳定 RPC 面。
+
+方法固定为：
+
+1. `InitializeAgent`
+2. `TerminateAgent`
+3. `GetAgent`
+4. `ListAgents`
+5. `GetAgentState`
+6. `UpdateAgentState`
+7. `EnableAutonomy`
+8. `DisableAutonomy`
+9. `SetAutonomyConfig`
+10. `ListPendingHooks`
+11. `CancelHook`
+12. `QueryAgentMemory`
+13. `WriteAgentMemory`
+14. `SubscribeAgentEvents`
+
+固定约束：
+
+- agent canonical memory write policy 固定由 RuntimeAgentCoreService 拥有
+- apps 可以控制与消费 agent，但不得拥有 renderer-local agent truth
+- proactive life scheduling 通过 typed next-hook intent + host-owned admission 执行
+- hook trigger detail、agent memory recall result、以及 failure/reschedule/budget-related agent events 必须使用 typed runtime messages，而不是自由 JSON payload
+- app-facing state mutation contract 必须是 constrained command / patch family，而不是任意 agent-state blob replacement
+
+最小 access matrix：
+
+- `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
+- `GetAgent` / `ListAgents` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
+- `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 

@@ -902,6 +902,9 @@
 - rule_id: K-PROTO-010
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
+- rule_id: K-PROTO-011
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_proto_linkage]
 - rule_id: K-PROV-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
@@ -1171,6 +1174,63 @@
   status: deferred
   evidence_refs: []
 - rule_id: K-AIEXEC-005
+  status: deferred
+  evidence_refs: []
+# Runtime memory substrate (K-MEM-*)
+- rule_id: K-MEM-001
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-002
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-003
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-004
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-005
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-006
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-007
+  status: deferred
+  evidence_refs: []
+- rule_id: K-MEM-008
+  status: deferred
+  evidence_refs: []
+# Runtime agent core (K-AGCORE-*)
+- rule_id: K-AGCORE-001
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-002
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-003
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-004
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-005
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-006
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-007
+  status: deferred
+  evidence_refs: []
+- rule_id: K-AGCORE-008
+  status: deferred
+  evidence_refs: []
+# Runtime RPC additions for memory and agent core
+- rule_id: K-RPC-004a
+  status: deferred
+  evidence_refs: []
+- rule_id: K-RPC-004b
   status: deferred
   evidence_refs: []
 # Scheduling five-state judgement (K-SCHED-*)

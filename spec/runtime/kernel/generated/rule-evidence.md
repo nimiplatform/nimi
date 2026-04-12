@@ -315,6 +315,7 @@
 | `K-PROTO-008` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
 | `K-PROTO-009` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
 | `K-PROTO-010` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
+| `K-PROTO-011` | `covered` | `runtime_kernel_consistency`, `runtime_proto_linkage` |
 | `K-PROV-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-PROV-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-PROV-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
@@ -405,6 +406,24 @@
 | `K-AIEXEC-003` | `deferred` | — |
 | `K-AIEXEC-004` | `deferred` | — |
 | `K-AIEXEC-005` | `deferred` | — |
+| `K-MEM-001` | `deferred` | — |
+| `K-MEM-002` | `deferred` | — |
+| `K-MEM-003` | `deferred` | — |
+| `K-MEM-004` | `deferred` | — |
+| `K-MEM-005` | `deferred` | — |
+| `K-MEM-006` | `deferred` | — |
+| `K-MEM-007` | `deferred` | — |
+| `K-MEM-008` | `deferred` | — |
+| `K-AGCORE-001` | `deferred` | — |
+| `K-AGCORE-002` | `deferred` | — |
+| `K-AGCORE-003` | `deferred` | — |
+| `K-AGCORE-004` | `deferred` | — |
+| `K-AGCORE-005` | `deferred` | — |
+| `K-AGCORE-006` | `deferred` | — |
+| `K-AGCORE-007` | `deferred` | — |
+| `K-AGCORE-008` | `deferred` | — |
+| `K-RPC-004a` | `deferred` | — |
+| `K-RPC-004b` | `deferred` | — |
 | `K-SCHED-001` | `deferred` | — |
 | `K-SCHED-002` | `deferred` | — |
 | `K-SCHED-003` | `deferred` | — |

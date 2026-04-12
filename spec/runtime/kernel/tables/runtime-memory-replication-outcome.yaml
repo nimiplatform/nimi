@@ -1,0 +1,18 @@
+version: 1
+outcomes:
+  - outcome: PENDING
+    source_rule: K-MEM-008
+    terminal: false
+    description: Replication has been accepted locally but is not yet durably reconciled with Realm.
+  - outcome: SYNCED
+    source_rule: K-MEM-008
+    terminal: true
+    description: Replication completed and the current local version is reconciled with the Realm plane.
+  - outcome: CONFLICT
+    source_rule: K-MEM-008
+    terminal: false
+    description: Replication detected a version or governance conflict that requires explicit resolution.
+  - outcome: INVALIDATED
+    source_rule: K-MEM-008
+    terminal: true
+    description: The local memory item is no longer admitted because a Realm-originated governance or moderation invalidation has been observed.

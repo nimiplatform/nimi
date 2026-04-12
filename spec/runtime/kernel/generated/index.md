@@ -30,6 +30,10 @@
 | `scenario-types.md` | `tables/scenario-types.yaml` |
 | `scenario-execution-matrix.md` | `tables/scenario-execution-matrix.yaml` |
 | `provider-extension-registry.md` | `tables/provider-extension-registry.yaml` |
+| `runtime-memory-bank-scope.md` | `tables/runtime-memory-bank-scope.yaml` |
+| `runtime-memory-hook-trigger.md` | `tables/runtime-memory-hook-trigger.yaml` |
+| `runtime-memory-replication-outcome.md` | `tables/runtime-memory-replication-outcome.yaml` |
+| `runtime-agent-core-typed-family.md` | `tables/runtime-agent-core-typed-family.yaml` |
 | `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |
