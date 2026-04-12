@@ -26,7 +26,7 @@ function translateDecisionReason(reason) {
     ["decide-high-risk-execution requires reviewStatus ready_for_manager_review", "decide-high-risk-execution 需要 reviewStatus 为 ready_for_manager_review"],
     ["imported review payload must include attachmentRefs", "导入的 review payload 必须包含 attachmentRefs"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before recording a manager decision", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再记录 manager decision"],
-    ["High-risk decision projection requires reconstructed `.nimi/spec/*.yaml` target truth", "high-risk decision 投影需要已重建的 `.nimi/spec/*.yaml` target truth"],
+    ["High-risk decision projection requires the canonical tree under `.nimi/spec`", "high-risk decision 投影需要 `.nimi/spec` 下的 canonical tree"],
     ["Acceptance artifact failed mechanical validation", "acceptance 产物未通过机械校验"],
     ["Manager-owned local decision record is ready", "manager 拥有的本地 decision 记录已准备就绪"],
   ]);

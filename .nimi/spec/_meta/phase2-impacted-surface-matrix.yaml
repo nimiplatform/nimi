@@ -34,8 +34,8 @@ phase2_impacted_surface_matrix:
       - nimi-coding/contracts/spec-reconstruction-result.yaml
       - nimi-coding/methodology/spec-reconstruction.yaml
       - nimi-coding/methodology/spec-target-truth-profile.yaml
-    phase_dependency: phase_2
-    rewrite_reason: compact_target_truth_contracts_are_transition_only
+    phase_dependency: historical_transition_note
+    rewrite_reason: repo_local_support_profile_no_longer_defines_default_reconstruction_completion
   - surface: tests_and_fixtures
     paths:
       - nimi-coding/test/nimicoding.test.mjs

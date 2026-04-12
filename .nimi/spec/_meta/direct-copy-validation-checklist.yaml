@@ -1,0 +1,60 @@
+version: 1
+direct_copy_validation_checklist:
+  context:
+    source_root: spec
+    canonical_target_root: .nimi/spec
+    benchmark_mode: repo_spec_blueprint
+    authority_status: active_authority_remains_spec_until_explicit_cutover
+  intent:
+    - direct_copy_is_an_acceptance_shortcut_not_an_authority_cutover
+    - validate_the_copied_tree_before_any_routing_or_pipeline_change
+    - use_nimi_spec_as_benchmark_only_not_as_a_second_long_term_truth_source
+  prerequisites:
+    - package tests for @nimiplatform/nimi-coding are green
+    - .nimi/spec/_meta/spec-tree-model.yaml is present and valid
+    - .nimi/spec/_meta/blueprint-reference.yaml points at spec
+    - no authority routing change is included in the copy batch
+    - no generate_drift_pipeline_root_flip is included in the copy batch
+  execution_steps:
+    - order: 1
+      action: materialize_candidate_tree
+      description: Copy repo benchmark content from `spec/**` into `/.nimi/spec/**` without changing authority routing.
+    - order: 2
+      action: validate_canonical_tree_shape
+      command: pnpm nimicoding:validate-spec-tree
+      pass_condition: exit_code_0
+    - order: 3
+      action: validate_benchmark_parity
+      command: pnpm nimicoding:blueprint-audit
+      pass_condition: exit_code_0_and_local_report_written
+    - order: 4
+      action: inspect_written_audit_report
+      artifact: .nimi/local/report/blueprint-equivalence-audit.json
+      pass_condition: ok_true_and_no_structural_semantic_or_derived_gaps
+  blockers:
+    structural:
+      - missing_required_canonical_files
+      - declared_domain_root_has_no_files
+      - unexpected_files_outside_declared_spec_classes
+      - files_matching_multiple_spec_classes
+    benchmark:
+      - missing_domains
+      - missing_kernel_markdown
+      - missing_kernel_tables
+      - missing_kernel_generated
+      - missing_domain_guides
+      - missing_rule_ids
+      - extra_rule_ids
+    operational:
+      - do_not_flip_authority_routes
+      - do_not_flip_generate_or_drift_roots
+      - do_not_treat_direct_copy_as_cutover_completion
+  acceptance:
+    required:
+      - validate_spec_tree_passes
+      - blueprint_audit_passes
+      - local_blueprint_equivalence_report_written
+    forbidden:
+      - authority_cutover_in_same_batch
+      - generate_or_drift_pipeline_flip_in_same_batch
+      - retirement_of_spec_root_in_same_batch

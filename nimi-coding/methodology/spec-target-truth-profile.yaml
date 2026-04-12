@@ -2,9 +2,11 @@ version: 1
 target_truth_profile:
   id: delegated_spec_reconstruction_target_truth_profile
   owner: package_bootstrap_truth
-  mode: transition_only
+  mode: repo_local_support_only
   generated_files_remain_missing_until_reconstruction: true
   canonical_completion_authority: .nimi/contracts/spec-reconstruction-result.yaml
+  default_bootstrap_seeded: false
+  posture: historical_transition_note_for_repo_local_governance_support
   profile_scope:
     - .nimi/spec/authority-map.yaml
     - .nimi/spec/boundaries.yaml
@@ -46,5 +48,6 @@ target_truth_profile:
     - do_not_seed_empty_target_truth_files_during_bootstrap
     - do_not_treat_profile_as_canonical_tree_completion
     - do_not_treat_profile_as_generated_project_truth
+    - do_not_assume_profile_is_present_in_fresh_host_bootstrap
     - do_not_allow_vendor_specific_output_contracts
     - unresolved_target_shape_must_remain_explicit

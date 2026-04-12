@@ -1,4 +1,4 @@
-import { realpath } from "node:fs/promises";
+import { readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -38,6 +38,7 @@ function translateCloseoutReason(reason) {
     ["Non-completed outcomes may be projected as local-only closeout artifacts", "非 completed 的 outcome 可以仅投影为本地 closeout 产物"],
     ["Completed closeout is not allowed in the current lifecycle state", "当前生命周期状态不允许完成该 closeout"],
     ["Completed closeout requires declared canonical tree files to be valid", "完成 closeout 需要声明的 canonical tree 文件有效"],
+    ["Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact", "完成 closeout 需要一个有效的 `.nimi/spec/_meta/spec-generation-audit.yaml` 产物"],
     ["Completed doc_spec_audit closeout must compare against `.nimi/spec`", "完成 doc_spec_audit closeout 时必须对 `.nimi/spec` 进行比较"],
     ["Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`", "完成 high_risk_execution closeout 需要 canonical admissions truth 继续落在 `.nimi/spec/high-risk-admissions.yaml`"],
     ["Completed closeout is consistent with the current canonical tree state", "completed closeout 与当前 canonical tree 状态一致"],
@@ -47,16 +48,21 @@ function translateCloseoutReason(reason) {
     return translations.get(reason);
   }
 
+  const statusPrefix = " summary.status must be ";
+  if (reason.includes(statusPrefix)) {
+    const [skillId, suffix] = reason.split(statusPrefix);
+    const [expectedStatus, outcomePart] = suffix.split(" when outcome is ");
+    return `当 outcome 为 ${outcomePart} 时，${skillId} 的 summary.status 必须为 ${expectedStatus}`;
+  }
+
+  const noSummarySuffix = " does not accept summary when outcome is failed";
+  if (reason.endsWith(noSummarySuffix)) {
+    return `${reason.slice(0, -noSummarySuffix.length)} 在 outcome 为 failed 时不得携带 summary`;
+  }
+
   const summaryImportPrefix = "summary import is not supported for skill ";
   if (reason.startsWith(summaryImportPrefix)) {
     return `当前不支持为该 skill 导入 summary：${reason.slice(summaryImportPrefix.length)}`;
-  }
-
-  const statusPrefix = "high_risk_execution summary.status must be ";
-  if (reason.startsWith(statusPrefix)) {
-    const suffix = reason.slice(statusPrefix.length);
-    const [expectedStatus, outcomePart] = suffix.split(" when outcome is ");
-    return `当 outcome 为 ${outcomePart} 时，high_risk_execution 的 summary.status 必须为 ${expectedStatus}`;
   }
 
   return reason;
@@ -116,36 +122,110 @@ async function validateCloseoutSummaryForSkill(projectRoot, skillId, summary, ve
 }
 
 function validateOutcomeStatusConsistency(skillId, outcome, summary) {
-  if (skillId !== "high_risk_execution" || summary === undefined) {
+  const expectedStatusBySkillAndOutcome = {
+    spec_reconstruction: {
+      completed: ["reconstructed", "partial"],
+      blocked: ["blocked"],
+      failed: [],
+    },
+    doc_spec_audit: {
+      completed: ["aligned", "drift_detected"],
+      blocked: ["blocked"],
+      failed: [],
+    },
+    high_risk_execution: {
+      completed: ["candidate_ready"],
+      blocked: ["blocked"],
+      failed: ["failed"],
+    },
+  };
+
+  const expectedStatuses = expectedStatusBySkillAndOutcome[skillId]?.[outcome];
+  if (!expectedStatuses) {
     return { ok: true };
   }
 
-  const expectedStatusByOutcome = {
-    completed: "candidate_ready",
-    blocked: "blocked",
-    failed: "failed",
-  };
-  const expectedStatus = expectedStatusByOutcome[outcome];
+  if (outcome === "failed") {
+    if (summary !== undefined) {
+      return {
+        ok: false,
+        reason: `${skillId} does not accept summary when outcome is failed`,
+      };
+    }
+    return { ok: true };
+  }
 
-  if (summary.status !== expectedStatus) {
+  if (summary === undefined) {
+    return { ok: true };
+  }
+
+  if (!expectedStatuses.includes(summary.status)) {
     return {
       ok: false,
-      reason: `high_risk_execution summary.status must be ${expectedStatus} when outcome is ${outcome}`,
+      reason: `${skillId} summary.status must be ${expectedStatuses.join("|")} when outcome is ${outcome}`,
     };
   }
 
   return { ok: true };
 }
 
-function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
-  if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
-    return {
-      ok: false,
-      reason: "Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results",
-    };
+async function collectSpecPaths(rootPath, relativePrefix) {
+  let entries;
+  try {
+    entries = await readdir(rootPath, { withFileTypes: true });
+  } catch {
+    return [];
   }
 
+  const files = [];
+  for (const entry of entries) {
+    const absolutePath = path.join(rootPath, entry.name);
+    const relativePath = path.posix.join(relativePrefix, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectSpecPaths(absolutePath, relativePath));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+
+  return files.sort();
+}
+
+async function synthesizeSpecReconstructionSummary(projectRoot, doctorResult, verifiedAt) {
+  const generatedPaths = await collectSpecPaths(path.join(projectRoot, ".nimi", "spec"), ".nimi/spec");
+  const auditSummary = doctorResult.specGenerationAudit?.summary ?? {};
+  const unresolvedFileCount = Number.isInteger(auditSummary.unresolvedFiles) ? auditSummary.unresolvedFiles : 0;
+  const inferredFileCount = Number.isInteger(auditSummary.inferredFiles) ? auditSummary.inferredFiles : 0;
+  const placeholderFiles = Number.isInteger(auditSummary.placeholderFiles) ? auditSummary.placeholderFiles : 0;
+  const partialFiles = Number.isInteger(auditSummary.partialFiles) ? auditSummary.partialFiles : unresolvedFileCount;
+  const shouldBePartial = partialFiles > 0 || unresolvedFileCount > 0 || inferredFileCount > 0;
+
+  return {
+    generated_paths: generatedPaths,
+    audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+    coverage_summary: {
+      complete_files: Math.max(generatedPaths.length - partialFiles - placeholderFiles, 0),
+      partial_files: partialFiles,
+      placeholder_files: placeholderFiles,
+    },
+    unresolved_file_count: unresolvedFileCount,
+    inferred_file_count: inferredFileCount,
+    status: doctorResult.specGenerationAudit?.ok && !shouldBePartial ? "reconstructed" : "partial",
+    summary: doctorResult.specGenerationAudit?.ok && !shouldBePartial
+      ? "Canonical spec generation completed with file-level audit coverage."
+      : "Canonical spec generation is valid, but file-level audit still records inferred or unresolved coverage.",
+    verified_at: verifiedAt,
+  };
+}
+
+function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
   if (outcome !== "completed") {
+    if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
+      return {
+        ok: false,
+        reason: "Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results",
+      };
+    }
     return {
       ok: true,
       reason: "Non-completed outcomes may be projected as local-only closeout artifacts",
@@ -175,6 +255,13 @@ function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
     };
   }
 
+  if (rule.completedRequires.spec_generation_audit_valid === true && doctorResult.specGenerationAudit?.ok !== true) {
+    return {
+      ok: false,
+      reason: "Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact",
+    };
+  }
+
   if (rule.completedRequires.audit_references_canonical_root === true) {
     const comparedPaths = Array.isArray(summary?.compared_paths) ? summary.compared_paths : [];
     if (!comparedPaths.includes(".nimi/spec")) {
@@ -196,6 +283,13 @@ function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
         reason: "Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`",
       };
     }
+  }
+
+  if (!doctorResult.ok || !doctorResult.handoffReadiness.ok) {
+    return {
+      ok: false,
+      reason: "Bootstrap or handoff validation is failing; repair doctor errors before projecting closeout results",
+    };
   }
 
   return {
@@ -362,10 +456,14 @@ export async function buildCloseoutPayload(projectRoot, options) {
   }
 
   const resultContractRef = manifestSkill.result_contract_ref ?? SKILL_RESULT_CONTRACT_REFS[options.skill] ?? null;
+  let effectiveSummary = options.summary;
+  if (!effectiveSummary && options.skill === "spec_reconstruction" && options.outcome === "completed") {
+    effectiveSummary = await synthesizeSpecReconstructionSummary(projectRoot, doctorResult, options.verifiedAt);
+  }
   const summaryValidation = await validateCloseoutSummaryForSkill(
     projectRoot,
     options.skill,
-    options.summary,
+    effectiveSummary,
     options.verifiedAt,
   );
 
@@ -384,7 +482,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
   const statusConsistency = validateOutcomeStatusConsistency(
     options.skill,
     options.outcome,
-    options.summary,
+    effectiveSummary,
   );
   if (!statusConsistency.ok) {
     return {
@@ -398,7 +496,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
     };
   }
 
-  const readiness = evaluateCloseoutReadiness(options.skill, options.outcome, doctorResult, options.summary);
+  const readiness = evaluateCloseoutReadiness(options.skill, options.outcome, doctorResult, effectiveSummary);
   const localArtifactPath = path.join(projectRoot, ".nimi", "local", "handoff-results", `${options.skill}.json`);
   const payload = {
     contractVersion: CLOSEOUT_PAYLOAD_CONTRACT_VERSION,
@@ -416,18 +514,18 @@ export async function buildCloseoutPayload(projectRoot, options) {
     verifiedAt: options.verifiedAt,
     localOnly: true,
     artifactPath: localArtifactPath,
-    summary: options.summary,
+    summary: effectiveSummary,
     contracts: {
       exchangeProjectionContractRef: ".nimi/methodology/skill-exchange-projection.yaml",
       handoffRef: ".nimi/methodology/skill-handoff.yaml",
       resultContractRef,
     },
     readiness,
-    targetTruth: doctorResult.targetTruth,
     doctor: {
       ok: doctorResult.ok,
       handoffReadiness: doctorResult.handoffReadiness,
       delegatedContracts: doctorResult.delegatedContracts,
+      specGenerationAudit: doctorResult.specGenerationAudit,
       auditArtifact: doctorResult.auditArtifact,
     },
     nextAction: readiness.ok
@@ -464,10 +562,6 @@ export function formatCloseoutPayload(payload) {
     `  - verified_at: ${payload.verifiedAt}`,
     `  - ready: ${styleStatus(payload.readiness.ok ? "ready" : "needs_attention")}`,
     `  - local_only: ${payload.localOnly ? "true" : "false"}`,
-    "",
-    styleLabel(localize("Target Truth:", "目标 Truth：")),
-    `  - present: ${payload.targetTruth.present.length}`,
-    `  - missing: ${payload.targetTruth.missing.length}`,
     "",
     styleLabel(localize("Next:", "下一步：")),
     `  - ${nextAction}`,

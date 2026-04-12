@@ -24,7 +24,7 @@ function translateReviewReason(reason) {
     ["imported ingest payload must include validations", "导入的 ingest payload 必须包含 validations"],
     ["review-high-risk-execution requires all ingest validations to be mechanically ok", "review-high-risk-execution 需要所有 ingest 校验均机械通过"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before projecting review-ready artifacts", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再投影 review-ready 产物"],
-    ["High-risk review projection requires reconstructed `.nimi/spec/*.yaml` target truth", "high-risk review 投影需要已重建的 `.nimi/spec/*.yaml` target truth"],
+    ["High-risk review projection requires the canonical tree under `.nimi/spec`", "high-risk review 投影需要 `.nimi/spec` 下的 canonical tree"],
     ["Candidate artifacts are ready for manager-owned semantic review", "候选产物已准备好供 manager 执行语义审查"],
   ]);
   return translations.get(reason) ?? reason;

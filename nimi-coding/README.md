@@ -7,6 +7,22 @@ The product goal is to let arbitrary projects install a reusable AI coding
 governance toolkit, bootstrap a project-local `.nimi/**` layer, and then use
 AI-native authority, packet, and acceptance discipline for high-risk work.
 
+## Primary Path
+
+The primary `nimicoding` path is for an ordinary project with mixed inputs:
+
+1. gather code/docs/structure/human notes
+2. hand off `spec_reconstruction` to an external host
+3. generate a canonical tree under `/.nimi/spec/**`
+4. run `validate-spec-tree`
+5. run `validate-spec-audit`
+6. close out reconstruction
+7. hand off `doc_spec_audit` and close it out locally
+
+`blueprint-audit`, benchmark parity, and direct-copy helpers remain available,
+but they are support-only or repo-local special cases. They do not define
+default reconstruction completion.
+
 ## Current Status
 
 This repository is boundary-complete for its intended standalone scope.
@@ -16,7 +32,7 @@ Its completed standalone scope is:
 - package identity
 - repository foundation
 - initial AI-native methodology seed
-- package-owned reconstruction target-truth profile seed
+- package-owned repo-local support profile source for future governance slices
 - machine-readable reconstruction, doc-spec-audit, and high-risk execution result contracts
 - package-owned canonical high-risk admission schema contract
 - seed-only high-risk execution schemas for packet, orchestration-state, prompt, worker-output, and acceptance
@@ -70,9 +86,9 @@ Current `nimicoding start` behavior is intentionally narrow:
 - detect the current project state and continue from the right stage
 - create or resume the `.nimi/**` seed by projecting package-owned source into host paths
 - seed AI-native spec-reconstruction guidance inside `.nimi/**`
+- keep repo-local support-only methodology assets package-owned unless a host explicitly opts into them
 - seed package-owned machine contracts inside `.nimi/contracts/**`
 - seed package-owned execution schemas for future high-risk methodology artifacts without admitting runtime ownership
-- seed package-owned target-truth guidance for reconstruction outputs without creating empty `.nimi/spec/*.yaml` authority files
 - seed canonical skill-manifest, host-profile, installer, delegated runtime contract, installer result contract, installer operational evidence home, and external handoff truth inside `.nimi/**`
 - seed canonical host-adapter truth inside `.nimi/**` so external execution hosts can be admitted without becoming semantic owners
 - seed canonical collapsed installer summary projection lifecycle truth inside `.nimi/**`
@@ -108,6 +124,8 @@ At this stage:
 - `start`, `doctor`, `handoff`, `closeout`, and high-risk gating already read the canonical tree lifecycle instead of treating the old five-file compact model as authoritative completion
 - `nimicoding blueprint-audit` is the explicit audit surface for benchmark-vs-canonical equivalence checks; it does not perform cutover or routing changes
 - canonical spec generation now reads mixed inputs from `.nimi/config/spec-generation-inputs.yaml` and treats any blueprint root as an optional benchmark rather than a universal host assumption
+- completed canonical reconstruction now requires both structural validity and file-level auditability under `.nimi/spec/_meta/spec-generation-audit.yaml`
+- `nimicoding validate-spec-tree` checks canonical tree structure, while `nimicoding validate-spec-audit` checks per-file grounding, inference, and unresolved-gap tracking
 
 Current `nimicoding doctor` behavior is intentionally narrow:
 
@@ -128,9 +146,8 @@ Current `nimicoding doctor` behavior is intentionally narrow:
 - validate handoff context-order readiness for an external AI host
 - expose the standalone completion profile, status, completed surfaces, deferred execution surfaces, and promoted parity gaps
 - expose the generic external-host compatibility posture, admitted named overlay posture, and future-only host-specific surfaces
-- validate reconstructed `.nimi/spec/*.yaml` top-level section shape when files exist
 - validate canonical `.nimi/spec/high-risk-admissions.yaml` record shape against the packaged admission schema contract when present
-- fail closed when lifecycle state and target-truth completeness drift apart
+- fail closed when lifecycle state, canonical tree readiness, and auditability drift apart
 - report local `doc_spec_audit` closeout artifact status without promoting it to semantic truth
 - emit either human-readable output or machine-readable JSON with `--json`
 
@@ -147,7 +164,7 @@ Current `nimicoding handoff` behavior is intentionally narrow:
 - expose selected named adapter overlay metadata when an admitted host profile is selected
 - export `resultContractRef` plus skill-specific closeout summary expectations
 - export execution schema refs, expected artifact kinds, expected local artifact roots, and external execution summary status for `high_risk_execution`
-- refuse `doc_spec_audit` and `high_risk_execution` handoff until target truth is reconstructed
+- refuse `doc_spec_audit` and `high_risk_execution` handoff until the canonical tree under `.nimi/spec` is ready
 
 Current `nimicoding closeout` behavior is intentionally narrow:
 
@@ -155,7 +172,7 @@ Current `nimicoding closeout` behavior is intentionally narrow:
 - optionally import those fields plus an optional contract-validated `summary` from an external JSON payload with `--from`
 - project external skill results into a local-only closeout payload
 - optionally write the payload under `.nimi/local/handoff-results/` with `--write-local`
-- fail closed if a `completed` outcome contradicts the current target-truth state
+- fail closed if a `completed` outcome contradicts the current canonical-tree or audit state
 - support contract-validated local-only summary import for `high_risk_execution`
 - fail closed if imported high-risk execution refs escape the declared local artifact roots
 - fail closed if imported high-risk execution summaries omit refs, drift in shape, or claim an illegal external execution status
@@ -232,8 +249,8 @@ The expected future experience is roughly:
 1. install `@nimiplatform/nimi-coding`
 2. run `nimicoding start`
 3. confirm or accept managed AI entrypoints
-4. let an external AI host use seeded `.nimi/**` reconstruction guidance, reconstruction target-truth profile, manifest, host-profile, installer, delegated runtime contract, installer result contract, collapsed installer summary projection lifecycle contract, installer operational evidence guidance, and the authoritative handoff JSON contract to
-   reconstruct project truth
+4. let an external AI host use seeded `.nimi/**` reconstruction guidance, manifest, host-profile, installer, delegated runtime contract, installer result contract, collapsed installer summary projection lifecycle contract, installer operational evidence guidance, and the authoritative handoff JSON contract to
+   reconstruct the project canonical tree
 5. use the methodology for later high-risk work
 
 ## Development Posture

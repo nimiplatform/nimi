@@ -1,0 +1,5 @@
+rules:
+  - id: pr-001
+    title: project_rules_live_under_kernel_markdown_and_tables
+  - id: pr-002
+    title: inferred_rules_must_remain_explicit_in_the_audit

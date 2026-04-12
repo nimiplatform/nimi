@@ -1,0 +1,4 @@
+export const projectRules = [
+  { id: "pr-001", title: "project_rules_live_under_kernel_markdown_and_tables" },
+  { id: "pr-002", title: "inferred_rules_must_be_recorded_in_audit" },
+];

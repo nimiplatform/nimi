@@ -7,7 +7,7 @@ command_gating_matrix:
       - canonical_tree_in_progress
       - canonical_tree_ready
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active
     notes:
@@ -20,7 +20,7 @@ command_gating_matrix:
       - canonical_tree_in_progress
       - canonical_tree_ready
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active
     reports:
@@ -36,7 +36,7 @@ command_gating_matrix:
       - spec_tree_seeded
       - canonical_tree_in_progress
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active
   - command: handoff
@@ -45,7 +45,7 @@ command_gating_matrix:
       - canonical_tree_in_progress
       - canonical_tree_ready
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active
   - command: handoff
@@ -53,7 +53,7 @@ command_gating_matrix:
     allowed_tree_states:
       - canonical_tree_ready
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active
   - command: closeout
@@ -61,6 +61,7 @@ command_gating_matrix:
     completed_requires:
       tree_state: canonical_tree_ready
       canonical_required_files_valid: true
+      spec_generation_audit_valid: true
   - command: closeout
     skill: doc_spec_audit
     completed_requires:
@@ -76,7 +77,7 @@ command_gating_matrix:
     requires:
       tree_state: canonical_tree_ready
       authority_mode:
-        - external_blueprint_active
+        - external_authority_active
         - canonical_cutover_ready
         - canonical_active
   - command: review-high-risk-execution
@@ -90,6 +91,6 @@ command_gating_matrix:
       tree_state: canonical_tree_ready
       canonical_admissions_truth: .nimi/spec/high-risk-admissions.yaml
     allowed_authority_modes:
-      - external_blueprint_active
+      - external_authority_active
       - canonical_cutover_ready
       - canonical_active

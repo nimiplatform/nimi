@@ -38,7 +38,7 @@ function translateAdmissionReason(reason) {
     ["attached packet_ref failed mechanical validation", "附加的 packet_ref 未通过机械校验"],
     ["attached packet_ref is missing packet_id or topic_id", "附加的 packet_ref 缺少 packet_id 或 topic_id"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before semantic admission", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再进行语义准入"],
-    ["Canonical admission requires reconstructed `.nimi/spec/*.yaml` target truth", "canonical admission 需要已重建的 `.nimi/spec/*.yaml` target truth"],
+    ["Canonical admission requires the canonical tree under `.nimi/spec`", "canonical admission 需要 `.nimi/spec` 下的 canonical tree"],
     ["Manager-owned local decision is ready for explicit canonical admission", "manager 拥有的本地 decision 已准备好进行显式 canonical admission"],
   ]);
   return translations.get(reason) ?? reason;

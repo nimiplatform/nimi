@@ -3,6 +3,10 @@ result_contract:
   id: delegated_spec_reconstruction_result
 summary_required_fields:
   - generated_paths
+  - audit_ref
+  - coverage_summary
+  - unresolved_file_count
+  - inferred_file_count
   - status
   - summary
   - verified_at
@@ -13,14 +17,21 @@ summary_status_enum:
 canonical_tree_completion:
   profile_ref: .nimi/spec/_meta/spec-tree-model.yaml
   generation_inputs_ref: .nimi/config/spec-generation-inputs.yaml
+  audit_contract_ref: .nimi/contracts/spec-generation-audit.schema.yaml
+  audit_ref: .nimi/spec/_meta/spec-generation-audit.yaml
   required_tree_state: canonical_tree_ready
   required_files_valid: true
 completion_requirements:
   - canonical_tree_ready
   - declared_profile_required_files_valid
   - declared_file_class_constraints_valid
+  - spec_generation_audit_present_and_valid
+  - required_canonical_files_have_matching_audit_entries
+  - unresolved_gaps_must_remain_explicit
+  - blocked_must_be_reported_by_the_external_host
   - semantic_and_structural_parity_when_blueprint_exists
 locality: local_only
 semantic_constraints:
   - do_not_promote_closeout_summary_to_project_truth
   - treat_declared_blueprint_as_benchmark_only_not_canonical_output_root
+  - completed_reconstruction_means_reconstructed_or_partial_only

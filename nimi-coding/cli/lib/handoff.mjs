@@ -8,6 +8,8 @@ import {
   HANDOFF_PAYLOAD_CONTRACT_VERSION,
   HOST_ADAPTER_CONFIG_REF,
   SKILL_RESULT_CONTRACT_REFS,
+  SPEC_GENERATION_AUDIT_CONTRACT_REF,
+  SPEC_GENERATION_AUDIT_REF,
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
 } from "../constants.mjs";
 import {
@@ -27,7 +29,7 @@ import {
   styleLabel,
   styleStatus,
 } from "./ui.mjs";
-import { mergeOrderedPaths, parseSkillSection, readYamlList } from "./yaml-helpers.mjs";
+import { mergeOrderedPaths, parseSkillSection, parseYamlText, readYamlList } from "./yaml-helpers.mjs";
 
 function translateHandoffReason(reason) {
   const translations = new Map([
@@ -113,6 +115,7 @@ function getSkillSpecificExpectations(
       skillExpectedResults: [
         "generate_canonical_tree_under_.nimi/spec",
         "establish_kernel_markdown_and_kernel_tables_before_generated_views_or_guides",
+        "record_file_level_generation_audit_under_.nimi/spec/_meta/spec-generation-audit.yaml",
         `satisfy_canonical_tree_completion_declared_in_${resultContractRef}`,
       ],
     };
@@ -186,6 +189,7 @@ export async function buildHandoffPayload(projectRoot, skillId) {
   const skillsConfigText = await readTextIfFile(path.join(projectRoot, ".nimi", "config", "skills.yaml"));
   const handoffText = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "skill-handoff.yaml"));
   const specReconstructionText = await readTextIfFile(path.join(projectRoot, ".nimi", "methodology", "spec-reconstruction.yaml"));
+  const specReconstructionDocument = parseYamlText(specReconstructionText);
   const specContract = await loadSpecReconstructionContract(projectRoot);
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
   const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
@@ -244,6 +248,8 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       acceptanceMode: specGenerationInputs.acceptanceMode ?? "canonical_tree_validity_without_blueprint",
       generationOrder: specGenerationInputs.generationOrder ?? [],
       inferenceRules: specGenerationInputs.inferenceRules ?? [],
+      auditRef: SPEC_GENERATION_AUDIT_REF,
+      auditContractRef: SPEC_GENERATION_AUDIT_CONTRACT_REF,
       requiredFileClasses: [
         "INDEX.md",
         "domain kernel/*.md",
@@ -253,6 +259,15 @@ export async function buildHandoffPayload(projectRoot, skillId) {
         "domain kernel/generated/**",
         "thin domain guides",
       ],
+      minimalRequiredOutputs: Array.isArray(specReconstructionDocument?.reconstruction?.target_tree_shape?.minimal_required_outputs)
+        ? specReconstructionDocument.reconstruction.target_tree_shape.minimal_required_outputs.map((entry) => String(entry))
+        : [],
+      minimumGenerationSequence: Array.isArray(specReconstructionDocument?.reconstruction?.target_tree_shape?.minimum_generation_sequence)
+        ? specReconstructionDocument.reconstruction.target_tree_shape.minimum_generation_sequence.map((entry) => String(entry))
+        : [],
+      skeletonRules: Array.isArray(specReconstructionDocument?.reconstruction?.target_tree_shape?.skeleton_rules)
+        ? specReconstructionDocument.reconstruction.target_tree_shape.skeleton_rules.map((entry) => String(entry))
+        : [],
     }
     : null;
 
@@ -318,7 +333,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
       installerSummaryProjectionContractRef: ".nimi/methodology/skill-installer-summary-projection.yaml",
       exchangeProjectionContractRef: ".nimi/methodology/skill-exchange-projection.yaml",
       reconstructionGuidanceRef: ".nimi/methodology/spec-reconstruction.yaml",
-      reconstructionTargetTruthProfileRef: ".nimi/methodology/spec-target-truth-profile.yaml",
       resultContractRef,
     },
     context: {
@@ -343,7 +357,6 @@ export async function buildHandoffPayload(projectRoot, skillId) {
     },
     constraints: hardConstraints,
     expectedResults,
-    targetTruth: doctorResult.targetTruth,
     doctor: {
       ok: doctorResult.ok,
       handoffReadiness: doctorResult.handoffReadiness,
@@ -403,16 +416,10 @@ export function formatHandoffPayload(payload) {
       `  - mode: ${payload.generationContext.mode}`,
       `  - benchmark_root: ${payload.generationContext.benchmarkBlueprintRoot ?? "none"}`,
       `  - acceptance_mode: ${payload.generationContext.acceptanceMode}`,
+      `  - audit_ref: ${payload.generationContext.auditRef}`,
       `  - code_roots: ${payload.generationContext.codeRoots.length}`,
       `  - docs_roots: ${payload.generationContext.docsRoots.length}`,
       `  - structure_roots: ${payload.generationContext.structureRoots.length}`,
-      "",
-    );
-  } else {
-    lines.push(
-      styleLabel(localize("Target Truth:", "目标 Truth：")),
-      `  - present: ${payload.targetTruth.present.length}`,
-      `  - missing: ${payload.targetTruth.missing.length}`,
       "",
     );
   }
@@ -528,6 +535,13 @@ export function formatHandoffPrompt(payload) {
     lines.push(`- ${localize("Benchmark blueprint root", "Benchmark blueprint root")}: ${payload.generationContext.benchmarkBlueprintRoot ?? "none"}`);
     lines.push(`- ${localize("Acceptance rule", "验收规则")}: ${payload.generationContext.acceptanceMode}`);
     lines.push(`- ${localize("Generation order", "生成顺序")}: ${payload.generationContext.generationOrder.join(", ")}`);
+    lines.push(`- ${localize("Audit output", "审计输出")}: ${payload.generationContext.auditRef}`);
+    if (payload.generationContext.minimumGenerationSequence.length > 0) {
+      lines.push(`- ${localize("Minimum generation sequence", "最小生成顺序")}: ${payload.generationContext.minimumGenerationSequence.join(", ")}`);
+    }
+    if (payload.generationContext.skeletonRules.length > 0) {
+      lines.push(`- ${localize("Skeleton rules", "骨架规则")}: ${payload.generationContext.skeletonRules.join(", ")}`);
+    }
   }
 
   if (payload.skill.expectedCloseoutSummaryFields.length > 0) {
@@ -564,6 +578,10 @@ export function formatHandoffPrompt(payload) {
       "- 直接在 `.nimi/spec/**` 下构建 canonical tree；不要把 compact summary 当作主要输出。",
     ));
     lines.push(localize(
+      "- Write `.nimi/spec/_meta/spec-generation-audit.yaml` alongside the canonical tree. Every generated canonical file must record source refs, source basis, and unresolved gaps.",
+      "- 在 canonical tree 旁边写出 `.nimi/spec/_meta/spec-generation-audit.yaml`。每个生成的 canonical 文件都必须记录 source refs、source basis 和未解决缺口。",
+    ));
+    lines.push(localize(
       "- When a benchmark blueprint root is declared, aim for semantic and structural parity with that benchmark rather than byte-for-byte duplication.",
       "- 当声明了 benchmark blueprint root 时，目标应是与该 benchmark 保持语义和结构等价，而不是逐字节复制。",
     ));
@@ -571,10 +589,6 @@ export function formatHandoffPrompt(payload) {
       "- For ordinary projects without a benchmark blueprint, infer the domain set from the declared mixed inputs and build kernel markdown/tables first.",
       "- 对于没有 benchmark blueprint 的普通项目，请根据声明的 mixed inputs 推断域集合，并优先生成 kernel markdown/tables。",
     ));
-  }
-
-  if (payload.targetTruth.missing.length > 0) {
-    lines.push(`- ${localize("Remaining target truth gaps", "剩余 target truth 缺口")}: ${payload.targetTruth.missing.join(", ")}`);
   }
 
   lines.push("", localize(payload.nextAction, translateHandoffReason(payload.nextAction)));
@@ -671,6 +685,10 @@ export function formatStartPastePrompt(payload, options) {
       `- Canonical target root: \`${payload.generationContext.canonicalTargetRoot}\``,
       `- Canonical 目标根：\`${payload.generationContext.canonicalTargetRoot}\``,
     ));
+    lines.splice(4, 0, localize(
+      `- Audit file: \`${payload.generationContext.auditRef}\``,
+      `- 审计文件：\`${payload.generationContext.auditRef}\``,
+    ));
     lines.push(localize(
       `5. Inspect the declared source materials: code roots (${payload.generationContext.codeRoots.join(", ") || "none"}), docs roots (${payload.generationContext.docsRoots.join(", ") || "none"}), structure roots (${payload.generationContext.structureRoots.join(", ") || "none"}).`,
       `5. 检查声明的源材料：代码根（${payload.generationContext.codeRoots.join(", ") || "none"}）、文档根（${payload.generationContext.docsRoots.join(", ") || "none"}）、结构根（${payload.generationContext.structureRoots.join(", ") || "none"}）。`,
@@ -679,23 +697,43 @@ export function formatStartPastePrompt(payload, options) {
       `6. Build real canonical files first: ${payload.generationContext.requiredFileClasses.join(", ")}.`,
       `6. 先生成真实 canonical 文件：${payload.generationContext.requiredFileClasses.join(", ")}。`,
     ));
+    if (payload.generationContext.minimumGenerationSequence.length > 0) {
+      lines.push(localize(
+        `6a. Start with this minimum skeleton: ${payload.generationContext.minimumGenerationSequence.join(", ")}.`,
+        `6a. 先从这组最小骨架开始：${payload.generationContext.minimumGenerationSequence.join(", ")}。`,
+      ));
+    }
+    lines.push(localize(
+      `7. Write \`${payload.generationContext.auditRef}\` for every generated canonical file. Record source refs, source basis, and unresolved gaps explicitly.`,
+      `7. 为每个生成的 canonical 文件写入 \`${payload.generationContext.auditRef}\`。显式记录 source refs、source basis 和未解决缺口。`,
+    ));
+    if (payload.generationContext.skeletonRules.length > 0) {
+      lines.push(localize(
+        `7a. Apply these skeleton rules: ${payload.generationContext.skeletonRules.join(", ")}.`,
+        `7a. 应用这些骨架规则：${payload.generationContext.skeletonRules.join(", ")}。`,
+      ));
+    }
+    lines.push(localize(
+      "7b. If the first pass reaches a valid minimal skeleton but still contains explicit inferred or unresolved areas, keep the audit explicit and return a partial reconstruction result instead of claiming full completion.",
+      "7b. 如果第一轮只达到有效的最小骨架，但仍包含显式的 inferred 或 unresolved 区域，请保持审计显式，并返回 partial reconstruction 结果，而不是宣称完全完成。",
+    ));
     if (payload.generationContext.benchmarkBlueprintRoot) {
       lines.push(localize(
-        `7. Use benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` as an acceptance benchmark. Aim for semantic and structural parity; do not optimize for file-by-file copying.`,
-        `7. 将 benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` 作为验收基准。目标是语义和结构等价；不要追求逐文件复制。`,
+        `8. Use benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` as an acceptance benchmark. Aim for semantic and structural parity; do not optimize for file-by-file copying.`,
+        `8. 将 benchmark root \`${payload.generationContext.benchmarkBlueprintRoot}\` 作为验收基准。目标是语义和结构等价；不要追求逐文件复制。`,
       ));
     } else {
       lines.push(localize(
-        "7. No benchmark blueprint is declared. Infer the domain set from the mixed inputs and keep the canonical tree explicit and fail-closed.",
-        "7. 当前没有声明 benchmark blueprint。请根据 mixed inputs 推断域集合，并保持 canonical tree 显式且 fail-close。",
+        "8. No benchmark blueprint is declared. Infer the domain set from the mixed inputs and keep the canonical tree explicit and fail-closed.",
+        "8. 当前没有声明 benchmark blueprint。请根据 mixed inputs 推断域集合，并保持 canonical tree 显式且 fail-close。",
       ));
     }
   }
 
   if (hostId === "oh-my-codex") {
     lines.push(localize(
-      "5. Keep `.omx/**` and external execution state operational only. Do not write semantic truth directly into `.nimi/spec/**`.",
-      "5. 将 `.omx/**` 和外部执行状态保持为 operational only。不要直接把语义 truth 写入 `.nimi/spec/**`。",
+      "Additional OMX rule: keep `.omx/**` and external execution state operational only. Do not write semantic truth directly into `.nimi/spec/**`.",
+      "额外 OMX 规则：将 `.omx/**` 和外部执行状态保持为 operational only。不要直接把语义 truth 写入 `.nimi/spec/**`。",
     ));
   }
 

@@ -87,42 +87,6 @@ export const EXTERNAL_HOST_COMPATIBILITY_SUPPORTED_HOST_EXAMPLES = [
   "gemini",
 ];
 
-export const TARGET_SPEC_FILES = [
-  ".nimi/spec/authority-map.yaml",
-  ".nimi/spec/boundaries.yaml",
-  ".nimi/spec/ownership.yaml",
-  ".nimi/spec/change-policy.yaml",
-  ".nimi/spec/high-risk-admissions.yaml",
-];
-
-export const TARGET_SPEC_REQUIRED_KEYS = {
-  ".nimi/spec/authority-map.yaml": [
-    "authorities",
-    "ownership_rules",
-    "escalation_paths",
-  ],
-  ".nimi/spec/boundaries.yaml": [
-    "boundaries",
-    "invariants",
-    "fail_closed_rules",
-  ],
-  ".nimi/spec/ownership.yaml": [
-    "surfaces",
-    "ownership_modes",
-    "approval_requirements",
-  ],
-  ".nimi/spec/change-policy.yaml": [
-    "work_types",
-    "authority_gates",
-    "parallel_truth_policy",
-  ],
-  ".nimi/spec/high-risk-admissions.yaml": [
-    "admissions",
-    "admission_rules",
-    "semantic_constraints",
-  ],
-};
-
 export const HIGH_RISK_ADMISSION_REQUIRED_TOP_LEVEL_KEYS = [
   "admissions",
   "admission_rules",
@@ -147,6 +111,10 @@ export const HIGH_RISK_ADMISSION_DISPOSITION_ENUM = [
 
 export const SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS = [
   "generated_paths",
+  "audit_ref",
+  "coverage_summary",
+  "unresolved_file_count",
+  "inferred_file_count",
   "status",
   "summary",
   "verified_at",
@@ -156,6 +124,35 @@ export const SPEC_RECONSTRUCTION_SUMMARY_STATUS = [
   "reconstructed",
   "partial",
   "blocked",
+];
+
+export const SPEC_GENERATION_AUDIT_REQUIRED_TOP_LEVEL_FIELDS = [
+  "generation_mode",
+  "canonical_target_root",
+  "declared_profile",
+  "input_roots",
+  "files",
+];
+
+export const SPEC_GENERATION_AUDIT_FILE_REQUIRED_FIELDS = [
+  "canonical_path",
+  "file_class",
+  "source_refs",
+  "source_basis",
+  "coverage_status",
+  "unresolved_items",
+];
+
+export const SPEC_GENERATION_AUDIT_SOURCE_BASIS_ENUM = [
+  "grounded",
+  "mixed_grounded_and_inferred",
+  "inferred",
+];
+
+export const SPEC_GENERATION_AUDIT_COVERAGE_STATUS_ENUM = [
+  "complete",
+  "partial",
+  "placeholder_not_allowed",
 ];
 
 export const DOC_SPEC_AUDIT_SUMMARY_REQUIRED_FIELDS = [
@@ -214,8 +211,10 @@ export const COMMAND_GATING_MATRIX_REF = ".nimi/spec/_meta/command-gating-matrix
 export const GENERATE_DRIFT_MIGRATION_CHECKLIST_REF = ".nimi/spec/_meta/generate-drift-migration-checklist.yaml";
 export const GOVERNANCE_ROUTING_CUTOVER_CHECKLIST_REF = ".nimi/spec/_meta/governance-routing-cutover-checklist.yaml";
 export const PHASE2_IMPACTED_SURFACE_MATRIX_REF = ".nimi/spec/_meta/phase2-impacted-surface-matrix.yaml";
+export const SPEC_GENERATION_AUDIT_REF = ".nimi/spec/_meta/spec-generation-audit.yaml";
 export const SPEC_GENERATION_INPUTS_REF = ".nimi/config/spec-generation-inputs.yaml";
 export const SPEC_GENERATION_INPUTS_CONTRACT_REF = ".nimi/contracts/spec-generation-inputs.schema.yaml";
+export const SPEC_GENERATION_AUDIT_CONTRACT_REF = ".nimi/contracts/spec-generation-audit.schema.yaml";
 
 export const SKILL_RESULT_CONTRACT_REFS = {
   spec_reconstruction: SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
@@ -226,7 +225,6 @@ export const SKILL_RESULT_CONTRACT_REFS = {
 export const REQUIRED_BOOTSTRAP_FILES = [
   ".nimi/methodology/core.yaml",
   ".nimi/methodology/spec-reconstruction.yaml",
-  ".nimi/methodology/spec-target-truth-profile.yaml",
   ".nimi/methodology/skill-runtime.yaml",
   ".nimi/methodology/skill-installer-result.yaml",
   ".nimi/methodology/skill-installer-summary-projection.yaml",
@@ -253,6 +251,7 @@ export const REQUIRED_BOOTSTRAP_FILES = [
   HIGH_RISK_EXECUTION_RESULT_CONTRACT_REF,
   HIGH_RISK_ADMISSION_CONTRACT_REF,
   SPEC_GENERATION_INPUTS_CONTRACT_REF,
+  SPEC_GENERATION_AUDIT_CONTRACT_REF,
   EXTERNAL_HOST_COMPATIBILITY_CONTRACT_REF,
   EXECUTION_PACKET_SCHEMA_REF,
   ORCHESTRATION_STATE_SCHEMA_REF,

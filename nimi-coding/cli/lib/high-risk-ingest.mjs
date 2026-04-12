@@ -37,7 +37,7 @@ function translateIngestReason(reason) {
     ["high-risk ingest requires an imported summary", "high-risk ingest 需要导入的 summary"],
     ["high-risk ingest requires summary.status candidate_ready", "high-risk ingest 需要 summary.status 为 candidate_ready"],
     ["Bootstrap or handoff validation is failing; repair doctor errors before ingesting external execution artifacts", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再导入外部执行产物"],
-    ["High-risk ingest requires reconstructed `.nimi/spec/*.yaml` target truth", "high-risk ingest 需要已重建的 `.nimi/spec/*.yaml` target truth"],
+    ["High-risk ingest requires the canonical tree under `.nimi/spec`", "high-risk ingest 需要 `.nimi/spec` 下的 canonical tree"],
     ["One or more external execution candidate artifacts failed mechanical validation", "一个或多个外部执行候选产物未通过机械校验"],
     ["External execution candidate artifacts passed bounded ingest validation", "外部执行候选产物已通过受边界约束的导入校验"],
   ]);

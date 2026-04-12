@@ -2,7 +2,7 @@ version: 1
 spec_tree_model:
   profile: minimal
   canonical_root: .nimi/spec
-  authority_mode: external_blueprint_active
+  authority_mode: external_authority_active
   domains:
     - id: project
       root: .nimi/spec/project

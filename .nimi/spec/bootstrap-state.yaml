@@ -2,7 +2,7 @@ version: 2
 state:
   mode: bootstrap_only
   tree_state: bootstrap_only
-  authority_mode: external_blueprint_active
+  authority_mode: external_authority_active
   blueprint_mode: repo_spec_blueprint
   reconstruction_required: true
   reconstruction_owner: ai_skills
@@ -16,7 +16,7 @@ lifecycle_contract:
     - canonical_tree_in_progress
     - canonical_tree_ready
   authority_mode_enum:
-    - external_blueprint_active
+    - external_authority_active
     - canonical_cutover_ready
     - canonical_active
   blueprint_mode_enum:
@@ -30,13 +30,13 @@ lifecycle_contract:
   legacy_mode_mapping:
     - legacy_mode: bootstrap_only
       tree_state: bootstrap_only
-      authority_mode: external_blueprint_active
+      authority_mode: external_authority_active
       blueprint_mode: none
       reconstruction_required: true
       ready_for_ai_reconstruction: true
     - legacy_mode: reconstruction_seeded
       tree_state: canonical_tree_in_progress
-      authority_mode: external_blueprint_active
+      authority_mode: external_authority_active
       blueprint_mode: none
       reconstruction_required: false
       ready_for_ai_reconstruction: false
@@ -50,7 +50,6 @@ current_truth:
   admitted_files:
     - .nimi/methodology/core.yaml
     - .nimi/methodology/spec-reconstruction.yaml
-    - .nimi/methodology/spec-target-truth-profile.yaml
     - .nimi/methodology/skill-runtime.yaml
     - .nimi/methodology/skill-installer-result.yaml
     - .nimi/methodology/skill-installer-summary-projection.yaml
@@ -81,20 +80,13 @@ current_truth:
     - .nimi/contracts/prompt.schema.yaml
     - .nimi/contracts/worker-output.schema.yaml
     - .nimi/contracts/acceptance.schema.yaml
-target_truth:
-  missing_files:
-    - .nimi/spec/authority-map.yaml
-    - .nimi/spec/boundaries.yaml
-    - .nimi/spec/ownership.yaml
-    - .nimi/spec/change-policy.yaml
-    - .nimi/spec/high-risk-admissions.yaml
 status:
   bootstrap_contract_version: 1
   ready_for_ai_reconstruction: true
   external_handoff_required: true
   human_projection_mode: derived_only
   canonical_root_candidate: .nimi/spec
-  active_authority_root: spec
+  active_authority_root: external_authority
 cutover_readiness:
   canonical_tree_contract_seeded: true
   canonical_tree_files_seeded: false

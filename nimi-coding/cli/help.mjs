@@ -35,6 +35,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding review-high-risk-execution --from <json> [--json] [--write-local]")}`,
     `  ${styleCommand("nimicoding validate-execution-packet <path>")}`,
     `  ${styleCommand("nimicoding validate-orchestration-state <path>")}`,
+    `  ${styleCommand("nimicoding validate-spec-audit [.nimi/spec/_meta/spec-generation-audit.yaml]")}`,
     `  ${styleCommand("nimicoding validate-spec-tree [.nimi/spec]")}`,
     `  ${styleCommand("nimicoding validate-prompt <path>")}`,
     `  ${styleCommand("nimicoding validate-worker-output <path>")}`,
@@ -66,8 +67,12 @@ export function helpText() {
       "  - `nimicoding doctor` 默认显示用户视图；加 `--verbose` 可查看内部契约细节",
     )),
     styleMuted(localize(
-      "  - `nimicoding blueprint-audit` compares a repo-local blueprint root against the candidate canonical tree under `.nimi/spec`",
-      "  - `nimicoding blueprint-audit` 会把仓库本地 blueprint root 与 `.nimi/spec` 下的候选 canonical tree 进行比对",
+      "  - `nimicoding blueprint-audit` is an optional benchmark parity check when a blueprint root is declared",
+      "  - `nimicoding blueprint-audit` 是可选的 benchmark 等价检查，仅在声明 blueprint root 时使用",
+    )),
+    styleMuted(localize(
+      "  - `nimicoding validate-spec-audit` checks whether the generated canonical files carry explicit file-level evidence, inference, and unresolved-gap tracking",
+      "  - `nimicoding validate-spec-audit` 用于检查生成的 canonical 文件是否携带显式的逐文件证据、推断来源和未解决缺口记录",
     )),
     styleMuted(localize(
       "  - `nimicoding handoff --prompt` writes local prompt/json refs under .nimi/local/handoff/",

@@ -68,6 +68,9 @@ export async function applyFixtureScenario({
     }
   });
 
+  const specGenerationInputsPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
+  const effectiveGenerationInputs = YAML.parse(await readFile(specGenerationInputsPath, "utf8")).spec_generation_inputs;
+
   if (fixture.spec_tree_model) {
     const specTreeModelPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml");
     const specTreeModelDocument = YAML.parse(await readFile(specTreeModelPath, "utf8"));
@@ -80,11 +83,30 @@ export async function applyFixtureScenario({
     await writeFile(specTreeModelPath, YAML.stringify(specTreeModelDocument), "utf8");
   }
 
+  const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+  try {
+    const auditDocument = YAML.parse(await readFile(auditPath, "utf8"));
+    auditDocument.spec_generation_audit.input_roots.code_roots = effectiveGenerationInputs.code_roots;
+    auditDocument.spec_generation_audit.input_roots.docs_roots = effectiveGenerationInputs.docs_roots;
+    auditDocument.spec_generation_audit.input_roots.structure_roots = effectiveGenerationInputs.structure_roots;
+    auditDocument.spec_generation_audit.input_roots.human_note_paths = effectiveGenerationInputs.human_note_paths;
+    auditDocument.spec_generation_audit.input_roots.benchmark_blueprint_root = effectiveGenerationInputs.benchmark_blueprint_root;
+    await writeFile(auditPath, YAML.stringify(auditDocument), "utf8");
+  } catch {
+    // Scenario may intentionally omit the audit artifact before reconstruction output exists.
+  }
+
   if (scenario.include_blueprint_reference ?? fixture.blueprint_reference.include_by_default) {
     await writeBlueprintReference(projectRoot, fixture.blueprint_reference.root);
   }
 
-  for (const mutation of scenario.mutations ?? []) {
+  await applyScenarioMutations(projectRoot, scenario.mutations ?? []);
+
+  return { fixture, scenario };
+}
+
+export async function applyScenarioMutations(projectRoot, mutations = []) {
+  for (const mutation of mutations) {
     const targetPath = path.join(projectRoot, mutation.target);
     if (mutation.op === "delete") {
       await rm(targetPath, { recursive: true, force: true });
@@ -97,10 +119,60 @@ export async function applyFixtureScenario({
       continue;
     }
 
+    if (mutation.op === "update_audit_entry") {
+      const auditDocument = YAML.parse(await readFile(targetPath, "utf8"));
+      const files = Array.isArray(auditDocument?.spec_generation_audit?.files)
+        ? auditDocument.spec_generation_audit.files
+        : [];
+      const entry = files.find((file) => file?.canonical_path === mutation.canonical_path);
+      if (!entry) {
+        throw new Error(`Audit entry '${mutation.canonical_path}' not found in ${targetPath}`);
+      }
+      for (const [key, value] of Object.entries(mutation.set ?? {})) {
+        entry[key] = value;
+      }
+      await writeFile(targetPath, YAML.stringify(auditDocument), "utf8");
+      continue;
+    }
+
     throw new Error(`Unsupported fixture mutation op '${mutation.op}'`);
   }
+}
 
-  return { fixture, scenario };
+export async function materializeFixtureHostOutput({
+  repoRoot,
+  projectRoot,
+  fixtureId,
+}) {
+  const fixture = await loadFixtureManifest(repoRoot, fixtureId);
+  if (!fixture.host_output) {
+    throw new Error(`Fixture '${fixtureId}' does not declare host_output`);
+  }
+
+  const sourceRoot = path.join(repoRoot, "test", "fixtures", "spec-generation", fixtureId, fixture.host_output.source_root);
+  for (const file of fixture.host_output.files ?? []) {
+    const sourcePath = path.join(sourceRoot, file.source);
+    const targetPath = path.join(projectRoot, file.target);
+    await mkdir(path.dirname(targetPath), { recursive: true });
+    await writeFile(targetPath, await readFile(sourcePath, "utf8"), "utf8");
+  }
+
+  if (fixture.host_output.audit) {
+    const auditSourcePath = path.join(sourceRoot, fixture.host_output.audit.source);
+    const auditTargetPath = path.join(projectRoot, fixture.host_output.audit.target);
+    await mkdir(path.dirname(auditTargetPath), { recursive: true });
+    await writeFile(auditTargetPath, await readFile(auditSourcePath, "utf8"), "utf8");
+
+    const specGenerationInputsPath = path.join(projectRoot, ".nimi", "config", "spec-generation-inputs.yaml");
+    const effectiveGenerationInputs = YAML.parse(await readFile(specGenerationInputsPath, "utf8")).spec_generation_inputs;
+    const auditDocument = YAML.parse(await readFile(auditTargetPath, "utf8"));
+    auditDocument.spec_generation_audit.input_roots.code_roots = effectiveGenerationInputs.code_roots;
+    auditDocument.spec_generation_audit.input_roots.docs_roots = effectiveGenerationInputs.docs_roots;
+    auditDocument.spec_generation_audit.input_roots.structure_roots = effectiveGenerationInputs.structure_roots;
+    auditDocument.spec_generation_audit.input_roots.human_note_paths = effectiveGenerationInputs.human_note_paths;
+    auditDocument.spec_generation_audit.input_roots.benchmark_blueprint_root = effectiveGenerationInputs.benchmark_blueprint_root;
+    await writeFile(auditTargetPath, YAML.stringify(auditDocument), "utf8");
+  }
 }
 
 async function collectRelativeFiles(rootPath, relativePrefix) {
@@ -130,6 +202,19 @@ export async function buildSpecReconstructionCloseoutImport(projectRoot, overrid
     path.join(projectRoot, ".nimi", "spec"),
     ".nimi/spec",
   );
+  const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+  const auditDocument = YAML.parse(await readFile(auditPath, "utf8"));
+  const auditEntries = Array.isArray(auditDocument?.spec_generation_audit?.files)
+    ? auditDocument.spec_generation_audit.files
+    : [];
+  const completeFiles = auditEntries.filter((entry) => entry.coverage_status === "complete").length;
+  const partialFiles = auditEntries.filter((entry) => entry.coverage_status === "partial").length;
+  const placeholderFiles = auditEntries.filter((entry) => entry.coverage_status === "placeholder_not_allowed").length;
+  const unresolvedFileCount = auditEntries.filter((entry) => Array.isArray(entry.unresolved_items) && entry.unresolved_items.length > 0).length;
+  const inferredFileCount = auditEntries.filter((entry) => (
+    entry.source_basis === "inferred" || entry.source_basis === "mixed_grounded_and_inferred"
+  )).length;
+  const inferredOrUnresolved = partialFiles > 0 || unresolvedFileCount > 0 || inferredFileCount > 0;
 
   const verifiedAt = overrides.verifiedAt ?? "2026-04-10T00:00:00.000Z";
   return {
@@ -140,8 +225,20 @@ export async function buildSpecReconstructionCloseoutImport(projectRoot, overrid
     localOnly: true,
     summary: {
       generated_paths: generatedPaths,
-      status: overrides.summaryStatus ?? "reconstructed",
-      summary: overrides.summaryText ?? "Canonical spec generation completed from the declared mixed inputs.",
+      audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+      coverage_summary: {
+        complete_files: completeFiles,
+        partial_files: partialFiles,
+        placeholder_files: placeholderFiles,
+      },
+      unresolved_file_count: unresolvedFileCount,
+      inferred_file_count: inferredFileCount,
+      status: overrides.summaryStatus ?? (inferredOrUnresolved ? "partial" : "reconstructed"),
+      summary: overrides.summaryText ?? (
+        inferredOrUnresolved
+          ? "Canonical spec generation produced a valid minimal skeleton, but explicit unresolved or inferred areas remain."
+          : "Canonical spec generation completed from the declared mixed inputs."
+      ),
       verified_at: verifiedAt,
     },
   };

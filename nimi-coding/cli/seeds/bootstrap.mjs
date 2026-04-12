@@ -3,6 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PACKAGE_ROOT = fileURLToPath(new URL("../..", import.meta.url));
+const HOST_BOOTSTRAP_EXCLUDED_PATHS = new Set([
+  "methodology/spec-target-truth-profile.yaml",
+]);
 const SOURCE_PROJECTIONS = [
   { sourceDir: "config", outputDir: ".nimi/config" },
   { sourceDir: "contracts", outputDir: ".nimi/contracts" },
@@ -25,6 +28,9 @@ async function collectProjectedFiles(rootPath, currentPath, outputDir, seedMap) 
     }
 
     const relativePath = toPortableRelativePath(path.relative(rootPath, absolutePath));
+    if (HOST_BOOTSTRAP_EXCLUDED_PATHS.has(`${path.basename(rootPath)}/${relativePath}`)) {
+      continue;
+    }
     seedMap.set(`${outputDir}/${relativePath}`, await readFile(absolutePath, "utf8"));
   }
 }

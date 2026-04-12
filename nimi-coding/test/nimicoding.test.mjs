@@ -12,8 +12,10 @@ import { runCli } from "../cli/nimicoding.mjs";
 import { createBootstrapSeedFileMap } from "../cli/seeds/bootstrap.mjs";
 import {
   applyFixtureScenario,
+  applyScenarioMutations,
   buildSpecReconstructionCloseoutImport,
   loadFixtureManifest,
+  materializeFixtureHostOutput,
 } from "./spec-generation-scenarios.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -129,12 +131,6 @@ async function seedReconstructedTargetTruth(projectRoot) {
     "project/kernel/index.md": "# Project Kernel\n\n- Canonical kernel index.\n",
     "project/kernel/core-rules.md": "# Core Rules\n\n- Rule 1: fail closed on authority ambiguity.\n",
     "project/kernel/tables/rule-catalog.yaml": "rules:\n  - id: rule-1\n    title: fail_closed_on_authority_ambiguity\n",
-  };
-  const targetFiles = {
-    "authority-map.yaml": "authorities: []\nownership_rules: []\nescalation_paths: []\n",
-    "boundaries.yaml": "boundaries: []\ninvariants: []\nfail_closed_rules: []\n",
-    "ownership.yaml": "surfaces: []\nownership_modes: []\napproval_requirements: []\n",
-    "change-policy.yaml": "work_types: []\nauthority_gates: []\nparallel_truth_policy: {}\n",
     "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
   };
 
@@ -144,20 +140,71 @@ async function seedReconstructedTargetTruth(projectRoot) {
     await writeFile(absolutePath, contents, "utf8");
   }
 
-  for (const [fileName, contents] of Object.entries(targetFiles)) {
-    await writeFile(
-      path.join(projectRoot, ".nimi", "spec", fileName),
-      contents,
-      "utf8",
-    );
-  }
+  await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+  await writeFile(
+    path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"),
+    YAML.stringify({
+      version: 1,
+      contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
+      spec_generation_audit: {
+        generation_mode: "mixed",
+        canonical_target_root: ".nimi/spec",
+        declared_profile: "minimal",
+        input_roots: {
+          code_roots: [],
+          docs_roots: ["README.md"],
+          structure_roots: ["."],
+          human_note_paths: [],
+          benchmark_blueprint_root: null,
+        },
+        files: [
+          {
+            canonical_path: ".nimi/spec/INDEX.md",
+            file_class: "index",
+            source_refs: ["README.md"],
+            source_basis: "grounded",
+            coverage_status: "complete",
+            unresolved_items: [],
+            notes: [],
+          },
+          {
+            canonical_path: ".nimi/spec/project/kernel/index.md",
+            file_class: "kernel_markdown",
+            source_refs: ["README.md"],
+            source_basis: "grounded",
+            coverage_status: "complete",
+            unresolved_items: [],
+            notes: [],
+          },
+          {
+            canonical_path: ".nimi/spec/project/kernel/core-rules.md",
+            file_class: "kernel_markdown",
+            source_refs: ["README.md"],
+            source_basis: "grounded",
+            coverage_status: "complete",
+            unresolved_items: [],
+            notes: [],
+          },
+          {
+            canonical_path: ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
+            file_class: "kernel_tables",
+            source_refs: ["README.md"],
+            source_basis: "grounded",
+            coverage_status: "complete",
+            unresolved_items: [],
+            notes: [],
+          },
+        ],
+      },
+    }),
+    "utf8",
+  );
 
   const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
   const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
   bootstrapState.state.mode = "reconstruction_seeded";
   bootstrapState.state.tree_state = "canonical_tree_ready";
   bootstrapState.state.reconstruction_required = false;
-  bootstrapState.target_truth = { missing_files: [] };
   bootstrapState.status.ready_for_ai_reconstruction = false;
   bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
   await writeFile(
@@ -169,10 +216,6 @@ async function seedReconstructedTargetTruth(projectRoot) {
 
 async function seedTargetTruthFilesOnly(projectRoot) {
   const targetFiles = {
-    "authority-map.yaml": "authorities: []\nownership_rules: []\nescalation_paths: []\n",
-    "boundaries.yaml": "boundaries: []\ninvariants: []\nfail_closed_rules: []\n",
-    "ownership.yaml": "surfaces: []\nownership_modes: []\napproval_requirements: []\n",
-    "change-policy.yaml": "work_types: []\nauthority_gates: []\nparallel_truth_policy: {}\n",
     "high-risk-admissions.yaml": "admissions: []\nadmission_rules: []\nsemantic_constraints: []\n",
   };
 
@@ -230,10 +273,51 @@ async function markCanonicalTreeReady(projectRoot) {
   bootstrapState.state.mode = "reconstruction_seeded";
   bootstrapState.state.tree_state = "canonical_tree_ready";
   bootstrapState.state.reconstruction_required = false;
-  bootstrapState.target_truth = { missing_files: [] };
   bootstrapState.status.ready_for_ai_reconstruction = false;
   bootstrapState.cutover_readiness.canonical_tree_files_seeded = true;
   await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+}
+
+async function materializeFixtureScenario(projectRoot, fixtureId, scenarioId) {
+  const fixture = await loadFixtureManifest(repoRoot, fixtureId);
+  const scenario = fixture.scenarios.find((entry) => entry.id === scenarioId);
+  assert.ok(scenario, `Unknown fixture scenario '${scenarioId}'`);
+
+  if (scenario.materialization_mode === "host_output_plan") {
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId,
+      scenarioId,
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+      scenarioOverrides: {
+        apply_canonical: false,
+        mutations: [],
+      },
+    });
+    await materializeFixtureHostOutput({
+      repoRoot,
+      projectRoot,
+      fixtureId,
+    });
+    await applyScenarioMutations(projectRoot, scenario.mutations ?? []);
+  } else {
+    await applyFixtureScenario({
+      repoRoot,
+      projectRoot,
+      fixtureId,
+      scenarioId,
+      updateSpecGenerationInputs,
+      writeBlueprintReference,
+    });
+  }
+
+  if ((scenario.apply_canonical ?? fixture.canonical.include_by_default) || scenario.materialization_mode === "host_output_plan") {
+    await markCanonicalTreeReady(projectRoot);
+  }
+
+  return { fixture, scenario };
 }
 
 async function runSpecReconstructionFixtureLoop(fixtureId, scenarioId) {
@@ -273,18 +357,7 @@ async function runSpecReconstructionFixtureLoop(fixtureId, scenarioId) {
     assert.equal(handoffResult.exitCode, 0);
     const handoffPayload = JSON.parse(handoffResult.stdout);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId,
-      scenarioId,
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
-
-    if (scenario.apply_canonical ?? fixture.canonical.include_by_default) {
-      await markCanonicalTreeReady(projectRoot);
-    }
+    await materializeFixtureScenario(projectRoot, fixtureId, scenarioId);
 
     const importPayload = await buildSpecReconstructionCloseoutImport(projectRoot);
     const importPath = path.join(projectRoot, `${fixture.id}-${scenario.id}.closeout.json`);
@@ -299,6 +372,11 @@ async function runSpecReconstructionFixtureLoop(fixtureId, scenarioId) {
     ]);
     const closeoutPayload = JSON.parse(closeoutResult.stdout);
 
+    const treeValidationResult = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
+    const treeValidationPayload = JSON.parse(treeValidationResult.stdout);
+    const specAuditResult = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    const specAuditPayload = JSON.parse(specAuditResult.stdout);
+
     let blueprintAuditResult = null;
     let blueprintAuditPayload = null;
     if (scenario.expected.blueprint_audit !== "skip") {
@@ -311,6 +389,10 @@ async function runSpecReconstructionFixtureLoop(fixtureId, scenarioId) {
       fixture,
       scenario,
       handoffPayload,
+      treeValidationResult,
+      treeValidationPayload,
+      specAuditResult,
+      specAuditPayload,
       closeoutResult,
       closeoutPayload,
       blueprintAuditResult,
@@ -404,6 +486,10 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
       path.join(projectRoot, ".nimi", "contracts", "spec-generation-inputs.schema.yaml"),
       "utf8",
     );
+    const specGenerationAuditContract = await readFile(
+      path.join(projectRoot, ".nimi", "contracts", "spec-generation-audit.schema.yaml"),
+      "utf8",
+    );
     const hostCompatibilityContract = await readFile(
       path.join(projectRoot, ".nimi", "contracts", "external-host-compatibility.yaml"),
       "utf8",
@@ -416,6 +502,7 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     const agents = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
     const claude = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
     const handoffJson = await readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.json"), "utf8");
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "methodology", "spec-target-truth-profile.yaml"), "utf8"));
     assert.match(bootstrapState, /ready_for_ai_reconstruction: true/);
     assert.match(bootstrapConfig, /initialized_by: "@nimiplatform\/nimi-coding"/);
     assert.match(bootstrapConfig, /bootstrap_contract: "nimicoding.bootstrap"/);
@@ -449,6 +536,7 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     await assert.rejects(readFile(path.join(projectRoot, ".nimi", "local", "handoff", "spec_reconstruction.prompt.md"), "utf8"));
     assert.match(result.stdout, /4\. Paste Prompt/);
     assert.match(result.stdout, /\.nimi\/local\/handoff\/spec_reconstruction\.json/);
+    assert.doesNotMatch(handoffJson, /spec-target-truth-profile/);
     assert.match(exchangeProjection, /exchange_surfaces:/);
     assert.match(exchangeProjection, /contractVersion/);
     assert.match(exchangeProjection, /- handoff/);
@@ -461,6 +549,8 @@ test("start bootstraps the project, integrates entrypoints, and prepares spec re
     assert.match(highRiskAdmissionContract, /source_decision_contract/);
     assert.match(specGenerationInputsContract, /canonical_spec_generation_inputs/);
     assert.match(specGenerationInputsContract, /acceptance_mode_enum:/);
+    assert.match(specGenerationAuditContract, /canonical_spec_generation_audit/);
+    assert.match(specGenerationAuditContract, /required_file_entry_fields:/);
     assert.match(hostCompatibilityContract, /external_host_boundary_compatibility/);
     assert.match(hostCompatibilityContract, /supported_host_posture:/);
     assert.match(hostCompatibilityContract, /host_agnostic_external_host/);
@@ -510,9 +600,10 @@ test("start projects canonical spec meta contracts and checklists as valid yaml"
     assert.equal(specTreeModel.spec_tree_model.canonical_root, ".nimi/spec");
     assert.equal(specTreeModel.spec_tree_model.blueprint_source, undefined);
     assert.equal(bootstrapState.state.tree_state, "bootstrap_only");
-    assert.equal(bootstrapState.state.authority_mode, "external_blueprint_active");
+    assert.equal(bootstrapState.state.authority_mode, "external_authority_active");
     assert.equal(specGenerationInputs.spec_generation_inputs.mode, "mixed");
     assert.equal(specGenerationInputs.spec_generation_inputs.benchmark_mode, "none");
+    assert.ok(!bootstrapState.current_truth.admitted_files.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
     assert.equal(productScope.canonical_spec_model.state_carrier_ref, ".nimi/spec/bootstrap-state.yaml");
     assert.equal(commandGatingMatrix.command_gating_matrix[0].command, "start");
     assert.ok(commandGatingMatrix.command_gating_matrix.some((entry) => entry.command === "handoff" && entry.skill === "high_risk_execution"));
@@ -766,11 +857,35 @@ test("doctor emits machine-readable JSON", async () => {
     assert.equal(payload.adapterProfiles.admitted[0].promptHandoff.futureSurfaceStatus, "future_only_not_packaged");
     assert.deepEqual(payload.adapterProfiles.admitted[0].promptHandoff.futureSurface, ["nimicoding run-next-prompt"]);
     assert.equal(payload.adapterProfiles.selected, null);
-    assert.equal(payload.targetTruth.missing.length, 5);
     assert.equal(payload.auditArtifact.present, false);
     assert.equal(payload.executionContracts.total, 5);
     assert.equal(payload.executionContracts.valid, 5);
     assert.equal(payload.executionContracts.invalid.length, 0);
+  });
+});
+
+test("doctor and handoff tolerate a legacy host that still keeps the support profile locally", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "methodology"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "methodology", "spec-target-truth-profile.yaml"),
+      await readFile(path.join(repoRoot, "methodology", "spec-target-truth-profile.yaml"), "utf8"),
+      "utf8",
+    );
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+    const doctorPayload = JSON.parse(doctorResult.stdout);
+    assert.equal(doctorPayload.ok, true);
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
+    assert.equal(handoffResult.exitCode, 0);
+    const handoffPayload = JSON.parse(handoffResult.stdout);
+    assert.equal(handoffPayload.ok, true);
+    assert.ok(!handoffPayload.context.orderedPaths.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
   });
 });
 
@@ -928,14 +1043,7 @@ test("blueprint-audit accepts a mini benchmark fixture modeled on nimi/spec stru
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId: "mini-benchmark",
-      scenarioId: "benchmark_success",
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
 
@@ -959,14 +1067,7 @@ test("blueprint-audit accepts a dual-domain benchmark fixture modeled on nimi/sp
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId: "dual-domain-benchmark",
-      scenarioId: "benchmark_success",
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
+    await materializeFixtureScenario(projectRoot, "dual-domain-benchmark", "benchmark_success");
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
 
@@ -990,14 +1091,7 @@ test("blueprint-audit fails dual-domain benchmark acceptance when a generated vi
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId: "dual-domain-benchmark",
-      scenarioId: "missing_generated_view",
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
+    await materializeFixtureScenario(projectRoot, "dual-domain-benchmark", "missing_generated_view");
 
     const auditResult = await captureRunCli(["blueprint-audit", "--json"]);
 
@@ -1040,6 +1134,13 @@ test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-inp
     assert.equal(payload.generationContext.benchmarkBlueprintRoot, "spec");
     assert.equal(payload.generationContext.benchmarkMode, "repo_spec_blueprint");
     assert.equal(payload.generationContext.acceptanceMode, "semantic_and_structural_parity_when_blueprint_exists");
+    assert.deepEqual(payload.generationContext.minimumGenerationSequence, [
+      ".nimi/spec/INDEX.md",
+      ".nimi/spec/project/kernel/index.md",
+      ".nimi/spec/project/kernel/core-rules.md",
+      ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
+    ]);
+    assert.ok(payload.generationContext.skeletonRules.includes("generate_minimal_kernel_before_optional_guides_and_generated_views"));
 
     const promptResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--prompt"]);
     assert.equal(promptResult.exitCode, 0);
@@ -1052,6 +1153,8 @@ test("spec reconstruction handoff uses the mini benchmark fixture as a mixed-inp
     assert.match(promptText, /Docs roots: docs/);
     assert.match(promptText, /Human note paths: \.nimi\/local\/notes\/reconstruction-note\.md/);
     assert.match(promptText, /aim for semantic and structural parity/i);
+    assert.match(promptText, /minimum generation sequence/i);
+    assert.match(promptText, /\.nimi\/spec\/project\/kernel\/core-rules\.md/);
   });
 });
 
@@ -1059,10 +1162,15 @@ test("fixture loop completes single-domain benchmark reconstruction through clos
   const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "benchmark_success");
 
   assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.treeValidationPayload.ok, true);
+  assert.equal(result.specAuditResult.exitCode, 0);
+  assert.equal(result.specAuditPayload.ok, true);
   assert.equal(result.closeoutResult.exitCode, 0);
   assert.equal(result.closeoutPayload.ok, true);
   assert.equal(result.closeoutPayload.outcome, "completed");
   assert.equal(result.closeoutPayload.summary.status, "reconstructed");
+  assert.equal(result.closeoutPayload.summary.audit_ref, ".nimi/spec/_meta/spec-generation-audit.yaml");
   assert.equal(result.blueprintAuditResult.exitCode, 0);
   assert.equal(result.blueprintAuditPayload.ok, true);
 });
@@ -1071,6 +1179,8 @@ test("fixture loop completes dual-domain benchmark reconstruction through closeo
   const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "benchmark_success");
 
   assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 0);
   assert.equal(result.closeoutResult.exitCode, 0);
   assert.equal(result.closeoutPayload.ok, true);
   assert.equal(result.blueprintAuditResult.exitCode, 0);
@@ -1081,8 +1191,11 @@ test("fixture loop completes dual-domain benchmark reconstruction through closeo
 test("fixture loop fails benchmark acceptance when a generated view is missing", async () => {
   const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "missing_generated_view");
 
-  assert.equal(result.closeoutResult.exitCode, 0);
-  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.equal(result.closeoutResult.exitCode, 1);
+  assert.equal(result.closeoutPayload.ok, false);
+  assert.match(result.closeoutPayload.readiness.reason, /spec-generation-audit/i);
   assert.equal(result.blueprintAuditResult.exitCode, 1);
   assert.equal(result.blueprintAuditPayload.ok, false);
   assert.deepEqual(
@@ -1094,9 +1207,11 @@ test("fixture loop fails benchmark acceptance when a generated view is missing",
 test("fixture loop fails completed reconstruction closeout when a domain kernel file is missing", async () => {
   const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "missing_domain_file");
 
+  assert.equal(result.treeValidationResult.exitCode, 1);
+  assert.equal(result.specAuditResult.exitCode, 1);
   assert.equal(result.closeoutResult.exitCode, 1);
   assert.equal(result.closeoutPayload.ok, false);
-  assert.match(result.closeoutPayload.readiness.reason, /bootstrap or handoff validation is failing/i);
+  assert.match(result.closeoutPayload.readiness.reason, /declared canonical tree files/i);
   assert.equal(result.blueprintAuditResult, null);
   assert.equal(result.blueprintAuditPayload, null);
 });
@@ -1104,6 +1219,8 @@ test("fixture loop fails completed reconstruction closeout when a domain kernel 
 test("fixture loop fails benchmark acceptance when kernel table rule ids drift", async () => {
   const result = await runSpecReconstructionFixtureLoop("dual-domain-benchmark", "rule_id_drift");
 
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 0);
   assert.equal(result.closeoutResult.exitCode, 0);
   assert.equal(result.closeoutPayload.ok, true);
   assert.equal(result.blueprintAuditResult.exitCode, 1);
@@ -1115,13 +1232,99 @@ test("fixture loop fails benchmark acceptance when kernel table rule ids drift",
 test("fixture loop allows ordinary-project reconstruction without a benchmark blueprint", async () => {
   const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "ordinary_project_success");
 
+  assert.equal(result.scenario.materialization_mode, "host_output_plan");
   assert.equal(result.handoffPayload.ok, true);
   assert.equal(result.handoffPayload.generationContext.benchmarkBlueprintRoot, null);
   assert.equal(result.handoffPayload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 0);
   assert.equal(result.closeoutResult.exitCode, 0);
   assert.equal(result.closeoutPayload.ok, true);
   assert.equal(result.blueprintAuditResult, null);
   assert.equal(result.blueprintAuditPayload, null);
+  assert.match(
+    await readFile(path.join(result.projectRoot, ".nimi", "spec", "runtime", "kernel", "core-rules.md"), "utf8"),
+    /Rule|Rules|runtime/i,
+  );
+});
+
+test("fixture loop completes a minimal ordinary-project reconstruction without any benchmark blueprint", async () => {
+  const result = await runSpecReconstructionFixtureLoop("minimal-ordinary-project", "minimal_success");
+
+  assert.equal(result.handoffPayload.ok, true);
+  assert.equal(result.handoffPayload.generationContext.benchmarkBlueprintRoot, null);
+  assert.equal(result.handoffPayload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 0);
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.closeoutPayload.summary.status, "reconstructed");
+  assert.equal(result.blueprintAuditResult, null);
+  assert.match(
+    await readFile(path.join(result.projectRoot, ".nimi", "spec", "project", "kernel", "core-rules.md"), "utf8"),
+    /PR-001|project rules/i,
+  );
+});
+
+test("fixture loop allows a minimal ordinary-project reconstruction to close out as partial when unresolved gaps stay explicit", async () => {
+  const result = await runSpecReconstructionFixtureLoop("minimal-ordinary-project", "minimal_partial_success");
+
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 0);
+  assert.equal(result.closeoutResult.exitCode, 0);
+  assert.equal(result.closeoutPayload.ok, true);
+  assert.equal(result.closeoutPayload.summary.status, "partial");
+  assert.equal(result.closeoutPayload.summary.unresolved_file_count, 1);
+  assert.equal(result.closeoutPayload.summary.inferred_file_count, 1);
+  assert.equal(result.blueprintAuditResult, null);
+});
+
+test("fixture loop fails a minimal ordinary-project reconstruction when the core rules file is missing", async () => {
+  const result = await runSpecReconstructionFixtureLoop("minimal-ordinary-project", "missing_core_rules");
+
+  assert.equal(result.treeValidationResult.exitCode, 1);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.equal(result.closeoutResult.exitCode, 1);
+  assert.equal(result.closeoutPayload.ok, false);
+  assert.equal(result.blueprintAuditResult, null);
+});
+
+test("fixture loop fails completed reconstruction closeout when a required audit entry is missing", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "missing_audit_entry");
+
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.equal(result.closeoutResult.exitCode, 1);
+  assert.equal(result.closeoutPayload.ok, false);
+  assert.match(result.closeoutPayload.readiness.reason, /spec-generation-audit/i);
+});
+
+test("fixture loop fails audit validation when a source ref escapes declared inputs", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "audit_source_escape");
+
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.equal(result.specAuditPayload.ok, false);
+  assert.match(JSON.stringify(result.specAuditPayload.errors), /escape declared inputs/i);
+  assert.equal(result.closeoutResult.exitCode, 1);
+});
+
+test("fixture loop fails audit validation when inferred files hide unresolved gaps", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "inferred_without_unresolved");
+
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.match(JSON.stringify(result.specAuditPayload.errors), /unresolved_items/i);
+  assert.equal(result.closeoutResult.exitCode, 1);
+});
+
+test("fixture loop fails audit validation when a required file is marked as placeholder", async () => {
+  const result = await runSpecReconstructionFixtureLoop("mini-benchmark", "placeholder_required_file");
+
+  assert.equal(result.treeValidationResult.exitCode, 0);
+  assert.equal(result.specAuditResult.exitCode, 1);
+  assert.match(JSON.stringify(result.specAuditPayload.errors), /placeholder_not_allowed/i);
+  assert.equal(result.closeoutResult.exitCode, 1);
 });
 
 test("start continues from bootstrap into spec reconstruction handoff prep", async () => {
@@ -1136,7 +1339,7 @@ test("start continues from bootstrap into spec reconstruction handoff prep", asy
   });
 });
 
-test("start continues into doc spec audit handoff once target truth is reconstructed", async () => {
+test("start continues into doc spec audit handoff once the canonical tree is ready", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1351,25 +1554,21 @@ test("doctor fails closed when standalone completion truth drifts", async () => 
   });
 });
 
-test("doctor fails closed when reconstructed target truth misses required sections", async () => {
+test("doctor fails closed when canonical-tree-ready state loses the generation audit artifact", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     await seedReconstructedTargetTruth(projectRoot);
-    await writeFile(
-      path.join(projectRoot, ".nimi", "spec", "authority-map.yaml"),
-      "authorities: []\n",
-      "utf8",
-    );
+    await rm(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"), { force: true });
 
     const doctorResult = await captureRunCli(["doctor", "--json"]);
 
     assert.equal(doctorResult.exitCode, 1);
     const payload = JSON.parse(doctorResult.stdout);
-    assert.equal(payload.targetTruth.invalid.length, 1);
-    assert.equal(payload.targetTruth.invalid[0].path, ".nimi/spec/authority-map.yaml");
-    assert.match(JSON.stringify(payload.checks), /missing required top-level keys/);
+    assert.equal(payload.specGenerationAudit.present, false);
+    assert.equal(payload.handoffReadiness.ok, false);
+    assert.match(JSON.stringify(payload.checks), /spec generation audit/i);
   });
 });
 
@@ -1507,6 +1706,8 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     ]);
     assert.equal(payload.generationContext.benchmarkBlueprintRoot, null);
     assert.equal(payload.generationContext.acceptanceMode, "canonical_tree_validity_without_blueprint");
+    assert.equal(payload.generationContext.auditRef, ".nimi/spec/_meta/spec-generation-audit.yaml");
+    assert.equal(payload.generationContext.auditContractRef, ".nimi/contracts/spec-generation-audit.schema.yaml");
     assert.ok(payload.context.orderedPaths.includes(".nimi/config/spec-generation-inputs.yaml"));
     assert.equal(payload.runtimeOwner, "external_ai_host");
     assert.equal(payload.handoffSurface.authoritativeMode, "json");
@@ -1562,6 +1763,7 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     const payload = JSON.parse(payloadText);
 
     assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.ok(!payload.context.orderedPaths.includes(".nimi/methodology/spec-target-truth-profile.yaml"));
     assert.match(promptText, /Use the JSON handoff payload as the authoritative machine contract/);
     assert.match(promptText, /Treat this prompt as a human-readable projection/);
     assert.match(promptText, /This handoff surface is host-agnostic/);
@@ -1570,6 +1772,7 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.match(promptText, /Supported external host examples: oh_my_codex, codex, claude, gemini/);
     assert.match(promptText, /Required host behavior: consume_handoff_json_as_authoritative_contract/);
     assert.match(promptText, /Forbidden host behavior: assume_packaged_run_kernel/);
+    assert.doesNotMatch(promptText, /spec-target-truth-profile/);
     assert.match(promptText, /Generic external host compatible: true/);
     assert.match(promptText, /Named overlay mode: named_admitted_overlay_available/);
     assert.match(promptText, /Admitted named overlays: oh_my_codex/);
@@ -1578,14 +1781,17 @@ test("handoff projects an external host prompt for spec reconstruction", async (
     assert.match(promptText, /Read this project-local truth first, in order:/);
     assert.match(promptText, /Do not assume local skill installation or self-hosting/);
     assert.match(promptText, /Canonical target root: \.nimi\/spec/);
+    assert.match(promptText, /Audit output: \.nimi\/spec\/_meta\/spec-generation-audit\.yaml/);
+    assert.match(promptText, /Write `\.nimi\/spec\/_meta\/spec-generation-audit\.yaml` alongside the canonical tree/);
     assert.match(promptText, /Required file classes: INDEX\.md, domain kernel\/\*\.md, domain kernel\/tables\/\*\*/);
+    assert.match(promptText, /Minimum generation sequence: \.nimi\/spec\/INDEX\.md, \.nimi\/spec\/project\/kernel\/index\.md/);
     assert.match(promptText, /Code roots: none/);
     assert.match(promptText, /Docs roots: README\.md/);
     assert.match(promptText, /For ordinary projects without a benchmark blueprint/);
   });
 });
 
-test("handoff fails closed for doc spec audit before target truth exists", async () => {
+test("handoff fails closed for doc spec audit before the canonical tree exists", async () => {
   await withTempProject(async () => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1601,7 +1807,7 @@ test("handoff fails closed for doc spec audit before target truth exists", async
   });
 });
 
-test("handoff allows doc spec audit after target truth is reconstructed", async () => {
+test("handoff allows doc spec audit after the canonical tree is ready", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1624,11 +1830,10 @@ test("handoff allows doc spec audit after target truth is reconstructed", async 
       "verified_at",
     ]);
     assert.equal(payload.skill.readiness.ok, true);
-    assert.equal(payload.targetTruth.missing.length, 0);
   });
 });
 
-test("handoff allows high risk execution after target truth is reconstructed and includes contracts context", async () => {
+test("handoff allows high risk execution after the canonical tree is ready and includes contracts context", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1815,6 +2020,8 @@ test("closeout writes a local-only result artifact after completed reconstructio
     assert.equal(payload.ok, true);
     assert.equal(payload.contractVersion, "nimicoding.closeout.v1");
     assert.equal(payload.localOnly, true);
+    assert.equal(payload.summary.audit_ref, ".nimi/spec/_meta/spec-generation-audit.yaml");
+    assert.equal(payload.summary.status, "reconstructed");
     assert.equal(payload.skill.resultContractRef, ".nimi/contracts/spec-reconstruction-result.yaml");
     assert.equal(
       payload.contracts.exchangeProjectionContractRef,
@@ -1827,7 +2034,7 @@ test("closeout writes a local-only result artifact after completed reconstructio
   });
 });
 
-test("closeout fails closed when completed reconstruction lacks target truth", async () => {
+test("closeout fails closed when completed reconstruction lacks the canonical tree", async () => {
   await withTempProject(async () => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1850,7 +2057,33 @@ test("closeout fails closed when completed reconstruction lacks target truth", a
   });
 });
 
-test("closeout allows blocked outcomes without reconstructed target truth", async () => {
+test("closeout fails completed reconstruction when spec generation audit is missing", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+    await rm(path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml"), { force: true });
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--skill",
+      "spec_reconstruction",
+      "--outcome",
+      "completed",
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 1);
+    const payload = JSON.parse(closeoutResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(payload.readiness.reason, /spec-generation-audit/i);
+  });
+});
+
+test("closeout allows blocked outcomes without a reconstructed canonical tree", async () => {
   await withTempProject(async () => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -1870,6 +2103,89 @@ test("closeout allows blocked outcomes without reconstructed target truth", asyn
     const payload = JSON.parse(closeoutResult.stdout);
     assert.equal(payload.ok, true);
     assert.equal(payload.outcome, "blocked");
+  });
+});
+
+test("closeout rejects failed spec reconstruction payloads that still carry a summary", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const importPath = path.join(projectRoot, "bad-failed-reconstruction-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "spec_reconstruction" },
+        outcome: "failed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          generated_paths: [".nimi/spec/INDEX.md"],
+          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          coverage_summary: {
+            complete_files: 1,
+            partial_files: 0,
+            placeholder_files: 0,
+          },
+          unresolved_file_count: 0,
+          inferred_file_count: 0,
+          status: "blocked",
+          summary: "This should not be accepted for a failed outcome.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /does not accept summary when outcome is failed/i);
+  });
+});
+
+test("closeout rejects blocked doc spec audit payloads with a completed-only summary status", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const importPath = path.join(projectRoot, "bad-blocked-doc-audit-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "doc_spec_audit" },
+        outcome: "blocked",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          compared_paths: ["README.md", ".nimi/spec"],
+          finding_count: 0,
+          status: "aligned",
+          summary: "Blocked outcomes must not claim aligned.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(closeoutResult.stderr, /doc_spec_audit summary.status must be blocked/i);
   });
 });
 
@@ -1906,14 +2222,22 @@ test("closeout imports an external JSON summary before writing local artifact", 
         localOnly: true,
         summary: {
           generated_paths: [
-            ".nimi/spec/authority-map.yaml",
-            ".nimi/spec/boundaries.yaml",
-            ".nimi/spec/ownership.yaml",
-            ".nimi/spec/change-policy.yaml",
-            ".nimi/spec/high-risk-admissions.yaml",
+            ".nimi/spec/INDEX.md",
+            ".nimi/spec/project/kernel/index.md",
+            ".nimi/spec/project/kernel/core-rules.md",
+            ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
+            ".nimi/spec/_meta/spec-generation-audit.yaml",
           ],
+          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          coverage_summary: {
+            complete_files: 4,
+            partial_files: 0,
+            placeholder_files: 0,
+          },
+          unresolved_file_count: 0,
+          inferred_file_count: 0,
           status: "reconstructed",
-          summary: "All declared target truth files were reconstructed.",
+          summary: "Canonical tree generation completed with file-level audit coverage.",
           verified_at: "2026-04-10T00:00:00.000Z",
         },
       }, null, 2)}\n`,
@@ -2783,14 +3107,17 @@ test("package files publish canonical source dirs and start output matches sourc
   assert.ok(packageJson.files.includes("methodology"));
   assert.ok(packageJson.files.includes("spec"));
   assert.ok(!packageJson.files.includes("templates"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "spec-target-truth-profile.yaml"), "utf8"));
 
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
     const seedMap = await createBootstrapSeedFileMap();
+    assert.ok(!seedMap.has(".nimi/methodology/spec-target-truth-profile.yaml"));
     assert.ok(seedMap.has(".nimi/config/spec-generation-inputs.yaml"));
     assert.ok(seedMap.has(".nimi/contracts/spec-generation-inputs.schema.yaml"));
+    assert.ok(seedMap.has(".nimi/contracts/spec-generation-audit.schema.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/spec-tree-model.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/command-gating-matrix.yaml"));
     assert.ok(seedMap.has(".nimi/spec/_meta/generate-drift-migration-checklist.yaml"));
@@ -2800,6 +3127,7 @@ test("package files publish canonical source dirs and start output matches sourc
       const actual = await readFile(path.join(projectRoot, relativePath), "utf8");
       assert.equal(actual, expected, `source projection mismatch for ${relativePath}`);
     }
+    await assert.rejects(readFile(path.join(projectRoot, ".nimi", "methodology", "spec-target-truth-profile.yaml"), "utf8"));
   });
 });
 
@@ -2807,6 +3135,7 @@ test("package repo exposes package source dirs and is not treated as a host proj
   await assert.doesNotReject(readFile(path.join(repoRoot, "methodology", "core.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "config", "spec-generation-inputs.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "spec-generation-inputs.schema.yaml"), "utf8"));
+  await assert.doesNotReject(readFile(path.join(repoRoot, "contracts", "spec-generation-audit.schema.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "product-scope.yaml"), "utf8"));
   await assert.doesNotReject(readFile(path.join(repoRoot, "spec", "_meta", "spec-tree-model.yaml"), "utf8"));
   await assert.rejects(readFile(path.join(repoRoot, ".nimicoding-dev", "spec", "authority-map.yaml"), "utf8"));
@@ -2872,14 +3201,7 @@ test("validate-spec-tree accepts a canonical benchmark tree after direct materia
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId: "mini-benchmark",
-      scenarioId: "benchmark_success",
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
     const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
     assert.equal(result.exitCode, 0);
@@ -2896,14 +3218,7 @@ test("validate-spec-tree fails when a required canonical file is missing after d
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
 
-    await applyFixtureScenario({
-      repoRoot,
-      projectRoot,
-      fixtureId: "mini-benchmark",
-      scenarioId: "missing_domain_file",
-      updateSpecGenerationInputs,
-      writeBlueprintReference,
-    });
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "missing_domain_file");
 
     const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
     assert.equal(result.exitCode, 1);
@@ -2915,7 +3230,46 @@ test("validate-spec-tree fails when a required canonical file is missing after d
   });
 });
 
+test("validate-spec-audit accepts an auditable canonical benchmark tree after direct materialization", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+
+    const result = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-audit");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.requiredAuditedFiles, 4);
+  });
+});
+
+test("validate-spec-audit fails when a required canonical file is missing from the audit contract", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "missing_audit_entry");
+
+    const result = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 1);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-audit");
+    assert.equal(payload.ok, false);
+    assert.equal(payload.refusal.code, "SPEC_AUDIT_INVALID");
+    assert.match(JSON.stringify(payload.errors), /missing an audit entry|non-existent canonical file/i);
+  });
+});
+
 const validatorCases = [
+  {
+    command: "validate-spec-audit",
+    valid: null,
+    invalid: null,
+    refusalCode: "SPEC_AUDIT_INVALID",
+  },
   {
     command: "validate-spec-tree",
     valid: null,
@@ -2956,19 +3310,12 @@ const validatorCases = [
 
 for (const validatorCase of validatorCases) {
   test(`${validatorCase.command} returns machine-readable success and refusal payloads`, { concurrency: false }, async () => {
-    if (validatorCase.command === "validate-spec-tree") {
+    if (validatorCase.command === "validate-spec-tree" || validatorCase.command === "validate-spec-audit") {
       await withTempProject(async (projectRoot) => {
         const startResult = await captureRunCli(["start"]);
         assert.equal(startResult.exitCode, 0);
 
-        await applyFixtureScenario({
-          repoRoot,
-          projectRoot,
-          fixtureId: "mini-benchmark",
-          scenarioId: "benchmark_success",
-          updateSpecGenerationInputs,
-          writeBlueprintReference,
-        });
+        await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
 
         const success = await runCliSubprocess([validatorCase.command], { cwd: projectRoot });
         assert.equal(success.exitCode, 0);
@@ -2977,14 +3324,11 @@ for (const validatorCase of validatorCases) {
         assert.equal(successPayload.validator, validatorCase.command);
         assert.equal(successPayload.ok, true);
 
-        await applyFixtureScenario({
-          repoRoot,
+        await materializeFixtureScenario(
           projectRoot,
-          fixtureId: "mini-benchmark",
-          scenarioId: "missing_domain_file",
-          updateSpecGenerationInputs,
-          writeBlueprintReference,
-        });
+          "mini-benchmark",
+          validatorCase.command === "validate-spec-tree" ? "missing_domain_file" : "missing_audit_entry",
+        );
 
         const failure = await runCliSubprocess([validatorCase.command], { cwd: projectRoot });
         assert.equal(failure.exitCode, 1);

@@ -3,7 +3,6 @@ bootstrap:
   runtime_installed: false
   installation_mode: deferred
 canonical_reconstruction_guidance: .nimi/methodology/spec-reconstruction.yaml
-canonical_reconstruction_target_truth_profile: .nimi/methodology/spec-target-truth-profile.yaml
 canonical_contracts_root: .nimi/contracts
 canonical_manifest: .nimi/config/skill-manifest.yaml
 canonical_host_profile: .nimi/config/host-profile.yaml
@@ -19,7 +18,7 @@ runtime_owner: external_ai_host
 expected_skill_surfaces:
   - id: spec_reconstruction
     required: true
-    purpose: reconstruct_project_truth_into_.nimi/spec
+    purpose: reconstruct_project_canonical_tree_into_.nimi/spec
   - id: doc_spec_audit
     required: true
     purpose: compare_human_docs_against_.nimi/spec

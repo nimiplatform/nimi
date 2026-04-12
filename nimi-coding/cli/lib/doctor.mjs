@@ -20,6 +20,8 @@ import {
   ORCHESTRATION_STATE_SCHEMA_REF,
   PACKAGE_NAME,
   PROMPT_SCHEMA_REF,
+  SPEC_GENERATION_AUDIT_CONTRACT_REF,
+  SPEC_GENERATION_AUDIT_REF,
   SPEC_GENERATION_INPUTS_CONTRACT_REF,
   SPEC_GENERATION_INPUTS_REF,
   SPEC_TREE_MODEL_REF,
@@ -31,8 +33,6 @@ import {
   STANDALONE_COMPLETION_STATUS,
   STANDALONE_DEFERRED_EXECUTION_SURFACES,
   STANDALONE_PROMOTED_PARITY_GAP_SUMMARY,
-  TARGET_SPEC_FILES,
-  TARGET_SPEC_REQUIRED_KEYS,
   WORKER_OUTPUT_SCHEMA_REF,
 } from "../constants.mjs";
 import {
@@ -49,6 +49,7 @@ import {
   loadHighRiskAdmissionContract,
   loadHighRiskExecutionContract,
   loadHighRiskSchemaContracts,
+  loadSpecGenerationAuditContract,
   loadSpecGenerationInputsConfig,
   loadSpecGenerationInputsContract,
   loadSpecTreeModelContract,
@@ -58,11 +59,11 @@ import {
 } from "./contracts.mjs";
 import { loadExternalExecutionArtifactsConfig } from "./external-execution.mjs";
 import { pathExists, readTextIfFile } from "./fs-helpers.mjs";
+import { validateSpecAudit } from "./validators.mjs";
 import { arraysEqual } from "./value-helpers.mjs";
 import {
   parseSkillSection,
   parseYamlText,
-  readTopLevelKeys,
   readYamlList,
   readYamlScalar,
 } from "./yaml-helpers.mjs";
@@ -97,10 +98,14 @@ function translateDoctorDetail(detail) {
     [".nimi/spec/_meta/spec-tree-model.yaml declares canonical root .nimi/spec with profile minimal", ".nimi/spec/_meta/spec-tree-model.yaml 声明了 canonical root .nimi/spec，profile 为 minimal"],
     [".nimi/spec/_meta/command-gating-matrix.yaml declares 12 command gating rules", ".nimi/spec/_meta/command-gating-matrix.yaml 声明了 12 条命令 gating 规则"],
     [".nimi/contracts/spec-generation-inputs.schema.yaml is present and structurally valid", ".nimi/contracts/spec-generation-inputs.schema.yaml 已存在且结构有效"],
+    [".nimi/contracts/spec-generation-audit.schema.yaml is present and structurally valid", ".nimi/contracts/spec-generation-audit.schema.yaml 已存在且结构有效"],
     [".nimi/config/spec-generation-inputs.yaml declares mixed canonical spec generation inputs", ".nimi/config/spec-generation-inputs.yaml 已声明 mixed canonical spec generation inputs"],
     [".nimi/spec/_meta/blueprint-reference.yaml matches blueprint mode repo_spec_blueprint", ".nimi/spec/_meta/blueprint-reference.yaml 与 blueprint mode repo_spec_blueprint 保持一致"],
     ["Benchmark audit can compare the declared blueprint root against the candidate canonical tree", "benchmark audit 可以比较声明的 blueprint root 与候选 canonical tree"],
     ["Declared canonical tree required files are present", "声明的 canonical tree 必需文件已存在"],
+    ["Spec generation audit is present and structurally valid", "spec generation audit 已存在且结构有效"],
+    ["No spec generation audit detected yet; it will be required before completed reconstruction closeout", "尚未检测到 spec generation audit；在 completed reconstruction closeout 之前将要求该产物"],
+    ["Canonical tree is ready but spec generation audit is still missing or invalid", "canonical tree 已就绪，但 spec generation audit 仍然缺失或无效"],
     ["Command gating matrix includes high_risk_execution closeout readiness", "命令 gating matrix 已包含 high_risk_execution 的 closeout 准入规则"],
     ["bootstrap.yaml was created by nimicoding but is missing bootstrap contract metadata", "bootstrap.yaml 由 nimicoding 创建，但缺少 bootstrap contract 元数据"],
     ["bootstrap.yaml is missing and bootstrap contract compatibility could not be checked", "bootstrap.yaml 缺失，无法检查 bootstrap contract 兼容性"],
@@ -118,8 +123,6 @@ function translateDoctorDetail(detail) {
     ["Packaged high-risk admission schema contract is present and aligned", "包内 high-risk admission schema 契约存在且一致"],
     ["external execution artifact landing-path contract is present and structurally valid", "external execution artifact landing-path 契约存在且结构有效"],
     ["High-risk execution schema seeds are present and structurally valid", "high-risk execution schema seed 已存在且结构有效"],
-    ["Reconstruction target files are still absent, which is expected during bootstrap-only mode", "重建目标文件仍缺失，这在 bootstrap-only 模式下是预期状态"],
-    ["All target truth files are present and satisfy the declared top-level section contract", "所有 target truth 文件已存在且满足声明的顶层 section contract"],
     ["Canonical high-risk admissions truth satisfies the packaged admission schema contract", "canonical high-risk admissions truth 满足包内 admission schema 契约"],
     ["No host adapter selected; vendor-neutral delegated host posture remains active", "未选择 host adapter；vendor-neutral 的 delegated host 姿态仍然生效"],
     ["Package-owned adapter profile overlays are present and valid: oh_my_codex", "包内 adapter profile overlay 已存在且有效：oh_my_codex"],
@@ -139,6 +142,7 @@ function translateDoctorNextStep(step) {
     ["Repair the failing bootstrap checks, then rerun `nimicoding doctor`.", "修复失败的 bootstrap 检查项，然后重新运行 `nimicoding doctor`。"],
     ["Use an external AI host to reconstruct the declared canonical tree under `.nimi/spec`.", "使用外部 AI host 重建声明的 `.nimi/spec` canonical tree。"],
     ["Run `nimicoding blueprint-audit --write-local` after canonical tree generation when a benchmark blueprint is declared.", "当声明了 benchmark blueprint 且 canonical tree 生成完成后，运行 `nimicoding blueprint-audit --write-local`。"],
+    ["Run `nimicoding validate-spec-audit` after generating `.nimi/spec/_meta/spec-generation-audit.yaml` for the canonical tree.", "在为 canonical tree 生成 `.nimi/spec/_meta/spec-generation-audit.yaml` 后，运行 `nimicoding validate-spec-audit`。"],
     ["Run `nimicoding handoff --skill doc_spec_audit` and close out the result locally when the audit is complete.", "运行 `nimicoding handoff --skill doc_spec_audit`，并在审计完成后于本地 closeout 结果。"],
     ["Keep runtime ownership delegated; do not assume local skill installation or self-hosting.", "保持 runtime ownership 为 delegated；不要假设本地 skill 安装或 self-hosting。"],
     ["If you want a constrained external execution host, select one in `.nimi/config/host-adapter.yaml`.", "如果你希望使用受约束的外部执行 host，请在 `.nimi/config/host-adapter.yaml` 中选择一个。"],
@@ -187,6 +191,17 @@ function emptyAuditArtifact() {
     summaryStatus: null,
     verifiedAt: null,
     reason: "No local doc_spec_audit closeout artifact detected",
+  };
+}
+
+function emptySpecGenerationAudit() {
+  return {
+    present: false,
+    ok: false,
+    auditPath: SPEC_GENERATION_AUDIT_REF,
+    validator: "validate-spec-audit",
+    summary: null,
+    reason: "No spec generation audit detected yet; it will be required before completed reconstruction closeout",
   };
 }
 
@@ -437,7 +452,9 @@ function inspectBootstrapStateContract(bootstrapStateText) {
   const parsed = parseYamlText(bootstrapStateText);
   const mode = parsed?.state?.mode ?? null;
   const treeState = parsed?.state?.tree_state ?? null;
-  const authorityMode = parsed?.state?.authority_mode ?? null;
+  const authorityMode = parsed?.state?.authority_mode === "external_blueprint_active"
+    ? "external_authority_active"
+    : parsed?.state?.authority_mode ?? null;
   const blueprintMode = parsed?.state?.blueprint_mode ?? null;
   const reconstructionRequired = parsed?.state?.reconstruction_required;
   const readyForAiReconstruction = parsed?.status?.ready_for_ai_reconstruction;
@@ -453,7 +470,14 @@ function inspectBootstrapStateContract(bootstrapStateText) {
     ? lifecycleContract.blueprint_mode_enum.includes(blueprintMode)
     : false;
   const legacyModeMapping = Array.isArray(lifecycleContract?.legacy_mode_mapping)
-    ? lifecycleContract.legacy_mode_mapping.find((entry) => entry?.legacy_mode === mode) ?? null
+    ? lifecycleContract.legacy_mode_mapping
+      .map((entry) => ({
+        ...entry,
+        authority_mode: entry?.authority_mode === "external_blueprint_active"
+          ? "external_authority_active"
+          : entry?.authority_mode,
+      }))
+      .find((entry) => entry?.legacy_mode === mode) ?? null
     : null;
   const modeSpecificContractOk = (
     mode === "bootstrap_only"
@@ -473,7 +497,7 @@ function inspectBootstrapStateContract(bootstrapStateText) {
   ) || (
     mode === "reconstruction_seeded"
     && treeState === "canonical_tree_ready"
-    && authorityMode === "external_blueprint_active"
+    && authorityMode === "external_authority_active"
     && reconstructionRequired === false
     && readyForAiReconstruction === false
   );
@@ -553,6 +577,7 @@ export async function inspectDoctorState(projectRoot) {
       specTreeModel: null,
       specGenerationInputs: emptySpecGenerationInputs(),
       canonicalTree: emptyCanonicalTree(),
+      specGenerationAudit: emptySpecGenerationAudit(),
       commandGating: emptyCommandGating(),
       blueprintReference: emptyBlueprintReference(),
       benchmarkAuditReadiness: emptyBenchmarkAuditReadiness(),
@@ -561,11 +586,6 @@ export async function inspectDoctorState(projectRoot) {
       ...emptyCompletionPosture(),
       handoffReadiness: emptyHandoffReadiness(),
       checks,
-      targetTruth: {
-        present: [],
-        missing: TARGET_SPEC_FILES.slice(),
-        invalid: [],
-      },
       auditArtifact: emptyAuditArtifact(),
       executionContracts: emptyExecutionContracts(),
       nextSteps: [
@@ -591,6 +611,7 @@ export async function inspectDoctorState(projectRoot) {
       specTreeModel: null,
       specGenerationInputs: emptySpecGenerationInputs(),
       canonicalTree: emptyCanonicalTree(),
+      specGenerationAudit: emptySpecGenerationAudit(),
       commandGating: emptyCommandGating(),
       blueprintReference: emptyBlueprintReference(),
       benchmarkAuditReadiness: emptyBenchmarkAuditReadiness(),
@@ -599,11 +620,6 @@ export async function inspectDoctorState(projectRoot) {
       ...emptyCompletionPosture(),
       handoffReadiness: emptyHandoffReadiness(),
       checks,
-      targetTruth: {
-        present: [],
-        missing: TARGET_SPEC_FILES.slice(),
-        invalid: [],
-      },
       auditArtifact: emptyAuditArtifact(),
       executionContracts: emptyExecutionContracts(),
       nextSteps: [
@@ -741,6 +757,17 @@ export async function inspectDoctorState(projectRoot) {
     ),
   );
 
+  const specGenerationAuditContract = await loadSpecGenerationAuditContract(projectRoot);
+  checks.push(
+    buildCheck(
+      "spec_generation_audit_contract",
+      specGenerationAuditContract.ok,
+      specGenerationAuditContract.ok
+        ? `${SPEC_GENERATION_AUDIT_CONTRACT_REF} is present and structurally valid`
+        : `${SPEC_GENERATION_AUDIT_CONTRACT_REF} is missing or malformed`,
+    ),
+  );
+
   const specGenerationInputs = await loadSpecGenerationInputsConfig(projectRoot);
   checks.push(
     buildCheck(
@@ -828,6 +855,38 @@ export async function inspectDoctorState(projectRoot) {
     detail: canonicalTree.requiredFilesValid
       ? "Declared canonical tree required files are present"
       : `Canonical tree required files are still missing: ${canonicalTree.missing.join(", ")}`,
+  });
+
+  const specGenerationAuditReport = await validateSpecAudit(
+    path.join(projectRoot, SPEC_GENERATION_AUDIT_REF),
+    { projectRoot },
+  );
+  const specGenerationAudit = specGenerationAuditReport.refusal?.code === "SPEC_AUDIT_MISSING"
+    ? emptySpecGenerationAudit()
+    : {
+      present: true,
+      ok: specGenerationAuditReport.ok,
+      auditPath: SPEC_GENERATION_AUDIT_REF,
+      validator: "validate-spec-audit",
+      summary: specGenerationAuditReport.summary ?? null,
+      reason: specGenerationAuditReport.ok
+        ? "Spec generation audit is present and structurally valid"
+        : specGenerationAuditReport.errors.join("; "),
+    };
+  const specGenerationAuditCheckSeverity = !specGenerationAudit.present
+    ? canonicalTree.requiredFilesValid ? "error" : "info"
+    : specGenerationAudit.ok ? "ok" : canonicalTree.requiredFilesValid ? "error" : "warn";
+  checks.push({
+    id: "spec_generation_audit",
+    ok: !specGenerationAudit.present ? !canonicalTree.requiredFilesValid : specGenerationAudit.ok,
+    severity: specGenerationAuditCheckSeverity,
+    detail: !specGenerationAudit.present
+      ? canonicalTree.requiredFilesValid
+        ? "Canonical tree is ready but spec generation audit is still missing or invalid"
+        : specGenerationAudit.reason
+      : specGenerationAudit.ok
+        ? specGenerationAudit.reason
+        : `Canonical tree is ready but spec generation audit is still missing or invalid: ${specGenerationAudit.reason}`,
   });
   const highRiskCloseoutGate = findCommandGatingRule(commandGatingMatrix, "closeout", "high_risk_execution");
   checks.push(
@@ -1070,83 +1129,30 @@ export async function inspectDoctorState(projectRoot) {
     ),
   );
 
-  const targetTruthPresent = [];
-  const targetTruthMissing = [];
-  const targetTruthInvalid = [];
-  for (const relativePath of TARGET_SPEC_FILES) {
-    const info = await pathExists(path.join(projectRoot, relativePath));
-    if (info && info.isFile()) {
-      targetTruthPresent.push(relativePath);
-      const text = await readTextIfFile(path.join(projectRoot, relativePath));
-      const topLevelKeys = readTopLevelKeys(text);
-      const requiredKeys = specContract.targetTruthFiles.find((entry) => entry.path === relativePath)?.required_top_level_keys
-        ?? TARGET_SPEC_REQUIRED_KEYS[relativePath]
-        ?? [];
-      const missingKeys = requiredKeys.filter((key) => !topLevelKeys.includes(key));
-      if (missingKeys.length > 0) {
-        targetTruthInvalid.push({
-          path: relativePath,
-          missingKeys,
-        });
-      }
-    } else {
-      targetTruthMissing.push(relativePath);
-    }
-  }
-
-  if (targetTruthPresent.length === 0) {
-    checks.push({
-      id: "target_truth_progress",
-      ok: true,
-      severity: "info",
-      detail: "Reconstruction target files are still absent, which is expected during bootstrap-only mode",
-    });
-  } else if (targetTruthInvalid.length > 0) {
-    checks.push(
-      buildCheck(
-        "target_truth_structure",
-        false,
-        `Reconstructed target truth is missing required top-level keys: ${targetTruthInvalid.map((entry) => `${entry.path} -> ${entry.missingKeys.join("/")}`).join(", ")}`,
-      ),
-    );
-
-  } else if (targetTruthMissing.length === 0) {
-    checks.push({
-      id: "target_truth_progress",
-      ok: true,
-      severity: "ok",
-      detail: "All target truth files are present and satisfy the declared top-level section contract",
-    });
-  } else {
-    checks.push({
-      id: "target_truth_progress",
-      ok: true,
-      severity: "warn",
-      detail: `Target truth is partially reconstructed but structurally valid so far: present ${targetTruthPresent.length}/${TARGET_SPEC_FILES.length}`,
-    });
-  }
-
   let highRiskAdmissionsTruthValid = true;
   const admissionsTruthRef = ".nimi/spec/high-risk-admissions.yaml";
-  if (targetTruthPresent.includes(admissionsTruthRef)) {
-    const admissionsTruthText = await readTextIfFile(path.join(projectRoot, admissionsTruthRef));
-    const admissionsTruthParsed = parseYamlText(admissionsTruthText);
-    const admissionsTruthValidation = highRiskAdmissionContract.ok
-      ? validateHighRiskAdmissionsSpec(admissionsTruthParsed, highRiskAdmissionContract)
-      : {
-        ok: false,
-        reason: `${HIGH_RISK_ADMISSION_CONTRACT_REF} is missing or malformed`,
-      };
-    highRiskAdmissionsTruthValid = admissionsTruthValidation.ok;
-    checks.push(
-      buildCheck(
-        "high_risk_admissions_truth",
-        admissionsTruthValidation.ok,
-        admissionsTruthValidation.ok
-          ? "Canonical high-risk admissions truth satisfies the packaged admission schema contract"
-          : `Canonical high-risk admissions truth drifted: ${admissionsTruthValidation.reason}`,
-      ),
-    );
+  {
+    const admissionsInfo = await pathExists(path.join(projectRoot, admissionsTruthRef));
+    if (admissionsInfo && admissionsInfo.isFile()) {
+      const admissionsTruthText = await readTextIfFile(path.join(projectRoot, admissionsTruthRef));
+      const admissionsTruthParsed = parseYamlText(admissionsTruthText);
+      const admissionsTruthValidation = highRiskAdmissionContract.ok
+        ? validateHighRiskAdmissionsSpec(admissionsTruthParsed, highRiskAdmissionContract)
+        : {
+          ok: false,
+          reason: `${HIGH_RISK_ADMISSION_CONTRACT_REF} is missing or malformed`,
+        };
+      highRiskAdmissionsTruthValid = admissionsTruthValidation.ok;
+      checks.push(
+        buildCheck(
+          "high_risk_admissions_truth",
+          admissionsTruthValidation.ok,
+          admissionsTruthValidation.ok
+            ? "Canonical high-risk admissions truth satisfies the packaged admission schema contract"
+            : `Canonical high-risk admissions truth drifted: ${admissionsTruthValidation.reason}`,
+        ),
+      );
+    }
   }
 
   const admittedAdapterIds = readYamlList(hostAdapterText, "admitted_adapter_ids");
@@ -1236,7 +1242,7 @@ export async function inspectDoctorState(projectRoot) {
       auditArtifactConsistent,
       auditArtifactConsistent
         ? "Local doc_spec_audit artifact is consistent with the current reconstruction state"
-        : "Completed local doc_spec_audit artifact requires fully reconstructed target truth",
+        : "Completed local doc_spec_audit artifact requires the canonical tree to remain ready",
     ),
   );
 
@@ -1322,7 +1328,9 @@ export async function inspectDoctorState(projectRoot) {
       && packageBoundaryTruthOk
       && specTreeModel.ok
       && specGenerationInputsContract.ok
+      && specGenerationAuditContract.ok
       && specGenerationInputs.ok
+      && (!canonicalTree.requiredFilesValid || specGenerationAudit.ok)
       && commandGatingMatrix.ok
       && blueprintReferenceAligned
       && lifecycleAligned,
@@ -1339,6 +1347,9 @@ export async function inspectDoctorState(projectRoot) {
   }
   if (canonicalTree.requiredFilesValid && benchmarkAuditReadiness.ready) {
     nextSteps.push("Run `nimicoding blueprint-audit --write-local` after canonical tree generation when a benchmark blueprint is declared.");
+  }
+  if (canonicalTree.requiredFilesValid && !specGenerationAudit.ok) {
+    nextSteps.push("Run `nimicoding validate-spec-audit` after generating `.nimi/spec/_meta/spec-generation-audit.yaml` for the canonical tree.");
   }
   if (!auditArtifact.present && canonicalTree.requiredFilesValid) {
     nextSteps.push("Run `nimicoding handoff --skill doc_spec_audit` and close out the result locally when the audit is complete.");
@@ -1398,6 +1409,7 @@ export async function inspectDoctorState(projectRoot) {
     specTreeModel,
     specGenerationInputs,
     canonicalTree,
+    specGenerationAudit,
     commandGating: commandGatingMatrix,
     blueprintReference,
     benchmarkAuditReadiness,
@@ -1411,11 +1423,6 @@ export async function inspectDoctorState(projectRoot) {
     adapterProfiles,
     handoffReadiness,
     checks,
-    targetTruth: {
-      present: targetTruthPresent,
-      missing: targetTruthMissing,
-      invalid: targetTruthInvalid,
-    },
     auditArtifact,
     executionContracts,
     nextSteps,
@@ -1439,9 +1446,9 @@ function summarizeDoctorState(result) {
       ? localize("incomplete", "未完成")
       : localize("ready", "就绪");
 
-  const auditState = !result.auditArtifact.present
+  const auditState = !result.specGenerationAudit?.present
     ? localize("not started", "未开始")
-    : result.auditArtifact.ok
+    : result.specGenerationAudit?.ok
       ? localize("ready", "就绪")
       : localize("needs attention", "需要关注");
   const benchmarkAuditState = !result.benchmarkAuditReadiness?.available
@@ -1563,16 +1570,14 @@ function formatDoctorResultVerbose(result) {
   lines.push(`  - benchmark_root: ${result.benchmarkAuditReadiness.benchmarkRoot ?? "none"}`);
   lines.push(`  - acceptance_mode: ${result.specGenerationInputs.acceptanceMode ?? "unknown"}`);
 
-  lines.push("", styleLabel(localize("Target Truth:", "目标 Truth：")));
-  lines.push(`  - present: ${result.targetTruth.present.length}`);
-  lines.push(`  - missing: ${result.targetTruth.missing.length}`);
-  lines.push(`  - invalid: ${result.targetTruth.invalid.length}`);
-
   lines.push("", styleLabel(localize("Audit:", "审计：")));
-  lines.push(`  - artifact_present: ${result.auditArtifact.present ? "true" : "false"}`);
-  lines.push(`  - artifact_ok: ${result.auditArtifact.ok ? "true" : "false"}`);
-  lines.push(`  - latest_outcome: ${result.auditArtifact.outcome ?? "none"}`);
-  lines.push(`  - latest_status: ${result.auditArtifact.summaryStatus ?? "none"}`);
+  lines.push(`  - spec_generation_audit_present: ${result.specGenerationAudit.present ? "true" : "false"}`);
+  lines.push(`  - spec_generation_audit_ok: ${result.specGenerationAudit.ok ? "true" : "false"}`);
+  lines.push(`  - required_audited_files: ${result.specGenerationAudit.summary?.requiredAuditedFiles ?? 0}`);
+  lines.push(`  - unresolved_files: ${result.specGenerationAudit.summary?.unresolvedFiles ?? 0}`);
+  lines.push(`  - inferred_files: ${result.specGenerationAudit.summary?.inferredFiles ?? 0}`);
+  lines.push(`  - doc_spec_audit_artifact_present: ${result.auditArtifact.present ? "true" : "false"}`);
+  lines.push(`  - doc_spec_audit_artifact_ok: ${result.auditArtifact.ok ? "true" : "false"}`);
 
   lines.push("", styleLabel(localize("Execution Contracts:", "执行契约：")));
   lines.push(`  - total: ${result.executionContracts.total}`);
@@ -1609,7 +1614,7 @@ export function formatDoctorResult(result, options = {}) {
     `  - ${localize("project rules", "项目规则")}: ${summary.canonicalTreeState} (${localize("present", "已存在")} ${result.canonicalTree.present.length}, ${localize("missing", "缺失")} ${result.canonicalTree.missing.length})`,
     `  - ${localize("lifecycle", "生命周期")}: ${result.lifecycleState.treeState ?? "unknown"} / ${result.lifecycleState.authorityMode ?? "unknown"}`,
     `  - ${localize("benchmark audit", "benchmark 审计")}: ${summary.benchmarkAuditState}`,
-    `  - ${localize("audit", "审计")}: ${summary.auditState}`,
+    `  - ${localize("generation audit", "生成审计")}: ${summary.auditState}`,
     `  - ${localize("AI entry files", "AI 入口文件")}: ${summary.entrypointIntegrated ? localize("connected", "已接入") : localize("not connected", "未接入")}`,
     `  - ${localize("handoff", "handoff")}: ${result.handoffReadiness.ok ? localize("ready", "就绪") : localize("needs attention", "需要关注")}`,
   ];

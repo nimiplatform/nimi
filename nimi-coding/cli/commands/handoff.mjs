@@ -96,7 +96,7 @@ export async function runHandoff(args) {
       process.stderr.write(`${localize(payload.nextAction, payload.nextAction
         .replace("Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads", "bootstrap 或 handoff 校验失败；请先修复 doctor 报错，再导出 handoff payload")
         .replace("Projects may delegate spec reconstruction to an external AI host when lifecycle repair or reconstruction work is needed", "当需要 lifecycle repair 或 reconstruction 工作时，项目可以将 spec reconstruction 委托给外部 AI host")
-        .replace("This skill requires reconstructed `.nimi/spec/*.yaml` target truth before handoff", "该 skill 在 handoff 前需要已重建的 `.nimi/spec/*.yaml` target truth")
+        .replace("This skill requires the canonical tree under `.nimi/spec` before handoff", "该 skill 在 handoff 前需要 `.nimi/spec` 下的 canonical tree")
         .replace("Skill prerequisites are satisfied by the current project-local truth", "当前项目本地 truth 已满足该 skill 的前置条件"))}\n`);
       return payload.exitCode;
     }

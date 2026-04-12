@@ -30,8 +30,6 @@ projection_contract:
       - context.orderedPaths
       - constraints
       - expectedResults
-      - targetTruth.present
-      - targetTruth.missing
       - contracts.exchangeProjectionContractRef
     optional_fields:
       - doctor
@@ -46,8 +44,6 @@ projection_contract:
       - localOnly
       - artifactPath
       - readiness.ok
-      - targetTruth.present
-      - targetTruth.missing
       - contracts.exchangeProjectionContractRef
     optional_fields:
       - doctor
@@ -113,6 +109,6 @@ projection_contract:
     - do_not_promote_projection_payloads_to_semantic_truth
     - imported_closeout_summaries_must_match_current_project
     - missing_required_projection_fields_must_fail_closed
-    - completed_projection_claims_must_match_declared_target_truth_state
+    - completed_projection_claims_must_match_declared_canonical_tree_state
     - review_projection_must_not_decide_acceptance_disposition_or_finding_judgment
     - decision_projection_must_remain_local_only_even_when_manager_owned

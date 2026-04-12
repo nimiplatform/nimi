@@ -7,6 +7,34 @@ fixture:
     source: canonical/.nimi/spec
     target: .nimi/spec
     include_by_default: true
+  host_output:
+    source_root: canonical/.nimi/spec
+    files:
+      - source: INDEX.md
+        target: .nimi/spec/INDEX.md
+      - source: runtime.md
+        target: .nimi/spec/runtime.md
+      - source: runtime/kernel/index.md
+        target: .nimi/spec/runtime/kernel/index.md
+      - source: runtime/kernel/core-rules.md
+        target: .nimi/spec/runtime/kernel/core-rules.md
+      - source: runtime/kernel/tables/rule-catalog.yaml
+        target: .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
+      - source: runtime/kernel/generated/overview.md
+        target: .nimi/spec/runtime/kernel/generated/overview.md
+      - source: desktop.md
+        target: .nimi/spec/desktop.md
+      - source: desktop/kernel/index.md
+        target: .nimi/spec/desktop/kernel/index.md
+      - source: desktop/kernel/ui-rules.md
+        target: .nimi/spec/desktop/kernel/ui-rules.md
+      - source: desktop/kernel/tables/component-catalog.yaml
+        target: .nimi/spec/desktop/kernel/tables/component-catalog.yaml
+      - source: desktop/kernel/generated/overview.md
+        target: .nimi/spec/desktop/kernel/generated/overview.md
+    audit:
+      source: _meta/spec-generation-audit.yaml
+      target: .nimi/spec/_meta/spec-generation-audit.yaml
   inputs:
     - source: inputs/code
       target: src
@@ -72,29 +100,36 @@ fixture:
   scenarios:
     - id: benchmark_success
       apply_blueprint: true
-      apply_canonical: true
+      apply_canonical: false
       include_blueprint_reference: true
+      materialization_mode: host_output_plan
       expected:
         closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
         blueprint_audit: pass
         failure_category: none
     - id: missing_generated_view
       apply_blueprint: true
-      apply_canonical: true
+      apply_canonical: false
       include_blueprint_reference: true
+      materialization_mode: host_output_plan
       mutations:
         - op: delete
           target: .nimi/spec/desktop/kernel/generated/overview.md
       expected:
         closeout_ok: true
+        tree_validation: pass
+        spec_audit: fail
         blueprint_audit: fail
         failure_category: derived_view_gaps
         missing_kernel_generated:
           - desktop/kernel/generated/overview.md
     - id: rule_id_drift
       apply_blueprint: true
-      apply_canonical: true
+      apply_canonical: false
       include_blueprint_reference: true
+      materialization_mode: host_output_plan
       mutations:
         - op: replace_text
           target: .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
@@ -102,6 +137,8 @@ fixture:
           replace: "rt-999"
       expected:
         closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
         blueprint_audit: fail
         failure_category: semantic_mapping_gaps
         missing_rule_ids:

@@ -24,22 +24,27 @@ import {
   HIGH_RISK_SCHEMA_SPECS,
   ORCHESTRATION_STATE_SCHEMA_REF,
   PROMPT_SCHEMA_REF,
+  SPEC_GENERATION_AUDIT_CONTRACT_REF,
+  SPEC_GENERATION_AUDIT_COVERAGE_STATUS_ENUM,
+  SPEC_GENERATION_AUDIT_FILE_REQUIRED_FIELDS,
+  SPEC_GENERATION_AUDIT_REF,
+  SPEC_GENERATION_AUDIT_REQUIRED_TOP_LEVEL_FIELDS,
+  SPEC_GENERATION_AUDIT_SOURCE_BASIS_ENUM,
   SPEC_TREE_MODEL_REF,
   SPEC_GENERATION_INPUTS_CONTRACT_REF,
   SPEC_GENERATION_INPUTS_REF,
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   SPEC_RECONSTRUCTION_SUMMARY_REQUIRED_FIELDS,
   SPEC_RECONSTRUCTION_SUMMARY_STATUS,
-  TARGET_SPEC_FILES,
-  TARGET_SPEC_REQUIRED_KEYS,
   WORKER_OUTPUT_SCHEMA_REF,
 } from "../constants.mjs";
 import { readTextIfFile } from "./fs-helpers.mjs";
 import { isIsoUtcTimestamp, isPlainObject, arraysEqual, toStringArray } from "./value-helpers.mjs";
-import { parsePathRequirements, parseYamlText } from "./yaml-helpers.mjs";
+import { parseYamlText } from "./yaml-helpers.mjs";
 
 const SPEC_TREE_PROFILE_ENUM = ["minimal", "standard", "mature"];
 const AUTHORITY_MODE_ENUM = [
+  "external_authority_active",
   "external_blueprint_active",
   "canonical_cutover_ready",
   "canonical_active",
@@ -61,6 +66,16 @@ const SPEC_GENERATION_ORDER_ENUM = [
   "generated_views",
   "thin_guides",
 ];
+
+const SPEC_RECONSTRUCTION_COVERAGE_SUMMARY_REQUIRED_FIELDS = [
+  "complete_files",
+  "partial_files",
+  "placeholder_files",
+];
+
+function normalizeAuthorityModeValue(value) {
+  return value === "external_blueprint_active" ? "external_authority_active" : value;
+}
 
 function toStringOrNull(value) {
   return typeof value === "string" ? value : null;
@@ -129,6 +144,8 @@ function parseSpecReconstructionContract(text) {
     ? {
       profileRef: toStringOrNull(parsed.canonical_tree_completion.profile_ref),
       generationInputsRef: toStringOrNull(parsed.canonical_tree_completion.generation_inputs_ref),
+      auditContractRef: toStringOrNull(parsed.canonical_tree_completion.audit_contract_ref),
+      auditRef: toStringOrNull(parsed.canonical_tree_completion.audit_ref),
       requiredTreeState: toStringOrNull(parsed.canonical_tree_completion.required_tree_state),
       requiredFilesValid: parsed.canonical_tree_completion.required_files_valid === true,
     }
@@ -140,16 +157,49 @@ function parseSpecReconstructionContract(text) {
       && completionRequirements.includes("canonical_tree_ready")
       && completionRequirements.includes("declared_profile_required_files_valid")
       && completionRequirements.includes("declared_file_class_constraints_valid")
+      && completionRequirements.includes("spec_generation_audit_present_and_valid")
+      && completionRequirements.includes("required_canonical_files_have_matching_audit_entries")
+      && completionRequirements.includes("unresolved_gaps_must_remain_explicit")
       && completionRequirements.includes("semantic_and_structural_parity_when_blueprint_exists")
       && canonicalTreeCompletion?.profileRef === SPEC_TREE_MODEL_REF
       && canonicalTreeCompletion?.generationInputsRef === SPEC_GENERATION_INPUTS_REF
+      && canonicalTreeCompletion?.auditContractRef === SPEC_GENERATION_AUDIT_CONTRACT_REF
+      && canonicalTreeCompletion?.auditRef === SPEC_GENERATION_AUDIT_REF
       && canonicalTreeCompletion?.requiredTreeState === "canonical_tree_ready"
       && canonicalTreeCompletion?.requiredFilesValid === true,
-    targetTruthFiles: parsePathRequirements(text, "target_truth_files"),
     canonicalTreeCompletion,
     summaryRequiredFields,
     summaryStatusEnum,
     completionRequirements,
+  };
+}
+
+function parseSpecGenerationAuditContract(text) {
+  const parsed = parseYamlText(text);
+  const requiredTopLevelFields = toStringArray(parsed?.required_top_level_fields);
+  const requiredFileEntryFields = toStringArray(parsed?.required_file_entry_fields);
+  const sourceBasisEnum = toStringArray(parsed?.source_basis_enum);
+  const coverageStatusEnum = toStringArray(parsed?.coverage_status_enum);
+  const hardConstraints = toStringArray(parsed?.hard_constraints);
+
+  return {
+    ok: parsed?.version === 1
+      && String(parsed?.audit_contract?.id ?? "") === "canonical_spec_generation_audit"
+      && String(parsed?.audit_contract?.target_ref ?? "") === SPEC_GENERATION_AUDIT_REF
+      && arraysEqual(requiredTopLevelFields, SPEC_GENERATION_AUDIT_REQUIRED_TOP_LEVEL_FIELDS)
+      && arraysEqual(requiredFileEntryFields, SPEC_GENERATION_AUDIT_FILE_REQUIRED_FIELDS)
+      && arraysEqual(sourceBasisEnum, SPEC_GENERATION_AUDIT_SOURCE_BASIS_ENUM)
+      && arraysEqual(coverageStatusEnum, SPEC_GENERATION_AUDIT_COVERAGE_STATUS_ENUM)
+      && hardConstraints.includes("every_generated_canonical_file_requires_a_matching_audit_entry")
+      && hardConstraints.includes("required_canonical_files_must_not_be_placeholder_not_allowed")
+      && hardConstraints.includes("unresolved_or_inferred_content_must_be_explicit")
+      && hardConstraints.includes("source_refs_must_stay_within_declared_inputs_or_optional_benchmark_root")
+      && hardConstraints.includes("no_empty_success_looking_audit_entries"),
+    requiredTopLevelFields,
+    requiredFileEntryFields,
+    sourceBasisEnum,
+    coverageStatusEnum,
+    hardConstraints,
   };
 }
 
@@ -232,7 +282,7 @@ function parseSpecTreeModel(text) {
   const model = parsed?.spec_tree_model;
   const profile = toStringOrNull(model?.profile);
   const canonicalRoot = toStringOrNull(model?.canonical_root);
-  const authorityMode = toStringOrNull(model?.authority_mode);
+  const authorityMode = normalizeAuthorityModeValue(toStringOrNull(model?.authority_mode));
   const domains = Array.isArray(model?.domains)
     ? model.domains.map(normalizeSpecDomain).filter(Boolean)
     : [];
@@ -331,7 +381,7 @@ function parseCommandGatingMatrix(text) {
         command: entry.command,
         skill: toStringOrNull(entry.skill),
         allowedTreeStates: toStringArray(entry.allowed_tree_states),
-        allowedAuthorityModes: toStringArray(entry.allowed_authority_modes),
+        allowedAuthorityModes: toStringArray(entry.allowed_authority_modes).map(normalizeAuthorityModeValue),
         completedRequires: isPlainObject(entry.completed_requires) ? entry.completed_requires : null,
         requires: isPlainObject(entry.requires) ? entry.requires : null,
         notes: toStringArray(entry.notes),
@@ -499,6 +549,18 @@ export async function loadSpecGenerationInputsContract(projectRoot) {
   };
 }
 
+export async function loadSpecGenerationAuditContract(projectRoot) {
+  const contractText = await readTextIfFile(
+    path.join(projectRoot, SPEC_GENERATION_AUDIT_CONTRACT_REF),
+  );
+
+  return {
+    path: SPEC_GENERATION_AUDIT_CONTRACT_REF,
+    text: contractText,
+    ...parseSpecGenerationAuditContract(contractText),
+  };
+}
+
 export async function loadSpecGenerationInputsConfig(projectRoot) {
   const configText = await readTextIfFile(
     path.join(projectRoot, SPEC_GENERATION_INPUTS_REF),
@@ -660,6 +722,51 @@ export function validateSpecReconstructionSummary(summary, contract, verifiedAt)
     return {
       ok: false,
       reason: "spec_reconstruction summary.generated_paths must be an array of strings",
+    };
+  }
+
+  if (typeof summary.audit_ref !== "string" || summary.audit_ref !== SPEC_GENERATION_AUDIT_REF) {
+    return {
+      ok: false,
+      reason: `spec_reconstruction summary.audit_ref must be \`${SPEC_GENERATION_AUDIT_REF}\``,
+    };
+  }
+
+  if (!isPlainObject(summary.coverage_summary)) {
+    return {
+      ok: false,
+      reason: "spec_reconstruction summary.coverage_summary must be an object",
+    };
+  }
+
+  const missingCoverageFields = SPEC_RECONSTRUCTION_COVERAGE_SUMMARY_REQUIRED_FIELDS.filter((field) => !(field in summary.coverage_summary));
+  if (missingCoverageFields.length > 0) {
+    return {
+      ok: false,
+      reason: `spec_reconstruction summary.coverage_summary is missing required fields: ${missingCoverageFields.join(", ")}`,
+    };
+  }
+
+  for (const field of SPEC_RECONSTRUCTION_COVERAGE_SUMMARY_REQUIRED_FIELDS) {
+    if (!Number.isInteger(summary.coverage_summary[field]) || summary.coverage_summary[field] < 0) {
+      return {
+        ok: false,
+        reason: `spec_reconstruction summary.coverage_summary.${field} must be a non-negative integer`,
+      };
+    }
+  }
+
+  if (!Number.isInteger(summary.unresolved_file_count) || summary.unresolved_file_count < 0) {
+    return {
+      ok: false,
+      reason: "spec_reconstruction summary.unresolved_file_count must be a non-negative integer",
+    };
+  }
+
+  if (!Number.isInteger(summary.inferred_file_count) || summary.inferred_file_count < 0) {
+    return {
+      ok: false,
+      reason: "spec_reconstruction summary.inferred_file_count must be a non-negative integer",
     };
   }
 

@@ -7,6 +7,24 @@ fixture:
     source: canonical/.nimi/spec
     target: .nimi/spec
     include_by_default: true
+  host_output:
+    source_root: canonical/.nimi/spec
+    files:
+      - source: INDEX.md
+        target: .nimi/spec/INDEX.md
+      - source: runtime.md
+        target: .nimi/spec/runtime.md
+      - source: runtime/kernel/index.md
+        target: .nimi/spec/runtime/kernel/index.md
+      - source: runtime/kernel/core-rules.md
+        target: .nimi/spec/runtime/kernel/core-rules.md
+      - source: runtime/kernel/tables/rule-catalog.yaml
+        target: .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
+      - source: runtime/kernel/generated/overview.md
+        target: .nimi/spec/runtime/kernel/generated/overview.md
+    audit:
+      source: _meta/spec-generation-audit.yaml
+      target: .nimi/spec/_meta/spec-generation-audit.yaml
   inputs:
     - source: inputs/code
       target: src
@@ -67,26 +85,34 @@ fixture:
       include_blueprint_reference: true
       expected:
         closeout_ok: false
+        tree_validation: fail
+        spec_audit: skip
         blueprint_audit: skip
         failure_category: none
     - id: benchmark_success
       apply_blueprint: true
-      apply_canonical: true
+      apply_canonical: false
       include_blueprint_reference: true
+      materialization_mode: host_output_plan
       expected:
         closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
         blueprint_audit: pass
         failure_category: none
     - id: ordinary_project_success
       apply_blueprint: false
-      apply_canonical: true
+      apply_canonical: false
       include_blueprint_reference: false
+      materialization_mode: host_output_plan
       generation_inputs_overrides:
         benchmark_blueprint_root: null
         benchmark_mode: none
         acceptance_mode: canonical_tree_validity_without_blueprint
       expected:
         closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
         blueprint_audit: skip
         failure_category: none
     - id: missing_domain_file
@@ -99,7 +125,85 @@ fixture:
           target: .nimi/spec/runtime/kernel/index.md
       expected:
         closeout_ok: false
+        tree_validation: fail
+        spec_audit: fail
         blueprint_audit: skip
         failure_category: structural_gaps
         missing_kernel_markdown:
           - runtime/kernel/index.md
+    - id: missing_audit_entry
+      apply_blueprint: true
+      apply_canonical: false
+      include_blueprint_reference: true
+      materialization_mode: host_output_plan
+      mutations:
+        - op: replace_text
+          target: .nimi/spec/_meta/spec-generation-audit.yaml
+          search: ".nimi/spec/runtime/kernel/index.md"
+          replace: ".nimi/spec/runtime/kernel/non-existent-index.md"
+      expected:
+        closeout_ok: false
+        tree_validation: pass
+        spec_audit: fail
+        blueprint_audit: skip
+        failure_category: missing_audit_entry
+    - id: audit_source_escape
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      generation_inputs_overrides:
+        benchmark_blueprint_root: null
+        benchmark_mode: none
+        acceptance_mode: canonical_tree_validity_without_blueprint
+      mutations:
+        - op: replace_text
+          target: .nimi/spec/_meta/spec-generation-audit.yaml
+          search: "docs/runtime-notes.md"
+          replace: "../outside/runtime-notes.md"
+      expected:
+        closeout_ok: false
+        tree_validation: pass
+        spec_audit: fail
+        blueprint_audit: skip
+        failure_category: source_ref_escape
+    - id: inferred_without_unresolved
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      generation_inputs_overrides:
+        benchmark_blueprint_root: null
+        benchmark_mode: none
+        acceptance_mode: canonical_tree_validity_without_blueprint
+      mutations:
+        - op: replace_text
+          target: .nimi/spec/_meta/spec-generation-audit.yaml
+          search: "source_basis: grounded\n      coverage_status: complete\n      unresolved_items: []"
+          replace: "source_basis: inferred\n      coverage_status: partial\n      unresolved_items: []"
+      expected:
+        closeout_ok: false
+        tree_validation: pass
+        spec_audit: fail
+        blueprint_audit: skip
+        failure_category: inferred_without_unresolved
+    - id: placeholder_required_file
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      generation_inputs_overrides:
+        benchmark_blueprint_root: null
+        benchmark_mode: none
+        acceptance_mode: canonical_tree_validity_without_blueprint
+      mutations:
+        - op: replace_text
+          target: .nimi/spec/_meta/spec-generation-audit.yaml
+          search: "coverage_status: complete"
+          replace: "coverage_status: placeholder_not_allowed"
+      expected:
+        closeout_ok: false
+        tree_validation: pass
+        spec_audit: fail
+        blueprint_audit: skip
+        failure_category: placeholder_not_allowed

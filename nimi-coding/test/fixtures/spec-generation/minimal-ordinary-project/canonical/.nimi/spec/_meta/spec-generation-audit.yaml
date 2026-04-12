@@ -1,0 +1,52 @@
+version: 1
+contract_ref: .nimi/contracts/spec-generation-audit.schema.yaml
+spec_generation_audit:
+  generation_mode: mixed
+  canonical_target_root: .nimi/spec
+  declared_profile: minimal
+  input_roots:
+    code_roots:
+      - src
+    docs_roots:
+      - docs
+    structure_roots:
+      - src
+      - docs
+    human_note_paths:
+      - .nimi/local/notes/reconstruction-note.md
+    benchmark_blueprint_root: null
+  files:
+    - canonical_path: .nimi/spec/INDEX.md
+      file_class: index
+      source_refs:
+        - docs/project-notes.md
+        - .nimi/local/notes/reconstruction-note.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/project/kernel/index.md
+      file_class: kernel_markdown
+      source_refs:
+        - docs/project-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/project/kernel/core-rules.md
+      file_class: kernel_markdown
+      source_refs:
+        - src/project-rules.ts.txt
+        - docs/project-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/project/kernel/tables/rule-catalog.yaml
+      file_class: kernel_tables
+      source_refs:
+        - src/project-rules.ts.txt
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []

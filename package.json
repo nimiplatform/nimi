@@ -175,6 +175,11 @@
     "nimicoding:start:yes": "pnpm exec nimicoding start --yes",
     "nimicoding:clear": "pnpm exec nimicoding clear",
     "nimicoding:doctor": "pnpm exec nimicoding doctor",
+    "nimicoding:validate-spec-audit": "pnpm exec nimicoding validate-spec-audit",
+    "nimicoding:validate-spec-tree": "pnpm exec nimicoding validate-spec-tree",
+    "nimicoding:blueprint-audit": "pnpm exec nimicoding blueprint-audit --write-local",
+    "nimicoding:repo-local-validate-direct-copy": "pnpm nimicoding:validate-spec-tree && pnpm nimicoding:blueprint-audit",
+    "nimicoding:repo-local-trial-direct-copy": "node scripts/run-nimicoding-direct-copy-trial.mjs",
     "check:no-retired-methodology-refs": "node scripts/check-no-retired-methodology-refs.mjs"
   },
   "pnpm": {

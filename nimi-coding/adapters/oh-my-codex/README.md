@@ -95,7 +95,7 @@ nimicoding handoff --skill spec_reconstruction --json
 
 Use the JSON payload as OMX's machine contract. `--prompt` may still be used
 as a host briefing, but it is not the authoritative surface. OMX should
-return only the declared target truth outputs and must not invent new semantic
+return only the declared canonical tree outputs and must not invent new semantic
 owners.
 
 Then project the closeout locally:

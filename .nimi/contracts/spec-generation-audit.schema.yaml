@@ -1,0 +1,31 @@
+version: 1
+audit_contract:
+  id: canonical_spec_generation_audit
+  target_ref: .nimi/spec/_meta/spec-generation-audit.yaml
+required_top_level_fields:
+  - generation_mode
+  - canonical_target_root
+  - declared_profile
+  - input_roots
+  - files
+required_file_entry_fields:
+  - canonical_path
+  - file_class
+  - source_refs
+  - source_basis
+  - coverage_status
+  - unresolved_items
+source_basis_enum:
+  - grounded
+  - mixed_grounded_and_inferred
+  - inferred
+coverage_status_enum:
+  - complete
+  - partial
+  - placeholder_not_allowed
+hard_constraints:
+  - every_generated_canonical_file_requires_a_matching_audit_entry
+  - required_canonical_files_must_not_be_placeholder_not_allowed
+  - unresolved_or_inferred_content_must_be_explicit
+  - source_refs_must_stay_within_declared_inputs_or_optional_benchmark_root
+  - no_empty_success_looking_audit_entries

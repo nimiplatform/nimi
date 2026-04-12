@@ -9,14 +9,12 @@ handoff:
   installer_summary_projection_contract_ref: .nimi/methodology/skill-installer-summary-projection.yaml
   exchange_projection_contract_ref: .nimi/methodology/skill-exchange-projection.yaml
   reconstruction_guidance_ref: .nimi/methodology/spec-reconstruction.yaml
-  reconstruction_target_truth_profile_ref: .nimi/methodology/spec-target-truth-profile.yaml
   self_hosted_runtime: false
   trigger_mode: explicit
   required_context_order:
     - .nimi/methodology
     - .nimi/spec
     - .nimi/contracts
-    - .nimi/methodology/spec-target-truth-profile.yaml
     - .nimi/config/skill-manifest.yaml
     - .nimi/config/host-profile.yaml
     - .nimi/config/host-adapter.yaml

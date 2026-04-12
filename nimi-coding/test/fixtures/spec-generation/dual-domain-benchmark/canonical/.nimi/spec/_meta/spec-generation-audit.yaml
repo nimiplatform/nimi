@@ -1,0 +1,113 @@
+version: 1
+contract_ref: .nimi/contracts/spec-generation-audit.schema.yaml
+spec_generation_audit:
+  generation_mode: mixed
+  canonical_target_root: .nimi/spec
+  declared_profile: minimal
+  input_roots:
+    code_roots:
+      - src
+    docs_roots:
+      - docs
+    structure_roots:
+      - src
+      - docs
+    human_note_paths:
+      - .nimi/local/notes/reconstruction-note.md
+    benchmark_blueprint_root: spec
+  files:
+    - canonical_path: .nimi/spec/INDEX.md
+      file_class: index
+      source_refs:
+        - docs/runtime-notes.md
+        - docs/desktop-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/runtime.md
+      file_class: domain_guides
+      source_refs:
+        - docs/runtime-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/runtime/kernel/index.md
+      file_class: kernel_markdown
+      source_refs:
+        - src/runtime-service.ts.txt
+        - docs/runtime-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/runtime/kernel/core-rules.md
+      file_class: kernel_markdown
+      source_refs:
+        - src/runtime-service.ts.txt
+        - docs/runtime-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/rule-catalog.yaml
+      file_class: kernel_tables
+      source_refs:
+        - src/runtime-service.ts.txt
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/runtime/kernel/generated/overview.md
+      file_class: kernel_generated
+      source_refs:
+        - src/runtime-service.ts.txt
+        - docs/runtime-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/desktop.md
+      file_class: domain_guides
+      source_refs:
+        - docs/desktop-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/desktop/kernel/index.md
+      file_class: kernel_markdown
+      source_refs:
+        - src/desktop-shell.tsx.txt
+        - docs/desktop-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/desktop/kernel/ui-rules.md
+      file_class: kernel_markdown
+      source_refs:
+        - src/desktop-shell.tsx.txt
+        - docs/desktop-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/desktop/kernel/tables/component-catalog.yaml
+      file_class: kernel_tables
+      source_refs:
+        - src/desktop-shell.tsx.txt
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []
+    - canonical_path: .nimi/spec/desktop/kernel/generated/overview.md
+      file_class: kernel_generated
+      source_refs:
+        - src/desktop-shell.tsx.txt
+        - docs/desktop-notes.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+      notes: []

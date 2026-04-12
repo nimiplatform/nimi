@@ -1,0 +1,112 @@
+fixture:
+  id: minimal_ordinary_project
+  blueprint:
+    source: blueprint/spec
+    target: spec
+  canonical:
+    source: canonical/.nimi/spec
+    target: .nimi/spec
+    include_by_default: false
+  host_output:
+    source_root: canonical/.nimi/spec
+    files:
+      - source: INDEX.md
+        target: .nimi/spec/INDEX.md
+      - source: project/kernel/index.md
+        target: .nimi/spec/project/kernel/index.md
+      - source: project/kernel/core-rules.md
+        target: .nimi/spec/project/kernel/core-rules.md
+      - source: project/kernel/tables/rule-catalog.yaml
+        target: .nimi/spec/project/kernel/tables/rule-catalog.yaml
+    audit:
+      source: _meta/spec-generation-audit.yaml
+      target: .nimi/spec/_meta/spec-generation-audit.yaml
+  inputs:
+    - source: inputs/code
+      target: src
+    - source: inputs/docs
+      target: docs
+    - source: inputs/notes
+      target: .nimi/local/notes
+  generation_inputs:
+    code_roots:
+      - src
+    docs_roots:
+      - docs
+    structure_roots:
+      - src
+      - docs
+    human_note_paths:
+      - .nimi/local/notes/reconstruction-note.md
+    benchmark_blueprint_root: null
+    benchmark_mode: none
+    acceptance_mode: canonical_tree_validity_without_blueprint
+  spec_tree_model:
+    domains:
+      - id: project
+        root: .nimi/spec/project
+        normative_root: .nimi/spec/project/kernel
+        tables_root: .nimi/spec/project/kernel/tables
+        guide_paths: []
+    required_files:
+      minimal:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+        - .nimi/spec/project/kernel/index.md
+        - .nimi/spec/project/kernel/core-rules.md
+        - .nimi/spec/project/kernel/tables/rule-catalog.yaml
+      standard:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+      mature:
+        - .nimi/spec/INDEX.md
+        - .nimi/spec/_meta/spec-tree-model.yaml
+  blueprint_reference:
+    include_by_default: false
+    root: spec
+  scenarios:
+    - id: minimal_success
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      expected:
+        closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
+        blueprint_audit: skip
+        failure_category: none
+    - id: minimal_partial_success
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      mutations:
+        - op: update_audit_entry
+          target: .nimi/spec/_meta/spec-generation-audit.yaml
+          canonical_path: .nimi/spec/project/kernel/core-rules.md
+          set:
+            source_basis: mixed_grounded_and_inferred
+            coverage_status: partial
+            unresolved_items:
+              - refine wording for deferred edge cases in a later pass
+      expected:
+        closeout_ok: true
+        tree_validation: pass
+        spec_audit: pass
+        blueprint_audit: skip
+        failure_category: none
+    - id: missing_core_rules
+      apply_blueprint: false
+      apply_canonical: false
+      include_blueprint_reference: false
+      materialization_mode: host_output_plan
+      mutations:
+        - op: delete
+          target: .nimi/spec/project/kernel/core-rules.md
+      expected:
+        closeout_ok: false
+        tree_validation: fail
+        spec_audit: fail
+        blueprint_audit: skip
+        failure_category: structural_gaps

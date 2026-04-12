@@ -4,13 +4,13 @@ reconstruction:
   owner: ai_skills
   generation_inputs_ref: .nimi/config/spec-generation-inputs.yaml
   spec_tree_model_ref: .nimi/spec/_meta/spec-tree-model.yaml
-  transitional_target_truth_profile_ref: .nimi/methodology/spec-target-truth-profile.yaml
   result_contract_ref: .nimi/contracts/spec-reconstruction-result.yaml
   trigger:
     bootstrap_state: bootstrap_only
   goals:
     - establish_project_canonical_rule_root
     - generate_canonical_tree_under_.nimi/spec
+    - generate_file_level_audit_metadata_under_.nimi/spec/_meta
     - separate_normative_derived_and_guidance_surfaces
     - extract_core_rules_without_parallel_truth
     - accept_mixed_inputs_from_code_docs_structure_and_human_notes
@@ -18,6 +18,7 @@ reconstruction:
     - preserve_authority_explicitness
     - stop_on_authority_ambiguity
   target_root: .nimi/spec
+  audit_root: .nimi/spec/_meta/spec-generation-audit.yaml
   target_tree_shape:
     required_file_classes:
       - index
@@ -31,7 +32,16 @@ reconstruction:
       - .nimi/spec/project/kernel/index.md
       - .nimi/spec/project/kernel/core-rules.md
       - .nimi/spec/project/kernel/tables/rule-catalog.yaml
-      - .nimi/spec/high-risk-admissions.yaml
+    minimum_generation_sequence:
+      - .nimi/spec/INDEX.md
+      - .nimi/spec/project/kernel/index.md
+      - .nimi/spec/project/kernel/core-rules.md
+      - .nimi/spec/project/kernel/tables/rule-catalog.yaml
+    skeleton_rules:
+      - generate_minimal_kernel_before_optional_guides_and_generated_views
+      - keep_first_pass_scope_small_and_explicit
+      - add_domain_guides_only_after_kernel_markdown_and_tables_exist
+      - treat_missing_rules_as_explicit_gaps_not_implicit_completion
   benchmark_acceptance:
     mode: semantic_and_structural_parity_when_blueprint_exists
     blueprint_is_optional: true
@@ -39,13 +49,15 @@ reconstruction:
   hard_constraints:
     - no_human_friendly_parallel_truth
     - no_silent_authority_inference
-    - do_not_seed_empty_target_truth_files
     - no_project_source_mutation_during_reconstruction
     - write_only_under_.nimi/spec_for_canonical_generation_outputs
+    - write_file_level_generation_audit_under_.nimi/spec/_meta/spec-generation-audit.yaml
+    - every_generated_canonical_file_requires_explicit_source_basis_and_unresolved_gap_tracking
     - respect_skill_manifest_installer_runtime_result_contract_host_profile_and_handoff_truth
     - unresolved_ambiguity_must_remain_explicit
-    - do_not_treat_compact_target_truth_as_canonical_tree_completion
+    - do_not_treat_repo_local_support_files_as_canonical_tree_completion
   lifecycle_contract_ref: .nimi/spec/bootstrap-state.yaml
   completion_gate:
     bootstrap_state_tree_state: canonical_tree_ready
     required_profile: minimal
+    audit_contract_ref: .nimi/contracts/spec-generation-audit.schema.yaml
