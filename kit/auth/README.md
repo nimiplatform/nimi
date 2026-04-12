@@ -32,4 +32,3 @@ Cross-app authentication feature module for sign-in UI, flows, adapters, storage
 ## Verification
 - `pnpm --filter @nimiplatform/nimi-kit build`
 - `pnpm check:nimi-kit`
-

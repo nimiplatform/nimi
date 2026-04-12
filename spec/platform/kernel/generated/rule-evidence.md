@@ -67,6 +67,9 @@
 | `P-KIT-020` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-030` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-040` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-041` | `covered` | `platform_kernel_consistency` | — |
+| `P-KIT-042` | `covered` | `platform_kernel_consistency` | — |
+| `P-KIT-043` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-050` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-060` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-065` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |

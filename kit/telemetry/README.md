@@ -28,4 +28,3 @@ Renderer-safe infrastructure module for shared emitters and error boundaries.
 ## Verification
 - `pnpm --filter @nimiplatform/nimi-kit build`
 - `pnpm check:nimi-kit`
-

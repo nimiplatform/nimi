@@ -188,15 +188,14 @@ function checkUiSlotsConsistency() {
     return;
   }
 
-  const source = read(capabilitiesPath);
-  const slotsMatch = source.match(/DEFAULT_UI_SLOTS\s*=\s*\[([^\]]+)\]/s);
-  if (!slotsMatch) {
+  const slotsBody = resolveDesktopCapabilityArrayBody(capabilitiesPath, 'DEFAULT_UI_SLOTS');
+  if (!slotsBody) {
     fail('could not parse DEFAULT_UI_SLOTS from source');
     return;
   }
 
   const sourceSlots = new Set(
-    [...slotsMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
+    [...slotsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
   const yamlPath = 'spec/desktop/kernel/tables/ui-slots.yaml';
@@ -223,15 +222,14 @@ function checkTurnHookPointsConsistency() {
   const capabilitiesPath = 'apps/desktop/src/runtime/hook/contracts/capabilities.ts';
   if (!fileExists(capabilitiesPath)) return;
 
-  const source = read(capabilitiesPath);
-  const pointsMatch = source.match(/DEFAULT_TURN_HOOK_POINTS\s*=\s*\[([^\]]+)\]/s);
-  if (!pointsMatch) {
+  const pointsBody = resolveDesktopCapabilityArrayBody(capabilitiesPath, 'DEFAULT_TURN_HOOK_POINTS');
+  if (!pointsBody) {
     fail('could not parse DEFAULT_TURN_HOOK_POINTS from source');
     return;
   }
 
   const sourcePoints = new Set(
-    [...pointsMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
+    [...pointsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
   const yamlPath = 'spec/desktop/kernel/tables/turn-hook-points.yaml';
@@ -252,6 +250,26 @@ function checkTurnHookPointsConsistency() {
   if (extraInYaml.length > 0) {
     fail(`turn-hook-points.yaml has unknown points: ${extraInYaml.join(', ')}`);
   }
+}
+
+function resolveDesktopCapabilityArrayBody(relPath, constName) {
+  const localSource = read(relPath);
+  const localMatch = localSource.match(new RegExp(`${constName}\\s*=\\s*\\[([^\\]]+)\\]`, 's'));
+  if (localMatch) {
+    return localMatch[1];
+  }
+
+  if (!new RegExp(`\\b${constName}\\b`).test(localSource)) {
+    return null;
+  }
+
+  const sharedPath = 'kit/core/src/runtime-capabilities/capabilities.ts';
+  if (!fileExists(sharedPath)) {
+    return null;
+  }
+  const sharedSource = read(sharedPath);
+  const sharedMatch = sharedSource.match(new RegExp(`${constName}\\s*=\\s*\\[([^\\]]+)\\]`, 's'));
+  return sharedMatch ? sharedMatch[1] : null;
 }
 
 function checkModKernelStagesConsistency() {

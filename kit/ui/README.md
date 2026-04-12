@@ -32,4 +32,3 @@ Foundation design system for shared tokens, primitives, themes, and generated vi
 - `pnpm --filter @nimiplatform/nimi-kit test`
 - `pnpm check:nimi-ui-pattern`
 - `pnpm check:nimi-ui-lib-drift`
-

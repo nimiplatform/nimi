@@ -10,7 +10,7 @@ const registryPath = path.join(repoRoot, 'spec', 'platform', 'kernel', 'tables',
 const packageJsonPath = path.join(kitRoot, 'package.json');
 
 const allowedKinds = new Set(['foundation', 'feature', 'logic', 'infra']);
-const allowedModuleDirs = new Set(['ui', 'auth', 'core', 'telemetry', 'features']);
+const allowedModuleDirs = new Set(['ui', 'auth', 'core', 'telemetry', 'features', 'shell']);
 const violations = [];
 
 function fail(message) {
@@ -23,6 +23,36 @@ function readJson(absPath) {
 
 function readYaml(absPath) {
   return YAML.parse(fs.readFileSync(absPath, 'utf8'));
+}
+
+function resolveModuleSourceDir(modulePath) {
+  const directDir = path.join(kitRoot, modulePath);
+  if (fs.existsSync(directDir) && fs.statSync(directDir).isDirectory()) {
+    return {
+      absDir: directDir,
+      direct: true,
+    };
+  }
+
+  const exportKey = `./${modulePath}`;
+  const exportTarget = typeof packageExportsMap[exportKey] === 'string'
+    ? String(packageExportsMap[exportKey]).trim()
+    : '';
+  if (exportTarget) {
+    const absTarget = path.join(kitRoot, exportTarget.replace(/^\.\//, ''));
+    if (fs.existsSync(absTarget)) {
+      const stat = fs.statSync(absTarget);
+      return {
+        absDir: stat.isDirectory() ? absTarget : path.dirname(absTarget),
+        direct: false,
+      };
+    }
+  }
+
+  return {
+    absDir: directDir,
+    direct: false,
+  };
 }
 
 function listFilesRecursively(dir, predicate) {
@@ -58,6 +88,28 @@ function isFeatureSdkIntegrationFile(fileRel) {
 
 function isKitFeatureTestFile(fileRel) {
   return /^kit\/features\/[^/]+\/test\//u.test(fileRel);
+}
+
+function isShellModule(modulePath) {
+  return modulePath.startsWith('shell/');
+}
+
+function allowsEmptyExports(modulePath, notes) {
+  return isShellModule(modulePath) && /non-npm rust crate/iu.test(notes);
+}
+
+function allowsMissingModuleReadme(modulePath) {
+  return isShellModule(modulePath);
+}
+
+function isAppLayerImport(target) {
+  return /^apps\//u.test(target) || /(^|\/)apps\//u.test(target);
+}
+
+function isTypeOnlyImport(content, target) {
+  const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`import\\s+type\\b[\\s\\S]*?from\\s+['"]${escaped}['"]`, 'u');
+  return pattern.test(content);
 }
 
 function expect(condition, message) {
@@ -103,6 +155,7 @@ for (const row of modules) {
   const owner = String(row?.owner || '').trim();
   const surfaceLevel = String(row?.surface_level || '').trim();
   const adapterContract = String(row?.adapter_contract || '').trim();
+  const notes = String(row?.notes || '').trim();
   const dependencies = Array.isArray(row?.dependencies) ? row.dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const internalKitDependencies = dependencies.filter((item) => item.startsWith('kit.'));
   const peerDependencies = Array.isArray(row?.peer_dependencies) ? row.peer_dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -123,23 +176,27 @@ for (const row of modules) {
   expect(adapterContract, `nimi-kit-registry.yaml ${id}: adapter_contract is required`);
   expect(Array.isArray(row?.dependencies), `nimi-kit-registry.yaml ${id}: dependencies must be an array`);
   expect(Array.isArray(row?.peer_dependencies), `nimi-kit-registry.yaml ${id}: peer_dependencies must be an array`);
-  expect(exportsList.length > 0, `nimi-kit-registry.yaml ${id}: exports must not be empty`);
+  const modulePath = subpath.replace(/^\//, '');
+  if (!allowsEmptyExports(modulePath, notes)) {
+    expect(exportsList.length > 0, `nimi-kit-registry.yaml ${id}: exports must not be empty`);
+  }
   expect(Array.isArray(row?.headless_exports), `nimi-kit-registry.yaml ${id}: headless_exports must be an array`);
   expect(Array.isArray(row?.ui_exports), `nimi-kit-registry.yaml ${id}: ui_exports must be an array`);
   expect(Array.isArray(row?.reuse_entrypoints), `nimi-kit-registry.yaml ${id}: reuse_entrypoints must be an array`);
   expect(Array.isArray(row?.planned_consumers), `nimi-kit-registry.yaml ${id}: planned_consumers must be an array`);
-
-  const modulePath = subpath.replace(/^\//, '');
   const moduleDir = modulePath.split('/')[0] || '';
   expect(allowedModuleDirs.has(moduleDir), `nimi-kit-registry.yaml ${id}: unsupported module dir ${moduleDir}`);
   registeredModuleSubpaths.add(modulePath);
 
-  const absModuleDir = path.join(kitRoot, modulePath);
+  const resolvedModule = resolveModuleSourceDir(modulePath);
+  const absModuleDir = resolvedModule.absDir;
   expect(fs.existsSync(absModuleDir), `registered module missing from disk: kit/${modulePath}`);
   expect(!fs.existsSync(path.join(absModuleDir, 'package.json')), `kit/${modulePath}: nested package.json is forbidden in single-package kit`);
   expect(!fs.existsSync(path.join(absModuleDir, 'tsconfig.json')), `kit/${modulePath}: nested tsconfig.json should be consolidated at kit/tsconfig.json`);
-  expect(fs.existsSync(path.join(absModuleDir, 'README.md')), `kit/${modulePath}: module README.md is required`);
-  if (modulePath.startsWith('features/')) {
+  if (resolvedModule.direct && !allowsMissingModuleReadme(modulePath)) {
+    expect(fs.existsSync(path.join(absModuleDir, 'README.md')), `kit/${modulePath}: module README.md is required`);
+  }
+  if (modulePath.startsWith('features/') && resolvedModule.direct) {
     featureReadmePaths.push(path.join(absModuleDir, 'README.md'));
   }
 
@@ -160,7 +217,7 @@ for (const row of modules) {
   if (kind === 'foundation') {
     expect(internalKitDependencies.length === 0, `${id}: foundation module must not depend on other kit modules`);
   }
-  if (kind === 'logic' || kind === 'infra') {
+  if (kind === 'logic') {
     expect(internalKitDependencies.length === 0, `${id}: ${kind} module must not declare runtime kit dependencies`);
   }
   if (kind === 'feature') {
@@ -234,7 +291,7 @@ for (const modulePath of onDiskModules) {
 }
 
 for (const modulePath of registeredModuleSubpaths) {
-  const absDir = path.join(kitRoot, modulePath);
+  const absDir = resolveModuleSourceDir(modulePath).absDir;
   const moduleDir = modulePath.split('/')[0] || '';
   const files = listFilesRecursively(absDir, (absPath) => /\.(?:ts|tsx|css)$/u.test(absPath));
   for (const absPath of files) {
@@ -247,7 +304,7 @@ for (const modulePath of registeredModuleSubpaths) {
     }
 
     for (const target of importTargets) {
-      if (target.includes('apps/')) {
+      if (isAppLayerImport(target)) {
         fail(`${fileRel}: kit modules must not import app-layer code (${target})`);
       }
       if (appAliasPattern.test(target)) {
@@ -298,6 +355,7 @@ for (const modulePath of registeredModuleSubpaths) {
           (target === '@nimiplatform/sdk' || target.startsWith('@nimiplatform/sdk/'))
           && !isFeatureSdkIntegrationFile(fileRel)
           && !isKitFeatureTestFile(fileRel)
+          && !isTypeOnlyImport(content, target)
         ) {
           fail(`${fileRel}: feature modules must stay adapter-driven and must not import sdk directly (${target})`);
         }

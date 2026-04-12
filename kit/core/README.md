@@ -32,4 +32,3 @@ Pure shared logic module for shell-mode detection, env helpers, and OAuth utilit
 ## Verification
 - `pnpm --filter @nimiplatform/nimi-kit build`
 - `pnpm check:nimi-kit`
-
