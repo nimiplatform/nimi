@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@desktop-public/*": ["./src/public-web/*"],
       "@runtime/*": ["src/runtime/*"],
       "@renderer/*": ["src/shell/renderer/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],

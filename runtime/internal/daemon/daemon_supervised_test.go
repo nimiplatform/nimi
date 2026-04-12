@@ -501,7 +501,18 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 		}, true
 	}
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+		manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
+		if err != nil {
+			return nil, err
+		}
+		supervisor := engine.NewSupervisor(
+			engine.EngineConfig{Kind: engine.EngineKind("managed-image-backend"), Port: 50052},
+			slog.New(slog.NewTextHandler(io.Discard, nil)),
+			nil,
+		)
+		supervisor.SetStateForTesting(engine.StatusHealthy, time.Now())
+		manager.SetSupervisorForTesting(engine.EngineKind("managed-image-backend"), supervisor)
+		return manager, nil
 	}
 
 	startCalls := make([]engine.EngineKind, 0, 2)

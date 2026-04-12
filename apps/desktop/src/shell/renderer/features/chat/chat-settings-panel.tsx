@@ -1,11 +1,15 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-navigation-events';
 import { useDesktopModelConfigProfileController } from '../runtime-config/desktop-model-config-profile-controller';
 import { useSchedulingFeasibility, schedulingDetailKeyForJudgement, schedulingTitleKey } from './chat-execution-scheduling-guard';
-import { ConversationModelConfigPanel, useConversationCapabilityData } from './chat-conversation-capability-settings';
+import {
+  ConversationModelConfigPanel,
+  useConversationCapabilityData,
+  useConversationModelConfigSections,
+} from './chat-conversation-capability-settings';
 import type { ModelConfigProfileCopy, ModelConfigSection } from '@nimiplatform/nimi-kit/features/model-config';
 import { DisabledConfigNote } from '@nimiplatform/nimi-kit/features/model-config';
 import { ChatSettingsSummaryHome } from './chat-settings-summary-home';
@@ -151,8 +155,8 @@ function AiModeSettings(props: {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
 
-  const { sections, items, imageContext, imageEditorCopy } = useConversationCapabilityData();
-  const schedulingJudgement = useSchedulingFeasibility();
+  const sections = useConversationModelConfigSections();
+  const { items, imageContext, imageEditorCopy } = useConversationCapabilityData();
 
   const profile = useDesktopModelConfigProfileController({
     scopeRef: aiConfig.scopeRef,
@@ -166,12 +170,7 @@ function AiModeSettings(props: {
     },
   });
 
-  const schedulingContent = useMemo(() => {
-    if (!schedulingJudgement || schedulingJudgement.state === 'runnable') {
-      return null;
-    }
-    return <SchedulingWarningBanner judgement={schedulingJudgement} />;
-  }, [schedulingJudgement]);
+  const schedulingContent = <SchedulingWarningSection />;
 
   const diagnosticsNode = props.diagnosticsContent || (
     <DisabledSettingsNote label={props.unavailableReason} />
@@ -228,24 +227,24 @@ export function ChatSettingsPanel({
     defaultValue: 'This source does not expose runtime inspect yet.',
   });
 
-  if (mode !== 'ai') {
+  if (mode === 'ai') {
     return (
-      <div className="space-y-5">
-        {headerSlot}
-        <HumanModeSettings
-          modelPickerContent={modelPickerContent}
-          diagnosticsContent={diagnosticsContent}
-          unavailableReason={resolvedUnavailableReason}
-        />
-      </div>
+      <AiModeSettings
+        headerSlot={headerSlot}
+        diagnosticsContent={diagnosticsContent}
+        unavailableReason={resolvedUnavailableReason}
+      />
     );
   }
 
   return (
-    <AiModeSettings
-      headerSlot={headerSlot}
-      diagnosticsContent={diagnosticsContent}
-      unavailableReason={resolvedUnavailableReason}
-    />
+    <div className="space-y-5">
+      {headerSlot}
+      <HumanModeSettings
+        modelPickerContent={modelPickerContent}
+        diagnosticsContent={diagnosticsContent}
+        unavailableReason={resolvedUnavailableReason}
+      />
+    </div>
   );
 }

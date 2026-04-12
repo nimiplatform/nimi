@@ -947,7 +947,7 @@ mod commands_import_bundle_tests {
             .and_then(|value| value.get("mmproj"))
             .and_then(|value| value.as_str())
             .unwrap_or("");
-        assert_eq!(llama, "resolved/nimi/gemma-4/mmproj-BF16.gguf");
+        assert_eq!(llama, "resolved/nimi/local-import-gemma-4/mmproj-BF16.gguf");
     }
 
     #[test]

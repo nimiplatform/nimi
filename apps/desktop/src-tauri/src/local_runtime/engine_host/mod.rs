@@ -298,6 +298,20 @@ mod tests {
         dir
     }
 
+    fn normalize_test_path(path: &std::path::Path) -> String {
+        if let Ok(canonical) = path.canonicalize() {
+            return canonical.to_string_lossy().to_string();
+        }
+        let rendered = path.to_string_lossy().to_string();
+        #[cfg(target_os = "macos")]
+        {
+            if let Some(stripped) = rendered.strip_prefix("/private") {
+                return stripped.to_string();
+            }
+        }
+        rendered
+    }
+
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
         LOCK.get_or_init(|| Mutex::new(()))
@@ -414,15 +428,16 @@ mod tests {
             models_root.display().to_string(),
         );
         let model = model_fixture("llama", LocalAiAssetStatus::Installed);
-
-        let args = LlamaCppProcessAdapter::start_args(&model).expect("build llama start args");
         let expected_model_path = crate::local_runtime::types::resolved_model_dir(
             models_root.as_path(),
             model.logical_model_id.as_str(),
         )
-        .join(model.entry.as_str())
-        .to_string_lossy()
-        .to_string();
+        .join(model.entry.as_str());
+        fs::create_dir_all(expected_model_path.parent().expect("model parent"))
+            .expect("create model dir");
+        fs::write(&expected_model_path, b"model").expect("write model");
+
+        let args = LlamaCppProcessAdapter::start_args(&model).expect("build llama start args");
         let model_index = args
             .iter()
             .position(|item| item == "--model")
@@ -436,7 +451,10 @@ mod tests {
             .position(|item| item == "--port")
             .expect("start args include --port");
 
-        assert_eq!(args.get(model_index + 1), Some(&expected_model_path));
+        assert_eq!(
+            args.get(model_index + 1).map(|value| normalize_test_path(value.as_ref())),
+            Some(normalize_test_path(expected_model_path.as_path()))
+        );
         assert_eq!(args.get(host_index + 1), Some(&"127.0.0.1".to_string()));
         assert_eq!(args.get(port_index + 1), Some(&"1234".to_string()));
 
@@ -472,8 +490,8 @@ mod tests {
             .position(|item| item == "--mmproj")
             .expect("start args include --mmproj");
         assert_eq!(
-            args.get(mmproj_index + 1),
-            Some(&mmproj_path.to_string_lossy().to_string())
+            args.get(mmproj_index + 1).map(|value| normalize_test_path(value.as_ref())),
+            Some(normalize_test_path(mmproj_path.as_path()))
         );
 
         std::env::remove_var("NIMI_LOCAL_AI_MODELS_DIR");
