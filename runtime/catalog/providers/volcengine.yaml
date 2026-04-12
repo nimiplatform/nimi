@@ -103,7 +103,6 @@ models:
         video_url: true
         last_frame_url: true
   - model_id: seedance-1.5-pro
-    api_model_id: seedance-1-5-pro
     provider: volcengine
     model_type: video
     updated_at: 2026-03-05
@@ -122,7 +121,6 @@ models:
       note: Volcengine Seedance video generation overview (t2v and i2v).
     video_generation: *a1
   - model_id: seedance_v1_5_pro
-    api_model_id: seedance-1-5-pro
     provider: volcengine
     model_type: video
     updated_at: 2026-03-05
@@ -151,11 +149,11 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-04-03
+      as_of: 2026-03-05
       notes: Volcengine public pricing varies by account plan and endpoint tier.
     source_ref:
       url: https://www.volcengine.com/docs/82379/1366799?lang=zh
-      retrieved_at: 2026-04-03
+      retrieved_at: 2026-03-05
       note: Volcengine Seedance video generation overview (t2v and i2v).
     video_generation: &a2
       modes:
@@ -215,10 +213,9 @@ models:
       outputs:
         video_url: true
   - model_id: seedance-2.0
-    api_model_id: doubao-seedance-2-0-260128
     provider: volcengine
     model_type: video
-    updated_at: 2026-03-05
+    updated_at: 2026-04-03
     capabilities:
       - video.generate
     pricing:
