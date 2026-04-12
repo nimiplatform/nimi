@@ -364,7 +364,7 @@ export function TesterPage() {
         <SidebarResizeHandle ariaLabel="Resize sidebar" onMouseDown={startResize} />
       </SidebarShell>
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="nimi-type-section-title">{activeLabels.label}</h2>
           <IconButton
@@ -373,9 +373,9 @@ export function TesterPage() {
             aria-label={t('Tester.openSettings', { defaultValue: 'Settings' })}
           />
         </div>
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <ScrollArea className="flex-1" contentClassName="px-4 pb-4">
           {renderPanel()}
-        </div>
+        </ScrollArea>
       </main>
 
       <TesterSettingsPanel

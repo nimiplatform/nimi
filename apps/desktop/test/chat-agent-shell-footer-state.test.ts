@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createInitialAgentTurnLifecycleState,
   reduceAgentTurnLifecycleState,
@@ -80,7 +81,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
       interrupted: true,
       partialText: 'sealed first beat',
       errorMessage: 'Generation stopped.',
-      reasonCode: 'OPERATION_ABORTED',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
     }),
     lifecycle: canceledLifecycle,
     currentHostFooterState: 'interrupted',
@@ -110,7 +111,7 @@ test('agent footer state shows interrupted for canceled or failed interrupted te
       interrupted: true,
       partialText: 'partial answer',
       errorMessage: 'runtime broke',
-      reasonCode: 'RUNTIME_CALL_FAILED',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
     }),
     lifecycle: failedLifecycle,
     currentHostFooterState: 'interrupted',

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   AgentLocalDraftRecord,
   AgentLocalThreadBundle,
@@ -364,7 +365,7 @@ test('agent submit session emits an error stream event only while waiting or str
   assert.deepEqual(interrupted.errorStreamEvent, {
     type: 'error',
     message: 'runtime broke',
-    reasonCode: 'RUNTIME_CALL_FAILED',
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
     traceId: undefined,
   });
   assert.equal(interrupted.hostInteractionPatch.footerViewState.displayState, 'interrupted');
@@ -411,7 +412,7 @@ test('agent submit session preserves visible first-beat when the turn is cancele
       interrupted: true,
       partialText: 'sealed first beat',
       errorMessage: 'Generation stopped.',
-      reasonCode: 'OPERATION_ABORTED',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
       traceId: 'trace-tail',
       cancelSource: 'user',
     }),

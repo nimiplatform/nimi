@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -162,7 +162,9 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
         <InfoBox message={t('Tester.textGenerate.prewarmingNotice')} />
       ) : null}
       {state.output ? (
-        <pre className="max-h-64 overflow-auto rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-3 text-xs whitespace-pre-wrap">{asString(state.output)}</pre>
+        <ScrollArea className="max-h-64 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)]">
+          <pre className="whitespace-pre-wrap p-3 text-xs">{asString(state.output)}</pre>
+        </ScrollArea>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

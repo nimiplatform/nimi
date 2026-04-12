@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 
 export type ChatTargetOption = {
@@ -77,52 +77,54 @@ export function ChatTargetSelector({
 
       {/* dropdown */}
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1.5 max-h-[240px] overflow-y-auto rounded-xl border border-gray-200/60 bg-white/95 py-1 shadow-[0_12px_36px_rgba(15,23,42,0.1)] backdrop-blur-lg">
-          {options.length === 0 ? (
-            <div className="px-3 py-4 text-center text-xs text-gray-400">
-              {t('Chat.targetSelectorEmpty', {
-                defaultValue: 'No targets available',
-              })}
-            </div>
-          ) : (
-            options.map((option) => {
-              const active = option.id === value;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => {
-                    onChange(option.id);
-                    close();
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
-                    active ? 'bg-emerald-50/80' : 'hover:bg-gray-50',
-                  )}
-                >
-                  <div className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white',
-                    active ? 'bg-gradient-to-br from-emerald-400 to-teal-600' : 'bg-gray-400',
-                  )}>
-                    {option.label.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className={cn('truncate text-sm', active ? 'font-semibold text-emerald-800' : 'text-gray-900')}>
-                      {option.label}
+        <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-gray-200/60 bg-white/95 shadow-[0_12px_36px_rgba(15,23,42,0.1)] backdrop-blur-lg">
+          <ScrollArea className="max-h-[240px]" contentClassName="py-1">
+            {options.length === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-gray-400">
+                {t('Chat.targetSelectorEmpty', {
+                  defaultValue: 'No targets available',
+                })}
+              </div>
+            ) : (
+              options.map((option) => {
+                const active = option.id === value;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(option.id);
+                      close();
+                    }}
+                    className={cn(
+                      'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
+                      active ? 'bg-emerald-50/80' : 'hover:bg-gray-50',
+                    )}
+                  >
+                    <div className={cn(
+                      'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white',
+                      active ? 'bg-gradient-to-br from-emerald-400 to-teal-600' : 'bg-gray-400',
+                    )}>
+                      {option.label.charAt(0).toUpperCase()}
                     </div>
-                    {option.handle ? (
-                      <div className="truncate text-[11px] text-gray-400">@{option.handle}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className={cn('truncate text-sm', active ? 'font-semibold text-emerald-800' : 'text-gray-900')}>
+                        {option.label}
+                      </div>
+                      {option.handle ? (
+                        <div className="truncate text-[11px] text-gray-400">@{option.handle}</div>
+                      ) : null}
+                    </div>
+                    {active ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-600">
+                        <path d="M11.5 4L5.5 10 2.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     ) : null}
-                  </div>
-                  {active ? (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-emerald-600">
-                      <path d="M11.5 4L5.5 10 2.5 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : null}
-                </button>
-              );
-            })
-          )}
+                  </button>
+                );
+              })
+            )}
+          </ScrollArea>
         </div>
       ) : null}
     </div>

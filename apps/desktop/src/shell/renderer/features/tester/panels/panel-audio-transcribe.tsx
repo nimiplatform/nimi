@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -94,7 +94,9 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
       <RunButton busy={state.busy} label={t('Tester.audioTranscribe.run')} onClick={() => { void handleRun(); }} />
       {state.error ? <ErrorBox message={state.error} /> : null}
       {state.output ? (
-        <pre className="max-h-48 overflow-auto rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)] p-2 text-xs">{asString(state.output)}</pre>
+        <ScrollArea className="max-h-48 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-canvas)]">
+          <pre className="p-2 text-xs">{asString(state.output)}</pre>
+        </ScrollArea>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />
       {state.rawResponse ? <RawJsonSection content={state.rawResponse} /> : null}

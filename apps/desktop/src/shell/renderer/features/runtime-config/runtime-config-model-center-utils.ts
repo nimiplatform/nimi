@@ -11,6 +11,7 @@ import type {
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import type { RuntimeConfigStateV11, RuntimeSetupPageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
@@ -232,7 +233,7 @@ export function planInstallAvailable(plan: LocalRuntimeInstallPlanDescriptor | n
 
 export function planBlocksCanonicalImageImport(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): boolean {
   const reasonCode = String(plan?.reasonCode || '').trim();
-  return reasonCode === 'AI_LOCAL_MODEL_UNAVAILABLE';
+  return reasonCode === ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE;
 }
 
 export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {

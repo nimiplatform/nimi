@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { Button, ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
 import type { CapabilityState } from '../tester-types.js';
 import { asString, toPrettyJson } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -276,16 +276,18 @@ export function TextStreamPanel(props: TextStreamPanelProps) {
       ) : null}
 
       {outputText ? (
-        <div className="max-h-80 overflow-auto rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
-          <pre className="whitespace-pre-wrap break-words text-xs text-[var(--nimi-text-primary)]">{outputText}</pre>
-        </div>
+        <ScrollArea className="max-h-80 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
+          <pre className="whitespace-pre-wrap break-words p-3 text-xs text-[var(--nimi-text-primary)]">{outputText}</pre>
+        </ScrollArea>
       ) : null}
       {reasoningRef.current && !state.busy ? (
         <details className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3 text-xs">
           <summary className="cursor-pointer font-semibold text-[var(--nimi-text-secondary)]">
             {t('Tester.textStream.reasoning', { defaultValue: 'Reasoning trace' })}
           </summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-[var(--nimi-text-secondary)]">{reasoningRef.current}</pre>
+          <ScrollArea className="mt-2 max-h-48">
+            <pre className="whitespace-pre-wrap break-words font-mono text-xs text-[var(--nimi-text-secondary)]">{reasoningRef.current}</pre>
+          </ScrollArea>
         </details>
       ) : null}
       <DiagnosticsPanel diagnostics={state.diagnostics} />

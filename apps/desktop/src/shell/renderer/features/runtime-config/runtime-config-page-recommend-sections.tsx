@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { formatRelativeLocaleTime } from '@renderer/i18n';
 import type {
   LocalRuntimeRecommendationFeedItemDescriptor,
@@ -223,7 +224,7 @@ export function FilterChip({
       {open ? (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-[var(--nimi-border-subtle)] bg-white py-1 shadow-lg">
+          <ScrollArea className="absolute left-0 z-50 mt-1 max-h-56 w-52 rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg" contentClassName="py-1">
             {options.map((option) => {
               const checked = selected.has(option);
               return (
@@ -242,7 +243,7 @@ export function FilterChip({
                 </button>
               );
             })}
-          </div>
+          </ScrollArea>
         </>
       ) : null}
     </div>
@@ -282,7 +283,7 @@ export function SelectChip({
       {open ? (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-[var(--nimi-border-subtle)] bg-white py-1 shadow-lg">
+          <ScrollArea className="absolute left-0 z-50 mt-1 max-h-56 w-52 rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg" contentClassName="py-1">
             {options.map((option) => {
               const checked = option.value === value;
               return (
@@ -304,7 +305,7 @@ export function SelectChip({
                 </button>
               );
             })}
-          </div>
+          </ScrollArea>
         </>
       ) : null}
     </div>
@@ -407,4 +408,3 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
     </button>
   );
 }
-

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/nimi-kit/features/chat';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 // ---------------------------------------------------------------------------
@@ -134,7 +135,11 @@ export function ChatContactsSidebar({ targets, selectedTargetId, onSelectTarget 
 
   return (
     <aside data-testid={E2E_IDS.chatList} className="flex h-full w-14 shrink-0 flex-col items-center border-l border-slate-200/60 bg-[var(--nimi-app-background,#f3f1ee)] py-2">
-      <div className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto overflow-x-hidden px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <ScrollArea
+        className="w-full flex-1 px-1 py-1"
+        viewportClassName="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        contentClassName="flex flex-col items-center gap-1.5"
+      >
         {/* AI targets (always visible) */}
         {aiTargets.map((target) => (
           <ContactAvatar
@@ -174,7 +179,7 @@ export function ChatContactsSidebar({ targets, selectedTargetId, onSelectTarget 
             ))}
           </>
         ) : null}
-      </div>
+      </ScrollArea>
     </aside>
   );
 }

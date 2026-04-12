@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   AgentLocalDraftRecord,
   AgentLocalThreadBundle,
@@ -205,7 +206,7 @@ test('agent host interaction preserves authoritative content and interrupted foo
       partialText: 'stale tail that should not win',
       partialReasoningText: 'stale reasoning',
       errorMessage: 'Generation stopped.',
-      reasonCode: 'OPERATION_ABORTED',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
       traceId: 'trace-tail',
       cancelSource: 'user',
     }),
@@ -266,7 +267,7 @@ test('agent host interaction keeps interrupted placeholder state when the turn f
       partialText: 'partial answer',
       partialReasoningText: 'stream reasoning',
       errorMessage: 'runtime broke',
-      reasonCode: 'RUNTIME_CALL_FAILED',
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
       traceId: 'trace-fail',
     }),
   });

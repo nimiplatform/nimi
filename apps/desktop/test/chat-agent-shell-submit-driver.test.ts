@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   AgentLocalDraftRecord,
   AgentLocalThreadBundle,
@@ -377,7 +378,7 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
       interrupted: true,
       partialText: 'sealed first beat',
       errorMessage: 'Generation stopped.',
-      reasonCode: 'OPERATION_ABORTED',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
       traceId: 'trace-tail',
       cancelSource: 'user',
     }),
@@ -396,7 +397,7 @@ test('agent submit driver keeps sealed first-beat when canceled turn wins over l
       interrupted: true,
       partialText: 'sealed first beat',
       errorMessage: 'Generation stopped.',
-      reasonCode: 'OPERATION_ABORTED',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
       traceId: 'trace-tail',
       cancelSource: 'user',
     }),
