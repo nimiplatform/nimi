@@ -80,7 +80,7 @@ func TestLoadModelAndGenerateImage(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
+	_, err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		ModelsRoot:     modelsRoot,
 		ModelPath:      "resolved/example/model.gguf",
@@ -167,7 +167,7 @@ func TestGenerateImageAcceptsLegacyTerminalResult(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	err = GenerateImage(context.Background(), ImageRequest{
+	_, err = GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            outputPath,
@@ -205,7 +205,7 @@ func TestGenerateImageReturnsLegacyTerminalFailure(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	err = GenerateImage(context.Background(), ImageRequest{
+	_, err = GenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		ModelPath:      "resolved/example/model.gguf",
 		Dst:            filepath.Join(t.TempDir(), "artifact.png"),
@@ -243,7 +243,7 @@ func TestLoadModelAndGenerateImageReturnsBackendFailure(t *testing.T) {
 		_ = server.Serve(listener)
 	}()
 
-	err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
+	_, err = LoadModelAndGenerateImage(context.Background(), ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		ModelsRoot:     t.TempDir(),
 		ModelPath:      "resolved/example/model.gguf",

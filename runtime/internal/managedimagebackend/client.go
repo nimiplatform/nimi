@@ -53,6 +53,19 @@ type LoadModelRequest struct {
 	Threads        int32
 }
 
+type LoadModelDiagnostics struct {
+	CacheHit          bool
+	ResidentReused    bool
+	ResidentRestarted bool
+}
+
+type ImageGenerateDiagnostics struct {
+	QueueWaitMs        int64
+	GenerateDurationMs int64
+	QueueSerialized    bool
+	ResidentReused     bool
+}
+
 type ImageGenerateProgress struct {
 	CurrentStep     int32
 	TotalSteps      int32
@@ -69,11 +82,11 @@ var (
 	generateImageEventDescriptor   protoreflect.MessageDescriptor
 )
 
-func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) error {
+func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
 	if strings.TrimSpace(req.Dst) == "" {
-		return fmt.Errorf("managed media destination is required")
+		return nil, fmt.Errorf("managed media destination is required")
 	}
-	if err := LoadModel(ctx, LoadModelRequest{
+	if _, err := LoadModel(ctx, LoadModelRequest{
 		BackendAddress: req.BackendAddress,
 		ModelsRoot:     req.ModelsRoot,
 		ModelPath:      req.ModelPath,
@@ -81,17 +94,17 @@ func LoadModelAndGenerateImage(ctx context.Context, req ImageRequest) error {
 		CFGScale:       req.CFGScale,
 		Threads:        req.Threads,
 	}); err != nil {
-		return err
+		return nil, err
 	}
 	return GenerateImage(ctx, req)
 }
 
-func GenerateImage(ctx context.Context, req ImageRequest) error {
+func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnostics, error) {
 	if strings.TrimSpace(req.Dst) == "" {
-		return fmt.Errorf("managed media destination is required")
+		return nil, fmt.Errorf("managed media destination is required")
 	}
 	if err := ensureDescriptors(); err != nil {
-		return err
+		return nil, err
 	}
 
 	conn, err := grpc.DialContext(
@@ -106,7 +119,7 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 			"backend_address", strings.TrimSpace(req.BackendAddress),
 			"error", err,
 		)
-		return fmt.Errorf("dial managed media backend: %w", err)
+		return nil, fmt.Errorf("dial managed media backend: %w", err)
 	}
 	defer conn.Close()
 	slog.Info("managed image backend dial ready",
@@ -138,15 +151,16 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 	)
 	stream, err := conn.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, backendGenerateImageMethod)
 	if err != nil {
-		return fmt.Errorf("open managed media generate stream: %w", err)
+		return nil, fmt.Errorf("open managed media generate stream: %w", err)
 	}
 	if err := stream.SendMsg(generateReq); err != nil {
-		return fmt.Errorf("send managed media generate request: %w", err)
+		return nil, fmt.Errorf("send managed media generate request: %w", err)
 	}
 	if err := stream.CloseSend(); err != nil {
-		return fmt.Errorf("close managed media generate request stream: %w", err)
+		return nil, fmt.Errorf("close managed media generate request stream: %w", err)
 	}
 	receivedTerminal := false
+	var terminalDiag *ImageGenerateDiagnostics
 	for {
 		event := dynamicpb.NewMessage(generateImageEventDescriptor)
 		if err := stream.RecvMsg(event); err != nil {
@@ -160,9 +174,9 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 				"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
 				"error", err,
 			)
-			return fmt.Errorf("generate managed media image: %w", err)
+			return nil, fmt.Errorf("generate managed media image: %w", err)
 		}
-		progress, hasProgress, done, success, message := readGenerateImageEvent(event)
+		progress, hasProgress, done, success, message, diag := readGenerateImageEvent(event)
 		if !hasOptionalField(event, "done") {
 			if legacySuccess, legacyMessage, legacyTerminal := readLegacyGenerateImageResult(event); legacyTerminal {
 				receivedTerminal = true
@@ -174,9 +188,9 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 					"legacy_terminal", true,
 				)
 				if !legacySuccess {
-					return fmt.Errorf("generate managed media image failed: %s", defaultMessage(legacyMessage, "backend returned unsuccessful image result"))
+					return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(legacyMessage, "backend returned unsuccessful image result"))
 				}
-				return nil
+				return nil, nil
 			}
 		}
 		if hasProgress && req.OnProgress != nil {
@@ -186,16 +200,20 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 			continue
 		}
 		receivedTerminal = true
+		terminalDiag = diag
 		slog.Info("managed image backend invoke completed",
 			"operation", "generate",
 			"backend_address", strings.TrimSpace(req.BackendAddress),
 			"model_path", strings.TrimSpace(req.ModelPath),
 			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+			"queue_wait_ms", diag.QueueWaitMs,
+			"generate_duration_ms", diag.GenerateDurationMs,
+			"queue_serialized", diag.QueueSerialized,
 		)
 		if !success {
-			return fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
+			return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
 		}
-		return nil
+		return terminalDiag, nil
 	}
 	if !receivedTerminal {
 		slog.Warn("managed image backend invoke failed",
@@ -205,23 +223,23 @@ func GenerateImage(ctx context.Context, req ImageRequest) error {
 			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
 			"error", "missing terminal backend event",
 		)
-		return fmt.Errorf("generate managed media image: missing terminal backend event")
+		return nil, fmt.Errorf("generate managed media image: missing terminal backend event")
 	}
-	return nil
+	return terminalDiag, nil
 }
 
-func LoadModel(ctx context.Context, req LoadModelRequest) error {
+func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics, error) {
 	if strings.TrimSpace(req.BackendAddress) == "" {
-		return fmt.Errorf("local backend address is required")
+		return nil, fmt.Errorf("local backend address is required")
 	}
 	if strings.TrimSpace(req.ModelsRoot) == "" {
-		return fmt.Errorf("local models root is required")
+		return nil, fmt.Errorf("local models root is required")
 	}
 	if strings.TrimSpace(req.ModelPath) == "" {
-		return fmt.Errorf("managed media model path is required")
+		return nil, fmt.Errorf("managed media model path is required")
 	}
 	if err := ensureDescriptors(); err != nil {
-		return err
+		return nil, err
 	}
 
 	conn, err := grpc.DialContext(
@@ -236,7 +254,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 			"backend_address", strings.TrimSpace(req.BackendAddress),
 			"error", err,
 		)
-		return fmt.Errorf("dial managed media backend: %w", err)
+		return nil, fmt.Errorf("dial managed media backend: %w", err)
 	}
 	defer conn.Close()
 	slog.Info("managed image backend dial ready",
@@ -270,7 +288,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
 			"error", err,
 		)
-		return fmt.Errorf("load managed media model: %w", err)
+		return nil, fmt.Errorf("load managed media model: %w", err)
 	}
 	slog.Info("managed image backend invoke completed",
 		"operation", "load",
@@ -278,10 +296,11 @@ func LoadModel(ctx context.Context, req LoadModelRequest) error {
 		"model_path", strings.TrimSpace(req.ModelPath),
 		"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
 	)
-	if success, message := readResult(loadResp); !success {
-		return fmt.Errorf("load managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful load result"))
+	success, message, diag := readResult(loadResp)
+	if !success {
+		return nil, fmt.Errorf("load managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful load result"))
 	}
-	return nil
+	return diag, nil
 }
 
 func FreeModel(ctx context.Context, req LoadModelRequest) error {
@@ -314,7 +333,7 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
 		return fmt.Errorf("free managed media model: %w", err)
 	}
-	if success, message := readResult(freeResp); !success {
+	if success, message, _ := readResult(freeResp); !success {
 		return fmt.Errorf("free managed media model failed: %s", defaultMessage(message, "backend returned unsuccessful free result"))
 	}
 	return nil
@@ -339,6 +358,24 @@ func ensureDescriptors() error {
 						{
 							Name:   stringPtr("success"),
 							Number: int32Ptr(2),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("cache_hit"),
+							Number: int32Ptr(3),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("resident_reused"),
+							Number: int32Ptr(4),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("resident_restarted"),
+							Number: int32Ptr(5),
 							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
 						},
@@ -489,6 +526,30 @@ func ensureDescriptors() error {
 							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 							Type:   descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum(),
 						},
+						{
+							Name:   stringPtr("queue_wait_ms"),
+							Number: int32Ptr(7),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_INT64.Enum(),
+						},
+						{
+							Name:   stringPtr("generate_duration_ms"),
+							Number: int32Ptr(8),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_INT64.Enum(),
+						},
+						{
+							Name:   stringPtr("queue_serialized"),
+							Number: int32Ptr(9),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
+						{
+							Name:   stringPtr("resident_reused"),
+							Number: int32Ptr(10),
+							Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+							Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+						},
 					},
 				},
 			},
@@ -571,9 +632,9 @@ func setRepeatedStringField(message *dynamicpb.Message, fieldName string, values
 	}
 }
 
-func readResult(message *dynamicpb.Message) (bool, string) {
+func readResult(message *dynamicpb.Message) (bool, string, *LoadModelDiagnostics) {
 	if message == nil {
-		return false, ""
+		return false, "", nil
 	}
 	successField := message.Descriptor().Fields().ByName(protoreflect.Name("success"))
 	messageField := message.Descriptor().Fields().ByName(protoreflect.Name("message"))
@@ -585,12 +646,16 @@ func readResult(message *dynamicpb.Message) (bool, string) {
 	if messageField != nil && message.Has(messageField) {
 		resultMessage = message.Get(messageField).String()
 	}
-	return success, strings.TrimSpace(resultMessage)
+	return success, strings.TrimSpace(resultMessage), &LoadModelDiagnostics{
+		CacheHit:          readOptionalBoolField(message, "cache_hit"),
+		ResidentReused:    readOptionalBoolField(message, "resident_reused"),
+		ResidentRestarted: readOptionalBoolField(message, "resident_restarted"),
+	}
 }
 
-func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, bool, bool, bool, string) {
+func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, bool, bool, bool, string, *ImageGenerateDiagnostics) {
 	if message == nil {
-		return ImageGenerateProgress{}, false, false, false, ""
+		return ImageGenerateProgress{}, false, false, false, "", nil
 	}
 	progress := ImageGenerateProgress{
 		CurrentStep:     readOptionalInt32Field(message, "current_step"),
@@ -598,7 +663,12 @@ func readGenerateImageEvent(message *dynamicpb.Message) (ImageGenerateProgress, 
 		ProgressPercent: readOptionalInt32Field(message, "progress_percent"),
 	}
 	hasProgress := progress.CurrentStep > 0 || progress.TotalSteps > 0 || progress.ProgressPercent > 0
-	return progress, hasProgress, readOptionalBoolField(message, "done"), readOptionalBoolField(message, "success"), readOptionalStringField(message, "message")
+	return progress, hasProgress, readOptionalBoolField(message, "done"), readOptionalBoolField(message, "success"), readOptionalStringField(message, "message"), &ImageGenerateDiagnostics{
+		QueueWaitMs:        readOptionalInt64Field(message, "queue_wait_ms"),
+		GenerateDurationMs: readOptionalInt64Field(message, "generate_duration_ms"),
+		QueueSerialized:    readOptionalBoolField(message, "queue_serialized"),
+		ResidentReused:     readOptionalBoolField(message, "resident_reused"),
+	}
 }
 
 func defaultMessage(value string, fallback string) string {
@@ -622,6 +692,14 @@ func readOptionalInt32Field(message *dynamicpb.Message, fieldName string) int32 
 		return 0
 	}
 	return int32(message.Get(field).Int())
+}
+
+func readOptionalInt64Field(message *dynamicpb.Message, fieldName string) int64 {
+	field := message.Descriptor().Fields().ByName(protoreflect.Name(fieldName))
+	if field == nil || !message.Has(field) {
+		return 0
+	}
+	return message.Get(field).Int()
 }
 
 func readOptionalBoolField(message *dynamicpb.Message, fieldName string) bool {

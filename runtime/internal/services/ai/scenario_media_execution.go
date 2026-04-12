@@ -92,10 +92,11 @@ func executeBackendSyncMedia(
 			)
 		}
 		var (
-			payload []byte
-			usage   *runtimev1.UsageStats
-			err     error
-			diag    *nimillm.ManagedMediaImageDiagnostics
+			payload  []byte
+			usage    *runtimev1.UsageStats
+			err      error
+			diag     *nimillm.ManagedMediaImageDiagnostics
+			loadDiag *nimillm.ManagedMediaImageLoadDiagnostics
 		)
 		var imageSelection engine.ImageSupervisedMatrixSelection
 		resolvedSelection, resolveErr := s.localImageProfile.ResolveCanonicalImageSelection(ctx, backendModelID)
@@ -141,7 +142,8 @@ func executeBackendSyncMedia(
 					grpcerr.ReasonOptions{Message: "managed image backend target is unavailable"},
 				)
 			}
-			if err := s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request"); err != nil {
+			loadDiag, err = s.localImageProfile.EnsureManagedMediaImageLoaded(ctx, backendModelID, alias, profile, scenarioExtensions, "generate_request")
+			if err != nil {
 				_ = s.localImageProfile.UpdateManagedMediaImageExecutionStatus(ctx, backendModelID, false, scenarioExecutionProviderMessage(err))
 				return nil, nil, "", err
 			}
@@ -195,6 +197,21 @@ func executeBackendSyncMedia(
 			artifactMeta["ref_images_count"] = diag.RefImagesCount
 			artifactMeta["local.applied_options"] = append([]string(nil), diag.AppliedOptions...)
 			artifactMeta["local.ignored_options"] = append([]string(nil), diag.IgnoredOptions...)
+			artifactMeta["image_generate_ms"] = diag.GenerateDurationMs
+			artifactMeta["queue_wait_ms"] = diag.QueueWaitMs
+			artifactMeta["queue_serialized"] = diag.QueueSerialized
+			if loadDiag == nil {
+				artifactMeta["resident_reused"] = diag.ResidentReused
+			}
+		}
+		if loadDiag != nil {
+			artifactMeta["image_load_ms"] = loadDiag.LoadDurationMs
+			artifactMeta["load_cache_hit"] = loadDiag.LoadCacheHit
+			artifactMeta["resident_reused"] = loadDiag.ResidentReused
+			artifactMeta["resident_restarted"] = loadDiag.ResidentRestarted
+		}
+		for key, value := range managedImageProfileOverrideMetadata(scenarioExtensions) {
+			artifactMeta[key] = value
 		}
 		artifact := nimillm.BinaryArtifact(nimillm.ResolveImageArtifactMIME(spec, payload), payload, artifactMeta)
 		nimillm.ApplyImageSpecMetadata(artifact, spec)
@@ -334,6 +351,33 @@ func scenarioExecutionProviderMessage(err error) string {
 		}
 	}
 	return strings.TrimSpace(err.Error())
+}
+
+func managedImageProfileOverrideMetadata(scenarioExtensions map[string]any) map[string]any {
+	if len(scenarioExtensions) == 0 {
+		return nil
+	}
+	metadata := make(map[string]any)
+	if step, ok := scenarioExtensions["step"]; ok {
+		metadata["profile_override_step"] = step
+	}
+	if cfgScale, ok := scenarioExtensions["cfg_scale"]; ok {
+		metadata["profile_override_cfg_scale"] = cfgScale
+	} else if guidanceScale, ok := scenarioExtensions["guidance_scale"]; ok {
+		metadata["profile_override_cfg_scale"] = guidanceScale
+	}
+	if sampler, ok := scenarioExtensions["sampler"]; ok && strings.TrimSpace(fmt.Sprint(sampler)) != "" {
+		metadata["profile_override_sampler"] = sampler
+	} else if mode, ok := scenarioExtensions["mode"]; ok && strings.TrimSpace(fmt.Sprint(mode)) != "" {
+		metadata["profile_override_sampler"] = mode
+	}
+	if scheduler, ok := scenarioExtensions["scheduler"]; ok && strings.TrimSpace(fmt.Sprint(scheduler)) != "" {
+		metadata["profile_override_scheduler"] = scheduler
+	}
+	if len(metadata) == 0 {
+		return nil
+	}
+	return metadata
 }
 
 func validateConnectorTTSModelSupport(

@@ -130,7 +130,7 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		"ref_images_count", len(refImages),
 		"has_mask", maskPath != "",
 	)
-	err = managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
+	generateBackendDiag, err := managedimagebackend.GenerateImage(ctx, managedimagebackend.ImageRequest{
 		BackendAddress: backendAddress,
 		ModelsRoot:     modelsRoot,
 		ModelPath:      modelPath,
@@ -191,6 +191,13 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		"height", height,
 		"step", step,
 		"duration_ms", generateDurationMs,
+		"queue_wait_ms", func() int64 {
+			if generateBackendDiag == nil {
+				return 0
+			}
+			return generateBackendDiag.QueueWaitMs
+		}(),
+		"queue_serialized", generateBackendDiag != nil && generateBackendDiag.QueueSerialized,
 	)
 
 	payload, err := os.ReadFile(destinationPath)
@@ -198,11 +205,18 @@ func (b *Backend) GenerateImageManagedMediaDirect(
 		return nil, nil, nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	diag := &ManagedMediaImageDiagnostics{
-		LocalPrompt:    localPrompt,
-		SourceImage:    sourceImage,
-		RefImagesCount: managedMediaRefImagesCount(resolvedRefImages),
-		AppliedOptions: appliedOptions,
-		IgnoredOptions: ignoredOptions,
+		LocalPrompt:        localPrompt,
+		SourceImage:        sourceImage,
+		RefImagesCount:     managedMediaRefImagesCount(resolvedRefImages),
+		AppliedOptions:     appliedOptions,
+		IgnoredOptions:     ignoredOptions,
+		GenerateDurationMs: generateDurationMs,
+	}
+	if generateBackendDiag != nil {
+		diag.GenerateDurationMs = generateBackendDiag.GenerateDurationMs
+		diag.QueueWaitMs = generateBackendDiag.QueueWaitMs
+		diag.QueueSerialized = generateBackendDiag.QueueSerialized
+		diag.ResidentReused = generateBackendDiag.ResidentReused
 	}
 	usage := ArtifactUsage(localPrompt, payload, 180)
 	return payload, usage, diag, nil

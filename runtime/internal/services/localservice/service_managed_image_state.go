@@ -13,6 +13,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/managedimagebackend"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 )
 
@@ -109,13 +110,13 @@ func (s *Service) ReleaseManagedMediaImage(ctx context.Context, requestedModelID
 	return s.releaseManagedSupervisedImage(ctx, model, alias, profile, scenarioExtensions, releaseReason)
 }
 
-func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
+func (s *Service) EnsureManagedMediaImageLoaded(ctx context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	if s == nil {
-		return fmt.Errorf("managed local image is unavailable")
+		return nil, fmt.Errorf("managed local image is unavailable")
 	}
 	model := s.resolveManagedMediaImageModel(requestedModelID)
 	if model == nil {
-		return fmt.Errorf("managed local image is unavailable")
+		return nil, fmt.Errorf("managed local image is unavailable")
 	}
 	return s.ensureManagedSupervisedImageLoaded(ctx, model, alias, profile, scenarioExtensions, loadReason)
 }
@@ -127,20 +128,20 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 	profile map[string]any,
 	scenarioExtensions map[string]any,
 	loadReason string,
-) error {
+) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	if model == nil {
-		return fmt.Errorf("managed local image is unavailable")
+		return nil, fmt.Errorf("managed local image is unavailable")
 	}
 	localAssetID := strings.TrimSpace(model.GetLocalAssetId())
 	if localAssetID == "" {
-		return fmt.Errorf("managed local image is unavailable")
+		return nil, fmt.Errorf("managed local image is unavailable")
 	}
 	resolvedAlias := strings.TrimSpace(alias)
 	resolvedProfile := cloneAnyMap(profile)
 	if len(resolvedProfile) == 0 {
 		cached, ok := s.cachedManagedMediaImageProfile(localAssetID)
 		if !ok || len(cached.Profile) == 0 {
-			return errManagedImageValidationPending
+			return nil, errManagedImageValidationPending
 		}
 		resolvedAlias = cached.Alias
 		resolvedProfile = cached.Profile
@@ -157,7 +158,7 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 	modelsRoot, backendAddress, backendEpoch := s.managedMediaBackendSnapshot()
 	loadReq, err := managedImageLoadRequest(modelsRoot, backendAddress, resolvedProfile, scenarioExtensions)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	loadReq.BackendAddress = backendAddress
 	profileHash := managedImageLoadHash(resolvedProfile)
@@ -180,10 +181,13 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 			"cache_hit", true,
 			"backend_epoch", backendEpoch,
 		)
-		return nil
+		return &nimillm.ManagedMediaImageLoadDiagnostics{
+			LoadCacheHit:   true,
+			ResidentReused: true,
+		}, nil
 	}
 
-	if err := s.runManagedImageLoadSingleflight(
+	diag, err := s.runManagedImageLoadSingleflight(
 		ctx,
 		localAssetID,
 		resolvedAlias,
@@ -192,10 +196,11 @@ func (s *Service) ensureManagedSupervisedImageLoaded(
 		loadReason,
 		backendEpoch,
 		loadReq,
-	); err != nil {
-		return err
+	)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return diag, nil
 }
 
 func (s *Service) managedImageLoadCacheHit(localAssetID string, requestHash string, backendAddress string, backendEpoch uint64) bool {
@@ -242,11 +247,14 @@ func (s *Service) runManagedImageLoadSingleflight(
 	loadReason string,
 	backendEpoch uint64,
 	loadReq managedimagebackend.LoadModelRequest,
-) error {
+) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	requestHash = strings.TrimSpace(requestHash)
 	for {
 		if s.retainManagedImageLoadCacheEntry(localAssetID, requestHash, loadReq.BackendAddress, backendEpoch) {
-			return nil
+			return &nimillm.ManagedMediaImageLoadDiagnostics{
+				LoadCacheHit:   true,
+				ResidentReused: true,
+			}, nil
 		}
 
 		s.mu.Lock()
@@ -257,17 +265,20 @@ func (s *Service) runManagedImageLoadSingleflight(
 			entry.HoldCount++
 			s.managedImageLoadCache[localAssetID] = entry
 			s.mu.Unlock()
-			return nil
+			return &nimillm.ManagedMediaImageLoadDiagnostics{
+				LoadCacheHit:   true,
+				ResidentReused: true,
+			}, nil
 		}
 		if inflight, ok := s.managedImageLoadInflight[requestHash]; ok {
 			done := inflight.done
 			s.mu.Unlock()
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return nil, ctx.Err()
 			case <-done:
 				if inflight.err != nil {
-					return inflight.err
+					return nil, inflight.err
 				}
 				continue
 			}
@@ -295,7 +306,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 			loadFn = managedimagebackend.LoadModel
 		}
 		loadCtx, cancel := managedImageLoadContext(ctx, managedImageLoadTimeout)
-		loadErr := loadFn(loadCtx, loadReq)
+		loadBackendDiag, loadErr := loadFn(loadCtx, loadReq)
 		cancel()
 		loadDurationMs := time.Since(startedAt).Milliseconds()
 		if errors.Is(loadErr, context.DeadlineExceeded) {
@@ -326,7 +337,17 @@ func (s *Service) runManagedImageLoadSingleflight(
 				"backend_address", strings.TrimSpace(loadReq.BackendAddress),
 				"model_path", strings.TrimSpace(loadReq.ModelPath),
 				"duration_ms", loadDurationMs,
+				"resident_reused", loadBackendDiag != nil && loadBackendDiag.ResidentReused,
+				"resident_restarted", loadBackendDiag != nil && loadBackendDiag.ResidentRestarted,
 			)
+		}
+		loadDiag := &nimillm.ManagedMediaImageLoadDiagnostics{
+			LoadDurationMs: loadDurationMs,
+		}
+		if loadBackendDiag != nil {
+			loadDiag.LoadCacheHit = loadBackendDiag.CacheHit
+			loadDiag.ResidentReused = loadBackendDiag.ResidentReused || loadBackendDiag.CacheHit
+			loadDiag.ResidentRestarted = loadBackendDiag.ResidentRestarted
 		}
 
 		s.mu.Lock()
@@ -346,7 +367,7 @@ func (s *Service) runManagedImageLoadSingleflight(
 		close(inflight.done)
 		delete(s.managedImageLoadInflight, requestHash)
 		s.mu.Unlock()
-		return loadErr
+		return loadDiag, loadErr
 	}
 }
 

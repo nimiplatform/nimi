@@ -38,8 +38,8 @@ var managedImageBackendGOOS = runtime.GOOS
 var stableDiffusionProgressPattern = regexp.MustCompile(`^\s*(\d+)\s*/\s*(\d+)\b.*s/it`)
 
 type backendDriver interface {
-	LoadModel(loadModelState) error
-	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) error
+	LoadModel(loadModelState) (*LoadModelDiagnostics, error)
+	GenerateImage(context.Context, loadModelState, imageGenerateState, func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error)
 	Free(loadModelState) error
 }
 
@@ -155,7 +155,7 @@ func (s *Server) handleLoadModel(stream grpc.ServerStream) error {
 	}
 	state, err := decodeLoadModelState(req)
 	if err != nil {
-		return stream.SendMsg(resultMessage(false, err.Error()))
+		return stream.SendMsg(resultMessage(false, err.Error(), nil))
 	}
 	log.Printf("managed image backend load request model_path=%s options=%s threads=%d cfg_scale=%g",
 		strings.TrimSpace(state.ModelPath),
@@ -172,18 +172,19 @@ func (s *Server) handleLoadModel(stream grpc.ServerStream) error {
 		state.Threads,
 		state.CFGScale,
 	)
-	if err := s.driver.LoadModel(state); err != nil {
+	diag, err := s.driver.LoadModel(state)
+	if err != nil {
 		log.Printf("managed image backend load request failed model_path=%s error=%v",
 			strings.TrimSpace(state.ModelPath),
 			err,
 		)
-		return stream.SendMsg(resultMessage(false, err.Error()))
+		return stream.SendMsg(resultMessage(false, err.Error(), nil))
 	}
 	s.mu.Lock()
 	s.loaded = &state
 	s.mu.Unlock()
 	log.Printf("managed image backend load request completed model_path=%s", strings.TrimSpace(state.ModelPath))
-	return stream.SendMsg(resultMessage(true, "loaded"))
+	return stream.SendMsg(resultMessage(true, "loaded", diag))
 }
 
 func (s *Server) handleGenerateImage(stream grpc.ServerStream) error {
@@ -193,20 +194,21 @@ func (s *Server) handleGenerateImage(stream grpc.ServerStream) error {
 	}
 	imageReq, err := decodeGenerateImageState(req)
 	if err != nil {
-		return stream.SendMsg(generateImageTerminalEvent(false, err.Error()))
+		return stream.SendMsg(generateImageTerminalEvent(false, err.Error(), nil))
 	}
 	s.mu.RLock()
 	loaded := s.loaded
 	s.mu.RUnlock()
 	if loaded == nil {
-		return stream.SendMsg(generateImageTerminalEvent(false, "managed image model is not loaded"))
+		return stream.SendMsg(generateImageTerminalEvent(false, "managed image model is not loaded", nil))
 	}
-	if err := s.driver.GenerateImage(stream.Context(), *loaded, imageReq, func(progress imageGenerateProgress) error {
+	diag, err := s.driver.GenerateImage(stream.Context(), *loaded, imageReq, func(progress imageGenerateProgress) error {
 		return stream.SendMsg(generateImageProgressEvent(progress))
-	}); err != nil {
-		return stream.SendMsg(generateImageTerminalEvent(false, err.Error()))
+	})
+	if err != nil {
+		return stream.SendMsg(generateImageTerminalEvent(false, err.Error(), diag))
 	}
-	return stream.SendMsg(generateImageTerminalEvent(true, "generated"))
+	return stream.SendMsg(generateImageTerminalEvent(true, "generated", diag))
 }
 
 func (s *Server) handleFree(stream grpc.ServerStream) error {
@@ -216,15 +218,15 @@ func (s *Server) handleFree(stream grpc.ServerStream) error {
 	}
 	state, err := decodeLoadModelState(req)
 	if err != nil {
-		return stream.SendMsg(resultMessage(false, err.Error()))
+		return stream.SendMsg(resultMessage(false, err.Error(), nil))
 	}
 	if err := s.driver.Free(state); err != nil {
-		return stream.SendMsg(resultMessage(false, err.Error()))
+		return stream.SendMsg(resultMessage(false, err.Error(), nil))
 	}
 	s.mu.Lock()
 	s.loaded = nil
 	s.mu.Unlock()
-	return stream.SendMsg(resultMessage(true, "freed"))
+	return stream.SendMsg(resultMessage(true, "freed", nil))
 }
 
 func newBackendDriver(cfg ServerConfig) (backendDriver, error) {
@@ -277,17 +279,17 @@ func newStableDiffusionCPPDriver(executablePath string, workingDir string) (back
 	}, nil
 }
 
-func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) error {
+func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) (*LoadModelDiagnostics, error) {
 	if d == nil {
-		return fmt.Errorf("managed image backend driver unavailable")
+		return nil, fmt.Errorf("managed image backend driver unavailable")
 	}
 	if err := validateManagedImageLoadState(state); err != nil {
-		return err
+		return nil, err
 	}
 	config := stableDiffusionCPPResidentConfigFromLoad(state)
 	fingerprint, err := stableDiffusionCPPResidentFingerprint(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	d.mu.Lock()
@@ -299,44 +301,53 @@ func (d *stableDiffusionCPPDriver) LoadModel(state loadModelState) error {
 			d.resident.endpoint,
 			d.resident.startupSummary,
 		)
-		return nil
+		return &LoadModelDiagnostics{
+			CacheHit:       true,
+			ResidentReused: true,
+		}, nil
 	}
+	restartedResident := false
 	if d.resident != nil {
 		log.Printf("managed image resident restart reason=config_changed old_fingerprint=%s new_fingerprint=%s",
 			d.resident.fingerprint,
 			fingerprint,
 		)
 		if err := d.stopResidentLocked("config_changed"); err != nil {
-			return err
+			return nil, err
 		}
+		restartedResident = true
 	}
 
 	resident, err := d.startResidentLocked(config, fingerprint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	d.resident = resident
-	return nil
+	return &LoadModelDiagnostics{
+		ResidentRestarted: restartedResident,
+	}, nil
 }
 
-func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) error {
+func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error) {
 	if d == nil {
-		return fmt.Errorf("managed image backend driver unavailable")
+		return nil, fmt.Errorf("managed image backend driver unavailable")
 	}
 	if strings.TrimSpace(req.Dst) == "" {
-		return fmt.Errorf("managed image destination is required")
+		return nil, fmt.Errorf("managed image destination is required")
 	}
 	if err := os.MkdirAll(filepath.Dir(strings.TrimSpace(req.Dst)), 0o755); err != nil {
-		return fmt.Errorf("create managed image destination: %w", err)
+		return nil, fmt.Errorf("create managed image destination: %w", err)
 	}
+	queueStartedAt := time.Now()
 	d.generateMu.Lock()
 	defer d.generateMu.Unlock()
+	queueWaitMs := time.Since(queueStartedAt).Milliseconds()
 
 	d.mu.Lock()
 	resident := d.resident
 	d.mu.Unlock()
 	if resident == nil || resident.hasExited() {
-		return fmt.Errorf("managed image resident server is not loaded")
+		return nil, fmt.Errorf("managed image resident server is not loaded")
 	}
 
 	startedAt := time.Now()
@@ -351,6 +362,13 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		strings.TrimSpace(loaded.Options.Scheduler),
 		true,
 	)
+	if queueWaitMs > 0 {
+		log.Printf("managed image resident request queued endpoint=%s model_path=%s queue_wait_ms=%d",
+			resident.endpoint,
+			strings.TrimSpace(loaded.ModelPath),
+			queueWaitMs,
+		)
+	}
 
 	progressCursor := 0
 	if resident.logCapture != nil {
@@ -376,11 +394,11 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil, ctx.Err()
 		case <-ticker.C:
 			progressCursor, lastProgress, haveProgress, err = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		case result := <-resultCh:
 			payload = result.payload
@@ -388,7 +406,7 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 			var emitErr error
 			progressCursor, lastProgress, haveProgress, emitErr = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
 			if emitErr != nil {
-				return emitErr
+				return nil, emitErr
 			}
 			_ = progressCursor
 			goto completed
@@ -397,29 +415,38 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 
 completed:
 	durationMs := time.Since(startedAt).Milliseconds()
+	diag := &ImageGenerateDiagnostics{
+		QueueWaitMs:        queueWaitMs,
+		GenerateDurationMs: durationMs,
+		QueueSerialized:    queueWaitMs > 0,
+		ResidentReused:     true,
+	}
 	if err != nil {
-		log.Printf("managed image resident request failed endpoint=%s model_path=%s duration_ms=%d error=%v",
+		log.Printf("managed image resident request failed endpoint=%s model_path=%s duration_ms=%d queue_wait_ms=%d error=%v",
 			resident.endpoint,
 			strings.TrimSpace(loaded.ModelPath),
 			durationMs,
+			queueWaitMs,
 			err,
 		)
-		return err
+		return diag, err
 	}
 	if len(payload) == 0 {
-		return fmt.Errorf("managed image destination is empty")
+		return diag, fmt.Errorf("managed image destination is empty")
 	}
 	if err := os.WriteFile(strings.TrimSpace(req.Dst), payload, 0o600); err != nil {
-		return fmt.Errorf("write managed image destination: %w", err)
+		return diag, fmt.Errorf("write managed image destination: %w", err)
 	}
-	log.Printf("managed image resident request completed endpoint=%s model_path=%s duration_ms=%d dst=%s bytes=%d",
+	log.Printf("managed image resident request completed endpoint=%s model_path=%s duration_ms=%d queue_wait_ms=%d queue_serialized=%t dst=%s bytes=%d",
 		resident.endpoint,
 		strings.TrimSpace(loaded.ModelPath),
 		durationMs,
+		queueWaitMs,
+		queueWaitMs > 0,
 		strings.TrimSpace(req.Dst),
 		len(payload),
 	)
-	return nil
+	return diag, nil
 }
 
 func streamManagedImageCommandOutput(reader io.ReadCloser, stream string, label string, capture *managedImageLogCapture, wg *sync.WaitGroup) {
@@ -1358,13 +1385,24 @@ func dynamicMessageStringListField(message *dynamicpb.Message, fieldName string)
 	return values
 }
 
-func resultMessage(success bool, message string) *dynamicpb.Message {
+func resultMessage(success bool, message string, diag *LoadModelDiagnostics) *dynamicpb.Message {
 	result := dynamicpb.NewMessage(resultMessageDescriptor)
 	if field := result.Descriptor().Fields().ByName(protoreflect.Name("message")); field != nil && strings.TrimSpace(message) != "" {
 		result.Set(field, protoreflect.ValueOfString(strings.TrimSpace(message)))
 	}
 	if field := result.Descriptor().Fields().ByName(protoreflect.Name("success")); field != nil {
 		result.Set(field, protoreflect.ValueOfBool(success))
+	}
+	if diag != nil {
+		if field := result.Descriptor().Fields().ByName(protoreflect.Name("cache_hit")); field != nil && diag.CacheHit {
+			result.Set(field, protoreflect.ValueOfBool(diag.CacheHit))
+		}
+		if field := result.Descriptor().Fields().ByName(protoreflect.Name("resident_reused")); field != nil && diag.ResidentReused {
+			result.Set(field, protoreflect.ValueOfBool(diag.ResidentReused))
+		}
+		if field := result.Descriptor().Fields().ByName(protoreflect.Name("resident_restarted")); field != nil && diag.ResidentRestarted {
+			result.Set(field, protoreflect.ValueOfBool(diag.ResidentRestarted))
+		}
 	}
 	return result
 }
@@ -1389,7 +1427,7 @@ func generateImageProgressEvent(progress imageGenerateProgress) *dynamicpb.Messa
 	return event
 }
 
-func generateImageTerminalEvent(success bool, message string) *dynamicpb.Message {
+func generateImageTerminalEvent(success bool, message string, diag *ImageGenerateDiagnostics) *dynamicpb.Message {
 	event := dynamicpb.NewMessage(generateImageEventDescriptor)
 	if field := event.Descriptor().Fields().ByName(protoreflect.Name("done")); field != nil {
 		event.Set(field, protoreflect.ValueOfBool(true))
@@ -1399,6 +1437,20 @@ func generateImageTerminalEvent(success bool, message string) *dynamicpb.Message
 	}
 	if field := event.Descriptor().Fields().ByName(protoreflect.Name("message")); field != nil && strings.TrimSpace(message) != "" {
 		event.Set(field, protoreflect.ValueOfString(strings.TrimSpace(message)))
+	}
+	if diag != nil {
+		if field := event.Descriptor().Fields().ByName(protoreflect.Name("queue_wait_ms")); field != nil && diag.QueueWaitMs > 0 {
+			event.Set(field, protoreflect.ValueOfInt64(diag.QueueWaitMs))
+		}
+		if field := event.Descriptor().Fields().ByName(protoreflect.Name("generate_duration_ms")); field != nil && diag.GenerateDurationMs > 0 {
+			event.Set(field, protoreflect.ValueOfInt64(diag.GenerateDurationMs))
+		}
+		if field := event.Descriptor().Fields().ByName(protoreflect.Name("queue_serialized")); field != nil && diag.QueueSerialized {
+			event.Set(field, protoreflect.ValueOfBool(diag.QueueSerialized))
+		}
+		if field := event.Descriptor().Fields().ByName(protoreflect.Name("resident_reused")); field != nil && diag.ResidentReused {
+			event.Set(field, protoreflect.ValueOfBool(diag.ResidentReused))
+		}
 	}
 	return event
 }

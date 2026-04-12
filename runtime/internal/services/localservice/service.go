@@ -79,7 +79,7 @@ type Service struct {
 	engineResidency                map[string]localEngineResidencyState
 	managedLlamaLoadMu             sync.Mutex
 
-	profileRegistry              *ProfileRegistry
+	profileRegistry *ProfileRegistry
 
 	endpointProbe                endpointProbeFunc
 	hfCatalogSearch              hfCatalogSearchFunc
@@ -88,7 +88,7 @@ type Service struct {
 	artifactDownloadMaxBodyBytes int64
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
-	managedImageLoadModel        func(context.Context, managedimagebackend.LoadModelRequest) error
+	managedImageLoadModel        func(context.Context, managedimagebackend.LoadModelRequest) (*managedimagebackend.LoadModelDiagnostics, error)
 	managedImageFreeModel        func(context.Context, managedimagebackend.LoadModelRequest) error
 	assetProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState

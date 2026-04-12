@@ -103,7 +103,7 @@ func (s *Service) preflightManagedSupervisedImage(ctx context.Context, model *ru
 			detail:  managedLocalImagePendingValidationDetail("runtime profile bindings not cached yet"),
 		}, nil
 	}
-	err := s.ensureManagedSupervisedImageLoaded(ctx, model, cached.Alias, cached.Profile, nil, loadReason)
+	_, err := s.ensureManagedSupervisedImageLoaded(ctx, model, cached.Alias, cached.Profile, nil, loadReason)
 	if errors.Is(err, errManagedImageValidationPending) {
 		return managedImagePreflightResult{
 			pending: true,

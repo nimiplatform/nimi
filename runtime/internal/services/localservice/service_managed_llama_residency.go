@@ -82,8 +82,6 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 			)
 		}
 	}
-	s.releaseIdleManagedMediaImagesForText(ctx, "text_lease_reclaim")
-
 	engineInfo, hasEngine := managedLlamaEngineInfo(mgr)
 	if currentLoaded == "" && hasEngine {
 		if matched, err := s.tryAdoptManagedLlamaResident(ctx, current, registration, engineInfo.Endpoint); err != nil {
@@ -114,6 +112,7 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 		)
 	}
 	if mustStart {
+		s.releaseIdleManagedMediaImagesForText(ctx, "text_lease_reclaim")
 		if _, err := s.updateModelWarmState(localAssetID, runtimev1.LocalWarmState_LOCAL_WARM_STATE_WARMING, "managed local model loading"); err != nil {
 			return nil, err
 		}

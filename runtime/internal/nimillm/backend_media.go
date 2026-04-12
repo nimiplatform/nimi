@@ -205,12 +205,26 @@ func (b *Backend) Transcribe(
 }
 
 // ManagedMediaImageDiagnostics captures managed image execution diagnostics.
+type ManagedMediaImageLoadDiagnostics struct {
+	LoadDurationMs    int64
+	LoadCacheHit      bool
+	ResidentReused    bool
+	ResidentRestarted bool
+}
+
 type ManagedMediaImageDiagnostics struct {
-	LocalPrompt    string
-	SourceImage    string
-	RefImagesCount int
-	AppliedOptions []string
-	IgnoredOptions []string
+	LocalPrompt        string
+	SourceImage        string
+	RefImagesCount     int
+	AppliedOptions     []string
+	IgnoredOptions     []string
+	LoadDurationMs     int64
+	GenerateDurationMs int64
+	QueueWaitMs        int64
+	LoadCacheHit       bool
+	ResidentReused     bool
+	ResidentRestarted  bool
+	QueueSerialized    bool
 }
 
 type ManagedMediaImageProgress struct {

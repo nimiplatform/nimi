@@ -25,7 +25,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 
-	err := managedimagebackend.LoadModel(ctx, managedimagebackend.LoadModelRequest{
+	_, err := managedimagebackend.LoadModel(ctx, managedimagebackend.LoadModelRequest{
 		BackendAddress: *backendAddress,
 		ModelsRoot:     *modelsRoot,
 		ModelPath:      *modelPath,

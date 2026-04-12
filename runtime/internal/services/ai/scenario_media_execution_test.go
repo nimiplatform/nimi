@@ -70,14 +70,19 @@ func (f *fakeLocalImageProfileResolver) ResolveCanonicalImageSelection(_ context
 	return f.selection, nil
 }
 
-func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) error {
+func (f *fakeLocalImageProfileResolver) EnsureManagedMediaImageLoaded(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, loadReason string) (*nimillm.ManagedMediaImageLoadDiagnostics, error) {
 	f.ensureLoadCalls++
 	f.lastRequestedModel = requestedModelID
 	f.lastLoadReason = loadReason
 	f.lastEnsureAlias = alias
 	f.lastEnsureExt = scenarioExtensions
 	f.profile = profile
-	return nil
+	return &nimillm.ManagedMediaImageLoadDiagnostics{
+		LoadDurationMs:    23,
+		LoadCacheHit:      true,
+		ResidentReused:    true,
+		ResidentRestarted: false,
+	}, nil
 }
 
 func (f *fakeLocalImageProfileResolver) ReleaseManagedMediaImage(_ context.Context, requestedModelID string, alias string, profile map[string]any, scenarioExtensions map[string]any, releaseReason string) error {
@@ -238,6 +243,21 @@ func TestExecuteBackendSyncMediaImageUsesManagedPathWhenProfileResolverReturnsMa
 	ignored := metadataStringList(metadata, "local.ignored_options")
 	if len(ignored) != 3 || ignored[0] != "guidance_scale" || ignored[1] != "strength" || ignored[2] != "clip_skip" {
 		t.Fatalf("local.ignored_options = %v, want [guidance_scale strength clip_skip]", ignored)
+	}
+	if got := metadataNumberValue(metadata, "image_load_ms"); got != 23 {
+		t.Fatalf("image_load_ms = %v, want 23", got)
+	}
+	if got := metadataBoolValue(metadata, "load_cache_hit"); !got {
+		t.Fatalf("load_cache_hit = %v, want true", got)
+	}
+	if got := metadataBoolValue(metadata, "resident_reused"); !got {
+		t.Fatalf("resident_reused = %v, want true", got)
+	}
+	if got := metadataStringValue(metadata, "profile_override_sampler"); got != "euler" {
+		t.Fatalf("profile_override_sampler = %q, want euler", got)
+	}
+	if got := metadataNumberValue(metadata, "profile_override_step"); got != 25 {
+		t.Fatalf("profile_override_step = %v, want 25", got)
 	}
 	if !resolver.executionHealthy {
 		t.Fatalf("expected successful execution status callback, detail=%q", resolver.executionDetail)
@@ -520,6 +540,39 @@ func metadataStringList(metadata *structpb.Struct, key string) []string {
 		out = append(out, value.GetStringValue())
 	}
 	return out
+}
+
+func metadataStringValue(metadata *structpb.Struct, key string) string {
+	if metadata == nil {
+		return ""
+	}
+	field := metadata.GetFields()[key]
+	if field == nil {
+		return ""
+	}
+	return field.GetStringValue()
+}
+
+func metadataBoolValue(metadata *structpb.Struct, key string) bool {
+	if metadata == nil {
+		return false
+	}
+	field := metadata.GetFields()[key]
+	if field == nil {
+		return false
+	}
+	return field.GetBoolValue()
+}
+
+func metadataNumberValue(metadata *structpb.Struct, key string) int64 {
+	if metadata == nil {
+		return 0
+	}
+	field := metadata.GetFields()[key]
+	if field == nil {
+		return 0
+	}
+	return int64(field.GetNumberValue())
 }
 
 func stringPtr(value string) *string { return &value }

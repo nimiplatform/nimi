@@ -22,22 +22,22 @@ type fakeBackendDriver struct {
 	frees     []loadModelState
 }
 
-func (f *fakeBackendDriver) LoadModel(state loadModelState) error {
+func (f *fakeBackendDriver) LoadModel(state loadModelState) (*LoadModelDiagnostics, error) {
 	f.loads = append(f.loads, state)
-	return nil
+	return nil, nil
 }
 
-func (f *fakeBackendDriver) GenerateImage(_ context.Context, _ loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) error {
+func (f *fakeBackendDriver) GenerateImage(_ context.Context, _ loadModelState, req imageGenerateState, onProgress func(imageGenerateProgress) error) (*ImageGenerateDiagnostics, error) {
 	f.generates = append(f.generates, req)
 	if onProgress != nil {
 		if err := onProgress(imageGenerateProgress{CurrentStep: 2, TotalSteps: 8, ProgressPercent: 25}); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if err := os.WriteFile(req.Dst, []byte("png"), 0o600); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return nil, nil
 }
 
 func (f *fakeBackendDriver) Free(state loadModelState) error {
@@ -80,7 +80,7 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := LoadModel(ctx, LoadModelRequest{
+	if _, err := LoadModel(ctx, LoadModelRequest{
 		BackendAddress: listener.Addr().String(),
 		ModelsRoot:     tempDir,
 		ModelPath:      modelPath,
@@ -93,7 +93,7 @@ func TestServerLoadGenerateAndFree(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("LoadModel: %v", err)
 	}
-	if err := GenerateImage(ctx, ImageRequest{
+	if _, err := GenerateImage(ctx, ImageRequest{
 		BackendAddress: listener.Addr().String(),
 		Dst:            destinationPath,
 		PositivePrompt: "orange cat",
@@ -254,11 +254,11 @@ func TestStableDiffusionCPPDriverUsesResidentServerAndWritesArtifact(t *testing.
 			DiffusionFA: testBoolPtr(true),
 		},
 	}
-	if err := driver.LoadModel(state); err != nil {
+	if _, err := driver.LoadModel(state); err != nil {
 		t.Fatalf("LoadModel: %v", err)
 	}
 	dst := filepath.Join(t.TempDir(), "artifact.png")
-	if err := driver.GenerateImage(context.Background(), state, imageGenerateState{
+	if _, err := driver.GenerateImage(context.Background(), state, imageGenerateState{
 		Dst:            dst,
 		PositivePrompt: "orange cat",
 		Width:          512,
@@ -326,16 +326,16 @@ func TestStableDiffusionCPPDriverCacheHitSkipsRestartForCFGAndSamplerChanges(t *
 			Scheduler: "karras",
 		},
 	}
-	if err := driver.LoadModel(initial); err != nil {
+	if _, err := driver.LoadModel(initial); err != nil {
 		t.Fatalf("LoadModel(initial): %v", err)
 	}
-	if err := driver.LoadModel(updated); err != nil {
+	if _, err := driver.LoadModel(updated); err != nil {
 		t.Fatalf("LoadModel(updated): %v", err)
 	}
 	if commandState.startCount != 1 {
 		t.Fatalf("expected cfg/sampler-only changes to avoid restart, got starts=%d", commandState.startCount)
 	}
-	if err := driver.GenerateImage(context.Background(), updated, imageGenerateState{
+	if _, err := driver.GenerateImage(context.Background(), updated, imageGenerateState{
 		Dst: filepath.Join(t.TempDir(), "artifact.png"),
 	}, nil); err != nil {
 		t.Fatalf("GenerateImage(updated): %v", err)
@@ -396,14 +396,14 @@ func TestStableDiffusionCPPDriverConfigChangeRestartsResident(t *testing.T) {
 		return []byte("png"), nil
 	}
 
-	if err := driver.LoadModel(loadModelState{
+	if _, err := driver.LoadModel(loadModelState{
 		ModelPath: modelPath,
 		Options:   managedImageOptions{VAEPath: vaePath},
 	}); err != nil {
 		t.Fatalf("LoadModel(first): %v", err)
 	}
 	firstCommand := commandState.commands[0]
-	if err := driver.LoadModel(loadModelState{
+	if _, err := driver.LoadModel(loadModelState{
 		ModelPath: modelPath,
 		Options:   managedImageOptions{VAEPath: vaePath2},
 	}); err != nil {
@@ -436,7 +436,7 @@ func TestStableDiffusionCPPDriverFreeStopsResident(t *testing.T) {
 	}
 
 	state := loadModelState{ModelPath: modelPath}
-	if err := driver.LoadModel(state); err != nil {
+	if _, err := driver.LoadModel(state); err != nil {
 		t.Fatalf("LoadModel: %v", err)
 	}
 	if err := driver.Free(state); err != nil {
@@ -449,7 +449,7 @@ func TestStableDiffusionCPPDriverFreeStopsResident(t *testing.T) {
 
 func TestStableDiffusionCPPDriverGenerateWithoutLoadFailsClosed(t *testing.T) {
 	driver := &stableDiffusionCPPDriver{}
-	err := driver.GenerateImage(context.Background(), loadModelState{}, imageGenerateState{
+	_, err := driver.GenerateImage(context.Background(), loadModelState{}, imageGenerateState{
 		Dst: filepath.Join(t.TempDir(), "artifact.png"),
 	}, nil)
 	if err == nil || !strings.Contains(err.Error(), "not loaded") {
