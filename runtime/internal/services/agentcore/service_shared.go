@@ -1,6 +1,7 @@
 package agentcore
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -141,6 +142,26 @@ func cloneTimestamp(input *timestamppb.Timestamp) *timestamppb.Timestamp {
 	return timestamppb.New(input.AsTime())
 }
 
+func timestampString(input *timestamppb.Timestamp) string {
+	if input == nil {
+		return ""
+	}
+	return input.AsTime().UTC().Format(time.RFC3339Nano)
+}
+
+func encodeSequenceValue(input uint64) string {
+	return fmt.Sprintf("%d", input)
+}
+
+func decodeSequenceValue(raw string) (uint64, error) {
+	var value uint64
+	_, err := fmt.Sscanf(strings.TrimSpace(raw), "%d", &value)
+	if err != nil {
+		return 0, fmt.Errorf("decode sequence: %w", err)
+	}
+	return value, nil
+}
+
 func cloneAutonomyConfig(input *runtimev1.AgentAutonomyConfig) *runtimev1.AgentAutonomyConfig {
 	if input == nil {
 		return &runtimev1.AgentAutonomyConfig{}
@@ -226,6 +247,16 @@ func cloneCanonicalMemoryRejections(input []*runtimev1.CanonicalMemoryRejection)
 	for _, item := range input {
 		if item != nil {
 			out = append(out, proto.Clone(item).(*runtimev1.CanonicalMemoryRejection))
+		}
+	}
+	return out
+}
+
+func cloneNarrativeHits(input []*runtimev1.NarrativeRecallHit) []*runtimev1.NarrativeRecallHit {
+	out := make([]*runtimev1.NarrativeRecallHit, 0, len(input))
+	for _, item := range input {
+		if item != nil {
+			out = append(out, proto.Clone(item).(*runtimev1.NarrativeRecallHit))
 		}
 	}
 	return out

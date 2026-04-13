@@ -8,6 +8,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 )
 
 const (
@@ -56,6 +57,7 @@ type Service struct {
 
 	logger    *slog.Logger
 	statePath string
+	backend   *runtimepersistence.Backend
 
 	mu                      sync.RWMutex
 	banks                   map[string]*bankState
@@ -77,9 +79,14 @@ func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	backend, err := runtimepersistence.Open(logger, cfg.LocalStatePath)
+	if err != nil {
+		return nil, err
+	}
 	svc := &Service{
 		logger:                   logger,
 		statePath:                memoryStatePath(cfg.LocalStatePath),
+		backend:                  backend,
 		banks:                    make(map[string]*bankState),
 		replicationBacklog:       make(map[string]*ReplicationBacklogItem),
 		subscribers:              make(map[uint64]*subscriber),
@@ -108,4 +115,12 @@ func (s *Service) SubscribeMemoryEvents(req *runtimev1.SubscribeMemoryEventsRequ
 			}
 		}
 	}
+}
+
+func (s *Service) Close() error {
+	if s == nil || s.backend == nil {
+		return nil
+	}
+	s.StopReplicationLoop()
+	return s.backend.Close()
 }

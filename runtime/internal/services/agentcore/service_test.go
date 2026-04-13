@@ -2,7 +2,10 @@ package agentcore
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -152,13 +156,14 @@ func TestAgentCoreInitializeWriteQueryAndHooks(t *testing.T) {
 		t.Fatalf("unexpected canonical class: %s", historyResp.GetMemories()[0].GetCanonicalClass())
 	}
 
+	hookTime := time.Now().Add(5 * time.Minute)
 	hook := &runtimev1.PendingHook{
 		HookId: "hook-1",
 		Trigger: &runtimev1.HookTriggerDetail{
 			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
 			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
 				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
-					ScheduledFor: timestamppb.New(time.Now().Add(5 * time.Minute)),
+					ScheduledFor: timestamppb.New(hookTime),
 				},
 			},
 		},
@@ -166,11 +171,11 @@ func TestAgentCoreInitializeWriteQueryAndHooks(t *testing.T) {
 			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
 			Detail: &runtimev1.NextHookIntent_ScheduledTime{
 				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
-					ScheduledFor: timestamppb.New(time.Now().Add(5 * time.Minute)),
+					ScheduledFor: timestamppb.New(hookTime),
 				},
 			},
 		},
-		ScheduledFor: timestamppb.New(time.Now().Add(5 * time.Minute)),
+		ScheduledFor: timestamppb.New(hookTime),
 		AdmittedAt:   timestamppb.New(time.Now()),
 	}
 	if err := svc.admitPendingHook("agent-alpha", hook); err != nil {
@@ -209,6 +214,729 @@ func TestAgentCoreInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY {
 		t.Fatalf("unexpected event type: %s", stream.events[0].GetEventType())
+	}
+}
+
+func TestAgentCoreImportsLegacyJSONIntoSQLiteAndRename(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	legacyPath := filepath.Join(dir, "agent-core-state.json")
+	now := time.Now().UTC()
+	agent := &runtimev1.AgentRecord{
+		AgentId:         "agent-legacy",
+		DisplayName:     "Legacy Agent",
+		LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE,
+		Autonomy: &runtimev1.AgentAutonomyState{
+			Enabled: true,
+		},
+		CreatedAt: timestamppb.New(now),
+		UpdatedAt: timestamppb.New(now),
+	}
+	state := &runtimev1.AgentStateProjection{
+		ExecutionState: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING,
+		StatusText:     "legacy status",
+		ActiveWorldId:  "world-legacy",
+		UpdatedAt:      timestamppb.New(now),
+	}
+	scheduledFor := now.Add(3 * time.Minute)
+	hook := &runtimev1.PendingHook{
+		HookId: "hook-legacy",
+		Status: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{
+					ScheduledFor: timestamppb.New(scheduledFor),
+				},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{
+					ScheduledFor: timestamppb.New(scheduledFor),
+				},
+			},
+		},
+		ScheduledFor: timestamppb.New(scheduledFor),
+		AdmittedAt:   timestamppb.New(now),
+	}
+	event := &runtimev1.AgentEvent{
+		EventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK,
+		Sequence:  3,
+		AgentId:   agent.GetAgentId(),
+		Timestamp: timestamppb.New(now),
+		Detail: &runtimev1.AgentEvent_Hook{
+			Hook: &runtimev1.AgentHookEventDetail{
+				Outcome: &runtimev1.HookExecutionOutcome{
+					HookId:     hook.GetHookId(),
+					Status:     runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+					Trigger:    hook.GetTrigger(),
+					ObservedAt: timestamppb.New(now),
+				},
+			},
+		},
+	}
+	agentRaw, err := protojson.Marshal(agent)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(agent): %v", err)
+	}
+	stateRaw, err := protojson.Marshal(state)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(state): %v", err)
+	}
+	hookRaw, err := protojson.Marshal(hook)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(hook): %v", err)
+	}
+	eventRaw, err := protojson.Marshal(event)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(event): %v", err)
+	}
+	legacy := persistedAgentCoreState{
+		SchemaVersion: agentCoreStateSchemaVersion,
+		SavedAt:       now.Format(time.RFC3339Nano),
+		Sequence:      event.GetSequence(),
+		Agents: []persistedAgentState{
+			{
+				Agent: agentRaw,
+				State: stateRaw,
+				Hooks: []json.RawMessage{hookRaw},
+			},
+		},
+		Events: []json.RawMessage{eventRaw},
+	}
+	raw, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatalf("json.MarshalIndent: %v", err)
+	}
+	if err := os.WriteFile(legacyPath, raw, 0o600); err != nil {
+		t.Fatalf("os.WriteFile(agent-core-state.json): %v", err)
+	}
+
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(import): %v", err)
+	}
+
+	entry, err := svc.agentByID(agent.GetAgentId())
+	if err != nil {
+		t.Fatalf("agentByID(imported): %v", err)
+	}
+	if entry.State.GetStatusText() != "legacy status" {
+		t.Fatalf("unexpected imported state: %#v", entry.State)
+	}
+	if len(entry.Hooks) != 1 || entry.Hooks["hook-legacy"] == nil {
+		t.Fatalf("unexpected imported hooks: %#v", entry.Hooks)
+	}
+	if len(svc.events) != 1 || svc.events[0].GetSequence() != event.GetSequence() {
+		t.Fatalf("unexpected imported events: %#v", svc.events)
+	}
+	if _, err := os.Stat(legacyPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected legacy agentcore file to be renamed, stat err=%v", err)
+	}
+	if _, err := os.Stat(legacyPath + ".wave3-imported.json.bak"); err != nil {
+		t.Fatalf("expected imported agentcore backup rename: %v", err)
+	}
+	if got, err := svc.agentCoreMetaValue(agentCoreMetaLegacyImportSourcePathKey); err != nil || got != legacyPath {
+		t.Fatalf("unexpected import source path metadata: got=%q err=%v", got, err)
+	}
+	if got, err := svc.agentCoreMetaValue(agentCoreMetaLegacyImportSourceSchemaVersionKey); err != nil || got != "1" {
+		t.Fatalf("unexpected import schema metadata: got=%q err=%v", got, err)
+	}
+	if got, err := svc.agentCoreMetaValue(agentCoreMetaLegacyImportSourceSHA256Key); err != nil || got == "" {
+		t.Fatalf("expected import sha metadata, got=%q err=%v", got, err)
+	}
+	if got, err := svc.agentCoreMetaValue(agentCoreMetaLegacyImportedAtKey); err != nil || got == "" {
+		t.Fatalf("expected import timestamp metadata, got=%q err=%v", got, err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+	entry, err = svc.agentByID(agent.GetAgentId())
+	if err != nil {
+		t.Fatalf("agentByID(restart): %v", err)
+	}
+	if len(entry.Hooks) != 1 {
+		t.Fatalf("expected one imported hook after restart, got %#v", entry.Hooks)
+	}
+}
+
+func TestAgentCoreColdStartHasNoTruthsOrPostureBasis(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-cold-start",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-cold-start"},
+		},
+	}
+	truths, err := svc.memorySvc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 0 {
+		t.Fatalf("expected no admitted truths on cold start, got %#v", truths)
+	}
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-cold-start")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture != nil {
+		t.Fatalf("expected no posture basis on cold start, got %#v", posture)
+	}
+}
+
+func TestAgentCoreBehavioralPosturePersistsAcrossRestart(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-posture",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	want := BehavioralPosture{
+		AgentID:       "agent-posture",
+		StatusText:    "steady and terse",
+		TruthBasisIDs: []string{"truth-1", "truth-2"},
+		InterruptMode: "baseline",
+	}
+	if err := svc.PutBehavioralPosture(ctx, want); err != nil {
+		t.Fatalf("PutBehavioralPosture: %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+
+	got, err := svc.GetBehavioralPosture(ctx, "agent-posture")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected persisted posture")
+	}
+	if got.AgentID != want.AgentID || got.StatusText != want.StatusText || got.InterruptMode != want.InterruptMode {
+		t.Fatalf("unexpected posture: %#v", got)
+	}
+	if len(got.TruthBasisIDs) != len(want.TruthBasisIDs) {
+		t.Fatalf("unexpected truth basis ids: %#v", got.TruthBasisIDs)
+	}
+	for idx := range want.TruthBasisIDs {
+		if got.TruthBasisIDs[idx] != want.TruthBasisIDs[idx] {
+			t.Fatalf("unexpected truth basis ids: %#v", got.TruthBasisIDs)
+		}
+	}
+}
+
+func TestAgentCoreRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-review",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review"},
+		},
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "review source memory"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	sourceRecordID := retainResp.GetRecords()[0].GetMemoryId()
+	outcomes := memoryservice.CanonicalReviewOutcomes{
+		Narratives: []memoryservice.NarrativeCandidate{
+			{
+				NarrativeID:     "nar-review",
+				Topic:           "source",
+				Content:         "Review source memory is still relevant.",
+				SourceVersion:   "v1",
+				Status:          "active",
+				SourceMemoryIDs: []string{sourceRecordID},
+			},
+		},
+		Truths: []memoryservice.TruthCandidate{
+			{
+				TruthID:         "truth-review",
+				Dimension:       "source",
+				NormalizedKey:   "review:source",
+				Statement:       "Review source memory remains relevant.",
+				Confidence:      0.8,
+				ReviewCount:     1,
+				Status:          "admitted",
+				SourceMemoryIDs: []string{sourceRecordID},
+			},
+		},
+	}
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:      "review-run-1",
+		AgentID:          "agent-review",
+		BankLocatorKey:   memoryservice.LocatorKey(locator),
+		CheckpointBasis:  sourceRecordID,
+		PreparedOutcomes: outcomes,
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun: %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+
+	var statusValue string
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM agentcore_review_run WHERE review_run_id = ?`, "review-run-1").Scan(&statusValue); err != nil {
+		t.Fatalf("load review run status: %v", err)
+	}
+	if statusValue != "completed" {
+		t.Fatalf("expected completed review run, got %q", statusValue)
+	}
+	truths, err := memorySvc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 1 || truths[0].TruthID != "truth-review" {
+		t.Fatalf("unexpected recovered truths: %#v", truths)
+	}
+	narratives, err := memorySvc.ListNarrativeContext(ctx, locator, "relevant", 5)
+	if err != nil {
+		t.Fatalf("ListNarrativeContext: %v", err)
+	}
+	if len(narratives) != 1 || narratives[0].GetNarrativeId() != "nar-review" {
+		t.Fatalf("unexpected recovered narratives: %#v", narratives)
+	}
+	followUp, err := svc.GetReviewFollowUp(ctx, locator)
+	if err != nil {
+		t.Fatalf("GetReviewFollowUp: %v", err)
+	}
+	if followUp == nil || followUp.ReviewRunID != "review-run-1" || followUp.CheckpointBasis != sourceRecordID {
+		t.Fatalf("unexpected review follow-up: %#v", followUp)
+	}
+}
+
+func TestAgentCoreRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-review-committed",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-committed"},
+		},
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "already committed source"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	sourceRecordID := retainResp.GetRecords()[0].GetMemoryId()
+	outcomes := memoryservice.CanonicalReviewOutcomes{
+		Truths: []memoryservice.TruthCandidate{
+			{
+				TruthID:         "truth-review-committed",
+				Dimension:       "source",
+				NormalizedKey:   "review:committed",
+				Statement:       "Committed review truth.",
+				Confidence:      0.9,
+				ReviewCount:     1,
+				Status:          "admitted",
+				SourceMemoryIDs: []string{sourceRecordID},
+			},
+		},
+	}
+	if err := memorySvc.CommitCanonicalReview(ctx, "review-run-committed", locator, sourceRecordID, outcomes); err != nil {
+		t.Fatalf("CommitCanonicalReview: %v", err)
+	}
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:      "review-run-committed",
+		AgentID:          "agent-review-committed",
+		BankLocatorKey:   memoryservice.LocatorKey(locator),
+		CheckpointBasis:  sourceRecordID,
+		Status:           "memory_committed",
+		PreparedOutcomes: outcomes,
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun(memory_committed): %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+
+	var statusValue string
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM agentcore_review_run WHERE review_run_id = ?`, "review-run-committed").Scan(&statusValue); err != nil {
+		t.Fatalf("load review run status: %v", err)
+	}
+	if statusValue != "completed" {
+		t.Fatalf("expected completed review run, got %q", statusValue)
+	}
+	var truthCount int
+	if err := memorySvc.PersistenceBackend().DB().QueryRow(`SELECT COUNT(*) FROM agent_truth WHERE truth_id = ?`, "truth-review-committed").Scan(&truthCount); err != nil {
+		t.Fatalf("count truths: %v", err)
+	}
+	if truthCount != 1 {
+		t.Fatalf("expected one committed truth after replay, got %d", truthCount)
+	}
+	followUp, err := svc.GetReviewFollowUp(ctx, locator)
+	if err != nil {
+		t.Fatalf("GetReviewFollowUp: %v", err)
+	}
+	if followUp == nil || followUp.ReviewRunID != "review-run-committed" {
+		t.Fatalf("unexpected review follow-up: %#v", followUp)
+	}
+}
+
+func TestAgentCoreRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:     "review-run-invalid-locator",
+		AgentID:         "agent-invalid-locator",
+		BankLocatorKey:  "broken::locator::key",
+		CheckpointBasis: "mem-001",
+		PreparedOutcomes: memoryservice.CanonicalReviewOutcomes{
+			Summary: "should fail closed during recovery",
+		},
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun: %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+
+	var statusValue string
+	var failureMessage string
+	if err := svc.backend.DB().QueryRow(`
+		SELECT status, failure_message
+		FROM agentcore_review_run
+		WHERE review_run_id = ?
+	`, "review-run-invalid-locator").Scan(&statusValue, &failureMessage); err != nil {
+		t.Fatalf("load review run failure state: %v", err)
+	}
+	if statusValue != "failed" {
+		t.Fatalf("expected failed review run, got %q", statusValue)
+	}
+	if !strings.Contains(failureMessage, "resolve bank locator") {
+		t.Fatalf("expected locator resolution failure message, got %q", failureMessage)
+	}
+
+	var followUpCount int
+	if err := svc.backend.DB().QueryRow(`
+		SELECT COUNT(*)
+		FROM agentcore_review_followup
+		WHERE review_run_id = ?
+	`, "review-run-invalid-locator").Scan(&followUpCount); err != nil {
+		t.Fatalf("count review follow-ups: %v", err)
+	}
+	if followUpCount != 0 {
+		t.Fatalf("expected no follow-up for failed recovery, got %d", followUpCount)
+	}
+}
+
+func TestAgentCoreRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-followup-once",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-followup-once"},
+		},
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "follow-up once source"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	sourceRecordID := retainResp.GetRecords()[0].GetMemoryId()
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:     "review-run-followup-once",
+		AgentID:         "agent-followup-once",
+		BankLocatorKey:  memoryservice.LocatorKey(locator),
+		CheckpointBasis: sourceRecordID,
+		PreparedOutcomes: memoryservice.CanonicalReviewOutcomes{
+			Truths: []memoryservice.TruthCandidate{
+				{
+					TruthID:         "truth-followup-once",
+					Dimension:       "source",
+					NormalizedKey:   "followup:once",
+					Statement:       "Follow-up should only be persisted once.",
+					Confidence:      0.9,
+					ReviewCount:     1,
+					Status:          "admitted",
+					SourceMemoryIDs: []string{sourceRecordID},
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun: %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(first restart): %v", err)
+	}
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(first restart): %v", err)
+	}
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(second backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(second restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(third backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(second restart): %v", err)
+	}
+
+	var followUpCount int
+	if err := svc.backend.DB().QueryRow(`
+		SELECT COUNT(*)
+		FROM agentcore_review_followup
+		WHERE review_run_id = ?
+	`, "review-run-followup-once").Scan(&followUpCount); err != nil {
+		t.Fatalf("count review follow-ups: %v", err)
+	}
+	if followUpCount != 1 {
+		t.Fatalf("expected exactly one follow-up row after repeated restarts, got %d", followUpCount)
 	}
 }
 
@@ -1219,14 +1947,6 @@ func TestAgentCoreIgnoresNonCanonicalMemoryReplicationUpdates(t *testing.T) {
 					AppId:     "app.test",
 				},
 			},
-		},
-		EmbeddingProfile: &runtimev1.MemoryEmbeddingProfile{
-			Provider:        "local",
-			ModelId:         "text-embedding-3-small",
-			Dimension:       1536,
-			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-			Version:         "v1",
-			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
 		},
 		DisplayName: "App Memory",
 	})

@@ -22,6 +22,7 @@ func (s *Service) QueryAgentMemory(ctx context.Context, req *runtimev1.QueryAgen
 	}
 	queries := s.queryLocatorsForAgent(entry, req.GetCanonicalClasses())
 	views := make([]*runtimev1.CanonicalMemoryView, 0)
+	narratives := make([]*runtimev1.NarrativeRecallHit, 0)
 	limit := req.GetLimit()
 	if limit <= 0 {
 		limit = 10
@@ -85,6 +86,7 @@ func (s *Service) QueryAgentMemory(ctx context.Context, req *runtimev1.QueryAgen
 				PolicyReason:   "query_agent_memory",
 			})
 		}
+		narratives = append(narratives, cloneNarrativeHits(resp.GetNarrativeHits())...)
 	}
 	sort.Slice(views, func(i, j int) bool {
 		if views[i].GetRecallScore() == views[j].GetRecallScore() {
@@ -100,7 +102,10 @@ func (s *Service) QueryAgentMemory(ctx context.Context, req *runtimev1.QueryAgen
 	if int(limit) < len(views) {
 		views = views[:limit]
 	}
-	return &runtimev1.QueryAgentMemoryResponse{Memories: views}, nil
+	if int(limit) < len(narratives) {
+		narratives = narratives[:limit]
+	}
+	return &runtimev1.QueryAgentMemoryResponse{Memories: views, Narratives: narratives}, nil
 }
 
 func (s *Service) WriteAgentMemory(ctx context.Context, req *runtimev1.WriteAgentMemoryRequest) (*runtimev1.WriteAgentMemoryResponse, error) {

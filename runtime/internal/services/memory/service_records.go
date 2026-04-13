@@ -22,6 +22,9 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 	if err != nil {
 		return nil, err
 	}
+	if profile := bankState.Bank.GetEmbeddingProfile(); profile != nil && !s.embeddingAvailableForProfile(profile) {
+		return nil, memoryProviderUnavailableError()
+	}
 
 	now := time.Now().UTC()
 	retained := make([]*runtimev1.MemoryRecord, 0, len(req.GetRecords()))
@@ -54,6 +57,9 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 	if err != nil {
 		return nil, err
 	}
+	if profile := bankState.Bank.GetEmbeddingProfile(); profile != nil && !s.embeddingAvailableForProfile(profile) {
+		return nil, memoryProviderUnavailableError()
+	}
 
 	limit := int(req.GetQuery().GetLimit())
 	records := s.historyRecords(bankState, &runtimev1.MemoryHistoryQuery{
@@ -70,11 +76,21 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 		score  float32
 		reason string
 	}
+	vectorScores := s.embeddingRecallScores(bankState.Bank, req.GetQuery().GetQuery())
+	ftsScores := s.ftsRecallScores(bankState.Bank, req.GetQuery().GetQuery())
 	scored := make([]scoredHit, 0, len(records))
 	for _, record := range records {
 		score, reason, ok := localRecallScore(record, req.GetQuery())
 		if !ok {
 			continue
+		}
+		if ftsScore, ok := ftsScores[record.GetMemoryId()]; ok {
+			score += ftsScore
+			reason = firstNonEmpty(reason, "fts5")
+		}
+		if vectorScore, ok := vectorScores[record.GetMemoryId()]; ok {
+			score += float32(vectorScore)
+			reason = firstNonEmpty(reason, "hybrid_embedding")
 		}
 		scored = append(scored, scoredHit{record: record, score: score, reason: reason})
 	}
@@ -100,7 +116,11 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 			break
 		}
 	}
-	return &runtimev1.RecallResponse{Hits: hits}, nil
+	narratives, err := s.searchNarratives(ctx, bankState.Bank.GetLocator(), req.GetQuery().GetQuery(), limit)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.RecallResponse{Hits: hits, NarrativeHits: narratives}, nil
 }
 
 func (s *Service) History(_ context.Context, req *runtimev1.HistoryRequest) (*runtimev1.HistoryResponse, error) {
@@ -132,7 +152,15 @@ func (s *Service) History(_ context.Context, req *runtimev1.HistoryRequest) (*ru
 	}, nil
 }
 
-func (s *Service) Reflect(_ context.Context, _ *runtimev1.ReflectRequest) (*runtimev1.ReflectResponse, error) {
+func (s *Service) Reflect(_ context.Context, req *runtimev1.ReflectRequest) (*runtimev1.ReflectResponse, error) {
+	if req != nil && req.GetBank() != nil {
+		switch req.GetBank().GetScope() {
+		case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+			runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC,
+			runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED:
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	}
 	return nil, memoryProviderUnavailableError()
 }
 

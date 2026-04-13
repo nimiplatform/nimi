@@ -178,6 +178,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeMemoryServiceServer(g, memorySvc)
 	agentCoreSvc, err := agentcoreservice.New(logger, cfg.LocalStatePath, memorySvc)
 	if err != nil {
+		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentCoreSvc.SetLifeTrackExecutor(agentcoreservice.NewAIBackedLifeTrackExecutor(aiSvc))

@@ -9,6 +9,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -137,11 +138,10 @@ func validateCreateBankRequest(req *runtimev1.CreateBankRequest, locator *runtim
 	if req.GetLocator() == nil || locator == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if req.GetEmbeddingProfile() == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if profile := req.GetEmbeddingProfile(); strings.TrimSpace(profile.GetProvider()) == "" || strings.TrimSpace(profile.GetModelId()) == "" || profile.GetDimension() <= 0 {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	if profile := req.GetEmbeddingProfile(); profile != nil {
+		if strings.TrimSpace(profile.GetProvider()) == "" || strings.TrimSpace(profile.GetModelId()) == "" || profile.GetDimension() <= 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 	}
 	if ctxApp := strings.TrimSpace(req.GetContext().GetAppId()); ctxApp != "" && locator.GetAppPrivate() != nil && ctxApp != strings.TrimSpace(locator.GetAppPrivate().GetAppId()) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -175,52 +175,19 @@ func fullLocatorFromPublic(locator *runtimev1.PublicMemoryBankLocator) (*runtime
 }
 
 func locatorKey(locator *runtimev1.MemoryBankLocator) string {
-	if locator == nil {
+	key, err := memoryengine.LocatorKeyFromMemoryBankLocator(locator)
+	if err != nil {
 		return ""
 	}
-	switch locator.GetScope() {
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE:
-		if owner := locator.GetAgentCore(); owner != nil {
-			return "agent-core::" + strings.TrimSpace(owner.GetAgentId())
-		}
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_DYADIC:
-		if owner := locator.GetAgentDyadic(); owner != nil {
-			return "agent-dyadic::" + strings.TrimSpace(owner.GetAgentId()) + "::" + strings.TrimSpace(owner.GetUserId())
-		}
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORLD_SHARED:
-		if owner := locator.GetWorldShared(); owner != nil {
-			return "world-shared::" + strings.TrimSpace(owner.GetWorldId())
-		}
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_APP_PRIVATE:
-		if owner := locator.GetAppPrivate(); owner != nil {
-			return "app-private::" + strings.TrimSpace(owner.GetAccountId()) + "::" + strings.TrimSpace(owner.GetAppId())
-		}
-	case runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE:
-		if owner := locator.GetWorkspacePrivate(); owner != nil {
-			return "workspace-private::" + strings.TrimSpace(owner.GetAccountId()) + "::" + strings.TrimSpace(owner.GetWorkspaceId())
-		}
-	}
-	return ""
+	return key
 }
 
 func ownerFilterKey(filter *runtimev1.MemoryBankOwnerFilter) string {
-	if filter == nil {
+	key, err := memoryengine.OwnerFilterKey(filter)
+	if err != nil {
 		return ""
 	}
-	switch {
-	case filter.GetAgentCore() != nil:
-		return "agent-core::" + strings.TrimSpace(filter.GetAgentCore().GetAgentId())
-	case filter.GetAgentDyadic() != nil:
-		return "agent-dyadic::" + strings.TrimSpace(filter.GetAgentDyadic().GetAgentId()) + "::" + strings.TrimSpace(filter.GetAgentDyadic().GetUserId())
-	case filter.GetWorldShared() != nil:
-		return "world-shared::" + strings.TrimSpace(filter.GetWorldShared().GetWorldId())
-	case filter.GetAppPrivate() != nil:
-		return "app-private::" + strings.TrimSpace(filter.GetAppPrivate().GetAccountId()) + "::" + strings.TrimSpace(filter.GetAppPrivate().GetAppId())
-	case filter.GetWorkspacePrivate() != nil:
-		return "workspace-private::" + strings.TrimSpace(filter.GetWorkspacePrivate().GetAccountId()) + "::" + strings.TrimSpace(filter.GetWorkspacePrivate().GetWorkspaceId())
-	default:
-		return ""
-	}
+	return key
 }
 
 func matchesBankFilters(bank *runtimev1.MemoryBank, scopes []runtimev1.MemoryBankScope, owners []*runtimev1.MemoryBankOwnerFilter) bool {

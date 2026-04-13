@@ -67,6 +67,7 @@ func (s *Service) ApplyReplicationObservation(locator *runtimev1.MemoryBankLocat
 	previousRecord := cloneRecord(record)
 	previousBankUpdatedAt := cloneReplicationTimestamp(state.Bank.GetUpdatedAt())
 	previousBacklog := cloneReplicationBacklogItem(s.replicationBacklog[replicationBacklogKey(record.GetBank(), record.GetMemoryId())])
+	previousSequence := s.sequence
 	record.Replication = cloneReplicationState(replication)
 	record.UpdatedAt = timestamppb.New(observedAt)
 	state.Bank.UpdatedAt = timestamppb.New(observedAt)
@@ -82,16 +83,17 @@ func (s *Service) ApplyReplicationObservation(locator *runtimev1.MemoryBankLocat
 			},
 		},
 	}
+	s.assignSequenceLocked(event)
 	if err := s.persistLocked(); err != nil {
 		state.Records[memoryID] = previousRecord
 		state.Bank.UpdatedAt = previousBankUpdatedAt
+		s.sequence = previousSequence
 		if previousBacklog != nil {
 			s.replicationBacklog[previousBacklog.BacklogKey] = previousBacklog
 		}
 		s.mu.Unlock()
 		return err
 	}
-	s.assignSequenceLocked(event)
 	targets := s.matchingSubscribersLocked(event)
 	observers := s.matchingReplicationObserversLocked(event)
 	s.mu.Unlock()

@@ -6,6 +6,9 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -22,8 +25,15 @@ func (s *Service) ManagedEmbeddingProfile() *runtimev1.MemoryEmbeddingProfile {
 	return cloneEmbeddingProfile(s.managedEmbeddingProfile)
 }
 
+func (s *Service) PersistenceBackend() *runtimepersistence.Backend {
+	return s.backend
+}
+
+func LocatorKey(locator *runtimev1.MemoryBankLocator) string {
+	return locatorKey(locator)
+}
+
 func (s *Service) EnsureCanonicalBank(ctx context.Context, locator *runtimev1.MemoryBankLocator, displayName string, metadata *structpb.Struct) (*runtimev1.MemoryBank, error) {
-	profile := s.ManagedEmbeddingProfile()
 	key := locatorKey(locator)
 	s.mu.RLock()
 	existing := s.banks[key]
@@ -37,7 +47,7 @@ func (s *Service) EnsureCanonicalBank(ctx context.Context, locator *runtimev1.Me
 	bank := &runtimev1.MemoryBank{
 		BankId:              bankID,
 		Locator:             cloneLocator(locator),
-		EmbeddingProfile:    cloneEmbeddingProfile(profile),
+		EmbeddingProfile:    nil,
 		DisplayName:         firstNonEmpty(strings.TrimSpace(displayName), defaultCanonicalBankDisplayName(locator)),
 		CanonicalAgentScope: true,
 		PublicApiWritable:   false,
@@ -57,6 +67,46 @@ func (s *Service) EnsureCanonicalBank(ctx context.Context, locator *runtimev1.Me
 		return nil, err
 	}
 	return cloneBank(bank), nil
+}
+
+func (s *Service) BindCanonicalBankEmbeddingProfile(ctx context.Context, locator *runtimev1.MemoryBankLocator) (*runtimev1.MemoryBank, error) {
+	profile := s.ManagedEmbeddingProfile()
+	if profile == nil {
+		return nil, memoryProviderUnavailableError()
+	}
+	key := locatorKey(locator)
+	s.mu.Lock()
+	state := s.banks[key]
+	if state == nil {
+		s.mu.Unlock()
+		return nil, status.Error(codes.NotFound, "memory bank not found")
+	}
+	if !state.Bank.GetCanonicalAgentScope() {
+		s.mu.Unlock()
+		return nil, status.Error(codes.FailedPrecondition, "embedding profile bind is canonical-bank only")
+	}
+	if state.Bank.GetEmbeddingProfile() != nil {
+		result := cloneBank(state.Bank)
+		s.mu.Unlock()
+		return result, nil
+	}
+	state.Bank.EmbeddingProfile = cloneEmbeddingProfile(profile)
+	state.Bank.UpdatedAt = timestamppb.New(time.Now().UTC())
+	for _, recordID := range state.Order {
+		record := state.Records[recordID]
+		if record == nil {
+			continue
+		}
+		record.UpdatedAt = timestamppb.Now()
+	}
+	if err := s.persistLocked(); err != nil {
+		state.Bank.EmbeddingProfile = nil
+		s.mu.Unlock()
+		return nil, err
+	}
+	result := cloneBank(state.Bank)
+	s.mu.Unlock()
+	return result, nil
 }
 
 func defaultCanonicalBankDisplayName(locator *runtimev1.MemoryBankLocator) string {

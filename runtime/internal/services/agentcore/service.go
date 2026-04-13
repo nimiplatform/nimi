@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
@@ -40,6 +41,9 @@ type Service struct {
 	logger    *slog.Logger
 	memorySvc *memoryservice.Service
 	statePath string
+	backend   *runtimepersistence.Backend
+	reviews   reviewPersistence
+	postures  behavioralPosturePersistence
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -65,6 +69,9 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		logger:       logger,
 		memorySvc:    memorySvc,
 		statePath:    agentCoreStatePath(localStatePath),
+		backend:      memorySvc.PersistenceBackend(),
+		reviews:      newReviewPersistence(memorySvc.PersistenceBackend()),
+		postures:     newBehavioralPosturePersistence(memorySvc.PersistenceBackend()),
 		agents:       make(map[string]*agentEntry),
 		events:       make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
 		subscribers:  make(map[uint64]*subscriber),
@@ -74,6 +81,9 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		return nil, err
 	}
 	svc.memorySvc.RegisterReplicationObserver(svc.handleCommittedMemoryReplication)
+	if err := svc.recoverReviewRuns(context.Background()); err != nil {
+		return nil, err
+	}
 	return svc, nil
 }
 

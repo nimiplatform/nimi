@@ -2,6 +2,9 @@ package memory
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -9,9 +12,11 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -38,14 +43,6 @@ func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 					AppId:     "app.test",
 				},
 			},
-		},
-		EmbeddingProfile: &runtimev1.MemoryEmbeddingProfile{
-			Provider:        "local",
-			ModelId:         "text-embedding-3-small",
-			Dimension:       1536,
-			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-			Version:         "v1",
-			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
 		},
 		DisplayName: "App Memory",
 	})
@@ -154,20 +151,465 @@ func TestMemoryServiceCreateBankWithoutInstalledProvider(t *testing.T) {
 				},
 			},
 		},
-		EmbeddingProfile: &runtimev1.MemoryEmbeddingProfile{
-			Provider:        "local",
-			ModelId:         "embed",
-			Dimension:       1,
-			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-			Version:         "v1",
-			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
-		},
 	})
 	if err != nil {
 		t.Fatalf("CreateBank: %v", err)
 	}
 	if resp.GetBank() == nil {
 		t.Fatal("expected bank response")
+	}
+	if resp.GetBank().GetEmbeddingProfile() != nil {
+		t.Fatalf("expected nil embedding profile by default, got %#v", resp.GetBank().GetEmbeddingProfile())
+	}
+}
+
+func TestMemoryServiceBoundProfileFailClosesWithoutManagedEmbedding(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       4,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	resp, err := svc.CreateBank(context.Background(), &runtimev1.CreateBankRequest{
+		Locator: &runtimev1.PublicMemoryBankLocator{
+			Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.AppPrivateBankOwner{
+					AccountId: "acct-1",
+					AppId:     "app.test",
+				},
+			},
+		},
+		EmbeddingProfile: profile,
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+
+	_, err = svc.Retain(context.Background(), &runtimev1.RetainRequest{
+		Bank: resp.GetBank().GetLocator(),
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "bound profile memory"},
+				},
+			},
+		},
+	})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected Unavailable retain failure, got %v", err)
+	}
+
+	_, err = svc.Recall(context.Background(), &runtimev1.RecallRequest{
+		Bank: resp.GetBank().GetLocator(),
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "bound profile memory",
+			Limit: 3,
+		},
+	})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected Unavailable recall failure, got %v", err)
+	}
+}
+
+func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	legacyPath := filepath.Join(dir, "memory-state.json")
+	now := time.Now().UTC()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-legacy"},
+		},
+	}
+	bank := &runtimev1.MemoryBank{
+		BankId:              "bank-legacy",
+		Locator:             cloneLocator(locator),
+		DisplayName:         "Legacy Agent Memory",
+		CanonicalAgentScope: true,
+		PublicApiWritable:   false,
+		CreatedAt:           timestamppb.New(now),
+		UpdatedAt:           timestamppb.New(now),
+	}
+	record := &runtimev1.MemoryRecord{
+		MemoryId:       "mem-legacy",
+		Bank:           cloneLocator(locator),
+		Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+		CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+		Provenance: &runtimev1.MemoryProvenance{
+			SourceSystem:  "legacy",
+			SourceEventId: "evt-legacy",
+		},
+		Replication: &runtimev1.MemoryReplicationState{
+			Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_PENDING,
+			LocalVersion: "mem-legacy",
+			Detail: &runtimev1.MemoryReplicationState_Pending{
+				Pending: &runtimev1.MemoryReplicationPending{
+					EnqueuedAt: timestamppb.New(now),
+				},
+			},
+		},
+		Payload: &runtimev1.MemoryRecord_Observational{
+			Observational: &runtimev1.ObservationalMemoryRecord{Observation: "legacy imported memory"},
+		},
+		CreatedAt: timestamppb.New(now),
+		UpdatedAt: timestamppb.New(now),
+	}
+	backlog, err := marshalReplicationBacklogItem(&ReplicationBacklogItem{
+		BacklogKey:   replicationBacklogKey(locator, record.GetMemoryId()),
+		Locator:      cloneLocator(locator),
+		MemoryID:     record.GetMemoryId(),
+		LocalVersion: record.GetReplication().GetLocalVersion(),
+		EnqueuedAt:   now,
+		Status:       replicationBacklogStatusPending,
+	})
+	if err != nil {
+		t.Fatalf("marshalReplicationBacklogItem: %v", err)
+	}
+	bankRaw, err := protojson.Marshal(bank)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(bank): %v", err)
+	}
+	recordRaw, err := protojson.Marshal(record)
+	if err != nil {
+		t.Fatalf("protojson.Marshal(record): %v", err)
+	}
+	legacy := persistedMemoryState{
+		SchemaVersion: memoryStateSchemaVersion,
+		SavedAt:       now.Format(time.RFC3339Nano),
+		Sequence:      7,
+		Banks: []persistedBankState{
+			{
+				LocatorKey: locatorKey(locator),
+				Bank:       bankRaw,
+				Records:    []json.RawMessage{recordRaw},
+			},
+		},
+		ReplicationBacklog: []persistedReplicationBacklogItem{backlog},
+	}
+	raw, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatalf("json.MarshalIndent: %v", err)
+	}
+	if err := os.WriteFile(legacyPath, raw, 0o600); err != nil {
+		t.Fatalf("os.WriteFile(memory-state.json): %v", err)
+	}
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New(import): %v", err)
+	}
+
+	historyResp, err := svc.History(context.Background(), &runtimev1.HistoryRequest{
+		Bank:  locator,
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
+	})
+	if err != nil {
+		t.Fatalf("History(imported): %v", err)
+	}
+	if len(historyResp.GetRecords()) != 1 || historyResp.GetRecords()[0].GetMemoryId() != record.GetMemoryId() {
+		t.Fatalf("unexpected imported history: %#v", historyResp.GetRecords())
+	}
+	backlogItems := svc.ListReplicationBacklog()
+	if len(backlogItems) != 1 || backlogItems[0].MemoryID != record.GetMemoryId() {
+		t.Fatalf("unexpected imported backlog: %#v", backlogItems)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "memory.db")); err != nil {
+		t.Fatalf("expected memory.db: %v", err)
+	}
+	if _, err := os.Stat(legacyPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected legacy path to be renamed, stat err=%v", err)
+	}
+	if _, err := os.Stat(legacyPath + ".wave3-imported.json.bak"); err != nil {
+		t.Fatalf("expected imported backup rename: %v", err)
+	}
+	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourcePathKey); err != nil || got != legacyPath {
+		t.Fatalf("unexpected import source path metadata: got=%q err=%v", got, err)
+	}
+	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourceSchemaVersionKey); err != nil || got != "1" {
+		t.Fatalf("unexpected import schema metadata: got=%q err=%v", got, err)
+	}
+	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportSourceSHA256Key); err != nil || got == "" {
+		t.Fatalf("expected import sha metadata, got=%q err=%v", got, err)
+	}
+	if got, err := svc.memoryMetaValue(memoryMetaLegacyImportedAtKey); err != nil || got == "" {
+		t.Fatalf("expected import timestamp metadata, got=%q err=%v", got, err)
+	}
+
+	if err := svc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	svc, err = New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New(restart): %v", err)
+	}
+	defer func() {
+		if err := svc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+
+	historyResp, err = svc.History(context.Background(), &runtimev1.HistoryRequest{
+		Bank:  locator,
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
+	})
+	if err != nil {
+		t.Fatalf("History(restart): %v", err)
+	}
+	if len(historyResp.GetRecords()) != 1 {
+		t.Fatalf("expected one imported record after restart, got %d", len(historyResp.GetRecords()))
+	}
+	if got := svc.ListReplicationBacklog(); len(got) != 1 {
+		t.Fatalf("expected one backlog item after restart, got %#v", got)
+	}
+}
+
+func TestMemoryServiceCommitCanonicalReviewIsIdempotentAndQueryable(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, record := newCanonicalTestMemoryRecord(t)
+	ctx := context.Background()
+	outcomes := CanonicalReviewOutcomes{
+		Narratives: []NarrativeCandidate{
+			{
+				NarrativeID:     "nar-1",
+				Topic:           "employment",
+				Content:         "Alice works at Nimi and remains part of the core org.",
+				SourceVersion:   "v1",
+				Status:          "active",
+				SourceMemoryIDs: []string{record.GetMemoryId()},
+			},
+		},
+		Truths: []TruthCandidate{
+			{
+				TruthID:         "truth-1",
+				Dimension:       "employment",
+				NormalizedKey:   "alice:works_at",
+				Statement:       "Alice works at Nimi.",
+				Confidence:      0.92,
+				ReviewCount:     1,
+				LastReviewAt:    time.Now().UTC().Format(time.RFC3339Nano),
+				Status:          "admitted",
+				SourceMemoryIDs: []string{record.GetMemoryId()},
+			},
+		},
+	}
+
+	if err := svc.CommitCanonicalReview(ctx, "review-1", locator, record.GetMemoryId(), outcomes); err != nil {
+		t.Fatalf("CommitCanonicalReview(first): %v", err)
+	}
+	if err := svc.CommitCanonicalReview(ctx, "review-1", locator, record.GetMemoryId(), outcomes); err != nil {
+		t.Fatalf("CommitCanonicalReview(idempotent): %v", err)
+	}
+	if err := svc.CommitCanonicalReview(ctx, "review-1", locator, record.GetMemoryId(), CanonicalReviewOutcomes{
+		Summary: "different outcome payload",
+	}); err == nil {
+		t.Fatal("expected outcome hash mismatch to fail")
+	}
+
+	truths, err := svc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 1 || truths[0].TruthID != "truth-1" {
+		t.Fatalf("unexpected truths: %#v", truths)
+	}
+	checkpoint, err := svc.GetReviewCheckpoint(ctx, locator)
+	if err != nil {
+		t.Fatalf("GetReviewCheckpoint: %v", err)
+	}
+	if checkpoint == nil || checkpoint.LastReviewRun != "review-1" || checkpoint.Checkpoint != record.GetMemoryId() {
+		t.Fatalf("unexpected checkpoint: %#v", checkpoint)
+	}
+	narratives, err := svc.ListNarrativeContext(ctx, locator, "Alice works at Nimi", 5)
+	if err != nil {
+		t.Fatalf("ListNarrativeContext: %v", err)
+	}
+	if len(narratives) != 1 || narratives[0].GetNarrativeId() != "nar-1" {
+		t.Fatalf("unexpected narratives: %#v", narratives)
+	}
+
+	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "Where does Alice work?",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(with narrative): %v", err)
+	}
+	if len(recallResp.GetNarrativeHits()) != 1 {
+		t.Fatalf("expected one narrative hit, got %#v", recallResp.GetNarrativeHits())
+	}
+	if got := recallResp.GetNarrativeHits()[0].GetSourceMemoryIds(); len(got) != 1 || got[0] != record.GetMemoryId() {
+		t.Fatalf("unexpected narrative source ids: %#v", got)
+	}
+}
+
+func TestMemoryServiceCanonicalReviewStoreAdapterIsQueryableAndIdempotent(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, record := newCanonicalTestMemoryRecord(t)
+	store := svc.CanonicalReviewStore()
+	if store == nil {
+		t.Fatal("expected CanonicalReviewStore adapter")
+	}
+	scope, err := memoryengine.ScopeFromMemoryBankLocator(locator)
+	if err != nil {
+		t.Fatalf("ScopeFromMemoryBankLocator: %v", err)
+	}
+	ctx := context.Background()
+	req := memoryengine.CommitCanonicalReviewRequest{
+		ReviewRunID:     "review-store-1",
+		Scope:           scope,
+		CheckpointBasis: record.GetMemoryId(),
+		Outcomes: memoryengine.ReviewOutcomes{
+			Narratives: []memoryengine.NarrativeRecord{
+				{
+					NarrativeID:     "nar-store-1",
+					Topic:           "employment",
+					Content:         "Alice still works at Nimi.",
+					SourceVersion:   "v1",
+					Status:          "active",
+					SourceMemoryIDs: []string{record.GetMemoryId()},
+				},
+			},
+			Truths: []memoryengine.TruthRecord{
+				{
+					TruthID:         "truth-store-1",
+					Dimension:       "employment",
+					NormalizedKey:   "alice:works_at",
+					Statement:       "Alice works at Nimi.",
+					Confidence:      0.9,
+					ReviewCount:     1,
+					LastReviewAt:    time.Now().UTC().Format(time.RFC3339Nano),
+					Status:          "admitted",
+					SourceMemoryIDs: []string{record.GetMemoryId()},
+				},
+			},
+		},
+	}
+	if err := store.CommitCanonicalReview(ctx, req); err != nil {
+		t.Fatalf("CommitCanonicalReview(first): %v", err)
+	}
+	if err := store.CommitCanonicalReview(ctx, req); err != nil {
+		t.Fatalf("CommitCanonicalReview(idempotent): %v", err)
+	}
+	truths, err := store.ListAdmittedTruths(ctx, scope)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 1 || truths[0].TruthID != "truth-store-1" {
+		t.Fatalf("unexpected truths: %#v", truths)
+	}
+	checkpoint, err := store.GetReviewCheckpoint(ctx, scope)
+	if err != nil {
+		t.Fatalf("GetReviewCheckpoint: %v", err)
+	}
+	if checkpoint == nil || checkpoint.LastReviewRun != "review-store-1" || checkpoint.Checkpoint != record.GetMemoryId() {
+		t.Fatalf("unexpected checkpoint: %#v", checkpoint)
+	}
+	inputs, err := store.ListCanonicalReviewInputs(ctx, scope, "", 10)
+	if err != nil {
+		t.Fatalf("ListCanonicalReviewInputs: %v", err)
+	}
+	if len(inputs) == 0 || inputs[0].GetMemoryId() != record.GetMemoryId() {
+		t.Fatalf("unexpected inputs: %#v", inputs)
+	}
+	narratives, err := store.ListNarrativeContext(ctx, scope, "Alice works at Nimi", 5)
+	if err != nil {
+		t.Fatalf("ListNarrativeContext: %v", err)
+	}
+	if len(narratives) != 1 || narratives[0].GetNarrativeId() != "nar-store-1" {
+		t.Fatalf("unexpected narratives: %#v", narratives)
+	}
+}
+
+func TestMemoryServiceReflectRejectsCanonicalScopes(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, _ := newCanonicalTestMemoryRecord(t)
+	_, err := svc.Reflect(context.Background(), &runtimev1.ReflectRequest{
+		Bank: locator,
+		Reflection: &runtimev1.MemoryReflectionRequest{
+			ReflectionReason: "review",
+		},
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected canonical Reflect rejection, got %v", err)
+	}
+}
+
+func TestMemoryServiceCanonicalBindRequiresManagedProfileAndIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-bind"},
+		},
+	}
+	bank, err := svc.EnsureCanonicalBank(context.Background(), locator, "Agent Memory", nil)
+	if err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if bank.GetEmbeddingProfile() != nil {
+		t.Fatalf("expected baseline canonical bank to start unbound, got %#v", bank.GetEmbeddingProfile())
+	}
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(context.Background(), locator); status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected bind without managed profile to fail unavailable, got %v", err)
+	}
+
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       4,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+	bound, err := svc.BindCanonicalBankEmbeddingProfile(context.Background(), locator)
+	if err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
+	}
+	if bound.GetEmbeddingProfile() == nil {
+		t.Fatal("expected canonical bank to bind embedding profile")
+	}
+	boundAgain, err := svc.BindCanonicalBankEmbeddingProfile(context.Background(), locator)
+	if err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile(idempotent): %v", err)
+	}
+	if !proto.Equal(bound.GetEmbeddingProfile(), boundAgain.GetEmbeddingProfile()) {
+		t.Fatalf("expected idempotent bind result, got %#v vs %#v", bound.GetEmbeddingProfile(), boundAgain.GetEmbeddingProfile())
 	}
 }
 
@@ -585,6 +1027,197 @@ func TestMemoryServiceReplicationLoopFakeBridgeResolvesBacklogAndEmitsCommittedE
 	}
 }
 
+func TestMemoryServicePendingBacklogMetadataSurvivesRestart(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       4,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	})
+	ctx := context.Background()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-backlog-restart"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "pending backlog restart"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	loopCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := svc.StartReplicationLoop(loopCtx); err != nil {
+		t.Fatalf("StartReplicationLoop: %v", err)
+	}
+	waitForMemoryCondition(t, 2*time.Second, func() bool {
+		backlog := svc.ListReplicationBacklog()
+		return len(backlog) == 1 && backlog[0].AttemptCount > 0
+	})
+	svc.StopReplicationLoop()
+	before := svc.ListReplicationBacklog()
+	if len(before) != 1 {
+		t.Fatalf("expected one pending backlog item before restart, got %#v", before)
+	}
+	if err := svc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	restarted, err := New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New(restart): %v", err)
+	}
+	defer func() {
+		if err := restarted.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	after := restarted.ListReplicationBacklog()
+	if len(after) != 1 {
+		t.Fatalf("expected one pending backlog item after restart, got %#v", after)
+	}
+	if after[0].BacklogKey != before[0].BacklogKey ||
+		after[0].MemoryID != retainResp.GetRecords()[0].GetMemoryId() ||
+		after[0].LocalVersion != before[0].LocalVersion ||
+		after[0].BasisVersion != before[0].BasisVersion ||
+		after[0].AttemptCount != before[0].AttemptCount ||
+		after[0].Status != before[0].Status ||
+		after[0].LastAttemptOutcome != before[0].LastAttemptOutcome ||
+		!after[0].EnqueuedAt.Equal(before[0].EnqueuedAt) ||
+		!after[0].LastAttemptAt.Equal(before[0].LastAttemptAt) ||
+		after[0].Locator.String() != before[0].Locator.String() {
+		t.Fatalf("pending backlog metadata drifted across restart: before=%#v after=%#v", before[0], after[0])
+	}
+}
+
+func TestMemoryServiceTerminalBacklogDoesNotReviveAfterRestart(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       4,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	})
+	ctx := context.Background()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-backlog-terminal"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "terminal backlog restart"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	record := retainResp.GetRecords()[0]
+	if len(svc.ListReplicationBacklog()) != 1 {
+		t.Fatalf("expected one backlog item before terminal observation, got %#v", svc.ListReplicationBacklog())
+	}
+	observedAt := time.Now().UTC()
+	if err := svc.ApplyReplicationObservation(locator, record.GetMemoryId(), &runtimev1.MemoryReplicationState{
+		Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_SYNCED,
+		LocalVersion: record.GetReplication().GetLocalVersion(),
+		BasisVersion: record.GetReplication().GetLocalVersion(),
+		Detail: &runtimev1.MemoryReplicationState_Synced{
+			Synced: &runtimev1.MemoryReplicationSynced{
+				RealmVersion: "realm-terminal",
+				SyncedAt:     timestamppb.New(observedAt),
+			},
+		},
+	}, observedAt); err != nil {
+		t.Fatalf("ApplyReplicationObservation(synced): %v", err)
+	}
+	if got := len(svc.ListReplicationBacklog()); got != 0 {
+		t.Fatalf("expected terminal observation to remove backlog, got %d items", got)
+	}
+	if err := svc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	restarted, err := New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New(restart): %v", err)
+	}
+	defer func() {
+		if err := restarted.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	if got := len(restarted.ListReplicationBacklog()); got != 0 {
+		t.Fatalf("expected no backlog after restart for terminal record, got %#v", restarted.ListReplicationBacklog())
+	}
+	historyResp, err := restarted.History(ctx, &runtimev1.HistoryRequest{
+		Bank:  locator,
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
+	})
+	if err != nil {
+		t.Fatalf("History(restart): %v", err)
+	}
+	if len(historyResp.GetRecords()) != 1 {
+		t.Fatalf("expected one record after restart, got %d", len(historyResp.GetRecords()))
+	}
+	if historyResp.GetRecords()[0].GetReplication().GetOutcome() != runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_SYNCED {
+		t.Fatalf("expected synced replication state after restart, got %#v", historyResp.GetRecords()[0].GetReplication())
+	}
+}
+
 func newTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBankLocator, *runtimev1.MemoryRecord) {
 	t.Helper()
 
@@ -605,14 +1238,6 @@ func newTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBankLocator, 
 					AppId:     "app.test",
 				},
 			},
-		},
-		EmbeddingProfile: &runtimev1.MemoryEmbeddingProfile{
-			Provider:        "local",
-			ModelId:         "text-embedding-3-small",
-			Dimension:       1536,
-			DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
-			Version:         "v1",
-			MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
 		},
 		DisplayName: "App Memory",
 	})
