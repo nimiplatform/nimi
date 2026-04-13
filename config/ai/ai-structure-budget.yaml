@@ -75,4 +75,22 @@ exclude:
   - "**/locales/en.json"
   - "**/locales/zh.json"
 
-waivers: []
+waivers:
+  - pattern: "apps/desktop/src/public-web/app-store.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes a named app-store entrypoint for web imports."
+  - pattern: "apps/desktop/src/public-web/app.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes a named app entrypoint for web lazy loading."
+  - pattern: "apps/desktop/src/public-web/data-sync.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes a named data-sync entrypoint for web bootstrap."
+  - pattern: "apps/desktop/src/public-web/i18n.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes a named i18n entrypoint for web bootstrap."
+  - pattern: "apps/desktop/src/public-web/infra.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes named infrastructure utilities for web bootstrap."
+  - pattern: "apps/desktop/src/public-web/mod-ui-types.ts"
+    checks: [forwarding_shell]
+    reason: "Desktop public-for-web boundary intentionally exposes named mod UI type entrypoints for web adapters."
