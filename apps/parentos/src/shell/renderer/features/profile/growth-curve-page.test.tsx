@@ -149,17 +149,29 @@ describe('GrowthCurvePage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/WHO percentile reference lines \(P3-P97\) are loaded/i),
+        screen.getByText('中国标准百分位参考线（P3-P97）已加载。'),
+      ).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /WHO 标准/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('WHO 标准百分位参考线（P3-P97）已加载。'),
       ).toBeTruthy();
     });
 
     fireEvent.click(screen.getByText('体重').closest('button') as HTMLButtonElement);
 
     await waitFor(() => {
-      expect(screen.getByText(/Showing recorded measurements only/i)).toBeTruthy();
+      expect(
+        screen.getByText('当前年龄超出WHO 标准百分位参考线覆盖范围，仅显示已记录数据。'),
+      ).toBeTruthy();
     });
 
-    expect(screen.getByText(/Showing recorded measurements only/i)).toBeTruthy();
+    expect(
+      screen.getByText('当前年龄超出WHO 标准百分位参考线覆盖范围，仅显示已记录数据。'),
+    ).toBeTruthy();
   });
 
   it('imports OCR candidates only after parent confirmation and stores them as source=ocr', async () => {

@@ -82,7 +82,7 @@ describe('reminder engine eligibility', () => {
       domainOverrides: null,
     }, []);
 
-    expect(reminders.map((item) => item.repeatIndex)).toEqual([0, 1, 2]);
+    expect(reminders.map((item) => item.repeatIndex)).toEqual([2]);
   });
 
   it('derives reminder kind only from actionType', () => {

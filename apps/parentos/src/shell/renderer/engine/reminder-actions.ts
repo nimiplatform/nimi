@@ -30,7 +30,7 @@ function buildRow(input: {
   lastSurfacedAt: string | null;
   surfaceCount: number;
   now: string;
-}) {
+}): Parameters<typeof upsertReminderState>[0] {
   const previous = input.previous;
   return {
     stateId: previous?.stateId ?? ulid(),
