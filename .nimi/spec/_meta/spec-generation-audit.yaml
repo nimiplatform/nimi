@@ -18,7 +18,7 @@ spec_generation_audit:
     structure_roots:
       - .
     human_note_paths:
-      - .nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md
+      - .nimi/local/report/2026-04-11-nimicoding-canonical-spec-model-redesign.md
     benchmark_blueprint_root: null
   files:
     - canonical_path: .nimi/spec/INDEX.md

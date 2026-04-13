@@ -50,6 +50,7 @@ const SPEC_GENERATION_ORDER_ENUM = [
   "generated_views",
   "thin_guides",
 ];
+const DATE_PREFIXED_LOCAL_REPORT_MARKDOWN = /^(?:\.nimi\/local\/report|\.local\/report)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 
 function normalizeAuthorityModeValue(value) {
   return value === "external_blueprint_active" ? "external_authority_active" : value;
@@ -111,6 +112,28 @@ function pathStartsWithRoot(targetPath, root) {
   }
 
   return targetPath === root || targetPath.startsWith(`${root}/`);
+}
+
+function isDatePrefixedLocalReportMarkdownPath(value) {
+  return typeof value === "string" && DATE_PREFIXED_LOCAL_REPORT_MARKDOWN.test(value);
+}
+
+function localReportMarkdownPathsAreSortable(paths) {
+  return paths.every((entry) => {
+    if (
+      typeof entry !== "string"
+      || !(
+        entry.startsWith(".nimi/local/report/")
+        || entry.startsWith(".local/report/")
+      )
+    ) {
+      return true;
+    }
+    if (!entry.endsWith(".md")) {
+      return true;
+    }
+    return isDatePrefixedLocalReportMarkdownPath(entry);
+  });
 }
 
 export function parseSpecReconstructionContract(text) {
@@ -198,7 +221,8 @@ export function parseSpecGenerationInputsContract(text) {
       && requiredFields.includes("mode")
       && requiredFields.includes("canonical_target_root")
       && requiredFields.includes("benchmark_blueprint_root")
-      && hardConstraints.includes("canonical_target_root_must_be_.nimi/spec"),
+      && hardConstraints.includes("canonical_target_root_must_be_.nimi/spec")
+      && hardConstraints.includes("local_report_markdown_paths_must_use_YYYY-MM-DD_slug_order"),
     requiredFields,
     generationOrderEnum,
     hardConstraints,
@@ -231,6 +255,7 @@ export function parseSpecGenerationInputsConfig(text) {
       && Array.isArray(docsRoots)
       && Array.isArray(structureRoots)
       && Array.isArray(humanNotePaths)
+      && localReportMarkdownPathsAreSortable(humanNotePaths)
       && BLUEPRINT_MODE_ENUM.includes(benchmarkMode)
       && SPEC_GENERATION_ACCEPTANCE_MODE_ENUM.includes(acceptanceMode)
       && generationOrder.length > 0
@@ -322,6 +347,7 @@ export function parseSpecTreeModel(text) {
     && ["repo_spec_blueprint", "custom_blueprint"].includes(blueprintSource.mode)
     && typeof blueprintSource.root === "string"
     && typeof blueprintSource.equivalenceContractRef === "string"
+    && isDatePrefixedLocalReportMarkdownPath(blueprintSource.equivalenceContractRef)
   );
 
   return {
@@ -397,7 +423,8 @@ export function parseBlueprintReference(text) {
       && ["repo_spec_blueprint", "custom_blueprint"].includes(mode)
       && typeof root === "string"
       && typeof canonicalTargetRoot === "string"
-      && typeof equivalenceContractRef === "string",
+      && typeof equivalenceContractRef === "string"
+      && isDatePrefixedLocalReportMarkdownPath(equivalenceContractRef),
     present: true,
     mode,
     root,

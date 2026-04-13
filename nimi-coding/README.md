@@ -117,6 +117,19 @@ Current `nimicoding clear` behavior is intentionally narrow:
 - preserve `.nimi/spec/**`, `.nimi/local/**`, and `.nimi/cache/**`
 - avoid deleting project-owned truth or local operational artifacts implicitly
 
+## Local Report Naming
+
+Human-authored local report markdown files under `/.nimi/local/report/**` should
+use sortable date-first names:
+
+- `YYYY-MM-DD-slug.md`
+- example: `2026-04-13-memory-substrate-wave-2-spec-cut.md`
+
+Avoid the older `slug-YYYY-MM-DD.md` shape because it sorts poorly and makes
+cross-report navigation harder. Stable machine report artifacts that are meant
+to behave like a current snapshot, such as `blueprint-equivalence-audit.json`,
+should keep their fixed names.
+
 ## Canonical Spec Redesign Prep
 
 The package now seeds Phase 0 / Phase 1 canonical-spec redesign contracts under

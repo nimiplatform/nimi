@@ -135,7 +135,7 @@ async function writeBlueprintReference(projectRoot, root = "spec") {
         mode: "repo_spec_blueprint",
         root,
         canonical_target_root: ".nimi/spec",
-        equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+        equivalence_contract_ref: ".nimi/local/report/2026-04-11-nimicoding-canonical-spec-model-redesign.md",
       },
     }),
     "utf8",
@@ -986,7 +986,7 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
           mode: "repo_spec_blueprint",
           root: "spec",
           canonical_target_root: ".nimi/spec",
-          equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+          equivalence_contract_ref: ".nimi/local/report/2026-04-11-nimicoding-canonical-spec-model-redesign.md",
         },
       }),
       "utf8",
@@ -1017,6 +1017,59 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
     const reportPayload = JSON.parse(reportText);
     assert.equal(reportPayload.ok, true);
     assert.equal(reportPayload.blueprintRoot, "spec");
+  });
+});
+
+test("doctor rejects slug-date local report markdown paths in spec generation inputs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.human_note_paths = [
+        ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+      ];
+    });
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.specGenerationInputs.ok, false);
+  });
+});
+
+test("doctor rejects slug-date equivalence report refs in blueprint reference metadata", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      YAML.stringify({
+        version: 1,
+        blueprint_reference: {
+          mode: "repo_spec_blueprint",
+          root: "spec",
+          canonical_target_root: ".nimi/spec",
+          equivalence_contract_ref: ".nimi/local/report/nimicoding-canonical-spec-model-redesign-2026-04-11.md",
+        },
+      }),
+      "utf8",
+    );
+
+    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    const blueprintCheck = payload.checks.find((entry) => entry.id === "blueprint_reference_contract");
+    assert.equal(blueprintCheck.ok, false);
   });
 });
 
