@@ -6,8 +6,8 @@
 
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
-| `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
-| `desktop_spec_docs_drift_gate` | `static_gate` | `pnpm check:desktop-spec-kernel-docs-drift` | `scripts/generate-desktop-spec-kernel-docs.mjs` | Drift gate for generated desktop kernel docs vs YAML fact sources. |
+| `desktop_kernel_consistency` | `static_gate` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
+| `desktop_spec_docs_drift_gate` | `static_gate` | `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check` | `scripts/generate-desktop-spec-kernel-docs.mjs` | Drift gate for generated desktop kernel docs vs YAML fact sources. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
 | `desktop_e2e_smoke_gate` | `e2e_gate` | `pnpm check:desktop-e2e-smoke` | `apps/desktop/package.json` | Desktop WebDriver smoke scenarios for Linux PR hard gate coverage. |
@@ -15,6 +15,8 @@
 | `desktop_rust_test_gate` | `rust_test_gate` | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml` | `apps/desktop/src-tauri/Cargo.toml` | Tauri backend integration test gate for desktop runtime boundary behavior. |
 | `desktop_rust_clippy_gate` | `rust_static_gate` | `cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets` | `apps/desktop/src-tauri/Cargo.toml` | Tauri backend static analysis gate for desktop runtime boundary behavior. |
 | `desktop_macos_manual_smoke_policy` | `manual_policy` | `spec-only` | `.nimi/spec/desktop/testing-gates.md` | Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior. |
+| `desktop_macos_automated_smoke_gate` | `smoke_gate` | `pnpm check:desktop-macos-smoke` | `apps/desktop/scripts/run-macos-smoke.mjs` | Packaged-app self-driven macOS supplementary smoke for desktop journey coverage without tauri-driver. |
+| `desktop_macos_automated_smoke_report` | `local_evidence_report` | `pnpm --filter @nimiplatform/desktop run report:desktop-macos-smoke-evidence` | `apps/desktop/scripts/generate-desktop-macos-smoke-evidence.mjs` | Generates structured macOS supplementary smoke evidence from .local/report/desktop-macos-smoke artifacts. |
 | `desktop_e2e_failure_artifacts_gate` | `ci_artifact_policy` | `upload apps/desktop/reports/e2e/**` | `.github/workflows/ci.yml` | CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure. |
 | `desktop_e2e_ci_evidence_report` | `ci_evidence_report` | `pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence` | `apps/desktop/scripts/generate-desktop-e2e-evidence.mjs` | Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts. |
 | `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory. |
@@ -235,7 +237,7 @@
 | `D-GATE-030` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate` |
 | `D-GATE-040` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate` |
 | `D-GATE-050` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_e2e_smoke_gate` |
-| `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy` |
+| `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy`, `desktop_macos_automated_smoke_gate`, `desktop_macos_automated_smoke_report` |
 | `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate`, `desktop_e2e_ci_evidence_report` |
 | `D-GATE-080` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-090` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |

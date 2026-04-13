@@ -35,7 +35,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 ### Consistency Gate (D-GATE-080, D-BOOT-003)
 
-- `pnpm check:desktop-spec-kernel-consistency` 必须校验：
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency` 必须校验：
   - kernel 规则全集
   - `rule-evidence.yaml` 证据映射
   - `desktop-testing-gates.yaml` gate 集合
@@ -44,19 +44,24 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 ### Drift Gate (D-GATE-080, D-BOOT-002)
 
-- `pnpm check:desktop-spec-kernel-docs-drift` 必须覆盖 `rule-evidence.yaml` 对应生成视图漂移。
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check` 必须覆盖 `rule-evidence.yaml` 对应生成视图漂移。
 
 ### Desktop E2E Gate (D-GATE-030, D-GATE-040, D-GATE-060, D-GATE-070)
 
 - Linux PR 必须运行 desktop E2E smoke gate。
 - nightly / release 必须运行完整 journey 集合，并保持不低于 PR 的标准。
-- macOS 的 `menu-bar hide vs quit` 只作为本地 / 手工 smoke，不计入阻塞式 desktop WebDriver gate。
+- macOS 的 desktop WebDriver gate 仍然非阻塞；允许 supplemental packaged-app automated smoke 作为本地 / CI 补充证据，但它不替代 Linux / Windows WebDriver parity。
 - macOS manual smoke checklist:
   - packaged app 首次启动可进入主壳或登录页，无白屏、无 crash loop
   - menu-bar `Hide` 不得触发进程退出，`Quit` 必须彻底退出
   - runtime unavailable strip 与 settings 跳转路径可见
   - bundled runtime/version strip 在 release 包上可读且无明显错配
   - failure evidence 必须记录到 local execution report route patterns（如 `.local/report/**`），不伪装成自动化覆盖
+- macOS supplemental automated smoke checklist:
+  - 必须使用 packaged Desktop app 自驱 smoke，不得依赖 `tauri-driver`
+  - 必须复用 admitted fixture、stable `data-testid`、private bridge surface 与 local report route
+  - 首批必须覆盖 `chat.memory-standard-bind`
+  - 结果只进入 `.local/report/**`，不伪装成 blocking desktop E2E coverage
 
 ### Supplementary Hard-Cut Gates (D-BOOT-001, D-HOOK-009, D-IPC-011, D-IPC-012, D-MOD-002, D-CODEGEN-010)
 
@@ -79,10 +84,11 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 
 ## 3. Verification Coverage
 
-- `pnpm check:desktop-spec-kernel-consistency`
-- `pnpm check:desktop-spec-kernel-docs-drift`
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check`
 - `pnpm check:desktop-e2e-smoke`
 - `pnpm check:desktop-e2e-journeys`
+- `pnpm check:desktop-macos-smoke`
 - `pnpm --filter @nimiplatform/desktop run check:version-sync`
 - `pnpm --filter @nimiplatform/desktop run check:desktop-release-sync`
 - `pnpm --filter @nimiplatform/desktop lint`

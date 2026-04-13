@@ -14,6 +14,7 @@ export const scenarioRegistry = new Map([
   ['runtime.config-panel-load', { bucket: 'smoke', profile: 'runtime.config-panel-load.json', spec: 'apps/desktop/e2e/specs/runtime.config-panel-load.e2e.mjs' }],
   ['settings.release-strip-and-preferences', { bucket: 'journeys', profile: 'settings.release-strip-and-preferences.json', spec: 'apps/desktop/e2e/specs/settings.release-strip-and-preferences.e2e.mjs' }],
   ['chat.open-thread', { bucket: 'journeys', profile: 'chat.open-thread.json', spec: 'apps/desktop/e2e/specs/chat.open-thread.e2e.mjs' }],
+  ['chat.memory-standard-bind', { bucket: 'journeys', profile: 'chat.memory-standard-bind.json', spec: 'apps/desktop/e2e/specs/chat.memory-standard-bind.e2e.mjs' }],
   ['mods.panel-open', { bucket: 'journeys', profile: 'mods.panel-open.json', spec: 'apps/desktop/e2e/specs/mods.panel-open.e2e.mjs' }],
   ['contacts.panel-load', { bucket: 'journeys', profile: 'contacts.panel-load.json', spec: 'apps/desktop/e2e/specs/contacts.panel-load.e2e.mjs' }],
   ['explore.panel-load', { bucket: 'journeys', profile: 'explore.panel-load.json', spec: 'apps/desktop/e2e/specs/explore.panel-load.e2e.mjs' }],

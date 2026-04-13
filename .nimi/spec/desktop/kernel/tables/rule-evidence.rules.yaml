@@ -1148,6 +1148,8 @@
     - desktop_kernel_consistency
     - desktop_e2e_journey_gate
     - desktop_macos_manual_smoke_policy
+    - desktop_macos_automated_smoke_gate
+    - desktop_macos_automated_smoke_report
 - rule_id: D-GATE-070
   status: covered
   evidence_refs:

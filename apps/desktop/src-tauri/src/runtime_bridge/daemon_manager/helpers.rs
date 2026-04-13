@@ -10,6 +10,7 @@ use super::DEFAULT_GRPC_ADDR;
 #[serde(rename_all = "camelCase")]
 struct RuntimeFileConfig {
     grpc_addr: Option<String>,
+    http_addr: Option<String>,
 }
 
 pub(crate) fn grpc_addr() -> String {
@@ -23,6 +24,19 @@ pub(crate) fn grpc_addr() -> String {
         return value;
     }
     DEFAULT_GRPC_ADDR.to_string()
+}
+
+pub(crate) fn http_addr() -> String {
+    if let Some(value) = read_non_empty_env("NIMI_RUNTIME_HTTP_ADDR") {
+        return value;
+    }
+    if let Some(value) = runtime_file_config()
+        .and_then(|config| config.http_addr)
+        .and_then(|value| normalize_non_empty(value.as_str()))
+    {
+        return value;
+    }
+    "127.0.0.1:46372".to_string()
 }
 
 pub(crate) fn runtime_config_path() -> Option<PathBuf> {

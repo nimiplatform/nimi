@@ -1,5 +1,7 @@
 use super::*;
 
+pub(crate) mod macos_smoke;
+pub(crate) mod runtime_agent_memory;
 pub(crate) mod system_resources;
 pub(crate) mod tester_storage;
 pub(crate) mod window_and_logs;

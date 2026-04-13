@@ -50,4 +50,4 @@ Desktop Phase 1 不支持 ExternalPrincipal 会话；相关错误投影、授权
 
 ## CI 门禁引用
 
-本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 11, 13~14, 19 相关规则）。
+本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`（Check 1, 11, 13~14, 19 相关规则）。

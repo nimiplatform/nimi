@@ -98,6 +98,6 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 
 本域涉及的 CI 门禁：
 
-- `pnpm check:desktop-spec-kernel-consistency`（Check 1, 11, 13~14, 18 相关规则）
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`（Check 1, 11, 13~14, 18 相关规则）
 - `pnpm check:desktop-cloud-runtime-only`
 - `pnpm check:desktop-no-legacy-runtime-config-path`

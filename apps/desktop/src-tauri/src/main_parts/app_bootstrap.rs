@@ -14,6 +14,113 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     tauri::Builder::default()
         .plugin(updater_plugin)
         .plugin(tauri_plugin_deep_link::init())
+        .on_page_load(|webview, payload| {
+            let event = match payload.event() {
+                tauri::webview::PageLoadEvent::Started => "started",
+                tauri::webview::PageLoadEvent::Finished => "finished",
+            };
+            let details = json!({
+                "event": event,
+                "url": payload.url().to_string(),
+                "label": webview.label(),
+            });
+            let _ = super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
+                "window-page-load",
+                Some(&details),
+            );
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let probe_script = r#"
+(() => {
+  try {
+    const globalRecord = globalThis;
+    if (globalRecord.__NIMI_MACOS_SMOKE_EVAL_STARTED__) {
+      return;
+    }
+    globalRecord.__NIMI_MACOS_SMOKE_EVAL_STARTED__ = true;
+    const invoke =
+      globalRecord.__TAURI__?.core?.invoke
+      || globalRecord.__TAURI_INTERNALS__?.invoke
+      || globalRecord.__TAURI_IPC__?.invoke
+      || globalRecord.window?.__TAURI__?.core?.invoke
+      || globalRecord.window?.__TAURI_INTERNALS__?.invoke
+      || globalRecord.window?.__TAURI_IPC__?.invoke;
+    const invokeSafe = (command, payload) => {
+      if (typeof invoke !== 'function') {
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(invoke(command, payload)).catch(() => undefined);
+    };
+    const scriptSrc =
+      globalRecord.document?.querySelector('script[type="module"]')?.src || '';
+    const details = {
+      href: globalRecord.location?.href || '',
+      readyState: globalRecord.document?.readyState || '',
+      hasRoot: Boolean(globalRecord.document?.getElementById('root')),
+      hasInvoke: typeof invoke === 'function',
+      scriptSrc,
+    };
+    if (typeof invoke === 'function') {
+      void invokeSafe('desktop_macos_smoke_ping', {
+        payload: {
+          stage: 'window-eval-probe',
+          details,
+        },
+      });
+      if (!scriptSrc) {
+        void invokeSafe('desktop_macos_smoke_report_write', {
+          payload: {
+            ok: false,
+            failedStep: 'renderer-module-script-missing',
+            steps: ['window-eval-probe'],
+            errorMessage: 'main module script src is missing',
+            route: globalRecord.location?.href || '',
+            htmlSnapshot: globalRecord.document?.documentElement?.outerHTML || '',
+          },
+        });
+        return;
+      }
+      void import(scriptSrc)
+        .then(() => invokeSafe('desktop_macos_smoke_ping', {
+          payload: {
+            stage: 'window-dynamic-import-ok',
+            details: {
+              scriptSrc,
+            },
+          },
+        }))
+        .catch((error) => invokeSafe('desktop_macos_smoke_report_write', {
+          payload: {
+            ok: false,
+            failedStep: 'renderer-module-import-failed',
+            steps: ['window-eval-probe', 'renderer-module-import'],
+            errorName: error?.name || '',
+            errorMessage: error?.message || String(error || 'dynamic import failed'),
+            errorStack: error?.stack || '',
+            errorCause: error?.cause ? String(error.cause) : '',
+            route: globalRecord.location?.href || '',
+            htmlSnapshot: globalRecord.document?.documentElement?.outerHTML || '',
+          },
+        }));
+    }
+  } catch (_) {
+    // no-op
+  }
+})();
+"#;
+                if let Err(error) = webview.eval(probe_script) {
+                    let _ =
+                        super::defaults_and_commands::macos_smoke::append_macos_smoke_backend_stage(
+                            "window-page-error",
+                            Some(&json!({
+                                "reason": "eval-dispatch-failed",
+                                "message": error.to_string(),
+                                "url": payload.url().to_string(),
+                                "label": webview.label(),
+                            })),
+                        );
+                }
+            }
+        })
         .setup(|app| {
             eprintln!("[boot:{:}] setup entered", now_ms());
             let gateway_state =
@@ -165,6 +272,10 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::open_external_url,
             super::defaults_and_commands::oauth_token_exchange,
             super::defaults_and_commands::oauth_listen_for_code,
+            super::defaults_and_commands::runtime_agent_memory::agent_memory_bind_standard,
+            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_context_get,
+            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_report_write,
+            super::defaults_and_commands::macos_smoke::desktop_macos_smoke_ping,
             super::defaults_and_commands::window_and_logs::confirm_dialog,
             super::defaults_and_commands::window_and_logs::confirm_private_sync,
             super::defaults_and_commands::window_and_logs::log_renderer_event,

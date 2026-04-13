@@ -275,7 +275,7 @@ mod tests {
 
     use tonic::Request;
 
-    use super::{apply_metadata, RuntimeBridgeMetadata};
+    use super::{apply_metadata, RuntimeBridgeMetadata, RuntimeBridgeProtectedAccessToken};
 
     fn read_metadata(request: &Request<Vec<u8>>, key: &str) -> Option<String> {
         request
@@ -290,6 +290,7 @@ mod tests {
         let mut request = Request::new(Vec::<u8>::new());
         apply_metadata(
             &mut request,
+            None,
             None,
             None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
@@ -346,6 +347,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             Some("Bearer top-level-token"),
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect("apply metadata with explicit values");
@@ -424,6 +426,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             None,
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("unsupported protocol version should fail");
@@ -446,6 +449,7 @@ mod tests {
             &mut request,
             Some(&metadata),
             None,
+            None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
         .expect_err("metadata with invalid header value should fail");
@@ -467,6 +471,7 @@ mod tests {
         let error = apply_metadata(
             &mut request,
             Some(&metadata),
+            None,
             None,
             "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
         )
@@ -492,5 +497,32 @@ mod tests {
         let debug = format!("{:?}", metadata);
         assert!(!debug.contains("top-secret-value"));
         assert!(debug.contains("***REDACTED***"));
+    }
+
+    #[test]
+    fn apply_metadata_includes_protected_access_token_headers() {
+        let mut request = Request::new(Vec::<u8>::new());
+        let protected_access_token = RuntimeBridgeProtectedAccessToken {
+            token_id: "protected-token-id".to_string(),
+            secret: "protected-token-secret".to_string(),
+        };
+
+        apply_metadata(
+            &mut request,
+            None,
+            None,
+            Some(&protected_access_token),
+            "//nimi.runtime.v1.RuntimeAiService/ExecuteScenario",
+        )
+        .expect("apply metadata with protected access token");
+
+        assert_eq!(
+            read_metadata(&request, "x-nimi-access-token-id").as_deref(),
+            Some("protected-token-id")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-access-token-secret").as_deref(),
+            Some("protected-token-secret")
+        );
     }
 }

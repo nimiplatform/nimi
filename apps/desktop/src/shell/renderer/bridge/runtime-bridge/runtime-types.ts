@@ -365,3 +365,37 @@ export type ConfirmDialogPayload = {
 export type ConfirmDialogResult = {
   confirmed: boolean;
 };
+
+export type AgentMemoryBindStandardPayload = {
+  agentId: string;
+};
+
+export type AgentMemoryBindStandardResult = {
+  alreadyBound: boolean;
+  bank: JsonObject;
+};
+
+export type DesktopMacosSmokeContext = {
+  enabled: boolean;
+  scenarioId?: string;
+  reportPath?: string;
+  artifactsDir?: string;
+  disableRuntimeBootstrap?: boolean;
+};
+
+export type DesktopMacosSmokeReportPayload = {
+  ok: boolean;
+  failedStep?: string;
+  steps: string[];
+  errorMessage?: string;
+  errorName?: string;
+  errorStack?: string;
+  errorCause?: string;
+  route?: string;
+  htmlSnapshot?: string;
+};
+
+export type DesktopMacosSmokeReportResult = {
+  reportPath: string;
+  htmlSnapshotPath?: string;
+};

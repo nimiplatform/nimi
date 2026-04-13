@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use tauri::AppHandle;
 
+pub(crate) use daemon_manager::http_addr;
 pub use daemon_manager::RuntimeBridgeDaemonStatus;
 pub(crate) use error_map::bridge_error;
 pub use metadata::RuntimeBridgeMetadata;

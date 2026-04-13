@@ -15,6 +15,7 @@ function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
     authorizeExternalPrincipal: [] as Array<Record<string, unknown>>,
+    getBank: [] as Array<Record<string, unknown>>,
     getAgent: [] as Array<Record<string, unknown>>,
     initializeAgent: [] as Array<Record<string, unknown>>,
     updateAgentState: [] as Array<Record<string, unknown>>,
@@ -36,6 +37,29 @@ function createRuntimeMock() {
         return {
           tokenId: 'protected-token-id',
           secret: 'protected-token-secret',
+        };
+      },
+    },
+    memory: {
+      getBank: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+        calls.getBank.push({ ...input, __options: options });
+        return {
+          bank: {
+            bankId: 'bank-agent-1',
+            locator: {
+              scope: MemoryBankScope.AGENT_CORE,
+              owner: {
+                oneofKind: 'agentCore',
+                agentCore: {
+                  agentId: 'agent-1',
+                },
+              },
+            },
+            embeddingProfile: {
+              provider: 'local',
+              modelId: 'local/embed-alpha',
+            },
+          },
         };
       },
     },
@@ -326,6 +350,230 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
     });
     assert.deepEqual(records, []);
   });
+});
+
+test('runtime agent memory adapter ignores additive narratives in compatibility queries', async () => {
+  const { runtime } = createRuntimeMock();
+  runtime.agentCore.queryMemory = async () => ({
+    memories: [
+      {
+        canonicalClass: MemoryCanonicalClass.PUBLIC_SHARED,
+        sourceBank: {
+          owner: {
+            oneofKind: 'agentCore',
+            agentCore: {
+              agentId: 'agent-1',
+            },
+          },
+        },
+        record: {
+          memoryId: 'core-1',
+          canonicalClass: MemoryCanonicalClass.PUBLIC_SHARED,
+          provenance: {
+            sourceSystem: 'desktop.agent-chat',
+            sourceEventId: 'turn-2',
+            authorId: 'agent-1',
+            traceId: 'thread-1',
+          },
+          payload: {
+            oneofKind: 'observational',
+            observational: {
+              observation: 'remember this',
+            },
+          },
+          createdAt: { seconds: '1714521600', nanos: 0 },
+          updatedAt: { seconds: '1714521600', nanos: 0 },
+        },
+        recallScore: 0,
+        policyReason: 'query_agent_memory_history',
+      },
+    ],
+    narratives: [
+      {
+        narrativeId: 'narrative-1',
+        summary: 'This should remain additive.',
+      },
+    ],
+  });
+
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    now: () => new Date('2026-04-12T00:00:00.000Z'),
+  });
+
+  const records = await adapter.queryCompatibilityRecords({
+    agentId: 'agent-1',
+    displayName: 'Agent One',
+    createIfMissing: false,
+    syncDyadicContext: false,
+    syncWorldContext: false,
+    canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+    limit: 5,
+  });
+
+  assert.equal(records.length, 1);
+  assert.equal(records[0]?.content, 'remember this');
+});
+
+test('runtime agent memory adapter maps canonical bank status to standard, baseline, and unavailable', async () => {
+  const { runtime, calls } = createRuntimeMock();
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    listLocalRuntimeAssets: async () => [{
+      localAssetId: 'local-embed-1',
+      assetId: 'local/embed-alpha',
+      kind: 'embedding',
+      engine: 'llama',
+      entry: 'embed.gguf',
+      files: ['embed.gguf'],
+      license: 'apache-2.0',
+      source: { repo: 'repo', revision: 'main' },
+      integrityMode: 'verified',
+      hashes: {},
+      status: 'active',
+      installedAt: '2026-04-01T00:00:00Z',
+      updatedAt: '2026-04-12T00:00:00Z',
+    }],
+  });
+
+  const standard = await adapter.getCanonicalBankStatus('agent-1');
+  assert.deepEqual(standard, {
+    mode: 'standard',
+    bankId: 'bank-agent-1',
+    embeddingProfileModelId: 'local/embed-alpha',
+  });
+  assert.equal(calls.getBank.length, 1);
+
+  runtime.memory.getBank = async () => ({
+    bank: {
+      bankId: 'bank-agent-1',
+      locator: {
+        scope: MemoryBankScope.AGENT_CORE,
+        owner: {
+          oneofKind: 'agentCore',
+          agentCore: {
+            agentId: 'agent-1',
+          },
+        },
+      },
+      embeddingProfile: {
+        provider: '',
+        modelId: '',
+      },
+    },
+  });
+  const baseline = await adapter.getCanonicalBankStatus('agent-1');
+  assert.deepEqual(baseline, {
+    mode: 'baseline',
+    bankId: 'bank-agent-1',
+  });
+
+  runtime.memory.getBank = async () => {
+    throw createNimiError({
+      message: 'memory bank not found',
+      reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
+      actionHint: 'check_runtime_memory',
+      traceId: '',
+      retryable: false,
+      source: 'runtime',
+    });
+  };
+  const unavailableAdapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    listLocalRuntimeAssets: async () => [],
+  });
+  const unavailable = await unavailableAdapter.getCanonicalBankStatus('agent-1');
+  assert.deepEqual(unavailable, {
+    mode: 'unavailable',
+  });
+});
+
+test('runtime agent memory adapter keeps compatibility queries working when canonical bank is baseline', async () => {
+  const { runtime } = createRuntimeMock();
+  runtime.memory.getBank = (async () => ({
+    bank: {
+      bankId: 'bank-agent-1',
+      locator: {
+        scope: MemoryBankScope.AGENT_CORE,
+        owner: {
+          oneofKind: 'agentCore',
+          agentCore: {
+            agentId: 'agent-1',
+          },
+        },
+      },
+      embeddingProfile: null,
+    },
+  })) as never;
+
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    listLocalRuntimeAssets: async () => [{
+      localAssetId: 'local-embed-1',
+      assetId: 'local/embed-alpha',
+      kind: 'embedding',
+      engine: 'llama',
+      entry: 'embed.gguf',
+      files: ['embed.gguf'],
+      license: 'apache-2.0',
+      source: { repo: 'repo', revision: 'main' },
+      integrityMode: 'verified',
+      hashes: {},
+      status: 'active',
+      installedAt: '2026-04-01T00:00:00Z',
+      updatedAt: '2026-04-12T00:00:00Z',
+    }],
+  });
+
+  const status = await adapter.getCanonicalBankStatus('agent-1');
+  assert.deepEqual(status, {
+    mode: 'baseline',
+    bankId: 'bank-agent-1',
+  });
+
+  const records = await adapter.queryCompatibilityRecords({
+    agentId: 'agent-1',
+    displayName: 'Agent One',
+    createIfMissing: false,
+    syncDyadicContext: false,
+    syncWorldContext: false,
+    canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+    limit: 5,
+  });
+  assert.equal(records.length, 1);
+});
+
+test('runtime agent memory adapter binds canonical bank standard through the desktop bridge', async () => {
+  const { runtime } = createRuntimeMock();
+  const bindCalls: Array<Record<string, unknown>> = [];
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    bindStandard: async (payload) => {
+      bindCalls.push(payload as unknown as Record<string, unknown>);
+      return {
+        alreadyBound: false,
+        bank: {
+          bankId: 'bank-agent-1',
+          embeddingProfile: {
+            modelId: 'local/embed-alpha',
+          },
+        },
+      };
+    },
+  });
+
+  const result = await adapter.bindCanonicalBankStandard('agent-1');
+  assert.deepEqual(result, {
+    mode: 'standard',
+    bankId: 'bank-agent-1',
+    embeddingProfileModelId: 'local/embed-alpha',
+  });
+  assert.deepEqual(bindCalls, [{ agentId: 'agent-1' }]);
 });
 
 test('canonical memory view compatibility projection stays runtime-owned', async () => {

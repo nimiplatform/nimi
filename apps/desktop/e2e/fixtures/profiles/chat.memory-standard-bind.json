@@ -1,0 +1,46 @@
+{
+  "extends": "chat.open-thread.json",
+  "scenarioId": "chat.memory-standard-bind",
+  "realmFixture": {
+    "friends": {
+      "items": [
+        {
+          "id": "user-e2e-friend",
+          "displayName": "Fixture Friend",
+          "handle": "@fixture-friend",
+          "avatarUrl": "",
+          "bio": "Seeded desktop friend",
+          "isAgent": false
+        },
+        {
+          "id": "agent-e2e-alpha",
+          "displayName": "Fixture Agent",
+          "handle": "~fixture-agent",
+          "avatarUrl": "",
+          "bio": "Seeded creator agent",
+          "isAgent": true,
+          "agentProfile": {
+            "worldId": "world-e2e-1"
+          }
+        }
+      ]
+    }
+  },
+  "tauriFixture": {
+    "confirmDialog": {
+      "responses": [
+        {
+          "confirmed": false
+        },
+        {
+          "confirmed": true
+        }
+      ]
+    },
+    "agentMemoryBindStandard": {
+      "alreadyBound": false,
+      "bankId": "bank-agent-e2e-alpha",
+      "embeddingProfileModelId": "local/embed-e2e-alpha"
+    }
+  }
+}

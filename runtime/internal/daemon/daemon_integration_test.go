@@ -169,6 +169,121 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	}
 }
 
+func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.listEmbeddingAssetsFn = func(context.Context) ([]*runtimev1.LocalAssetRecord, error) {
+		return []*runtimev1.LocalAssetRecord{
+			{
+				LocalAssetId: "local-embed-1",
+				AssetId:      "local/embed-alpha",
+				Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				UpdatedAt:    "2026-04-13T12:00:00Z",
+			},
+		}, nil
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- daemon.Run(ctx)
+	}()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if daemon.state.Snapshot().Status == health.StatusReady {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusReady {
+		t.Fatalf("expected daemon to reach READY, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+
+	profile := daemon.grpc.MemoryService().ManagedEmbeddingProfile()
+	if profile == nil {
+		t.Fatal("expected managed embedding profile to be refreshed on startup")
+	}
+	if got := profile.GetModelId(); got != "local/embed-alpha" {
+		t.Fatalf("model id mismatch: got=%q want=%q", got, "local/embed-alpha")
+	}
+	if got := profile.GetVersion(); got != "local/embed-alpha@2026-04-13T12:00:00Z" {
+		t.Fatalf("version mismatch: got=%q", got)
+	}
+
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("daemon run returned error: %v", err)
+	}
+}
+
+func TestDaemonBindCanonicalMemoryStandardIsIdempotent(t *testing.T) {
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.listEmbeddingAssetsFn = func(context.Context) ([]*runtimev1.LocalAssetRecord, error) {
+		return []*runtimev1.LocalAssetRecord{
+			{
+				LocalAssetId: "local-embed-1",
+				AssetId:      "local/embed-alpha",
+				Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				UpdatedAt:    "2026-04-13T12:00:00Z",
+			},
+		}, nil
+	}
+
+	first, err := daemon.bindCanonicalMemoryStandard(context.Background(), "agent-standard")
+	if err != nil {
+		t.Fatalf("first bind: %v", err)
+	}
+	if first.AlreadyBound {
+		t.Fatal("expected first bind to report alreadyBound=false")
+	}
+	if first.Bank == nil || first.Bank.GetEmbeddingProfile() == nil {
+		t.Fatal("expected first bind to return a bound bank")
+	}
+
+	second, err := daemon.bindCanonicalMemoryStandard(context.Background(), "agent-standard")
+	if err != nil {
+		t.Fatalf("second bind: %v", err)
+	}
+	if !second.AlreadyBound {
+		t.Fatal("expected second bind to report alreadyBound=true")
+	}
+	if second.Bank == nil || second.Bank.GetEmbeddingProfile() == nil {
+		t.Fatal("expected second bind to keep the bank bound")
+	}
+}
+
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
@@ -353,6 +468,177 @@ func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
 	cancel2()
 	if err := <-done2; err != nil {
 		t.Fatalf("daemon restart returned error: %v", err)
+	}
+}
+
+func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	if err := writePersistedMemoryState(localStatePath, "agent-import", "mem-import"); err != nil {
+		t.Fatalf("writePersistedMemoryState: %v", err)
+	}
+	if err := writePersistedAgentCoreState(localStatePath, "agent-import", time.Now().UTC().Add(time.Minute)); err != nil {
+		t.Fatalf("writePersistedAgentCoreState: %v", err)
+	}
+
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       localStatePath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	defer func() {
+		if svc := daemon.grpc.MemoryService(); svc != nil {
+			_ = svc.Close()
+		}
+	}()
+
+	runtimeDir := filepath.Dir(localStatePath)
+	if _, err := os.Stat(filepath.Join(runtimeDir, "memory.db")); err != nil {
+		t.Fatalf("expected memory.db before Run readiness: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(runtimeDir, "memory-state.json.wave3-imported.json.bak")); err != nil {
+		t.Fatalf("expected memory legacy rename before Run: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(runtimeDir, "agent-core-state.json.wave3-imported.json.bak")); err != nil {
+		t.Fatalf("expected agentcore legacy rename before Run: %v", err)
+	}
+}
+
+func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- daemon.Run(ctx)
+	}()
+	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("daemon run returned error: %v", err)
+	}
+
+	entries, err := os.ReadDir(filepath.Join(filepath.Dir(cfg.LocalStatePath), "backups"))
+	if err != nil {
+		t.Fatalf("os.ReadDir(backups): %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("expected at least one sqlite backup snapshot after shutdown")
+	}
+}
+
+func TestDaemonNewFailsClosedOnCorruptedSQLiteWithoutBackup(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "memory.db"), []byte("corrupt"), 0o600); err != nil {
+		t.Fatalf("os.WriteFile(memory.db): %v", err)
+	}
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(dir, "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	if _, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test"); err == nil {
+		t.Fatal("expected daemon init to fail closed on corrupted sqlite without backup")
+	}
+}
+
+func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       localStatePath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	locator := &runtimev1.PublicMemoryBankLocator{
+		Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+			AppPrivate: &runtimev1.AppPrivateBankOwner{AccountId: "acct-1", AppId: "app.test"},
+		},
+	}
+	createResp, err := daemon.grpc.MemoryService().CreateBank(context.Background(), &runtimev1.CreateBankRequest{
+		Locator: locator,
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+	if _, err := daemon.grpc.MemoryService().Retain(context.Background(), &runtimev1.RetainRequest{
+		Bank: createResp.GetBank().GetLocator(),
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "restorable daemon memory"},
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	if _, err := daemon.grpc.MemoryService().PersistenceBackend().BackupNow(context.Background()); err != nil {
+		t.Fatalf("BackupNow: %v", err)
+	}
+	if err := daemon.grpc.MemoryService().Close(); err != nil {
+		t.Fatalf("Close(memory service): %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "memory.db"), []byte("corrupted-primary"), 0o600); err != nil {
+		t.Fatalf("os.WriteFile(corrupted primary): %v", err)
+	}
+
+	restored, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon(restored): %v", err)
+	}
+	defer func() {
+		if svc := restored.grpc.MemoryService(); svc != nil {
+			_ = svc.Close()
+		}
+	}()
+	historyResp, err := restored.grpc.MemoryService().History(context.Background(), &runtimev1.HistoryRequest{
+		Bank:  createResp.GetBank().GetLocator(),
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10, IncludeInvalidated: true},
+	})
+	if err != nil {
+		t.Fatalf("History(restored): %v", err)
+	}
+	if len(historyResp.GetRecords()) != 1 {
+		t.Fatalf("expected restored memory record, got %#v", historyResp.GetRecords())
 	}
 }
 

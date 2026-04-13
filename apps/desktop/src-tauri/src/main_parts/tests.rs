@@ -1,12 +1,16 @@
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins, is_private_lan_http_origin,
-    normalize_http_method, normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
-    validate_external_url, HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    normalize_http_method, normalize_origin, normalize_runtime_config_page_id,
+    runtime_defaults, validate_external_url, HTTP_REQUEST_RATE_LIMIT_BURST,
+    HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
+use super::env_http::load_dotenv_file_preserve_env;
 use crate::test_support::with_env;
 use reqwest::Url;
 use serde_json::Value;
 use std::collections::VecDeque;
+use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 #[test]
@@ -180,4 +184,34 @@ fn validate_external_url_returns_structured_error_code() {
         payload.get("reasonCode").and_then(Value::as_str),
         Some("DESKTOP_HTTP_URL_SCHEME_INVALID"),
     );
+}
+
+#[test]
+fn dotenv_loader_preserves_explicit_runtime_bridge_mode() {
+    let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test-runtime-bridge.env");
+    fs::write(
+        &fixture_path,
+        "NIMI_RUNTIME_BRIDGE_MODE=RUNTIME\nNIMI_REALM_URL=http://localhost:3002\n",
+    )
+    .expect("write fixture env");
+
+    with_env(
+        &[
+            ("NIMI_RUNTIME_BRIDGE_MODE", Some("RELEASE")),
+            ("NIMI_REALM_URL", None),
+        ],
+        || {
+            load_dotenv_file_preserve_env(&fixture_path).expect("load dotenv");
+            assert_eq!(
+                std::env::var("NIMI_RUNTIME_BRIDGE_MODE").ok().as_deref(),
+                Some("RELEASE"),
+            );
+            assert_eq!(
+                std::env::var("NIMI_REALM_URL").ok().as_deref(),
+                Some("http://localhost:3002"),
+            );
+        },
+    );
+
+    fs::remove_file(&fixture_path).expect("remove fixture env");
 }

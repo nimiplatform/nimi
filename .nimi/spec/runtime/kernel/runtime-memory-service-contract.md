@@ -33,6 +33,7 @@ Fixed rules:
 - every memory unit belongs to exactly one bank
 - banks are isolated from one another
 - admitted implementation-facing transport must expose a scope-typed bank locator family with dedicated owner branches for `AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`, `APP_PRIVATE`, and `WORKSPACE_PRIVATE`
+- runtime may internally normalize these scopes through a typed-principal descriptor model only if the admitted public locator family, owner-role meaning, and locator-key compatibility remain unchanged
 - cross-scope owner combinations (for example, a `WORLD_SHARED` bank carrying an app-private owner shape) must not appear as a normal public contract form
 - `AGENT_CORE`, `AGENT_DYADIC`, and `WORLD_SHARED` are canonical-agent-facing scopes
 - `APP_PRIVATE` and `WORKSPACE_PRIVATE` are infra scopes and must not be collapsed into canonical agent memory
@@ -52,6 +53,7 @@ Fixed rules:
 - primary semantic memory payloads must use Nimi-owned typed messages; dynamic envelopes are limited to metadata, attributes, or extensions fields
 - admitted implementation-facing transport must reserve a typed memory record family for `episodic`, `semantic`, and `observational` records rather than collapsing durable memory into a free-form blob payload
 - provider-native wire shapes, bank config fields, and provider-specific storage semantics must remain internal
+- extracting memory mechanics into a runtime-owned internal library or subpackage is not provider admission and must not create a new public engine-facing naming or proto layer
 - memory is explicit opt-in rather than a baseline product capability; when enabled without an attached override, the default experimental substrate is runtime-managed `Hindsight`
 - public `Reflect` remains a substrate-owned synchronous memory operation and must not be reinterpreted as canonical review scheduling for agent-facing scopes
 - runtime-private substrate connectivity, feature floor, and typed identity overlay requirements are governed by `K-MEMSUB-*`
@@ -121,6 +123,7 @@ Access rules:
 - authorized apps may directly use infra scopes admitted to them
 - apps must not directly mutate canonical agent memory scopes
 - canonical agent memory writes route through `RuntimeAgentCoreService`
+- extracting implementation logic into runtime-owned internal libraries must not change these public RPC names, wire shapes, or access rules
 - app-facing `CreateBank` may omit an embedding profile; runtime must preserve the resulting null-profile truth rather than silently inventing a bound profile
 - app-facing `CreateBank` / `DeleteBank` must reject canonical agent-facing scopes
 - admitted implementation-facing transport for `CreateBank` / `DeleteBank` must keep infra-only locator branches explicit rather than treating canonical scope rejection as an untyped afterthought
@@ -137,6 +140,7 @@ Fixed rules:
 - when the explicitly enabled memory engine, embedding bridge, or required local memory substrate is unavailable, dependent RPCs must fail with `UNAVAILABLE`
 - the corresponding runtime reason must stay explicit (`AI_LOCAL_SERVICE_UNAVAILABLE` when the managed local memory service is unavailable)
 - no substitute provider, synthetic success payload, or degraded shadow engine may be used to mask failure
+- introducing a runtime-owned internal library boundary must not weaken or reinterpret these fail-close outcomes
 - when no admitted memory provider is installed, provider-dependent operations must surface the same `UNAVAILABLE` failure family
 - if Realm replication is unavailable, local operational writes may continue only when local admission succeeds and sync backlog remains observable; replication failure must not be hidden as fully synchronized success
 - provider replay or rebuild to preserve runtime-owned delete/invalidation truth must follow the runtime-private replay contract in `K-MEMSUB-005`
@@ -179,6 +183,7 @@ Fixed rules:
 - canonical writes that admit `replication=pending` must enqueue exactly one backlog item for the `(bank locator, memory_id)` pair in the same committed local mutation path
 - infra scopes must not enter the replication backlog
 - backlog items must retain at least local version, basis version, enqueue time, last attempt time, attempt count, and local backlog status
+- for the current extraction shape, backlog claim/replay ownership on `RuntimeMemoryService` is the intended steady-state boundary; internal helper extraction must not create a second backlog or replay owner
 - until a later Realm memory redesign admits real bridge transport, backlog truth is deferred bridge telemetry only and must not be treated as product-ready cloud sync
 - runtime-private bridge loops may claim backlog items for single-owner processing only on explicit internal paths; normal daemon startup must not imply active Realm synchronization
 - terminal replication outcomes committed through `K-MEM-009` must remove or terminalize the corresponding backlog item in the same committed state transition
@@ -219,4 +224,5 @@ Fixed rules:
 - runtime-private read surfaces must return typed runtime contract data, not raw SQLite rows or provider-native blobs
 - review result commit must be idempotent by `review_run_id`
 - all Memory Service owned narrative / truth / lineage mutations for a canonical review run must commit atomically before Agent Core publishes follow-up checkpoint or event truth
+- the typed facade may be implemented by a runtime-owned internal memory library, but that library must remain behind the Memory Service owned runtime-private boundary
 - the review boundary must not require distributed transactions across Agent Core and Memory Service

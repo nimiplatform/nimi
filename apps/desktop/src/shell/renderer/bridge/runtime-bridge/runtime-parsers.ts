@@ -20,6 +20,9 @@ import type {
   CatalogSigner,
   CatalogState,
   CatalogTrustTier,
+  AgentMemoryBindStandardResult,
+  DesktopMacosSmokeContext,
+  DesktopMacosSmokeReportResult,
   ConfirmPrivateSyncResult,
   ConfirmDialogResult,
   InstalledModPolicy,
@@ -532,6 +535,33 @@ export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
   const record = assertRecord(value, 'confirm_dialog returned invalid payload');
   return {
     confirmed: Boolean(record.confirmed),
+  };
+}
+
+export function parseAgentMemoryBindStandardResult(value: unknown): AgentMemoryBindStandardResult {
+  const record = assertRecord(value, 'agent_memory_bind_standard returned invalid payload');
+  return {
+    alreadyBound: Boolean(record.alreadyBound),
+    bank: parseOptionalJsonObject(record.bank) || {},
+  };
+}
+
+export function parseDesktopMacosSmokeContext(value: unknown): DesktopMacosSmokeContext {
+  const record = assertRecord(value, 'desktop_macos_smoke_context_get returned invalid payload');
+  return {
+    enabled: Boolean(record.enabled),
+    scenarioId: parseOptionalString(record.scenarioId),
+    reportPath: parseOptionalString(record.reportPath),
+    artifactsDir: parseOptionalString(record.artifactsDir),
+    disableRuntimeBootstrap: Boolean(record.disableRuntimeBootstrap),
+  };
+}
+
+export function parseDesktopMacosSmokeReportResult(value: unknown): DesktopMacosSmokeReportResult {
+  const record = assertRecord(value, 'desktop_macos_smoke_report_write returned invalid payload');
+  return {
+    reportPath: parseRequiredString(record.reportPath, 'reportPath', 'desktop_macos_smoke_report_write'),
+    htmlSnapshotPath: parseOptionalString(record.htmlSnapshotPath),
   };
 }
 

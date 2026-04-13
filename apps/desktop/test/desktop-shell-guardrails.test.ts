@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
+import { bindAgentMemoryStandard } from '../src/shell/renderer/bridge/runtime-bridge/agent-memory';
 import { confirmDialog, openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
 import { subscribeRuntimeModReloadResult } from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -116,6 +117,43 @@ test('confirmDialog invokes the fixed tauri command and payload shape', async ()
         title: 'Clear agent chat history',
         description: 'Delete all local chat history with Agent One?',
         level: 'warning',
+      },
+    });
+  } finally {
+    restoreWindow();
+  }
+});
+
+test('bindAgentMemoryStandard invokes the fixed tauri command and payload shape', async () => {
+  let observedCommand = '';
+  let observedPayload: unknown = null;
+  const restoreWindow = installWindowMock({
+    __NIMI_TAURI_TEST__: {
+      invoke: async (command, payload) => {
+        observedCommand = command;
+        observedPayload = payload;
+        return {
+          alreadyBound: false,
+          bank: {
+            bankId: 'bank-agent-1',
+          },
+        };
+      },
+    },
+  });
+
+  try {
+    const result = await bindAgentMemoryStandard({
+      agentId: 'agent-1',
+    });
+    assert.equal(result.alreadyBound, false);
+    assert.deepEqual(result.bank, {
+      bankId: 'bank-agent-1',
+    });
+    assert.equal(observedCommand, 'agent_memory_bind_standard');
+    assert.deepEqual(observedPayload, {
+      payload: {
+        agentId: 'agent-1',
       },
     });
   } finally {

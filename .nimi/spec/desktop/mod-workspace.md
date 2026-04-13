@@ -47,4 +47,4 @@ Mod 生命周期操作：enable、disable、uninstall。
 
 ## CI 门禁引用
 
-本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 4, 6~8, 11, 13~14, 22 相关规则）。
+本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`（Check 1, 4, 6~8, 11, 13~14, 22 相关规则）。

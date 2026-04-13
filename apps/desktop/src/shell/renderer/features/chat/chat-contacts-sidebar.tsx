@@ -48,7 +48,9 @@ function ContactAvatar({
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
   const testId = target.source === 'human'
     ? E2E_IDS.chatRow(String(target.canonicalSessionId || target.id))
-    : undefined;
+    : target.source === 'agent' || target.source === 'ai'
+      ? E2E_IDS.chatTarget(String(target.id))
+      : undefined;
 
   const handleMouseEnter = () => {
     if (ref.current) {

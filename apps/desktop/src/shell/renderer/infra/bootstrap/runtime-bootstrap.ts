@@ -61,6 +61,8 @@ import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watche
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
 import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
+import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
@@ -169,6 +171,8 @@ export function bootstrapRuntime(): Promise<void> {
     const flowId = createRendererFlowId('renderer-bootstrap');
     const startedAt = performance.now();
     const flags = getShellFeatureFlags();
+    const macosSmokeContext = await getDesktopMacosSmokeContext();
+    const skipHeavyBootstrapForMacosSmoke = Boolean(macosSmokeContext.disableRuntimeBootstrap);
     const appStore = useAppStore.getState();
     appStore.setAuthBootstrapping();
     appStore.setBootstrapReady(false);
@@ -212,6 +216,9 @@ export function bootstrapRuntime(): Promise<void> {
         });
       }
     }
+    void pingDesktopMacosSmoke('bootstrap-runtime-defaults-ready', {
+      skipHeavyBootstrapForMacosSmoke,
+    }).catch(() => {});
     const defaults = await desktopBridge.getRuntimeDefaults();
     useAppStore.getState().setRuntimeDefaults(defaults);
     let daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
@@ -304,7 +311,9 @@ export function bootstrapRuntime(): Promise<void> {
       return String(user.accountId || '').trim();
     };
     const proxyFetch = createProxyFetch();
-
+    void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
+      skipHeavyBootstrapForMacosSmoke,
+    }).catch(() => {});
     const platformClient = await createPlatformClient({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
@@ -347,6 +356,9 @@ export function bootstrapRuntime(): Promise<void> {
       createDesktopWorldEvolutionSelectorReadAdapter(),
     );
     await reconcileLocalRuntimeBootstrapState({ flowId });
+    void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
+      skipHeavyBootstrapForMacosSmoke,
+    }).catch(() => {});
 
     dataSync.initApi({
       realmBaseUrl: defaults.realm.realmBaseUrl,
@@ -386,7 +398,7 @@ export function bootstrapRuntime(): Promise<void> {
     let runtimeModFailures: RuntimeModRegisterFailure[] = [];
     let manifestCount = 0;
 
-    if (flags.enableRuntimeBootstrap) {
+    if (flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap) {
       setRuntimeHttpContextProvider(() => {
         const store = useAppStore.getState();
         const runtimeDefaultsRealmBaseUrl = String(store.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
@@ -434,6 +446,17 @@ export function bootstrapRuntime(): Promise<void> {
       appStore.setLocalManifestSummaries([]);
       appStore.setRegisteredRuntimeModIds([]);
       appStore.setRuntimeModFailures([]);
+      if (macosSmokeContext.disableRuntimeBootstrap) {
+        logRendererEvent({
+          level: 'info',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-bootstrap:skipped-for-macos-smoke',
+          flowId,
+          details: {
+            scenarioId: macosSmokeContext.scenarioId || null,
+          },
+        });
+      }
     }
 
     await bootstrapAuthSession({
@@ -443,6 +466,7 @@ export function bootstrapRuntime(): Promise<void> {
       source: resolvedBootstrapAuthSession.source,
       resolution: resolvedBootstrapAuthSession.resolution,
       clearPersistedSession: clearPersistedDesktopSession,
+      skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
     });
 
     getOfflineCoordinator().markRuntimeReachable(daemonStatus.running);
@@ -461,6 +485,10 @@ export function bootstrapRuntime(): Promise<void> {
 
     useAppStore.getState().setBootstrapReady(true);
     useAppStore.getState().setBootstrapError(null);
+    void pingDesktopMacosSmoke('bootstrap-ready', {
+      scenarioId: macosSmokeContext.scenarioId || null,
+      skipHeavyBootstrapForMacosSmoke,
+    }).catch(() => {});
     logRendererEvent({
       level: runtimeModFailures.length > 0 ? 'warn' : 'info',
       area: 'renderer-bootstrap',

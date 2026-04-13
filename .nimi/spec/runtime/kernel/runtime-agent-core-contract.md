@@ -277,6 +277,7 @@ Fixed rules:
 - public `RuntimeMemoryService.Reflect` must not become the canonical review scheduler by implication
 - canonical review must use a dedicated runtime-private review executor contract rather than extending the admitted `Life Turn` result contract
 - admitted review output is limited to narrative candidates, truth candidates, optional relation candidates, summary, token usage, and review-window metadata
+- extracting review storage mechanics into a runtime-owned internal memory library does not transfer review ownership, scheduling, admission policy, or recovery semantics away from Agent Core
 - truth candidate admission and conflict handling remain Agent Core owned even when Memory Service persists the resulting state
 
 ## K-AGCORE-017 Runtime-Private Chat Track Sidecar Contract
@@ -299,6 +300,7 @@ Fixed rules:
 
 - Agent Core must not read admitted truths, narrative context, canonical review inputs, or review checkpoints by direct database access
 - runtime-private truth read surfaces must return typed runtime contract data rather than raw store rows or provider-native blobs
+- Agent Core must continue to consume this boundary through the Memory Service owned facade even if the underlying mechanics are implemented by a runtime-owned internal library
 - prompt assembly may inject admitted truths and narrative context from this runtime-private read path, but that does not create a public truth API
 
 ## K-AGCORE-019 Canonical Review Coordination Model
@@ -310,4 +312,6 @@ Fixed rules:
 - Agent Core must submit canonical review outcomes through a single runtime-private commit request identified by `review_run_id`
 - Memory Service must commit all review-owned narrative / truth / lineage mutations atomically and idempotently for that `review_run_id`
 - Agent Core must publish follow-up checkpoint, hook, or event truth only after the Memory Service commit succeeds
+- internal library extraction must preserve this dual-phase coordination model rather than collapsing Agent Core into direct store mutation or distributed-transaction coupling
+- Agent Core recovery and coordination must not absorb backlog/replay ownership or mutate pending replay truth outside the Memory Service owned boundary, even when internal helper extraction changes where storage mechanics live
 - the admitted coordination model is idempotent dual-phase coordination, not distributed transaction coupling

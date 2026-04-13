@@ -10,7 +10,9 @@ import { onI18nIssue } from '@renderer/i18n';
 import { useMenuBarNavigationListener } from '@renderer/infra/menu-bar/menu-bar-navigation-listener';
 import { useMenuBarRuntimeSync } from '@renderer/infra/menu-bar/menu-bar-runtime-sync';
 import { useDesktopUpdatesBootstrap } from '@renderer/infra/bootstrap/desktop-updates';
+import { useDesktopMacosSmokeBootstrap } from '@renderer/infra/bootstrap/desktop-macos-smoke';
 import { useRuntimeHealthCoordinatorBootstrap } from '@renderer/features/runtime-config/runtime-health-coordinator';
+import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 
 const WEB_BOOTSTRAP_TIMEOUT_MS = 15000;
 const DESKTOP_BOOTSTRAP_TIMEOUT_MS = 25000;
@@ -27,12 +29,18 @@ function AppBoot() {
   const setBootstrapReady = useAppStore((state) => state.setBootstrapReady);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const bootstrapError = useAppStore((state) => state.bootstrapError);
   const runtimeHealthBootstrapEnabled = shellMode === 'desktop' && bootstrapReady;
 
   useMenuBarNavigationListener();
   useRuntimeHealthCoordinatorBootstrap(runtimeHealthBootstrapEnabled);
   useMenuBarRuntimeSync();
   useDesktopUpdatesBootstrap(bootstrapReady);
+  useDesktopMacosSmokeBootstrap(bootstrapReady, bootstrapError);
+
+  useEffect(() => {
+    void pingDesktopMacosSmoke('app-mounted').catch(() => {});
+  }, []);
 
   useEffect(() => {
     const flowId = createRendererFlowId('renderer-bootstrap');

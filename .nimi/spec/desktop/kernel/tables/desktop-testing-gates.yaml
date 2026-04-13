@@ -16,16 +16,19 @@ gates:
     command: pnpm --filter @nimiplatform/desktop lint && pnpm check:desktop-e2e-smoke
     source_rule: D-GATE-050
   - gate: os_matrix
-    command: linux:PR+release; windows:release; macos:manual-smoke
+    command: linux:PR+release; windows:release; macos:manual-smoke+supplementary-automated-smoke
+    source_rule: D-GATE-060
+  - gate: desktop_macos_automated_smoke
+    command: pnpm check:desktop-macos-smoke
     source_rule: D-GATE-060
   - gate: release_parity
     command: pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys
     source_rule: D-GATE-070
   - gate: spec_consistency
-    command: pnpm check:desktop-spec-kernel-consistency
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
     source_rule: D-GATE-080
   - gate: docs_drift
-    command: pnpm check:desktop-spec-kernel-docs-drift
+    command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
     source_rule: D-GATE-080
   - gate: design_contract
     command: pnpm check:desktop-design-contract

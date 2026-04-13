@@ -5,29 +5,47 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
+	"google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Server exposes runtime diagnostics/readiness over HTTP.
 type Server struct {
-	addr     string
-	state    *health.State
-	logger   *slog.Logger
-	http     *http.Server
-	aiHealth *providerhealth.Tracker
+	addr                string
+	state               *health.State
+	logger              *slog.Logger
+	http                *http.Server
+	aiHealth            *providerhealth.Tracker
+	bindCanonicalMemory func(context.Context, string) (CanonicalBindResult, error)
 }
 
-func New(addr string, state *health.State, logger *slog.Logger, aiHealth *providerhealth.Tracker) *Server {
+type CanonicalBindResult struct {
+	AlreadyBound bool
+	Bank         *runtimev1.MemoryBank
+}
+
+func New(
+	addr string,
+	state *health.State,
+	logger *slog.Logger,
+	aiHealth *providerhealth.Tracker,
+	bindCanonicalMemory func(context.Context, string) (CanonicalBindResult, error),
+) *Server {
 	s := &Server{
-		addr:     addr,
-		state:    state,
-		logger:   logger,
-		aiHealth: aiHealth,
+		addr:                addr,
+		state:               state,
+		logger:              logger,
+		aiHealth:            aiHealth,
+		bindCanonicalMemory: bindCanonicalMemory,
 	}
 
 	mux := http.NewServeMux()
@@ -35,6 +53,7 @@ func New(addr string, state *health.State, logger *slog.Logger, aiHealth *provid
 	mux.HandleFunc("/readyz", s.handleReady)
 	mux.HandleFunc("/healthz", s.handleReady)
 	mux.HandleFunc("/v1/runtime/health", s.handleRuntimeHealth)
+	mux.HandleFunc("/v1/runtime/private/memory/canonical-bind", s.handleCanonicalBind)
 
 	s.http = &http.Server{
 		Addr:              addr,
@@ -108,6 +127,67 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 		"vram_bytes":            snapshot.VRAMBytes,
 		"sampled_at":            snapshot.SampledAt.Format(time.RFC3339Nano),
 		"ai_providers":          providers,
+	})
+}
+
+func (s *Server) handleCanonicalBind(w http.ResponseWriter, req *http.Request) {
+	if req == nil {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if req.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.bindCanonicalMemory == nil {
+		s.writeErrorJSON(w, http.StatusServiceUnavailable, "canonical bind is unavailable")
+		return
+	}
+	if !requestFromLoopback(req) {
+		s.writeErrorJSON(w, http.StatusForbidden, "canonical bind requires loopback request")
+		return
+	}
+	if snapshot := s.state.Snapshot(); !snapshot.Status.Ready() {
+		s.writeErrorJSON(w, http.StatusServiceUnavailable, "runtime is not ready")
+		return
+	}
+
+	var payload struct {
+		AgentID string `json:"agentId"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+		s.writeErrorJSON(w, http.StatusBadRequest, fmt.Sprintf("invalid canonical bind payload: %v", err))
+		return
+	}
+	payload.AgentID = strings.TrimSpace(payload.AgentID)
+	if payload.AgentID == "" {
+		s.writeErrorJSON(w, http.StatusBadRequest, "agentId is required")
+		return
+	}
+
+	result, err := s.bindCanonicalMemory(req.Context(), payload.AgentID)
+	if err != nil {
+		s.writeErrorJSON(w, mapCanonicalBindErrorStatus(err), err.Error())
+		return
+	}
+
+	bankPayload := map[string]any{}
+	if result.Bank != nil {
+		raw, err := protojson.Marshal(result.Bank)
+		if err != nil {
+			s.writeErrorJSON(w, http.StatusInternalServerError, fmt.Sprintf("marshal canonical bind bank: %v", err))
+			return
+		}
+		if err := json.Unmarshal(raw, &bankPayload); err != nil {
+			s.writeErrorJSON(w, http.StatusInternalServerError, fmt.Sprintf("decode canonical bind bank: %v", err))
+			return
+		}
+	}
+
+	s.writeJSON(w, http.StatusOK, map[string]any{
+		"alreadyBound": result.AlreadyBound,
+		"bank":         bankPayload,
 	})
 }
 
@@ -199,6 +279,12 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body map[strin
 	}
 }
 
+func (s *Server) writeErrorJSON(w http.ResponseWriter, statusCode int, message string) {
+	s.writeJSON(w, statusCode, map[string]any{
+		"error": strings.TrimSpace(message),
+	})
+}
+
 func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 	if req == nil {
 		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
@@ -212,6 +298,43 @@ func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return false
+	}
+}
+
+func requestFromLoopback(req *http.Request) bool {
+	if req == nil {
+		return false
+	}
+	host := strings.TrimSpace(req.RemoteAddr)
+	if host == "" {
+		return false
+	}
+	if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+		host = parsedHost
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+func mapCanonicalBindErrorStatus(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+	switch grpcstatus.Code(err) {
+	case codes.InvalidArgument:
+		return http.StatusBadRequest
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.FailedPrecondition:
+		return http.StatusPreconditionFailed
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
 	}
 }
 

@@ -262,6 +262,7 @@
         "realtimeUrl": "__FIXTURE_ORIGIN__",
         "accessToken": "nimi-e2e-access-token",
         "jwksUrl": "__FIXTURE_ORIGIN__/api/auth/jwks",
+        "revocationUrl": "__FIXTURE_ORIGIN__/api/auth/revocation",
         "jwtIssuer": "__FIXTURE_ORIGIN__",
         "jwtAudience": "nimi-runtime"
       },

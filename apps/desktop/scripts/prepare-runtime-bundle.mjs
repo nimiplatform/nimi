@@ -150,9 +150,16 @@ function sha256Hex(filePath) {
   return hash.digest('hex');
 }
 
-function buildRuntimeBinary(outputPath) {
+function buildRuntimeBinary(outputPath, version) {
   ensureDir(path.dirname(outputPath));
-  const result = spawnSync('go', ['build', '-o', outputPath, './cmd/nimi'], {
+  const result = spawnSync('go', [
+    'build',
+    '-ldflags',
+    `-X main.Version=${version}`,
+    '-o',
+    outputPath,
+    './cmd/nimi',
+  ], {
     cwd: runtimeRoot,
     stdio: 'inherit',
     env: process.env,
@@ -189,7 +196,7 @@ export function main() {
   removePath(bundleDir);
   ensureDir(bundleDir);
 
-  buildRuntimeBinary(binaryPath);
+  buildRuntimeBinary(binaryPath, version);
   runPythonZip(archivePath, bundleDir, binaryRelativePath);
   const archiveSha = sha256Hex(archivePath);
 

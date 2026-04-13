@@ -60,6 +60,10 @@ import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { useAgentConversationMessageMenu } from './chat-agent-shell-adapter-menu';
+import {
+  createRuntimeAgentMemoryAdapter,
+  type CanonicalMemoryBankStatus,
+} from '@renderer/infra/runtime-agent-memory';
 
 type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -69,6 +73,18 @@ type UseAgentConversationModeHostInput = {
   lastSelectedThreadId: string | null;
   setSelection: (selection: AgentConversationSelection) => void;
 };
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function requireRuntimeSubjectUserId(): string {
+  const subjectUserId = normalizeText((useAppStore.getState().auth.user as Record<string, unknown> | null)?.id);
+  if (!subjectUserId) {
+    throw new Error('desktop agent shell requires authenticated subject user id for runtime.agentCore');
+  }
+  return subjectUserId;
+}
 
 export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
@@ -108,6 +124,11 @@ export function useAgentConversationModeHost(
   const [pendingAttachmentsByThreadId, setPendingAttachmentsByThreadId] = useState<Record<string, readonly PendingAttachment[]>>({});
   const currentDraftTextRef = useRef('');
   const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
+  const [canonicalMemoryStatus, setCanonicalMemoryStatus] = useState<CanonicalMemoryBankStatus | null>(null);
+  const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
+  const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
+    getSubjectUserId: requireRuntimeSubjectUserId,
+  }), []);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createAgentLocalChatConversationProvider());
@@ -196,6 +217,48 @@ export function useAgentConversationModeHost(
     lastSelectedThreadId: input.lastSelectedThreadId,
     selection: input.selection,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    const agentId = normalizeText(activeTarget?.agentId);
+    if (input.authStatus !== 'authenticated' || !agentId) {
+      setCanonicalMemoryStatus(null);
+      setCanonicalMemoryLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setCanonicalMemoryLoading(true);
+    void runtimeAgentMemory.getCanonicalBankStatus(agentId)
+      .then((status) => {
+        if (cancelled) {
+          return;
+        }
+        setCanonicalMemoryStatus(status);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setCanonicalMemoryStatus({ mode: 'unavailable' });
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+          },
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCanonicalMemoryLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTarget?.agentId, input.authStatus, reportHostError, runtimeAgentMemory]);
   useAgentConversationCapabilityEffects({
     bootstrapReady,
     textCapabilityProjection,
@@ -473,6 +536,32 @@ export function useAgentConversationModeHost(
     void handleDeleteThread(threadId).catch(reportHostError);
   }, [clearLatestVoiceCaptureForThread, clearMessageContextMenu, handleDeleteThread, reportHostError, setPendingAttachmentsForThread]);
 
+  const handleUpgradeStandardMemory = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId) {
+      return Promise.resolve();
+    }
+    setCanonicalMemoryLoading(true);
+    return runtimeAgentMemory.bindCanonicalBankStandard(agentId)
+      .then((status) => {
+        setCanonicalMemoryStatus(status);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.memoryModeUpgradeSuccess', {
+            defaultValue: '{{name}} now uses Standard memory on this device.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch((error) => {
+        reportHostError(error);
+      })
+      .finally(() => {
+        setCanonicalMemoryLoading(false);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reportHostError, runtimeAgentMemory, t]);
+
   const settingsContent = useMemo(() => (
     <div className="space-y-4">
       {presentation.settingsContent}
@@ -481,11 +570,23 @@ export function useAgentConversationModeHost(
           targetTitle={activeTarget.displayName}
           activeThreadId={activeThreadId}
           disabled={Boolean(submittingThreadId)}
+          memoryStatus={canonicalMemoryStatus}
+          memoryLoading={canonicalMemoryLoading}
+          onUpgradeStandardMemory={handleUpgradeStandardMemory}
           onClearAgentHistory={handleDeleteCurrentThread}
         />
       ) : null}
     </div>
-  ), [activeTarget, activeThreadId, handleDeleteCurrentThread, presentation.settingsContent, submittingThreadId]);
+  ), [
+    activeTarget,
+    activeThreadId,
+    canonicalMemoryLoading,
+    canonicalMemoryStatus,
+    handleDeleteCurrentThread,
+    handleUpgradeStandardMemory,
+    presentation.settingsContent,
+    submittingThreadId,
+  ]);
 
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,

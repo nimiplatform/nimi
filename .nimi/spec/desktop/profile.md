@@ -37,4 +37,4 @@ Agent 数据流（方法清单见 `D-DSYNC-011`）。
 
 ## CI 门禁引用
 
-本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`。
+本域涉及的 CI 门禁：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`。

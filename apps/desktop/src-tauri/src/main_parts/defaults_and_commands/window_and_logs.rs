@@ -31,6 +31,10 @@ pub(crate) fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> Confir
 
 #[tauri::command]
 pub(crate) fn confirm_dialog(payload: ConfirmDialogPayload) -> ConfirmDialogResult {
+    if let Ok(Some(confirmed)) = crate::desktop_e2e_fixture::next_confirm_dialog_override() {
+        return ConfirmDialogResult { confirmed };
+    }
+
     let title = payload.title.trim();
     let description = payload.description.trim();
     let level = match payload.level.as_deref().map(str::trim) {
@@ -143,4 +147,71 @@ pub(crate) fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
     crate::menu_bar_shell::window::focus_main_window(&app)?;
     crate::menu_bar_shell::set_window_visible(&app, true);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{confirm_dialog, ConfirmDialogPayload};
+    use crate::test_support::test_guard;
+    use std::{fs, path::PathBuf};
+
+    fn make_temp_dir(prefix: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "nimi-desktop-confirm-dialog-{}-{}",
+            prefix,
+            std::process::id()
+        ));
+        fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn confirm_dialog_uses_desktop_e2e_override_sequence() {
+        let _guard = test_guard();
+        let temp = make_temp_dir("fixture");
+        let fixture_path = temp.join("fixture.json");
+        fs::write(
+            &fixture_path,
+            r#"{
+  "tauriFixture": {
+    "confirmDialog": {
+      "responses": [
+        { "confirmed": false },
+        { "confirmed": true }
+      ]
+    }
+  }
+}"#,
+        )
+        .expect("write fixture");
+
+        let previous = std::env::var("NIMI_E2E_FIXTURE_PATH").ok();
+        std::env::set_var("NIMI_E2E_FIXTURE_PATH", fixture_path.as_os_str());
+
+        let first = confirm_dialog(ConfirmDialogPayload {
+            title: "Upgrade to Standard memory".to_string(),
+            description: "Bind canonical memory?".to_string(),
+            level: Some("warning".to_string()),
+        });
+        let second = confirm_dialog(ConfirmDialogPayload {
+            title: "Upgrade to Standard memory".to_string(),
+            description: "Bind canonical memory?".to_string(),
+            level: Some("warning".to_string()),
+        });
+        let third = confirm_dialog(ConfirmDialogPayload {
+            title: "Upgrade to Standard memory".to_string(),
+            description: "Bind canonical memory?".to_string(),
+            level: Some("warning".to_string()),
+        });
+
+        match previous {
+            Some(value) => std::env::set_var("NIMI_E2E_FIXTURE_PATH", value),
+            None => std::env::remove_var("NIMI_E2E_FIXTURE_PATH"),
+        }
+
+        assert!(!first.confirmed);
+        assert!(second.confirmed);
+        assert!(third.confirmed);
+        let _ = fs::remove_dir_all(temp);
+    }
 }

@@ -3,11 +3,16 @@ import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { toAuthUserRecord } from '@renderer/features/auth/auth-session-utils';
 import { persistSharedDesktopSession } from '@renderer/features/auth/shared-auth-session';
+import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 function isExpectedUnauthorizedAutoLogin(error: unknown): boolean {
   const message = safeErrorMessage(error).toUpperCase();
   return message.includes('HTTP_401') || message.includes('UNAUTHORIZED');
+}
+
+function readAuthUserId(user: Record<string, unknown> | null): string {
+  return typeof user?.id === 'string' ? user.id : '';
 }
 
 export async function bootstrapAuthSession(input: {
@@ -17,6 +22,7 @@ export async function bootstrapAuthSession(input: {
   source: 'anonymous' | 'env' | 'persisted';
   resolution?: string;
   clearPersistedSession: () => Promise<void>;
+  skipWarmLoads?: boolean;
 }): Promise<void> {
   const envToken = String(input.accessToken || '').trim();
   if (!envToken) {
@@ -36,8 +42,15 @@ export async function bootstrapAuthSession(input: {
   }
 
   try {
+    void pingDesktopMacosSmoke('bootstrap-auth-session-start', {
+      source: input.source,
+      skipWarmLoads: Boolean(input.skipWarmLoads),
+    }).catch(() => {});
     const user = await dataSync.loadCurrentUser();
     const normalizedUser = toAuthUserRecord(user);
+    void pingDesktopMacosSmoke('bootstrap-auth-session-user-loaded', {
+      userId: readAuthUserId(normalizedUser),
+    }).catch(() => {});
     useAppStore.getState().setAuthSession(
       normalizedUser,
       envToken,
@@ -50,10 +63,22 @@ export async function bootstrapAuthSession(input: {
         user: normalizedUser,
       });
     }
-    await Promise.allSettled([
-      dataSync.loadChats(),
-      dataSync.loadContacts(),
-    ]);
+    if (input.skipWarmLoads) {
+      void pingDesktopMacosSmoke('bootstrap-auth-session-warm-loads-skipped', {
+        source: input.source,
+      }).catch(() => {});
+    } else {
+      void pingDesktopMacosSmoke('bootstrap-auth-session-warm-loads-start', {
+        source: input.source,
+      }).catch(() => {});
+      await Promise.allSettled([
+        dataSync.loadChats(),
+        dataSync.loadContacts(),
+      ]);
+      void pingDesktopMacosSmoke('bootstrap-auth-session-warm-loads-done', {
+        source: input.source,
+      }).catch(() => {});
+    }
     logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
@@ -65,6 +90,10 @@ export async function bootstrapAuthSession(input: {
         resolution: input.resolution || 'unknown',
       },
     });
+    void pingDesktopMacosSmoke('bootstrap-auth-session-done', {
+      source: input.source,
+      skipWarmLoads: Boolean(input.skipWarmLoads),
+    }).catch(() => {});
   } catch (error) {
     const errorMessage = safeErrorMessage(error);
     const expectedUnauthorized = isExpectedUnauthorizedAutoLogin(error);
@@ -88,5 +117,10 @@ export async function bootstrapAuthSession(input: {
         resolution: input.resolution || 'unknown',
       },
     });
+    void pingDesktopMacosSmoke('bootstrap-auth-session-failed', {
+      source: input.source,
+      error: errorMessage,
+      reason: expectedUnauthorized ? 'unauthorized' : 'error',
+    }).catch(() => {});
   }
 }

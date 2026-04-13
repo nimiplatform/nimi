@@ -135,6 +135,44 @@ struct ConfirmDialogResult {
     confirmed: bool,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeContextResult {
+    enabled: bool,
+    scenario_id: Option<String>,
+    report_path: Option<String>,
+    artifacts_dir: Option<String>,
+    disable_runtime_bootstrap: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeReportPayload {
+    ok: bool,
+    failed_step: Option<String>,
+    steps: Vec<String>,
+    error_message: Option<String>,
+    error_name: Option<String>,
+    error_stack: Option<String>,
+    error_cause: Option<String>,
+    route: Option<String>,
+    html_snapshot: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokePingPayload {
+    stage: String,
+    details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopMacosSmokeReportResult {
+    report_path: String,
+    html_snapshot_path: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct OpenExternalUrlPayload {

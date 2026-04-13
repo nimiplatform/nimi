@@ -9,9 +9,10 @@
 | `desktop_e2e_smoke` | `pnpm check:desktop-e2e-smoke` | `D-GATE-030` |
 | `desktop_e2e_journeys` | `pnpm check:desktop-e2e-journeys` | `D-GATE-040` |
 | `selector_testability` | `pnpm --filter @nimiplatform/desktop lint && pnpm check:desktop-e2e-smoke` | `D-GATE-050` |
-| `os_matrix` | `linux:PR+release; windows:release; macos:manual-smoke` | `D-GATE-060` |
+| `os_matrix` | `linux:PR+release; windows:release; macos:manual-smoke+supplementary-automated-smoke` | `D-GATE-060` |
+| `desktop_macos_automated_smoke` | `pnpm check:desktop-macos-smoke` | `D-GATE-060` |
 | `release_parity` | `pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys` | `D-GATE-070` |
-| `spec_consistency` | `pnpm check:desktop-spec-kernel-consistency` | `D-GATE-080` |
-| `docs_drift` | `pnpm check:desktop-spec-kernel-docs-drift` | `D-GATE-080` |
+| `spec_consistency` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency` | `D-GATE-080` |
+| `docs_drift` | `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check` | `D-GATE-080` |
 | `design_contract` | `pnpm check:desktop-design-contract` | `D-GATE-090` |
 | `design_adoption` | `pnpm check:desktop-design-contract` | `D-GATE-091` |

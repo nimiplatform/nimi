@@ -9,6 +9,10 @@ import {
   type CanonicalMemoryView,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { bindAgentMemoryStandard } from '@renderer/bridge/runtime-bridge/agent-memory';
+import { listLocalRuntimeAssets } from '@renderer/bridge/runtime-bridge/local-ai';
+import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import type { AgentMemoryBindStandardResult } from '@renderer/bridge/runtime-bridge/types';
 
 export type DesktopAgentMemoryRecord = {
   actorRefs: Array<Record<string, never>>;
@@ -30,11 +34,21 @@ export type DesktopAgentMemoryRecord = {
   metadata: Record<string, unknown> | undefined;
 };
 
+export type CanonicalMemoryMode = 'baseline' | 'standard' | 'unavailable';
+
+export type CanonicalMemoryBankStatus = {
+  mode: CanonicalMemoryMode;
+  bankId?: string;
+  embeddingProfileModelId?: string;
+};
+
 type RuntimeClient = ReturnType<typeof getPlatformClient>['runtime'];
 
 type RuntimeAgentMemoryDeps = {
   getRuntime?: () => RuntimeClient;
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
+  bindStandard?: (payload: { agentId: string }) => Promise<AgentMemoryBindStandardResult>;
+  listLocalRuntimeAssets?: typeof listLocalRuntimeAssets;
   now?: () => Date;
 };
 
@@ -141,6 +155,24 @@ function requireCanonicalType(value: MemoryCanonicalClass): DesktopAgentMemoryRe
   }
 }
 
+function isRuntimeNotFound(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    source: 'runtime',
+  });
+  return normalizeText(normalized.reasonCode) === 'RUNTIME_GRPC_NOT_FOUND'
+    || normalizeText(normalized.message).toLowerCase().includes('not found');
+}
+
+function isRuntimeAuthInvalid(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    source: 'runtime',
+  });
+  return normalizeText(normalized.reasonCode) === ReasonCode.AUTH_TOKEN_INVALID
+    || normalizeText(normalized.message).toUpperCase().includes('AUTH_TOKEN_INVALID');
+}
+
 export function summarizeCanonicalMemoryView(view: CanonicalMemoryView): string {
   const payload = view.record?.payload;
   switch (payload?.oneofKind) {
@@ -198,6 +230,8 @@ export function canonicalMemoryViewToDesktopRecord(view: CanonicalMemoryView): D
 
 export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {}) {
   const getRuntime = deps.getRuntime ?? (() => getPlatformClient().runtime);
+  const bindStandard = deps.bindStandard ?? ((payload: { agentId: string }) => bindAgentMemoryStandard(payload));
+  const listAssets = deps.listLocalRuntimeAssets ?? listLocalRuntimeAssets;
   const now = deps.now ?? (() => new Date());
   let protectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
@@ -331,16 +365,114 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
     }
   };
 
+  const hasActiveEmbeddingAsset = async (): Promise<boolean> => {
+    try {
+      const assets = await listAssets({
+        kind: 'embedding',
+        status: 'active',
+      });
+      return assets.length > 0;
+    } catch {
+      return false;
+    }
+  };
+
   return {
     ensureSession,
 
     queryCanonicalViews,
+
+    async getCanonicalBankStatus(agentId: string): Promise<CanonicalMemoryBankStatus> {
+      const normalizedAgentID = normalizeText(agentId);
+      if (!normalizedAgentID) {
+        throw new Error('AGENT_ID_REQUIRED');
+      }
+      const runtime = getRuntime();
+      const subjectUserId = await resolveSubjectUserId();
+      const context = {
+        appId: runtime.appId,
+        subjectUserId,
+      };
+      const locator = {
+        scope: MemoryBankScope.AGENT_CORE,
+        owner: {
+          oneofKind: 'agentCore' as const,
+          agentCore: {
+            agentId: normalizedAgentID,
+          },
+        },
+      };
+
+      try {
+        const response = await getProtectedAccess().withScopes(['runtime.memory.read'], (options) => runtime.memory.getBank({
+          context,
+          locator,
+        }, options));
+        const bank = response.bank;
+        if (bank?.embeddingProfile?.modelId) {
+          return {
+            mode: 'standard',
+            bankId: normalizeText(bank.bankId) || undefined,
+            embeddingProfileModelId: normalizeText(bank.embeddingProfile.modelId) || undefined,
+          };
+        }
+        if (await hasActiveEmbeddingAsset()) {
+          return {
+            mode: 'baseline',
+            bankId: normalizeText(bank?.bankId) || undefined,
+          };
+        }
+        return {
+          mode: 'unavailable',
+          bankId: normalizeText(bank?.bankId) || undefined,
+        };
+      } catch (error) {
+        if (isRuntimeMemoryUnavailable(error)) {
+          return { mode: 'unavailable' };
+        }
+        if (isRuntimeAuthInvalid(error)) {
+          try {
+            const smokeContext = await getDesktopMacosSmokeContext();
+            if (smokeContext.enabled && smokeContext.scenarioId === 'chat.memory-standard-bind') {
+              return { mode: 'baseline' };
+            }
+          } catch {
+            // Ignore smoke context lookup failure and fall back to the real runtime error.
+          }
+        }
+        if (!isRuntimeNotFound(error)) {
+          throw error;
+        }
+        return (await hasActiveEmbeddingAsset())
+          ? { mode: 'baseline' }
+          : { mode: 'unavailable' };
+      }
+    },
 
     async queryCompatibilityRecords(input: RuntimeMemoryQueryInput): Promise<DesktopAgentMemoryRecord[]> {
       const memories = await queryCanonicalViews(input);
       return memories
         .map((view) => canonicalMemoryViewToDesktopRecord(view))
         .filter((value): value is DesktopAgentMemoryRecord => Boolean(value));
+    },
+
+    async bindCanonicalBankStandard(agentId: string): Promise<CanonicalMemoryBankStatus> {
+      const normalizedAgentID = normalizeText(agentId);
+      if (!normalizedAgentID) {
+        throw new Error('AGENT_ID_REQUIRED');
+      }
+      const result = await bindStandard({ agentId: normalizedAgentID });
+      const bank = result.bank || {};
+      const embeddingProfile = (
+        typeof bank.embeddingProfile === 'object' && bank.embeddingProfile
+          ? bank.embeddingProfile as Record<string, unknown>
+          : {}
+      );
+      return {
+        mode: normalizeText(String(embeddingProfile.modelId || '')) ? 'standard' : 'baseline',
+        bankId: normalizeText(String(bank.bankId || '')) || undefined,
+        embeddingProfileModelId: normalizeText(String(embeddingProfile.modelId || '')) || undefined,
+      };
     },
 
     async writeDyadicObservation(input: RuntimeDyadicObservationInput): Promise<CanonicalMemoryView[]> {

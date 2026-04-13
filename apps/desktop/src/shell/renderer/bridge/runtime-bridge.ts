@@ -55,6 +55,7 @@ import {
 } from './runtime-bridge/mod-local';
 import { completeMenuBarQuit, syncMenuBarRuntimeHealth } from './runtime-bridge/menu-bar';
 import { confirmPrivateSync, focusMainWindow, openExternalUrl, startWindowDrag } from './runtime-bridge/ui';
+import { bindAgentMemoryStandard } from './runtime-bridge/agent-memory';
 import {
   listLocalRuntimeAssets,
   listLocalRuntimeVerifiedAssets,
@@ -132,6 +133,8 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
+  AgentMemoryBindStandardPayload,
+  AgentMemoryBindStandardResult,
   MenuBarProviderSummary,
   MenuBarRuntimeHealthSyncPayload,
   LocalRuntimeInferenceAuditPayload,
@@ -212,6 +215,7 @@ export {
   subscribeRuntimeModSourceChanged,
   subscribeRuntimeModReloadResult,
   confirmPrivateSync,
+  bindAgentMemoryStandard,
   focusMainWindow,
   openExternalUrl,
   startWindowDrag,
@@ -266,6 +270,7 @@ export const desktopBridge = {
   oauthTokenExchange,
   oauthListenForCode,
   confirmPrivateSync,
+  bindAgentMemoryStandard,
   focusMainWindow,
   syncMenuBarRuntimeHealth,
   completeMenuBarQuit,

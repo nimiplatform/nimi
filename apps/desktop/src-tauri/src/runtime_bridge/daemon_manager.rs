@@ -17,6 +17,7 @@ use daemon_command::{
     runtime_cli_command_spec,
 };
 pub(crate) use helpers::grpc_addr;
+pub(crate) use helpers::http_addr;
 #[cfg(test)]
 pub(crate) use helpers::runtime_config_path;
 use helpers::{probe_running, read_non_empty_env, wait_until_running};

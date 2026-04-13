@@ -1,9 +1,10 @@
 use crate::desktop_release::DesktopReleaseInfo;
 use crate::runtime_bridge::RuntimeBridgeDaemonStatus;
 use crate::RuntimeDefaults;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
+use std::sync::{Mutex, OnceLock};
 
 const E2E_FIXTURE_PATH_ENV: &str = "NIMI_E2E_FIXTURE_PATH";
 const E2E_BACKEND_LOG_PATH_ENV: &str = "NIMI_E2E_BACKEND_LOG_PATH";
@@ -21,6 +22,45 @@ struct DesktopE2ETauriFixture {
     runtime_defaults: Option<RuntimeDefaults>,
     runtime_bridge_status: Option<RuntimeBridgeDaemonStatus>,
     desktop_release_info: Option<DesktopReleaseInfo>,
+    confirm_dialog: Option<DesktopE2EConfirmDialogOverride>,
+    agent_memory_bind_standard: Option<DesktopE2EAgentMemoryBindStandardOverride>,
+    macos_smoke: Option<DesktopE2EMacosSmokeOverride>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2EConfirmDialogOverride {
+    responses: Option<Vec<DesktopE2EConfirmDialogResponse>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopE2EConfirmDialogResponse {
+    confirmed: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopE2EAgentMemoryBindStandardOverride {
+    pub already_bound: bool,
+    pub bank_id: String,
+    pub embedding_profile_model_id: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopE2EMacosSmokeOverride {
+    pub enabled: bool,
+    pub scenario_id: Option<String>,
+    pub report_path: Option<String>,
+    pub artifacts_dir: Option<String>,
+    pub disable_runtime_bootstrap: Option<bool>,
+}
+
+fn confirm_dialog_override_index_store() -> &'static Mutex<usize> {
+    static STORE: OnceLock<Mutex<usize>> = OnceLock::new();
+    STORE.get_or_init(|| Mutex::new(0))
 }
 
 fn fixture_path() -> Option<String> {
@@ -45,7 +85,11 @@ fn load_fixture_manifest() -> Result<Option<DesktopE2EFixtureManifest>, String> 
     Ok(Some(parsed))
 }
 
-fn append_backend_log(message: &str) {
+pub fn fixture_manifest_path() -> Option<String> {
+    fixture_path()
+}
+
+pub fn append_backend_log_message(message: &str) {
     let Some(path) = std::env::var(E2E_BACKEND_LOG_PATH_ENV)
         .ok()
         .map(|value| value.trim().to_string())
@@ -60,6 +104,10 @@ fn append_backend_log(message: &str) {
     {
         let _ = writeln!(file, "{message}");
     }
+}
+
+fn append_backend_log(message: &str) {
+    append_backend_log_message(message);
 }
 
 pub fn runtime_defaults_override() -> Result<Option<RuntimeDefaults>, String> {
@@ -111,4 +159,58 @@ pub fn desktop_release_info_override() -> Result<Option<DesktopReleaseInfo>, Str
         info.is_some()
     ));
     Ok(info)
+}
+
+pub fn next_confirm_dialog_override() -> Result<Option<bool>, String> {
+    let responses = load_fixture_manifest()?
+        .and_then(|manifest| manifest.tauri_fixture)
+        .and_then(|fixture| fixture.confirm_dialog)
+        .and_then(|fixture| fixture.responses);
+    let Some(responses) = responses else {
+        append_backend_log("confirm_dialog_override override_present=false");
+        if let Ok(mut index) = confirm_dialog_override_index_store().lock() {
+            *index = 0;
+        }
+        return Ok(None);
+    };
+
+    let mut index = confirm_dialog_override_index_store()
+        .lock()
+        .map_err(|_| "DESKTOP_E2E_CONFIRM_DIALOG_OVERRIDE_LOCK_FAILED".to_string())?;
+    let selected = responses
+        .get(*index)
+        .or_else(|| responses.last())
+        .map(|item| item.confirmed);
+    if *index < responses.len() {
+        *index += 1;
+    }
+    append_backend_log(&format!(
+        "confirm_dialog_override override_present=true index={} selected={}",
+        index.saturating_sub(1),
+        selected.unwrap_or(false)
+    ));
+    Ok(selected)
+}
+
+pub fn agent_memory_bind_standard_override(
+) -> Result<Option<DesktopE2EAgentMemoryBindStandardOverride>, String> {
+    let override_payload = load_fixture_manifest()?
+        .and_then(|manifest| manifest.tauri_fixture)
+        .and_then(|fixture| fixture.agent_memory_bind_standard);
+    append_backend_log(&format!(
+        "agent_memory_bind_standard_override override_present={}",
+        override_payload.is_some()
+    ));
+    Ok(override_payload)
+}
+
+pub fn macos_smoke_override() -> Result<Option<DesktopE2EMacosSmokeOverride>, String> {
+    let override_payload = load_fixture_manifest()?
+        .and_then(|manifest| manifest.tauri_fixture)
+        .and_then(|fixture| fixture.macos_smoke);
+    append_backend_log(&format!(
+        "macos_smoke_override override_present={}",
+        override_payload.is_some()
+    ));
+    Ok(override_payload)
 }

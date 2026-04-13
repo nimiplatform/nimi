@@ -1,11 +1,11 @@
 desktop_kernel_consistency:
   type: static_gate
-  command: pnpm check:desktop-spec-kernel-consistency
+  command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
   path: scripts/check-desktop-spec-kernel-consistency.mjs
   description: Kernel rule integrity and source/spec consistency checks for desktop domain.
 desktop_spec_docs_drift_gate:
   type: static_gate
-  command: pnpm check:desktop-spec-kernel-docs-drift
+  command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
   path: scripts/generate-desktop-spec-kernel-docs.mjs
   description: Drift gate for generated desktop kernel docs vs YAML fact sources.
 desktop_lint_gate:
@@ -43,6 +43,16 @@ desktop_macos_manual_smoke_policy:
   command: spec-only
   path: .nimi/spec/desktop/testing-gates.md
   description: Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior.
+desktop_macos_automated_smoke_gate:
+  type: smoke_gate
+  command: pnpm check:desktop-macos-smoke
+  path: apps/desktop/scripts/run-macos-smoke.mjs
+  description: Packaged-app self-driven macOS supplementary smoke for desktop journey coverage without tauri-driver.
+desktop_macos_automated_smoke_report:
+  type: local_evidence_report
+  command: pnpm --filter @nimiplatform/desktop run report:desktop-macos-smoke-evidence
+  path: apps/desktop/scripts/generate-desktop-macos-smoke-evidence.mjs
+  description: Generates structured macOS supplementary smoke evidence from .local/report/desktop-macos-smoke artifacts.
 desktop_e2e_failure_artifacts_gate:
   type: ci_artifact_policy
   command: upload apps/desktop/reports/e2e/**

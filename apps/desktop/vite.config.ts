@@ -66,6 +66,7 @@ export default defineConfig(({ mode }) => {
   const fsAllowList = resolveFsAllowList(env);
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
+    base: mode === 'production' ? './' : '/',
     envPrefix: ['VITE_'],
     define: {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
@@ -164,6 +165,15 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
+            if (normalizedId.includes('/sdk/src/runtime/transports/node-grpc-impl.')) {
+              return 'sdk-node-grpc';
+            }
+            if (
+              normalizedId.includes('/node_modules/.pnpm/@grpc+grpc-js@')
+              || normalizedId.includes('/node_modules/.pnpm/@grpc+proto-loader@')
+            ) {
+              return 'sdk-node-grpc';
+            }
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'vendor-sdk-runtime-generated';
             }

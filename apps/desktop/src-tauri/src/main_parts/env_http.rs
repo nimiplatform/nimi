@@ -30,7 +30,7 @@ pub(super) fn load_dotenv_files() {
     }
 }
 
-fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
+pub(super) fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
     let iter = dotenvy::from_path_iter(path)
         .map_err(|error| format!("open dotenv file failed: {error}"))?;
     let mut parsed = HashMap::<String, String>::new();
@@ -43,12 +43,19 @@ fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
         if !cfg!(debug_assertions) && is_security_critical_dotenv_key(&key) {
             continue;
         }
+        if should_preserve_existing_env_override(&key) && env::var_os(&key).is_some() {
+            continue;
+        }
         let should_override = key.starts_with("NIMI_") || key.starts_with("VITE_NIMI_");
         if should_override || env::var_os(&key).is_none() {
             env::set_var(key, value);
         }
     }
     Ok(())
+}
+
+fn should_preserve_existing_env_override(key: &str) -> bool {
+    matches!(key.trim(), "NIMI_RUNTIME_BRIDGE_MODE")
 }
 
 fn is_security_critical_dotenv_key(key: &str) -> bool {
