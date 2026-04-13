@@ -29,7 +29,7 @@ spec_tree_model:
       path_patterns:
         - .nimi/spec/**/kernel/generated/**/*.md
       generator_refs:
-        - pnpm generate:spec-human-doc
+        - pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc
       normative: false
   guidance_classes:
     - id: domain_guides
@@ -60,8 +60,8 @@ spec_tree_model:
         - .nimi/spec
       output_roots:
         - spec/generated
-      generate_command: pnpm generate:spec-human-doc
-      drift_check_command: pnpm check:spec-human-doc-drift
+      generate_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc
+      drift_check_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check
   fail_closed_rules:
     - unknown_profile_is_invalid
     - canonical_root_outside_.nimi/spec_is_invalid

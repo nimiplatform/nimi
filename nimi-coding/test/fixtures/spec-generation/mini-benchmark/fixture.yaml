@@ -73,8 +73,8 @@ fixture:
           - .nimi/spec
         output_roots:
           - spec/generated
-        generate_command: pnpm generate:spec-human-doc
-        drift_check_command: pnpm check:spec-human-doc-drift
+        generate_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc
+        drift_check_command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check
   blueprint_reference:
     include_by_default: true
     root: spec

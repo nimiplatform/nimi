@@ -9,8 +9,11 @@ import { runIngestHighRiskExecution } from "./commands/ingest-high-risk-executio
 import { runReviewHighRiskExecution } from "./commands/review-high-risk-execution.mjs";
 import { runStart } from "./commands/start.mjs";
 import { runValidateAcceptance } from "./commands/validate-acceptance.mjs";
+import { runGenerateSpecDerivedDocs } from "./commands/generate-spec-derived-docs.mjs";
+import { runValidateAiGovernance } from "./commands/validate-ai-governance.mjs";
 import { runValidateExecutionPacket } from "./commands/validate-execution-packet.mjs";
 import { runValidateOrchestrationState } from "./commands/validate-orchestration-state.mjs";
+import { runValidateSpecGovernance } from "./commands/validate-spec-governance.mjs";
 import { runValidateSpecAudit } from "./commands/validate-spec-audit.mjs";
 import { runValidateSpecTree } from "./commands/validate-spec-tree.mjs";
 import { runValidatePrompt } from "./commands/validate-prompt.mjs";
@@ -32,8 +35,11 @@ const COMMANDS = {
   "review-high-risk-execution": runReviewHighRiskExecution,
   "validate-execution-packet": runValidateExecutionPacket,
   "validate-orchestration-state": runValidateOrchestrationState,
+  "validate-spec-governance": runValidateSpecGovernance,
   "validate-spec-audit": runValidateSpecAudit,
   "validate-spec-tree": runValidateSpecTree,
+  "generate-spec-derived-docs": runGenerateSpecDerivedDocs,
+  "validate-ai-governance": runValidateAiGovernance,
   "validate-prompt": runValidatePrompt,
   "validate-worker-output": runValidateWorkerOutput,
   "validate-acceptance": runValidateAcceptance,
