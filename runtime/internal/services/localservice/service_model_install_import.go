@@ -52,6 +52,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if capsErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
+	capabilities = normalizeAssetCapabilities(capabilities)
 	if isRunnableKind(kind) && len(capabilities) == 0 {
 		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}

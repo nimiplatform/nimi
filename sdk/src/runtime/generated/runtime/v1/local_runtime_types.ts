@@ -1577,6 +1577,10 @@ export enum LocalAssetKind {
      */
     STT = 5,
     /**
+     * @generated from protobuf enum value: LOCAL_ASSET_KIND_EMBEDDING = 6;
+     */
+    EMBEDDING = 6,
+    /**
      * Passive kinds
      *
      * @generated from protobuf enum value: LOCAL_ASSET_KIND_VAE = 10;

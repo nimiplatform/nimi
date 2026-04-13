@@ -27,11 +27,12 @@ type LocalAssetKind int32
 const (
 	LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED LocalAssetKind = 0
 	// Runnable kinds
-	LocalAssetKind_LOCAL_ASSET_KIND_CHAT  LocalAssetKind = 1
-	LocalAssetKind_LOCAL_ASSET_KIND_IMAGE LocalAssetKind = 2
-	LocalAssetKind_LOCAL_ASSET_KIND_VIDEO LocalAssetKind = 3
-	LocalAssetKind_LOCAL_ASSET_KIND_TTS   LocalAssetKind = 4
-	LocalAssetKind_LOCAL_ASSET_KIND_STT   LocalAssetKind = 5
+	LocalAssetKind_LOCAL_ASSET_KIND_CHAT      LocalAssetKind = 1
+	LocalAssetKind_LOCAL_ASSET_KIND_IMAGE     LocalAssetKind = 2
+	LocalAssetKind_LOCAL_ASSET_KIND_VIDEO     LocalAssetKind = 3
+	LocalAssetKind_LOCAL_ASSET_KIND_TTS       LocalAssetKind = 4
+	LocalAssetKind_LOCAL_ASSET_KIND_STT       LocalAssetKind = 5
+	LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING LocalAssetKind = 6
 	// Passive kinds
 	LocalAssetKind_LOCAL_ASSET_KIND_VAE        LocalAssetKind = 10
 	LocalAssetKind_LOCAL_ASSET_KIND_CLIP       LocalAssetKind = 11
@@ -49,6 +50,7 @@ var (
 		3:  "LOCAL_ASSET_KIND_VIDEO",
 		4:  "LOCAL_ASSET_KIND_TTS",
 		5:  "LOCAL_ASSET_KIND_STT",
+		6:  "LOCAL_ASSET_KIND_EMBEDDING",
 		10: "LOCAL_ASSET_KIND_VAE",
 		11: "LOCAL_ASSET_KIND_CLIP",
 		12: "LOCAL_ASSET_KIND_LORA",
@@ -62,6 +64,7 @@ var (
 		"LOCAL_ASSET_KIND_VIDEO":       3,
 		"LOCAL_ASSET_KIND_TTS":         4,
 		"LOCAL_ASSET_KIND_STT":         5,
+		"LOCAL_ASSET_KIND_EMBEDDING":   6,
 		"LOCAL_ASSET_KIND_VAE":         10,
 		"LOCAL_ASSET_KIND_CLIP":        11,
 		"LOCAL_ASSET_KIND_LORA":        12,
@@ -4929,14 +4932,15 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x0fauto_importable\x18\a \x01(\bR\x0eautoImportable\x124\n" +
 	"\x16requires_manual_review\x18\b \x01(\bR\x14requiresManualReview\x12\x1f\n" +
 	"\vfolder_name\x18\t \x01(\tR\n" +
-	"folderName*\xca\x02\n" +
+	"folderName*\xea\x02\n" +
 	"\x0eLocalAssetKind\x12 \n" +
 	"\x1cLOCAL_ASSET_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CHAT\x10\x01\x12\x1a\n" +
 	"\x16LOCAL_ASSET_KIND_IMAGE\x10\x02\x12\x1a\n" +
 	"\x16LOCAL_ASSET_KIND_VIDEO\x10\x03\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_TTS\x10\x04\x12\x18\n" +
-	"\x14LOCAL_ASSET_KIND_STT\x10\x05\x12\x18\n" +
+	"\x14LOCAL_ASSET_KIND_STT\x10\x05\x12\x1e\n" +
+	"\x1aLOCAL_ASSET_KIND_EMBEDDING\x10\x06\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_VAE\x10\n" +
 	"\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CLIP\x10\v\x12\x19\n" +

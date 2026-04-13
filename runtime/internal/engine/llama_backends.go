@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
@@ -211,6 +213,108 @@ func normalizeLlamaExternalGRPCBackends(backends []string) []string {
 	return normalizeLlamaExternalBackends(backends)
 }
 
+func parseLlamaModelsConfigEntries(raw []byte) ([]llamaModelsConfigEntry, error) {
+	var entries []llamaModelsConfigEntry
+	if err := yaml.Unmarshal(raw, &entries); err == nil {
+		return entries, nil
+	}
+	return parseLlamaModelsPresetEntries(raw)
+}
+
+func parseLlamaModelsPresetEntries(raw []byte) ([]llamaModelsConfigEntry, error) {
+	scanner := bufio.NewScanner(bytes.NewReader(raw))
+	var (
+		entries     []llamaModelsConfigEntry
+		current     *llamaModelsConfigEntry
+		versionSeen bool
+		lineNo      int
+	)
+
+	flushCurrent := func() {
+		if current == nil {
+			return
+		}
+		entries = append(entries, *current)
+		current = nil
+	}
+
+	for scanner.Scan() {
+		lineNo++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			name := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(line, "["), "]"))
+			if name == "" {
+				return nil, fmt.Errorf("parse llama models preset: empty section name at line %d", lineNo)
+			}
+			flushCurrent()
+			current = &llamaModelsConfigEntry{Name: name}
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			return nil, fmt.Errorf("parse llama models preset: expected key=value at line %d", lineNo)
+		}
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+		if key == "" {
+			return nil, fmt.Errorf("parse llama models preset: empty key at line %d", lineNo)
+		}
+		if unquoted, err := strconv.Unquote(value); err == nil {
+			value = unquoted
+		}
+		normalizedKey := strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToLower(key))
+		if current == nil {
+			if normalizedKey == "version" {
+				versionSeen = true
+				continue
+			}
+			return nil, fmt.Errorf("parse llama models preset: key %q outside section at line %d", key, lineNo)
+		}
+		switch normalizedKey {
+		case "model":
+			current.Parameters.Model = value
+		case "backend":
+			current.Backend = value
+		case "mmproj":
+			current.Parameters.Mmproj = value
+		case "ctx_size":
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, fmt.Errorf("parse llama models preset: ctx-size invalid at line %d: %w", lineNo, err)
+			}
+			current.Parameters.CtxSize = n
+		case "cache_type_k":
+			current.Parameters.CacheTypeK = value
+		case "cache_type_v":
+			current.Parameters.CacheTypeV = value
+		case "flash_attn":
+			current.Parameters.FlashAttn = value
+		case "n_gpu_layers":
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, fmt.Errorf("parse llama models preset: n-gpu-layers invalid at line %d: %w", lineNo, err)
+			}
+			current.Parameters.NGPULayers = &n
+		case "load_on_startup", "embeddings":
+			// Runtime-managed llama preset metadata is admitted here but does not
+			// affect backend detection or single-worker target resolution.
+		default:
+			// Ignore other llama.cpp preset keys to stay forward-compatible.
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("parse llama models preset: %w", err)
+	}
+	flushCurrent()
+	if len(entries) == 0 && !versionSeen {
+		return nil, fmt.Errorf("parse llama models preset: missing version header")
+	}
+	return entries, nil
+}
+
 func detectLlamaExternalBackends(configPath string) []string {
 	trimmedPath := strings.TrimSpace(configPath)
 	if trimmedPath == "" {
@@ -220,8 +324,8 @@ func detectLlamaExternalBackends(configPath string) []string {
 	if err != nil {
 		return nil
 	}
-	var entries []llamaModelsConfigEntry
-	if err := yaml.Unmarshal(raw, &entries); err != nil {
+	entries, err := parseLlamaModelsConfigEntries(raw)
+	if err != nil {
 		slog.Warn("llama external backend config parse failed", "path", trimmedPath, "error", err)
 		return nil
 	}

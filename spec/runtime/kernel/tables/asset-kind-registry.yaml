@@ -5,7 +5,7 @@ description: >
   and the capability token they map to (for runnable kinds).
 
 kinds:
-  # Runnable kinds (1-5) — can be directly scheduled/invoked
+  # Runnable kinds (1-6) — can be directly scheduled/invoked
   - name: chat
     proto_value: LOCAL_ASSET_KIND_CHAT
     proto_number: 1
@@ -40,6 +40,13 @@ kinds:
     runnable: true
     capability: audio.transcribe
     description: Speech-to-text model
+
+  - name: embedding
+    proto_value: LOCAL_ASSET_KIND_EMBEDDING
+    proto_number: 6
+    runnable: true
+    capability: text.embed
+    description: Text embedding model
 
   # Passive kinds (10-14) — referenced as dependencies by runnable assets
   - name: vae

@@ -10,7 +10,7 @@ export type HookModLocalProfileEntry = {
     selected: boolean;
     preferred: boolean;
     assetId?: string;
-    assetKind?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
+    assetKind?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
     engineSlot?: string;
     templateId?: string;
     repo?: string;

@@ -1,7 +1,7 @@
 import type { JsonObject } from './shared.js';
 
 export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
+export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
 export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
 export type LocalRuntimeTransferSessionKind = 'download' | 'import';
 

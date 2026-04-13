@@ -43,6 +43,7 @@ import {
   formatWorldOptionLabel,
   isCurrentWorldStylePack,
   stripTargetKey,
+  type LookdevSelectedAgent,
 } from './create-batch-page-helpers.js';
 import { useLookdevCaptureStateSynthesis } from './use-lookdev-capture-state-synthesis.js';
 
@@ -139,7 +140,11 @@ export default function CreateBatchPage() {
   );
 
   const rawSelectedAgents = selectionSource === 'by_world' ? worldAgents : explicitSelectedAgents;
-  const rawSelectedWorldIds = [...new Set(rawSelectedAgents.map((agent) => agent.worldId).filter(Boolean))];
+  const rawSelectedWorldIds = [...new Set(
+    rawSelectedAgents
+      .map((agent) => agent.worldId)
+      .filter((worldId): worldId is string => Boolean(worldId)),
+  )];
   const hasMixedWorldSelection = selectionSource === 'explicit_selection' && rawSelectedWorldIds.length > 1;
   const resolvedWorldId = selectionSource === 'by_world'
     ? worldId
@@ -163,7 +168,19 @@ export default function CreateBatchPage() {
     && rawSelectedAgents.length > 0
     && !hasMixedWorldSelection
     && (agentTruthDiagnosticsQuery.isLoading || agentTruthDiagnosticsQuery.isFetching);
-  const selectedAgents = rawSelectedAgents;
+  const selectedAgents = useMemo<LookdevSelectedAgent[]>(
+    () => rawSelectedAgents.map((agent) => ({
+      id: agent.id,
+      handle: agent.handle,
+      displayName: agent.displayName,
+      concept: agent.concept,
+      worldId: agent.worldId,
+      avatarUrl: agent.avatarUrl,
+      importance: agent.importance,
+      status: agent.status,
+    })),
+    [rawSelectedAgents],
+  );
   const limitedTruthAgents = useMemo(
     () => rawSelectedAgents.filter((agent) => agentTruthDiagnostics[agent.id]?.fullTruthReadable === false),
     [agentTruthDiagnostics, rawSelectedAgents],
@@ -183,10 +200,10 @@ export default function CreateBatchPage() {
     () => worldsQuery.data?.find((world) => world.id === resolvedWorldId)?.name || t('createBatch.worldStyleSessionPendingWorldName'),
     [resolvedWorldId, t, worldsQuery.data],
   );
-  const styleAgents = useMemo(
+  const styleAgents = useMemo<Parameters<typeof createWorldStyleSession>[3]>(
     () => selectedAgents.map((agent) => ({
       displayName: agent.displayName,
-      concept: agent.concept,
+      concept: String(agent.concept || '').trim(),
       importance: agent.importance,
     })),
     [selectedAgents],
@@ -386,7 +403,7 @@ export default function CreateBatchPage() {
     setInteractiveCaptureError(null);
   }, [activeCaptureDraftKey]);
 
-  const styleSessionCtx = useMemo(() => ({
+  const styleSessionCtx = useMemo<Parameters<typeof doStyleSessionReply>[3]>(() => ({
     runtime,
     styleDialogueTarget,
     styleAgents,
@@ -401,7 +418,7 @@ export default function CreateBatchPage() {
     setStyleSessionBusy,
   }), [runtime, styleDialogueTarget, styleAgents, t, saveWorldStyleSession, saveWorldStylePack]);
 
-  const interactiveCaptureCtx = useMemo(() => ({
+  const interactiveCaptureCtx = useMemo<Parameters<typeof doInteractiveCaptureRefine>[4]>(() => ({
     runtime,
     styleDialogueTarget,
     currentLanguage,

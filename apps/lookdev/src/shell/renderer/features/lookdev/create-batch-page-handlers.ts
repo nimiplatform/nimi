@@ -1,3 +1,4 @@
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import { getAgentPortraitBinding, getLookdevAgentAuthoringContext } from '@renderer/data/lookdev-data-client.js';
 import {
@@ -11,15 +12,18 @@ import {
   createWorldStyleSession,
   markWorldStyleSessionSynthesized,
   synthesizeWorldStylePackFromSession,
+  type SessionAgentContext,
 } from './world-style-session.js';
-import { confirmWorldStylePack, type LookdevCaptureState, type LookdevWorldStylePack, type LookdevWorldStyleSession } from './types.js';
-import { toErrorMessage, withLookdevBatchAgentFields } from './create-batch-page-helpers.js';
+import { confirmWorldStylePack, type LookdevCaptureState, type LookdevLanguage, type LookdevSelectionSource, type LookdevWorldStylePack, type LookdevWorldStyleSession } from './types.js';
+import { toErrorMessage, withLookdevBatchAgentFields, type LookdevSelectedAgent } from './create-batch-page-helpers.js';
+import type { LookdevRuntimeTargetOption } from './lookdev-route.js';
+import type { CreateBatchInput } from './lookdev-store.js';
 import type { TFunction } from 'i18next';
 
 type StyleSessionContext = {
-  runtime: { ai: { text: { generate: (...args: unknown[]) => unknown } } };
-  styleDialogueTarget: unknown;
-  styleAgents: Array<{ displayName: string; concept: string | null; importance: string }>;
+  runtime: Runtime;
+  styleDialogueTarget: LookdevRuntimeTargetOption | null;
+  styleAgents: SessionAgentContext[];
   t: TFunction;
   saveWorldStyleSession: (session: LookdevWorldStyleSession) => void;
   saveWorldStylePack: (pack: LookdevWorldStylePack) => void;
@@ -138,10 +142,10 @@ export function handleConfirmWorldStylePack(
 }
 
 type InteractiveCaptureContext = {
-  runtime: { ai: { text: { generate: (...args: unknown[]) => unknown } } };
-  styleDialogueTarget: unknown;
-  currentLanguage: 'en' | 'zh';
-  selectedAgents: LookdevAgentRecord[];
+  runtime: Runtime;
+  styleDialogueTarget: LookdevRuntimeTargetOption | null;
+  currentLanguage: LookdevLanguage;
+  selectedAgents: LookdevSelectedAgent[];
   saveCaptureState: (state: LookdevCaptureState) => void;
   savePortraitBrief: (brief: ReturnType<typeof materializePortraitBriefFromCaptureState>) => void;
   setInteractiveCaptureBusy: (value: boolean) => void;
@@ -279,18 +283,7 @@ export async function handleResetInteractiveCapture(
 type HandleCreateContext = {
   t: TFunction;
   navigate: (path: string) => void;
-  createBatch: (input: {
-    name: string;
-    selectionSource: string;
-    agents: LookdevAgentRecord[];
-    worldId: string;
-    worldStylePack: LookdevWorldStylePack;
-    captureSelectionAgentIds: string[];
-    generationTarget: unknown;
-    evaluationTarget: unknown;
-    maxConcurrency: number;
-    scoreThreshold: number;
-  }) => Promise<string>;
+  createBatch: (input: CreateBatchInput) => Promise<string>;
   saveWorldStylePack: (pack: LookdevWorldStylePack) => void;
   saveWorldStyleSession: (session: LookdevWorldStyleSession) => void;
   saveCaptureState: (state: LookdevCaptureState) => void;
@@ -303,7 +296,7 @@ export async function handleCreate(input: {
   intakeLoading: boolean;
   intakeError: unknown;
   worldSelectionUnavailable: boolean;
-  rawSelectedAgents: LookdevAgentRecord[];
+  rawSelectedAgents: LookdevSelectedAgent[];
   rawSelectedWorldIds: string[];
   resolvedWorldId: string;
   resolvedWorldName: string;
@@ -312,14 +305,14 @@ export async function handleCreate(input: {
   captureSynthesisBusy: boolean;
   interactiveCaptureResetBusy: boolean;
   captureStatesReady: boolean;
-  generationTarget: unknown;
-  evaluationTarget: unknown;
+  generationTarget: CreateBatchInput['generationTarget'] | null;
+  evaluationTarget: CreateBatchInput['evaluationTarget'] | null;
   styleSession: LookdevWorldStyleSession | null;
   captureStates: LookdevCaptureState[];
   portraitBriefs: Array<ReturnType<typeof materializePortraitBriefFromCaptureState>>;
   name: string;
-  selectionSource: string;
-  selectedAgents: LookdevAgentRecord[];
+  selectionSource: LookdevSelectionSource;
+  selectedAgents: LookdevSelectedAgent[];
   captureSelectionAgentIds: string[];
   maxConcurrency: string;
   scoreThreshold: string;

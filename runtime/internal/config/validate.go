@@ -174,6 +174,21 @@ func validateJWTSettings(issuer string, audience string, jwksURL string, revocat
 	return fmt.Errorf("auth jwt revocation url must use https unless host is loopback")
 }
 
+func validateOptionalAbsoluteURL(raw string, name string) error {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return fmt.Errorf("%s invalid: %w", name, err)
+	}
+	if strings.TrimSpace(parsed.Scheme) == "" || strings.TrimSpace(parsed.Host) == "" {
+		return fmt.Errorf("%s must include scheme and host", name)
+	}
+	return nil
+}
+
 func isLoopbackHost(host string) bool {
 	host = strings.TrimSpace(strings.ToLower(host))
 	if host == "" {

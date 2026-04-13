@@ -456,3 +456,36 @@ func TestScanUnregisteredAssetsFindsModelsInDefaultRoot(t *testing.T) {
 		t.Fatalf("expected model declaration, got %#v", item.GetDeclaration())
 	}
 }
+
+func TestScanUnregisteredAssetsSuggestsEmbeddingKindForEmbeddingFilename(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+	legacyModelsDir := filepath.Join(homeDir, ".nimi", "data", "models")
+	if err := os.MkdirAll(legacyModelsDir, 0o755); err != nil {
+		t.Fatalf("create legacy models dir: %v", err)
+	}
+	assetPath := filepath.Join(legacyModelsDir, "Qwen3-Embedding-8B-Q4_K_M.gguf")
+	if err := os.WriteFile(assetPath, validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write legacy embedding asset: %v", err)
+	}
+
+	svc := newTestService(t)
+	svc.localModelsPath = legacyModelsDir
+	resp, err := svc.ScanUnregisteredAssets(context.Background(), &runtimev1.ScanUnregisteredAssetsRequest{})
+	if err != nil {
+		t.Fatalf("ScanUnregisteredAssets: %v", err)
+	}
+	if len(resp.GetItems()) != 1 {
+		t.Fatalf("expected one unregistered asset, got %d", len(resp.GetItems()))
+	}
+	item := resp.GetItems()[0]
+	if item.GetDeclaration() == nil {
+		t.Fatal("expected unregistered asset declaration")
+	}
+	if got := item.GetDeclaration().GetAssetKind(); got != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING {
+		t.Fatalf("declaration kind mismatch: got=%s want=%s", got, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING)
+	}
+	if got := item.GetDeclaration().GetEngine(); got != "llama" {
+		t.Fatalf("declaration engine mismatch: got=%q want=llama", got)
+	}
+}

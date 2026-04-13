@@ -141,6 +141,7 @@ function toAssetKindFilter(kind?: LocalRuntimeListAssetsPayload['kind']): number
   if (kind === 'video') return 3;
   if (kind === 'tts') return 4;
   if (kind === 'stt') return 5;
+  if (kind === 'embedding') return 6;
   if (kind === 'vae') return 10;
   if (kind === 'clip') return 11;
   if (kind === 'lora') return 12;

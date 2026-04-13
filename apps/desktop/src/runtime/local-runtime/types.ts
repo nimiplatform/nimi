@@ -7,7 +7,7 @@ import type {
 } from './types-profiles';
 
 export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
+export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
 export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
 export type LocalRuntimeSuggestionSource = 'manifest' | 'folder' | 'download-metadata' | 'filename' | 'unknown';
 export type LocalRuntimeSuggestionConfidence = 'high' | 'low';

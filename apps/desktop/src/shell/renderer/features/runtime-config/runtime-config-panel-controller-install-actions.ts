@@ -138,6 +138,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
           : plan.capabilities.includes('video') ? 'video'
           : plan.capabilities.includes('tts') ? 'tts'
           : plan.capabilities.includes('stt') ? 'stt'
+          : (plan.capabilities.includes('embedding') || plan.capabilities.includes('text.embed')) ? 'embedding'
           : 'chat') as import('@runtime/local-runtime').LocalRuntimeAssetKind,
         repo: plan.repo,
         revision: plan.revision,

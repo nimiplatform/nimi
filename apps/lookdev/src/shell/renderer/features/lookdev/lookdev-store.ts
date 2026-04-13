@@ -15,7 +15,7 @@ import {
   uploadResourceForItem,
 } from './lookdev-store-processing.js';
 
-type CreateBatchInput = {
+export type CreateBatchInput = {
   name: string;
   selectionSource: LookdevSelectionSource;
   agents: LookdevAgentRecord[];

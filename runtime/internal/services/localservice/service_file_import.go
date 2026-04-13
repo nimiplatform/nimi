@@ -122,7 +122,11 @@ func copyDirRecursive(src, dst string) error {
 }
 
 func normalizeAssetKindForPath(path string) runtimev1.LocalAssetKind {
+	lowerPath := strings.ToLower(strings.TrimSpace(path))
 	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(path)))
+	if strings.Contains(lowerPath, "embedding") || strings.Contains(lowerPath, "embed") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
+	}
 	switch extension {
 	case ".gguf":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
@@ -192,9 +196,13 @@ func (s *Service) importLocalModelFile(
 			Message: err.Error(),
 		})
 	}
-	capabilities := normalizeStringSlice(req.GetCapabilities())
+	capabilities := normalizeAssetCapabilities(req.GetCapabilities())
 	if len(capabilities) == 0 {
-		capabilities = defaultCapabilitiesForAssetKind(req.GetKind())
+		kind := req.GetKind()
+		if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+			kind = normalizeAssetKindForPath(sourcePath)
+		}
+		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
 	if len(capabilities) == 0 {
 		capabilities = []string{"chat"}

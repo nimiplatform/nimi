@@ -393,6 +393,7 @@ fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSugg
                     crate::local_runtime::types::LocalAiAssetKind::Video => "video",
                     crate::local_runtime::types::LocalAiAssetKind::Tts => "tts",
                     crate::local_runtime::types::LocalAiAssetKind::Stt => "stt",
+                    crate::local_runtime::types::LocalAiAssetKind::Embedding => "embedding",
                     crate::local_runtime::types::LocalAiAssetKind::Vae => "vae",
                     crate::local_runtime::types::LocalAiAssetKind::Clip => "clip",
                     crate::local_runtime::types::LocalAiAssetKind::Controlnet => "controlnet",

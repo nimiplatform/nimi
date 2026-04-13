@@ -154,6 +154,7 @@ pub(super) fn normalize_asset_kind(value: &str) -> Result<LocalAiAssetKind, Stri
         "video" => Ok(LocalAiAssetKind::Video),
         "tts" => Ok(LocalAiAssetKind::Tts),
         "stt" => Ok(LocalAiAssetKind::Stt),
+        "embedding" => Ok(LocalAiAssetKind::Embedding),
         "vae" => Ok(LocalAiAssetKind::Vae),
         "clip" => Ok(LocalAiAssetKind::Clip),
         "controlnet" => Ok(LocalAiAssetKind::Controlnet),

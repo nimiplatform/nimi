@@ -21,11 +21,12 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	catalogItem := cloneCatalogItem(s.resolveCatalogItem(req))
 	s.mu.RUnlock()
 	if catalogItem != nil {
-		engine := defaultLocalEngine(catalogItem.GetEngine(), catalogItem.GetCapabilities())
-		kind := inferAssetKindFromCapabilities(catalogItem.GetCapabilities())
+		capabilities := normalizeAssetCapabilities(catalogItem.GetCapabilities())
+		engine := defaultLocalEngine(catalogItem.GetEngine(), capabilities)
+		kind := inferAssetKindFromCapabilities(capabilities)
 		binding := resolveCatalogRuntimeBinding(
 			engine,
-			catalogItem.GetCapabilities(),
+			capabilities,
 			kind,
 			req.GetEndpoint(),
 			catalogItem.GetEngineRuntimeMode(),
@@ -40,7 +41,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			ModelId:           catalogItem.GetModelId(),
 			Repo:              catalogItem.GetRepo(),
 			Revision:          defaultString(catalogItem.GetRevision(), "main"),
-			Capabilities:      append([]string(nil), catalogItem.GetCapabilities()...),
+			Capabilities:      append([]string(nil), capabilities...),
 			Engine:            engine,
 			EngineRuntimeMode: binding.mode,
 			InstallKind:       defaultString(catalogItem.GetInstallKind(), "download"),
@@ -51,7 +52,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 			Files:             append([]string(nil), catalogItem.GetFiles()...),
 			License:           defaultString(catalogItem.GetLicense(), "unknown"),
 			Hashes:            cloneStringMap(catalogItem.GetHashes()),
-			Warnings:          startupCompatibilityWarningsForAsset(engine, catalogItem.GetCapabilities(), kind, deviceProfile),
+			Warnings:          startupCompatibilityWarningsForAsset(engine, capabilities, kind, deviceProfile),
 			ReasonCode:        "ACTION_EXECUTED",
 			EngineConfig:      cloneStruct(catalogItem.GetEngineConfig()),
 		}
@@ -73,7 +74,7 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}
 
-	capabilities := normalizeStringSlice(req.GetCapabilities())
+	capabilities := normalizeAssetCapabilities(req.GetCapabilities())
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
 	binding := resolveInstallRuntimeBinding(
 		engine,
@@ -236,13 +237,14 @@ func (s *Service) installLocalAssetRecord(
 	auditDetail string,
 	allowExistingRebind bool,
 ) (*runtimev1.LocalAssetRecord, error) {
+	capabilities = normalizeAssetCapabilities(capabilities)
 	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		kind = inferAssetKindFromCapabilities(capabilities)
 	}
 	if isRunnableKind(kind) && len(capabilities) == 0 {
 		capabilities = defaultCapabilitiesForAssetKind(kind)
 	}
-	assetKey := localAssetIdentityKey(modelID, kind, engine)
+	assetKey := localAssetIdentityKey(modelID, effectiveAssetKind(kind, capabilities), engine)
 
 	now := nowISO()
 	projection, err := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
@@ -326,7 +328,7 @@ func (s *Service) installLocalAssetRecord(
 		if existing.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if localAssetIdentityKey(existing.GetAssetId(), existing.GetKind(), existing.GetEngine()) == assetKey {
+		if localAssetIdentityKey(existing.GetAssetId(), effectiveAssetKind(existing.GetKind(), existing.GetCapabilities()), existing.GetEngine()) == assetKey {
 			if !allowExistingRebind {
 				s.mu.Unlock()
 				return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED)
@@ -429,7 +431,7 @@ func (s *Service) installLocalAsset(ctx context.Context, params installLocalAsse
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
-	capabilities := normalizeStringSlice(params.capabilities)
+	capabilities := normalizeAssetCapabilities(params.capabilities)
 	engine := defaultLocalEngine(strings.TrimSpace(params.engine), capabilities)
 	endpoint := strings.TrimSpace(params.endpoint)
 	binding := resolveInstallRuntimeBinding(

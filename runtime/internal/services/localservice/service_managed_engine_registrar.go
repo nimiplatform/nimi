@@ -9,10 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
-
-	"gopkg.in/yaml.v3"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
@@ -29,29 +28,15 @@ type managedLlamaRegistration struct {
 	LocalModelID      string
 	ModelID           string
 	ExposedModelName  string
+	Capabilities      []string
 	Backend           string
+	AbsoluteModelPath string
 	RelativeModelPath string
 	ManifestPath      string
 	Managed           bool
 	DynamicProfile    bool
 	Problem           string
 	LlamaEngineConfig *engine.ManagedLlamaEngineConfig
-}
-
-type managedLlamaConfigEntry struct {
-	Name       string                       `yaml:"name"`
-	Backend    string                       `yaml:"backend"`
-	Parameters managedLlamaConfigParameters `yaml:"parameters"`
-}
-
-type managedLlamaConfigParameters struct {
-	Model      string `yaml:"model"`
-	Mmproj     string `yaml:"mmproj,omitempty"`
-	CtxSize    int    `yaml:"ctx_size,omitempty"`
-	CacheTypeK string `yaml:"cache_type_k,omitempty"`
-	CacheTypeV string `yaml:"cache_type_v,omitempty"`
-	FlashAttn  string `yaml:"flash_attn,omitempty"`
-	NGPULayers *int   `yaml:"n_gpu_layers,omitempty"`
 }
 
 func resolveLocalModelsPath(configuredPath string) string {
@@ -358,55 +343,34 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 		}
 	}
 
-	entries := make([]managedLlamaConfigEntry, 0, len(registrations))
+	presetRegistrations := make([]managedLlamaRegistration, 0, len(registrations))
 	for _, registration := range registrations {
-		if !registration.Managed || strings.TrimSpace(registration.Problem) != "" {
+		if !registration.Managed || strings.TrimSpace(registration.Problem) != "" || registration.DynamicProfile {
 			continue
 		}
-		if registration.DynamicProfile {
-			continue
-		}
-		params := managedLlamaConfigParameters{
-			Model: registration.RelativeModelPath,
-		}
-		if cfg := registration.LlamaEngineConfig; cfg != nil {
-			params.Mmproj = cfg.Mmproj
-			params.CtxSize = cfg.CtxSize
-			params.CacheTypeK = cfg.CacheTypeK
-			params.CacheTypeV = cfg.CacheTypeV
-			params.FlashAttn = cfg.FlashAttn
-			params.NGPULayers = cfg.NGPULayers
-		}
-		entries = append(entries, managedLlamaConfigEntry{
-			Name:       registration.ExposedModelName,
-			Backend:    registration.Backend,
-			Parameters: params,
-		})
+		presetRegistrations = append(presetRegistrations, registration)
 	}
-	sort.Slice(entries, func(i, j int) bool {
+	sort.Slice(presetRegistrations, func(i, j int) bool {
 		if primaryName != "" {
-			iPrimary := strings.EqualFold(entries[i].Name, primaryName)
-			jPrimary := strings.EqualFold(entries[j].Name, primaryName)
+			iPrimary := strings.EqualFold(presetRegistrations[i].ExposedModelName, primaryName)
+			jPrimary := strings.EqualFold(presetRegistrations[j].ExposedModelName, primaryName)
 			if iPrimary != jPrimary {
 				return iPrimary
 			}
 		}
-		if entries[i].Name != entries[j].Name {
-			return entries[i].Name < entries[j].Name
+		if presetRegistrations[i].ExposedModelName != presetRegistrations[j].ExposedModelName {
+			return presetRegistrations[i].ExposedModelName < presetRegistrations[j].ExposedModelName
 		}
-		if entries[i].Backend != entries[j].Backend {
-			return entries[i].Backend < entries[j].Backend
-		}
-		return entries[i].Parameters.Model < entries[j].Parameters.Model
+		return presetRegistrations[i].AbsoluteModelPath < presetRegistrations[j].AbsoluteModelPath
 	})
 
-	if len(entries) == 0 {
+	if len(presetRegistrations) == 0 {
 		return registrations, nil, nil
 	}
 
-	rendered, err := yaml.Marshal(entries)
+	rendered, err := renderManagedLlamaPreset(modelsPath, presetRegistrations, primaryName)
 	if err != nil {
-		return nil, nil, fmt.Errorf("marshal llama models config: %w", err)
+		return nil, nil, fmt.Errorf("render llama models preset: %w", err)
 	}
 	return registrations, rendered, nil
 }
@@ -423,6 +387,7 @@ func inspectManagedLlamaModelRegistration(
 		LocalModelID:     strings.TrimSpace(model.GetLocalAssetId()),
 		ModelID:          strings.TrimSpace(model.GetAssetId()),
 		ExposedModelName: normalizeManagedModelRegistrationModelID(model.GetAssetId()),
+		Capabilities:     normalizeAssetCapabilities(model.GetCapabilities()),
 		Managed:          managed && normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	}
 	if !registration.Managed {
@@ -454,6 +419,7 @@ func inspectManagedLlamaModelRegistration(
 		registration.Problem = relErr.Error()
 		return registration
 	}
+	registration.AbsoluteModelPath = absoluteModelPath
 	registration.RelativeModelPath = filepath.ToSlash(relativeModelPath)
 
 	// Extract and validate engine_config.llama.* parameters (K-LENG-018).
@@ -513,6 +479,90 @@ func inspectManagedLlamaModelRegistration(
 	return registration
 }
 
+func renderManagedLlamaPreset(modelsPath string, registrations []managedLlamaRegistration, primaryName string) ([]byte, error) {
+	if len(registrations) == 0 {
+		return nil, nil
+	}
+	startupName := managedLlamaStartupModelName(registrations, primaryName)
+	var builder strings.Builder
+	builder.WriteString("version = 1\n\n")
+	for _, registration := range registrations {
+		name := strings.TrimSpace(registration.ExposedModelName)
+		modelPath := strings.TrimSpace(registration.AbsoluteModelPath)
+		if name == "" || modelPath == "" {
+			return nil, fmt.Errorf("managed llama preset requires non-empty name and model path")
+		}
+		builder.WriteString("[" + name + "]\n")
+		builder.WriteString("model = " + modelPath + "\n")
+		if strings.EqualFold(startupName, name) {
+			builder.WriteString("load-on-startup = true\n")
+		} else {
+			builder.WriteString("load-on-startup = false\n")
+		}
+		if managedLlamaRegistrationIsEmbeddingOnly(registration) {
+			builder.WriteString("embeddings = true\n")
+		}
+			if cfg := registration.LlamaEngineConfig; cfg != nil {
+			if cfg.Mmproj != "" {
+				builder.WriteString("mmproj = " + absoluteManagedLlamaPresetPath(cfg.Mmproj, modelsPath) + "\n")
+			}
+			if cfg.CtxSize > 0 {
+				builder.WriteString("ctx-size = " + strconv.Itoa(cfg.CtxSize) + "\n")
+			}
+			if cfg.CacheTypeK != "" {
+				builder.WriteString("cache-type-k = " + cfg.CacheTypeK + "\n")
+			}
+			if cfg.CacheTypeV != "" {
+				builder.WriteString("cache-type-v = " + cfg.CacheTypeV + "\n")
+			}
+			if cfg.FlashAttn != "" {
+				builder.WriteString("flash-attn = " + cfg.FlashAttn + "\n")
+			}
+			if cfg.NGPULayers != nil {
+				builder.WriteString("n-gpu-layers = " + strconv.Itoa(*cfg.NGPULayers) + "\n")
+			}
+		}
+		builder.WriteString("\n")
+	}
+	return []byte(builder.String()), nil
+}
+
+func managedLlamaStartupModelName(registrations []managedLlamaRegistration, primaryName string) string {
+	if primaryName != "" {
+		for _, registration := range registrations {
+			if strings.EqualFold(strings.TrimSpace(registration.ExposedModelName), strings.TrimSpace(primaryName)) {
+				return strings.TrimSpace(registration.ExposedModelName)
+			}
+		}
+	}
+	for _, registration := range registrations {
+		if localAssetHasCapability(registration.Capabilities, "chat", "text.generate") {
+			return strings.TrimSpace(registration.ExposedModelName)
+		}
+	}
+	if len(registrations) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(registrations[0].ExposedModelName)
+}
+
+func managedLlamaRegistrationIsEmbeddingOnly(registration managedLlamaRegistration) bool {
+	return localAssetHasCapability(registration.Capabilities, "text.embed") &&
+		!localAssetHasCapability(registration.Capabilities, "chat", "text.generate")
+}
+
+func absoluteManagedLlamaPresetPath(configuredPath string, modelsPath string) string {
+	trimmed := strings.TrimSpace(configuredPath)
+	if trimmed == "" || filepath.IsAbs(trimmed) {
+		return trimmed
+	}
+	modelsDir := strings.TrimSpace(modelsPath)
+	if modelsDir == "" {
+		return filepath.Clean(filepath.FromSlash(trimmed))
+	}
+	return filepath.Join(modelsDir, filepath.FromSlash(trimmed))
+}
+
 // findMmprojCandidates returns filenames from the file list that look like
 // mmproj companion artifacts (contain "mmproj" and end with ".gguf").
 func findMmprojCandidates(files []string) []string {
@@ -528,22 +578,22 @@ func findMmprojCandidates(files []string) []string {
 
 func defaultCapabilitiesForRegistration(runtimeCaps []string, manifestCaps []string) []string {
 	if len(runtimeCaps) > 0 {
-		return normalizeStringSlice(runtimeCaps)
+		return normalizeAssetCapabilities(runtimeCaps)
 	}
-	return normalizeStringSlice(manifestCaps)
+	return normalizeAssetCapabilities(manifestCaps)
 }
 
 func managedLlamaBackendForCapabilities(capabilities []string) (string, error) {
 	backends := make(map[string]bool, len(capabilities))
 	for _, capability := range capabilities {
-		normalized := strings.ToLower(strings.TrimSpace(capability))
+		normalized := normalizeLocalCapabilityToken(capability)
 		if normalized == "" {
 			continue
 		}
 		switch normalized {
-		case "stt", "transcription":
+		case "audio.transcribe", "stt", "transcription":
 			backends["whisper-ggml"] = true
-		case "chat", "embedding", "embed":
+		case "chat", "text.generate", "embedding", "embed", "text.embed":
 			backends["llama-cpp"] = true
 		default:
 			backends["llama-cpp"] = true

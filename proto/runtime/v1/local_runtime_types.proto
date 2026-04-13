@@ -17,6 +17,7 @@ enum LocalAssetKind {
   LOCAL_ASSET_KIND_VIDEO      = 3;
   LOCAL_ASSET_KIND_TTS        = 4;
   LOCAL_ASSET_KIND_STT        = 5;
+  LOCAL_ASSET_KIND_EMBEDDING  = 6;
 
   // Passive kinds
   LOCAL_ASSET_KIND_VAE        = 10;

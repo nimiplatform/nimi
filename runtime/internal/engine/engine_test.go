@@ -855,12 +855,7 @@ func TestRestartJitterCap(t *testing.T) {
 
 func TestLlamaCommandArgs(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
-	if err := os.WriteFile(configPath, []byte(`
-- name: managed-qwen
-  backend: llama-cpp
-  parameters:
-    model: qwen/qwen3.gguf
-`), 0o644); err != nil {
+	if err := os.WriteFile(configPath, []byte("version = 1\n\n[managed-qwen]\nmodel = /data/models/qwen/qwen3.gguf\n"), 0o644); err != nil {
 		t.Fatalf("write llama config: %v", err)
 	}
 
@@ -877,19 +872,18 @@ func TestLlamaCommandArgs(t *testing.T) {
 	}
 	args := strings.Join(cmd.Args[1:], " ")
 
-	for _, want := range []string{"--host", "127.0.0.1", "--port", "5555", "--model", filepath.Join("/data/models", "qwen/qwen3.gguf"), "--reasoning", "off", "--alias", "managed-qwen"} {
+	for _, want := range []string{"--host", "127.0.0.1", "--port", "5555", "--reasoning", "off", "--models-preset", configPath} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}
 	}
-	if strings.Contains(args, "--models-config-file") {
-		t.Error("expected no --models-config-file for llama-server")
+	for _, wantMissing := range []string{"--models-config-file", "--backends-path", "--external-backends", "--alias"} {
+		if strings.Contains(args, wantMissing) {
+			t.Errorf("expected no %s for router llama-server, got: %s", wantMissing, args)
+		}
 	}
-	if strings.Contains(args, "--backends-path") {
-		t.Error("expected no --backends-path for llama-server")
-	}
-	if strings.Contains(args, "--external-backends") {
-		t.Error("expected no --external-backends for llama-server")
+	if strings.Contains(args, "--model ") {
+		t.Errorf("expected router llama-server to avoid explicit --model target, got: %s", args)
 	}
 }
 
@@ -921,6 +915,48 @@ func TestDetectLlamaExternalBackendsReturnsNilOnInvalidYaml(t *testing.T) {
 
 	if got := detectLlamaExternalBackends(configPath); got != nil {
 		t.Fatalf("expected nil external backends for invalid yaml, got %v", got)
+	}
+}
+
+func TestDetectLlamaExternalBackendsAcceptsManagedPresetFormat(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
+	if err := os.WriteFile(configPath, []byte("version = 1\n\n[managed-qwen]\nmodel = /data/models/qwen/qwen3.gguf\nload-on-startup = true\n"), 0o644); err != nil {
+		t.Fatalf("write llama preset config: %v", err)
+	}
+
+	if got := detectLlamaExternalBackends(configPath); got != nil {
+		t.Fatalf("expected nil external backends for managed preset, got %v", got)
+	}
+}
+
+func TestResolveManagedLlamaModelEntryAcceptsManagedPresetFormat(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
+	if err := os.WriteFile(configPath, []byte("version = 1\n\n[managed-qwen]\nmodel = /data/models/qwen/qwen3.gguf\nctx-size = 8192\ncache-type-k = q4_0\nflash-attn = on\n"), 0o644); err != nil {
+		t.Fatalf("write llama preset config: %v", err)
+	}
+
+	modelPath, alias, params, err := resolveManagedLlamaModelEntry(EngineConfig{
+		Kind:             EngineLlama,
+		ModelsPath:       "/data/models",
+		ModelsConfigPath: configPath,
+	})
+	if err != nil {
+		t.Fatalf("resolveManagedLlamaModelEntry: %v", err)
+	}
+	if modelPath != "/data/models/qwen/qwen3.gguf" {
+		t.Fatalf("model path mismatch: got=%q", modelPath)
+	}
+	if alias != "managed-qwen" {
+		t.Fatalf("alias mismatch: got=%q", alias)
+	}
+	if params.CtxSize != 8192 {
+		t.Fatalf("ctx-size mismatch: got=%d", params.CtxSize)
+	}
+	if params.CacheTypeK != "q4_0" {
+		t.Fatalf("cache-type-k mismatch: got=%q", params.CacheTypeK)
+	}
+	if params.FlashAttn != "on" {
+		t.Fatalf("flash-attn mismatch: got=%q", params.FlashAttn)
 	}
 }
 

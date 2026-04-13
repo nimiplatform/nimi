@@ -2,7 +2,7 @@ import type { LocalRuntimeAssetDeclaration, LocalRuntimeAssetKind } from '@runti
 import { normalizeModelTypeOption, type AssetEngineOption } from './runtime-config-model-center-utils.js';
 import { ASSET_KIND_OPTIONS } from './runtime-config-local-model-center-helpers.js';
 
-export const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt']);
+export const RUNNABLE_ASSET_KINDS = new Set(['chat', 'image', 'video', 'tts', 'stt', 'embedding']);
 
 export function defaultEngineForModelType(modelType: string): AssetEngineOption {
   if (modelType === 'image' || modelType === 'video') {
@@ -80,6 +80,8 @@ export function capabilitiesForAssetKind(kind: LocalRuntimeAssetKind): string[] 
       return ['tts'];
     case 'stt':
       return ['stt'];
+    case 'embedding':
+      return ['embedding'];
     default:
       return ['chat'];
   }

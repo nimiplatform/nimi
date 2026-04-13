@@ -16,7 +16,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"google.golang.org/protobuf/types/known/structpb"
-	"gopkg.in/yaml.v3"
 )
 
 type registrarTestEngineManager struct {
@@ -150,21 +149,16 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 	if err != nil {
 		t.Fatalf("read generated config: %v", err)
 	}
-	var entries []managedLlamaConfigEntry
-	if err := yaml.Unmarshal(raw, &entries); err != nil {
-		t.Fatalf("unmarshal generated config: %v", err)
-	}
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 config entry, got %d", len(entries))
-	}
-	if entries[0].Name != "test-chat" {
-		t.Fatalf("unexpected llama model name: %q", entries[0].Name)
-	}
-	if entries[0].Backend != "llama-cpp" {
-		t.Fatalf("unexpected backend: %q", entries[0].Backend)
-	}
-	if entries[0].Parameters.Model != "resolved/nimi/local-test-chat/weights/model.gguf" {
-		t.Fatalf("unexpected relative model path: %q", entries[0].Parameters.Model)
+	configText := string(raw)
+	for _, want := range []string{
+		"version = 1",
+		"[test-chat]",
+		"model = " + filepath.Join(modelsPath, "resolved", "nimi", "local-test-chat", "weights", "model.gguf"),
+		"load-on-startup = true",
+	} {
+		if !strings.Contains(configText, want) {
+			t.Fatalf("expected managed llama preset to contain %q, got:\n%s", want, configText)
+		}
 	}
 	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
 		t.Fatalf("expected no restart while engine is not started, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
@@ -197,12 +191,9 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 	if err != nil {
 		t.Fatalf("read generated config after removal: %v", err)
 	}
-	entries = nil
-	if err := yaml.Unmarshal(remainingRaw, &entries); err != nil {
-		t.Fatalf("unmarshal generated config after removal: %v", err)
-	}
-	if len(entries) != 1 || entries[0].Name != "test-chat" {
-		t.Fatalf("expected only first model to remain after removal, got %+v", entries)
+	remainingText := string(remainingRaw)
+	if !strings.Contains(remainingText, "[test-chat]") || strings.Contains(remainingText, "[second-chat]") {
+		t.Fatalf("expected only first model to remain after removal, got:\n%s", remainingText)
 	}
 
 	if first.GetLocalAssetId() == "" {
@@ -287,12 +278,8 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 		t.Fatalf("expected second registration conflict problem, got %+v", registrations[second.GetLocalAssetId()])
 	}
 
-	var entries []managedLlamaConfigEntry
-	if err := yaml.Unmarshal(rendered, &entries); err != nil {
-		t.Fatalf("unmarshal rendered config: %v", err)
-	}
-	if len(entries) != 0 {
-		t.Fatalf("expected no rendered config entries after name conflict, got %+v", entries)
+	if strings.TrimSpace(string(rendered)) != "" {
+		t.Fatalf("expected no rendered config entries after name conflict, got %q", string(rendered))
 	}
 }
 
@@ -649,15 +636,12 @@ func TestBuildManagedLlamaRegistrationsPrimaryModelFirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
-	var entries []managedLlamaConfigEntry
-	if err := yaml.Unmarshal(raw, &entries); err != nil {
-		t.Fatalf("unmarshal config: %v", err)
+	configText := string(raw)
+	if strings.Index(configText, "[alpha-model]") == -1 || strings.Index(configText, "[beta-model]") == -1 {
+		t.Fatalf("expected both alpha and beta sections, got:\n%s", configText)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries, got %d", len(entries))
-	}
-	if entries[0].Name != "alpha-model" {
-		t.Fatalf("expected alpha-model first without primary, got %q", entries[0].Name)
+	if strings.Index(configText, "[alpha-model]") > strings.Index(configText, "[beta-model]") {
+		t.Fatalf("expected alpha-model first without primary, got:\n%s", configText)
 	}
 
 	// Set beta-model as primary and rebuild.
@@ -673,18 +657,65 @@ func TestBuildManagedLlamaRegistrationsPrimaryModelFirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config after primary: %v", err)
 	}
-	entries = nil
-	if err := yaml.Unmarshal(raw, &entries); err != nil {
-		t.Fatalf("unmarshal config after primary: %v", err)
+	configText = string(raw)
+	if strings.Index(configText, "[beta-model]") > strings.Index(configText, "[alpha-model]") {
+		t.Fatalf("expected beta-model first when set as primary, got:\n%s", configText)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected 2 entries after primary, got %d", len(entries))
+	if !strings.Contains(configText, "[beta-model]\nmodel = "+filepath.Join(modelsPath, "resolved", "nimi", "local-beta-model", "weights", "beta.gguf")+"\nload-on-startup = true") {
+		t.Fatalf("expected primary model to load on startup, got:\n%s", configText)
 	}
-	if entries[0].Name != "beta-model" {
-		t.Fatalf("expected beta-model first when set as primary, got %q", entries[0].Name)
+}
+
+func TestBuildManagedLlamaRegistrationsRendersEmbeddingPreset(t *testing.T) {
+	svc := newTestService(t)
+	modelsPath := filepath.Join(t.TempDir(), "models")
+	configPath := filepath.Join(t.TempDir(), "runtime", "llama-models.yaml")
+	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
+
+	writeManagedLlamaManifest(t, modelsPath, "local/qwen-embed", "./weights/embed.gguf", []string{"text.embed"})
+	installManagedLlamaModelForRegistrarTest(t, svc, "local/qwen-embed", "./weights/embed.gguf", []string{"text.embed"}, "", nil)
+
+	raw, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
 	}
-	if entries[1].Name != "alpha-model" {
-		t.Fatalf("expected alpha-model second, got %q", entries[1].Name)
+	configText := string(raw)
+	for _, want := range []string{
+		"[qwen-embed]",
+		"model = " + filepath.Join(modelsPath, "resolved", "nimi", "local-qwen-embed", "weights", "embed.gguf"),
+		"embeddings = true",
+	} {
+		if !strings.Contains(configText, want) {
+			t.Fatalf("expected embedding preset to contain %q, got:\n%s", want, configText)
+		}
+	}
+}
+
+func TestRenderManagedLlamaPresetResolvesMmprojAgainstModelsRoot(t *testing.T) {
+	modelsPath := filepath.Join(t.TempDir(), "models")
+	modelPath := filepath.Join(modelsPath, "resolved", "nimi", "local-gemma-test", "weights", "model.gguf")
+	registrations := []managedLlamaRegistration{
+		{
+			ExposedModelName: "gemma-test",
+			AbsoluteModelPath: modelPath,
+			LlamaEngineConfig: &engine.ManagedLlamaEngineConfig{
+				Mmproj: "resolved/nimi/local-gemma-test/mmproj-BF16.gguf",
+			},
+			Capabilities: []string{"chat", "text.generate.vision"},
+		},
+	}
+
+	rendered, err := renderManagedLlamaPreset(modelsPath, registrations, "")
+	if err != nil {
+		t.Fatalf("render preset: %v", err)
+	}
+	configText := string(rendered)
+	wantMmproj := filepath.Join(modelsPath, "resolved", "nimi", "local-gemma-test", "mmproj-BF16.gguf")
+	if !strings.Contains(configText, "mmproj = "+wantMmproj) {
+		t.Fatalf("expected mmproj to resolve against models root, got:\n%s", configText)
+	}
+	if strings.Contains(configText, filepath.Join(filepath.Dir(modelPath), "resolved", "nimi", "local-gemma-test", "mmproj-BF16.gguf")) {
+		t.Fatalf("preset duplicated bundle root in mmproj path:\n%s", configText)
 	}
 }
 

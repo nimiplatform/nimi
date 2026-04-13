@@ -66,21 +66,23 @@ func profileEntryUsesCanonicalImageResolution(entry *runtimev1.LocalProfileEntry
 }
 
 func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string) bool {
-	cap := strings.ToLower(strings.TrimSpace(capability))
+	cap := normalizeLocalCapabilityToken(capability)
 	if cap == "" {
 		return isRunnableKind(kind)
 	}
 	switch kind {
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
-		return cap == "chat"
+		return cap == "text.generate"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return cap == "text.embed"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
-		return cap == "image"
+		return cap == "image.generate"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
-		return cap == "video"
+		return cap == "video.generate"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
-		return cap == "tts"
+		return cap == "audio.synthesize"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
-		return cap == "stt"
+		return cap == "audio.transcribe"
 	default:
 		return false
 	}
@@ -381,7 +383,7 @@ func (s *Service) resolveVerifiedAssetForProfileEntry(entry *runtimev1.LocalProf
 		if assetID != "" && item.GetAssetId() != assetID {
 			continue
 		}
-		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != assetKind {
+		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && effectiveAssetKind(item.GetKind(), item.GetCapabilities()) != assetKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(item.GetEngine(), engine) {
@@ -452,7 +454,7 @@ func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfil
 		if assetID != "" && existing.GetAssetId() != assetID {
 			continue
 		}
-		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && existing.GetKind() != assetKind {
+		if assetKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && effectiveAssetKind(existing.GetKind(), existing.GetCapabilities()) != assetKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(existing.GetEngine(), engine) {

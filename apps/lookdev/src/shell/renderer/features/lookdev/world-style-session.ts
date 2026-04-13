@@ -10,7 +10,7 @@ import type {
   LookdevWorldStyleUnderstanding,
 } from './types.js';
 
-type SessionAgentContext = {
+export type SessionAgentContext = {
   displayName: string;
   concept: string;
   importance: LookdevAgentImportance;

@@ -131,6 +131,8 @@ func parseLocalAssetKindToken(raw string) (runtimev1.LocalAssetKind, bool) {
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, true
 	case "stt":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, true
+	case "embedding":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, true
 	case "vae":
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, true
 	case "clip":

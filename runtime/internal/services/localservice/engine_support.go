@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 )
 
 const (
@@ -73,7 +74,7 @@ func classifyManagedEngineSupportForAsset(
 }
 
 func normalizeLocalCapabilityToken(value string) string {
-	return strings.ToLower(strings.TrimSpace(value))
+	return localrouting.NormalizeCapability(value)
 }
 
 func localAssetHasCapability(capabilities []string, targets ...string) bool {

@@ -95,6 +95,7 @@ where
         request_bytes_base64: base64::engine::general_purpose::STANDARD.encode(request_bytes),
         metadata: None,
         authorization: None,
+        protected_access_token: None,
         timeout_ms: None,
     };
     let result = tauri::async_runtime::block_on(crate::runtime_bridge::runtime_bridge_unary(payload))?;
@@ -177,6 +178,7 @@ fn bridge_asset_kind(
         Ok(runtime_bridge_generated::LocalAssetKind::Video) => Ok(LocalAiAssetKind::Video),
         Ok(runtime_bridge_generated::LocalAssetKind::Tts) => Ok(LocalAiAssetKind::Tts),
         Ok(runtime_bridge_generated::LocalAssetKind::Stt) => Ok(LocalAiAssetKind::Stt),
+        Ok(runtime_bridge_generated::LocalAssetKind::Embedding) => Ok(LocalAiAssetKind::Embedding),
         Ok(runtime_bridge_generated::LocalAssetKind::Vae) => Ok(LocalAiAssetKind::Vae),
         Ok(runtime_bridge_generated::LocalAssetKind::Clip) => Ok(LocalAiAssetKind::Clip),
         Ok(runtime_bridge_generated::LocalAssetKind::Lora) => Ok(LocalAiAssetKind::Lora),

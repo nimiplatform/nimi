@@ -4,6 +4,8 @@ import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import { buildCaptureSeedSignature } from './capture-harness.js';
 import type { LookdevCaptureState, LookdevWorldStylePack } from './types.js';
 
+export type LookdevSelectedAgent = Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>;
+
 export function portraitBriefKey(worldId: string | null | undefined, agentId: string): string {
   return `${String(worldId || 'unscoped').trim() || 'unscoped'}::${agentId}`;
 }
@@ -74,7 +76,7 @@ export function isCurrentWorldStylePack(
 }
 
 export function withLookdevBatchAgentFields(
-  agent: Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>,
+  agent: LookdevSelectedAgent,
 ): LookdevAgentRecord {
   return {
     ...agent,
@@ -86,7 +88,7 @@ export function withLookdevBatchAgentFields(
 }
 
 export function expectedCaptureStateSignature(input: {
-  agent: Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>;
+  agent: LookdevSelectedAgent;
   worldStylePack: LookdevWorldStylePack;
   captureMode: 'capture' | 'batch_only';
 }): string {

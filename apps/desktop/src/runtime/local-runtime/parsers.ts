@@ -77,6 +77,38 @@ function inferIntegrityModeFromRepo(repo: string): 'verified' | 'local_unverifie
     : 'verified';
 }
 
+function normalizeCapabilityToken(value: unknown): string {
+  const normalized = asString(value).trim().toLowerCase();
+  if (normalized === 'text.embed' || normalized === 'embed') {
+    return 'embedding';
+  }
+  return normalized;
+}
+
+function normalizeCapabilities(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const items = value.map((item) => normalizeCapabilityToken(item)).filter(Boolean);
+  return items.length > 0 ? items : undefined;
+}
+
+function effectiveAssetKind(
+  kind: LocalRuntimeAssetKind,
+  capabilities: string[] | undefined,
+): LocalRuntimeAssetKind {
+  const capabilitySet = new Set((capabilities || []).map((item) => normalizeCapabilityToken(item)));
+  const hasChat = capabilitySet.has('chat') || capabilitySet.has('text.generate');
+  const hasEmbedding = capabilitySet.has('embedding');
+  if (kind === 'chat' && hasEmbedding && !hasChat) {
+    return 'embedding';
+  }
+  if (kind === 'embedding' && hasChat) {
+    return 'chat';
+  }
+  return kind;
+}
+
 export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
   const record = asRecord(value);
   const source = asRecord(record.source);
@@ -84,10 +116,11 @@ export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
   const files = Array.isArray(record.files)
     ? record.files.map((item) => asString(item)).filter(Boolean)
     : [];
+  const capabilities = normalizeCapabilities(record.capabilities);
   return {
     localAssetId: asString(record.localAssetId),
     assetId: toCanonicalLocalId(record.assetId),
-    kind: normalizeAssetKind(record.kind),
+    kind: effectiveAssetKind(normalizeAssetKind(record.kind), capabilities),
     engine: asString(record.engine),
     engineRuntimeMode: record.engineRuntimeMode == null
       ? undefined
@@ -114,9 +147,7 @@ export function parseAssetRecord(value: unknown): LocalRuntimeAssetRecord {
     updatedAt: asString(record.updatedAt),
     healthDetail: asString(record.healthDetail) || undefined,
     // Runnable-only
-    capabilities: Array.isArray(record.capabilities)
-      ? record.capabilities.map((item) => asString(item)).filter(Boolean)
-      : undefined,
+    capabilities,
     logicalModelId: asString(record.logicalModelId) || undefined,
     family: asString(record.family) || undefined,
     artifactRoles: Array.isArray(record.artifactRoles)
@@ -139,9 +170,7 @@ export function parseVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifi
   const files = Array.isArray(record.files)
     ? record.files.map((item) => asString(item)).filter(Boolean)
     : [];
-  const capabilities = Array.isArray(record.capabilities)
-    ? record.capabilities.map((item) => asString(item)).filter(Boolean)
-    : [];
+  const capabilities = normalizeCapabilities(record.capabilities) || [];
   const tags = Array.isArray(record.tags)
     ? record.tags.map((item) => asString(item)).filter(Boolean)
     : [];
@@ -153,7 +182,7 @@ export function parseVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifi
     description: asString(record.description),
     installKind: asString(record.installKind) || undefined,
     assetId: asString(record.assetId),
-    kind: normalizeAssetKind(record.kind),
+    kind: effectiveAssetKind(normalizeAssetKind(record.kind), capabilities),
     logicalModelId: asString(record.logicalModelId) || undefined,
     repo: asString(record.repo),
     revision: asString(record.revision) || 'main',
@@ -184,13 +213,14 @@ export function parseVerifiedAssetDescriptor(value: unknown): LocalRuntimeVerifi
 }
 
 export function normalizeAssetKind(value: unknown): LocalRuntimeAssetKind {
-  // Proto LocalAssetKind: CHAT=1, IMAGE=2, VIDEO=3, TTS=4, STT=5, VAE=10, CLIP=11, LORA=12, CONTROLNET=13, AUXILIARY=14
+  // Proto LocalAssetKind: CHAT=1, IMAGE=2, VIDEO=3, TTS=4, STT=5, EMBEDDING=6, VAE=10, CLIP=11, LORA=12, CONTROLNET=13, AUXILIARY=14
   if (typeof value === 'number') {
     if (value === 1) return 'chat';
     if (value === 2) return 'image';
     if (value === 3) return 'video';
     if (value === 4) return 'tts';
     if (value === 5) return 'stt';
+    if (value === 6) return 'embedding';
     if (value === 10) return 'vae';
     if (value === 11) return 'clip';
     if (value === 12) return 'lora';
@@ -204,6 +234,7 @@ export function normalizeAssetKind(value: unknown): LocalRuntimeAssetKind {
   if (raw === 'video' || raw === 'local_asset_kind_video' || raw === '3') return 'video';
   if (raw === 'tts' || raw === 'local_asset_kind_tts' || raw === '4') return 'tts';
   if (raw === 'stt' || raw === 'local_asset_kind_stt' || raw === '5') return 'stt';
+  if (raw === 'embedding' || raw === 'local_asset_kind_embedding' || raw === '6') return 'embedding';
   if (raw === 'vae' || raw === 'local_asset_kind_vae' || raw === '10') return 'vae';
   if (raw === 'clip' || raw === 'local_asset_kind_clip' || raw === '11') return 'clip';
   if (raw === 'lora' || raw === 'local_asset_kind_lora' || raw === '12') return 'lora';

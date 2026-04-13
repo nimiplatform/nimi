@@ -151,7 +151,7 @@ fn kind_from_capabilities(capabilities: &[String]) -> Result<LocalAiAssetKind, S
         return Ok(LocalAiAssetKind::Stt);
     }
     if normalized.iter().any(|value| value == "embedding") {
-        return Ok(LocalAiAssetKind::Chat);
+        return Ok(LocalAiAssetKind::Embedding);
     }
     if normalized.iter().any(|value| value == "chat") {
         return Ok(LocalAiAssetKind::Chat);
@@ -169,6 +169,7 @@ fn bundle_kind_string(kind: &LocalAiAssetKind) -> &'static str {
         LocalAiAssetKind::Video => "video",
         LocalAiAssetKind::Tts => "tts",
         LocalAiAssetKind::Stt => "stt",
+        LocalAiAssetKind::Embedding => "embedding",
         LocalAiAssetKind::Vae => "vae",
         LocalAiAssetKind::Clip => "clip",
         LocalAiAssetKind::Controlnet => "controlnet",
@@ -184,6 +185,7 @@ fn parse_bundle_kind(value: &str) -> Result<LocalAiAssetKind, String> {
         "video" => Ok(LocalAiAssetKind::Video),
         "tts" => Ok(LocalAiAssetKind::Tts),
         "stt" => Ok(LocalAiAssetKind::Stt),
+        "embedding" => Ok(LocalAiAssetKind::Embedding),
         "vae" => Ok(LocalAiAssetKind::Vae),
         "clip" => Ok(LocalAiAssetKind::Clip),
         "controlnet" => Ok(LocalAiAssetKind::Controlnet),

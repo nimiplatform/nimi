@@ -61,6 +61,7 @@ function inferKindFromCapabilities(capabilities: string[]): LocalRuntimeAssetKin
   if (capabilities.includes('video')) return 'video';
   if (capabilities.includes('tts')) return 'tts';
   if (capabilities.includes('stt')) return 'stt';
+  if (capabilities.includes('embedding') || capabilities.includes('text.embed')) return 'embedding';
   return 'chat';
 }
 

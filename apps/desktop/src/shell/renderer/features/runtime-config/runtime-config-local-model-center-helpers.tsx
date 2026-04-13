@@ -41,6 +41,7 @@ export const ALL_ASSET_KIND_OPTIONS = [
   'video',
   'tts',
   'stt',
+  'embedding',
   'vae',
   'clip',
   'controlnet',
@@ -60,6 +61,8 @@ export function formatAssetKindLabel(value: LocalRuntimeAssetKind): string {
       return 'TTS';
     case 'stt':
       return 'STT';
+    case 'embedding':
+      return 'Embedding';
     case 'vae':
       return 'VAE';
     case 'clip':
@@ -152,6 +155,7 @@ const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = {
   video: 2,
   tts: 3,
   stt: 4,
+  embedding: 5,
   vae: 10,
   clip: 11,
   controlnet: 12,

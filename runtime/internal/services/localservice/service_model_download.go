@@ -59,6 +59,11 @@ func (s *Service) installManagedDownloadedModel(
 		})
 	}
 	files := normalizeStringSlice(spec.files)
+	capabilities := normalizeAssetCapabilities(spec.capabilities)
+	kind := spec.kind
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+		kind = inferAssetKindFromCapabilities(capabilities)
+	}
 	if len(files) == 0 {
 		files = []string{strings.TrimSpace(spec.entry)}
 	}
@@ -127,7 +132,7 @@ func (s *Service) installManagedDownloadedModel(
 			Message: err.Error(),
 		})
 	}
-	if err := validateManagedModelEntryStaticCompatibility(entryPath, spec.kind, spec.capabilities, spec.engine); err != nil {
+	if err := validateManagedModelEntryStaticCompatibility(entryPath, kind, capabilities, spec.engine); err != nil {
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
 			Message: err.Error(),
@@ -139,7 +144,7 @@ func (s *Service) installManagedDownloadedModel(
 		stagingDir,
 		entryPath,
 		spec.engine,
-		spec.capabilities,
+		capabilities,
 		files,
 		spec.engineConfig,
 		spec.projectionOverride,
@@ -154,9 +159,9 @@ func (s *Service) installManagedDownloadedModel(
 	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")
 	if err := writeModelManifest(manifestPathForStaging(stagingDir), managedModelManifestDescriptor{
 		assetID:            modelID,
-		kind:               spec.kind,
+		kind:               kind,
 		logicalModelID:     logicalModelID,
-		capabilities:       spec.capabilities,
+		capabilities:       capabilities,
 		engine:             spec.engine,
 		entry:              spec.entry,
 		files:              files,
@@ -200,8 +205,8 @@ func (s *Service) installManagedDownloadedModel(
 	s.updateTransferProgress(transferID, "register", 0, 0, "registering model")
 	record, err := s.installLocalAssetRecord(
 		modelID,
-		spec.kind,
-		spec.capabilities,
+		kind,
+		capabilities,
 		spec.engine,
 		spec.entry,
 		spec.license,
@@ -433,6 +438,8 @@ func localAssetKindToken(kind runtimev1.LocalAssetKind) (string, error) {
 	switch kind {
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
 		return "chat", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return "embedding", nil
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
 		return "image", nil
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:

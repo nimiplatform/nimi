@@ -212,6 +212,7 @@ export function useRuntimeConfigModelManagementActions(
         : capabilities.includes('video') ? 'video' as const
         : capabilities.includes('tts') ? 'tts' as const
         : capabilities.includes('stt') ? 'stt' as const
+        : (capabilities.includes('embedding') || capabilities.includes('text.embed')) ? 'embedding' as const
         : 'chat' as const;
       const imported = await localRuntime.importFile({
         filePath,

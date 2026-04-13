@@ -31,6 +31,7 @@ pub enum LocalAiAssetKind {
     Video,
     Tts,
     Stt,
+    Embedding,
     Vae,
     Clip,
     Controlnet,
@@ -46,6 +47,7 @@ pub fn is_runnable_asset_kind(kind: &LocalAiAssetKind) -> bool {
             | LocalAiAssetKind::Video
             | LocalAiAssetKind::Tts
             | LocalAiAssetKind::Stt
+            | LocalAiAssetKind::Embedding
     )
 }
 

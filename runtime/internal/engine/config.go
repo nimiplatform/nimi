@@ -140,8 +140,10 @@ type EngineConfig struct {
 	// ModelsPath is the directory for model files (llama --models-path).
 	ModelsPath string
 
-	// ModelsConfigPath is the llama YAML config file passed via
-	// --models-config-file.
+	// ModelsConfigPath is the managed llama router preset file passed via
+	// --models-preset when the runtime boots the shared managed llama router.
+	// When ManagedLlamaTarget is set, command construction bypasses router mode
+	// and starts a single explicit worker target instead.
 	ModelsConfigPath string
 
 	// ManagedLlamaTarget explicitly selects the single managed llama model to

@@ -31,6 +31,7 @@ function normalizeAssetKind(value: unknown): LocalRuntimeProfileEntryDescriptor[
     || normalized === 'video'
     || normalized === 'tts'
     || normalized === 'stt'
+    || normalized === 'embedding'
     || normalized === 'vae'
     || normalized === 'clip'
     || normalized === 'controlnet'

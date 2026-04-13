@@ -43,14 +43,24 @@ func localAssetRecordIdentityKey(record *runtimev1.LocalAssetRecord) string {
 	if record == nil {
 		return ""
 	}
-	if key := localAssetIdentityKey(record.GetAssetId(), record.GetKind(), record.GetEngine()); key != "" {
+	if key := localAssetIdentityKey(record.GetAssetId(), effectiveAssetKind(record.GetKind(), record.GetCapabilities()), record.GetEngine()); key != "" {
 		return key
 	}
 	return "local-asset-id::" + strings.TrimSpace(record.GetLocalAssetId())
 }
 
 func isRunnableKind(k runtimev1.LocalAssetKind) bool {
-	return k >= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT && k <= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
+	switch k {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return true
+	default:
+		return false
+	}
 }
 
 func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
@@ -63,6 +73,8 @@ func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 		return []string{"audio.synthesize"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
 		return []string{"audio.transcribe"}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return []string{"text.embed"}
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
 		return []string{"chat"}
 	default:
@@ -70,25 +82,67 @@ func defaultCapabilitiesForAssetKind(kind runtimev1.LocalAssetKind) []string {
 	}
 }
 
+func normalizeAssetCapabilities(capabilities []string) []string {
+	if len(capabilities) == 0 {
+		return nil
+	}
+	normalized := make([]string, 0, len(capabilities))
+	for _, capability := range capabilities {
+		trimmed := strings.TrimSpace(capability)
+		if trimmed == "" {
+			continue
+		}
+		switch normalizeLocalCapabilityToken(trimmed) {
+		case "text.embed":
+			normalized = append(normalized, "text.embed")
+		default:
+			normalized = append(normalized, trimmed)
+		}
+	}
+	return normalizeStringSlice(normalized)
+}
+
 // inferAssetKindFromCapabilities derives the asset kind from the first
 // matching capability token. Returns CHAT as the default for runnable assets
 // when no capability maps to a known kind.
 func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetKind {
-	for _, cap := range capabilities {
-		switch strings.TrimSpace(strings.ToLower(cap)) {
-		case "chat", "embedding", "text.generate", "text.embed":
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
-		case "image", "image.generate":
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
-		case "video", "video.generate":
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
-		case "tts", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
-		case "stt", "audio.transcribe":
-			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
-		}
+	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
+	if localAssetHasCapability(normalizedCapabilities, "chat", "text.generate") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+	}
+	if localAssetHasCapability(normalizedCapabilities, "embedding", "embed", "text.embed") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
+	}
+	if localAssetHasCapability(normalizedCapabilities, "image", "image.generate") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
+	}
+	if localAssetHasCapability(normalizedCapabilities, "video", "video.generate") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
+	}
+	if localAssetHasCapability(normalizedCapabilities, "tts", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
+	}
+	if localAssetHasCapability(normalizedCapabilities, "stt", "audio.transcribe") {
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
 	}
 	return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+}
+
+func effectiveAssetKind(kind runtimev1.LocalAssetKind, capabilities []string) runtimev1.LocalAssetKind {
+	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
+	hasTextGenerate := localAssetHasCapability(normalizedCapabilities, "chat", "text.generate")
+	hasTextEmbed := localAssetHasCapability(normalizedCapabilities, "embedding", "embed", "text.embed")
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
+		if !hasTextGenerate && hasTextEmbed {
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
+		}
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		if hasTextGenerate {
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+		}
+	}
+	return kind
 }
 
 func slugifyLocalAssetID(assetID string) string {

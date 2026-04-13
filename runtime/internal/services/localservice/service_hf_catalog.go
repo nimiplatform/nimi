@@ -196,8 +196,8 @@ func splitPathSegments(p string) []string {
 }
 
 func pipelineTagFromCapability(capability string) string {
-	switch strings.ToLower(strings.TrimSpace(capability)) {
-	case "chat":
+	switch normalizeLocalCapabilityToken(capability) {
+	case "chat", "text.generate":
 		return "text-generation"
 	case "image":
 		return "text-to-image"
@@ -207,7 +207,7 @@ func pipelineTagFromCapability(capability string) string {
 		return "text-to-speech"
 	case "stt":
 		return "automatic-speech-recognition"
-	case "embedding":
+	case "embedding", "text.embed":
 		return "feature-extraction"
 	default:
 		return ""
@@ -237,7 +237,7 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	for _, tag := range tags {
 		appendCap(tag)
 	}
-	caps = normalizeStringSlice(caps)
+	caps = normalizeAssetCapabilities(caps)
 	if len(caps) == 0 {
 		return []string{"chat"}
 	}

@@ -28,16 +28,18 @@ func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalA
 
 	models := make([]*runtimev1.LocalAssetRecord, 0, len(modelRows))
 	for _, model := range modelRows {
+		projected := cloneLocalAsset(model)
+		projected.Kind = effectiveAssetKind(projected.GetKind(), projected.GetCapabilities())
 		if statusFilter != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
 			continue
 		}
 		if engineFilter != "" && strings.ToLower(strings.TrimSpace(model.GetEngine())) != engineFilter {
 			continue
 		}
-		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && model.GetKind() != kindFilter {
+		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && projected.GetKind() != kindFilter {
 			continue
 		}
-		models = append(models, cloneLocalAsset(model))
+		models = append(models, projected)
 	}
 	sort.Slice(models, func(i, j int) bool {
 		ci := localModelSortCategory(models[i])
@@ -69,13 +71,15 @@ func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerif
 	defer s.mu.RUnlock()
 	items := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0, len(s.verified))
 	for _, item := range s.verified {
+		projected := cloneVerifiedAsset(item)
+		projected.Kind = effectiveAssetKind(projected.GetKind(), projected.GetCapabilities())
 		if engineFilter != "" && strings.ToLower(strings.TrimSpace(item.GetEngine())) != engineFilter {
 			continue
 		}
-		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != kindFilter {
+		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && projected.GetKind() != kindFilter {
 			continue
 		}
-		items = append(items, cloneVerifiedAsset(item))
+		items = append(items, projected)
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].GetTemplateId() < items[j].GetTemplateId()

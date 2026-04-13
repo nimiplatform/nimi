@@ -212,7 +212,16 @@ func TestLlamaCommandIncludesEngineParams(t *testing.T) {
 		Port:             1234,
 		BinaryPath:       "/usr/bin/true",
 		ModelsPath:       modelsDir,
-		ModelsConfigPath: configPath,
+		ManagedLlamaTarget: &ManagedLlamaTarget{
+			ModelPath:  "test/model.gguf",
+			ModelAlias: "test-model",
+			EngineConfig: ManagedLlamaEngineConfig{
+				CtxSize:    8192,
+				CacheTypeK: "q4_0",
+				FlashAttn:  "on",
+				NGPULayers: &nGPU,
+			},
+		},
 	}
 	cmd, err := llamaCommand(cfg)
 	if err != nil {

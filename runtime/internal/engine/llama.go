@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 // llamaDownloadURL builds the GitHub Releases download URL for a llama pack.
@@ -40,16 +38,21 @@ func llamaAssetNameFor(version string, goos string, goarch string) (string, erro
 
 // llamaCommand builds the exec.Cmd for starting llama-server.
 func llamaCommand(cfg EngineConfig) (*exec.Cmd, error) {
+	args := []string{
+		"--host", "127.0.0.1",
+		"--port", strconv.Itoa(cfg.Port),
+		"--reasoning", "off",
+	}
+	if cfg.ManagedLlamaTarget == nil && strings.TrimSpace(cfg.ModelsConfigPath) != "" {
+		args = append(args, "--models-preset", strings.TrimSpace(cfg.ModelsConfigPath))
+		return exec.Command(cfg.BinaryPath, args...), nil
+	}
+
 	modelPath, modelAlias, params, err := resolveManagedLlamaModelEntry(cfg)
 	if err != nil {
 		return nil, err
 	}
-	args := []string{
-		"--host", "127.0.0.1",
-		"--port", strconv.Itoa(cfg.Port),
-		"--model", modelPath,
-		"--reasoning", "off",
-	}
+	args = append(args, "--model", modelPath)
 	if modelAlias != "" {
 		args = append(args, "--alias", modelAlias)
 	}
@@ -76,8 +79,8 @@ func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, llamaModel
 		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("read llama models config %s: %w", configPath, err)
 	}
 
-	var entries []llamaModelsConfigEntry
-	if err := yaml.Unmarshal(raw, &entries); err != nil {
+	entries, err := parseLlamaModelsConfigEntries(raw)
+	if err != nil {
 		return "", "", llamaModelsConfigParameter{}, fmt.Errorf("parse llama models config %s: %w", configPath, err)
 	}
 

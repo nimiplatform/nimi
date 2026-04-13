@@ -80,6 +80,7 @@ fn typed_folder_asset_kind(folder_name: &str) -> Option<LocalAiAssetKind> {
         "video" => Some(LocalAiAssetKind::Video),
         "tts" => Some(LocalAiAssetKind::Tts),
         "stt" => Some(LocalAiAssetKind::Stt),
+        "embedding" => Some(LocalAiAssetKind::Embedding),
         "vae" => Some(LocalAiAssetKind::Vae),
         "ae" => Some(LocalAiAssetKind::Vae),
         "clip" => Some(LocalAiAssetKind::Clip),
@@ -92,7 +93,7 @@ fn typed_folder_asset_kind(folder_name: &str) -> Option<LocalAiAssetKind> {
 
 fn default_engine_for_asset_kind(kind: &LocalAiAssetKind) -> Option<&'static str> {
     match kind {
-        LocalAiAssetKind::Chat => Some("llama"),
+        LocalAiAssetKind::Chat | LocalAiAssetKind::Embedding => Some("llama"),
         LocalAiAssetKind::Image | LocalAiAssetKind::Video => Some("media"),
         LocalAiAssetKind::Tts | LocalAiAssetKind::Stt => Some("speech"),
         LocalAiAssetKind::Vae
@@ -139,6 +140,9 @@ fn declaration_from_filename(
     }
     if lower.contains("tts") {
         return Some(asset_declaration(LocalAiAssetKind::Tts));
+    }
+    if lower.contains("embedding") || lower.contains("embed") {
+        return Some(asset_declaration(LocalAiAssetKind::Embedding));
     }
     match extension.trim().to_ascii_lowercase().as_str() {
         "gguf" | "onnx" | "bin" | "pt" | "pth" => Some(asset_declaration(LocalAiAssetKind::Chat)),

@@ -4,13 +4,13 @@ import { getAgentPortraitBinding, getLookdevAgentAuthoringContext, type LookdevA
 import type { RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
 import { createCaptureStateKey, materializePortraitBriefFromCaptureState, synthesizeSilentCaptureState } from './capture-harness.js';
 import type { LookdevCaptureState, LookdevLanguage, LookdevPortraitBrief, LookdevWorldStylePack } from './types.js';
-import { expectedCaptureStateSignature, filterReadyCaptureStates, portraitBriefKey } from './create-batch-page-helpers.js';
+import { expectedCaptureStateSignature, filterReadyCaptureStates, portraitBriefKey, type LookdevSelectedAgent } from './create-batch-page-helpers.js';
 
 type UseLookdevCaptureStateSynthesisInput = {
   stylePackConfirmed: boolean;
   worldStylePack: LookdevWorldStylePack | null;
   styleDialogueTarget: RuntimeTargetOption | null;
-  selectedAgents: Array<Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>>;
+  selectedAgents: LookdevSelectedAgent[];
   captureSelectionAgentIds: string[];
   storedCaptureStates: Record<string, LookdevCaptureState>;
   storedPortraitBriefs: Record<string, LookdevPortraitBrief>;

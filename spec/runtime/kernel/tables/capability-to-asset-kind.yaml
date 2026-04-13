@@ -19,7 +19,7 @@ mappings:
 
   - token: text.embed
     source: canonical
-    asset_kind: chat
+    asset_kind: embedding
 
   - token: image.generate
     source: canonical
@@ -48,7 +48,7 @@ mappings:
   # Local manifest tokens → asset kind (fallback)
   - token: embedding
     source: local_manifest
-    asset_kind: chat
+    asset_kind: embedding
 
   - token: image
     source: local_manifest

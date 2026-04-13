@@ -15,9 +15,10 @@ func matchesCatalogSearch(item *runtimev1.LocalCatalogModelDescriptor, query str
 		return false
 	}
 	if capability != "" {
+		normalizedCapability := normalizeLocalCapabilityToken(capability)
 		matched := false
 		for _, cap := range item.GetCapabilities() {
-			if strings.EqualFold(strings.TrimSpace(cap), capability) {
+			if normalizeLocalCapabilityToken(cap) == normalizedCapability {
 				matched = true
 				break
 			}
@@ -84,25 +85,25 @@ func adapterForProviderCapability(provider string, capability string) string {
 
 func apiPathForProviderCapability(provider string, capability string) string {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
-	cap := strings.ToLower(strings.TrimSpace(capability))
+	cap := localrouting.NormalizeCapability(capability)
 	switch cap {
-	case "embedding", "embed":
+	case "text.embed":
 		return "/v1/embeddings"
-	case "image":
+	case "image.generate":
 		if normalizedProvider == "media" {
 			return "/v1/media/image/generate"
 		}
 		return "/v1/images/generations"
-	case "music", "music.generate":
+	case "music.generate":
 		return "/v1/music/generate"
-	case "video":
+	case "video.generate":
 		if normalizedProvider == "media" {
 			return "/v1/media/video/generate"
 		}
 		return "/v1/videos/generations"
-	case "tts", "speech":
+	case "audio.synthesize":
 		return "/v1/audio/speech"
-	case "stt", "transcription":
+	case "audio.transcribe":
 		return "/v1/audio/transcriptions"
 	default:
 		return "/v1/chat/completions"

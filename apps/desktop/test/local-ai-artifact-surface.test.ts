@@ -177,3 +177,48 @@ test('parseModelRecord canonicalizes local runtime ids to local/ prefix', () => 
   assert.deepEqual(model.files, ['z_image_turbo-Q4_K_M.gguf']);
   assert.equal(artifact.assetId, 'local/z_image_ae');
 });
+
+test('parseModelRecord projects legacy chat-only embedding assets to embedding kind', () => {
+  const parsed = parseModelRecord({
+    localAssetId: '01JEMBED',
+    assetId: 'local-import/qwen3-embedding-8b',
+    kind: 'chat',
+    capabilities: ['text.embed'],
+    engine: 'llama',
+    entry: 'Qwen3-Embedding-8B-Q4_K_M.gguf',
+    files: ['Qwen3-Embedding-8B-Q4_K_M.gguf'],
+    license: 'apache-2.0',
+    source: {
+      repo: 'local-import/qwen3-embedding-8b',
+      revision: 'main',
+    },
+    hashes: {},
+    status: 'installed',
+    installedAt: '2026-03-08T00:00:00Z',
+    updatedAt: '2026-03-08T00:00:00Z',
+  });
+
+  assert.equal(parsed.kind, 'embedding');
+  assert.deepEqual(parsed.capabilities, ['embedding']);
+});
+
+test('parseVerifiedArtifactDescriptor decodes proto embedding asset kind', () => {
+  const parsed = parseVerifiedArtifactDescriptor({
+    templateId: 'verified.embed.qwen3',
+    title: 'Qwen3 Embedding 8B',
+    description: 'Verified embedding model',
+    assetId: 'verified/embed/qwen3',
+    kind: 6,
+    capabilities: ['text.embed'],
+    engine: 'llama',
+    entry: 'Qwen3-Embedding-8B-Q4_K_M.gguf',
+    files: ['Qwen3-Embedding-8B-Q4_K_M.gguf'],
+    license: 'apache-2.0',
+    repo: 'Qwen/Qwen3-Embedding-8B-GGUF',
+    revision: 'main',
+    hashes: {},
+  });
+
+  assert.equal(parsed.kind, 'embedding');
+  assert.deepEqual(parsed.capabilities, ['embedding']);
+});
