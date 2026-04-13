@@ -100,6 +100,7 @@ import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { clearPendingAttachments } from '../turns/turn-input-attachments';
 import { loadDesktopRouteOptions } from '../runtime-config/desktop-route-options-service';
 import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
+import { shouldDismissFloatingMenu } from './chat-floating-menu';
 
 function resolveIsVoiceSessionForeground(): boolean {
   if (typeof document === 'undefined') {
@@ -175,6 +176,7 @@ export function useAgentConversationModeHost(
   } | undefined>>({});
   const voiceCaptureSessionRef = useRef<AgentVoiceCaptureSession | null>(null);
   const voiceTranscribeAbortRef = useRef<AbortController | null>(null);
+  const messageContextMenuRef = useRef<HTMLDivElement | null>(null);
   const registry = useMemo(() => {
     const nextRegistry = new ConversationOrchestrationRegistry();
     nextRegistry.register(createAgentLocalChatConversationProvider());
@@ -217,7 +219,13 @@ export function useAgentConversationModeHost(
     if (!messageContextMenu) {
       return undefined;
     }
-    const handlePointerDown = () => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!shouldDismissFloatingMenu({
+        container: messageContextMenuRef.current,
+        target: event.target,
+      })) {
+        return;
+      }
       setMessageContextMenu(null);
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1012,6 +1020,7 @@ export function useAgentConversationModeHost(
 
   const auxiliaryOverlayContent = messageContextMenu ? (
     <div
+      ref={messageContextMenuRef}
       className="fixed z-50 min-w-[160px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
       style={{ left: `${messageContextMenu.x}px`, top: `${messageContextMenu.y}px`, animation: 'panel-scale-in 0.15s ease-out both' }}
       onClick={(event) => event.stopPropagation()}

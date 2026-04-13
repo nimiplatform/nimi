@@ -1,8 +1,6 @@
-import {
-  listAgentDyadicMemories,
-  listAgentCoreMemories,
-  type AgentMemoryRecord,
-} from '@nimiplatform/sdk/realm';
+import { MemoryCanonicalClass } from '@nimiplatform/sdk/runtime';
+import type { DesktopAgentMemoryRecord } from '@renderer/infra/runtime-agent-memory';
+import { createRuntimeAgentMemoryAdapter } from '@renderer/infra/runtime-agent-memory';
 import {
   CORE_DATA_API_CAPABILITIES,
   requireItemsPayload,
@@ -14,17 +12,11 @@ import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared'
 type AgentMemorySliceQuery = {
   limit?: number;
   offset?: number;
+  query?: string;
 };
 
 type AgentCoreDataClient = {
   getCurrentUser: () => Promise<unknown>;
-  listAgentCoreMemories: (agentId: string, query?: AgentMemorySliceQuery) => Promise<AgentMemoryRecord[]>;
-  listAgentDyadicMemories: (
-    agentId: string,
-    userId: string,
-    query?: AgentMemorySliceQuery,
-  ) => Promise<AgentMemoryRecord[]>;
-  listAgentMemoryProfiles: (agentId: string) => Promise<unknown>;
   listMyFriendsWithDetails: (limit?: number) => Promise<unknown>;
   getUser: (userId: string) => Promise<unknown>;
   getUserByHandle: (handle: string) => Promise<unknown>;
@@ -32,25 +24,19 @@ type AgentCoreDataClient = {
   getWorldview: (worldId: string) => Promise<unknown>;
 };
 
+type RuntimeAgentMemoryPort = Pick<
+  ReturnType<typeof createRuntimeAgentMemoryAdapter>,
+  'queryCompatibilityRecords'
+>;
+
+type RuntimeMemoryResult = {
+  items: DesktopAgentMemoryRecord[];
+  source: 'runtime-only';
+};
+
 function createAgentCoreDataClient(): AgentCoreDataClient {
   return {
     getCurrentUser: () => withRuntimeOpenApiContext((realm) => realm.services.MeService.getMe()),
-    listAgentCoreMemories: (agentId, query) => withRuntimeOpenApiContext((realm) => (
-      listAgentCoreMemories(realm, {
-        agentId,
-        limit: query?.limit,
-      })
-    )),
-    listAgentDyadicMemories: (agentId, userId, query) => withRuntimeOpenApiContext((realm) => (
-      listAgentDyadicMemories(realm, {
-        agentId,
-        userId,
-        limit: query?.limit,
-      })
-    )),
-    listAgentMemoryProfiles: async (_agentId) => {
-      throw new Error('AGENT_MEMORY_PROFILES_UNAVAILABLE');
-    },
     listMyFriendsWithDetails: (limit) => withRuntimeOpenApiContext((realm) => (
       realm.services.MeService.listMyFriendsWithDetails(undefined, limit)
     )),
@@ -69,6 +55,10 @@ function createAgentCoreDataClient(): AgentCoreDataClient {
   };
 }
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 function toPositiveInt(value: unknown): number | undefined {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return undefined;
@@ -83,96 +73,12 @@ function toNonNegativeInt(value: unknown): number | undefined {
   return rounded >= 0 ? rounded : undefined;
 }
 
-function takeTop<T>(items: T[], limit: number): T[] {
-  return items.slice(0, Math.max(0, limit));
-}
-
-function memoryIdentity(item: AgentMemoryRecord): string {
-  const id = String(item.id || '').trim();
-  if (id) return `id:${id}`;
-  const record = toRecord(item);
-  const content = String(item.content || record.text || record.summary || '').trim();
-  return content ? `content:${content}` : `raw:${JSON.stringify(item)}`;
-}
-
-function dedupeMemory(items: AgentMemoryRecord[]): AgentMemoryRecord[] {
-  const seen = new Set<string>();
-  const deduped: AgentMemoryRecord[] = [];
-  for (const item of items) {
-    const key = memoryIdentity(item);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(item);
-  }
-  return deduped;
-}
-
-
-type MemoryIndexEntry = {
-  core: AgentMemoryRecord[];
-  hasCoreSlice: boolean;
-  dyadicByUser: Map<string, AgentMemoryRecord[]>;
-  loadedDyadicUsers: Set<string>;
-  updatedAt: number;
-};
-
-const MEMORY_LOCAL_INDEX_TTL_MS = 5 * 60 * 1000;
-const memoryLocalIndex = new Map<string, MemoryIndexEntry>();
-let currentUserIdCache: { userId: string; expiresAt: number } | null = null;
-
-function getMemoryIndex(agentId: string): MemoryIndexEntry | undefined {
-  const current = memoryLocalIndex.get(agentId);
-  if (!current) return undefined;
-  if (Date.now() - current.updatedAt > MEMORY_LOCAL_INDEX_TTL_MS) {
-    return undefined;
-  }
-  return current;
-}
-
-function upsertMemoryIndex(input: {
-  agentId: string;
-  core?: AgentMemoryRecord[];
-  userId?: string;
-  dyadic?: AgentMemoryRecord[];
-}): MemoryIndexEntry {
-  const previous = memoryLocalIndex.get(input.agentId);
-  const next: MemoryIndexEntry = {
-    core: previous?.core || [],
-    hasCoreSlice: previous?.hasCoreSlice === true,
-    dyadicByUser: previous?.dyadicByUser || new Map<string, AgentMemoryRecord[]>(),
-    loadedDyadicUsers: previous?.loadedDyadicUsers || new Set<string>(),
-    updatedAt: Date.now(),
-  };
-
-  if (Array.isArray(input.core)) {
-    next.core = dedupeMemory(input.core);
-    next.hasCoreSlice = true;
-  }
-
-  if (input.userId && Array.isArray(input.dyadic)) {
-    next.dyadicByUser.set(input.userId, dedupeMemory(input.dyadic));
-    next.loadedDyadicUsers.add(input.userId);
-  }
-
-  memoryLocalIndex.set(input.agentId, next);
-  return next;
-}
-
 async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<string> {
-  const cached = currentUserIdCache;
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.userId;
-  }
-
   const payload = await client.getCurrentUser();
-  const userId = String(toRecord(payload).id || '').trim();
+  const userId = normalizeText(toRecord(payload).id);
   if (!userId) {
     throw new Error('CURRENT_USER_ID_CONTRACT_INVALID');
   }
-  currentUserIdCache = {
-    userId,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  };
   return userId;
 }
 
@@ -180,7 +86,7 @@ async function resolveUserId(
   query: Record<string, unknown>,
   resolveCurrentUserIdFn: () => Promise<string | undefined>,
 ): Promise<string | undefined> {
-  const explicit = String(query.userId || query.entityId || query.subjectId || '').trim();
+  const explicit = normalizeText(query.userId || query.entityId || query.subjectId);
   if (explicit) return explicit;
   return resolveCurrentUserIdFn();
 }
@@ -188,48 +94,25 @@ async function resolveUserId(
 function toMemorySliceQuery(query: Record<string, unknown>): AgentMemorySliceQuery | undefined {
   const limit = toPositiveInt(query.limit);
   const offset = toNonNegativeInt(query.offset);
-  if (typeof limit !== 'number' && typeof offset !== 'number') {
+  const textQuery = normalizeText(query.query || query.searchText || query.text);
+  if (typeof limit !== 'number' && typeof offset !== 'number' && !textQuery) {
     return undefined;
   }
   return {
     ...(typeof limit === 'number' ? { limit } : {}),
     ...(typeof offset === 'number' ? { offset } : {}),
+    ...(textQuery ? { query: textQuery } : {}),
   };
 }
 
-async function loadRemoteCoreMemories(
-  client: AgentCoreDataClient,
-  agentId: string,
-  query?: AgentMemorySliceQuery,
-): Promise<AgentMemoryRecord[]> {
-  return client.listAgentCoreMemories(agentId, query);
+function requireOffsetSupported(query?: AgentMemorySliceQuery): void {
+  if ((query?.offset || 0) > 0) {
+    throw new Error('RUNTIME_AGENT_MEMORY_OFFSET_UNSUPPORTED');
+  }
 }
-
-async function loadRemoteDyadicMemories(input: {
-  client: AgentCoreDataClient;
-  agentId: string;
-  userId: string;
-  query?: AgentMemorySliceQuery;
-}): Promise<AgentMemoryRecord[]> {
-  return input.client.listAgentDyadicMemories(input.agentId, input.userId, input.query);
-}
-
-type AgentCoreDataCapabilityDeps = {
-  client?: Partial<AgentCoreDataClient>;
-  resolveCurrentUserId?: () => Promise<string | undefined>;
-};
-
-export type AgentCoreDataCapabilityHandlers = {
-  agentMemoryCoreList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only' }>;
-  agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
-  agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
-  agentMemoryRecallForEntity: (query: Record<string, unknown>) => Promise<{ core: AgentMemoryRecord[]; e2e: AgentMemoryRecord[]; entityId: string; recallSource: string }>;
-  agentMemoryE2EList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
-  agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<{ coreCount: number; dyadicCount: number }>;
-};
 
 function requireAgentId(query: Record<string, unknown>): string {
-  const agentId = String(query.agentId || query.id || '').trim();
+  const agentId = normalizeText(query.agentId || query.id);
   if (!agentId) {
     throw new Error('AGENT_ID_REQUIRED');
   }
@@ -247,18 +130,27 @@ async function requireUserId(
   return userId;
 }
 
-export function resetAgentCoreDataStateForTesting(): void {
-  memoryLocalIndex.clear();
-  currentUserIdCache = null;
+function unsupportedProfiles(): never {
+  throw new Error('AGENT_MEMORY_PROFILES_UNSUPPORTED_BY_RUNTIME_AUTHORITY');
 }
 
-export function seedAgentMemoryIndexForTesting(input: {
-  agentId: string;
-  core?: AgentMemoryRecord[];
-  userId?: string;
-  dyadic?: AgentMemoryRecord[];
-}): void {
-  upsertMemoryIndex(input);
+type AgentCoreDataCapabilityDeps = {
+  client?: Partial<AgentCoreDataClient>;
+  runtimeMemory?: RuntimeAgentMemoryPort;
+  resolveCurrentUserId?: () => Promise<string | undefined>;
+};
+
+export type AgentCoreDataCapabilityHandlers = {
+  agentMemoryCoreList: (query: Record<string, unknown>) => Promise<RuntimeMemoryResult>;
+  agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<RuntimeMemoryResult & { userId: string }>;
+  agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
+  agentMemoryRecallForEntity: (query: Record<string, unknown>) => Promise<{ core: DesktopAgentMemoryRecord[]; e2e: DesktopAgentMemoryRecord[]; entityId: string; recallSource: 'runtime-only' }>;
+  agentMemoryE2EList: (query: Record<string, unknown>) => Promise<RuntimeMemoryResult & { userId: string }>;
+  agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<{ coreCount: number; dyadicCount: number }>;
+};
+
+export function resetAgentCoreDataStateForTesting(): void {
+  // runtime-backed hard-cut intentionally keeps no local memory cache
 }
 
 export function createAgentCoreDataCapabilityHandlers(
@@ -269,26 +161,36 @@ export function createAgentCoreDataCapabilityHandlers(
     ...(deps.client || {}),
   };
   const resolveCurrentUserIdFn = deps.resolveCurrentUserId ?? (() => resolveCurrentUserIdWith(client));
+  let runtimeMemory = deps.runtimeMemory;
+  const resolveRuntimeMemory = (): RuntimeAgentMemoryPort => {
+    if (!runtimeMemory) {
+      runtimeMemory = createRuntimeAgentMemoryAdapter({
+        getSubjectUserId: resolveCurrentUserIdFn,
+      });
+    }
+    return runtimeMemory;
+  };
 
   return {
     agentMemoryCoreList: async (query) => {
       const queryRecord = toRecord(query);
       const agentId = requireAgentId(queryRecord);
       const memoryQuery = toMemorySliceQuery(queryRecord);
-      const localIndex = getMemoryIndex(agentId);
-      if (localIndex?.hasCoreSlice) {
-        const limit = memoryQuery?.limit || localIndex.core.length;
-        return {
-          items: takeTop(localIndex.core, limit),
-          source: 'local-index-only' as const,
-        };
-      }
-
-      const remoteItems = await loadRemoteCoreMemories(client, agentId, memoryQuery);
-      upsertMemoryIndex({ agentId, core: remoteItems });
+      requireOffsetSupported(memoryQuery);
+      const items = await resolveRuntimeMemory().queryCompatibilityRecords({
+        agentId,
+        displayName: agentId,
+        createIfMissing: false,
+        syncDyadicContext: false,
+        syncWorldContext: false,
+        query: memoryQuery?.query,
+        limit: memoryQuery?.limit,
+        canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+        includeInvalidated: false,
+      });
       return {
-        items: remoteItems,
-        source: 'remote-only' as const,
+        items,
+        source: 'runtime-only',
       };
     },
 
@@ -297,48 +199,28 @@ export function createAgentCoreDataCapabilityHandlers(
       const agentId = requireAgentId(queryRecord);
       const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
       const memoryQuery = toMemorySliceQuery(queryRecord);
-      const localIndex = getMemoryIndex(agentId);
-      if (localIndex?.loadedDyadicUsers.has(userId)) {
-        const localItems = localIndex.dyadicByUser.get(userId) || [];
-        const limit = memoryQuery?.limit || localItems.length;
-        return {
-          items: takeTop(localItems, limit),
-          source: 'local-index-only' as const,
-          userId,
-        };
-      }
-
-      const remoteItems = await loadRemoteDyadicMemories({
-        client,
+      requireOffsetSupported(memoryQuery);
+      const items = await resolveRuntimeMemory().queryCompatibilityRecords({
         agentId,
-        userId,
-        query: memoryQuery,
-      });
-      upsertMemoryIndex({
-        agentId,
-        userId,
-        dyadic: remoteItems,
+        displayName: agentId,
+        dyadicUserId: userId,
+        createIfMissing: false,
+        syncDyadicContext: true,
+        syncWorldContext: false,
+        query: memoryQuery?.query,
+        limit: memoryQuery?.limit,
+        canonicalClasses: [MemoryCanonicalClass.DYADIC],
+        includeInvalidated: false,
       });
       return {
-        items: remoteItems,
-        source: 'remote-only' as const,
+        items,
+        source: 'runtime-only',
         userId,
       };
     },
 
-    agentMemoryProfilesList: async (query) => {
-      const agentId = requireAgentId(toRecord(query));
-      const payload = await client.listAgentMemoryProfiles(agentId);
-      const result = requireItemsPayload(
-        payload as { items?: unknown[] } & Record<string, unknown>,
-        'AGENT_MEMORY_PROFILES_CONTRACT_INVALID',
-      );
-      return {
-        ...result,
-        items: result.items
-          .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-          .map((item) => item),
-      };
+    agentMemoryProfilesList: async (_query) => {
+      unsupportedProfiles();
     },
 
     agentMemoryRecallForEntity: async (query) => {
@@ -346,18 +228,38 @@ export function createAgentCoreDataCapabilityHandlers(
       const agentId = requireAgentId(queryRecord);
       const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
       const memoryQuery = toMemorySliceQuery(queryRecord);
-      // Fail-close: let remote failures propagate so Local-Chat can
-      // exercise its own fallback chain (core.list → e2e.list).
-      const [coreResult, dyadicResult] = await Promise.all([
-        loadRemoteCoreMemories(client, agentId, memoryQuery),
-        loadRemoteDyadicMemories({ client, agentId, userId, query: memoryQuery }),
+      requireOffsetSupported(memoryQuery);
+      const [core, e2e] = await Promise.all([
+        resolveRuntimeMemory().queryCompatibilityRecords({
+          agentId,
+          displayName: agentId,
+          dyadicUserId: userId,
+          createIfMissing: false,
+          syncDyadicContext: true,
+          syncWorldContext: false,
+          query: memoryQuery?.query,
+          limit: memoryQuery?.limit,
+          canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+          includeInvalidated: false,
+        }),
+        resolveRuntimeMemory().queryCompatibilityRecords({
+          agentId,
+          displayName: agentId,
+          dyadicUserId: userId,
+          createIfMissing: false,
+          syncDyadicContext: true,
+          syncWorldContext: false,
+          query: memoryQuery?.query,
+          limit: memoryQuery?.limit,
+          canonicalClasses: [MemoryCanonicalClass.DYADIC],
+          includeInvalidated: false,
+        }),
       ]);
-      upsertMemoryIndex({ agentId, core: coreResult, userId, dyadic: dyadicResult });
       return {
-        core: coreResult,
-        e2e: dyadicResult,
+        core,
+        e2e,
         entityId: userId,
-        recallSource: 'remote-only',
+        recallSource: 'runtime-only',
       };
     },
 
@@ -366,32 +268,30 @@ export function createAgentCoreDataCapabilityHandlers(
       const agentId = requireAgentId(queryRecord);
       const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
       const memoryQuery = toMemorySliceQuery(queryRecord);
-      const localIndex = getMemoryIndex(agentId);
-      if (localIndex?.loadedDyadicUsers.has(userId)) {
-        const localItems = localIndex.dyadicByUser.get(userId) || [];
-        const limit = memoryQuery?.limit || localItems.length;
-        return {
-          items: takeTop(localItems, limit),
-          source: 'local-index-only' as const,
-          userId,
-        };
-      }
-      const remoteItems = await loadRemoteDyadicMemories({ client, agentId, userId, query: memoryQuery });
-      upsertMemoryIndex({ agentId, userId, dyadic: remoteItems });
+      requireOffsetSupported(memoryQuery);
+      const items = await resolveRuntimeMemory().queryCompatibilityRecords({
+        agentId,
+        displayName: agentId,
+        dyadicUserId: userId,
+        createIfMissing: false,
+        syncDyadicContext: true,
+        syncWorldContext: false,
+        query: memoryQuery?.query,
+        limit: memoryQuery?.limit,
+        canonicalClasses: [MemoryCanonicalClass.DYADIC],
+        includeInvalidated: false,
+      });
       return {
-        items: remoteItems,
-        source: 'remote-only' as const,
+        items,
+        source: 'runtime-only',
         userId,
       };
     },
 
-    agentMemoryStatsGet: async (query) => {
-      const queryRecord = toRecord(query);
-      const agentId = requireAgentId(queryRecord);
-      const localIndex = getMemoryIndex(agentId);
+    agentMemoryStatsGet: async (_query) => {
       return {
-        coreCount: localIndex?.core.length ?? 0,
-        dyadicCount: localIndex ? Array.from(localIndex.dyadicByUser.values()).reduce((sum, items) => sum + items.length, 0) : 0,
+        coreCount: 0,
+        dyadicCount: 0,
       };
     },
   };
@@ -407,33 +307,32 @@ export async function registerCoreDataCapabilities(): Promise<void> {
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.userByIdGet, async (query) => {
-    const userId = String(toRecord(query).userId || '').trim();
+    const userId = normalizeText(toRecord(query).userId);
     if (!userId) throw new Error('USER_ID_REQUIRED');
     const payload = await client.getUser(userId);
     return requireObjectPayload(payload as Record<string, unknown>, 'CORE_USER_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.userByHandleGet, async (query) => {
-    const handle = String(toRecord(query).handle || '').trim();
+    const handle = normalizeText(toRecord(query).handle);
     if (!handle) throw new Error('USER_HANDLE_REQUIRED');
     const payload = await client.getUserByHandle(handle);
     return requireObjectPayload(payload as Record<string, unknown>, 'CORE_USER_BY_HANDLE_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.worldByIdGet, async (query) => {
-    const worldId = String(toRecord(query).worldId || '').trim();
+    const worldId = normalizeText(toRecord(query).worldId);
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await client.getWorld(worldId);
     return requireObjectPayload(payload as Record<string, unknown>, 'CORE_WORLD_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.worldviewByIdGet, async (query) => {
-    const worldId = String(toRecord(query).worldId || '').trim();
+    const worldId = normalizeText(toRecord(query).worldId);
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await client.getWorldview(worldId);
     return requireObjectPayload(payload as Record<string, unknown>, 'CORE_WORLDVIEW_GET_CONTRACT_INVALID');
   });
-
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryCoreList, async (query) => {
     return agentHandlers.agentMemoryCoreList(toRecord(query));

@@ -338,7 +338,7 @@ test('agent host interaction prefers authoritative completion, clears draft, and
   });
 });
 
-test('agent host interaction ignores stale projection refresh after terminal completion', () => {
+test('agent host interaction applies projection refresh after terminal completion for follow-up commits', () => {
   let lifecycle = createInitialAgentTurnLifecycleState();
   lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
     type: 'projection-rebuilt',
@@ -360,8 +360,14 @@ test('agent host interaction ignores stale projection refresh after terminal com
     },
   });
 
-  assert.equal(resolveProjectionRefreshAgentHostInteraction({
-    requestedProjectionVersion: 'truth:10:t1',
+  lifecycle = reduceAgentTurnLifecycleState(lifecycle, {
+    type: 'projection-rebuilt',
+    threadId: 'thread-1',
+    projectionVersion: 'truth:11:t2',
+  });
+
+  const interaction = resolveProjectionRefreshAgentHostInteraction({
+    requestedProjectionVersion: 'truth:11:t2',
     latestProjectionVersion: lifecycle.projectionVersion,
     lifecycle,
     streamSnapshot: streamState({
@@ -371,5 +377,8 @@ test('agent host interaction ignores stale projection refresh after terminal com
     }),
     refreshedBundle: authoritativeBundle(),
     draftText: '',
-  }), null);
+  });
+
+  assert.ok(interaction);
+  assert.equal(interaction?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
 });

@@ -65,7 +65,6 @@ import {
   resolveCompletedTextMessageStateFromEnvelope,
   resolveImageStateFromResolvedAction,
   resolveVoiceStateFromResolvedAction,
-  waitForResolvedDelay,
   type AgentLocalChatImageState,
   type AgentLocalChatVoiceState,
   type AgentLocalTextMessageState,
@@ -83,6 +82,27 @@ const AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES = {
   imageGeneration: true,
   videoGeneration: false,
 } as const;
+
+const MAX_AGENT_FOLLOW_UP_TURNS = 8;
+
+type AgentFollowUpChainContext = {
+  chainId: string;
+  followUpDepth: number;
+  maxFollowUpTurns: number;
+  followUpSourceActionId: string;
+  sourceTurnId: string;
+  canceledByUser: boolean;
+};
+
+type AgentPendingFollowUpEntry = {
+  chainId: string;
+  followUpDepth: number;
+  maxFollowUpTurns: number;
+  timerId: ReturnType<typeof setTimeout> | null;
+  canceledByUser: boolean;
+};
+
+const pendingAgentFollowUpByThread = new Map<string, AgentPendingFollowUpEntry>();
 
 export type AgentLocalChatRuntimeRequest = {
   agentId: string;
@@ -237,6 +257,30 @@ export function createAgentTailAbortSignal(
   };
   signal.addEventListener('abort', propagateAbort, { once: true });
   return controller.signal;
+}
+
+function clearPendingAgentFollowUp(threadId: string): void {
+  const entry = pendingAgentFollowUpByThread.get(threadId);
+  if (!entry) {
+    return;
+  }
+  if (entry.timerId !== null) {
+    clearTimeout(entry.timerId);
+  }
+  pendingAgentFollowUpByThread.delete(threadId);
+}
+
+export function cancelPendingAgentFollowUpChain(threadId: string): void {
+  const normalizedThreadId = normalizeText(threadId);
+  if (!normalizedThreadId) {
+    return;
+  }
+  const entry = pendingAgentFollowUpByThread.get(normalizedThreadId);
+  if (!entry) {
+    return;
+  }
+  entry.canceledByUser = true;
+  clearPendingAgentFollowUp(normalizedThreadId);
 }
 
 function requireProviderMetadata(metadata: Record<string, unknown> | undefined): AgentLocalChatProviderMetadata {
@@ -415,41 +459,361 @@ async function* normalizeAgentLocalRuntimeStream(
   }
 }
 
-async function runScheduledFollowUpTurn(input: {
+function applyFollowUpChainDiagnostics(
+  diagnostics: AgentModelOutputDiagnostics,
+  chainContext: AgentFollowUpChainContext | null,
+): AgentModelOutputDiagnostics {
+  if (!chainContext) {
+    return diagnostics;
+  }
+  return {
+    ...diagnostics,
+    chainId: chainContext.chainId,
+    followUpDepth: chainContext.followUpDepth,
+    maxFollowUpTurns: chainContext.maxFollowUpTurns,
+    followUpCanceledByUser: chainContext.canceledByUser,
+    followUpSourceActionId: chainContext.followUpSourceActionId,
+  };
+}
+
+function buildNextFollowUpHistory(input: {
+  history: ConversationTurnInput['history'];
+  userMessage: ConversationTurnInput['userMessage'];
+  turnId: string;
+  assistantText: string;
+}): ConversationTurnInput['history'] {
+  return [
+    ...input.history,
+    {
+      id: input.userMessage.id,
+      role: 'user',
+      text: input.userMessage.text,
+    },
+    {
+      id: `${input.turnId}:message:0`,
+      role: 'assistant',
+      text: input.assistantText,
+    },
+  ];
+}
+
+async function runResolvedEnvelopeActions(input: {
+  threadId: string;
+  turnId: string;
+  signal: AbortSignal | undefined;
+  metadata: AgentLocalChatProviderMetadata;
+  runtimeAdapter: AgentLocalChatRuntimeAdapter;
+  envelope: AgentResolvedMessageActionEnvelope;
+  outputDiagnostics: AgentModelOutputDiagnostics | null;
+  onEvent: (event: ConversationTurnEvent) => Promise<void> | void;
+}): Promise<{
+  imageState: AgentLocalChatImageState;
+  voiceState: AgentLocalChatVoiceState;
+  outputDiagnostics: AgentModelOutputDiagnostics | null;
+  followUpAction: AgentResolvedMessageActionEnvelope['actions'][number] | null;
+}> {
+  let voiceState: AgentLocalChatVoiceState = { status: 'none' };
+  let imageState: AgentLocalChatImageState = { status: 'none' };
+  let outputDiagnostics = input.outputDiagnostics;
+  const followUpAction = findSingleExecutableFollowUpAction(input.envelope);
+  const voiceAction = findSingleExecutableVoiceAction(input.envelope);
+  const voiceDecision = voiceAction
+    ? resolveVoiceStateFromResolvedAction({
+      turnId: input.turnId,
+      action: voiceAction,
+      textMessageCount: 1,
+      transcriptText: input.envelope.message.text,
+      agentResolution: input.metadata.agentResolution,
+      voiceExecutionSnapshot: input.metadata.voiceExecutionSnapshot,
+      voiceWorkflowExecutionSnapshotByCapability: input.metadata.voiceWorkflowExecutionSnapshotByCapability,
+    })
+    : { status: 'none' as const };
+  const imageAction = findSingleExecutableImageAction(input.envelope);
+  const imageDecision = imageAction
+    ? resolveImageStateFromResolvedAction({
+      turnId: input.turnId,
+      action: imageAction,
+      textMessageCount: 1,
+      agentResolution: input.metadata.agentResolution,
+      imageExecutionSnapshot: input.metadata.imageExecutionSnapshot,
+    })
+    : { status: 'none' as const };
+  const actionExecutions = [
+    ...(voiceDecision.status === 'none'
+      ? []
+      : [{
+        beatId: voiceDecision.beatId,
+        beatIndex: voiceDecision.beatIndex,
+        modality: 'voice' as const,
+        run: async () => {
+          if (voiceDecision.status === 'pending') {
+            try {
+              const submittedWorkflow = await input.runtimeAdapter.submitVoiceWorkflow({
+                threadId: input.threadId,
+                turnId: input.turnId,
+                beatId: voiceDecision.beatId,
+                workflowIntent: voiceDecision.workflowIntent,
+                prompt: voiceDecision.prompt,
+                voiceWorkflowExecutionSnapshot: input.metadata.voiceWorkflowExecutionSnapshotByCapability[
+                  voiceDecision.workflowIntent.capability
+                ] || null,
+                referenceAudio: voiceDecision.workflowIntent.workflowType === 'tts_v2v'
+                  ? input.metadata.latestVoiceCapture
+                  : null,
+                signal: createAgentTailAbortSignal(input.threadId, input.signal),
+              });
+              const progressMessage = resolveVoiceWorkflowProgressMessage(
+                voiceDecision.workflowIntent.workflowType,
+              );
+              const workflowMetadata = buildVoiceWorkflowMetadata({
+                turnId: input.turnId,
+                voiceDecision,
+                workflowStatus: submittedWorkflow.workflowStatus,
+                jobId: submittedWorkflow.jobId,
+                traceId: submittedWorkflow.traceId,
+                voiceReference: submittedWorkflow.voiceReference,
+                voiceAssetId: submittedWorkflow.voiceAssetId,
+                providerVoiceRef: submittedWorkflow.providerVoiceRef,
+                message: progressMessage,
+              });
+              voiceState = {
+                ...voiceDecision,
+                message: progressMessage,
+                metadata: workflowMetadata,
+              };
+            } catch (voiceError) {
+              voiceState = {
+                status: 'error',
+                beatId: voiceDecision.beatId,
+                beatIndex: voiceDecision.beatIndex,
+                projectionMessageId: voiceDecision.projectionMessageId,
+                prompt: voiceDecision.prompt,
+                transcriptText: voiceDecision.transcriptText,
+                sourceMessageId: voiceDecision.sourceMessageId,
+                sourceActionId: voiceDecision.sourceActionId,
+                workflowIntent: voiceDecision.workflowIntent,
+                message: toChatAgentRuntimeError(voiceError).message,
+              };
+            }
+            return;
+          }
+          if (voiceDecision.status !== 'synthesize') {
+            voiceState = voiceDecision;
+            return;
+          }
+          await input.onEvent({
+            type: 'beat-delivery-started',
+            turnId: input.turnId,
+            beatId: voiceDecision.beatId,
+          });
+          try {
+            const keepaliveInterval = setInterval(() => {
+              feedStreamEvent(input.threadId, { type: 'keepalive' });
+            }, 10_000);
+            let generatedVoice: Awaited<ReturnType<typeof input.runtimeAdapter.synthesizeVoice>>;
+            try {
+              generatedVoice = await input.runtimeAdapter.synthesizeVoice({
+                prompt: voiceDecision.prompt,
+                voiceExecutionSnapshot: input.metadata.voiceExecutionSnapshot,
+                signal: createAgentTailAbortSignal(input.threadId, input.signal),
+              });
+            } finally {
+              clearInterval(keepaliveInterval);
+            }
+            voiceState = {
+              status: 'complete',
+              beatId: voiceDecision.beatId,
+              beatIndex: voiceDecision.beatIndex,
+              projectionMessageId: voiceDecision.projectionMessageId,
+              prompt: voiceDecision.prompt,
+              transcriptText: voiceDecision.prompt,
+              sourceMessageId: voiceDecision.sourceMessageId,
+              sourceActionId: voiceDecision.sourceActionId,
+              mediaUrl: generatedVoice.mediaUrl,
+              mimeType: generatedVoice.mimeType,
+              artifactId: generatedVoice.artifactId,
+            };
+            await input.onEvent({
+              type: 'artifact-ready',
+              turnId: input.turnId,
+              beatId: voiceState.beatId,
+              artifactId: voiceState.artifactId || voiceState.projectionMessageId,
+              mimeType: voiceState.mimeType,
+              projectionMessageId: voiceState.projectionMessageId,
+            });
+            await input.onEvent({
+              type: 'beat-delivered',
+              turnId: input.turnId,
+              beatId: voiceState.beatId,
+              projectionMessageId: voiceState.projectionMessageId,
+            });
+          } catch (voiceError) {
+            voiceState = {
+              status: 'error',
+              beatId: voiceDecision.beatId,
+              beatIndex: voiceDecision.beatIndex,
+              projectionMessageId: voiceDecision.projectionMessageId,
+              prompt: voiceDecision.prompt,
+              transcriptText: voiceDecision.prompt,
+              sourceMessageId: voiceDecision.sourceMessageId,
+              sourceActionId: voiceDecision.sourceActionId,
+              message: toChatAgentRuntimeError(voiceError).message,
+            };
+          }
+        },
+      }]),
+    ...(imageDecision.status === 'none'
+      ? []
+      : [{
+        beatId: imageDecision.beatId,
+        beatIndex: imageDecision.beatIndex,
+        modality: 'image' as const,
+        run: async () => {
+          if (imageDecision.status !== 'generate') {
+            imageState = imageDecision;
+            return;
+          }
+          await input.onEvent({
+            type: 'beat-delivery-started',
+            turnId: input.turnId,
+            beatId: imageDecision.beatId,
+          });
+          try {
+            const keepaliveInterval = setInterval(() => {
+              feedStreamEvent(input.threadId, { type: 'keepalive' });
+            }, 10_000);
+            let generatedImage: Awaited<ReturnType<typeof input.runtimeAdapter.generateImage>>;
+            try {
+              generatedImage = await input.runtimeAdapter.generateImage({
+                prompt: imageDecision.prompt,
+                imageExecutionSnapshot: input.metadata.imageExecutionSnapshot,
+                imageCapabilityParams: input.metadata.imageCapabilityParams,
+                signal: createAgentTailAbortSignal(input.threadId, input.signal),
+              });
+            } finally {
+              clearInterval(keepaliveInterval);
+            }
+            outputDiagnostics = mergeAgentImageDiagnostics(outputDiagnostics, generatedImage.diagnostics || null);
+            imageState = {
+              status: 'complete',
+              beatId: imageDecision.beatId,
+              beatIndex: imageDecision.beatIndex,
+              projectionMessageId: imageDecision.projectionMessageId,
+              prompt: imageDecision.prompt,
+              mediaUrl: generatedImage.mediaUrl,
+              mimeType: generatedImage.mimeType,
+              artifactId: generatedImage.artifactId,
+            };
+            await input.onEvent({
+              type: 'artifact-ready',
+              turnId: input.turnId,
+              beatId: imageState.beatId,
+              artifactId: imageState.artifactId || imageState.projectionMessageId,
+              mimeType: imageState.mimeType,
+              projectionMessageId: imageState.projectionMessageId,
+            });
+            await input.onEvent({
+              type: 'beat-delivered',
+              turnId: input.turnId,
+              beatId: imageState.beatId,
+              projectionMessageId: imageState.projectionMessageId,
+            });
+          } catch (imageError) {
+            imageState = {
+              status: 'error',
+              beatId: imageDecision.beatId,
+              beatIndex: imageDecision.beatIndex,
+              projectionMessageId: imageDecision.projectionMessageId,
+              prompt: imageDecision.prompt,
+              message: toChatAgentRuntimeError(imageError).message,
+            };
+          }
+        },
+      }]),
+  ].sort((left, right) => left.beatIndex - right.beatIndex);
+  for (const actionExecution of actionExecutions) {
+    await input.onEvent({
+      type: 'beat-planned',
+      turnId: input.turnId,
+      beatId: actionExecution.beatId,
+      beatIndex: actionExecution.beatIndex,
+      modality: actionExecution.modality,
+    });
+    await actionExecution.run();
+  }
+  return {
+    imageState,
+    voiceState,
+    outputDiagnostics,
+    followUpAction,
+  };
+}
+
+async function* runScheduledFollowUpTurn(input: {
   baseInput: ConversationTurnInput;
   metadata: AgentLocalChatProviderMetadata;
   runtimeAdapter: AgentLocalChatRuntimeAdapter;
   continuityAdapter: AgentLocalChatContinuityAdapter;
   followUpAction: AgentResolvedMessageActionEnvelope['actions'][number];
   priorAssistantText: string;
-}): Promise<ConversationProjectionRebuildResult | null> {
+  chainContext: AgentFollowUpChainContext;
+}): AsyncIterable<ConversationProjectionRebuildResult> {
   if (
     input.followUpAction.modality !== 'follow-up-turn'
     || input.followUpAction.promptPayload.kind !== 'follow-up-turn'
   ) {
     throw new Error(`follow-up-turn action ${input.followUpAction.actionId} requires a follow-up-turn payload`);
   }
-  await waitForResolvedDelay({
-    delayMs: input.followUpAction.promptPayload.delayMs,
-    signal: input.baseInput.signal,
-    threadId: input.baseInput.threadId,
-  });
+  const followUpPromptPayload = input.followUpAction.promptPayload;
+  const pendingEntry: AgentPendingFollowUpEntry = {
+    chainId: input.chainContext.chainId,
+    followUpDepth: input.chainContext.followUpDepth,
+    maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
+    timerId: null,
+    canceledByUser: false,
+  };
+  clearPendingAgentFollowUp(input.baseInput.threadId);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const abortWithError = () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+      const timerId = setTimeout(() => {
+        if (pendingAgentFollowUpByThread.get(input.baseInput.threadId) === pendingEntry) {
+          pendingAgentFollowUpByThread.delete(input.baseInput.threadId);
+        }
+        input.baseInput.signal?.removeEventListener('abort', abortWithError);
+        resolve();
+      }, followUpPromptPayload.delayMs);
+      pendingEntry.timerId = timerId;
+      pendingAgentFollowUpByThread.set(input.baseInput.threadId, pendingEntry);
+      if (input.baseInput.signal?.aborted) {
+        clearTimeout(timerId);
+        pendingAgentFollowUpByThread.delete(input.baseInput.threadId);
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+        return;
+      }
+      input.baseInput.signal?.addEventListener('abort', () => {
+        clearTimeout(timerId);
+        if (pendingAgentFollowUpByThread.get(input.baseInput.threadId) === pendingEntry) {
+          pendingAgentFollowUpByThread.delete(input.baseInput.threadId);
+        }
+        abortWithError();
+      }, { once: true });
+    });
+  } catch (error) {
+    if (isAbortLikeError(error) || input.baseInput.signal?.aborted) {
+      return;
+    }
+    throw error;
+  }
 
   const followUpTurnId = randomIdV11('agent-turn');
   const followUpUserMessageId = randomIdV11('agent-turn-followup');
-  const followUpHistory = [
-    ...input.baseInput.history,
-    {
-      id: input.baseInput.userMessage.id,
-      role: 'user' as const,
-      text: input.baseInput.userMessage.text,
-    },
-    {
-      id: `${input.baseInput.turnId}:message:0`,
-      role: 'assistant' as const,
-      text: input.priorAssistantText,
-    },
-  ];
+  const followUpHistory = buildNextFollowUpHistory({
+    history: input.baseInput.history,
+    userMessage: input.baseInput.userMessage,
+    turnId: input.baseInput.turnId,
+    assistantText: input.priorAssistantText,
+  });
   const turnContext = await input.continuityAdapter.loadTurnContext({
     modeId: 'agent-local-chat-v1',
     threadId: input.baseInput.threadId,
@@ -460,7 +824,7 @@ async function runScheduledFollowUpTurn(input: {
     systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
     targetSnapshot: input.metadata.targetSnapshot,
     history: followUpHistory,
-    userText: input.followUpAction.promptPayload.promptText,
+    userText: followUpPromptPayload.promptText,
     userAttachments: [],
     context: turnContext,
     resolvedBehavior: null,
@@ -494,31 +858,39 @@ async function runScheduledFollowUpTurn(input: {
     promptOverflow: executionRequest.diagnostics.promptOverflow,
   });
   if (!resolvedOutput.ok) {
+    const diagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
     logRendererEvent({
       level: 'warn',
       area: 'agent-chat-output',
       message: 'action:agent-local-chat-v1-follow-up-parse-failed',
       details: {
-        classification: resolvedOutput.diagnostics.classification,
-        recoveryPath: resolvedOutput.diagnostics.recoveryPath,
-        suspectedTruncation: resolvedOutput.diagnostics.suspectedTruncation,
-        parseErrorDetail: resolvedOutput.diagnostics.parseErrorDetail,
-        traceId: resolvedOutput.diagnostics.traceId,
-        promptTraceId: resolvedOutput.diagnostics.promptTraceId,
+        classification: diagnostics.classification,
+        recoveryPath: diagnostics.recoveryPath,
+        suspectedTruncation: diagnostics.suspectedTruncation,
+        parseErrorDetail: diagnostics.parseErrorDetail,
+        traceId: diagnostics.traceId,
+        promptTraceId: diagnostics.promptTraceId,
+        chainId: diagnostics.chainId,
+        followUpDepth: diagnostics.followUpDepth,
       },
     });
-    return null;
+    return;
   }
 
   const followUpEnvelope = resolvedOutput.envelope;
+  let followUpDiagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
   const followUpOutputText = buildAgentResolvedOutputText(followUpEnvelope);
   const textMessageState = resolveCompletedTextMessageStateFromEnvelope({
     turnId: followUpTurnId,
     envelope: followUpEnvelope,
-    metadataJson: buildAgentTextTurnDebugMetadata(resolvedOutput.diagnostics, {
+    metadataJson: buildAgentTextTurnDebugMetadata(followUpDiagnostics, {
       followUpTurn: true,
+      chainId: input.chainContext.chainId,
+      followUpDepth: input.chainContext.followUpDepth,
+      maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
+      followUpCanceledByUser: input.chainContext.canceledByUser,
       followUpSourceActionId: input.followUpAction.actionId,
-      followUpDelayMs: input.followUpAction.promptPayload.delayMs,
+      followUpDelayMs: followUpPromptPayload.delayMs,
     }),
   });
   const emittedEvents: ConversationTurnEvent[] = [
@@ -536,15 +908,29 @@ async function runScheduledFollowUpTurn(input: {
       text: followUpOutputText,
     },
   ];
+  const actionResult = await runResolvedEnvelopeActions({
+    threadId: input.baseInput.threadId,
+    turnId: followUpTurnId,
+    signal: input.baseInput.signal,
+    metadata: input.metadata,
+    runtimeAdapter: input.runtimeAdapter,
+    envelope: followUpEnvelope,
+    outputDiagnostics: followUpDiagnostics,
+    onEvent: (event) => {
+      emittedEvents.push(event);
+    },
+  });
+  followUpDiagnostics = actionResult.outputDiagnostics || followUpDiagnostics;
   const terminalEvent: ConversationTurnEvent = {
     type: 'turn-completed',
     turnId: followUpTurnId,
     outputText: followUpOutputText,
+    finishReason: 'stop',
     trace: {
       traceId: invokeResult.traceId,
       promptTraceId: invokeResult.promptTraceId,
     },
-    diagnostics: resolvedOutput.diagnostics as Record<string, unknown>,
+    diagnostics: followUpDiagnostics as Record<string, unknown>,
   };
   const commitResult = await commitProviderOutcome({
     continuityAdapter: input.continuityAdapter,
@@ -563,12 +949,47 @@ async function runScheduledFollowUpTurn(input: {
     outcome: 'completed',
     outputText: followUpOutputText,
     reasoningText: '',
+    imageState: actionResult.imageState,
+    voiceState: actionResult.voiceState,
     textMessageState,
   });
-  return {
+  yield {
     threadId: input.baseInput.threadId,
     projectionVersion: commitResult.projectionVersion,
+    bundle: commitResult.bundle,
   };
+  const nextFollowUpAction = actionResult.followUpAction;
+  if (
+    nextFollowUpAction
+    && nextFollowUpAction.modality === 'follow-up-turn'
+    && input.chainContext.followUpDepth < input.chainContext.maxFollowUpTurns
+  ) {
+    yield* runScheduledFollowUpTurn({
+      baseInput: {
+        ...input.baseInput,
+        turnId: followUpTurnId,
+        userMessage: {
+          id: followUpUserMessageId,
+          text: followUpPromptPayload.promptText,
+          attachments: [],
+        },
+        history: followUpHistory,
+      },
+      metadata: input.metadata,
+      runtimeAdapter: input.runtimeAdapter,
+      continuityAdapter: input.continuityAdapter,
+      followUpAction: nextFollowUpAction,
+      priorAssistantText: followUpOutputText,
+      chainContext: {
+        chainId: input.chainContext.chainId,
+        followUpDepth: input.chainContext.followUpDepth + 1,
+        maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
+        followUpSourceActionId: nextFollowUpAction.actionId,
+        sourceTurnId: followUpTurnId,
+        canceledByUser: input.chainContext.canceledByUser,
+      },
+    });
+  }
 }
 
 export function createAgentLocalChatConversationProvider(
@@ -724,6 +1145,7 @@ export function createAgentLocalChatConversationProvider(
                   type: 'projection-rebuilt',
                   threadId: input.threadId,
                   projectionVersion: commitResult.projectionVersion,
+                  bundle: commitResult.bundle,
                 };
                 terminalEventEmitted = true;
                 yield terminalEvent;
@@ -745,241 +1167,23 @@ export function createAgentLocalChatConversationProvider(
               };
               emittedEvents.push(sealedEvent);
               yield sealedEvent;
-              let voiceState: AgentLocalChatVoiceState = { status: 'none' };
-              let imageState: AgentLocalChatImageState = { status: 'none' };
-              const followUpAction = findSingleExecutableFollowUpAction(resolvedEnvelope);
-              const voiceAction = findSingleExecutableVoiceAction(resolvedEnvelope);
-              const voiceDecision = voiceAction
-                ? resolveVoiceStateFromResolvedAction({
-                  turnId: input.turnId,
-                  action: voiceAction,
-                  textMessageCount: 1,
-                  transcriptText: resolvedEnvelope.message.text,
-                  agentResolution: metadata.agentResolution,
-                  voiceExecutionSnapshot: metadata.voiceExecutionSnapshot,
-                  voiceWorkflowExecutionSnapshotByCapability: metadata.voiceWorkflowExecutionSnapshotByCapability,
-                })
-                : { status: 'none' as const };
-              const imageAction = findSingleExecutableImageAction(resolvedEnvelope);
-              const imageDecision = imageAction
-                ? resolveImageStateFromResolvedAction({
-                  turnId: input.turnId,
-                  action: imageAction,
-                  textMessageCount: 1,
-                  agentResolution: metadata.agentResolution,
-                  imageExecutionSnapshot: metadata.imageExecutionSnapshot,
-                })
-                : { status: 'none' as const };
-              const actionExecutions = [
-                ...(voiceDecision.status === 'none'
-                  ? []
-                  : [{
-                    beatId: voiceDecision.beatId,
-                    beatIndex: voiceDecision.beatIndex,
-                    modality: 'voice' as const,
-                    run: async function* (): AsyncIterable<ConversationTurnEvent> {
-                      if (voiceDecision.status === 'pending') {
-                        try {
-                          const submittedWorkflow = await runtimeAdapter.submitVoiceWorkflow({
-                            threadId: input.threadId,
-                            turnId: input.turnId,
-                            beatId: voiceDecision.beatId,
-                            workflowIntent: voiceDecision.workflowIntent,
-                            prompt: voiceDecision.prompt,
-                            voiceWorkflowExecutionSnapshot: metadata.voiceWorkflowExecutionSnapshotByCapability[
-                              voiceDecision.workflowIntent.capability
-                            ] || null,
-                            referenceAudio: voiceDecision.workflowIntent.workflowType === 'tts_v2v'
-                              ? metadata.latestVoiceCapture
-                              : null,
-                            signal: createAgentTailAbortSignal(input.threadId, input.signal),
-                          });
-                          const progressMessage = resolveVoiceWorkflowProgressMessage(
-                            voiceDecision.workflowIntent.workflowType,
-                          );
-                          const workflowMetadata = buildVoiceWorkflowMetadata({
-                            turnId: input.turnId,
-                            voiceDecision,
-                            workflowStatus: submittedWorkflow.workflowStatus,
-                            jobId: submittedWorkflow.jobId,
-                            traceId: submittedWorkflow.traceId,
-                            voiceReference: submittedWorkflow.voiceReference,
-                            voiceAssetId: submittedWorkflow.voiceAssetId,
-                            providerVoiceRef: submittedWorkflow.providerVoiceRef,
-                            message: progressMessage,
-                          });
-                          voiceState = {
-                            ...voiceDecision,
-                            message: progressMessage,
-                            metadata: workflowMetadata,
-                          };
-                        } catch (voiceError) {
-                          voiceState = {
-                            status: 'error',
-                            beatId: voiceDecision.beatId,
-                            beatIndex: voiceDecision.beatIndex,
-                            projectionMessageId: voiceDecision.projectionMessageId,
-                            prompt: voiceDecision.prompt,
-                            transcriptText: voiceDecision.transcriptText,
-                            sourceMessageId: voiceDecision.sourceMessageId,
-                            sourceActionId: voiceDecision.sourceActionId,
-                            workflowIntent: voiceDecision.workflowIntent,
-                            message: toChatAgentRuntimeError(voiceError).message,
-                          };
-                        }
-                        return;
-                      }
-                      if (voiceDecision.status !== 'synthesize') {
-                        voiceState = voiceDecision;
-                        return;
-                      }
-                      const voiceDeliveryStarted: ConversationTurnEvent = {
-                        type: 'beat-delivery-started',
-                        turnId: input.turnId,
-                        beatId: voiceDecision.beatId,
-                      };
-                      yield voiceDeliveryStarted;
-                      try {
-                        const keepaliveInterval = setInterval(() => {
-                          feedStreamEvent(input.threadId, { type: 'keepalive' });
-                        }, 10_000);
-                        let generatedVoice: Awaited<ReturnType<typeof runtimeAdapter.synthesizeVoice>>;
-                        try {
-                          generatedVoice = await runtimeAdapter.synthesizeVoice({
-                            prompt: voiceDecision.prompt,
-                            voiceExecutionSnapshot: metadata.voiceExecutionSnapshot,
-                            signal: createAgentTailAbortSignal(input.threadId, input.signal),
-                          });
-                        } finally {
-                          clearInterval(keepaliveInterval);
-                        }
-                        voiceState = {
-                          status: 'complete',
-                          beatId: voiceDecision.beatId,
-                          beatIndex: voiceDecision.beatIndex,
-                          projectionMessageId: voiceDecision.projectionMessageId,
-                          prompt: voiceDecision.prompt,
-                          transcriptText: voiceDecision.prompt,
-                          sourceMessageId: voiceDecision.sourceMessageId,
-                          sourceActionId: voiceDecision.sourceActionId,
-                          mediaUrl: generatedVoice.mediaUrl,
-                          mimeType: generatedVoice.mimeType,
-                          artifactId: generatedVoice.artifactId,
-                        };
-                        yield {
-                          type: 'artifact-ready',
-                          turnId: input.turnId,
-                          beatId: voiceState.beatId,
-                          artifactId: voiceState.artifactId || voiceState.projectionMessageId,
-                          mimeType: voiceState.mimeType,
-                          projectionMessageId: voiceState.projectionMessageId,
-                        };
-                        yield {
-                          type: 'beat-delivered',
-                          turnId: input.turnId,
-                          beatId: voiceState.beatId,
-                          projectionMessageId: voiceState.projectionMessageId,
-                        };
-                      } catch (voiceError) {
-                        voiceState = {
-                          status: 'error',
-                          beatId: voiceDecision.beatId,
-                          beatIndex: voiceDecision.beatIndex,
-                          projectionMessageId: voiceDecision.projectionMessageId,
-                          prompt: voiceDecision.prompt,
-                          transcriptText: voiceDecision.prompt,
-                          sourceMessageId: voiceDecision.sourceMessageId,
-                          sourceActionId: voiceDecision.sourceActionId,
-                          message: toChatAgentRuntimeError(voiceError).message,
-                        };
-                      }
-                    },
-                  }]),
-                ...(imageDecision.status === 'none'
-                  ? []
-                  : [{
-                    beatId: imageDecision.beatId,
-                    beatIndex: imageDecision.beatIndex,
-                    modality: 'image' as const,
-                    run: async function* (): AsyncIterable<ConversationTurnEvent> {
-                      if (imageDecision.status !== 'generate') {
-                        imageState = imageDecision;
-                        return;
-                      }
-                      const imageDeliveryStarted: ConversationTurnEvent = {
-                        type: 'beat-delivery-started',
-                        turnId: input.turnId,
-                        beatId: imageDecision.beatId,
-                      };
-                      yield imageDeliveryStarted;
-                      try {
-                        // Keep stream alive during long artifact generation.
-                        const keepaliveInterval = setInterval(() => {
-                          feedStreamEvent(input.threadId, { type: 'keepalive' });
-                        }, 10_000);
-                        let generatedImage: Awaited<ReturnType<typeof runtimeAdapter.generateImage>>;
-                        try {
-                          generatedImage = await runtimeAdapter.generateImage({
-                            prompt: imageDecision.prompt,
-                            imageExecutionSnapshot: metadata.imageExecutionSnapshot,
-                            imageCapabilityParams: metadata.imageCapabilityParams,
-                            signal: createAgentTailAbortSignal(input.threadId, input.signal),
-                          });
-                        } finally {
-                          clearInterval(keepaliveInterval);
-                        }
-                        outputDiagnostics = mergeAgentImageDiagnostics(outputDiagnostics, generatedImage.diagnostics || null);
-                        imageState = {
-                          status: 'complete',
-                          beatId: imageDecision.beatId,
-                          beatIndex: imageDecision.beatIndex,
-                          projectionMessageId: imageDecision.projectionMessageId,
-                          prompt: imageDecision.prompt,
-                          mediaUrl: generatedImage.mediaUrl,
-                          mimeType: generatedImage.mimeType,
-                          artifactId: generatedImage.artifactId,
-                        };
-                        yield {
-                          type: 'artifact-ready',
-                          turnId: input.turnId,
-                          beatId: imageState.beatId,
-                          artifactId: imageState.artifactId || imageState.projectionMessageId,
-                          mimeType: imageState.mimeType,
-                          projectionMessageId: imageState.projectionMessageId,
-                        };
-                        yield {
-                          type: 'beat-delivered',
-                          turnId: input.turnId,
-                          beatId: imageState.beatId,
-                          projectionMessageId: imageState.projectionMessageId,
-                        };
-                      } catch (imageError) {
-                        imageState = {
-                          status: 'error',
-                          beatId: imageDecision.beatId,
-                          beatIndex: imageDecision.beatIndex,
-                          projectionMessageId: imageDecision.projectionMessageId,
-                          prompt: imageDecision.prompt,
-                          message: toChatAgentRuntimeError(imageError).message,
-                        };
-                      }
-                    },
-                  }]),
-              ].sort((left, right) => left.beatIndex - right.beatIndex);
-              for (const actionExecution of actionExecutions) {
-                const plannedEvent: ConversationTurnEvent = {
-                  type: 'beat-planned',
-                  turnId: input.turnId,
-                  beatId: actionExecution.beatId,
-                  beatIndex: actionExecution.beatIndex,
-                  modality: actionExecution.modality,
-                };
-                emittedEvents.push(plannedEvent);
-                yield plannedEvent;
-                for await (const actionEvent of actionExecution.run()) {
-                  emittedEvents.push(actionEvent);
-                  yield actionEvent;
-                }
+              const actionEvents: ConversationTurnEvent[] = [];
+              const actionResult = await runResolvedEnvelopeActions({
+                threadId: input.threadId,
+                turnId: input.turnId,
+                signal: input.signal,
+                metadata,
+                runtimeAdapter,
+                envelope: resolvedEnvelope,
+                outputDiagnostics,
+                onEvent: (event) => {
+                  emittedEvents.push(event);
+                  actionEvents.push(event);
+                },
+              });
+              outputDiagnostics = actionResult.outputDiagnostics;
+              for (const actionEvent of actionEvents) {
+                yield actionEvent;
               }
               const terminalEvent: ConversationTurnEvent = {
                 type: 'turn-completed',
@@ -1001,31 +1205,40 @@ export function createAgentLocalChatConversationProvider(
                 outcome: 'completed',
                 outputText,
                 reasoningText,
-                imageState,
-                voiceState,
+                imageState: actionResult.imageState,
+                voiceState: actionResult.voiceState,
                 textMessageState: textMessageState || undefined,
               });
               yield {
                 type: 'projection-rebuilt',
                 threadId: input.threadId,
                 projectionVersion: commitResult.projectionVersion,
+                bundle: commitResult.bundle,
               };
               terminalEventEmitted = true;
               yield terminalEvent;
-              if (followUpAction && followUpAction.modality === 'follow-up-turn') {
-                const followUpProjection = await runScheduledFollowUpTurn({
+              if (actionResult.followUpAction && actionResult.followUpAction.modality === 'follow-up-turn') {
+                for await (const followUpProjection of runScheduledFollowUpTurn({
                   baseInput: input,
                   metadata,
                   runtimeAdapter,
                   continuityAdapter,
-                  followUpAction,
+                  followUpAction: actionResult.followUpAction,
                   priorAssistantText: outputText,
-                });
-                if (followUpProjection) {
+                  chainContext: {
+                    chainId: randomIdV11('agent-followup-chain'),
+                    followUpDepth: 1,
+                    maxFollowUpTurns: MAX_AGENT_FOLLOW_UP_TURNS,
+                    followUpSourceActionId: actionResult.followUpAction.actionId,
+                    sourceTurnId: input.turnId,
+                    canceledByUser: false,
+                  },
+                })) {
                   yield {
                     type: 'projection-rebuilt',
                     threadId: followUpProjection.threadId,
                     projectionVersion: followUpProjection.projectionVersion,
+                    bundle: followUpProjection.bundle,
                   };
                 }
               }
@@ -1058,6 +1271,7 @@ export function createAgentLocalChatConversationProvider(
                 type: 'projection-rebuilt',
                 threadId: input.threadId,
                 projectionVersion: commitResult.projectionVersion,
+                bundle: commitResult.bundle,
               };
               terminalEventEmitted = true;
               yield terminalEvent;
@@ -1100,6 +1314,7 @@ export function createAgentLocalChatConversationProvider(
             type: 'projection-rebuilt',
             threadId: input.threadId,
             projectionVersion: commitResult.projectionVersion,
+            bundle: commitResult.bundle,
           };
           yield terminalEvent;
           return;
@@ -1130,6 +1345,7 @@ export function createAgentLocalChatConversationProvider(
           type: 'projection-rebuilt',
           threadId: input.threadId,
           projectionVersion: commitResult.projectionVersion,
+          bundle: commitResult.bundle,
         };
         yield terminalEvent;
       }

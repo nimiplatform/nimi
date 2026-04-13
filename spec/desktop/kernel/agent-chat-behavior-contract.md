@@ -135,6 +135,10 @@ Desktop agent chat may consume `runtime.agentCore` state and memory projections,
 - desktop 对 agent 状态的改变必须通过 admitted runtime command surface 提交
 - thread-local `follow-up-turn` continuity 不得被扩写为 runtime-owned life scheduling truth
 - desktop notification / UI orchestration / chat continuity 只能消费 Runtime Agent Core outputs，不得回写为独立 agent owner
+- `data-api.core.agent.memory.*` 若继续保留，只能作为 runtime-backed compatibility projection；
+  不得再经由 Realm helper、desktop-local index、或 app-owned cache 形成平行 memory truth
+- legacy `profiles` / `stats` / offset-style pagination 等若无 admitted runtime 等价面，
+  必须 fail-close；不得拼凑近似值、伪分页、或 provider-derived pseudo-success
 
 ## Fact Sources
 

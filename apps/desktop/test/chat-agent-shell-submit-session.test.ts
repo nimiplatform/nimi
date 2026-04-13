@@ -292,7 +292,7 @@ test('agent submit session keeps authoritative projection when stale text delta 
   assert.equal(staleDelta.visibleBundle?.messages.at(-1)?.reasoningText, 'authoritative reasoning');
 });
 
-test('agent submit session ignores stale projection refresh after completed terminal', () => {
+test('agent submit session applies projection refresh after completed terminal for follow-up commits', () => {
   let session = createSession();
   session = reduceAgentSubmitSessionEvent(session, {
     event: {
@@ -333,9 +333,18 @@ test('agent submit session ignores stale projection refresh after completed term
   session = completed.state;
   assert.equal(completed.hostInteractionPatch?.footerViewState.displayState, 'hidden');
 
-  const staleRefresh = resolveProjectionRefreshAgentSubmitSession({
+  session = reduceAgentSubmitSessionEvent(session, {
+    event: {
+      type: 'projection-rebuilt',
+      threadId: 'thread-1',
+      projectionVersion: 'truth:11:t2',
+    },
+    updatedAtMs: 160,
+  }).state;
+
+  const followUpRefresh = resolveProjectionRefreshAgentSubmitSession({
     state: session,
-    requestedProjectionVersion: 'truth:10:t1',
+    requestedProjectionVersion: 'truth:11:t2',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -344,7 +353,8 @@ test('agent submit session ignores stale projection refresh after completed term
       traceId: 'trace-done',
     }),
   });
-  assert.equal(staleRefresh.hostInteractionPatch, null);
+  assert.ok(followUpRefresh.hostInteractionPatch);
+  assert.equal(followUpRefresh.hostInteractionPatch?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
 test('agent submit session emits an error stream event only while waiting or streaming', () => {

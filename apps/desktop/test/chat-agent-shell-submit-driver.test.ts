@@ -253,7 +253,7 @@ test('agent submit driver accepts projection refresh in running state and keeps 
   assert.equal(staleDelta.bundleEffects[0]?.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
-test('agent submit driver ignores late projection refresh after completed terminal and keeps done before host patch', () => {
+test('agent submit driver applies projection refresh after completed terminal for follow-up commits', () => {
   let state = createDriverState();
   state = reduceAgentSubmitDriverEvent({
     state,
@@ -301,9 +301,22 @@ test('agent submit driver ignores late projection refresh after completed termin
   assert.deepEqual(effectKinds(completedCheckpoint), ['host']);
   assert.equal(completedCheckpoint.hostPatchEffect?.footerViewState.displayState, 'hidden');
 
-  const lateRefresh = resolveAgentSubmitDriverProjectionRefresh({
+  const followUpProjection = reduceAgentSubmitDriverEvent({
     state,
-    requestedProjectionVersion: 'truth:10:t1',
+    event: {
+      type: 'projection-rebuilt',
+      threadId: 'thread-1',
+      projectionVersion: 'truth:11:t2',
+    },
+    updatedAtMs: 160,
+  });
+  state = followUpProjection.finalSession;
+  assert.deepEqual(effectKinds(followUpProjection), []);
+  assert.deepEqual(followUpProjection.awaitRefresh, { requestedProjectionVersion: 'truth:11:t2' });
+
+  const followUpRefresh = resolveAgentSubmitDriverProjectionRefresh({
+    state,
+    requestedProjectionVersion: 'truth:11:t2',
     refreshedBundle: authoritativeBundle(),
     draftText: '',
     streamSnapshot: streamState({
@@ -312,7 +325,8 @@ test('agent submit driver ignores late projection refresh after completed termin
       traceId: 'trace-done',
     }),
   });
-  assert.deepEqual(effectKinds(lateRefresh), []);
+  assert.deepEqual(effectKinds(followUpRefresh), ['host']);
+  assert.equal(followUpRefresh.hostPatchEffect?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
 });
 
 test('agent submit driver emits interrupted stream effect before interrupted host patch while waiting', () => {

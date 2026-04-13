@@ -17,7 +17,7 @@ export function resolveAgentProjectionRefreshOutcome(input: {
   if (!input.refreshedBundle) {
     return null;
   }
-  if (input.terminal !== 'running') {
+  if (input.terminal === 'failed' || input.terminal === 'canceled') {
     return null;
   }
   if (input.latestProjectionVersion !== input.requestedProjectionVersion) {

@@ -87,6 +87,11 @@ export type AgentModelOutputDiagnostics = {
   requestSystemPrompt: string | null;
   rawModelOutputText: string | null;
   normalizedModelOutputText: string | null;
+  chainId: string | null;
+  followUpDepth: number | null;
+  maxFollowUpTurns: number | null;
+  followUpCanceledByUser: boolean;
+  followUpSourceActionId: string | null;
   image?: AgentImageExecutionDiagnostics | null;
 };
 export type ResolveAgentModelOutputEnvelopeInput = {
@@ -399,6 +404,11 @@ function buildAgentModelOutputDiagnostics(input: {
   normalizedModelOutput: string;
   requestPrompt?: string | null;
   requestSystemPrompt?: string | null;
+  chainId?: string | null;
+  followUpDepth?: number | null;
+  maxFollowUpTurns?: number | null;
+  followUpCanceledByUser?: boolean;
+  followUpSourceActionId?: string | null;
   finishReason?: string | null;
   trace?: {
     traceId?: string | null;
@@ -427,6 +437,11 @@ function buildAgentModelOutputDiagnostics(input: {
     requestSystemPrompt: normalizeNullableText(input.requestSystemPrompt),
     rawModelOutputText: typeof input.rawModelOutput === 'string' ? input.rawModelOutput : null,
     normalizedModelOutputText: typeof input.normalizedModelOutput === 'string' ? input.normalizedModelOutput : null,
+    chainId: normalizeNullableText(input.chainId),
+    followUpDepth: normalizeOptionalPositiveInteger(input.followUpDepth),
+    maxFollowUpTurns: normalizeOptionalPositiveInteger(input.maxFollowUpTurns),
+    followUpCanceledByUser: input.followUpCanceledByUser === true,
+    followUpSourceActionId: normalizeNullableText(input.followUpSourceActionId),
     image: null,
   };
 }
@@ -620,6 +635,11 @@ export function parseAgentModelOutputDiagnostics(value: unknown): AgentModelOutp
     requestSystemPrompt: normalizeNullableText(record.requestSystemPrompt),
     rawModelOutputText: normalizeNullableText(record.rawModelOutputText),
     normalizedModelOutputText: normalizeNullableText(record.normalizedModelOutputText),
+    chainId: normalizeNullableText(record.chainId),
+    followUpDepth: normalizeOptionalPositiveInteger(record.followUpDepth),
+    maxFollowUpTurns: normalizeOptionalPositiveInteger(record.maxFollowUpTurns),
+    followUpCanceledByUser: record.followUpCanceledByUser === true,
+    followUpSourceActionId: normalizeNullableText(record.followUpSourceActionId),
     image: parseAgentImageExecutionDiagnostics(record.image),
   };
 }

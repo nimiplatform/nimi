@@ -228,6 +228,25 @@ function buildReturnDataCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosti
   };
 }
 
+function buildFollowUpChainCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData | null {
+  const diagnostics = lifecycle.diagnostics;
+  if (!diagnostics?.chainId && !diagnostics?.followUpDepth) {
+    return null;
+  }
+  return {
+    key: 'turn-follow-up-chain',
+    label: 'Follow-up Chain',
+    value: diagnostics.followUpDepth && diagnostics.maxFollowUpTurns
+      ? `${diagnostics.followUpDepth}/${diagnostics.maxFollowUpTurns}`
+      : 'Captured',
+    detail: joinDetails([
+      diagnostics.chainId ? `chainId=${diagnostics.chainId}` : null,
+      diagnostics.followUpSourceActionId ? `sourceActionId=${diagnostics.followUpSourceActionId}` : null,
+      `followUpCanceledByUser=${diagnostics.followUpCanceledByUser}`,
+    ]),
+  };
+}
+
 export function buildAgentDiagnosticsViewModel(input: {
   activeTarget: AgentLocalTargetSnapshot | null;
   lifecycle: AgentTurnLifecycleState | null;
@@ -267,6 +286,7 @@ export function buildAgentDiagnosticsViewModel(input: {
       buildFinishCard(lifecycle),
       buildOutputCard(lifecycle),
       buildBudgetCard(lifecycle),
+      buildFollowUpChainCard(lifecycle),
       buildImageCard(lifecycle),
       buildPromptCard(lifecycle),
       buildReturnDataCard(lifecycle),

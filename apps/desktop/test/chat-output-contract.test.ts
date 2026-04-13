@@ -52,10 +52,13 @@ test('desktop chat output contract helper exposes message-action envelope rules'
   assert.match(section, /Use one shared action schema for all modalities: "modality" must be "image", "voice", "video", or "follow-up-turn"/);
   assert.match(section, /Phase 1 limits: emit at most one "image" action and at most one "voice" action in the entire "actions" array/);
   assert.match(section, /At most one "follow-up-turn" action may appear in the entire "actions" array/);
+  assert.match(section, /A follow-up-turn may appear again in later auto follow-up turns, but each single turn still admits at most one follow-up-turn action/);
+  assert.match(section, /The full auto follow-up chain is capped at 8 assistant turns total/);
+  assert.match(section, /A user reply in the same thread cancels any pending follow-up-turn delay/);
   assert.match(section, /Never emit multiple "voice" actions in the same turn/);
   assert.match(section, /Use typed prompt payloads only: image -> \{"kind":"image-prompt","promptText":"\.\.\."\}, voice -> \{"kind":"voice-prompt","promptText":"\.\.\."\}, video -> \{"kind":"video-prompt","promptText":"\.\.\."\}, follow-up-turn -> \{"kind":"follow-up-turn","promptText":"\.\.\.","delayMs":400\}/);
   assert.match(section, /For voice actions, use "operation": "audio\.synthesize" for narrow playback, "voice_workflow\.tts_v2v" for clone workflow, or "voice_workflow\.tts_t2v" for design workflow/);
-  assert.match(section, /For follow-up-turn actions, use "operation": "assistant\.turn\.schedule"/);
+  assert.match(section, /For follow-up-turn actions, use "operation": "assistant\.turn\.schedule".*may return its own actions array/);
   assert.match(section, /If no modality action exists, return "actions": \[\]/);
   assert.doesNotMatch(section, /Only output the user-visible reply body/);
   assert.doesNotMatch(section, /fall back to plain text instead of partial Markdown/);

@@ -1,25 +1,25 @@
 import assert from 'node:assert/strict';
-import type { AgentMemoryRecord } from '@nimiplatform/sdk/realm';
 import test from 'node:test';
+import { MemoryCanonicalClass } from '@nimiplatform/sdk/runtime';
+import type { DesktopAgentMemoryRecord } from '../src/shell/renderer/infra/runtime-agent-memory';
 import {
   createAgentCoreDataCapabilityHandlers,
   resetAgentCoreDataStateForTesting,
-  seedAgentMemoryIndexForTesting,
 } from '../src/shell/renderer/infra/bootstrap/core-capabilities';
 
-function makeMemoryRecord(id: string, overrides: Partial<AgentMemoryRecord> = {}): AgentMemoryRecord {
+function makeMemoryRecord(id: string, overrides: Partial<DesktopAgentMemoryRecord> = {}): DesktopAgentMemoryRecord {
   return {
     actorRefs: [],
-    appId: 'desktop-test',
+    appId: 'runtime.agentCore',
     commitId: `${id}-commit`,
     id,
     content: `${id} content`,
-    createdAt: '2026-03-01T00:00:00Z',
+    createdAt: '2026-03-01T00:00:00.000Z',
     createdBy: 'user-1',
     effectClass: 'MEMORY_ONLY',
     importance: 1,
-    reason: 'desktop test',
-    schemaId: 'agent.memory.commit',
+    reason: 'runtime projection',
+    schemaId: 'runtime.agent_core.canonical_memory',
     schemaVersion: '1',
     sessionId: 'desktop-test-session',
     type: 'PUBLIC_SHARED',
@@ -30,122 +30,170 @@ function makeMemoryRecord(id: string, overrides: Partial<AgentMemoryRecord> = {}
   };
 }
 
-test('agent memory core list uses cache-only semantics and rejects missing agentId', async () => {
+test('agent memory core list is runtime-only and rejects missing agentId or offset', async () => {
   resetAgentCoreDataStateForTesting();
 
-  const missingHandlers = createAgentCoreDataCapabilityHandlers();
+  const calls: Array<Record<string, unknown>> = [];
+  const handlers = createAgentCoreDataCapabilityHandlers({
+    runtimeMemory: {
+      queryCompatibilityRecords: async (input) => {
+        calls.push(input as unknown as Record<string, unknown>);
+        return [makeMemoryRecord('core-1')];
+      },
+    },
+  });
+
   await assert.rejects(
-    () => missingHandlers.agentMemoryCoreList({}),
+    () => handlers.agentMemoryCoreList({}),
     /AGENT_ID_REQUIRED/,
   );
 
-  seedAgentMemoryIndexForTesting({
-    agentId: 'agent-cache',
-    core: [makeMemoryRecord('core-1')],
-  });
-  let requestCount = 0;
-  const cachedHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      listAgentCoreMemories: async () => {
-        requestCount += 1;
-        throw new Error('UNEXPECTED_REMOTE_CALL');
-      },
-    },
-  });
-  const cached = await cachedHandlers.agentMemoryCoreList({ agentId: 'agent-cache', limit: 1 });
-  assert.deepEqual(cached, {
-    items: [makeMemoryRecord('core-1')],
-    source: 'local-index-only',
-  });
-  assert.equal(requestCount, 0);
+  await assert.rejects(
+    () => handlers.agentMemoryCoreList({ agentId: 'agent-1', offset: 1 }),
+    /RUNTIME_AGENT_MEMORY_OFFSET_UNSUPPORTED/,
+  );
 
-  resetAgentCoreDataStateForTesting();
+  const result = await handlers.agentMemoryCoreList({ agentId: 'agent-1', limit: 2, query: 'memory' });
+  assert.deepEqual(result, {
+    items: [makeMemoryRecord('core-1')],
+    source: 'runtime-only',
+  });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], {
+    agentId: 'agent-1',
+    displayName: 'agent-1',
+    createIfMissing: false,
+    syncDyadicContext: false,
+    syncWorldContext: false,
+    query: 'memory',
+    limit: 2,
+    canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+    includeInvalidated: false,
+  });
+
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      listAgentCoreMemories: async () => {
-        throw new Error('REMOTE_MEMORY_DOWN');
+    runtimeMemory: {
+      queryCompatibilityRecords: async () => {
+        throw new Error('RUNTIME_GRPC_NOT_FOUND');
       },
     },
   });
   await assert.rejects(
-    () => failingHandlers.agentMemoryCoreList({ agentId: 'agent-cache' }),
-    /REMOTE_MEMORY_DOWN/,
+    () => failingHandlers.agentMemoryCoreList({ agentId: 'agent-404' }),
+    /RUNTIME_GRPC_NOT_FOUND/,
   );
 });
 
-test('agent memory dyadic list requires user context and only serves cached slices locally', async () => {
+test('agent memory dyadic and e2e list require user context and map to runtime dyadic reads', async () => {
   resetAgentCoreDataStateForTesting();
+
+  const calls: Array<Record<string, unknown>> = [];
+  const handlers = createAgentCoreDataCapabilityHandlers({
+    resolveCurrentUserId: async () => 'user-1',
+    runtimeMemory: {
+      queryCompatibilityRecords: async (input) => {
+        calls.push(input as unknown as Record<string, unknown>);
+        return [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-1' })];
+      },
+    },
+  });
 
   const missingUserHandlers = createAgentCoreDataCapabilityHandlers({
     resolveCurrentUserId: async () => undefined,
+    runtimeMemory: {
+      queryCompatibilityRecords: async () => [],
+    },
   });
   await assert.rejects(
     () => missingUserHandlers.agentMemoryDyadicList({ agentId: 'agent-dyadic' }),
     /AGENT_MEMORY_USER_ID_REQUIRED/,
   );
 
-  seedAgentMemoryIndexForTesting({
+  const dyadic = await handlers.agentMemoryDyadicList({
     agentId: 'agent-dyadic',
-    userId: 'user-1',
-    dyadic: [makeMemoryRecord('dyadic-1', { userId: 'user-1', type: 'DYADIC' })],
+    limit: 3,
   });
-  let requestCount = 0;
-  const cachedHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      listAgentDyadicMemories: async () => {
-        requestCount += 1;
-        throw new Error('UNEXPECTED_REMOTE_CALL');
-      },
-    },
-  });
-  const cached = await cachedHandlers.agentMemoryDyadicList({
-    agentId: 'agent-dyadic',
+  assert.deepEqual(dyadic, {
+    items: [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-1' })],
+    source: 'runtime-only',
     userId: 'user-1',
   });
-  assert.deepEqual(cached, {
-    items: [makeMemoryRecord('dyadic-1', { userId: 'user-1', type: 'DYADIC' })],
-    source: 'local-index-only',
-    userId: 'user-1',
-  });
-  assert.equal(requestCount, 0);
 
-  resetAgentCoreDataStateForTesting();
-  const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    resolveCurrentUserId: async () => 'user-1',
-    client: {
-      listAgentDyadicMemories: async () => {
-        throw new Error('REMOTE_MEMORY_DOWN');
-      },
-    },
+  const e2e = await handlers.agentMemoryE2EList({
+    agentId: 'agent-dyadic',
+    userId: 'user-1',
   });
-  await assert.rejects(
-    () => failingHandlers.agentMemoryDyadicList({ agentId: 'agent-dyadic' }),
-    /REMOTE_MEMORY_DOWN/,
-  );
+  assert.deepEqual(e2e, {
+    items: [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-1' })],
+    source: 'runtime-only',
+    userId: 'user-1',
+  });
+
+  assert.equal(calls.length, 2);
+  for (const call of calls) {
+    assert.deepEqual(call, {
+      agentId: 'agent-dyadic',
+      displayName: 'agent-dyadic',
+      dyadicUserId: 'user-1',
+      createIfMissing: false,
+      syncDyadicContext: true,
+      syncWorldContext: false,
+      query: undefined,
+      limit: call.limit,
+      canonicalClasses: [MemoryCanonicalClass.DYADIC],
+      includeInvalidated: false,
+    });
+  }
 });
 
-test('agent memory profiles list validates the remote contract', async () => {
+test('agent memory recall for entity fans out to public_shared and dyadic runtime reads', async () => {
   resetAgentCoreDataStateForTesting();
 
-  const invalidHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      listAgentMemoryProfiles: async () => ({ invalid: true }),
-    },
-  });
-  await assert.rejects(
-    () => invalidHandlers.agentMemoryProfilesList({ agentId: 'agent-profiles' }),
-    /AGENT_MEMORY_PROFILES_CONTRACT_INVALID/,
-  );
-
+  const calls: Array<Record<string, unknown>> = [];
   const handlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      listAgentMemoryProfiles: async () => ({
-        items: [{ userId: 'user-1' }, { userId: 'user-2' }],
-      }),
+    runtimeMemory: {
+      queryCompatibilityRecords: async (input) => {
+        calls.push(input as unknown as Record<string, unknown>);
+        const classes = (input as { canonicalClasses: MemoryCanonicalClass[] }).canonicalClasses;
+        if (classes[0] === MemoryCanonicalClass.PUBLIC_SHARED) {
+          return [makeMemoryRecord('core-1')];
+        }
+        return [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-9' })];
+      },
     },
+    resolveCurrentUserId: async () => 'user-9',
   });
-  const result = await handlers.agentMemoryProfilesList({ agentId: 'agent-profiles' });
+
+  const result = await handlers.agentMemoryRecallForEntity({
+    agentId: 'agent-recall',
+    query: 'relationship memory',
+  });
   assert.deepEqual(result, {
-    items: [{ userId: 'user-1' }, { userId: 'user-2' }],
+    core: [makeMemoryRecord('core-1')],
+    e2e: [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-9' })],
+    entityId: 'user-9',
+    recallSource: 'runtime-only',
+  });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map((call) => call.canonicalClasses), [
+    [MemoryCanonicalClass.PUBLIC_SHARED],
+    [MemoryCanonicalClass.DYADIC],
+  ]);
+});
+
+test('agent memory profiles fail closed while stats soft-disable to zero counts', async () => {
+  resetAgentCoreDataStateForTesting();
+
+  const handlers = createAgentCoreDataCapabilityHandlers();
+  await assert.rejects(
+    () => handlers.agentMemoryProfilesList({ agentId: 'agent-profiles' }),
+    /AGENT_MEMORY_PROFILES_UNSUPPORTED_BY_RUNTIME_AUTHORITY/,
+  );
+  await assert.doesNotReject(async () => {
+    const stats = await handlers.agentMemoryStatsGet({ agentId: 'agent-profiles' });
+    assert.deepEqual(stats, {
+      coreCount: 0,
+      dyadicCount: 0,
+    });
   });
 });

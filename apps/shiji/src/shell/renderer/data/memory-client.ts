@@ -1,9 +1,13 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { commitAgentMemories } from '@nimiplatform/sdk/realm';
-import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
-
-type DyadicMemoryResult = RealmServiceResult<'AgentsService', 'agentControllerListDyadicMemories'>;
-type DyadicMemoryDto = DyadicMemoryResult extends (infer T)[] ? T : never;
+import {
+  asNimiError,
+  createRuntimeProtectedScopeHelper,
+  MemoryBankScope,
+  MemoryCanonicalClass,
+  MemoryRecordKind,
+} from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
+import { useAppStore } from '@renderer/app-shell/app-store.js';
 
 export type AgentMemoryRecord = {
   id: string;
@@ -20,64 +24,317 @@ export type WriteAgentMemoryInput = {
   memoryText: string;
 };
 
-function expectObject(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label}: expected object`);
-  }
-  return value as Record<string, unknown>;
+const SOURCE_SYSTEM = 'nimi.shiji';
+const POLICY_REASON = 'shiji_dialogue_session_summary';
+const runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
+  runtime: getPlatformClient().runtime,
+  getSubjectUserId: async () => requireSubjectUserId(),
+});
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
-function expectArray(value: unknown, label: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`${label}: expected array`);
-  }
-  return value;
+function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
+  const ms = date.getTime();
+  const seconds = Math.floor(ms / 1000);
+  const nanos = (ms % 1000) * 1_000_000;
+  return { seconds: String(seconds), nanos };
 }
 
-function expectString(record: Record<string, unknown>, key: string, label: string): string {
-  const value = record[key];
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`${label}.${key}: expected non-empty string`);
+function timestampToIso(timestamp?: { seconds: string; nanos: number }): string {
+  if (!timestamp) {
+    return new Date(0).toISOString();
   }
-  return value.trim();
+  const seconds = Number(timestamp.seconds);
+  const nanos = Number(timestamp.nanos);
+  if (!Number.isFinite(seconds)) {
+    return new Date(0).toISOString();
+  }
+  const millis = seconds * 1000 + (Number.isFinite(nanos) ? Math.floor(nanos / 1_000_000) : 0);
+  if (!Number.isFinite(millis)) {
+    return new Date(0).toISOString();
+  }
+  return new Date(millis).toISOString();
 }
 
-function parseMemory(raw: unknown): AgentMemoryRecord {
-  const record = expectObject(raw, 'agent_memory');
+function requireSubjectUserId(): string {
+  const subjectUserId = normalizeText(useAppStore.getState().auth.user?.id);
+  if (!subjectUserId) {
+    throw new Error('shiji runtime agent memory requires authenticated subject user id');
+  }
+  return subjectUserId;
+}
+
+function isRuntimeMemoryUnavailable(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'check_runtime_memory',
+    source: 'runtime',
+  });
+  const reasonCode = normalizeText(normalized.reasonCode);
+  if (
+    reasonCode === 'AI_LOCAL_SERVICE_UNAVAILABLE'
+    || reasonCode === 'RUNTIME_GRPC_UNAVAILABLE'
+    || reasonCode === 'RUNTIME_UNAVAILABLE'
+  ) {
+    return true;
+  }
+  const message = normalizeText(normalized.message).toLowerCase();
+  return message.includes('local memory substrate is not configured')
+    || message.includes('memory embedding profile is unavailable');
+}
+
+function summarizeMemory(view: {
+  record?: {
+    payload?: {
+      oneofKind?: string;
+      observational?: { observation?: string };
+      episodic?: { summary?: string };
+      semantic?: { subject?: string; predicate?: string; object?: string };
+    };
+  };
+}): string {
+  const payload = view.record?.payload;
+  switch (payload?.oneofKind) {
+    case 'observational':
+      return normalizeText(payload.observational?.observation);
+    case 'episodic':
+      return normalizeText(payload.episodic?.summary);
+    case 'semantic':
+      return [
+        normalizeText(payload.semantic?.subject),
+        normalizeText(payload.semantic?.predicate),
+        normalizeText(payload.semantic?.object),
+      ].filter(Boolean).join(' ');
+    default:
+      return '';
+  }
+}
+
+function toAgentMemoryRecord(view: {
+  canonicalClass?: MemoryCanonicalClass;
+  record?: {
+    memoryId?: string;
+    createdAt?: { seconds: string; nanos: number };
+    updatedAt?: { seconds: string; nanos: number };
+    payload?: {
+      oneofKind?: string;
+      observational?: { observation?: string };
+      episodic?: { summary?: string };
+      semantic?: { subject?: string; predicate?: string; object?: string };
+    };
+  };
+}): AgentMemoryRecord | null {
+  const id = normalizeText(view.record?.memoryId);
+  const content = summarizeMemory(view);
+  if (!id || !content) {
+    return null;
+  }
   return {
-    id: expectString(record, 'id', 'agent_memory'),
-    content: expectString(record, 'content', 'agent_memory'),
-    class: expectString(record, 'class', 'agent_memory'),
-    createdAt: expectString(record, 'createdAt', 'agent_memory'),
+    id,
+    content,
+    class: view.canonicalClass === MemoryCanonicalClass.DYADIC ? 'DYADIC' : 'PUBLIC_SHARED',
+    createdAt: timestampToIso(view.record?.updatedAt || view.record?.createdAt),
+  };
+}
+
+async function ensureRuntimeAgent(input: {
+  agentId: string;
+  learnerId: string;
+  worldId?: string | null;
+  createIfMissing: boolean;
+}): Promise<{
+  runtime: ReturnType<typeof getPlatformClient>['runtime'];
+  context: {
+    appId: string;
+    subjectUserId: string;
+  };
+} | null> {
+  const runtime = getPlatformClient().runtime;
+  const subjectUserId = requireSubjectUserId();
+  const context = {
+    appId: runtime.appId,
+    subjectUserId,
+  };
+  const agentId = normalizeText(input.agentId);
+  try {
+    await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agentCore.getAgent({
+      context,
+      agentId,
+    }, options));
+  } catch (error) {
+    const normalized = asNimiError(error, {
+      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+      actionHint: 'check_runtime_agent_core',
+      source: 'runtime',
+    });
+    if (normalized.reasonCode !== 'RUNTIME_GRPC_NOT_FOUND') {
+      throw normalized;
+    }
+    if (!input.createIfMissing) {
+      return null;
+    }
+    try {
+      await runtimeProtectedAccess.withScopes(['runtime.agent.admin'], (options) => runtime.agentCore.initializeAgent({
+        context,
+        agentId,
+        displayName: agentId,
+        autonomyConfig: undefined,
+        worldId: normalizeText(input.worldId),
+        metadata: undefined,
+      }, options));
+    } catch (initError) {
+      const normalizedInit = asNimiError(initError, {
+        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+        actionHint: 'initialize_runtime_agent',
+        source: 'runtime',
+      });
+      if (normalizedInit.reasonCode !== 'RUNTIME_GRPC_ALREADY_EXISTS') {
+        throw normalizedInit;
+      }
+    }
+  }
+
+  await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agentCore.updateAgentState({
+    context,
+    agentId,
+    mutations: [
+      {
+        mutation: {
+          oneofKind: 'setDyadicContext',
+          setDyadicContext: {
+            userId: normalizeText(input.learnerId),
+          },
+        },
+      },
+      normalizeText(input.worldId)
+        ? {
+          mutation: {
+            oneofKind: 'setWorldContext' as const,
+            setWorldContext: {
+              worldId: normalizeText(input.worldId),
+            },
+          },
+        }
+        : {
+          mutation: {
+            oneofKind: 'clearWorldContext' as const,
+            clearWorldContext: {},
+          },
+        },
+    ],
+  }, options));
+
+  return {
+    runtime,
+    context,
   };
 }
 
 export async function recallAgentMemory(agentId: string, learnerId: string): Promise<AgentMemoryRecord[]> {
-  const result = await getPlatformClient().realm.services.AgentsService.agentControllerListDyadicMemories(agentId, learnerId);
-  return expectArray(result as DyadicMemoryDto[], 'agent_memory_list').map((item) => parseMemory(item));
+  try {
+    const session = await ensureRuntimeAgent({
+      agentId,
+      learnerId,
+      createIfMissing: false,
+    });
+    if (!session) {
+      return [];
+    }
+
+    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agentCore.queryMemory({
+      context: session.context,
+      agentId: normalizeText(agentId),
+      query: '',
+      limit: 100,
+      canonicalClasses: [MemoryCanonicalClass.DYADIC],
+      kinds: [],
+      includeInvalidated: false,
+    }, options));
+
+    return response.memories
+      .map((item) => toAgentMemoryRecord(item))
+      .filter((item): item is AgentMemoryRecord => Boolean(item));
+  } catch (error) {
+    if (isRuntimeMemoryUnavailable(error)) {
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function writeAgentMemory(input: WriteAgentMemoryInput): Promise<void> {
   const { agentId, learnerId, worldId, sessionId, memoryText } = input;
-  await commitAgentMemories(getPlatformClient().realm, {
-    agentId,
-    userId: learnerId,
-    worldId,
-    type: 'DYADIC',
-    content: memoryText,
-    commit: {
+  const observation = normalizeText(memoryText);
+  if (!observation) {
+    return;
+  }
+
+  try {
+    const session = await ensureRuntimeAgent({
+      agentId,
+      learnerId,
       worldId,
-      appId: 'nimi.shiji',
-      sessionId,
-      effectClass: 'MEMORY_ONLY',
-      scope: 'WORLD',
-      schemaId: 'shiji.agent-memory',
-      schemaVersion: '1',
-      actorRefs: [
-        { actorId: agentId, actorType: 'agent', role: 'speaker' },
-        { actorId: learnerId, actorType: 'user', role: 'learner' },
+      createIfMissing: true,
+    });
+    if (!session) {
+      return;
+    }
+
+    const subjectUserId = requireSubjectUserId();
+    const now = new Date();
+    const response = await runtimeProtectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agentCore.writeMemory({
+      context: session.context,
+      agentId: normalizeText(agentId),
+      candidates: [
+        {
+          canonicalClass: MemoryCanonicalClass.DYADIC,
+          targetBank: {
+            scope: MemoryBankScope.AGENT_DYADIC,
+            owner: {
+              oneofKind: 'agentDyadic' as const,
+              agentDyadic: {
+                agentId: normalizeText(agentId),
+                userId: normalizeText(learnerId),
+              },
+            },
+          },
+          sourceEventId: normalizeText(sessionId),
+          policyReason: POLICY_REASON,
+          record: {
+            kind: MemoryRecordKind.OBSERVATIONAL,
+            canonicalClass: MemoryCanonicalClass.DYADIC,
+            provenance: {
+              sourceSystem: SOURCE_SYSTEM,
+              sourceEventId: normalizeText(sessionId),
+              authorId: subjectUserId,
+              traceId: normalizeText(sessionId),
+              committedAt: dateToTimestamp(now),
+            },
+            metadata: undefined,
+            extensions: undefined,
+            payload: {
+              oneofKind: 'observational',
+              observational: {
+                observation,
+                observedAt: dateToTimestamp(now),
+                sourceRef: normalizeText(sessionId),
+              },
+            },
+          },
+          extensions: undefined,
+        },
       ],
-      reason: 'dialogue_session_summary',
-    },
-  });
+    }, options));
+
+    if (response.rejected.length > 0 || response.accepted.length === 0) {
+      throw new Error('runtime.agentCore.writeMemory did not admit shiji dyadic memory');
+    }
+  } catch (error) {
+    if (isRuntimeMemoryUnavailable(error)) {
+      return;
+    }
+    throw error;
+  }
 }

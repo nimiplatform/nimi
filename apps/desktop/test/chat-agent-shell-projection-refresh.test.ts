@@ -73,18 +73,23 @@ test('agent projection refresh ignores stale versions so older rebuilds cannot o
   assert.equal(outcome, null);
 });
 
-test('agent projection refresh does not apply after terminal cancellation or completion', () => {
+test('agent projection refresh still applies after completed terminal so follow-up commits can surface immediately', () => {
+  const outcome = resolveAgentProjectionRefreshOutcome({
+    requestedProjectionVersion: 'truth:11:t2',
+    latestProjectionVersion: 'truth:11:t2',
+    terminal: 'completed',
+    refreshedBundle: sampleBundle(),
+  });
+
+  assert.ok(outcome);
+  assert.equal(outcome?.bundle.messages.at(-1)?.contentText, 'authoritative projection');
+});
+
+test('agent projection refresh does not apply after terminal cancellation', () => {
   assert.equal(resolveAgentProjectionRefreshOutcome({
     requestedProjectionVersion: 'truth:10:t1',
     latestProjectionVersion: 'truth:10:t1',
     terminal: 'canceled',
-    refreshedBundle: sampleBundle(),
-  }), null);
-
-  assert.equal(resolveAgentProjectionRefreshOutcome({
-    requestedProjectionVersion: 'truth:10:t1',
-    latestProjectionVersion: 'truth:10:t1',
-    terminal: 'completed',
     refreshedBundle: sampleBundle(),
   }), null);
 });

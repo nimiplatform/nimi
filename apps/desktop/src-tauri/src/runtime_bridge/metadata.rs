@@ -8,6 +8,7 @@ use tonic::metadata::MetadataValue;
 use tonic::Request;
 
 use super::error_map::bridge_error;
+use super::RuntimeBridgeProtectedAccessToken;
 
 static IDEMPOTENCY_COUNTER: AtomicU64 = AtomicU64::new(1);
 const SUPPORTED_PROTOCOL_VERSION: &str = "1.0.0";
@@ -152,6 +153,7 @@ pub fn apply_metadata(
     request: &mut Request<Vec<u8>>,
     metadata: Option<&RuntimeBridgeMetadata>,
     authorization: Option<&str>,
+    protected_access_token: Option<&RuntimeBridgeProtectedAccessToken>,
     method_id: &str,
 ) -> Result<(), String> {
     let value = metadata.cloned().unwrap_or_default();
@@ -227,6 +229,16 @@ pub fn apply_metadata(
         normalize(value.provider_api_key.as_deref()),
     )?;
     insert_metadata_value(request, "authorization", normalize(authorization))?;
+    insert_metadata_value(
+        request,
+        "x-nimi-access-token-id",
+        normalize(protected_access_token.map(|value| value.token_id.as_str())),
+    )?;
+    insert_metadata_value(
+        request,
+        "x-nimi-access-token-secret",
+        normalize(protected_access_token.map(|value| value.secret.as_str())),
+    )?;
 
     if let Some(extra) = value.extra {
         for (key, extra_value) in extra {

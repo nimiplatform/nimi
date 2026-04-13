@@ -1,36 +1,38 @@
 import { useCallback } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
+import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 
 type ChatAgentHistoryPanelProps = {
   targetTitle: string;
   activeThreadId: string | null;
   disabled?: boolean;
-  onClearAgentHistory: (threadId: string) => void;
+  onClearAgentHistory: (threadId: string) => void | Promise<void>;
 };
-
-function confirmAction(message: string): boolean {
-  if (typeof window === 'undefined' || typeof window.confirm !== 'function') {
-    return true;
-  }
-  return window.confirm(message);
-}
 
 export function ChatAgentHistoryPanel(props: ChatAgentHistoryPanelProps) {
   const { t } = useTranslation();
 
   const handleClearAgentHistory = useCallback(() => {
-    if (!props.activeThreadId) {
-      return;
-    }
-    const confirmed = confirmAction(t('Chat.clearAgentChatHistoryConfirm', {
-      defaultValue: 'Clear all local chat history with {{name}}? This cannot be undone.',
-      name: props.targetTitle,
-    }));
-    if (!confirmed) {
-      return;
-    }
-    props.onClearAgentHistory(props.activeThreadId);
+    void (async () => {
+      if (!props.activeThreadId) {
+        return;
+      }
+      const confirmation = await confirmDialog({
+        title: t('Chat.clearAgentChatHistoryTitle', { defaultValue: 'Clear agent chat history' }),
+        description: t('Chat.clearAgentChatHistoryConfirm', {
+          defaultValue: 'Clear all local chat history with {{name}}? This cannot be undone.',
+          name: props.targetTitle,
+        }),
+        level: 'warning',
+      });
+      if (!confirmation.confirmed) {
+        return;
+      }
+      await props.onClearAgentHistory(props.activeThreadId);
+    })().catch(() => {
+      // Host action error handling lives upstream; swallow confirm failures here to avoid unhandled rejections.
+    });
   }, [props, t]);
 
   return (

@@ -16,6 +16,7 @@ import type {
   AgentLocalChatVoiceState,
   AgentLocalTextMessageState,
 } from './chat-agent-turn-plan';
+import { loadDesktopAgentRuntimeMemoryContext } from './chat-agent-runtime-memory';
 
 type AgentLocalChatStoreClient = Pick<
   typeof chatAgentStoreClient,
@@ -358,9 +359,17 @@ export function createAgentLocalChatContinuityAdapter(
     });
   };
   return {
-    loadTurnContext: async (input) => storeClient.loadTurnContext({
-      threadId: input.threadId,
-    }),
+    loadTurnContext: async (input) => {
+      const context = await storeClient.loadTurnContext({
+        threadId: input.threadId,
+      });
+      const runtimeMemory = await loadDesktopAgentRuntimeMemoryContext(context);
+      return {
+        ...context,
+        relationMemorySlots: runtimeMemory.relationMemorySlots,
+        recallEntries: runtimeMemory.recallEntries,
+      };
+    },
     commitTurnResult: async (input) => commitAgentTurnResultInternal({
       ...input,
       modeId: 'agent-local-chat-v1',

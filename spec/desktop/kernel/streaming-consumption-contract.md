@@ -40,6 +40,11 @@ action-driven follow-up 降格成同 turn text continuation。
 follow-up 是否存在、不得补造 image/voice/video action、不得改写 relation、也不得生成
 substitute `promptPayload`。
 
+若 message-action outputs admit 递归 `follow-up-turn` chain，stream consumer 也不得把 chain
+ownership 退回 renderer-local chat transcript state。thread-bound pending follow-up delay、
+用户消息打断、以及 chain 上限只能消费 desktop kernel 已 admit 的 follow-up semantics；stream
+layer 不得自创第二份 timer truth。
+
 ## D-STRM-002 — 渲染端缓冲策略
 
 流式文本渲染策略：

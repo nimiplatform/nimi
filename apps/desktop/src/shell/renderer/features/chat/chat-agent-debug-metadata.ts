@@ -8,6 +8,10 @@ export type AgentTextTurnDebugMetadata = {
   rawModelOutput: string | null;
   normalizedModelOutput: string | null;
   followUpTurn: boolean;
+  chainId: string | null;
+  followUpDepth: number | null;
+  maxFollowUpTurns: number | null;
+  followUpCanceledByUser: boolean;
   followUpSourceActionId: string | null;
   followUpDelayMs: number | null;
 };
@@ -24,6 +28,10 @@ export function buildAgentTextTurnDebugMetadata(
   diagnostics: AgentModelOutputDiagnostics | null | undefined,
   options?: {
     followUpTurn?: boolean;
+    chainId?: string | null;
+    followUpDepth?: number | null;
+    maxFollowUpTurns?: number | null;
+    followUpCanceledByUser?: boolean;
     followUpSourceActionId?: string | null;
     followUpDelayMs?: number | null;
   },
@@ -39,6 +47,14 @@ export function buildAgentTextTurnDebugMetadata(
     rawModelOutput: normalizeNullableText(diagnostics?.rawModelOutputText),
     normalizedModelOutput: normalizeNullableText(diagnostics?.normalizedModelOutputText),
     followUpTurn: options?.followUpTurn === true,
+    chainId: normalizeNullableText(options?.chainId ?? diagnostics?.chainId),
+    followUpDepth: Number.isFinite(Number(options?.followUpDepth ?? diagnostics?.followUpDepth))
+      ? Number(options?.followUpDepth ?? diagnostics?.followUpDepth)
+      : null,
+    maxFollowUpTurns: Number.isFinite(Number(options?.maxFollowUpTurns ?? diagnostics?.maxFollowUpTurns))
+      ? Number(options?.maxFollowUpTurns ?? diagnostics?.maxFollowUpTurns)
+      : null,
+    followUpCanceledByUser: options?.followUpCanceledByUser === true || diagnostics?.followUpCanceledByUser === true,
     followUpSourceActionId: normalizeNullableText(options?.followUpSourceActionId),
     followUpDelayMs: Number.isFinite(Number(options?.followUpDelayMs))
       ? Number(options?.followUpDelayMs)
@@ -65,6 +81,14 @@ export function parseAgentTextTurnDebugMetadata(value: unknown): AgentTextTurnDe
     rawModelOutput: normalizeNullableText(record.rawModelOutput),
     normalizedModelOutput: normalizeNullableText(record.normalizedModelOutput),
     followUpTurn: record.followUpTurn === true,
+    chainId: normalizeNullableText(record.chainId),
+    followUpDepth: Number.isFinite(Number(record.followUpDepth))
+      ? Number(record.followUpDepth)
+      : null,
+    maxFollowUpTurns: Number.isFinite(Number(record.maxFollowUpTurns))
+      ? Number(record.maxFollowUpTurns)
+      : null,
+    followUpCanceledByUser: record.followUpCanceledByUser === true,
     followUpSourceActionId: normalizeNullableText(record.followUpSourceActionId),
     followUpDelayMs: Number.isFinite(Number(record.followUpDelayMs))
       ? Number(record.followUpDelayMs)

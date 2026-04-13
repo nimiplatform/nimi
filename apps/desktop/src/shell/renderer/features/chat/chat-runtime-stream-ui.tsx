@@ -169,6 +169,10 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       rawModelOutput: debugMetadata.rawModelOutput,
       normalizedModelOutput: debugMetadata.normalizedModelOutput,
       followUpTurn: debugMetadata.followUpTurn,
+      chainId: debugMetadata.chainId,
+      followUpDepth: debugMetadata.followUpDepth,
+      maxFollowUpTurns: debugMetadata.maxFollowUpTurns,
+      followUpCanceledByUser: debugMetadata.followUpCanceledByUser,
       followUpSourceActionId: debugMetadata.followUpSourceActionId,
       followUpDelayMs: debugMetadata.followUpDelayMs,
     }, null, 2);
@@ -179,7 +183,11 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       setCopied(false);
     });
   }, [
+    debugMetadata.chainId,
     debugMetadata.followUpDelayMs,
+    debugMetadata.followUpDepth,
+    debugMetadata.followUpCanceledByUser,
+    debugMetadata.maxFollowUpTurns,
     debugMetadata.followUpSourceActionId,
     debugMetadata.followUpTurn,
     debugMetadata.normalizedModelOutput,
@@ -194,7 +202,9 @@ export function RuntimeAgentDebugMessageAccessory(props: {
     <div className="mt-2 space-y-2">
       {debugMetadata.followUpTurn ? (
         <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-          {props.followUpLabel}
+          {debugMetadata.followUpDepth && debugMetadata.maxFollowUpTurns
+            ? `${props.followUpLabel} ${debugMetadata.followUpDepth}/${debugMetadata.maxFollowUpTurns}`
+            : props.followUpLabel}
         </div>
       ) : null}
       {props.debugVisible ? (
@@ -249,6 +259,28 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                 </div>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
                   {debugMetadata.normalizedModelOutput}
+                </pre>
+              </div>
+            ) : null}
+            {debugMetadata.followUpTurn ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  Follow-up chain
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {[
+                    debugMetadata.chainId ? `chainId=${debugMetadata.chainId}` : null,
+                    debugMetadata.followUpDepth && debugMetadata.maxFollowUpTurns
+                      ? `depth=${debugMetadata.followUpDepth}/${debugMetadata.maxFollowUpTurns}`
+                      : null,
+                    debugMetadata.followUpCanceledByUser ? 'canceledByUser=true' : null,
+                    debugMetadata.followUpSourceActionId
+                      ? `sourceActionId=${debugMetadata.followUpSourceActionId}`
+                      : null,
+                    debugMetadata.followUpDelayMs !== null
+                      ? `delayMs=${debugMetadata.followUpDelayMs}`
+                      : null,
+                  ].filter(Boolean).join('\n')}
                 </pre>
               </div>
             ) : null}

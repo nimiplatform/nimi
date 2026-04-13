@@ -141,6 +141,7 @@ export type ConversationContinuityCancelInput = {
 export type ConversationProjectionRebuildResult = {
   threadId: string;
   projectionVersion: string;
+  bundle?: unknown;
 };
 
 export interface ConversationContinuityAdapter<
@@ -222,6 +223,7 @@ export type ConversationTurnEvent =
     type: 'projection-rebuilt';
     threadId: string;
     projectionVersion: string;
+    bundle?: unknown;
   }
   | {
     type: 'turn-completed';

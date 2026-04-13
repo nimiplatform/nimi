@@ -999,7 +999,35 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
       continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
     });
 
-    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
+    const iterator = provider.runTurn(sampleTurnInput({
+      agentLocalChat: {
+        agentResolution: {
+          ready: true,
+          reason: 'ok',
+          textProjection: {
+            capability: 'text.generate',
+            selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+            resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+            health: null,
+            metadata: null,
+            supported: true,
+            reasonCode: null,
+          },
+          imageProjection: {
+            capability: 'image.generate',
+            selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+            resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+            health: null,
+            metadata: null,
+            supported: true,
+            reasonCode: null,
+          },
+          imageReady: true,
+        },
+        textExecutionSnapshot: { executionId: 'text-snapshot' },
+        imageExecutionSnapshot: { executionId: 'image-snapshot' },
+      },
+    }))[Symbol.asyncIterator]();
     const firstFourEvents = [
       await iterator.next(),
       await iterator.next(),
@@ -1052,6 +1080,261 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
         'turn-completed',
       ],
     );
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat provider lets follow-up turns continue their own actions and follow-up chain', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  const imagePrompts: string[] = [];
+  const invokedPrompts: string[] = [];
+  try {
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter: createRuntimeAdapter({
+        async streamText() {
+          const envelopeText = createBeatActionEnvelopeText({
+            beats: [
+              {
+                beatId: 'beat-primary',
+                beatIndex: 0,
+                text: '先说第一句。',
+              },
+              {
+                beatId: 'beat-follow-up-1',
+                beatIndex: 1,
+                text: '十秒后继续安慰一次。',
+                delayMs: 400,
+              },
+            ],
+          });
+          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+            yield { type: 'start' };
+            yield { type: 'text-delta', textDelta: envelopeText };
+            yield {
+              type: 'finish',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'trace-chain-root',
+                promptTraceId: 'prompt-chain-root',
+              },
+            };
+          }
+          return { stream: stream() };
+        },
+        async invokeText(request) {
+          invokedPrompts.push(String(request.messages?.at(-1)?.text || ''));
+          const latestPrompt = invokedPrompts.at(-1);
+          if (latestPrompt === '十秒后继续安慰一次。') {
+            return {
+              text: JSON.stringify({
+                schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+                message: {
+                  messageId: 'message-follow-up-1',
+                  text: '我还在，继续陪你。',
+                },
+                actions: [
+                  {
+                    actionId: 'action-follow-up-image',
+                    actionIndex: 0,
+                    actionCount: 2,
+                    modality: 'image',
+                    operation: 'generate',
+                    promptPayload: {
+                      kind: 'image-prompt',
+                      promptText: '一张安慰氛围的小图',
+                    },
+                    sourceMessageId: 'message-follow-up-1',
+                    deliveryCoupling: 'after-message',
+                  },
+                  {
+                    actionId: 'action-follow-up-next',
+                    actionIndex: 1,
+                    actionCount: 2,
+                    modality: 'follow-up-turn',
+                    operation: 'assistant.turn.schedule',
+                    promptPayload: {
+                      kind: 'follow-up-turn',
+                      promptText: '如果你还没回复，我再轻轻问一句。',
+                      delayMs: 300,
+                    },
+                    sourceMessageId: 'message-follow-up-1',
+                    deliveryCoupling: 'after-message',
+                  },
+                ],
+              }),
+              traceId: 'trace-follow-up-1',
+              promptTraceId: 'prompt-follow-up-1',
+            };
+          }
+          assert.equal(latestPrompt, '如果你还没回复，我再轻轻问一句。');
+          return {
+            text: JSON.stringify({
+              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: {
+                messageId: 'message-follow-up-2',
+                text: '我还在这里，想说的时候随时告诉我。',
+              },
+              actions: [],
+            }),
+            traceId: 'trace-follow-up-2',
+            promptTraceId: 'prompt-follow-up-2',
+          };
+        },
+        async generateImage(request) {
+          imagePrompts.push(request.prompt);
+          return {
+            mediaUrl: 'data:image/png;base64,BB==',
+            mimeType: 'image/png',
+            artifactId: 'artifact-follow-up-image',
+            traceId: 'trace-follow-up-image',
+          };
+        },
+      }),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:152:t1:b3:s0:m0:r0'),
+    });
+
+    const iterator = provider.runTurn(sampleTurnInput({
+      agentLocalChat: {
+        agentResolution: {
+          ready: true,
+          reason: 'ok',
+          textProjection: {
+            capability: 'text.generate',
+            selectedBinding: { source: 'cloud', connectorId: 'connector-text', model: 'gpt-5.4-mini' },
+            resolvedBinding: { capability: 'text.generate', source: 'cloud', provider: 'openai', model: 'gpt-5.4-mini', modelId: 'gpt-5.4-mini', connectorId: 'connector-text' },
+            health: null,
+            metadata: null,
+            supported: true,
+            reasonCode: null,
+          },
+          imageProjection: {
+            capability: 'image.generate',
+            selectedBinding: { source: 'local', connectorId: '', model: 'flux' },
+            resolvedBinding: { capability: 'image.generate', source: 'local', provider: 'forge', model: 'flux', modelId: 'flux', connectorId: '', endpoint: 'http://127.0.0.1:7860' },
+            health: null,
+            metadata: null,
+            supported: true,
+            reasonCode: null,
+          },
+          imageReady: true,
+        },
+        textExecutionSnapshot: { executionId: 'text-snapshot' },
+        imageExecutionSnapshot: { executionId: 'image-snapshot' },
+      },
+    }))[Symbol.asyncIterator]();
+    const initialEvents = [
+      await iterator.next(),
+      await iterator.next(),
+      await iterator.next(),
+      await iterator.next(),
+    ].map((entry) => entry.value?.type);
+    assert.deepEqual(initialEvents, [
+      'turn-started',
+      'message-sealed',
+      'projection-rebuilt',
+      'turn-completed',
+    ]);
+
+    const firstFollowUpProjectionPromise = iterator.next();
+    await Promise.resolve();
+    const firstDelayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 400);
+    assert.ok(firstDelayId, 'expected first follow-up timer');
+    fakeTimers.runTimer(firstDelayId);
+
+    const firstFollowUpProjection = await firstFollowUpProjectionPromise;
+    assert.equal(firstFollowUpProjection.value?.type, 'projection-rebuilt');
+
+    const secondFollowUpProjectionPromise = iterator.next();
+    await Promise.resolve();
+    const secondDelayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 300);
+    assert.ok(secondDelayId, 'expected second follow-up timer');
+    fakeTimers.runTimer(secondDelayId);
+
+    const secondFollowUpProjection = await secondFollowUpProjectionPromise;
+    assert.equal(secondFollowUpProjection.value?.type, 'projection-rebuilt');
+
+    const completion = await iterator.next();
+    assert.equal(completion.done, true);
+
+    assert.deepEqual(invokedPrompts, [
+      '十秒后继续安慰一次。',
+      '如果你还没回复，我再轻轻问一句。',
+    ]);
+    assert.deepEqual(imagePrompts, ['一张安慰氛围的小图'], JSON.stringify(committed[1]?.imageState));
+    assert.equal(committed.length, 3);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.maxFollowUpTurns, 8);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.chainId, committed[2]?.textMessageState?.metadataJson?.chainId);
+    assert.equal(committed[2]?.textMessageState?.metadataJson?.followUpDepth, 2);
+    assert.equal(committed[1]?.imageState?.status, 'complete');
+    assert.equal(committed[2]?.imageState?.status, 'none');
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat provider stops a pending follow-up chain when the turn signal is aborted', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  const abortController = new AbortController();
+  try {
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter: createRuntimeAdapter({
+        async streamText() {
+          const envelopeText = createBeatActionEnvelopeText({
+            beats: [
+              {
+                beatId: 'beat-primary',
+                beatIndex: 0,
+                text: '先回你一句。',
+              },
+              {
+                beatId: 'beat-follow-up',
+                beatIndex: 1,
+                text: '三秒后再跟进一次。',
+                delayMs: 400,
+              },
+            ],
+          });
+          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+            yield { type: 'start' };
+            yield { type: 'text-delta', textDelta: envelopeText };
+            yield {
+              type: 'finish',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'trace-abort-root',
+                promptTraceId: 'prompt-abort-root',
+              },
+            };
+          }
+          return { stream: stream() };
+        },
+      }),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
+    });
+
+    const iterator = provider.runTurn(sampleTurnInput({
+      signal: abortController.signal,
+    }))[Symbol.asyncIterator]();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+
+    const pendingProjection = iterator.next();
+    await Promise.resolve();
+    const delayId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 400);
+    assert.ok(delayId, 'expected pending follow-up timer');
+
+    abortController.abort();
+
+    const completion = await pendingProjection;
+    assert.equal(completion.done, true);
+    assert.equal(committed.length, 1);
+    assert.equal(fakeTimers.getTimerIds().length, 0);
   } finally {
     fakeTimers.restore();
   }

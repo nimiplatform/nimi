@@ -80,6 +80,11 @@ test('agent diagnostics view model shows recovered turn details', () => {
         requestSystemPrompt: 'Preset:\nBe warm.',
         rawModelOutputText: '```json\n{"schemaId":"nimi.agent.chat.message-action.v1"}\n```',
         normalizedModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"}',
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
       },
     },
     routeReady: true,
@@ -138,6 +143,11 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
         requestSystemPrompt: 'Preset:\nStay concise.',
         rawModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"',
         normalizedModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"',
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
       },
     },
     routeReady: true,
@@ -179,6 +189,11 @@ test('agent diagnostics view model shows image execution diagnostics when presen
         requestSystemPrompt: null,
         rawModelOutputText: null,
         normalizedModelOutputText: null,
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
         image: {
           textPlanningMs: 320,
           imageJobSubmitMs: 45,
@@ -207,4 +222,46 @@ test('agent diagnostics view model shows image execution diagnostics when presen
   assert.match(imageCard?.detail || '', /imageLoadMs=1200/);
   assert.match(imageCard?.detail || '', /queueSerialized=true/);
   assert.match(imageCard?.detail || '', /profileOverrideSampler=euler/);
+});
+
+test('agent diagnostics view model shows follow-up chain diagnostics when present', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    activeTarget: sampleTarget(),
+    lifecycle: {
+      ...baseLifecycle(),
+      terminal: 'completed',
+      diagnostics: {
+        classification: 'strict-json',
+        recoveryPath: 'none',
+        suspectedTruncation: false,
+        parseErrorDetail: null,
+        rawOutputChars: 42,
+        normalizedOutputChars: 42,
+        finishReason: 'stop',
+        traceId: 'trace-follow-up-chain',
+        promptTraceId: 'prompt-follow-up-chain',
+        usage: null,
+        contextWindowSource: 'route-profile',
+        maxOutputTokensRequested: 256,
+        promptOverflow: false,
+        requestPrompt: null,
+        requestSystemPrompt: null,
+        rawModelOutputText: null,
+        normalizedModelOutputText: null,
+        chainId: 'chain-1',
+        followUpDepth: 2,
+        maxFollowUpTurns: 8,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: 'action-follow-up-2',
+      },
+    },
+    routeReady: true,
+    t,
+    targetsPending: false,
+  });
+
+  const chainCard = viewModel.turnCards.find((card) => card.label === 'Follow-up Chain');
+  assert.equal(chainCard?.value, '2/8');
+  assert.match(chainCard?.detail || '', /chainId=chain-1/);
+  assert.match(chainCard?.detail || '', /sourceActionId=action-follow-up-2/);
 });

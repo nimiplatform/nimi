@@ -29,11 +29,19 @@ const DEFAULT_EVENT_NAMESPACE: &str = "runtime_bridge";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeBridgeProtectedAccessToken {
+    pub token_id: String,
+    pub secret: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeBridgeUnaryPayload {
     pub method_id: String,
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,
+    pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
     pub timeout_ms: Option<u64>,
 }
 
@@ -44,6 +52,7 @@ pub struct RuntimeBridgeStreamOpenPayload {
     pub request_bytes_base64: String,
     pub metadata: Option<RuntimeBridgeMetadata>,
     pub authorization: Option<String>,
+    pub protected_access_token: Option<RuntimeBridgeProtectedAccessToken>,
     pub timeout_ms: Option<u64>,
     pub event_namespace: Option<String>,
 }

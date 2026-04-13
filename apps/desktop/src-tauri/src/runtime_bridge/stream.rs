@@ -165,6 +165,7 @@ pub async fn open_stream(
         &mut request,
         payload.metadata.as_ref(),
         payload.authorization.as_deref(),
+        payload.protected_access_token.as_ref(),
         payload.method_id.as_str(),
     )?;
     if let Some(timeout_ms) = payload.timeout_ms {
@@ -271,6 +272,7 @@ mod tests {
             request_bytes_base64: request_bytes_base64.to_string(),
             metadata: None,
             authorization: None,
+            protected_access_token: None,
             timeout_ms: None,
             event_namespace: None,
         }
