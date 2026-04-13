@@ -25,14 +25,6 @@
 | `auth.jwt.jwksUrl` | `string` | `—` | `restart` | JWT 公钥来源 JWKS 地址；非 loopback host 必须使用 https，且与 issuer / audience / revocationUrl 同时配置 | `K-AUTHN-004` |
 | `auth.jwt.revocationUrl` | `string` | `—` | `restart` | JWT 会话撤销内省地址；非 loopback host 必须使用 https，且与 issuer / audience / jwksUrl 同时配置 | `K-AUTHN-006` |
 | `providers` | `map` | `{}` | `restart` | AI Provider 路由表（key=provider name） | `K-DAEMON-009` |
-| `memory.hindsight.baseUrl` | `string` | `—` | `restart` | Runtime-local Hindsight substrate base URL | `K-MEMSUB-002` |
-| `memory.hindsight.apiKey` | `string` | `—` | `restart` | Runtime-local Hindsight substrate inline API key fallback | `K-MEMSUB-002` |
-| `memory.hindsight.apiKeyEnv` | `string` | `—` | `restart` | Runtime-local Hindsight substrate API key env reference | `K-MEMSUB-002` |
-| `memory.hindsight.enabled` | `bool` | `true` | `restart` | 启用 runtime-private Hindsight supervised substrate；显式 baseUrl attached override 仍优先 | `K-MEMSUB-002` |
-| `memory.hindsight.mode` | `string` | `supervised` | `restart` | Runtime-local Hindsight 模式，值域固定为 attached 或 supervised | `K-MEMSUB-002` |
-| `memory.hindsight.host` | `string` | `127.0.0.1` | `restart` | supervised Hindsight loopback 监听 host | `K-MEMSUB-002` |
-| `memory.hindsight.port` | `int` | `8341` | `restart` | supervised Hindsight 监听端口 | `K-MEMSUB-002` |
-| `memory.hindsight.envRoot` | `string` | `~/.nimi/runtime/hindsight` | `restart` | supervised Hindsight uv-managed Python env 与 local state root | `K-MEMSUB-002` |
 | `engines.llama.enabled` | `bool` | `false` | `restart` | 启用 llama 引擎 SUPERVISED 模式 | `K-LENG-004` |
 | `engines.llama.version` | `string` | `b8645` | `restart` | llama 受管引擎版本 | `K-LENG-004` |
 | `engines.llama.port` | `int` | `1234` | `restart` | llama 监听端口 | `K-LENG-004` |
