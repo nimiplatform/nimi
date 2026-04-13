@@ -76,7 +76,7 @@ function isRuntimeMemoryUnavailable(error: unknown): boolean {
   if (
     reasonCode === 'AI_LOCAL_SERVICE_UNAVAILABLE'
     || reasonCode === 'RUNTIME_GRPC_UNAVAILABLE'
-    || reasonCode === 'RUNTIME_UNAVAILABLE'
+    || reasonCode === ReasonCode.RUNTIME_UNAVAILABLE
   ) {
     return true;
   }

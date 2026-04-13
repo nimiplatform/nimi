@@ -65,11 +65,11 @@ function isRetryableProtectedAccessError(error: unknown): boolean {
     actionHint: 'refresh_runtime_protected_access',
     source: 'runtime',
   });
-  return normalized.reasonCode === 'PRINCIPAL_UNAUTHORIZED'
-    || normalized.reasonCode === 'APP_SCOPE_FORBIDDEN'
-    || normalized.reasonCode === 'APP_TOKEN_EXPIRED'
-    || normalized.reasonCode === 'APP_TOKEN_REVOKED'
-    || normalized.reasonCode === 'APP_GRANT_INVALID';
+  return normalized.reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED
+    || normalized.reasonCode === ReasonCode.APP_SCOPE_FORBIDDEN
+    || normalized.reasonCode === ReasonCode.APP_TOKEN_EXPIRED
+    || normalized.reasonCode === ReasonCode.APP_TOKEN_REVOKED
+    || normalized.reasonCode === ReasonCode.APP_GRANT_INVALID;
 }
 
 export function createRuntimeProtectedScopeHelper(input: CreateRuntimeProtectedScopeHelperInput) {

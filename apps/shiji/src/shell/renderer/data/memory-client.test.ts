@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryCanonicalClass, MemoryRecordKind } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const mockGetAgent = vi.fn();
 const mockInitializeAgent = vi.fn();
@@ -215,7 +216,7 @@ describe('shiji memory-client', () => {
   it('writeAgentMemory fails closed when runtime rejects the candidate', async () => {
     mockWriteMemory.mockResolvedValueOnce({
       accepted: [],
-      rejected: [{ reasonCode: 'AI_OUTPUT_INVALID' }],
+      rejected: [{ reasonCode: ReasonCode.AI_OUTPUT_INVALID }],
     });
 
     await expect(writeAgentMemory({
