@@ -50,7 +50,7 @@ export default function NurtureModeSettingsPage() {
 
   if (!child) {
     return (
-      <div className="h-full overflow-y-auto" style={{ background: C.bg }}>
+      <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
         <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
           <Link to="/settings" className="text-[12px] hover:underline" style={{ color: C.sub }}>← 返回设置</Link>
           <p className="mt-6 text-[13px]" style={{ color: C.sub }}>请先选择一个孩子</p>
@@ -113,7 +113,7 @@ export default function NurtureModeSettingsPage() {
   const overrideCount = Object.keys(child.nurtureModeOverrides ?? {}).length;
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: C.bg }}>
+    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
 
         <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: C.sub }}>

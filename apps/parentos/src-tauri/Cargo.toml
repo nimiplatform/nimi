@@ -28,6 +28,7 @@ webbrowser = "1"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
 rusqlite = { version = "0.38", features = ["bundled"] }
 serde_yaml = "0.9"
+dotenvy = "0.15"
 nimi-kit-shell-tauri = { path = "../../../kit/shell/tauri" }
 
 [dev-dependencies]

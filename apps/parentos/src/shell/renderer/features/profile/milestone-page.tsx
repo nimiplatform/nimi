@@ -280,7 +280,7 @@ export default function MilestonePage() {
   const editTarget = editingMilestone ? MILESTONE_CATALOG.find((m) => m.milestoneId === editingMilestone) : null;
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>

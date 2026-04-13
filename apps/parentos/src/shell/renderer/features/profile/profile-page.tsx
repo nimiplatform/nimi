@@ -98,7 +98,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: C.bg }}>
+    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
 
         {/* ── Profile header card ────────────────────────────── */}

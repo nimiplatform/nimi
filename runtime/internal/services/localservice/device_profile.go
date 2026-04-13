@@ -254,15 +254,18 @@ func explicitEnvBool(key string) (bool, bool) {
 }
 
 func probePythonProfile() *runtimev1.LocalPythonProfile {
-	candidates := []string{"python3", "python"}
-	for _, name := range candidates {
+	for _, candidate := range pythonProbeCandidates() {
+		name := candidate.name
 		path, err := localRuntimeLookPath(name)
 		if err != nil {
 			continue
 		}
+		if shouldSkipPythonExecutable(path) {
+			continue
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
-		output, runErr := localRuntimeCommand(ctx, path, "--version").CombinedOutput()
+		output, runErr := localRuntimeCommand(ctx, path, candidate.args...).CombinedOutput()
 		cancel()
 		version := strings.TrimSpace(string(output))
 		if runErr != nil && version == "" {
@@ -274,6 +277,36 @@ func probePythonProfile() *runtimev1.LocalPythonProfile {
 		}
 	}
 	return &runtimev1.LocalPythonProfile{Available: false}
+}
+
+type pythonProbeCandidate struct {
+	name string
+	args []string
+}
+
+func pythonProbeCandidates() []pythonProbeCandidate {
+	if strings.EqualFold(localRuntimeGOOS, "windows") {
+		return []pythonProbeCandidate{
+			{name: "python", args: []string{"--version"}},
+			{name: "py", args: []string{"-3", "--version"}},
+			{name: "python3", args: []string{"--version"}},
+		}
+	}
+	return []pythonProbeCandidate{
+		{name: "python3", args: []string{"--version"}},
+		{name: "python", args: []string{"--version"}},
+	}
+}
+
+func shouldSkipPythonExecutable(path string) bool {
+	if !strings.EqualFold(localRuntimeGOOS, "windows") {
+		return false
+	}
+	cleaned := strings.ToLower(filepath.Clean(strings.TrimSpace(path)))
+	if cleaned == "" {
+		return false
+	}
+	return strings.Contains(cleaned, strings.ToLower(`\appdata\local\microsoft\windowsapps\`))
 }
 
 func probeNPUProfile() *runtimev1.LocalNpuProfile {

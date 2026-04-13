@@ -64,20 +64,29 @@ export function ChatSettingsSummaryHome({
     }
   }
 
+  const capabilityModules = MODULE_ORDER.filter((m) => m !== 'profile');
+  const hasCapabilities = capabilityModules.some((m) => sectionByModule.has(m));
+
   return (
     <div className="space-y-2">
-      {MODULE_ORDER.map((moduleId) => {
-        if (moduleId === 'profile') {
-          if (!profile) {
-            return null;
-          }
-          return (
-            <div key={moduleId}>
-              <ProfileConfigSection controller={profile} />
-            </div>
-          );
-        }
+      {/* ── Identity Header: AI Profile ── */}
+      {profile ? (
+        <div key="profile">
+          <ProfileConfigSection controller={profile} />
+        </div>
+      ) : null}
 
+      {/* ── Divider + Section Label ── */}
+      {profile && hasCapabilities ? (
+        <div className="mb-3 border-t border-slate-100 px-6 pt-5">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            {t('Chat.modelCapabilitiesLabel', { defaultValue: 'Model Capabilities' })}
+          </h3>
+        </div>
+      ) : null}
+
+      {/* ── Capability Cards ── */}
+      {capabilityModules.map((moduleId) => {
         const section = sectionByModule.get(moduleId);
         if (!section) {
           return null;

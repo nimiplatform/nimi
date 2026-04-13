@@ -53,6 +53,81 @@ fn parentos_start_window_drag(window: tauri::WebviewWindow) -> Result<(), String
     }
 }
 
+fn load_dotenv_files() {
+    let root_env_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.env");
+    if root_env_path.exists() {
+        match dotenvy::from_path_iter(&root_env_path) {
+            Ok(iter) => {
+                for item in iter.flatten() {
+                    let (key, value) = item;
+                    // NIMI_* vars always override; others only set if missing
+                    let should_override = key.starts_with("NIMI_") || key.starts_with("VITE_NIMI_");
+                    if should_override || std::env::var_os(&key).is_none() {
+                        std::env::set_var(&key, &value);
+                    }
+                }
+                eprintln!("[parentos] dotenv loaded path={}", root_env_path.display());
+            }
+            Err(error) => {
+                eprintln!("[parentos] dotenv load failed path={} error={error}", root_env_path.display());
+            }
+        }
+    }
+}
+
+/// Cloud AI provider configuration resolved from env vars.
+/// Tries providers in priority order: DEEPSEEK, GEMINI, DASHSCOPE.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CloudAIConfig {
+    provider_endpoint: String,
+    provider_model: String,
+    provider_api_key: String,
+    provider_type: String,
+    available: bool,
+}
+
+fn env_value_trimmed(key: &str) -> String {
+    std::env::var(key)
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn parentos_cloud_ai_config() -> CloudAIConfig {
+    // Try DeepSeek first
+    let deepseek_key = env_value_trimmed("DEEPSEEK_API_KEY");
+    if !deepseek_key.is_empty() {
+        return CloudAIConfig {
+            provider_endpoint: "https://api.deepseek.com/v1".into(),
+            provider_model: "deepseek-chat".into(),
+            provider_api_key: deepseek_key,
+            provider_type: "openai_compat".into(),
+            available: true,
+        };
+    }
+    // Try Dashscope (Alibaba/Qwen)
+    let dashscope_key = env_value_trimmed("DASHSCOPE_API_KEY");
+    if !dashscope_key.is_empty() {
+        return CloudAIConfig {
+            provider_endpoint: "https://dashscope.aliyuncs.com/compatible-mode/v1".into(),
+            provider_model: "qwen-plus".into(),
+            provider_api_key: dashscope_key,
+            provider_type: "openai_compat".into(),
+            available: true,
+        };
+    }
+    CloudAIConfig {
+        provider_endpoint: String::new(),
+        provider_model: String::new(),
+        provider_api_key: String::new(),
+        provider_type: String::new(),
+        available: false,
+    }
+}
+
 fn configure_runtime_bridge_env() {
     if cfg!(debug_assertions) && std::env::var_os("NIMI_RUNTIME_BRIDGE_MODE").is_none() {
         std::env::set_var("NIMI_RUNTIME_BRIDGE_MODE", "RUNTIME");
@@ -60,6 +135,7 @@ fn configure_runtime_bridge_env() {
 }
 
 fn main() {
+    load_dotenv_files();
     configure_runtime_bridge_env();
     session_logging::set_app_session_prefix("parentos");
     session_logging::install_panic_hook();
@@ -69,6 +145,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             parentos_start_window_drag,
+            parentos_cloud_ai_config,
             defaults::runtime_defaults,
             auth_session_commands::auth_session_load,
             auth_session_commands::auth_session_save,

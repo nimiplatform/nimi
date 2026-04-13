@@ -3,17 +3,24 @@
 package main
 
 import (
-	"os"
-	"syscall"
+	"golang.org/x/sys/windows"
 )
+
+const windowsProcessStillActive = 259
 
 func configWriteLockProcessAlive(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	process, err := os.FindProcess(pid)
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
 	if err != nil {
 		return false
 	}
-	return process.Signal(syscall.Signal(0)) == nil
+	defer windows.CloseHandle(handle)
+
+	var exitCode uint32
+	if err := windows.GetExitCodeProcess(handle, &exitCode); err != nil {
+		return false
+	}
+	return exitCode == windowsProcessStillActive
 }

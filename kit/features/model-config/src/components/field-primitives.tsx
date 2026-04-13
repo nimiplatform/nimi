@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip, SelectField } from '@nimiplatform/nimi-kit/ui';
 
 const FIELD_BASE = 'w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_8%,var(--nimi-surface-card,#fff))] px-3 text-[13px] text-[var(--nimi-text-primary,#1e293b)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_32%,transparent)] focus:border-[var(--nimi-field-focus,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100';
 const FIELD_HEIGHT = 'h-10';
@@ -48,16 +48,13 @@ export function FieldSelect(props: {
   placeholder?: string;
 }) {
   return (
-    <select
+    <SelectField
       value={props.value}
-      onChange={(event) => props.onChange(event.target.value)}
-      className={`${FIELD_BASE} ${FIELD_HEIGHT}`}
-    >
-      {props.placeholder ? <option value="">{props.placeholder}</option> : null}
-      {props.options.map((option) => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
+      onValueChange={props.onChange}
+      options={props.options}
+      placeholder={props.placeholder}
+      selectClassName="min-h-10 rounded-xl px-3 text-sm"
+    />
   );
 }
 

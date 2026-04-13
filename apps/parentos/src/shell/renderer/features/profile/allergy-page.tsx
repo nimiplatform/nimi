@@ -161,7 +161,7 @@ export default function AllergyPage() {
   const statusBg = (s: string) => s === 'active' ? { background: '#fef2f2', color: '#dc2626' } : s === 'outgrown' ? { background: '#f0fdf4', color: '#16a34a' } : { background: '#f5f3ef', color: S.sub };
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>

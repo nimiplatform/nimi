@@ -122,6 +122,23 @@ export function getMeasurements(childId: string, typeId?: string) {
   return invoke<MeasurementRow[]>('get_measurements', { childId, typeId: typeId ?? null });
 }
 
+export function updateMeasurement(params: {
+  measurementId: string;
+  value: number;
+  measuredAt: string;
+  ageMonths: number;
+  percentile: number | null;
+  source: string | null;
+  notes: string | null;
+  now: string;
+}) {
+  return invoke<void>('update_measurement', params);
+}
+
+export function deleteMeasurement(measurementId: string) {
+  return invoke<void>('delete_measurement', { measurementId });
+}
+
 // ── Milestone Records ───────────────────────────────────────
 
 export interface MilestoneRecordRow {

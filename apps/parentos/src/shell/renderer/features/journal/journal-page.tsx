@@ -513,7 +513,7 @@ export default function JournalPage() {
      ════════════════════════════════════════════════════════ */
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-bold" style={{ color: S.text }}>成长随记</h1>

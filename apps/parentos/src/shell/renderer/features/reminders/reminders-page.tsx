@@ -22,7 +22,7 @@ import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminde
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 
 const C = {
-  bg: '#E5ECEC',
+  bg: '#E5ECEA',
   card: '#ffffff',
   text: '#1a2b4a',
   sub: '#8a8f9a',
@@ -87,7 +87,7 @@ function primaryAction(reminder: ActiveReminder) {
 
   if (reminder.rule.domain === 'vaccine') {
     return {
-      label: reminder.rule.actionType === 'go_hospital' ? '去预约' : '去记录',
+      label: reminder.rule.actionType === 'go_hospital' ? '去记录' : '去记录',
       to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}`,
     };
   }
@@ -97,7 +97,7 @@ function primaryAction(reminder: ActiveReminder) {
   }
 
   return {
-    label: reminder.rule.actionType === 'go_hospital' ? '去预约' : '查看详情',
+    label: reminder.rule.actionType === 'go_hospital' ? '去记录' : '查看详情',
     to: '/profile',
   };
 }
@@ -422,7 +422,7 @@ export default function RemindersPage() {
 
   if (!child) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3" style={{ background: C.bg, color: C.sub }}>
+      <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: C.sub }}>
         <p className="text-lg font-medium">请先添加孩子</p>
         <Link to="/timeline" className="text-sm hover:underline" style={{ color: C.text }}>返回首页</Link>
       </div>
@@ -431,14 +431,14 @@ export default function RemindersPage() {
 
   if (loading || !agenda) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ background: C.bg }}>
+      <div className="flex items-center justify-center h-full" style={{ background: 'transparent' }}>
         <p className="text-sm" style={{ color: C.sub }}>加载中...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: C.bg }}>
+    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className="max-w-[920px] mx-auto px-5 py-6 space-y-5">
         <div className="flex items-center gap-3">
           <Link to="/timeline" className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/[0.04]" style={{ color: C.text }}>

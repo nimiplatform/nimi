@@ -223,7 +223,7 @@ export default function PosturePage() {
   }, [cobbRecords, shoulderRecords]);
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <Link to="/profile" className="text-[13px] hover:underline mb-5 inline-block" style={{ color: S.sub }}>← 返回档案</Link>
 
       <div className="flex items-center justify-between mb-1">

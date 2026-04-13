@@ -2,15 +2,15 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { S, selectStyle } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
-import { Area, CartesianGrid, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { computeAgeMonths, computeAgeMonthsAt, formatAge, useAppStore } from '../../app-shell/app-store.js';
-import { getMeasurements, insertMeasurement } from '../../bridge/sqlite-bridge.js';
+import { getMeasurements, insertMeasurement, updateMeasurement, deleteMeasurement } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import { canRenderWHOLMS, loadWHOLMS, PERCENTILE_COLORS, type WHOLMSDataset } from './who-lms-loader.js';
+import { canRenderWHOLMS, loadWHOLMS, GROWTH_STANDARD_LABELS, type WHOLMSDataset, type GrowthStandard } from './who-lms-loader.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import {
@@ -90,41 +90,31 @@ interface MergedPoint {
   value?: number;
   date?: string;
   p3?: number; p10?: number; p25?: number; p50?: number; p75?: number; p90?: number; p97?: number;
-  // Stacked band values for Recharts Area
-  band_base_3?: number;
-  band_3_97?: number;
-  band_base_10?: number;
-  band_10_90?: number;
-  band_base_25?: number;
-  band_25_75?: number;
 }
 
 function buildMergedChartData(
   userData: Array<{ age: number; value: number; date?: string }>,
-  whoDataset: WHOLMSDataset | null,
+  refDataset: WHOLMSDataset | null,
 ): MergedPoint[] {
-  if (!whoDataset) return userData;
+  if (!refDataset) return userData;
 
-  // Build a map of WHO values by age
-  const whoByAge = new Map<number, Record<string, number>>();
-  for (const line of whoDataset.lines) {
+  const refByAge = new Map<number, Record<string, number>>();
+  for (const line of refDataset.lines) {
     for (const pt of line.points) {
       const key = Math.round(pt.ageMonths * 100) / 100;
-      const entry = whoByAge.get(key) ?? {};
+      const entry = refByAge.get(key) ?? {};
       entry[`p${line.percentile}`] = pt.value;
-      whoByAge.set(key, entry);
+      refByAge.set(key, entry);
     }
   }
 
-  // Determine age range: include all user data ages + WHO data within that range
   const userAges = new Set(userData.map((d) => d.age));
   const minAge = userData.length > 0 ? Math.min(...userData.map((d) => d.age)) : 0;
   const maxAge = userData.length > 0 ? Math.max(...userData.map((d) => d.age)) : 0;
 
-  // Collect all unique ages (user + WHO within ±12 months of user range)
   const allAges = new Set<number>();
   for (const age of userAges) allAges.add(age);
-  for (const age of whoByAge.keys()) {
+  for (const age of refByAge.keys()) {
     if (age >= minAge - 12 && age <= maxAge + 12 && Number.isInteger(age)) allAges.add(age);
   }
 
@@ -133,18 +123,10 @@ function buildMergedChartData(
 
   return sorted.map((age) => {
     const u = userMap.get(age);
-    const w = whoByAge.get(age) ?? {};
-    const p3 = w.p3; const p10 = w.p10; const p25 = w.p25;
-    const p50 = w.p50; const p75 = w.p75; const p90 = w.p90; const p97 = w.p97;
+    const w = refByAge.get(age) ?? {};
     return {
-      age,
-      value: u?.value,
-      date: u?.date,
-      p3, p10, p25, p50, p75, p90, p97,
-      // Stacked bands: base (transparent) + band (colored)
-      band_base_3: p3, band_3_97: p3 != null && p97 != null ? p97 - p3 : undefined,
-      band_base_10: p10, band_10_90: p10 != null && p90 != null ? p90 - p10 : undefined,
-      band_base_25: p25, band_25_75: p25 != null && p75 != null ? p75 - p25 : undefined,
+      age, value: u?.value, date: u?.date,
+      p3: w.p3, p10: w.p10, p25: w.p25, p50: w.p50, p75: w.p75, p90: w.p90, p97: w.p97,
     };
   });
 }
@@ -418,6 +400,7 @@ export default function GrowthCurvePage() {
   const [formHeadCirc, setFormHeadCirc] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
+  const [growthStandard, setGrowthStandard] = useState<GrowthStandard>('china');
   const [whoDataset, setWhoDataset] = useState<WHOLMSDataset | null>(null);
   const [showOCR, setShowOCR] = useState(false);
   const [ocrRuntimeAvailable, setOCRRuntimeAvailable] = useState<boolean | null>(null);
@@ -426,6 +409,44 @@ export default function GrowthCurvePage() {
   const [ocrStatus, setOCRStatus] = useState<'idle' | 'analyzing' | 'review'>('idle');
   const [ocrError, setOCRError] = useState<string | null>(null);
   const [ocrCandidates, setOCRCandidates] = useState<Array<OCRMeasurementCandidate & { selected: boolean }>>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteMeasurement = async (measurementId: string) => {
+    try {
+      await deleteMeasurement(measurementId);
+      setMeasurements(await getMeasurements(child!.childId));
+    } catch { /* bridge unavailable */ }
+    setDeletingId(null);
+  };
+
+  const handleEditMeasurement = (m: MeasurementRow) => {
+    setEditingId(m.measurementId);
+    setEditValue(String(m.value));
+    setEditDate(m.measuredAt.split('T')[0]!);
+  };
+
+  const handleSaveEdit = async (m: MeasurementRow) => {
+    const v = parseFloat(editValue);
+    if (isNaN(v)) return;
+    const age = computeAgeMonthsAt(child!.birthDate, editDate);
+    try {
+      await updateMeasurement({
+        measurementId: m.measurementId,
+        value: v,
+        measuredAt: editDate,
+        ageMonths: age,
+        percentile: m.percentile,
+        source: m.source,
+        notes: m.notes,
+        now: isoNow(),
+      });
+      setMeasurements(await getMeasurements(child!.childId));
+      setEditingId(null);
+    } catch { /* bridge unavailable */ }
+  };
 
   useEffect(() => {
     if (!activeChildId) {
@@ -451,10 +472,10 @@ export default function GrowthCurvePage() {
       return;
     }
 
-    loadWHOLMS(selectedType as GrowthTypeId, child.gender)
+    loadWHOLMS(selectedType as GrowthTypeId, child.gender, growthStandard)
       .then(setWhoDataset)
-      .catch(catchLogThen('growth-curve', 'action:load-who-lms-failed', () => setWhoDataset(null)));
-  }, [selectedType, child]);
+      .catch(catchLogThen('growth-curve', 'action:load-lms-failed', () => setWhoDataset(null)));
+  }, [selectedType, child, growthStandard]);
 
   const latestH = useMemo(() => getLatestMeasurement(measurements, 'height'), [measurements]);
   const latestW = useMemo(() => getLatestMeasurement(measurements, 'weight'), [measurements]);
@@ -616,27 +637,9 @@ export default function GrowthCurvePage() {
     (standard) => ageMonths >= standard.ageRange.startMonths && ageMonths <= standard.ageRange.endMonths,
   );
   const canShowWhoLines = canRenderWHOLMS(whoDataset, ageMonths);
-  const percentileLines = whoDataset && canShowWhoLines ? whoDataset.lines : [];
-  const referenceNote = (() => {
-    if (typeInfo?.curveType !== 'lms-percentile') {
-      return 'This metric uses a static reference range instead of WHO percentile curves.';
-    }
-
-    if (!whoDataset) {
-      return 'Official WHO percentile data is unavailable for this metric and sex. Showing recorded measurements only.';
-    }
-
-    if (!canShowWhoLines) {
-      const start = Math.round(whoDataset.coverage.startAgeMonths);
-      const end = Math.round(whoDataset.coverage.endAgeMonths);
-      return `Official WHO percentile data for this metric covers ${start}-${end} months. Showing recorded measurements only for the current age range.`;
-    }
-
-    return 'WHO percentile reference lines (P3-P97) are loaded from the official 2006/2007 tables.';
-  })();
 
   return (
-    <div className={S.container} style={{ paddingTop: S.topPad, background: S.bg, minHeight: '100%' }}>
+    <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
@@ -802,6 +805,33 @@ export default function GrowthCurvePage() {
         );
       })()}
 
+      {/* ── Standard toggle ── */}
+      <div className="flex items-center mb-3">
+        <div className="flex items-center gap-1.5 p-0.5 rounded-full" style={{ background: '#f0f0ec' }}>
+          {(['china', 'who'] as const).map((std) => {
+            const isActive = growthStandard === std;
+            const tip = std === 'china'
+              ? '0-7岁: WS/T 423-2022《7岁以下儿童生长标准》\n(国家卫健委, 2023年实施, 基于2015年九市调查)\n\n7-18岁: 《中国0-18岁儿童青少年身高体重标准化生长曲线》\n(李辉等, 首都儿科研究所, 2009)'
+              : 'WHO Child Growth Standards (2006)\n0-5岁多中心生长参照研究\n\nWHO Growth Reference (2007)\n5-19岁生长参照数据';
+            return (
+              <div key={std} className="group/std relative flex items-center">
+                <button onClick={() => setGrowthStandard(std)}
+                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-medium rounded-full transition-all duration-200 ${isActive ? 'text-white shadow-sm' : ''}`}
+                  style={isActive ? { background: std === 'china' ? '#e25c5c' : '#4a90d9', color: '#fff' } : { color: S.sub }}>
+                  {GROWTH_STANDARD_LABELS[std]}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                    className="opacity-50"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                </button>
+                <div className="pointer-events-none absolute left-0 top-8 z-50 w-[280px] rounded-xl p-3 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover/std:pointer-events-auto group-hover/std:opacity-100 whitespace-pre-line"
+                  style={{ background: '#1a2b4a', color: '#e8e5e0', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+                  {tip}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className={`${S.radius} p-4 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
         {chartData.length === 0 ? (
           <div className="p-8 text-center">
@@ -820,7 +850,7 @@ export default function GrowthCurvePage() {
             const yDomain = computeChartYDomain(merged, selectedType);
             return (
               <ResponsiveContainer width="100%" height={320}>
-                <ComposedChart data={merged} margin={{ top: 5, right: 10, bottom: 20, left: 5 }}>
+                <ComposedChart data={merged} margin={{ top: 5, right: 36, bottom: 20, left: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0ec" />
                   <XAxis dataKey="age"
                     tickFormatter={(age: number) => {
@@ -859,18 +889,22 @@ export default function GrowthCurvePage() {
                     }}
                   />
 
-                  {/* Band P3-P97 (outermost, light gray) */}
-                  <Area type="monotone" dataKey="band_base_3" stackId="outer" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="band_3_97" stackId="outer" fill="rgba(200,200,200,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
-                  {/* Band P10-P90 (middle, light blue) */}
-                  <Area type="monotone" dataKey="band_base_10" stackId="mid" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="band_10_90" stackId="mid" fill="rgba(134,175,218,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
-                  {/* Band P25-P75 (inner, light green) */}
-                  <Area type="monotone" dataKey="band_base_25" stackId="inner" fill="transparent" stroke="none" activeDot={false} isAnimationActive={false} />
-                  <Area type="monotone" dataKey="band_25_75" stackId="inner" fill="rgba(148,165,51,0.12)" stroke="none" activeDot={false} isAnimationActive={false} />
-                  {/* P50 median line */}
-                  <Line type="monotone" dataKey="p50" stroke="rgba(148,165,51,0.45)" strokeWidth={1} strokeDasharray="6 3"
-                    dot={false} activeDot={false} isAnimationActive={false} name="P50 中位线" />
+                  {/* 5-line percentile display: P3, P10, P50, P90, P97 — labels at right end */}
+                  {[
+                    { key: 'p97', label: '97%', w: 1, dash: '4 3', color: growthStandard === 'china' ? '#c4a882' : '#9bb0cc' },
+                    { key: 'p90', label: '90%', w: 1.2, dash: '6 3', color: growthStandard === 'china' ? '#d4956a' : '#6a9fd8' },
+                    { key: 'p50', label: '50%', w: 1.8, dash: '6 3', color: growthStandard === 'china' ? '#d94040' : '#3a7fd6' },
+                    { key: 'p10', label: '10%', w: 1.2, dash: '6 3', color: growthStandard === 'china' ? '#d4956a' : '#6a9fd8' },
+                    { key: 'p3', label: '3%', w: 1, dash: '4 3', color: growthStandard === 'china' ? '#c4a882' : '#9bb0cc' },
+                  ].map((ln) => (
+                    <Line key={ln.key} type="monotone" dataKey={ln.key} stroke={ln.color} strokeWidth={ln.w} strokeDasharray={ln.dash}
+                      dot={false} activeDot={false} isAnimationActive={false} connectNulls
+                      label={({ x, y, index, value }: { x: number; y: number; index: number; value: unknown }) =>
+                        value != null && index === merged.length - 1 ? (
+                          <text key={`${ln.key}-lbl`} x={x + 4} y={y} dy={4} fontSize={9} fill={ln.color} fontWeight={ln.key === 'p50' ? 600 : 400}>{ln.label}</text>
+                        ) : null
+                      } />
+                  ))}
                   {/* User measurement line */}
                   <Line type="monotone" dataKey="value" stroke={TYPE_COLORS[selectedType] ?? '#6366f1'} strokeWidth={2.5}
                     dot={(props: Record<string, unknown>) => {
@@ -885,23 +919,7 @@ export default function GrowthCurvePage() {
             );
           })()
         )}
-        {canShowWhoLines && whoDataset && (
-          <div className="flex items-center gap-5 mt-3 text-[11px]" style={{ color: '#6b7280' }}>
-            <span className="flex items-center gap-2">
-              <svg width="28" height="2"><line x1="0" y1="1" x2="28" y2="1" stroke="rgba(148,165,51,0.55)" strokeWidth="1.5" strokeDasharray="6 3" /></svg>
-              P50 中位线（同龄平均）
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="inline-block w-3.5 h-3.5 rounded-sm" style={{ background: 'rgba(148,165,51,0.2)' }} />
-              P25-P75 正常区间
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="inline-block w-3.5 h-3.5 rounded-sm" style={{ background: 'rgba(134,175,218,0.2)' }} />
-              P10-P90 参考区间
-            </span>
-          </div>
-        )}
-        <p className="text-[10px] mt-1" style={{ color: S.sub }}>{referenceNote}</p>
+        {/* percentile labels are shown at line ends inside the chart */}
       </div>
 
       {/* Bone age associated display (height chart only) */}
@@ -1122,34 +1140,94 @@ export default function GrowthCurvePage() {
                 <th className="pb-2">数值</th>
                 <th className="pb-2">来源</th>
                 <th className="pb-2">百分位</th>
-                <th className="pb-2 w-10"></th>
+                <th className="pb-2 w-24 text-right">操作</th>
               </tr>
             </thead>
             <tbody>
               {typeMeasurements
                 .slice()
                 .reverse()
-                .map((measurement) => (
-                  <tr key={measurement.measurementId} style={{ borderBottom: `1px solid ${S.border}` }}>
-                    <td className="py-2">{measurement.measuredAt.split('T')[0]}</td>
-                    <td>{measurement.ageMonths < 24 ? `${measurement.ageMonths}月` : `${Math.floor(measurement.ageMonths / 12)}岁${measurement.ageMonths % 12 > 0 ? `${measurement.ageMonths % 12}月` : ''}`}</td>
-                    <td>{measurement.value} {typeInfo?.unit}</td>
-                    <td>{measurement.source === 'manual' ? '手动' : measurement.source === 'ocr' ? 'OCR' : measurement.source === 'computed' ? '计算' : '-'}</td>
-                    <td>{(() => {
-                      const stored = measurement.percentile;
-                      if (stored != null) return `P${Math.round(stored)}`;
-                      const approx = computeApproxPercentile(measurement.value, measurement.ageMonths, whoDataset);
-                      return approx != null ? `P${approx}` : '-';
-                    })()}</td>
-                    <td>
-                      <button onClick={() => navigateToAI(measurement)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-[#f0f0ec]"
-                        title="AI 分析此数据">💬</button>
-                    </td>
-                  </tr>
-                ))}
+                .map((measurement) => {
+                  const isEditing = editingId === measurement.measurementId;
+                  return (
+                    <tr key={measurement.measurementId} style={{ borderBottom: `1px solid ${S.border}` }}>
+                      <td className="py-2">
+                        {isEditing ? (
+                          <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)}
+                            className="text-[12px] px-1.5 py-0.5 rounded border w-[120px]" style={{ borderColor: S.border }} />
+                        ) : measurement.measuredAt.split('T')[0]}
+                      </td>
+                      <td>{measurement.ageMonths < 24 ? `${measurement.ageMonths}月` : `${Math.floor(measurement.ageMonths / 12)}岁${measurement.ageMonths % 12 > 0 ? `${measurement.ageMonths % 12}月` : ''}`}</td>
+                      <td>
+                        {isEditing ? (
+                          <input type="number" step="0.1" value={editValue} onChange={(e) => setEditValue(e.target.value)}
+                            className="text-[12px] px-1.5 py-0.5 rounded border w-[80px]" style={{ borderColor: S.border }} />
+                        ) : <>{measurement.value} {typeInfo?.unit}</>}
+                      </td>
+                      <td>{measurement.source === 'manual' ? '手动' : measurement.source === 'ocr' ? 'OCR' : measurement.source === 'computed' ? '计算' : '-'}</td>
+                      <td>{(() => {
+                        const stored = measurement.percentile;
+                        if (stored != null) return `P${Math.round(stored)}`;
+                        const approx = computeApproxPercentile(measurement.value, measurement.ageMonths, whoDataset);
+                        return approx != null ? `P${approx}` : '-';
+                      })()}</td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {isEditing ? (
+                            <>
+                              <button onClick={() => void handleSaveEdit(measurement)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-green-50"
+                                title="保存" style={{ color: '#16a34a' }}>✓</button>
+                              <button onClick={() => setEditingId(null)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-gray-100"
+                                title="取消" style={{ color: S.sub }}>✕</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => navigateToAI(measurement)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-[#f0f0ec]"
+                                title="AI 分析此数据">💬</button>
+                              <button onClick={() => handleEditMeasurement(measurement)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-blue-50"
+                                title="编辑" style={{ color: '#2563eb' }}>✎</button>
+                              <button onClick={() => setDeletingId(measurement.measurementId)}
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-red-50"
+                                title="删除" style={{ color: '#dc2626' }}>✕</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ── */}
+      {deletingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.35)' }}
+          onClick={() => setDeletingId(null)}>
+          <div className={`${S.radius} p-6 w-[340px]`} style={{ background: S.card, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
+            onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[15px] font-semibold mb-2" style={{ color: S.text }}>确认删除</h3>
+            <p className="text-[12px] leading-[1.6] mb-5" style={{ color: S.sub }}>
+              删除后数据无法恢复，确定要删除这条记录吗？
+            </p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingId(null)}
+                className="text-[12px] px-4 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
+                style={{ background: '#f5f3ef', color: S.text }}>
+                取消
+              </button>
+              <button onClick={() => void handleDeleteMeasurement(deletingId)}
+                className="text-[12px] px-4 py-1.5 rounded-full text-white font-medium transition-colors hover:opacity-90"
+                style={{ background: '#dc2626' }}>
+                确认删除
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

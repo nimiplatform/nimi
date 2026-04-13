@@ -175,7 +175,7 @@ func (s *Service) resolveCatalogItem(req *runtimev1.ResolveModelInstallPlanReque
 	modelID := strings.TrimSpace(req.GetModelId())
 	repo := strings.TrimSpace(req.GetRepo())
 	source := strings.TrimSpace(req.GetSource())
-	for _, item := range s.catalog {
+	for _, item := range s.catalogSnapshot() {
 		if itemID != "" && item.GetItemId() == itemID {
 			return item
 		}

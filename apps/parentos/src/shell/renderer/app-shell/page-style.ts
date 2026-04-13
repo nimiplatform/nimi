@@ -1,5 +1,10 @@
+/** Dashboard gradient background — reuse via `style={{ background: BG }}` or className="bg-dashboard" */
+/** Shell-level gradient background — applied once on the outermost shell wrapper */
+export const BG = 'linear-gradient(180deg, rgba(229,236,234,0.6) 0%, #E5ECEA 100%)';
+
 /** Shared dashboard design tokens — import in every page for consistent styling */
 export const S = {
+  /** Solid tint for inner UI elements (badges, pills, list items). Pages use transparent. */
   bg: '#E5ECEA',
   card: '#ffffff',
   text: '#1a2b4a',

@@ -220,7 +220,7 @@ export default function AdvisorPage() {
   };
 
   return (
-    <div className="flex h-full" style={{ background: S.bg, paddingTop: S.topPad }}>
+    <div className="flex h-full" style={{ paddingTop: S.topPad }}>
       {/* Conversation sidebar */}
       <div className="w-56 p-3 flex flex-col" style={{ borderRight: `1px solid ${S.border}`, background: S.bg }}>
         <button onClick={handleNewConversation}

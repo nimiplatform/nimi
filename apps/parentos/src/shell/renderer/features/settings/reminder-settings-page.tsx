@@ -53,7 +53,7 @@ export default function ReminderSettingsPage() {
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
   return (
-    <div className="min-h-full p-6" style={{ background: S.bg }}>
+    <div className="min-h-full p-6" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto">
         <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>

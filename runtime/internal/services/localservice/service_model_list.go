@@ -101,12 +101,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 
-	s.mu.RLock()
-	localCatalog := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(s.catalog))
-	for _, item := range s.catalog {
-		localCatalog = append(localCatalog, cloneCatalogItem(item))
-	}
-	s.mu.RUnlock()
+	localCatalog := s.catalogSnapshot()
 
 	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(localCatalog)+hfCatalogDefaultLimit)
 	for _, item := range localCatalog {

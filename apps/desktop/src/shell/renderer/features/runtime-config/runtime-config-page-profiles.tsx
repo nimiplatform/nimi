@@ -1,16 +1,14 @@
 /**
- * AI Profile Catalog page — browse, create, edit, import/export profiles.
+ * AI Profile Catalog page — Linear/Stripe-inspired minimal UI.
  *
- * Three sections:
- *   1. Recommended — runtime built-in profiles with recommended=true
- *   2. Built-in — runtime built-in profiles with recommended=false
- *   3. Custom — user-created profiles (localStorage)
+ * Single flat grid with active/idle card states and a ghost card for creation.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import type { AIProfile } from '@nimiplatform/sdk/mod';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { RuntimePageShell } from './runtime-config-page-shell.js';
@@ -55,7 +53,7 @@ function useUserProfiles(version: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Capability summary icons
+// Capability summary badges
 // ---------------------------------------------------------------------------
 
 const CAPABILITY_ICON_MAP: Record<string, string> = {
@@ -75,7 +73,7 @@ function CapabilitySummary(props: { capabilities: AIProfile['capabilities'] }) {
       {labels.map((label) => (
         <span
           key={label}
-          className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]"
+          className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
         >
           {label}
         </span>
@@ -85,11 +83,71 @@ function CapabilitySummary(props: { capabilities: AIProfile['capabilities'] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Profile card
+// Card dropdown (kebab menu)
+// ---------------------------------------------------------------------------
+
+const ELLIPSIS_ICON = (
+  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+    <circle cx="4" cy="10" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="16" cy="10" r="1.5" />
+  </svg>
+);
+
+function CardDropdown(props: {
+  items: Array<{ label: string; danger?: boolean; onClick: () => void }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  if (props.items.length === 0) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+      >
+        {ELLIPSIS_ICON}
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] rounded-xl bg-white py-1 shadow-lg ring-1 ring-gray-900/5">
+          {props.items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={cn(
+                'flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors',
+                item.danger
+                  ? 'text-red-500 hover:bg-red-50'
+                  : 'text-gray-600 hover:bg-gray-50',
+              )}
+              onClick={(e) => { e.stopPropagation(); item.onClick(); setOpen(false); }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ProfileCard — active / idle states
 // ---------------------------------------------------------------------------
 
 function ProfileCard(props: {
   entry: CatalogProfile;
+  isActive: boolean;
   onApply: (profileId: string) => void;
   onEdit?: (profile: AIProfile) => void;
   onDelete?: (profileId: string) => void;
@@ -98,99 +156,107 @@ function ProfileCard(props: {
 }) {
   const { t } = useTranslation();
   const { profile, origin, recommended } = props.entry;
+  const { isActive } = props;
+
+  // Build dropdown menu — Apply is now inside the "..." menu for idle cards
+  const menuItems: Array<{ label: string; danger?: boolean; onClick: () => void }> = [];
+  if (!isActive) {
+    menuItems.push({
+      label: t('runtimeConfig.profiles.applyAction', { defaultValue: 'Apply' }),
+      onClick: () => props.onApply(profile.profileId),
+    });
+  }
+  menuItems.push({
+    label: t('runtimeConfig.profiles.duplicate', { defaultValue: 'Duplicate' }),
+    onClick: () => props.onDuplicate(profile),
+  });
+  if (origin === 'custom' && props.onEdit) {
+    menuItems.push({
+      label: t('runtimeConfig.profiles.edit', { defaultValue: 'Edit' }),
+      onClick: () => props.onEdit!(profile),
+    });
+  }
+  if (origin === 'custom' && props.onDelete) {
+    menuItems.push({
+      label: t('runtimeConfig.profiles.delete', { defaultValue: 'Delete' }),
+      danger: true,
+      onClick: () => props.onDelete!(profile.profileId),
+    });
+  }
 
   return (
-    <div className="group relative flex flex-col gap-2.5 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-4 transition-colors hover:border-[var(--nimi-border-strong)]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
-              {profile.title || profile.profileId}
-            </h4>
-            {recommended ? (
-              <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
-                {t('runtimeConfig.profiles.recommended', { defaultValue: 'Recommended' })}
-              </span>
-            ) : null}
-            {origin === 'custom' ? (
-              <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-500">
-                {t('runtimeConfig.profiles.custom', { defaultValue: 'Custom' })}
-              </span>
-            ) : null}
-          </div>
-          {profile.description ? (
-            <p className="mt-1 line-clamp-2 text-xs text-[var(--nimi-text-muted)]">
-              {profile.description}
-            </p>
+    <div
+      className={cn(
+        'group relative flex flex-col rounded-xl bg-white p-6 transition-all duration-200',
+        isActive
+          ? 'shadow-sm ring-2 ring-mint-500'
+          : 'shadow-sm ring-1 ring-gray-900/5 hover:-translate-y-0.5 hover:shadow-md',
+      )}
+    >
+      {/* Title row: name + status dot | "..." menu */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <h4 className="truncate text-sm font-semibold text-gray-900">
+            {profile.title || profile.profileId}
+          </h4>
+          {isActive ? (
+            <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
           ) : null}
+        </div>
+
+        {/* "..." always present, quiet */}
+        <div className="shrink-0">
+          <CardDropdown items={menuItems} />
         </div>
       </div>
 
-      <CapabilitySummary capabilities={profile.capabilities} />
-
-      {profile.tags.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {profile.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-[var(--nimi-surface-card)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
-              {tag}
-            </span>
-          ))}
-        </div>
+      {/* Description */}
+      {profile.description ? (
+        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">
+          {profile.description}
+        </p>
       ) : null}
 
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          disabled={props.applying}
-          className="rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-[11px] font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-          onClick={() => props.onApply(profile.profileId)}
-        >
-          {t('runtimeConfig.profiles.apply', { defaultValue: 'Apply' })}
-        </button>
-        <button
-          type="button"
-          className="rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)] transition-colors"
-          onClick={() => props.onDuplicate(profile)}
-        >
-          {t('runtimeConfig.profiles.duplicate', { defaultValue: 'Duplicate' })}
-        </button>
-        {origin === 'custom' && props.onEdit ? (
-          <button
-            type="button"
-            className="rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)] transition-colors"
-            onClick={() => props.onEdit!(profile)}
-          >
-            {t('runtimeConfig.profiles.edit', { defaultValue: 'Edit' })}
-          </button>
+      {/* Tags + Capability badges */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {recommended ? (
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600">
+            {t('runtimeConfig.profiles.recommended', { defaultValue: 'Recommended' })}
+          </span>
         ) : null}
-        {origin === 'custom' && props.onDelete ? (
-          <button
-            type="button"
-            className="rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-[11px] text-[var(--nimi-status-danger)] hover:bg-red-50 transition-colors"
-            onClick={() => props.onDelete!(profile.profileId)}
-          >
-            {t('runtimeConfig.profiles.delete', { defaultValue: 'Delete' })}
-          </button>
+        {origin === 'custom' ? (
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+            {t('runtimeConfig.profiles.custom', { defaultValue: 'Custom' })}
+          </span>
         ) : null}
+        {profile.tags.map((tag) => (
+          <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">
+            {tag}
+          </span>
+        ))}
+        <CapabilitySummary capabilities={profile.capabilities} />
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Section
+// GhostCard — create new profile
 // ---------------------------------------------------------------------------
 
-function CatalogSection(props: { title: string; children: React.ReactNode }) {
+function GhostCard(props: { onClick: () => void; label: string }) {
   return (
-    <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--nimi-text-muted)]">
-        {props.title}
-      </h3>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {props.children}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={props.onClick}
+      className="flex min-h-[160px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-transparent p-6 text-gray-400 transition-all duration-200 hover:border-mint-300 hover:bg-mint-50/30 hover:text-mint-600"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      <span className="text-sm font-medium">{props.label}</span>
+    </button>
   );
 }
 
@@ -209,41 +275,25 @@ export function ProfileCatalogPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scopeRef = useAppStore((state) => state.aiConfig.scopeRef);
+  const profileOrigin = useAppStore((state) => state.aiConfig.profileOrigin);
+  const activeProfileId = profileOrigin?.profileId ?? null;
   const surface = useMemo(() => getDesktopAIConfigService(), []);
 
-  // Categorize runtime profiles — note: runtime profiles don't carry `recommended`
-  // on AIProfile, but the underlying LocalRuntimeProfileDescriptor does.
-  // We check tags or title heuristics, but the primary signal is from the runtime query.
-  // For now, all runtime profiles go into "Built-in" since the bridge doesn't expose recommended.
+  // Merge all entries into a flat list
   const catalogEntries = useMemo((): CatalogProfile[] => {
     const entries: CatalogProfile[] = [];
-
-    // Runtime profiles
     for (const p of runtimeQuery.data || []) {
-      entries.push({
-        profile: p,
-        origin: 'builtin',
-        recommended: false,
-      });
+      entries.push({ profile: p, origin: 'builtin', recommended: false });
     }
-
-    // User profiles
     for (const p of userProfiles) {
-      entries.push({
-        profile: p,
-        origin: 'custom',
-        recommended: false,
-      });
+      entries.push({ profile: p, origin: 'custom', recommended: false });
     }
-
     return entries;
   }, [runtimeQuery.data, userProfiles]);
 
-  const recommendedEntries = catalogEntries.filter((e) => e.recommended);
-  const builtinEntries = catalogEntries.filter((e) => e.origin === 'builtin' && !e.recommended);
   const customEntries = catalogEntries.filter((e) => e.origin === 'custom');
 
-  // -- Actions --
+  // -- Actions (unchanged) --
 
   const refreshUserProfiles = useCallback(() => {
     setUserVersion((v) => v + 1);
@@ -253,12 +303,10 @@ export function ProfileCatalogPage() {
     setApplying(true);
     setFeedback(null);
     try {
-      // Try runtime surface first (for built-in profiles)
       const result = await surface.aiProfile.apply(scopeRef, profileId);
       if (result.success) {
         setFeedback({ type: 'success', message: t('runtimeConfig.profiles.applySuccess', { defaultValue: 'Profile applied successfully.' }) });
       } else {
-        // Maybe it's a user profile — apply manually
         const userProfile = userProfiles.find((p) => p.profileId === profileId);
         if (userProfile) {
           const { applyAIProfileToConfig } = await import('@nimiplatform/sdk/mod');
@@ -301,8 +349,6 @@ export function ProfileCatalogPage() {
     setEditingProfile(createEmptyUserProfile());
   }, []);
 
-  // -- Import / Export --
-
   const handleExport = useCallback(() => {
     const profilesToExport = customEntries.map((e) => e.profile);
     if (profilesToExport.length === 0) return;
@@ -340,14 +386,10 @@ export function ProfileCatalogPage() {
         });
       }
       if (result.errors.length > 0) {
-        setFeedback({
-          type: 'error',
-          message: result.errors.join('; '),
-        });
+        setFeedback({ type: 'error', message: result.errors.join('; ') });
       }
     };
     reader.readAsText(file);
-    // Reset input so the same file can be re-imported
     event.target.value = '';
   }, [refreshUserProfiles, t]);
 
@@ -355,7 +397,7 @@ export function ProfileCatalogPage() {
 
   if (editingProfile) {
     return (
-      <RuntimePageShell maxWidth="3xl">
+      <RuntimePageShell>
         <ProfileEditor
           initial={editingProfile}
           onSave={handleSaveProfile}
@@ -366,40 +408,39 @@ export function ProfileCatalogPage() {
   }
 
   return (
-    <RuntimePageShell maxWidth="5xl">
-      <div className="space-y-6">
-        {/* Header + toolbar */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.profiles.description', {
-              defaultValue: 'Browse, create, and manage AI capability profiles. Apply a profile to configure all capabilities at once.',
-            })}
-          </p>
-          <div className="flex shrink-0 gap-2">
+    <RuntimePageShell>
+      {/* ── Header: subtitle | Import / Export ── */}
+      <section className="flex items-center justify-between gap-4">
+        <p className="text-sm text-gray-500">
+          {t('runtimeConfig.profiles.subtitle', { defaultValue: 'Apply a profile to configure all capabilities at once.' })}
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={handleImportClick}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.97]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {t('runtimeConfig.profiles.import', { defaultValue: 'Import' })}
+          </button>
+          {customEntries.length > 0 ? (
             <button
               type="button"
-              className="rounded-xl bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-xs font-medium text-white hover:opacity-90 transition-opacity"
-              onClick={handleCreate}
+              onClick={handleExport}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.97]"
             >
-              {t('runtimeConfig.profiles.create', { defaultValue: '+ Create Profile' })}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {t('runtimeConfig.profiles.export', { defaultValue: 'Export' })}
             </button>
-            <button
-              type="button"
-              className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-4 py-2 text-xs text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)] transition-colors"
-              onClick={handleImportClick}
-            >
-              {t('runtimeConfig.profiles.import', { defaultValue: 'Import' })}
-            </button>
-            {customEntries.length > 0 ? (
-              <button
-                type="button"
-                className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white px-4 py-2 text-xs text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)] transition-colors"
-                onClick={handleExport}
-              >
-                {t('runtimeConfig.profiles.export', { defaultValue: 'Export' })}
-              </button>
-            ) : null}
-          </div>
+          ) : null}
           <input
             ref={fileInputRef}
             type="file"
@@ -408,88 +449,57 @@ export function ProfileCatalogPage() {
             onChange={handleImportFile}
           />
         </div>
+      </section>
 
-        {/* Feedback */}
-        {feedback ? (
-          <div
-            className={[
-              'rounded-xl px-3 py-2 text-xs',
-              feedback.type === 'success'
-                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border border-red-200 bg-red-50 text-red-700',
-            ].join(' ')}
-          >
-            {feedback.message}
-            <button
-              type="button"
-              className="ml-2 opacity-60 hover:opacity-100"
-              onClick={() => setFeedback(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        ) : null}
-
-        {/* Loading */}
-        {runtimeQuery.isPending ? (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-8 text-center text-xs text-gray-400">
-            {t('runtimeConfig.profiles.loading', { defaultValue: 'Loading profiles...' })}
-          </div>
-        ) : null}
-
-        {/* Recommended */}
-        {recommendedEntries.length > 0 ? (
-          <CatalogSection title={t('runtimeConfig.profiles.sectionRecommended', { defaultValue: 'Recommended' })}>
-            {recommendedEntries.map((entry) => (
-              <ProfileCard
-                key={entry.profile.profileId}
-                entry={entry}
-                onApply={handleApply}
-                onDuplicate={handleDuplicate}
-                applying={applying}
-              />
-            ))}
-          </CatalogSection>
-        ) : null}
-
-        {/* Built-in */}
-        {builtinEntries.length > 0 ? (
-          <CatalogSection title={t('runtimeConfig.profiles.sectionBuiltin', { defaultValue: 'Built-in' })}>
-            {builtinEntries.map((entry) => (
-              <ProfileCard
-                key={entry.profile.profileId}
-                entry={entry}
-                onApply={handleApply}
-                onDuplicate={handleDuplicate}
-                applying={applying}
-              />
-            ))}
-          </CatalogSection>
-        ) : null}
-
-        {/* Custom */}
-        <CatalogSection title={t('runtimeConfig.profiles.sectionCustom', { defaultValue: 'Custom' })}>
-          {customEntries.length > 0 ? (
-            customEntries.map((entry) => (
-              <ProfileCard
-                key={entry.profile.profileId}
-                entry={entry}
-                onApply={handleApply}
-                onEdit={(p) => setEditingProfile(structuredClone(p))}
-                onDelete={handleDeleteProfile}
-                onDuplicate={handleDuplicate}
-                applying={applying}
-              />
-            ))
-          ) : (
-            <div className="col-span-full rounded-xl border border-dashed border-gray-200 bg-gray-50/60 px-3 py-8 text-center text-xs text-gray-400">
-              {t('runtimeConfig.profiles.noCustom', {
-                defaultValue: 'No custom profiles yet. Create one or import from a file.',
-              })}
-            </div>
+      {/* ── Feedback banner ── */}
+      {feedback ? (
+        <div
+          className={cn(
+            'rounded-xl px-4 py-2.5 text-xs ring-1',
+            feedback.type === 'success'
+              ? 'bg-green-50 text-green-700 ring-green-200'
+              : 'bg-red-50 text-red-700 ring-red-200',
           )}
-        </CatalogSection>
-      </div>
+        >
+          {feedback.message}
+          <button
+            type="button"
+            className="ml-2 opacity-60 hover:opacity-100"
+            onClick={() => setFeedback(null)}
+          >
+            {t('runtimeConfig.profiles.dismiss', { defaultValue: 'Dismiss' })}
+          </button>
+        </div>
+      ) : null}
+
+      {/* ── Loading skeleton ── */}
+      {runtimeQuery.isPending ? (
+        <div className="rounded-xl bg-gray-50 px-4 py-12 text-center text-xs text-gray-400">
+          {t('runtimeConfig.profiles.loading', { defaultValue: 'Loading profiles...' })}
+        </div>
+      ) : null}
+
+      {/* ── Flat grid: all profiles + ghost card ── */}
+      {!runtimeQuery.isPending ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {catalogEntries.map((entry) => (
+            <ProfileCard
+              key={entry.profile.profileId}
+              entry={entry}
+              isActive={entry.profile.profileId === activeProfileId}
+              onApply={handleApply}
+              onEdit={entry.origin === 'custom' ? (p) => setEditingProfile(structuredClone(p)) : undefined}
+              onDelete={entry.origin === 'custom' ? handleDeleteProfile : undefined}
+              onDuplicate={handleDuplicate}
+              applying={applying}
+            />
+          ))}
+          <GhostCard
+            onClick={handleCreate}
+            label={t('runtimeConfig.profiles.createCard', { defaultValue: 'Create Profile' })}
+          />
+        </div>
+      ) : null}
     </RuntimePageShell>
   );
 }

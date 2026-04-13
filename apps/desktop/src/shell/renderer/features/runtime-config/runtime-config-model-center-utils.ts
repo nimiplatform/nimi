@@ -8,6 +8,7 @@ import type {
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeProfileDescriptor,
+  LocalRuntimeProfileEntryDescriptor,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
@@ -379,4 +380,24 @@ export function filterInstalledModels<T extends { model?: string; localModelId?:
     const eng = (model.engine || '').toLowerCase();
     return modelName.includes(normalized) || localId.includes(normalized) || caps.includes(normalized) || eng.includes(normalized);
   });
+}
+
+export function resolveDependencyStatus(
+  entry: LocalRuntimeProfileEntryDescriptor,
+  state: RuntimeConfigStateV11,
+): { met: boolean; reason: string } {
+  if (entry.capability) {
+    const localNode = state.local.nodeMatrix.find(
+      (node) => node.capability === entry.capability && node.available,
+    );
+    const cap = entry.capability;
+    const hasLocalModel = state.local.models.some(
+      (m) => m.status === 'active' && (m.capabilities as string[]).includes(cap!),
+    );
+    if (localNode || hasLocalModel) {
+      return { met: true, reason: 'available locally' };
+    }
+    return { met: false, reason: `${entry.capability} not available` };
+  }
+  return { met: true, reason: '' };
 }

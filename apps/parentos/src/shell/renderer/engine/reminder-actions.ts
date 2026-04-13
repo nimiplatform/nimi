@@ -3,7 +3,7 @@ import { isoNow, ulid } from '../bridge/ulid.js';
 import type { ActiveReminder, ReminderAgenda, ReminderKind, ReminderState } from './reminder-engine.js';
 import { getLocalToday, reminderKey } from './reminder-engine.js';
 
-export type ReminderActionType = 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable';
+export type ReminderActionType = 'complete' | 'acknowledge' | 'schedule' | 'snooze' | 'mark_not_applicable' | 'dismiss_today';
 
 export interface ReminderActionInput {
   childId: string;
@@ -147,6 +147,30 @@ export async function applyReminderAction(input: ReminderActionInput) {
         }),
       );
       return;
+    case 'dismiss_today': {
+      // Dismiss for today only — sets dismissedAt to today's date.
+      // The reminder will reappear tomorrow or on its next trigger.
+      const row = buildRow({
+        childId: input.childId,
+        ruleId: reminder.rule.ruleId,
+        repeatIndex: reminder.repeatIndex,
+        previous,
+        status: previous?.status ?? 'active',
+        completedAt: previous?.completedAt ?? null,
+        snoozedUntil: previous?.snoozedUntil ?? null,
+        scheduledDate: previous?.scheduledDate ?? null,
+        notApplicable: previous?.notApplicable ?? 0,
+        plannedForDate: null,
+        surfaceRank: null,
+        lastSurfacedAt: previous?.lastSurfacedAt ?? null,
+        surfaceCount: previous?.surfaceCount ?? 0,
+        now,
+      });
+      row.dismissedAt = localToday;
+      row.dismissReason = 'today';
+      await upsertReminderState(row);
+      return;
+    }
   }
 }
 

@@ -12,15 +12,21 @@ export type SettingsSummaryCardProps = {
 };
 
 const STATUS_DOT_CLASS: Record<string, string> = {
-  ready: 'bg-[var(--nimi-status-success)]',
-  attention: 'bg-[var(--nimi-status-warning)]',
-  neutral: 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]',
+  ready: 'bg-green-500',
+  attention: 'bg-orange-500',
+  neutral: 'bg-slate-300',
 };
 
 const STATUS_BADGE_CLASS: Record<string, string> = {
-  ready: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-success)_24%,transparent)]',
-  attention: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)]',
-  neutral: 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]',
+  ready: 'border border-green-100 bg-green-50',
+  attention: 'border border-orange-100 bg-orange-50',
+  neutral: 'border border-slate-100 bg-slate-50',
+};
+
+const STATUS_TEXT_CLASS: Record<string, string> = {
+  ready: 'text-green-700',
+  attention: 'text-orange-700',
+  neutral: 'text-slate-500',
 };
 
 export function SettingsSummaryCard({
@@ -36,36 +42,33 @@ export function SettingsSummaryCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3.5 text-left transition-all duration-150 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] hover:shadow-sm active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
+      className="flex w-full cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left transition-all hover:border-slate-300 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50"
     >
-      <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold text-[var(--nimi-text-primary)]">{title}</div>
+      <div className="min-w-0">
+        <h4 className="text-[15px] font-bold text-slate-800">{title}</h4>
         {subtitle ? (
-          <div className="mt-0.5 truncate text-[11px] text-[var(--nimi-text-muted)]">{subtitle}</div>
+          <p className="mt-1 truncate font-mono text-xs text-slate-500">
+            <span className="inline-block rounded bg-slate-50 px-1.5 py-0.5">{subtitle}</span>
+          </p>
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {statusDot ? (
-          <span className={`h-2 w-2 rounded-full ${STATUS_DOT_CLASS[statusDot] ?? STATUS_DOT_CLASS.neutral}`} />
-        ) : null}
+      <div className="flex shrink-0 items-center gap-3">
         {statusLabel ? (
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${STATUS_BADGE_CLASS[statusDot ?? 'neutral'] ?? STATUS_BADGE_CLASS.neutral}`}>
-            {statusLabel}
-          </span>
+          <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${STATUS_BADGE_CLASS[statusDot ?? 'neutral'] ?? STATUS_BADGE_CLASS.neutral}`}>
+            <div className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[statusDot ?? 'neutral'] ?? STATUS_DOT_CLASS.neutral}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-wide ${STATUS_TEXT_CLASS[statusDot ?? 'neutral'] ?? STATUS_TEXT_CLASS.neutral}`}>
+              {statusLabel}
+            </span>
+          </div>
         ) : null}
         <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
+          className="h-4 w-4 text-slate-300"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-[var(--nimi-text-muted)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)]"
+          viewBox="0 0 24 24"
         >
-          <path d="m9 18 6-6-6-6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
     </button>

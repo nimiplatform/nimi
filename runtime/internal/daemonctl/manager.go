@@ -25,6 +25,8 @@ const (
 	ModeBackground            Mode = "background"
 	ModeExternal              Mode = "external"
 	followLogFallbackInterval      = 2 * time.Second
+	fileRemoveRetryDelay           = 50 * time.Millisecond
+	fileRemoveRetryTimeout         = 2 * time.Second
 )
 
 func (m Mode) String() string {
@@ -349,7 +351,7 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	}
 	lockLive := lockExists && lockPID > 0 && m.isProcessAlive(lockPID)
 	if lockExists && !lockLive {
-		if err := m.removeFile(paths.LockFile); err != nil {
+		if err := m.removeFileWithRetry(paths.LockFile); err != nil {
 			return Status{}, fmt.Errorf("remove stale runtime lock: %w", err)
 		}
 		lockExists = false
@@ -363,10 +365,10 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	if metadataExists {
 		metadataLive := metadata.PID > 0 && m.isProcessAlive(metadata.PID)
 		if !metadataLive || !lockExists || lockPID != metadata.PID {
-			if err := m.removeFile(paths.MetadataFile); err != nil {
+			if err := m.removeFileWithRetry(paths.MetadataFile); err != nil {
 				return Status{}, fmt.Errorf("remove stale runtime metadata: %w", err)
 			}
-			if err := m.removeFile(paths.PIDFile); err != nil {
+			if err := m.removeFileWithRetry(paths.PIDFile); err != nil {
 				return Status{}, fmt.Errorf("remove stale runtime pid file: %w", err)
 			}
 			metadataExists = false
@@ -375,7 +377,7 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	}
 
 	if !lockExists || lockPID <= 0 {
-		if err := m.removeFile(paths.PIDFile); err != nil {
+		if err := m.removeFileWithRetry(paths.PIDFile); err != nil {
 			return Status{}, fmt.Errorf("remove stale runtime pid file: %w", err)
 		}
 		return Status{
@@ -562,18 +564,35 @@ func (m *Manager) cleanupStaleFiles(paths Paths, pid int) error {
 			return err
 		}
 		if lockExists && lockPID == pid && !m.isProcessAlive(lockPID) {
-			if err := m.removeFile(paths.LockFile); err != nil {
+			if err := m.removeFileWithRetry(paths.LockFile); err != nil {
 				return err
 			}
 		}
 	}
-	if err := m.removeFile(paths.PIDFile); err != nil {
+	if err := m.removeFileWithRetry(paths.PIDFile); err != nil {
 		return err
 	}
-	if err := m.removeFile(paths.MetadataFile); err != nil {
+	if err := m.removeFileWithRetry(paths.MetadataFile); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (m *Manager) removeFileWithRetry(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return nil
+	}
+	deadline := m.now().Add(fileRemoveRetryTimeout)
+	for {
+		err := m.removeFile(path)
+		if err == nil || os.IsNotExist(err) {
+			return nil
+		}
+		if !shouldRetryFileRemove(err) || m.now().After(deadline) {
+			return err
+		}
+		m.sleep(fileRemoveRetryDelay)
+	}
 }
 
 func (m *Manager) readPID(path string) (int, bool, error) {

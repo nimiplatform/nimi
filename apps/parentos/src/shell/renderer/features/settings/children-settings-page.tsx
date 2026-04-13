@@ -224,7 +224,7 @@ export default function ChildrenSettingsPage() {
   const availablePresets = RECORDER_PRESETS.filter((p) => !usedNames.has(p.name));
 
   return (
-    <div className="min-h-full p-6" style={{ background: S.bg }}>
+    <div className="min-h-full p-6" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
         <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: S.sub }}>

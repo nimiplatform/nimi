@@ -130,7 +130,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		serviceRuntimeModes:          make(map[string]runtimev1.LocalEngineRuntimeMode),
 		audits:                       make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                     verified,
-		catalog:                      defaultCatalogFromVerified(verified),
+		catalog:                      make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
 		managedImageProfiles:         make(map[string]managedImageProfileState),
 		managedImageLoadCache:        make(map[string]managedImageLoadedState),
 		managedImageLoadInflight:     make(map[string]*managedImageLoadInflight),

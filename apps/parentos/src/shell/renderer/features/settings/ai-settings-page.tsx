@@ -224,7 +224,7 @@ export default function AiSettingsPage() {
   }, [config, pickerUnavailableHint, providers, runtimeStatusLabel, updateConfig]);
 
   return (
-    <div className="h-full overflow-y-auto" style={{ background: S.bg }}>
+    <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className={S.container} style={{ paddingTop: S.topPad }}>
         <div className="mb-6 flex items-center gap-3">
           <Link

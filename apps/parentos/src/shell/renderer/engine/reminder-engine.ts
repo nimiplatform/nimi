@@ -249,6 +249,8 @@ function toLifecycle(reminder: Omit<ActiveReminder, 'lifecycle'>, localToday: st
   const state = reminder.state;
   if (state?.notApplicable === 1) return 'not_applicable';
   if (state?.completedAt) return 'completed';
+  // Dismissed today → treat as snoozed (hidden from today's agenda, reappears tomorrow)
+  if (state?.dismissedAt === localToday) return 'snoozed';
   if (state?.snoozedUntil && state.snoozedUntil > localToday) return 'snoozed';
   if (state?.scheduledDate) {
     if (state.scheduledDate < localToday) return 'overdue';
@@ -354,7 +356,30 @@ export function computeEligibleReminders(
     });
   }
 
-  return reminders;
+  // Deduplicate repeating rules: keep only the latest uncompleted instance per ruleId.
+  // Completed / not_applicable instances are preserved for history.
+  const deduped: ActiveReminder[] = [];
+  const latestByRule = new Map<string, ActiveReminder>();
+
+  for (const reminder of reminders) {
+    if (!reminder.rule.repeatRule) {
+      deduped.push(reminder);
+      continue;
+    }
+    if (reminder.lifecycle === 'completed' || reminder.lifecycle === 'not_applicable') {
+      deduped.push(reminder);
+      continue;
+    }
+    const existing = latestByRule.get(reminder.rule.ruleId);
+    if (!existing || reminder.repeatIndex > existing.repeatIndex) {
+      latestByRule.set(reminder.rule.ruleId, reminder);
+    }
+  }
+  for (const reminder of latestByRule.values()) {
+    deduped.push(reminder);
+  }
+
+  return deduped;
 }
 
 function compareTodayReminder(a: ActiveReminder, b: ActiveReminder) {

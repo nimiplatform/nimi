@@ -53,7 +53,9 @@ pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
             )
         })?
         .connect_timeout(Duration::from_secs(2))
-        .timeout(Duration::from_secs(30))
+        // Keep timeout control at the individual RPC layer. Applying a
+        // channel-wide timeout here cancels long-lived server streams after the
+        // endpoint budget instead of the caller-specified request timeout.
         .tcp_nodelay(true);
     let channel = endpoint.connect().await.map_err(|error| {
         bridge_error("RUNTIME_BRIDGE_CONNECT_FAILED", error.to_string().as_str())

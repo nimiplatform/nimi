@@ -207,7 +207,7 @@ export default function ReportsPage() {
     return () => { cancelled = true; };
   }, [child]);
 
-  if (!child) return <div style={{ background: S.bg, minHeight: '100vh' }}><div className={S.container} style={{ paddingTop: S.topPad }}><p style={{ color: S.sub }}>请先添加孩子档案。</p></div></div>;
+  if (!child) return <div style={{ minHeight: '100vh' }}><div className={S.container} style={{ paddingTop: S.topPad }}><p style={{ color: S.sub }}>请先添加孩子档案。</p></div></div>;
 
   const activeChild = child;
   const latestReport = reports[0] ?? null;
@@ -249,7 +249,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div style={{ background: S.bg, minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh' }}>
       <div className={S.container} style={{ paddingTop: S.topPad }}>
         <div className="mb-5">
           <h1 className="text-[18px] font-bold" style={{ color: S.text }}>成长报告</h1>

@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Home, User, BookText, MessageCircle, TrendingUp, Settings, type LucideProps } from 'lucide-react';
 import { useAppStore, computeAgeMonths } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
+import { BG } from './page-style.js';
 
 const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucideProps> }> = [
   { to: '/timeline', label: '首页', Icon: Home },
@@ -105,9 +106,9 @@ export function ShellLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="isolate flex h-full" style={{ background: '#E5ECEA' }}>
+    <div className="isolate flex h-full" style={{ background: BG }}>
       {/* Narrow icon sidebar */}
-      <nav className="relative z-30 flex w-[72px] shrink-0 flex-col items-center overflow-visible py-4" style={{ background: '#E5ECEA' }}>
+      <nav className="relative z-30 flex w-[72px] shrink-0 flex-col items-center overflow-visible py-4" style={{ background: 'transparent' }}>
         {/* Greeting — above nav icons, left-aligned with them, overflows right */}
         <div className="w-[42px] self-center mb-5 relative" onMouseDown={handleWindowDragMouseDown}>
           <div className="whitespace-nowrap">
@@ -159,13 +160,19 @@ export function ShellLayout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Main content */}
-      <main className="relative z-0 min-w-0 flex-1 overflow-hidden">
-        <div
-          className="absolute top-0 left-0 right-0 z-20 h-[72px]"
-          data-testid="shell-main-drag-region"
-          aria-hidden="true"
-          onMouseDown={handleWindowDragMouseDown}
-        />
+      <main className="relative z-0 min-w-0 flex-1 overflow-hidden"
+        onMouseDown={(e) => {
+          // Only trigger window drag on empty/non-interactive areas in the top drag region
+          if (e.button !== 0) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          if (e.clientY - rect.top > 72) return; // only top 72px
+          const tag = (e.target as HTMLElement).tagName;
+          const interactive = (e.target as HTMLElement).closest('a, button, input, select, textarea, [role="button"], [tabindex]');
+          if (interactive || tag === 'A' || tag === 'BUTTON' || tag === 'INPUT') return;
+          void startParentosWindowDrag();
+        }}
+        data-testid="shell-main-drag-region"
+      >
         <div className="h-full">
           {children}
         </div>
