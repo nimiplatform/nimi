@@ -13,12 +13,6 @@ import {
   summarizeCanonicalMemoryView,
 } from '@renderer/infra/runtime-agent-memory';
 
-type RuntimeAgentMemoryTarget = {
-  agentId: string;
-  displayName: string;
-  worldId: string | null;
-};
-
 const DYADIC_POLICY_REASON = 'desktop_agent_chat_dyadic_turn';
 const DYADIC_ASSISTANT_POLICY_REASON = 'desktop_agent_chat_dyadic_assistant_turn';
 

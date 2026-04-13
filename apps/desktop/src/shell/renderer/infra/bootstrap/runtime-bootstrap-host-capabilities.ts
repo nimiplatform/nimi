@@ -1,13 +1,5 @@
-import { emitRuntimeLog } from '@runtime/telemetry/logger';
-import {
-    findLocalRuntimeProfileById,
-    localRuntime,
-} from '@runtime/local-runtime';
 import type { CheckLlmHealthInput, ExecuteLocalKernelTurnInput, ExecuteLocalKernelTurnResult, ProviderHealth, } from '@runtime/llm-adapter';
-import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { SlotHost } from '@renderer/mod-ui/host/slot-host';
-import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
@@ -16,11 +8,20 @@ import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecyc
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
 import { loadRuntimeRouteOptions } from './runtime-bootstrap-route-options';
-import { createModLocalProfileSnapshotResolver, readManifestProfiles, } from './runtime-bootstrap-host-capabilities-profiles';
+import { createModLocalProfileSnapshotResolver } from './runtime-bootstrap-host-capabilities-profiles';
 import { createScenarioJobControllerDeps, feedControllerJobSnapshot, toControllerJobSnapshot } from './runtime-bootstrap-host-capabilities-jobs';
 import { buildRuntimeMediaCapabilities } from './runtime-bootstrap-host-capabilities-media';
 import { describeRuntimeRouteMetadata } from './runtime-bootstrap-host-capabilities-route-describe';
 import { getRuntimeFieldsFromStore, hydrateLocalRouteBindingFromOptions, hydrateCloudRouteBindingFromOptions, requireModel, toResolvedBinding, toRouteHealthResult, } from './runtime-bootstrap-host-capabilities-routing';
+import {
+    buildRuntimeAIConfigCapabilities,
+    buildRuntimeAISnapshotCapabilities,
+    buildRuntimeCompatibilityAdapters,
+    buildRuntimeLocalCapabilities,
+    buildRuntimeSchedulerCapabilities,
+    buildRuntimeVoiceCapabilities,
+} from './runtime-bootstrap-host-capabilities-support';
+import { buildRuntimeHostShellCapabilities } from './runtime-bootstrap-host-capabilities-shell';
 import { setConversationCapabilityRouteRuntime, toRuntimeCanonicalCapability, type ConversationCapability } from '@renderer/features/chat/conversation-capability';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import {
@@ -44,25 +45,6 @@ function encodeResolvedBindingPayload(value: string): string {
         return globalThis.btoa(value);
     }
     return Buffer.from(value, 'utf8').toString('base64');
-}
-
-function toProtoInt64String(value: number | null | undefined): string {
-    const numeric = Number(value ?? 0);
-    if (!Number.isFinite(numeric)) {
-        return '0';
-    }
-    return String(Math.max(0, Math.trunc(numeric)));
-}
-
-function fromProtoInt64String(value: string | number | bigint | null | undefined): number | null {
-    if (value === null || value === undefined) {
-        return null;
-    }
-    if (typeof value === 'bigint') {
-        return Number(value);
-    }
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : null;
 }
 
 function createResolvedBindingRef(capability: RuntimeCanonicalCapability, resolved: Omit<ModRuntimeResolvedBinding, 'capability'>): string {
@@ -280,33 +262,14 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
     return {
         worldEvolution,
         runtime: {
-            checkLocalLlmHealth: async (payload: RuntimeLlmHealthInput): Promise<RuntimeLlmHealthResult> => {
-                const resolvedInput = toHealthInput(payload);
-                if (!resolvedInput) {
-                    return {
-                        healthy: false,
-                        status: 'unavailable',
-                        detail: 'Runtime provider is missing',
-                    };
-                }
-                return input.checkLocalLlmHealth(resolvedInput);
-            },
-            executeLocalKernelTurn: async (payload) => {
-                const resolvedInput = toKernelTurnInput(payload);
-                if (!resolvedInput) {
-                    return {
-                        error: 'RUNTIME_PROVIDER_MISSING',
-                        detail: 'Runtime provider is missing',
-                    };
-                }
-                return input.executeLocalKernelTurn(resolvedInput);
-            },
-            withOpenApiContextLock: <T>(context: {
-                realmBaseUrl: string;
-                accessToken?: string;
-                fetchImpl?: typeof fetch;
-            }, task: () => Promise<T>) => input.withOpenApiContextLock<T>(context, task),
-            getRuntimeHookRuntime: () => hookRuntime,
+            ...buildRuntimeCompatibilityAdapters({
+                checkLocalLlmHealth: input.checkLocalLlmHealth,
+                executeLocalKernelTurn: input.executeLocalKernelTurn,
+                getRuntimeHookRuntime: input.getRuntimeHookRuntime,
+                toHealthInput,
+                toKernelTurnInput,
+                withOpenApiContextLock: input.withOpenApiContextLock,
+            }),
             getModLocalProfileSnapshot: (payload) => hookRuntime.getModLocalProfileSnapshot(payload),
             route: {
                 listOptions: async ({ capability, modId }) => {
@@ -342,277 +305,21 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     });
                 },
             },
-            scheduler: {
-                peek: async (peekInput) => {
-                    const client = getRuntimeClient();
-                    try {
-                        const response = await client.ai.peekScheduling({
-                            appId: String(peekInput.appId || '').trim() || '_default',
-                            targets: (peekInput.targets || []).map((target) => ({
-                                capability: String(target.capability || '').trim(),
-                                modId: String(target.modId || '').trim(),
-                                profileId: String(target.profileId || '').trim(),
-                                resourceHint: target.resourceHint ? {
-                                    estimatedVramBytes: toProtoInt64String(target.resourceHint.estimatedVramBytes),
-                                    estimatedRamBytes: toProtoInt64String(target.resourceHint.estimatedRamBytes),
-                                    estimatedDiskBytes: toProtoInt64String(target.resourceHint.estimatedDiskBytes),
-                                    engine: String(target.resourceHint.engine || '').trim(),
-                                } : undefined,
-                            })),
-                        });
-                        const stateMap: Record<number, string> = {
-                            0: 'unknown', 1: 'runnable', 2: 'queue_required',
-                            3: 'preemption_risk', 4: 'slowdown_risk', 5: 'denied', 6: 'unknown',
-                        };
-                        const toOccupancy = (occ: {
-                            globalUsed: number;
-                            globalCap: number;
-                            appUsed: number;
-                            appCap: number;
-                        } | null | undefined) => occ ? {
-                            globalUsed: occ.globalUsed,
-                            globalCap: occ.globalCap,
-                            appUsed: occ.appUsed,
-                            appCap: occ.appCap,
-                        } : null;
-                        const toJudgement = (judgement: {
-                            state: number;
-                            detail: string;
-                            occupancy?: {
-                                globalUsed: number;
-                                globalCap: number;
-                                appUsed: number;
-                                appCap: number;
-                            } | null;
-                            resourceWarnings?: string[];
-                        } | null | undefined) => judgement ? ({
-                            state: stateMap[judgement.state] || 'unknown',
-                            detail: judgement.detail || '',
-                            occupancy: toOccupancy(judgement.occupancy),
-                            resourceWarnings: judgement.resourceWarnings || [],
-                        }) : null;
-                        const aggregateJudgement = toJudgement(response?.aggregateJudgement);
-                        if (!aggregateJudgement) {
-                            return { occupancy: null, aggregateJudgement: null, targetJudgements: [] };
-                        }
-                        return {
-                            occupancy: toOccupancy(response?.occupancy),
-                            aggregateJudgement,
-                            targetJudgements: (response?.targetJudgements || []).map((entry) => ({
-                                target: {
-                                    capability: entry.target?.capability || '',
-                                    modId: entry.target?.modId || null,
-                                    profileId: entry.target?.profileId || null,
-                                    resourceHint: entry.target?.resourceHint ? {
-                                        estimatedVramBytes: fromProtoInt64String(entry.target.resourceHint.estimatedVramBytes),
-                                        estimatedRamBytes: fromProtoInt64String(entry.target.resourceHint.estimatedRamBytes),
-                                        estimatedDiskBytes: fromProtoInt64String(entry.target.resourceHint.estimatedDiskBytes),
-                                        engine: entry.target.resourceHint.engine || null,
-                                    } : null,
-                                },
-                                judgement: toJudgement(entry.judgement) || {
-                                    state: 'unknown',
-                                    detail: 'empty target judgement',
-                                    occupancy: null,
-                                    resourceWarnings: [],
-                                },
-                            })),
-                        };
-                    } catch {
-                        return {
-                            occupancy: null,
-                            aggregateJudgement: null,
-                            targetJudgements: [],
-                        };
-                    }
-                },
-            },
-            local: {
-                listAssets: async ({ modId, ...payload }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.local.assets.list',
-                    });
-                    return localRuntime.listAssets(payload);
-                },
-                listProfiles: async ({ modId }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.local.profiles.list',
-                    });
-                    return readManifestProfiles(modId);
-                },
-                requestProfileInstall: async ({ modId, profileId, capability, confirmMessage, entryOverrides }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.local.profiles.install.request',
-                    });
-                    const profiles = readManifestProfiles(modId);
-                    const profile = findLocalRuntimeProfileById(profiles, profileId);
-                    if (!profile) {
-                        return {
-                            modId,
-                            profileId: String(profileId || '').trim(),
-                            accepted: false,
-                            declined: false,
-                            warnings: ['profile not found'],
-                            reasonCode: ReasonCode.LOCAL_AI_PROFILE_NOT_FOUND,
-                        };
-                    }
-                    const message = String(confirmMessage || '').trim()
-                        || `Install recommended local profile "${profile.title}" for ${modId}?`;
-                    const accepted = typeof window !== 'undefined' && typeof window.confirm === 'function'
-                        ? window.confirm(message)
-                        : true;
-                    if (!accepted) {
-                        return {
-                            modId,
-                            profileId: profile.id,
-                            accepted: false,
-                            declined: true,
-                            warnings: ['user declined local profile install'],
-                            reasonCode: ReasonCode.LOCAL_AI_PROFILE_INSTALL_DECLINED,
-                        };
-                    }
-                    const plan = await localRuntime.resolveProfile({
-                        modId,
-                        profile,
-                        capability: String(capability || '').trim() || undefined,
-                        entryOverrides,
-                    });
-                    const result = await localRuntime.applyProfile(plan, { caller: 'core' });
-                    return {
-                        modId,
-                        profileId: profile.id,
-                        accepted: true,
-                        declined: false,
-                        warnings: result.warnings,
-                        reasonCode: result.reasonCode,
-                    };
-                },
-                getProfileInstallStatus: async ({ modId, profileId, capability, entryOverrides }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.local.profiles.list',
-                    });
-                    const profiles = readManifestProfiles(modId);
-                    const profile = findLocalRuntimeProfileById(profiles, profileId);
-                    if (!profile) {
-                        return {
-                            modId,
-                            profileId: String(profileId || '').trim(),
-                            status: 'missing',
-                            warnings: ['profile not found'],
-                            missingEntries: [String(profileId || '').trim()].filter(Boolean),
-                            updatedAt: new Date().toISOString(),
-                        };
-                    }
-                    return localRuntime.getProfileInstallStatus({
-                        modId,
-                        profile,
-                        capability: String(capability || '').trim() || undefined,
-                        entryOverrides,
-                    });
-                },
-            },
-            aiConfig: {
-                get: ({ modId, scopeRef }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.get',
-                    });
-                    return desktopAIConfigService.aiConfig.get(toCanonicalModScopeRef(scopeRef, modId));
-                },
-                update: ({ modId, scopeRef, config }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.update',
-                    });
-                    const canonicalScopeRef = toCanonicalModScopeRef(scopeRef, modId);
-                    desktopAIConfigService.aiConfig.update(canonicalScopeRef, {
-                        ...config,
-                        scopeRef: canonicalScopeRef,
-                    });
-                },
-                listScopes: ({ modId }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.list.scopes',
-                    });
-                    return desktopAIConfigService.aiConfig.listScopes().filter((scopeRef) =>
-                        isCanonicalModAIScopeRef(scopeRef, modId));
-                },
-                probe: async ({ modId, scopeRef }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.probe',
-                    });
-                    return desktopAIConfigService.aiConfig.probe(toCanonicalModScopeRef(scopeRef, modId));
-                },
-                probeFeasibility: async ({ modId, scopeRef }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.probe.feasibility',
-                    });
-                    return desktopAIConfigService.aiConfig.probeFeasibility(
-                        toCanonicalModScopeRef(scopeRef, modId),
-                    );
-                },
-                probeSchedulingTarget: async ({ modId, scopeRef, target }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.probe.scheduling.target',
-                    });
-                    return desktopAIConfigService.aiConfig.probeSchedulingTarget(
-                        toCanonicalModScopeRef(scopeRef, modId),
-                        target,
-                    );
-                },
-                subscribe: ({ modId, scopeRef, callback }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-config.subscribe',
-                    });
-                    return desktopAIConfigService.aiConfig.subscribe(
-                        toCanonicalModScopeRef(scopeRef, modId),
-                        callback,
-                    );
-                },
-            },
-            aiSnapshot: {
-                record: ({ modId, scopeRef, snapshot }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-snapshot.record',
-                    });
-                    const canonicalScopeRef = toCanonicalModScopeRef(scopeRef, modId);
-                    desktopAIConfigService.aiSnapshot.record(canonicalScopeRef, {
-                        ...snapshot,
-                        scopeRef: canonicalScopeRef,
-                    });
-                },
-                get: ({ modId, executionId }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-snapshot.get',
-                    });
-                    const snapshot = desktopAIConfigService.aiSnapshot.get(executionId);
-                    if (!snapshot) {
-                        return null;
-                    }
-                    if (!isCanonicalModAIScopeRef(snapshot.scopeRef, modId)) {
-                        throw invalidSnapshotAccessError(modId, executionId);
-                    }
-                    return snapshot;
-                },
-                getLatest: ({ modId, scopeRef }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.ai-snapshot.get.latest',
-                    });
-                    return desktopAIConfigService.aiSnapshot.getLatest(toCanonicalModScopeRef(scopeRef, modId));
-                },
-            },
+            scheduler: buildRuntimeSchedulerCapabilities({ getRuntimeClient }),
+            local: buildRuntimeLocalCapabilities({ authorizeRuntimeCapability }),
+            aiConfig: buildRuntimeAIConfigCapabilities({
+                authorizeRuntimeCapability,
+                desktopAIConfigService,
+                isCanonicalModAIScopeRef,
+                toCanonicalModScopeRef,
+            }),
+            aiSnapshot: buildRuntimeAISnapshotCapabilities({
+                authorizeRuntimeCapability,
+                desktopAIConfigService,
+                invalidSnapshotAccessError,
+                toCanonicalModScopeRef,
+                isCanonicalModAIScopeRef,
+            }),
             ai: {
                 text: {
                     generate: async (payload) => {
@@ -742,109 +449,13 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                 toControllerJobSnapshot,
                 createScenarioJobControllerDeps: (inputValue) => createScenarioJobControllerDeps({ getRuntimeClient }, inputValue),
             }),
-            voice: {
-                getAsset: async ({ modId, request }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.voice.get.asset',
-                    });
-                    return getRuntimeClient().ai.getVoiceAsset(request);
-                },
-                listAssets: async ({ modId, request }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.voice.list.assets',
-                    });
-                    return getRuntimeClient().ai.listVoiceAssets(request);
-                },
-                deleteAsset: async ({ modId, request }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.voice.delete.asset',
-                    });
-                    return getRuntimeClient().ai.deleteVoiceAsset(request);
-                },
-                listPresetVoices: async ({ modId, binding, modelId, connectorId, ...request }) => {
-                    authorizeRuntimeCapability({
-                        modId,
-                        capabilityKey: 'runtime.voice.list.preset.voices',
-                    });
-                    const resolved = await resolveRuntimeRoute({
-                        modId,
-                        capability: 'audio.synthesize',
-                        binding,
-                    });
-                    return getRuntimeClient().ai.listPresetVoices({
-                        ...request,
-                        modelId: requireModel(modelId || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
-                        connectorId: connectorId || resolved.connectorId || '',
-                    });
-                },
-            },
+            voice: buildRuntimeVoiceCapabilities({
+                authorizeRuntimeCapability,
+                getRuntimeClient,
+                requireModel,
+                resolveRuntimeRoute,
+            }),
         },
-        ui: {
-            useAppStore: <T>(selector: (state: unknown) => T): T => useAppStore((state) => selector(state)),
-            SlotHost: SlotHost as any,
-            useUiExtensionContext,
-        },
-        shell: {
-            useAuth: () => {
-                const status = useAppStore((state) => state.auth.status);
-                const user = useAppStore((state) => state.auth.user);
-                return {
-                    isAuthenticated: status === 'authenticated',
-                    user,
-                };
-            },
-            useBootstrap: () => {
-                const ready = useAppStore((state) => state.bootstrapReady);
-                const error = useAppStore((state) => state.bootstrapError);
-                return { ready, error };
-            },
-            useNavigation: () => {
-                const activeTab = useAppStore((state) => state.activeTab);
-                const setActiveTab = useAppStore((state) => state.setActiveTab);
-                const navigateToProfile = useAppStore((state) => state.navigateToProfile);
-                return {
-                    activeTab,
-                    setActiveTab: (tab) => setActiveTab(tab as typeof activeTab),
-                    navigateToProfile,
-                };
-            },
-            useRuntimeFields: () => {
-                const runtimeFields = useAppStore((state) => state.runtimeFields);
-                const setRuntimeField = useAppStore((state) => state.setRuntimeField);
-                const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
-                return {
-                    runtimeFields,
-                    setRuntimeField,
-                    setRuntimeFields,
-                };
-            },
-            useStatusBanner: () => {
-                const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-                return {
-                    showStatusBanner: setStatusBanner,
-                };
-            },
-        },
-        settings: {
-            useRuntimeModSettings: (modId) => {
-                const runtimeModSettingsById = useAppStore((state) => state.runtimeModSettingsById);
-                return runtimeModSettingsById[String(modId || '').trim()] || {};
-            },
-            setRuntimeModSettings: (modId, settings) => {
-                useAppStore.getState().setRuntimeModSettings(modId, settings);
-            },
-        },
-        logging: {
-            emitRuntimeLog,
-            createRendererFlowId,
-            logRendererEvent,
-        },
-        lifecycle: {
-            subscribe: (tabId, handler) => lifecycleManager.subscribe(tabId, handler),
-            getState: (tabId) => lifecycleManager.getState(tabId),
-        },
+        ...buildRuntimeHostShellCapabilities({ lifecycleManager }),
     };
 }
