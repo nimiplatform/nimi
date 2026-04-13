@@ -277,9 +277,9 @@ pnpm proto:lint
 Spec 一致性检查（PR 提交前必须通过）：
 
 ```bash
-pnpm check:runtime-spec-kernel-consistency
-pnpm check:sdk-spec-kernel-consistency
-pnpm check:desktop-spec-kernel-consistency
+pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
+pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
+pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
 ```
 
 ## 8. 必读规范（开始改代码前）

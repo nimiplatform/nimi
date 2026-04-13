@@ -582,8 +582,8 @@ function checkSdkTestingGateCoverage(sdkKernelRules) {
     ['live_smoke', 'S-GATE-080', ['node scripts/run-live-test-matrix.mjs', 'pnpm check:live-smoke-gate']],
     ['version_matrix', 'S-GATE-090', ['pnpm check:sdk-version-matrix']],
     ['release_parity', 'S-GATE-090', ['pnpm check:live-smoke-gate --require-release']],
-    ['spec_consistency', 'S-GATE-091', ['pnpm check:sdk-spec-kernel-consistency']],
-    ['docs_drift', 'S-GATE-091', ['pnpm check:sdk-spec-kernel-docs-drift']],
+    ['spec_consistency', 'S-GATE-091', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency']],
+    ['docs_drift', 'S-GATE-091', ['pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check']],
   ];
 
   for (const [gate, expectedRule, expectedTokens] of requiredGates) {

@@ -1193,8 +1193,8 @@ function checkDesktopTestingGateCoverage() {
     ['selector_testability', 'D-GATE-050', ['pnpm --filter @nimiplatform/desktop lint', 'pnpm check:desktop-e2e-smoke']],
     ['os_matrix', 'D-GATE-060', ['linux:PR+release', 'windows:release', 'macos:manual-smoke']],
     ['release_parity', 'D-GATE-070', ['pnpm check:desktop-e2e-smoke', 'pnpm check:desktop-e2e-journeys']],
-    ['spec_consistency', 'D-GATE-080', ['pnpm check:desktop-spec-kernel-consistency']],
-    ['docs_drift', 'D-GATE-080', ['pnpm check:desktop-spec-kernel-docs-drift']],
+    ['spec_consistency', 'D-GATE-080', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency']],
+    ['docs_drift', 'D-GATE-080', ['pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check']],
     ['design_contract', 'D-GATE-090', ['pnpm check:desktop-design-contract']],
     ['design_adoption', 'D-GATE-091', ['pnpm check:desktop-design-contract']],
   ];

@@ -1,0 +1,329 @@
+profile_id: nimi
+
+spec_governance:
+  canonical_root: .nimi/spec
+  validate_commands:
+    runtime-consistency:
+      - node scripts/check-runtime-spec-kernel-consistency.mjs
+    sdk-consistency:
+      - node scripts/check-sdk-spec-kernel-consistency.mjs
+    desktop-consistency:
+      - node scripts/check-desktop-spec-kernel-consistency.mjs
+    platform-consistency:
+      - node scripts/check-platform-spec-kernel-consistency.mjs
+    realm-consistency:
+      - node scripts/check-realm-spec-kernel-consistency.mjs
+    future-consistency:
+      - node scripts/check-future-spec-kernel-consistency.mjs
+  generate_commands:
+    runtime:
+      - node scripts/generate-runtime-spec-kernel-docs.mjs
+    sdk:
+      - node scripts/generate-sdk-spec-kernel-docs.mjs
+    desktop:
+      - node scripts/generate-desktop-spec-kernel-docs.mjs
+    platform:
+      - node scripts/generate-platform-spec-kernel-docs.mjs
+    realm:
+      - node scripts/generate-realm-spec-kernel-docs.mjs
+    future:
+      - node scripts/generate-future-spec-kernel-docs.mjs
+    spec-human-doc:
+      - node scripts/generate-spec-human-doc.mjs
+
+ai_governance:
+  agents_freshness:
+    targets:
+      - rel: AGENTS.md
+        max_lines: 40
+      - rel: runtime/AGENTS.md
+        max_lines: 30
+      - rel: sdk/AGENTS.md
+        max_lines: 30
+      - rel: scripts/AGENTS.md
+        max_lines: 30
+      - rel: apps/desktop/AGENTS.md
+        max_lines: 30
+      - rel: apps/web/AGENTS.md
+        max_lines: 30
+      - rel: apps/forge/AGENTS.md
+        max_lines: 30
+      - rel: apps/realm-drift/AGENTS.md
+        max_lines: 30
+      - rel: apps/install-gateway/AGENTS.md
+        max_lines: 30
+      - rel: kit/AGENTS.md
+        max_lines: 30
+      - rel: proto/AGENTS.md
+        max_lines: 30
+    required_sections:
+      - "## Scope"
+      - "## Hard Boundaries"
+      - "## Retrieval Defaults"
+      - "## Verification Commands"
+    stale_tokens:
+      - local_ai_runtime
+      - runtime-ai-media-coverage
+      - docs/refactory
+  context_budget:
+    version: 1
+    default_profile: production
+    profiles:
+      production:
+        warning_lines: 500
+        warning_bytes: 61440
+        error_lines: 800
+        error_bytes: 102400
+      temporary_large_production:
+        warning_lines: 500
+        warning_bytes: 61440
+        error_lines: 1800
+        error_bytes: 102400
+      tests_and_scripts:
+        warning_lines: 900
+        error_lines: 1400
+      spec_yaml:
+        warning_lines: 800
+        error_lines: 1200
+      temporary_large_spec_yaml:
+        warning_lines: 800
+        error_lines: 1400
+      proto_schema:
+        warning_lines: 500
+        warning_bytes: 61440
+        error_lines: 900
+        error_bytes: 102400
+      generated:
+        warning_lines: 2000
+        error_lines: 4000
+    classifiers:
+      temporary_large_production:
+        - apps/desktop/src-tauri/src/local_runtime/commands/commands_import_bundle.rs
+        - apps/desktop/src/runtime/local-runtime/commands.ts
+        - apps/desktop/src/shell/renderer/features/chat/chat-agent-behavior-resolver.ts
+        - apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts
+        - apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime.ts
+        - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx
+        - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts
+        - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts
+        - apps/forge/src/shell/renderer/pages/workbench/workbench-page.tsx
+        - apps/parentos/mock.json
+        - apps/parentos/src-tauri/src/sqlite/migrations.rs
+        - apps/parentos/src/shell/renderer/features/profile/growth-curve-page.tsx
+        - apps/parentos/src/shell/renderer/features/profile/medical-events-page.tsx
+        - apps/parentos/src/shell/renderer/features/profile/sleep-page.tsx
+        - apps/parentos/src/shell/renderer/features/profile/tanner-page.tsx
+        - apps/video-food-map/src-tauri/src/db.rs
+        - apps/video-food-map/src-tauri/src/probe.rs
+        - apps/video-food-map/src/shell/renderer/App.tsx
+        - nimi-coding/cli/lib/contracts.mjs
+        - nimi-coding/cli/lib/doctor.mjs
+        - nimi-coding/cli/lib/validators.mjs
+        - runtime/internal/managedimagebackend/server.go
+        - runtime/internal/services/agentcore/hook_lifecycle.go
+        - runtime/internal/services/agentcore/service.go
+        - runtime/internal/services/memory/service.go
+        - sdk/src/internal/world-evolution-selector-read.ts
+        - sdk/src/runtime/core/method-codecs.ts
+      temporary_large_spec_yaml:
+        - apps/parentos/spec/kernel/tables/reminder-rules.yaml
+        - spec/runtime/kernel/tables/rule-evidence.rules.yaml
+      proto_schema:
+        - proto/**/*.proto
+      tests_and_scripts:
+        - scripts/**
+        - "**/*.test.js"
+        - "**/*.test.ts"
+        - "**/*.test.mjs"
+        - "**/*.test.tsx"
+        - "**/*.spec.js"
+        - "**/*.spec.ts"
+        - "**/*.spec.mjs"
+        - "**/*.spec.tsx"
+        - "**/*_test.go"
+        - "**/__tests__/**"
+      spec_yaml:
+        - spec/**/*.yaml
+        - spec/**/*.yml
+        - apps/**/spec/**/*.yaml
+        - apps/**/spec/**/*.yml
+      generated:
+        - runtime/internal/providerregistry/generated.go
+        - runtime/catalog/providers/**
+        - runtime/catalog/generated/**
+        - runtime/gen/**
+        - sdk/src/runtime/generated/**
+        - sdk/src/realm/generated/**
+        - spec/**/kernel/generated/**
+    exclude:
+      - _external/**
+      - .cache/**
+      - .iterate/**
+      - archive/**
+      - docs/**
+      - .local/**
+      - "**/generated/**"
+      - "**/gen/**"
+      - runtime/**/*.pb.go
+      - runtime/**/*.binpb
+      - spec/generated/**
+      - pnpm-lock.yaml
+      - "**/Cargo.lock"
+      - apps/desktop/src-tauri/gen/**
+      - "**/*.ico"
+      - "**/*.icns"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.gif"
+      - "**/*.webp"
+      - "**/*.svg"
+      - "**/*.wav"
+      - "**/*.mp3"
+      - "**/*.m4a"
+      - "**/*.ogg"
+      - "**/*.flac"
+      - "**/*.aac"
+      - "**/*.mp4"
+      - "**/*.mov"
+      - "**/*.webm"
+      - "**/*.css"
+      - "**/locales/en.json"
+      - "**/locales/zh.json"
+    waivers:
+      - path: runtime/internal/services/localservice/service_test.go
+        until: 2026-09-30
+        reason: Large integration coverage suite retained as a single trace narrative.
+      - path: runtime/internal/services/ai/live_provider_smoke_test.go
+        until: 2026-09-30
+        reason: Provider matrix smoke tests retained as one contract matrix file.
+      - path: apps/desktop/test/chat-agent-local-mode.test.ts
+        until: 2026-07-31
+        reason: Desktop local-mode contract coverage remains in one matrix file pending test sharding.
+      - path: apps/desktop/test/chat-agent-orchestration-provider.test.ts
+        until: 2026-07-31
+        reason: Desktop orchestration-provider contract coverage remains in one matrix file pending test sharding.
+      - path: nimi-coding/test/nimicoding.test.mjs
+        until: 2026-07-31
+        reason: NimiCoding end-to-end coverage remains in one matrix file pending suite sharding.
+      - path: runtime/internal/services/agentcore/service_test.go
+        until: 2026-07-31
+        reason: Agentcore service coverage remains in one matrix file pending test sharding.
+  structure_budget:
+    version: 1
+    allowed_forwarding_shells:
+      - index.ts
+      - index.tsx
+      - mod.rs
+    rules:
+      - id: runtime_internal
+        include:
+          - runtime/internal/**
+        depth_base: runtime/internal
+        warning_depth: 4
+        error_depth: 5
+      - id: runtime_cmd
+        include:
+          - runtime/cmd/nimi/**
+        depth_base: runtime/cmd/nimi
+        warning_depth: 3
+        error_depth: 4
+      - id: sdk_src
+        include:
+          - sdk/src/**
+        depth_base: sdk/src
+        warning_depth: 4
+        error_depth: 5
+      - id: desktop_tauri
+        include:
+          - apps/desktop/src-tauri/src/**
+        depth_base: apps/desktop/src-tauri/src
+        warning_depth: 4
+        error_depth: 5
+      - id: desktop_src
+        include:
+          - apps/desktop/src/**
+        depth_base: apps/desktop/src
+        warning_depth: 6
+        error_depth: 7
+      - id: web_src
+        include:
+          - apps/web/src/**
+        depth_base: apps/web/src
+        warning_depth: 4
+        error_depth: 5
+      - id: scripts
+        include:
+          - scripts/**
+        depth_base: scripts
+        warning_depth: 3
+        error_depth: 4
+    exclude:
+      - _external/**
+      - .cache/**
+      - .iterate/**
+      - archive/**
+      - docs/**
+      - .local/**
+      - "**/generated/**"
+      - "**/gen/**"
+      - runtime/**/*.pb.go
+      - runtime/**/*.binpb
+      - spec/generated/**
+      - pnpm-lock.yaml
+      - "**/Cargo.lock"
+      - apps/desktop/src-tauri/gen/**
+      - "**/*.ico"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.gif"
+      - "**/*.webp"
+      - "**/*.svg"
+      - "**/*.css"
+      - "**/locales/en.json"
+      - "**/locales/zh.json"
+    waivers:
+      - pattern: apps/desktop/src/public-web/app-store.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes a named app-store entrypoint for web imports.
+      - pattern: apps/desktop/src/public-web/app.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes a named app entrypoint for web lazy loading.
+      - pattern: apps/desktop/src/public-web/data-sync.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes a named data-sync entrypoint for web bootstrap.
+      - pattern: apps/desktop/src/public-web/i18n.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes a named i18n entrypoint for web bootstrap.
+      - pattern: apps/desktop/src/public-web/infra.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes named infrastructure utilities for web bootstrap.
+      - pattern: apps/desktop/src/public-web/mod-ui-types.ts
+        checks:
+          - forwarding_shell
+        reason: Desktop public-for-web boundary intentionally exposes named mod UI type entrypoints for web adapters.
+  high_risk_doc_metadata:
+    doc_roots:
+      - .local
+    exempt_paths: []
+    name_patterns:
+      - design
+      - audit
+      - implementation-plan
+      - architecture
+      - refactor
+      - refactory
+      - remediation-plan
+      - unification
+      - migration
+    required_metadata_keys:
+      - Spec Status
+      - Authority Owner
+      - Work Type
+      - Parallel Truth

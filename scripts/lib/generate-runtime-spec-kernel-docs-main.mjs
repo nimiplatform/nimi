@@ -1257,7 +1257,7 @@ async function main() {
       for (const file of drifted) {
         process.stderr.write(`  - ${path.relative(repoRoot, file)}\n`);
       }
-      process.stderr.write('run `pnpm generate:runtime-spec-kernel-docs` to regenerate.\n');
+      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime` to regenerate.\n');
       process.exitCode = 1;
       return;
     }

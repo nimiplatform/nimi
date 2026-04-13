@@ -75,7 +75,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Repo-Wide Verification
 
-- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`.
+- Guardrails: `pnpm nimicoding:validate-ai-governance --profile nimi --scope all`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`.
 - Spec gates: run affected consistency + docs drift commands.
 
 ## Conflict Resolution

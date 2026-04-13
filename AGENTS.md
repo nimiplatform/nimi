@@ -14,8 +14,8 @@
 - Start: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 ## Verification Commands
-- Guardrails: `pnpm check:agents-freshness`, `pnpm check:high-risk-doc-metadata`, `pnpm check:no-retired-methodology-refs`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
-- Spec: run affected consistency + docs drift commands. For `/.nimi/spec/**/kernel/**`, also run `pnpm check:spec-human-doc-drift`; if it fails, run `pnpm generate:spec-human-doc`.
+- Guardrails: `pnpm nimicoding:validate-ai-governance --profile nimi --scope all`, `pnpm check:no-retired-methodology-refs`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
+- Spec: run affected `pnpm exec nimicoding validate-spec-governance --profile nimi --scope ...` and `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope ... --check` commands. For broad spec drift, also run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check`.
 - Runtime/SDK/Desktop/Web/Live: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`, `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`, `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`, `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`, `pnpm check:local-chat-e2e`.
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block

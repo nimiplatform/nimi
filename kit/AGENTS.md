@@ -20,4 +20,4 @@
 - Skip generated output except for token/theme drift and generated platform docs.
 ## Verification Commands
 - `pnpm --filter @nimiplatform/nimi-kit build && pnpm --filter @nimiplatform/nimi-kit test`
-- `pnpm check:nimi-kit && pnpm check:platform-spec-kernel-consistency && pnpm check:platform-spec-kernel-docs-drift`
+- `pnpm check:nimi-kit && pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check`

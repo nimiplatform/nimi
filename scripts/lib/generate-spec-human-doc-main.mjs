@@ -1347,7 +1347,7 @@ Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的�
       current = await fs.readFile(outPath, 'utf8');
     } catch {
       process.stderr.write(`spec human doc does not exist: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm generate:spec-human-doc` to generate.\n');
+      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to generate.\n');
       process.exitCode = 1;
       return;
     }
@@ -1355,7 +1355,7 @@ Source ID 格式为 \`RESEARCH-<ABBREV>-NNN\`，其中 ABBREV 是 2-6 字符的�
     const stripDate = (s) => s.replace(/^> 生成时间: .+$/m, '');
     if (stripDate(current) !== stripDate(output)) {
       process.stderr.write(`spec human doc drift detected: ${path.relative(repoRoot, outPath)}\n`);
-      process.stderr.write('run `pnpm generate:spec-human-doc` to regenerate.\n');
+      process.stderr.write('run `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc` to regenerate.\n');
       process.exitCode = 1;
       return;
     }

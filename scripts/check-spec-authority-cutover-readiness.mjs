@@ -20,21 +20,21 @@ const DOC_AUDIT_CLOSEOUT_REL = '.nimi/local/handoff-results/doc_spec_audit.json'
 const ADMISSION_DOC_REL = 'spec/canonical-authority-cutover-admission.md';
 
 const REQUIRED_DRIFT_COMMANDS = [
-  'pnpm check:spec-human-doc-drift',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check',
   'pnpm check:spec-semantic-completeness',
   'pnpm check:runtime-proto-spec-linkage',
-  'pnpm check:runtime-spec-kernel-consistency',
-  'pnpm check:sdk-spec-kernel-consistency',
-  'pnpm check:desktop-spec-kernel-consistency',
-  'pnpm check:platform-spec-kernel-consistency',
-  'pnpm check:realm-spec-kernel-consistency',
-  'pnpm check:future-spec-kernel-consistency',
-  'pnpm check:runtime-spec-kernel-docs-drift',
-  'pnpm check:sdk-spec-kernel-docs-drift',
-  'pnpm check:desktop-spec-kernel-docs-drift',
-  'pnpm check:platform-spec-kernel-docs-drift',
-  'pnpm check:realm-spec-kernel-docs-drift',
-  'pnpm check:future-spec-kernel-docs-drift',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm-consistency',
+  'pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm --check',
+  'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check',
 ];
 
 const REQUIRED_GOVERNANCE_FILES = [

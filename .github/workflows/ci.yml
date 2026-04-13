@@ -246,28 +246,28 @@ jobs:
         run: pnpm check:no-openapi-singleton-import
 
       - name: Runtime spec kernel consistency check
-        run: pnpm check:runtime-spec-kernel-consistency
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
 
       - name: Runtime spec kernel generated-doc drift check
-        run: pnpm check:runtime-spec-kernel-docs-drift
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
 
       - name: SDK spec kernel consistency check
-        run: pnpm check:sdk-spec-kernel-consistency
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
 
       - name: SDK spec kernel generated-doc drift check
-        run: pnpm check:sdk-spec-kernel-docs-drift
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
 
       - name: Desktop spec kernel consistency check
-        run: pnpm check:desktop-spec-kernel-consistency
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
 
       - name: Desktop spec kernel generated-doc drift check
-        run: pnpm check:desktop-spec-kernel-docs-drift
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
 
       - name: Future spec kernel consistency check
-        run: pnpm check:future-spec-kernel-consistency
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency
 
       - name: Future spec kernel generated-doc drift check
-        run: pnpm check:future-spec-kernel-docs-drift
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check
 
       - name: ReasonCode constants policy check
         run: pnpm check:reason-code-constants

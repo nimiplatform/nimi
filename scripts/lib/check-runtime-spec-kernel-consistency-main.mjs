@@ -289,9 +289,9 @@ function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
   }
 
   const requiredGates = [
-    ['G0', 'K-GATE-010', ['pnpm check:ai-scenario-hardcut-drift', 'pnpm check:runtime-spec-kernel-consistency', 'pnpm check:runtime-spec-kernel-docs-drift']],
+    ['G0', 'K-GATE-010', ['pnpm check:ai-scenario-hardcut-drift', 'pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency', 'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check']],
     ['G1', 'K-GATE-020', ['pnpm proto:lint', 'pnpm proto:breaking', 'pnpm proto:drift-check']],
-    ['G2', 'K-GATE-030', ['pnpm check:sdk-spec-kernel-consistency', 'pnpm check:sdk-spec-kernel-docs-drift', 'pnpm check:runtime-bridge-method-drift']],
+    ['G2', 'K-GATE-030', ['pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency', 'pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check', 'pnpm check:runtime-bridge-method-drift']],
     ['G3', 'K-GATE-040', ['pnpm check:runtime-go-coverage', 'pnpm check:no-legacy-cloud-provider-keys', 'pnpm check:runtime-ai-scenario-coverage', 'pnpm check:live-provider-invariants']],
     ['G4', 'K-GATE-050', ['go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1']],
     ['G5', 'K-GATE-060', ['node scripts/run-live-test-matrix.mjs']],
