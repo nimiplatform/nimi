@@ -37,8 +37,6 @@ export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOpe
 // Typed adapter exports.
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
-export type { AgentMemoryCommitInput, AgentMemoryCommitOutput, AgentMemoryListInput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';
-export { commitAgentMemories, listAgentCoreMemories, listAgentDyadicMemories } from './extensions/agent-memory.js';
 
 // Realm client exports.
 export { Realm } from './client.js';

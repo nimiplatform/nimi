@@ -12,7 +12,7 @@ test('realm facade exposes naming-normalized public helpers', () => {
   assert.equal(typeof realm.AttachmentTargetType, 'object');
   assert.equal(typeof realm.AttachmentDisplayKind, 'object');
   assert.equal(typeof realm.requestDataExport, 'function');
-  assert.equal(typeof realm.listAgentCoreMemories, 'function');
+  assert.equal(typeof realm.createRealmClient, 'function');
 });
 
 test('realm facade does not expose removed DTO symbols or legacy naming symbols', () => {
@@ -34,4 +34,7 @@ test('realm facade does not expose removed DTO symbols or legacy naming symbols'
   assert.equal('SocialV1DefaultVisibilityService' in realm, false);
   assert.equal('SocialFourDimensionalAttributesService' in realm, false);
   assert.equal('sendAgentChannelMessage' in realm, false);
+  assert.equal('listAgentCoreMemories' in realm, false);
+  assert.equal('listAgentDyadicMemories' in realm, false);
+  assert.equal('commitAgentMemories' in realm, false);
 });

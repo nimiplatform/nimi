@@ -56,13 +56,13 @@ service_mappings:
   phase: phase2
   source_rule: K-APP-001
 - design_service: RuntimeMemoryService
-  proto_service: ""
-  mapping_status: design_only_pending_proto
+  proto_service: RuntimeMemoryService
+  mapping_status: aligned
   phase: phase2
   source_rule: K-RPC-004a
 - design_service: RuntimeAgentCoreService
-  proto_service: ""
-  mapping_status: design_only_pending_proto
+  proto_service: RuntimeAgentCoreService
+  mapping_status: aligned
   phase: phase2
   source_rule: K-RPC-004b
 method_mappings:
@@ -573,124 +573,124 @@ method_mappings:
   mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: CreateBank
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: CreateBank
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: GetBank
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: GetBank
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: ListBanks
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: ListBanks
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: DeleteBank
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: DeleteBank
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: Retain
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: Retain
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: Recall
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: Recall
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: History
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: History
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: Reflect
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: Reflect
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: DeleteMemory
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: DeleteMemory
+  mapping_status: aligned
 - design_service: RuntimeMemoryService
   design_method: SubscribeMemoryEvents
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeMemoryService
+  proto_method: SubscribeMemoryEvents
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: InitializeAgent
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: InitializeAgent
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: TerminateAgent
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: TerminateAgent
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: GetAgent
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: GetAgent
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: ListAgents
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: ListAgents
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: GetAgentState
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: GetAgentState
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: UpdateAgentState
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: UpdateAgentState
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: EnableAutonomy
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: EnableAutonomy
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: DisableAutonomy
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: DisableAutonomy
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: SetAutonomyConfig
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: SetAutonomyConfig
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: ListPendingHooks
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: ListPendingHooks
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: CancelHook
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: CancelHook
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: QueryAgentMemory
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: QueryAgentMemory
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: WriteAgentMemory
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: WriteAgentMemory
+  mapping_status: aligned
 - design_service: RuntimeAgentCoreService
   design_method: SubscribeAgentEvents
-  proto_service: ""
-  proto_method: ""
-  mapping_status: planned
+  proto_service: RuntimeAgentCoreService
+  proto_method: SubscribeAgentEvents
+  mapping_status: aligned
 excluded_proto_methods:
 - proto_service: RuntimeAiService
   proto_method: PeekScheduling

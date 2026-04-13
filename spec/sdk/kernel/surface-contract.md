@@ -33,6 +33,7 @@ app-facing route metadata / projection surface 是例外的 host-typed logical s
 - `runtime.memory.*` 仅投影 Nimi-owned memory substrate contract
 - `runtime.agentCore.*` 负责 app-facing canonical agent control plane
 - app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
+- `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agentCore.*`
 
 ## S-SURFACE-003 Runtime SDK 禁用旧接口名
 

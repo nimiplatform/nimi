@@ -15,6 +15,23 @@ export {
 } from './generated/runtime/v1/ai.js';
 export { ModelStatus } from './generated/runtime/v1/model.js';
 export { ModelCatalogProviderSource, CatalogModelSource } from './generated/runtime/v1/connector.js';
+export {
+  MemoryBankScope,
+  MemoryCanonicalClass,
+  MemoryDistanceMetric,
+  MemoryEventType,
+  MemoryMigrationPolicy,
+  MemoryRecordKind,
+  MemoryReplicationOutcome,
+} from './generated/runtime/v1/memory.js';
+export {
+  AgentEventType,
+  AgentExecutionState,
+  AgentHookStatus,
+  AgentLifecycleStatus,
+  AgentTrackType,
+  HookTriggerKind,
+} from './generated/runtime/v1/agent_core.js';
 export type {
   CatalogModelDetail,
   CatalogModelInput,
@@ -43,6 +60,8 @@ export type {
   DeleteCatalogModelOverlayRequest,
   DeleteCatalogModelOverlayResponse,
 } from './generated/runtime/v1/connector.js';
+export type * from './generated/runtime/v1/memory.js';
+export type * from './generated/runtime/v1/agent_core.js';
 export { RuntimeHealthStatus, UsageWindow } from './generated/runtime/v1/audit.js';
 export type {
   AuditEventRecord,
@@ -70,5 +89,6 @@ export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
+export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { toProtoStruct } from './helpers.js';
 export type { Runtime } from './runtime.js';

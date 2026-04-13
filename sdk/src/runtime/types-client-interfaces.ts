@@ -163,6 +163,58 @@ import type {
   SearchIndexResponse,
 } from './generated/runtime/v1/knowledge';
 import type {
+  CreateBankRequest,
+  CreateBankResponse,
+  DeleteBankRequest,
+  DeleteBankResponse,
+  DeleteMemoryRequest,
+  DeleteMemoryResponse,
+  GetBankRequest,
+  GetBankResponse,
+  HistoryRequest,
+  HistoryResponse,
+  ListBanksRequest,
+  ListBanksResponse,
+  RecallRequest,
+  RecallResponse,
+  ReflectRequest,
+  ReflectResponse,
+  RetainRequest,
+  RetainResponse,
+  SubscribeMemoryEventsRequest,
+  MemoryEvent,
+} from './generated/runtime/v1/memory';
+import type {
+  CancelHookRequest,
+  CancelHookResponse,
+  DisableAutonomyRequest,
+  DisableAutonomyResponse,
+  EnableAutonomyRequest,
+  EnableAutonomyResponse,
+  GetAgentRequest,
+  GetAgentResponse,
+  GetAgentStateRequest,
+  GetAgentStateResponse,
+  InitializeAgentRequest,
+  InitializeAgentResponse,
+  ListAgentsRequest,
+  ListAgentsResponse,
+  ListPendingHooksRequest,
+  ListPendingHooksResponse,
+  QueryAgentMemoryRequest,
+  QueryAgentMemoryResponse,
+  SetAutonomyConfigRequest,
+  SetAutonomyConfigResponse,
+  SubscribeAgentEventsRequest,
+  AgentEvent,
+  TerminateAgentRequest,
+  TerminateAgentResponse,
+  UpdateAgentStateRequest,
+  UpdateAgentStateResponse,
+  WriteAgentMemoryRequest,
+  WriteAgentMemoryResponse,
+} from './generated/runtime/v1/agent_core';
+import type {
   AppMessageEvent,
   SendAppMessageRequest,
   SendAppMessageResponse,
@@ -290,6 +342,42 @@ export type RuntimeKnowledgeClient = {
   deleteIndex(request: DeleteIndexRequest, options?: RuntimeCallOptions): Promise<Ack>;
 };
 
+export type RuntimeMemoryClient = {
+  createBank(request: CreateBankRequest, options?: RuntimeCallOptions): Promise<CreateBankResponse>;
+  getBank(request: GetBankRequest, options?: RuntimeCallOptions): Promise<GetBankResponse>;
+  listBanks(request: ListBanksRequest, options?: RuntimeCallOptions): Promise<ListBanksResponse>;
+  deleteBank(request: DeleteBankRequest, options?: RuntimeCallOptions): Promise<DeleteBankResponse>;
+  retain(request: RetainRequest, options?: RuntimeCallOptions): Promise<RetainResponse>;
+  recall(request: RecallRequest, options?: RuntimeCallOptions): Promise<RecallResponse>;
+  history(request: HistoryRequest, options?: RuntimeCallOptions): Promise<HistoryResponse>;
+  reflect(request: ReflectRequest, options?: RuntimeCallOptions): Promise<ReflectResponse>;
+  deleteMemory(request: DeleteMemoryRequest, options?: RuntimeCallOptions): Promise<DeleteMemoryResponse>;
+  subscribeEvents(
+    request: SubscribeMemoryEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<MemoryEvent>>;
+};
+
+export type RuntimeAgentCoreClient = {
+  initializeAgent(request: InitializeAgentRequest, options?: RuntimeCallOptions): Promise<InitializeAgentResponse>;
+  terminateAgent(request: TerminateAgentRequest, options?: RuntimeCallOptions): Promise<TerminateAgentResponse>;
+  getAgent(request: GetAgentRequest, options?: RuntimeCallOptions): Promise<GetAgentResponse>;
+  listAgents(request: ListAgentsRequest, options?: RuntimeCallOptions): Promise<ListAgentsResponse>;
+  getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
+  updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
+  enableAutonomy(request: EnableAutonomyRequest, options?: RuntimeCallOptions): Promise<EnableAutonomyResponse>;
+  disableAutonomy(request: DisableAutonomyRequest, options?: RuntimeCallOptions): Promise<DisableAutonomyResponse>;
+  setAutonomyConfig(request: SetAutonomyConfigRequest, options?: RuntimeCallOptions): Promise<SetAutonomyConfigResponse>;
+  listPendingHooks(request: ListPendingHooksRequest, options?: RuntimeCallOptions): Promise<ListPendingHooksResponse>;
+  cancelHook(request: CancelHookRequest, options?: RuntimeCallOptions): Promise<CancelHookResponse>;
+  queryMemory(request: QueryAgentMemoryRequest, options?: RuntimeCallOptions): Promise<QueryAgentMemoryResponse>;
+  writeMemory(request: WriteAgentMemoryRequest, options?: RuntimeCallOptions): Promise<WriteAgentMemoryResponse>;
+  subscribeEvents(
+    request: SubscribeAgentEventsRequest,
+    options?: RuntimeStreamCallOptions,
+  ): Promise<AsyncIterable<AgentEvent>>;
+};
+
 export type RuntimeLocalServiceClient = {
   listLocalAssets(request: ListLocalAssetsRequest, options?: RuntimeCallOptions): Promise<ListLocalAssetsResponse>;
   listVerifiedAssets(request: ListVerifiedAssetsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedAssetsResponse>;
@@ -392,6 +480,8 @@ export type RuntimeClient = {
   ai: RuntimeAiClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
+  memory: RuntimeMemoryClient;
+  agentCore: RuntimeAgentCoreClient;
   local: RuntimeLocalServiceClient;
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;

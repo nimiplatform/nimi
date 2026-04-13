@@ -36,7 +36,6 @@ const checks = [
       'sdk/src/mod/types/storage.ts',
       'sdk/src/mod/types/ui.ts',
       'sdk/src/mod/types/llm.ts',
-      'sdk/src/realm/extensions/agent-memory.ts',
     ],
   },
   {

@@ -160,6 +160,10 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
       },
       auth: {
         accessToken: () => 'token-tauri-unary',
+        protectedAccessToken: () => ({
+          tokenId: 'protected-token-id',
+          secret: 'protected-token-secret',
+        }),
       },
     });
 
@@ -180,6 +184,10 @@ test('tauri-ipc write unary request includes idempotency key metadata', async ()
     assert.equal(typeof metadata.idempotencyKey, 'string');
     assert.ok(String(metadata.idempotencyKey || '').length > 0);
     assert.equal(capturedPayload.authorization, 'Bearer token-tauri-unary');
+    assert.deepEqual(capturedPayload.protectedAccessToken, {
+      tokenId: 'protected-token-id',
+      secret: 'protected-token-secret',
+    });
   } finally {
     restoreTauri();
   }
@@ -789,6 +797,10 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
       },
       auth: {
         accessToken: () => 'token-tauri-stream',
+        protectedAccessToken: () => ({
+          tokenId: 'protected-token-id',
+          secret: 'protected-token-secret',
+        }),
       },
     });
 
@@ -807,6 +819,10 @@ test('tauri-ipc stream open forwards eventNamespace in payload', async () => {
     assert.ok(streamOpenPayload);
     assert.equal(streamOpenPayload.eventNamespace, 'custom_events');
     assert.equal(streamOpenPayload.authorization, 'Bearer token-tauri-stream');
+    assert.deepEqual(streamOpenPayload.protectedAccessToken, {
+      tokenId: 'protected-token-id',
+      secret: 'protected-token-secret',
+    });
   } finally {
     restoreTauri();
   }

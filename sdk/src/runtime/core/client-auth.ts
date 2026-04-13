@@ -8,6 +8,7 @@ import type {
   RuntimeCallOptions,
   RuntimeClientConfig,
   RuntimeOpenStreamCall,
+  RuntimeProtectedAccessToken,
   RuntimeStreamCallOptions,
   RuntimeUnaryCall,
   RuntimeWireMessage,
@@ -81,6 +82,38 @@ async function resolveAuthorization(
   return resolved || undefined;
 }
 
+async function resolveProtectedAccessToken(
+  config: RuntimeClientConfig | RuntimeClientConfigInternal,
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+): Promise<RuntimeProtectedAccessToken | undefined> {
+  const optionTokenId = normalizeText(options?.protectedAccessToken?.tokenId);
+  const optionSecret = normalizeText(options?.protectedAccessToken?.secret);
+  if (optionTokenId && optionSecret) {
+    return {
+      tokenId: optionTokenId,
+      secret: optionSecret,
+    };
+  }
+
+  const authInput = config.auth?.protectedAccessToken;
+  if (typeof authInput === 'function') {
+    const resolved = await authInput();
+    const tokenId = normalizeText(resolved?.tokenId);
+    const secret = normalizeText(resolved?.secret);
+    if (tokenId && secret) {
+      return { tokenId, secret };
+    }
+    return undefined;
+  }
+
+  const tokenId = normalizeText(authInput?.tokenId);
+  const secret = normalizeText(authInput?.secret);
+  if (tokenId && secret) {
+    return { tokenId, secret };
+  }
+  return undefined;
+}
+
 function withIdempotencyKey(
   methodId: string,
   options?:
@@ -119,6 +152,7 @@ export async function toUnaryCall(
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
     authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
+    protectedAccessToken: await resolveProtectedAccessToken(config, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     _responseMetadataObserver: resolvedOptions?._responseMetadataObserver,
   };
@@ -137,6 +171,7 @@ export async function toStreamCall(
     request,
     metadata: mergeRuntimeMetadata(config, resolvedOptions),
     authorization: await resolveAuthorization(config, methodId, normalizedRequest, resolvedOptions),
+    protectedAccessToken: await resolveProtectedAccessToken(config, resolvedOptions),
     timeoutMs: resolvedOptions?.timeoutMs,
     signal: resolvedOptions?.signal,
   };

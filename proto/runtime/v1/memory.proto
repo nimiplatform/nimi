@@ -1,0 +1,418 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum MemoryBankScope {
+  MEMORY_BANK_SCOPE_UNSPECIFIED = 0;
+  MEMORY_BANK_SCOPE_AGENT_CORE = 1;
+  MEMORY_BANK_SCOPE_AGENT_DYADIC = 2;
+  MEMORY_BANK_SCOPE_WORLD_SHARED = 3;
+  MEMORY_BANK_SCOPE_APP_PRIVATE = 4;
+  MEMORY_BANK_SCOPE_WORKSPACE_PRIVATE = 5;
+}
+
+enum MemoryRecordKind {
+  MEMORY_RECORD_KIND_UNSPECIFIED = 0;
+  MEMORY_RECORD_KIND_EPISODIC = 1;
+  MEMORY_RECORD_KIND_SEMANTIC = 2;
+  MEMORY_RECORD_KIND_OBSERVATIONAL = 3;
+}
+
+enum MemoryCanonicalClass {
+  MEMORY_CANONICAL_CLASS_UNSPECIFIED = 0;
+  MEMORY_CANONICAL_CLASS_NONE = 1;
+  MEMORY_CANONICAL_CLASS_PUBLIC_SHARED = 2;
+  MEMORY_CANONICAL_CLASS_WORLD_SHARED = 3;
+  MEMORY_CANONICAL_CLASS_DYADIC = 4;
+}
+
+enum MemoryDistanceMetric {
+  MEMORY_DISTANCE_METRIC_UNSPECIFIED = 0;
+  MEMORY_DISTANCE_METRIC_COSINE = 1;
+  MEMORY_DISTANCE_METRIC_EUCLIDEAN = 2;
+}
+
+enum MemoryMigrationPolicy {
+  MEMORY_MIGRATION_POLICY_UNSPECIFIED = 0;
+  MEMORY_MIGRATION_POLICY_REINDEX = 1;
+  MEMORY_MIGRATION_POLICY_FREEZE = 2;
+}
+
+enum MemoryReplicationOutcome {
+  MEMORY_REPLICATION_OUTCOME_UNSPECIFIED = 0;
+  MEMORY_REPLICATION_OUTCOME_PENDING = 1;
+  MEMORY_REPLICATION_OUTCOME_SYNCED = 2;
+  MEMORY_REPLICATION_OUTCOME_CONFLICT = 3;
+  MEMORY_REPLICATION_OUTCOME_INVALIDATED = 4;
+}
+
+enum MemoryEventType {
+  MEMORY_EVENT_TYPE_UNSPECIFIED = 0;
+  MEMORY_EVENT_TYPE_BANK_CREATED = 1;
+  MEMORY_EVENT_TYPE_BANK_DELETED = 2;
+  MEMORY_EVENT_TYPE_RECORD_RETAINED = 3;
+  MEMORY_EVENT_TYPE_RECORD_DELETED = 4;
+  MEMORY_EVENT_TYPE_REFLECTION_COMPLETED = 5;
+  MEMORY_EVENT_TYPE_REPLICATION_UPDATED = 6;
+}
+
+message MemoryRequestContext {
+  string app_id = 1;
+  string subject_user_id = 2;
+}
+
+message AgentCoreBankOwner {
+  string agent_id = 1;
+}
+
+message AgentDyadicBankOwner {
+  string agent_id = 1;
+  string user_id = 2;
+}
+
+message WorldSharedBankOwner {
+  string world_id = 1;
+  reserved 2;
+  reserved "realm_id";
+}
+
+message AppPrivateBankOwner {
+  string account_id = 1;
+  string app_id = 2;
+}
+
+message WorkspacePrivateBankOwner {
+  string account_id = 1;
+  string workspace_id = 2;
+}
+
+message MemoryBankLocator {
+  MemoryBankScope scope = 1;
+  oneof owner {
+    AgentCoreBankOwner agent_core = 2;
+    AgentDyadicBankOwner agent_dyadic = 3;
+    WorldSharedBankOwner world_shared = 4;
+    AppPrivateBankOwner app_private = 5;
+    WorkspacePrivateBankOwner workspace_private = 6;
+  }
+}
+
+message PublicMemoryBankLocator {
+  oneof locator {
+    AppPrivateBankOwner app_private = 1;
+    WorkspacePrivateBankOwner workspace_private = 2;
+  }
+}
+
+message MemoryBankOwnerFilter {
+  oneof owner {
+    AgentCoreBankOwner agent_core = 1;
+    AgentDyadicBankOwner agent_dyadic = 2;
+    WorldSharedBankOwner world_shared = 3;
+    AppPrivateBankOwner app_private = 4;
+    WorkspacePrivateBankOwner workspace_private = 5;
+  }
+}
+
+message MemoryEmbeddingProfile {
+  string provider = 1;
+  string model_id = 2;
+  int32 dimension = 3;
+  MemoryDistanceMetric distance_metric = 4;
+  string version = 5;
+  MemoryMigrationPolicy migration_policy = 6;
+}
+
+message MemoryBank {
+  string bank_id = 1;
+  MemoryBankLocator locator = 2;
+  MemoryEmbeddingProfile embedding_profile = 3;
+  string display_name = 4;
+  bool canonical_agent_scope = 5;
+  bool public_api_writable = 6;
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message MemoryProvenance {
+  string source_system = 1;
+  string source_event_id = 2;
+  string author_id = 3;
+  string trace_id = 4;
+  google.protobuf.Timestamp committed_at = 5;
+}
+
+message EpisodicMemoryRecord {
+  string summary = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  repeated string participants = 3;
+}
+
+message SemanticMemoryRecord {
+  string subject = 1;
+  string predicate = 2;
+  string object = 3;
+  double confidence = 4;
+}
+
+message ObservationalMemoryRecord {
+  string observation = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  string source_ref = 3;
+}
+
+message MemoryRecordInput {
+  MemoryRecordKind kind = 1;
+  MemoryCanonicalClass canonical_class = 2;
+  MemoryProvenance provenance = 3;
+  google.protobuf.Struct metadata = 4;
+  google.protobuf.Struct extensions = 5;
+  oneof payload {
+    EpisodicMemoryRecord episodic = 10;
+    SemanticMemoryRecord semantic = 11;
+    ObservationalMemoryRecord observational = 12;
+  }
+}
+
+message MemoryReplicationPending {
+  string basis_version = 1;
+  google.protobuf.Timestamp enqueued_at = 2;
+}
+
+message MemoryReplicationSynced {
+  string realm_version = 1;
+  google.protobuf.Timestamp synced_at = 2;
+}
+
+message MemoryReplicationConflict {
+  string conflict_id = 1;
+  string local_version = 2;
+  string remote_version = 3;
+  string conflict_reason = 4;
+  google.protobuf.Timestamp detected_at = 5;
+}
+
+message MemoryInvalidation {
+  string invalidation_id = 1;
+  string invalidated_version = 2;
+  string authority = 3;
+  string invalidation_reason = 4;
+  google.protobuf.Timestamp invalidated_at = 5;
+}
+
+message MemoryReplicationState {
+  MemoryReplicationOutcome outcome = 1;
+  string local_version = 2;
+  string basis_version = 3;
+  oneof detail {
+    MemoryReplicationPending pending = 10;
+    MemoryReplicationSynced synced = 11;
+    MemoryReplicationConflict conflict = 12;
+    MemoryInvalidation invalidation = 13;
+  }
+}
+
+message MemoryRecord {
+  string memory_id = 1;
+  MemoryBankLocator bank = 2;
+  MemoryRecordKind kind = 3;
+  MemoryCanonicalClass canonical_class = 4;
+  MemoryProvenance provenance = 5;
+  MemoryReplicationState replication = 6;
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Struct extensions = 8;
+  oneof payload {
+    EpisodicMemoryRecord episodic = 10;
+    SemanticMemoryRecord semantic = 11;
+    ObservationalMemoryRecord observational = 12;
+  }
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp updated_at = 21;
+}
+
+message MemoryRecallQuery {
+  string query = 1;
+  repeated MemoryRecordKind kinds = 2;
+  int32 limit = 3;
+  google.protobuf.Timestamp start_time = 4;
+  google.protobuf.Timestamp end_time = 5;
+  repeated MemoryCanonicalClass canonical_classes = 6;
+  bool include_invalidated = 7;
+}
+
+message MemoryHistoryQuery {
+  repeated MemoryRecordKind kinds = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+  bool include_invalidated = 6;
+}
+
+message MemoryRecallHit {
+  MemoryRecord record = 1;
+  double relevance_score = 2;
+  string match_reason = 3;
+}
+
+message MemoryReflectionRequest {
+  repeated MemoryRecordKind source_kinds = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  int32 target_record_count = 4;
+  string reflection_reason = 5;
+}
+
+message MemoryReflectionResult {
+  repeated MemoryRecord created_records = 1;
+  int32 source_record_count = 2;
+  google.protobuf.Timestamp completed_at = 3;
+}
+
+message MemoryDeletedDetail {
+  repeated string memory_ids = 1;
+  string reason = 2;
+}
+
+message MemoryReplicationObservedDetail {
+  string memory_id = 1;
+  MemoryReplicationState replication = 2;
+}
+
+message MemoryEvent {
+  MemoryEventType event_type = 1;
+  uint64 sequence = 2;
+  MemoryBankLocator bank = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  oneof detail {
+    MemoryBank bank_created = 10;
+    MemoryBank bank_deleted = 11;
+    MemoryRecord record_retained = 12;
+    MemoryDeletedDetail record_deleted = 13;
+    MemoryReflectionResult reflection_completed = 14;
+    MemoryReplicationObservedDetail replication_updated = 15;
+  }
+}
+
+message CreateBankRequest {
+  MemoryRequestContext context = 1;
+  PublicMemoryBankLocator locator = 2;
+  MemoryEmbeddingProfile embedding_profile = 3;
+  string display_name = 4;
+  google.protobuf.Struct metadata = 5;
+}
+
+message CreateBankResponse {
+  MemoryBank bank = 1;
+}
+
+message GetBankRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator locator = 2;
+}
+
+message GetBankResponse {
+  MemoryBank bank = 1;
+}
+
+message ListBanksRequest {
+  MemoryRequestContext context = 1;
+  repeated MemoryBankScope scope_filters = 2;
+  repeated MemoryBankOwnerFilter owner_filters = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListBanksResponse {
+  repeated MemoryBank banks = 1;
+  string next_page_token = 2;
+}
+
+message DeleteBankRequest {
+  MemoryRequestContext context = 1;
+  PublicMemoryBankLocator locator = 2;
+}
+
+message DeleteBankResponse {
+  Ack ack = 1;
+}
+
+message RetainRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator bank = 2;
+  repeated MemoryRecordInput records = 3;
+}
+
+message RetainResponse {
+  repeated MemoryRecord records = 1;
+}
+
+message RecallRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator bank = 2;
+  MemoryRecallQuery query = 3;
+}
+
+message RecallResponse {
+  repeated MemoryRecallHit hits = 1;
+}
+
+message HistoryRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator bank = 2;
+  MemoryHistoryQuery query = 3;
+}
+
+message HistoryResponse {
+  repeated MemoryRecord records = 1;
+  string next_page_token = 2;
+}
+
+message ReflectRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator bank = 2;
+  MemoryReflectionRequest reflection = 3;
+}
+
+message ReflectResponse {
+  MemoryReflectionResult result = 1;
+}
+
+message DeleteMemoryRequest {
+  MemoryRequestContext context = 1;
+  MemoryBankLocator bank = 2;
+  repeated string memory_ids = 3;
+  string reason = 4;
+}
+
+message DeleteMemoryResponse {
+  Ack ack = 1;
+  repeated string deleted_memory_ids = 2;
+}
+
+message SubscribeMemoryEventsRequest {
+  MemoryRequestContext context = 1;
+  repeated MemoryBankScope scope_filters = 2;
+  repeated MemoryBankOwnerFilter owner_filters = 3;
+  string cursor = 4;
+}
+
+service RuntimeMemoryService {
+  rpc CreateBank(CreateBankRequest) returns (CreateBankResponse);
+  rpc GetBank(GetBankRequest) returns (GetBankResponse);
+  rpc ListBanks(ListBanksRequest) returns (ListBanksResponse);
+  rpc DeleteBank(DeleteBankRequest) returns (DeleteBankResponse);
+  rpc Retain(RetainRequest) returns (RetainResponse);
+  rpc Recall(RecallRequest) returns (RecallResponse);
+  rpc History(HistoryRequest) returns (HistoryResponse);
+  rpc Reflect(ReflectRequest) returns (ReflectResponse);
+  rpc DeleteMemory(DeleteMemoryRequest) returns (DeleteMemoryResponse);
+  rpc SubscribeMemoryEvents(SubscribeMemoryEventsRequest) returns (stream MemoryEvent);
+}

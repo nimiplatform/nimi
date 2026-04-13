@@ -1389,6 +1389,7 @@ app-facing route metadata / projection surface 是例外的 host-typed logical s
 - `runtime.memory.*` 仅投影 Nimi-owned memory substrate contract
 - `runtime.agentCore.*` 负责 app-facing canonical agent control plane
 - app-facing canonical agent memory write path 必须统一走 `runtime.agentCore.*`，不得漂移回 direct Realm memory mutation 或 provider-native memory API
+- `@nimiplatform/sdk/realm` 不再承载 canonical agent-memory public helper；runtime-era app path 只能消费 `runtime.agentCore.*`
 
 **S-SURFACE-009 — Runtime 方法投影表治理**
 
@@ -2094,12 +2095,16 @@ slice-local derived state、thread metadata 或 UI 临时字段都不得拥有
 `ResolvedExperiencePolicy`、`resolvedTurnMode` 的 canonical
 语义，也不得在 hydration / migration 时替这些 resolved outputs 猜默认值。
 
-若 Desktop 为 delayed beat 建立 pending entry、为 modality action 建立执行投影或
+若 Desktop 为 follow-up-turn 建立 thread-bound pending entry、为 modality action 建立执行投影或
 历史记录，这些字段也只能承载
 `agent-chat-message-action-contract.md`（`D-LLM-027` ~ `D-LLM-033`）已解析 outputs 的
 projection / lifecycle evidence。store、hydration、migration、timer recovery、或
-UI state 不得决定 delayed beat 是否存在、是否继续有效、是否应被 delivery、或
-`promptPayload` 应是什么；缺失合法 resolved beat/action outputs 时必须 fail-close。
+UI state 不得决定 follow-up-turn 是否存在、是否继续有效、是否应被 delivery、或
+`promptPayload` 应是什么；缺失合法 resolved message/action outputs 时必须 fail-close。
+
+当前 admitted follow-up pending state 只允许 process-local ownership；持久化 store 不得在
+hydration 后自动恢复旧 pending follow-up timer，也不得把 thread metadata 升格成递归
+follow-up chain 的 owner。
 
 **D-STATE-003 — Mod Workspace Slice**
 

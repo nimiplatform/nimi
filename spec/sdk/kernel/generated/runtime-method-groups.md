@@ -179,7 +179,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 
 ## memory_service_projection
 
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|
@@ -196,7 +196,7 @@ Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 
 ## agent_core_service_projection
 
-Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
+Source: `spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 
 | Method | Source Rule |
 |---|---|

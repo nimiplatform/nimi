@@ -48,6 +48,23 @@ export {
   UsageWindow,
   GetRuntimeHealthResponse,
 } from './generated/runtime/v1/audit.js';
+export {
+  MemoryBankScope,
+  MemoryCanonicalClass,
+  MemoryDistanceMetric,
+  MemoryEventType,
+  MemoryMigrationPolicy,
+  MemoryRecordKind,
+  MemoryReplicationOutcome,
+} from './generated/runtime/v1/memory.js';
+export {
+  AgentEventType,
+  AgentExecutionState,
+  AgentHookStatus,
+  AgentLifecycleStatus,
+  AgentTrackType,
+  HookTriggerKind,
+} from './generated/runtime/v1/agent_core.js';
 export type {
   AuditEventRecord,
   ListAuditEventsRequest,
@@ -67,6 +84,8 @@ export type {
   SubscribeRuntimeHealthEventsRequest,
   SubscribeAIProviderHealthEventsRequest,
 } from './generated/runtime/v1/audit.js';
+export type * from './generated/runtime/v1/memory.js';
+export type * from './generated/runtime/v1/agent_core.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
@@ -76,6 +95,7 @@ export { createRuntimeClient } from './core/client.js';
 export { createNodeGrpcTransport, setNodeGrpcBridge, type NodeGrpcBridge } from './transports/node-grpc.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
 export { Runtime } from './runtime.js';
+export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export type {
   RuntimeGenerateInput,
   RuntimeGenerateResult,

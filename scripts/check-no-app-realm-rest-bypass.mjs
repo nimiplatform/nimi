@@ -30,6 +30,11 @@ const IGNORED_FILE_PATTERNS = [
 
 const CHECKS = [
   {
+    label: 'legacy agent-memory helper import',
+    pattern: /import\s*\{[\s\S]*\b(?:commitAgentMemories|listAgentCoreMemories|listAgentDyadicMemories)\b[\s\S]*\}\s*from\s*['"]@nimiplatform\/sdk\/realm['"]/g,
+    message: 'app production code must not import legacy realm agent-memory helpers; use runtime.agentCore/runtime.memory surfaces',
+  },
+  {
     label: 'unsafeRaw.request',
     pattern: /\b(?:raw|unsafeRaw)\.request(?:<[\s\S]*?>)?\s*\(/g,
     message: 'app production code must not call realm.raw.request or realm.unsafeRaw.request directly',

@@ -2,6 +2,20 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAgentCoreService/CancelHook",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/DisableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/EnableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgent",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgentState",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/ListAgents",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/ListPendingHooks",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/QueryAgentMemory",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/SetAutonomyConfig",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/TerminateAgent",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/UpdateAgentState",
+    "/nimi.runtime.v1.RuntimeAgentCoreService/WriteAgentMemory",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
@@ -95,6 +109,16 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
     "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+    "/nimi.runtime.v1.RuntimeMemoryService/CreateBank",
+    "/nimi.runtime.v1.RuntimeMemoryService/DeleteBank",
+    "/nimi.runtime.v1.RuntimeMemoryService/DeleteMemory",
+    "/nimi.runtime.v1.RuntimeMemoryService/GetBank",
+    "/nimi.runtime.v1.RuntimeMemoryService/History",
+    "/nimi.runtime.v1.RuntimeMemoryService/ListBanks",
+    "/nimi.runtime.v1.RuntimeMemoryService/Recall",
+    "/nimi.runtime.v1.RuntimeMemoryService/Reflect",
+    "/nimi.runtime.v1.RuntimeMemoryService/Retain",
+    "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents",
     "/nimi.runtime.v1.RuntimeModelService/CheckModelHealth",
     "/nimi.runtime.v1.RuntimeModelService/ListModels",
     "/nimi.runtime.v1.RuntimeModelService/PullModel",
@@ -106,6 +130,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
@@ -114,6 +139,7 @@ pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents",
     "/nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
+    "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents",
     "/nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents",
 ];
 

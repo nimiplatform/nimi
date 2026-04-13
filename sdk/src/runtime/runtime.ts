@@ -11,6 +11,7 @@ import type {
 } from './runtime-method-contracts.js';
 import type {
   RuntimeAppAuthClient,
+  RuntimeAgentCoreClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
   RuntimeCallOptions,
@@ -18,6 +19,7 @@ import type {
   RuntimeConnectorClient,
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
+  RuntimeMemoryClient,
   RuntimeModelClient,
   RuntimeStreamCallOptions,
   RuntimeTransportConfig,
@@ -113,6 +115,8 @@ export class Runtime {
   readonly local: RuntimeLocalServiceClient;
   readonly connector: RuntimeConnectorClient;
   readonly knowledge: RuntimeKnowledgeClient;
+  readonly memory: RuntimeMemoryClient;
+  readonly agentCore: RuntimeAgentCoreClient;
   readonly app: {
     sendMessage: RuntimeClient['app']['sendAppMessage'];
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
@@ -254,6 +258,8 @@ export class Runtime {
     this.local = passthrough.local;
     this.connector = passthrough.connector;
     this.knowledge = passthrough.knowledge;
+    this.memory = passthrough.memory;
+    this.agentCore = passthrough.agentCore;
     this.audit = passthrough.audit;
     const healthStreams = createHealthEventStreams({
       audit: this.audit,

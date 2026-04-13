@@ -67,6 +67,7 @@ const kernelFiles = [
   'spec/runtime/kernel/model-service-contract.md',
   'spec/runtime/kernel/knowledge-contract.md',
   'spec/runtime/kernel/runtime-memory-service-contract.md',
+  'spec/runtime/kernel/runtime-memory-substrate-contract.md',
   'spec/runtime/kernel/runtime-agent-core-contract.md',
   'spec/runtime/kernel/app-messaging-contract.md',
   'spec/runtime/kernel/cli-onboarding-contract.md',

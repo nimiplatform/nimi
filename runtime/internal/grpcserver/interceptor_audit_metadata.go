@@ -130,6 +130,18 @@ func appIDFromRequest(req any) string {
 	if ok {
 		return strings.TrimSpace(item.GetAppId())
 	}
+	if memoryReq, ok := req.(interface{ GetContext() *runtimev1.MemoryRequestContext }); ok {
+		context := memoryReq.GetContext()
+		if context != nil {
+			return strings.TrimSpace(context.GetAppId())
+		}
+	}
+	if agentReq, ok := req.(interface{ GetContext() *runtimev1.AgentRequestContext }); ok {
+		context := agentReq.GetContext()
+		if context != nil {
+			return strings.TrimSpace(context.GetAppId())
+		}
+	}
 	headCarrier, ok := req.(interface {
 		GetHead() *runtimev1.ScenarioRequestHead
 	})

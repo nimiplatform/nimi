@@ -26,6 +26,67 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 	if required || capability != "" {
 		t.Fatalf("expected unrelated stream to be unprotected, got (%q,%v)", capability, required)
 	}
+
+	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents")
+	if !required || capability != "runtime.memory.read" {
+		t.Fatalf("expected memory events stream to require runtime.memory.read, got (%q,%v)", capability, required)
+	}
+
+	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents")
+	if !required || capability != "runtime.agent.read" {
+		t.Fatalf("expected agent events stream to require runtime.agent.read, got (%q,%v)", capability, required)
+	}
+}
+
+func TestProtectedCapabilityForUnaryMemoryAndAgentCore(t *testing.T) {
+	tests := []struct {
+		method     string
+		request    any
+		capability string
+	}{
+		{
+			method:     "/nimi.runtime.v1.RuntimeMemoryService/CreateBank",
+			request:    &runtimev1.CreateBankRequest{},
+			capability: "runtime.memory.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeMemoryService/Recall",
+			request:    &runtimev1.RecallRequest{},
+			capability: "runtime.memory.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeMemoryService/DeleteMemory",
+			request:    &runtimev1.DeleteMemoryRequest{},
+			capability: "runtime.memory.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent",
+			request:    &runtimev1.InitializeAgentRequest{},
+			capability: "runtime.agent.admin",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgentState",
+			request:    &runtimev1.GetAgentStateRequest{},
+			capability: "runtime.agent.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentCoreService/WriteAgentMemory",
+			request:    &runtimev1.WriteAgentMemoryRequest{},
+			capability: "runtime.agent.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentCoreService/SetAutonomyConfig",
+			request:    &runtimev1.SetAutonomyConfigRequest{},
+			capability: "runtime.agent.autonomy.write",
+		},
+	}
+
+	for _, tc := range tests {
+		capability, required := protectedCapabilityForUnary(tc.method, tc.request)
+		if !required || capability != tc.capability {
+			t.Fatalf("%s: expected (%q,true), got (%q,%v)", tc.method, tc.capability, capability, required)
+		}
+	}
 }
 
 type authzTestAuthorizer struct {
@@ -139,5 +200,75 @@ func TestStreamAuthzInterceptorRejectsUnauthorizedFirstRequest(t *testing.T) {
 	}
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+}
+
+func TestUnaryAuthzInterceptorUsesNestedContextAppID(t *testing.T) {
+	authorizer := &authzTestAuthorizer{allow: true, reason: runtimev1.ReasonCode_ACTION_EXECUTED}
+	interceptor := newUnaryAuthzInterceptor(authorizer)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-access-token-id", "tok-memory-1",
+		"x-nimi-access-token-secret", "sec-memory-1",
+	))
+	req := &runtimev1.QueryAgentMemoryRequest{
+		Context: &runtimev1.AgentRequestContext{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-1",
+		},
+		AgentId: "agent-1",
+	}
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAgentCoreService/QueryAgentMemory",
+	}
+
+	_, err := interceptor(ctx, req, info, func(_ context.Context, request any) (any, error) {
+		return request, nil
+	})
+	if err != nil {
+		t.Fatalf("expected unary authz to allow request, got %v", err)
+	}
+	if authorizer.lastAppID != "nimi.desktop" {
+		t.Fatalf("expected nested context app id nimi.desktop, got %q", authorizer.lastAppID)
+	}
+	if authorizer.lastCap != "runtime.agent.read" {
+		t.Fatalf("unexpected capability: %q", authorizer.lastCap)
+	}
+}
+
+func TestStreamAuthzInterceptorUsesNestedMemoryContextAppID(t *testing.T) {
+	authorizer := &authzTestAuthorizer{allow: true, reason: runtimev1.ReasonCode_ACTION_EXECUTED}
+	interceptor := newStreamAuthzInterceptor(authorizer)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-access-token-id", "tok-memory-1",
+		"x-nimi-access-token-secret", "sec-memory-1",
+	))
+	stream := &authzTestStream{
+		ctx: ctx,
+		requests: []proto.Message{
+			&runtimev1.SubscribeMemoryEventsRequest{
+				Context: &runtimev1.MemoryRequestContext{
+					AppId:         "nimi.desktop",
+					SubjectUserId: "user-1",
+				},
+			},
+		},
+	}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents",
+		IsServerStream: true,
+	}
+
+	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
+		var got runtimev1.SubscribeMemoryEventsRequest
+		return ss.RecvMsg(&got)
+	})
+	if err != nil {
+		t.Fatalf("expected stream authz to allow request, got %v", err)
+	}
+	if authorizer.lastAppID != "nimi.desktop" {
+		t.Fatalf("expected nested context app id nimi.desktop, got %q", authorizer.lastAppID)
+	}
+	if authorizer.lastCap != "runtime.memory.read" {
+		t.Fatalf("unexpected capability: %q", authorizer.lastCap)
 	}
 }

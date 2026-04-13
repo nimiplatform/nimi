@@ -630,15 +630,23 @@ test('node-grpc injects authorization header from runtime auth provider', async 
       ...createRuntimeConfig(server.endpoint),
       auth: {
         accessToken: () => accessToken,
+        protectedAccessToken: () => ({
+          tokenId: 'protected-token-id',
+          secret: 'protected-token-secret',
+        }),
       },
     });
 
     await client.model.list({});
     assert.equal(unaryMetadata?.authorization, 'Bearer token-initial');
+    assert.equal(unaryMetadata?.['x-nimi-access-token-id'], 'protected-token-id');
+    assert.equal(unaryMetadata?.['x-nimi-access-token-secret'], 'protected-token-secret');
 
     accessToken = 'token-refreshed';
     await client.model.list({});
     assert.equal(unaryMetadata?.authorization, 'Bearer token-refreshed');
+    assert.equal(unaryMetadata?.['x-nimi-access-token-id'], 'protected-token-id');
+    assert.equal(unaryMetadata?.['x-nimi-access-token-secret'], 'protected-token-secret');
   } finally {
     await server.close();
   }

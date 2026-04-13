@@ -38,10 +38,16 @@ export type RuntimeMetadata = {
 
 export type RuntimeResponseMetadataObserver = (metadata: Record<string, string>) => void;
 
+export type RuntimeProtectedAccessToken = {
+  tokenId: string;
+  secret: string;
+};
+
 export type RuntimeCallOptions = {
   metadata?: RuntimeMetadata;
   timeoutMs?: number;
   idempotencyKey?: string;
+  protectedAccessToken?: RuntimeProtectedAccessToken;
 };
 
 export type RuntimeStreamCallOptions = RuntimeCallOptions & {
@@ -89,6 +95,7 @@ export type RuntimeUnaryCall<Request = RuntimeWireMessage> = {
   request: Request;
   metadata: RuntimeMetadata;
   authorization?: string;
+  protectedAccessToken?: RuntimeProtectedAccessToken;
   timeoutMs?: number;
   /** @internal Side-channel for unary response metadata extraction. */
   _responseMetadataObserver?: RuntimeResponseMetadataObserver;
@@ -99,6 +106,7 @@ export type RuntimeOpenStreamCall<Request = RuntimeWireMessage> = {
   request: Request;
   metadata: RuntimeMetadata;
   authorization?: string;
+  protectedAccessToken?: RuntimeProtectedAccessToken;
   timeoutMs?: number;
   signal?: AbortSignal;
 };
@@ -156,6 +164,9 @@ export type RuntimeTelemetryEvent = {
 
 export type RuntimeAuthProvider = {
   accessToken?: string | (() => string | Promise<string>);
+  protectedAccessToken?:
+    | RuntimeProtectedAccessToken
+    | (() => RuntimeProtectedAccessToken | Promise<RuntimeProtectedAccessToken>);
 };
 
 export type RuntimeSubjectContextProvider = {

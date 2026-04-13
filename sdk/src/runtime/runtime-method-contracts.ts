@@ -3,7 +3,7 @@ import type { RuntimeClient } from './types-client-interfaces.js';
 
 type RuntimeClientModuleKey = Extract<
   keyof RuntimeClient,
-  'auth' | 'appAuth' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'app' | 'audit'
+  'auth' | 'appAuth' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agentCore' | 'app' | 'audit'
 >;
 
 type RuntimeClientMethodContract<
@@ -100,6 +100,28 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.knowledge.buildIndex]: RuntimeClientMethodContract<'knowledge', 'buildIndex'>;
   [RuntimeMethodIds.knowledge.searchIndex]: RuntimeClientMethodContract<'knowledge', 'searchIndex'>;
   [RuntimeMethodIds.knowledge.deleteIndex]: RuntimeClientMethodContract<'knowledge', 'deleteIndex'>;
+  [RuntimeMethodIds.memory.createBank]: RuntimeClientMethodContract<'memory', 'createBank'>;
+  [RuntimeMethodIds.memory.getBank]: RuntimeClientMethodContract<'memory', 'getBank'>;
+  [RuntimeMethodIds.memory.listBanks]: RuntimeClientMethodContract<'memory', 'listBanks'>;
+  [RuntimeMethodIds.memory.deleteBank]: RuntimeClientMethodContract<'memory', 'deleteBank'>;
+  [RuntimeMethodIds.memory.retain]: RuntimeClientMethodContract<'memory', 'retain'>;
+  [RuntimeMethodIds.memory.recall]: RuntimeClientMethodContract<'memory', 'recall'>;
+  [RuntimeMethodIds.memory.history]: RuntimeClientMethodContract<'memory', 'history'>;
+  [RuntimeMethodIds.memory.reflect]: RuntimeClientMethodContract<'memory', 'reflect'>;
+  [RuntimeMethodIds.memory.deleteMemory]: RuntimeClientMethodContract<'memory', 'deleteMemory'>;
+  [RuntimeMethodIds.agentCore.initializeAgent]: RuntimeClientMethodContract<'agentCore', 'initializeAgent'>;
+  [RuntimeMethodIds.agentCore.terminateAgent]: RuntimeClientMethodContract<'agentCore', 'terminateAgent'>;
+  [RuntimeMethodIds.agentCore.getAgent]: RuntimeClientMethodContract<'agentCore', 'getAgent'>;
+  [RuntimeMethodIds.agentCore.listAgents]: RuntimeClientMethodContract<'agentCore', 'listAgents'>;
+  [RuntimeMethodIds.agentCore.getAgentState]: RuntimeClientMethodContract<'agentCore', 'getAgentState'>;
+  [RuntimeMethodIds.agentCore.updateAgentState]: RuntimeClientMethodContract<'agentCore', 'updateAgentState'>;
+  [RuntimeMethodIds.agentCore.enableAutonomy]: RuntimeClientMethodContract<'agentCore', 'enableAutonomy'>;
+  [RuntimeMethodIds.agentCore.disableAutonomy]: RuntimeClientMethodContract<'agentCore', 'disableAutonomy'>;
+  [RuntimeMethodIds.agentCore.setAutonomyConfig]: RuntimeClientMethodContract<'agentCore', 'setAutonomyConfig'>;
+  [RuntimeMethodIds.agentCore.listPendingHooks]: RuntimeClientMethodContract<'agentCore', 'listPendingHooks'>;
+  [RuntimeMethodIds.agentCore.cancelHook]: RuntimeClientMethodContract<'agentCore', 'cancelHook'>;
+  [RuntimeMethodIds.agentCore.queryMemory]: RuntimeClientMethodContract<'agentCore', 'queryMemory'>;
+  [RuntimeMethodIds.agentCore.writeMemory]: RuntimeClientMethodContract<'agentCore', 'writeMemory'>;
   [RuntimeMethodIds.app.sendAppMessage]: RuntimeClientMethodContract<'app', 'sendAppMessage'>;
   [RuntimeMethodIds.audit.listAuditEvents]: RuntimeClientMethodContract<'audit', 'listAuditEvents'>;
   [RuntimeMethodIds.audit.listUsageStats]: RuntimeClientMethodContract<'audit', 'listUsageStats'>;
@@ -117,6 +139,8 @@ export type RuntimeStreamMethodContractMap = {
   [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: RuntimeClientMethodContract<'ai', 'readRealtimeEvents'>;
   [RuntimeMethodIds.workflow.subscribeEvents]: RuntimeClientMethodContract<'workflow', 'subscribeEvents'>;
   [RuntimeMethodIds.local.watchLocalTransfers]: RuntimeClientMethodContract<'local', 'watchLocalTransfers'>;
+  [RuntimeMethodIds.memory.subscribeEvents]: RuntimeClientMethodContract<'memory', 'subscribeEvents'>;
+  [RuntimeMethodIds.agentCore.subscribeEvents]: RuntimeClientMethodContract<'agentCore', 'subscribeEvents'>;
   [RuntimeMethodIds.app.subscribeAppMessages]: RuntimeClientMethodContract<'app', 'subscribeAppMessages'>;
   [RuntimeMethodIds.audit.exportAuditEvents]: RuntimeClientMethodContract<'audit', 'exportAuditEvents'>;
   [RuntimeMethodIds.audit.subscribeAIProviderHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeAIProviderHealthEvents'>;

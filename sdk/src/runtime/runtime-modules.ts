@@ -36,6 +36,7 @@ import type {
   RuntimeAiSubmitScenarioJobRequestInput,
   RuntimeAiUploadArtifactInput,
   RuntimeAppAuthClient,
+  RuntimeAgentCoreClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
   RuntimeCallOptions,
@@ -45,6 +46,7 @@ import type {
   RuntimeEventsModule,
   RuntimeKnowledgeClient,
   RuntimeLocalServiceClient,
+  RuntimeMemoryClient,
   RuntimeMediaModule,
   RuntimeModelClient,
   RuntimeScopeModule,
@@ -58,7 +60,16 @@ type RuntimeInvokeWithClient = <T>(operation: (client: RuntimeClient) => Promise
 
 type RuntimeInvoke = <T>(operation: () => Promise<T>) => Promise<T>;
 
-type RuntimePassthroughModuleKey = 'auth' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'audit';
+type RuntimePassthroughModuleKey =
+  'auth'
+  | 'workflow'
+  | 'model'
+  | 'local'
+  | 'connector'
+  | 'knowledge'
+  | 'memory'
+  | 'agentCore'
+  | 'audit';
 
 type RuntimePassthroughClient = Record<string, (request: any, options?: any) => Promise<any>>;
 
@@ -85,6 +96,8 @@ export type RuntimeCorePassthroughClients = {
   local: RuntimeLocalServiceClient;
   connector: RuntimeConnectorClient;
   knowledge: RuntimeKnowledgeClient;
+  memory: RuntimeMemoryClient;
+  agentCore: RuntimeAgentCoreClient;
   audit: RuntimeAuditClient;
 };
 
@@ -167,6 +180,36 @@ const KNOWLEDGE_METHODS = [
   'searchIndex',
   'deleteIndex',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeKnowledgeClient>[];
+
+const MEMORY_METHODS = [
+  'createBank',
+  'getBank',
+  'listBanks',
+  'deleteBank',
+  'retain',
+  'recall',
+  'history',
+  'reflect',
+  'deleteMemory',
+  'subscribeEvents',
+] as const satisfies readonly RuntimePassthroughMethod<RuntimeMemoryClient>[];
+
+const AGENT_CORE_METHODS = [
+  'initializeAgent',
+  'terminateAgent',
+  'getAgent',
+  'listAgents',
+  'getAgentState',
+  'updateAgentState',
+  'enableAutonomy',
+  'disableAutonomy',
+  'setAutonomyConfig',
+  'listPendingHooks',
+  'cancelHook',
+  'queryMemory',
+  'writeMemory',
+  'subscribeEvents',
+] as const satisfies readonly RuntimePassthroughMethod<RuntimeAgentCoreClient>[];
 
 const AUDIT_METHODS = [
   'listAuditEvents',
@@ -257,9 +300,27 @@ export function createCorePassthroughClients(input: {
 
   const knowledge: RuntimeKnowledgeClient = createPassthroughModule('knowledge', KNOWLEDGE_METHODS, { guard, invokeWithClient });
 
+  const memoryBase = createPassthroughModule('memory', MEMORY_METHODS, { guard, invokeWithClient });
+  const memory: RuntimeMemoryClient = {
+    ...memoryBase,
+    subscribeEvents: async (request, optionsValue) => {
+      guard('memory', 'subscribeEvents');
+      return invokeWithClient(async (client) => client.memory.subscribeEvents(request, optionsValue));
+    },
+  };
+
+  const agentCoreBase = createPassthroughModule('agentCore', AGENT_CORE_METHODS, { guard, invokeWithClient });
+  const agentCore: RuntimeAgentCoreClient = {
+    ...agentCoreBase,
+    subscribeEvents: async (request, optionsValue) => {
+      guard('agentCore', 'subscribeEvents');
+      return invokeWithClient(async (client) => client.agentCore.subscribeEvents(request, optionsValue));
+    },
+  };
+
   const audit: RuntimeAuditClient = createPassthroughModule('audit', AUDIT_METHODS, { guard, invokeWithClient });
 
-  return { auth, workflow, model, local, connector, knowledge, audit };
+  return { auth, workflow, model, local, connector, knowledge, memory, agentCore, audit };
 }
 
 export function createAppClient(input: {

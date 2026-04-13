@@ -17,8 +17,8 @@
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
 | `RuntimeKnowledgeService` | `RuntimeKnowledgeService` | `aligned` | `phase2` | `K-KNOW-001` |
 | `RuntimeAppService` | `RuntimeAppService` | `aligned` | `phase2` | `K-APP-001` |
-| `RuntimeMemoryService` | `—` | `design_only_pending_proto` | `phase2` | `K-RPC-004a` |
-| `RuntimeAgentCoreService` | `—` | `design_only_pending_proto` | `phase2` | `K-RPC-004b` |
+| `RuntimeMemoryService` | `RuntimeMemoryService` | `aligned` | `phase2` | `K-RPC-004a` |
+| `RuntimeAgentCoreService` | `RuntimeAgentCoreService` | `aligned` | `phase2` | `K-RPC-004b` |
 
 ## Method Mapping
 
@@ -125,30 +125,30 @@
 | `RuntimeKnowledgeService` | `DeleteIndex` | `RuntimeKnowledgeService` | `DeleteIndex` | `aligned` |
 | `RuntimeAppService` | `SendAppMessage` | `RuntimeAppService` | `SendAppMessage` | `aligned` |
 | `RuntimeAppService` | `SubscribeAppMessages` | `RuntimeAppService` | `SubscribeAppMessages` | `aligned` |
-| `RuntimeMemoryService` | `CreateBank` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `GetBank` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `ListBanks` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `DeleteBank` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `Retain` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `Recall` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `History` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `Reflect` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `DeleteMemory` | `—` | `—` | `planned` |
-| `RuntimeMemoryService` | `SubscribeMemoryEvents` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `InitializeAgent` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `TerminateAgent` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `GetAgent` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `ListAgents` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `GetAgentState` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `UpdateAgentState` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `EnableAutonomy` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `DisableAutonomy` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `SetAutonomyConfig` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `ListPendingHooks` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `CancelHook` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `QueryAgentMemory` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `WriteAgentMemory` | `—` | `—` | `planned` |
-| `RuntimeAgentCoreService` | `SubscribeAgentEvents` | `—` | `—` | `planned` |
+| `RuntimeMemoryService` | `CreateBank` | `RuntimeMemoryService` | `CreateBank` | `aligned` |
+| `RuntimeMemoryService` | `GetBank` | `RuntimeMemoryService` | `GetBank` | `aligned` |
+| `RuntimeMemoryService` | `ListBanks` | `RuntimeMemoryService` | `ListBanks` | `aligned` |
+| `RuntimeMemoryService` | `DeleteBank` | `RuntimeMemoryService` | `DeleteBank` | `aligned` |
+| `RuntimeMemoryService` | `Retain` | `RuntimeMemoryService` | `Retain` | `aligned` |
+| `RuntimeMemoryService` | `Recall` | `RuntimeMemoryService` | `Recall` | `aligned` |
+| `RuntimeMemoryService` | `History` | `RuntimeMemoryService` | `History` | `aligned` |
+| `RuntimeMemoryService` | `Reflect` | `RuntimeMemoryService` | `Reflect` | `aligned` |
+| `RuntimeMemoryService` | `DeleteMemory` | `RuntimeMemoryService` | `DeleteMemory` | `aligned` |
+| `RuntimeMemoryService` | `SubscribeMemoryEvents` | `RuntimeMemoryService` | `SubscribeMemoryEvents` | `aligned` |
+| `RuntimeAgentCoreService` | `InitializeAgent` | `RuntimeAgentCoreService` | `InitializeAgent` | `aligned` |
+| `RuntimeAgentCoreService` | `TerminateAgent` | `RuntimeAgentCoreService` | `TerminateAgent` | `aligned` |
+| `RuntimeAgentCoreService` | `GetAgent` | `RuntimeAgentCoreService` | `GetAgent` | `aligned` |
+| `RuntimeAgentCoreService` | `ListAgents` | `RuntimeAgentCoreService` | `ListAgents` | `aligned` |
+| `RuntimeAgentCoreService` | `GetAgentState` | `RuntimeAgentCoreService` | `GetAgentState` | `aligned` |
+| `RuntimeAgentCoreService` | `UpdateAgentState` | `RuntimeAgentCoreService` | `UpdateAgentState` | `aligned` |
+| `RuntimeAgentCoreService` | `EnableAutonomy` | `RuntimeAgentCoreService` | `EnableAutonomy` | `aligned` |
+| `RuntimeAgentCoreService` | `DisableAutonomy` | `RuntimeAgentCoreService` | `DisableAutonomy` | `aligned` |
+| `RuntimeAgentCoreService` | `SetAutonomyConfig` | `RuntimeAgentCoreService` | `SetAutonomyConfig` | `aligned` |
+| `RuntimeAgentCoreService` | `ListPendingHooks` | `RuntimeAgentCoreService` | `ListPendingHooks` | `aligned` |
+| `RuntimeAgentCoreService` | `CancelHook` | `RuntimeAgentCoreService` | `CancelHook` | `aligned` |
+| `RuntimeAgentCoreService` | `QueryAgentMemory` | `RuntimeAgentCoreService` | `QueryAgentMemory` | `aligned` |
+| `RuntimeAgentCoreService` | `WriteAgentMemory` | `RuntimeAgentCoreService` | `WriteAgentMemory` | `aligned` |
+| `RuntimeAgentCoreService` | `SubscribeAgentEvents` | `RuntimeAgentCoreService` | `SubscribeAgentEvents` | `aligned` |
 
 ## Excluded Proto Methods
 

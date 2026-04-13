@@ -5,6 +5,7 @@ import type {
   RuntimeNodeGrpcTransportConfig,
   RuntimeWireMessage,
   RuntimeOpenStreamCall,
+  RuntimeProtectedAccessToken,
   RuntimeStreamCloseCall,
   RuntimeTransport,
   RuntimeUnaryCall,
@@ -89,6 +90,7 @@ function toGrpcMetadata(
   config: RuntimeNodeGrpcTransportConfig,
   metadata: RuntimeUnaryCall<RuntimeWireMessage>['metadata'],
   authorization?: string,
+  protectedAccessToken?: RuntimeProtectedAccessToken,
 ): Metadata {
   const reservedTypedKeys = new Set([
     'x-nimi-protocol-version',
@@ -140,6 +142,8 @@ function toGrpcMetadata(
   }
   append('x-nimi-provider-api-key', providerApiKey);
   append('authorization', authorization);
+  append('x-nimi-access-token-id', protectedAccessToken?.tokenId);
+  append('x-nimi-access-token-secret', protectedAccessToken?.secret);
 
   const extra = metadata.extra || {};
   for (const [key, extraValue] of Object.entries(extra)) {
@@ -382,7 +386,13 @@ export function createNodeGrpcTransport(
         (value: RuntimeWireMessage) => Buffer.from(value),
         (value: Buffer) => Uint8Array.from(value),
         input.request,
-        toGrpcMetadata(runtime.grpc, internalConfig, input.metadata, input.authorization),
+        toGrpcMetadata(
+          runtime.grpc,
+          internalConfig,
+          input.metadata,
+          input.authorization,
+          input.protectedAccessToken,
+        ),
         toCallOptions(input.timeoutMs),
         (error: ServiceError | null, response?: RuntimeWireMessage) => {
           if (error) {
@@ -450,7 +460,13 @@ export function createNodeGrpcTransport(
       (value: RuntimeWireMessage) => Buffer.from(value),
       (value: Buffer) => Uint8Array.from(value),
       input.request,
-      toGrpcMetadata(runtime.grpc, internalConfig, input.metadata, input.authorization),
+      toGrpcMetadata(
+        runtime.grpc,
+        internalConfig,
+        input.metadata,
+        input.authorization,
+        input.protectedAccessToken,
+      ),
       toCallOptions(input.timeoutMs),
     );
 

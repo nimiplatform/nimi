@@ -29,9 +29,6 @@ const REQUIRED_REALM_FACADE_SYMBOLS = [
   'RealmServiceResult',
   'requestDataExport',
   'requestAccountDeletion',
-  'listAgentCoreMemories',
-  'listAgentDyadicMemories',
-  'commitAgentMemories',
 ];
 
 const FORBIDDEN_REALM_FACADE_SYMBOLS = [
@@ -41,6 +38,9 @@ const FORBIDDEN_REALM_FACADE_SYMBOLS = [
   'MeTwoFactorPrepareOutput',
   'SocialDefaultVisibilityService',
   'sendAgentChannelMessage',
+  'listAgentCoreMemories',
+  'listAgentDyadicMemories',
+  'commitAgentMemories',
 ];
 
 const BANNED_PUBLIC_NAME_PATTERNS = [

@@ -19,7 +19,7 @@ const VALID_RUNTIME_DEFAULTS = {
     realtimeUrl: '',
     accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
-    revocationUrl: '',
+    revocationUrl: 'https://realm.example.com/api/auth/revocation',
     jwtIssuer: 'https://realm.example.com',
     jwtAudience: 'nimi-runtime',
   },
@@ -27,7 +27,7 @@ const VALID_RUNTIME_DEFAULTS = {
     localProviderEndpoint: '',
     localProviderModel: '',
     localOpenAiEndpoint: '',
-    credentialRefId: '',
+    connectorId: '',
     targetType: '',
     targetAccountId: '',
     agentId: '',
@@ -48,6 +48,16 @@ describe('runtime defaults bridge', () => {
         },
       }),
     ).toThrow(/realmBaseUrl/);
+
+    expect(() =>
+      parseRuntimeDefaults({
+        ...VALID_RUNTIME_DEFAULTS,
+        realm: {
+          ...VALID_RUNTIME_DEFAULTS.realm,
+          revocationUrl: '',
+        },
+      }),
+    ).toThrow(/revocationUrl/);
   });
 
 });

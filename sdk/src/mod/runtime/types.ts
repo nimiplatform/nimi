@@ -161,6 +161,7 @@ export type ModRuntimeLocalAssetKind =
   | 'video'
   | 'tts'
   | 'stt'
+  | 'embedding'
   | 'vae'
   | 'clip'
   | 'lora'

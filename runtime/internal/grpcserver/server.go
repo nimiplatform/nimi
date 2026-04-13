@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
+	agentcoreservice "github.com/nimiplatform/nimi/runtime/internal/services/agentcore"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
@@ -29,6 +30,7 @@ import (
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
 	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
+	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"google.golang.org/grpc"
@@ -38,16 +40,18 @@ import (
 
 // Server wraps the gRPC serving stack for the runtime daemon.
 type Server struct {
-	addr         string
-	state        *health.State
-	logger       *slog.Logger
-	grpcServer   *grpc.Server
-	healthServer *grpcHealth.Server
-	rpcRegistry  *activeRPCRegistry
-	aiHealth     *providerhealth.Tracker
-	auditStore   *auditlog.Store
-	aiSvc        *aiservice.Service
-	localService *localservice.Service
+	addr             string
+	state            *health.State
+	logger           *slog.Logger
+	grpcServer       *grpc.Server
+	healthServer     *grpcHealth.Server
+	rpcRegistry      *activeRPCRegistry
+	aiHealth         *providerhealth.Tracker
+	auditStore       *auditlog.Store
+	aiSvc            *aiservice.Service
+	localService     *localservice.Service
+	memoryService    *memoryservice.Service
+	agentCoreService *agentcoreservice.Service
 }
 
 const (
@@ -167,6 +171,17 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)
+	memorySvc, err := memoryservice.New(logger, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init memory service: %w", err)
+	}
+	runtimev1.RegisterRuntimeMemoryServiceServer(g, memorySvc)
+	agentCoreSvc, err := agentcoreservice.New(logger, cfg.LocalStatePath, memorySvc)
+	if err != nil {
+		return nil, fmt.Errorf("init agent core service: %w", err)
+	}
+	agentCoreSvc.SetLifeTrackExecutor(agentcoreservice.NewAIBackedLifeTrackExecutor(aiSvc))
+	runtimev1.RegisterRuntimeAgentCoreServiceServer(g, agentCoreSvc)
 
 	// K-SCHED-004: register target-agnostic denial checks. Device profile is
 	// collected on each Peek (no caching per K-SCHED-004).
@@ -272,16 +287,18 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger, appservice.WithSessionValidator(authSvc))) // Phase 2 Draft
 
 	s := &Server{
-		addr:         addr,
-		state:        state,
-		logger:       logger,
-		grpcServer:   g,
-		healthServer: h,
-		rpcRegistry:  rpcRegistry,
-		aiHealth:     aiHealth,
-		auditStore:   auditStore,
-		aiSvc:        aiSvc,
-		localService: localSvc,
+		addr:             addr,
+		state:            state,
+		logger:           logger,
+		grpcServer:       g,
+		healthServer:     h,
+		rpcRegistry:      rpcRegistry,
+		aiHealth:         aiHealth,
+		auditStore:       auditStore,
+		aiSvc:            aiSvc,
+		localService:     localSvc,
+		memoryService:    memorySvc,
+		agentCoreService: agentCoreSvc,
 	}
 	s.SyncServingState()
 	return s, nil
@@ -303,6 +320,14 @@ func (s *Server) AIService() *aiservice.Service {
 // manager injection.
 func (s *Server) LocalService() *localservice.Service {
 	return s.localService
+}
+
+func (s *Server) MemoryService() *memoryservice.Service {
+	return s.memoryService
+}
+
+func (s *Server) AgentCoreService() *agentcoreservice.Service {
+	return s.agentCoreService
 }
 
 func (s *Server) Serve() error {
@@ -369,6 +394,8 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeWorkflowService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeModelService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeLocalService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeMemoryService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentCoreService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeKnowledgeService_ServiceDesc.ServiceName, servingStatus)

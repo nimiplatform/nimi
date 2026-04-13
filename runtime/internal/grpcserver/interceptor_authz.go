@@ -95,6 +95,50 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeModelService/RemoveModel":
 		return "runtime.model.remove", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/CreateBank":
+		return "runtime.memory.admin", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/GetBank":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/ListBanks":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/DeleteBank":
+		return "runtime.memory.admin", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/Retain":
+		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/Recall":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/History":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/Reflect":
+		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/DeleteMemory":
+		return "runtime.memory.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/InitializeAgent":
+		return "runtime.agent.admin", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/TerminateAgent":
+		return "runtime.agent.admin", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgent":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/ListAgents":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/GetAgentState":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/UpdateAgentState":
+		return "runtime.agent.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/EnableAutonomy":
+		return "runtime.agent.autonomy.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/DisableAutonomy":
+		return "runtime.agent.autonomy.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/SetAutonomyConfig":
+		return "runtime.agent.autonomy.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/ListPendingHooks":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/CancelHook":
+		return "runtime.agent.write", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/QueryAgentMemory":
+		return "runtime.agent.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/WriteAgentMemory":
+		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
 		message, ok := req.(*runtimev1.SendAppMessageRequest)
 		if !ok {
@@ -124,6 +168,10 @@ func protectedCapabilityForStream(fullMethod string) (string, bool) {
 	switch fullMethod {
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
+	case "/nimi.runtime.v1.RuntimeMemoryService/SubscribeMemoryEvents":
+		return "runtime.memory.read", true
+	case "/nimi.runtime.v1.RuntimeAgentCoreService/SubscribeAgentEvents":
+		return "runtime.agent.read", true
 	default:
 		return "", false
 	}

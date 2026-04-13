@@ -109,6 +109,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 	startupDegradedReason := d.consumeStartupDegradedReason()
 	d.state.SetStatus(health.StatusReady, "ready")
 	d.grpc.SyncServingState()
+	if agentCoreSvc := d.grpc.AgentCoreService(); agentCoreSvc != nil {
+		if err := agentCoreSvc.StartLifeTrackLoop(backgroundCtx); err != nil {
+			cancelBackground()
+			backgroundWG.Wait()
+			return fmt.Errorf("start agentcore life-track loop: %w", err)
+		}
+	}
 	d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
 	if startupDegradedReason != "" {
 		d.transitionToDegraded(startupDegradedReason)
@@ -142,6 +149,9 @@ waitForShutdown:
 
 	cancelBackground()
 	backgroundWG.Wait()
+	if agentCoreSvc := d.grpc.AgentCoreService(); agentCoreSvc != nil {
+		agentCoreSvc.StopLifeTrackLoop()
+	}
 	shutdownErr := d.shutdown()
 
 	if serveErr != nil {
@@ -186,15 +196,13 @@ func (d *Daemon) EmergencyStopSupervisedEngines() {
 
 func (d *Daemon) stopSupervisedEngines(reason string) {
 	d.stopSupervisedOnce.Do(func() {
-		stopFn := d.stopSupervisedFn
-		if stopFn == nil && d.engineMgr != nil {
-			stopFn = d.engineMgr.StopAll
-		}
-		if stopFn == nil {
-			return
-		}
 		d.logger.Info(reason)
-		stopFn()
+		if stopFn := d.stopSupervisedFn; stopFn != nil {
+			stopFn()
+		}
+		if d.engineMgr != nil {
+			d.engineMgr.StopAll()
+		}
 	})
 }
 
@@ -526,7 +534,8 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	if trimmed == "" {
 		return
 	}
-	if err := runtimeSetenv(envKey, trimmed+"/v1"); err != nil {
+	resolved := trimmed + "/v1"
+	if err := runtimeSetenv(envKey, resolved); err != nil {
 		d.logger.Warn("set engine endpoint env failed",
 			"engine", kind,
 			"source", source,
@@ -537,7 +546,7 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	}
 	if aiSvc := d.grpc.AIService(); aiSvc != nil {
 		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
-			aiSvc.SetLocalProviderEndpoint(providerID, trimmed+"/v1", runtimeGetenv(apiKeyEnv))
+			aiSvc.SetLocalProviderEndpoint(providerID, resolved, runtimeGetenv(apiKeyEnv))
 		}
 	}
 	d.logger.Info("engine endpoint env injected",

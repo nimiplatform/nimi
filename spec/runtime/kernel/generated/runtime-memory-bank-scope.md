@@ -12,6 +12,6 @@
 
 - `AGENT_CORE`: Canonical public/shared agent continuity memory.
 - `AGENT_DYADIC`: Canonical `(agentId, userId)` continuity memory with strict dyadic isolation.
-- `WORLD_SHARED`: World or realm scoped shared continuity memory; not keyed by account.
+- `WORLD_SHARED`: World scoped shared continuity memory; not keyed by account.
 - `APP_PRIVATE`: App-owned private memory bank accessible through RuntimeMemoryService.
 - `WORKSPACE_PRIVATE`: Workspace-owned private memory bank accessible through RuntimeMemoryService.

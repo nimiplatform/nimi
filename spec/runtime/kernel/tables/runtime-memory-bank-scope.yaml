@@ -20,7 +20,7 @@ scopes:
     direct_app_access: false
     public_bank_create_allowed: false
     canonical_agent_scope: true
-    description: World or realm scoped shared continuity memory; not keyed by account.
+    description: World scoped shared continuity memory; not keyed by account.
   - scope: APP_PRIVATE
     source_rule: K-MEM-002
     owner_kind: app

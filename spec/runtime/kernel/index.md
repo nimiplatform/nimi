@@ -21,7 +21,7 @@
   - `LOCAL` `LENG` `DEV` `SEC` `STREAM` `ERR` `PAGE` `AUDIT`
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
-  - `AIEXEC` `SCHED` `WEV` `MEM` `AGCORE`
+  - `AIEXEC` `SCHED` `WEV` `MEM` `MEMSUB` `AGCORE`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
@@ -51,6 +51,7 @@
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
 | `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
+| `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
 | `runtime-agent-core-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、agent memory policy |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |

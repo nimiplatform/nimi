@@ -82,6 +82,58 @@ import {
   RemoveModelRequest,
 } from '../generated/runtime/v1/model';
 import {
+  CreateBankRequest,
+  CreateBankResponse,
+  DeleteBankRequest,
+  DeleteBankResponse,
+  DeleteMemoryRequest,
+  DeleteMemoryResponse,
+  GetBankRequest,
+  GetBankResponse,
+  HistoryRequest,
+  HistoryResponse,
+  ListBanksRequest,
+  ListBanksResponse,
+  MemoryEvent,
+  RecallRequest,
+  RecallResponse,
+  ReflectRequest,
+  ReflectResponse,
+  RetainRequest,
+  RetainResponse,
+  SubscribeMemoryEventsRequest,
+} from '../generated/runtime/v1/memory';
+import {
+  AgentEvent,
+  CancelHookRequest,
+  CancelHookResponse,
+  DisableAutonomyRequest,
+  DisableAutonomyResponse,
+  EnableAutonomyRequest,
+  EnableAutonomyResponse,
+  GetAgentRequest,
+  GetAgentResponse,
+  GetAgentStateRequest,
+  GetAgentStateResponse,
+  InitializeAgentRequest,
+  InitializeAgentResponse,
+  ListAgentsRequest,
+  ListAgentsResponse,
+  ListPendingHooksRequest,
+  ListPendingHooksResponse,
+  QueryAgentMemoryRequest,
+  QueryAgentMemoryResponse,
+  SetAutonomyConfigRequest,
+  SetAutonomyConfigResponse,
+  SubscribeAgentEventsRequest,
+  TerminateAgentRequest,
+  TerminateAgentResponse,
+  UpdateAgentStateRequest,
+  UpdateAgentStateResponse,
+  WriteAgentMemoryRequest,
+  WriteAgentMemoryResponse,
+} from '../generated/runtime/v1/agent_core';
+import {
   ApplyProfileRequest,
   ApplyProfileResponse,
   AppendInferenceAuditRequest,
@@ -587,6 +639,94 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
     requestType: DeleteIndexRequest,
     responseType: Ack,
   },
+  [RuntimeMethodIds.memory.createBank]: {
+    requestType: CreateBankRequest,
+    responseType: CreateBankResponse,
+  },
+  [RuntimeMethodIds.memory.getBank]: {
+    requestType: GetBankRequest,
+    responseType: GetBankResponse,
+  },
+  [RuntimeMethodIds.memory.listBanks]: {
+    requestType: ListBanksRequest,
+    responseType: ListBanksResponse,
+  },
+  [RuntimeMethodIds.memory.deleteBank]: {
+    requestType: DeleteBankRequest,
+    responseType: DeleteBankResponse,
+  },
+  [RuntimeMethodIds.memory.retain]: {
+    requestType: RetainRequest,
+    responseType: RetainResponse,
+  },
+  [RuntimeMethodIds.memory.recall]: {
+    requestType: RecallRequest,
+    responseType: RecallResponse,
+  },
+  [RuntimeMethodIds.memory.history]: {
+    requestType: HistoryRequest,
+    responseType: HistoryResponse,
+  },
+  [RuntimeMethodIds.memory.reflect]: {
+    requestType: ReflectRequest,
+    responseType: ReflectResponse,
+  },
+  [RuntimeMethodIds.memory.deleteMemory]: {
+    requestType: DeleteMemoryRequest,
+    responseType: DeleteMemoryResponse,
+  },
+  [RuntimeMethodIds.agentCore.initializeAgent]: {
+    requestType: InitializeAgentRequest,
+    responseType: InitializeAgentResponse,
+  },
+  [RuntimeMethodIds.agentCore.terminateAgent]: {
+    requestType: TerminateAgentRequest,
+    responseType: TerminateAgentResponse,
+  },
+  [RuntimeMethodIds.agentCore.getAgent]: {
+    requestType: GetAgentRequest,
+    responseType: GetAgentResponse,
+  },
+  [RuntimeMethodIds.agentCore.listAgents]: {
+    requestType: ListAgentsRequest,
+    responseType: ListAgentsResponse,
+  },
+  [RuntimeMethodIds.agentCore.getAgentState]: {
+    requestType: GetAgentStateRequest,
+    responseType: GetAgentStateResponse,
+  },
+  [RuntimeMethodIds.agentCore.updateAgentState]: {
+    requestType: UpdateAgentStateRequest,
+    responseType: UpdateAgentStateResponse,
+  },
+  [RuntimeMethodIds.agentCore.enableAutonomy]: {
+    requestType: EnableAutonomyRequest,
+    responseType: EnableAutonomyResponse,
+  },
+  [RuntimeMethodIds.agentCore.disableAutonomy]: {
+    requestType: DisableAutonomyRequest,
+    responseType: DisableAutonomyResponse,
+  },
+  [RuntimeMethodIds.agentCore.setAutonomyConfig]: {
+    requestType: SetAutonomyConfigRequest,
+    responseType: SetAutonomyConfigResponse,
+  },
+  [RuntimeMethodIds.agentCore.listPendingHooks]: {
+    requestType: ListPendingHooksRequest,
+    responseType: ListPendingHooksResponse,
+  },
+  [RuntimeMethodIds.agentCore.cancelHook]: {
+    requestType: CancelHookRequest,
+    responseType: CancelHookResponse,
+  },
+  [RuntimeMethodIds.agentCore.queryMemory]: {
+    requestType: QueryAgentMemoryRequest,
+    responseType: QueryAgentMemoryResponse,
+  },
+  [RuntimeMethodIds.agentCore.writeMemory]: {
+    requestType: WriteAgentMemoryRequest,
+    responseType: WriteAgentMemoryResponse,
+  },
   [RuntimeMethodIds.app.sendAppMessage]: {
     requestType: SendAppMessageRequest,
     responseType: SendAppMessageResponse,
@@ -645,6 +785,14 @@ export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
   [RuntimeMethodIds.local.watchLocalTransfers]: {
     requestType: WatchLocalTransfersRequest,
     eventType: LocalTransferProgressEvent,
+  },
+  [RuntimeMethodIds.memory.subscribeEvents]: {
+    requestType: SubscribeMemoryEventsRequest,
+    eventType: MemoryEvent,
+  },
+  [RuntimeMethodIds.agentCore.subscribeEvents]: {
+    requestType: SubscribeAgentEventsRequest,
+    eventType: AgentEvent,
   },
   [RuntimeMethodIds.app.subscribeAppMessages]: {
     requestType: SubscribeAppMessagesRequest,

@@ -300,6 +300,99 @@ function checkPagingPairsInConnectorAndGrantProto() {
   }
 }
 
+function checkMemoryProtoAdmission() {
+  const rel = 'proto/runtime/v1/memory.proto';
+  const content = read(rel);
+
+  expectRegex(content, /service\s+RuntimeMemoryService\s*\{[\s\S]*rpc\s+CreateBank\(CreateBankRequest\)\s+returns\s+\(CreateBankResponse\);[\s\S]*rpc\s+SubscribeMemoryEvents\(SubscribeMemoryEventsRequest\)\s+returns\s+\(stream\s+MemoryEvent\);[\s\S]*\}/m, `${rel} RuntimeMemoryService method set`);
+
+  const locator = getProtoMessageBlock(content, 'MemoryBankLocator', rel);
+  assertMessageHasFields(locator, 'MemoryBankLocator', rel, ['scope', 'agent_core', 'agent_dyadic', 'world_shared', 'app_private', 'workspace_private']);
+
+  const publicLocator = getProtoMessageBlock(content, 'PublicMemoryBankLocator', rel);
+  assertMessageHasFields(publicLocator, 'PublicMemoryBankLocator', rel, ['app_private', 'workspace_private']);
+
+  const recordInput = getProtoMessageBlock(content, 'MemoryRecordInput', rel);
+  assertMessageHasFields(recordInput, 'MemoryRecordInput', rel, ['kind', 'canonical_class', 'provenance', 'episodic', 'semantic', 'observational']);
+
+  const replicationState = getProtoMessageBlock(content, 'MemoryReplicationState', rel);
+  assertMessageHasFields(replicationState, 'MemoryReplicationState', rel, ['outcome', 'local_version', 'basis_version', 'pending', 'synced', 'conflict', 'invalidation']);
+
+  const listBanksReq = getProtoMessageBlock(content, 'ListBanksRequest', rel);
+  const listBanksResp = getProtoMessageBlock(content, 'ListBanksResponse', rel);
+  assertMessageHasFields(listBanksReq, 'ListBanksRequest', rel, ['page_size', 'page_token']);
+  assertMessageHasFields(listBanksResp, 'ListBanksResponse', rel, ['next_page_token']);
+
+  const specMemory = read('spec/runtime/kernel/runtime-memory-service-contract.md');
+  for (const token of [
+    'scope-typed bank locator family',
+    'typed memory record family',
+    'typed replication state',
+    'infra-only locator branches',
+  ]) {
+    if (!specMemory.includes(token)) {
+      fail(`spec/runtime/kernel/runtime-memory-service-contract.md missing token: ${token}`);
+    }
+  }
+
+  const paginationSpec = read('spec/runtime/kernel/pagination-filtering.md');
+  if (!paginationSpec.includes('ListBanks')) {
+    fail('spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ListBanks');
+  }
+}
+
+function checkAgentCoreProtoAdmission() {
+  const rel = 'proto/runtime/v1/agent_core.proto';
+  const content = read(rel);
+
+  expectRegex(content, /service\s+RuntimeAgentCoreService\s*\{[\s\S]*rpc\s+InitializeAgent\(InitializeAgentRequest\)\s+returns\s+\(InitializeAgentResponse\);[\s\S]*rpc\s+SubscribeAgentEvents\(SubscribeAgentEventsRequest\)\s+returns\s+\(stream\s+AgentEvent\);[\s\S]*\}/m, `${rel} RuntimeAgentCoreService method set`);
+
+  const nextHookIntent = getProtoMessageBlock(content, 'NextHookIntent', rel);
+  assertMessageHasFields(nextHookIntent, 'NextHookIntent', rel, ['trigger_kind', 'not_before', 'expires_at', 'turn_completed', 'scheduled_time', 'user_idle', 'chat_ended', 'state_condition', 'world_event', 'compound']);
+
+  const hookOutcome = getProtoMessageBlock(content, 'HookExecutionOutcome', rel);
+  assertMessageHasFields(hookOutcome, 'HookExecutionOutcome', rel, ['hook_id', 'status', 'trigger', 'observed_at', 'completed', 'failed', 'canceled', 'rescheduled', 'rejected']);
+
+  const memoryCandidate = getProtoMessageBlock(content, 'CanonicalMemoryCandidate', rel);
+  assertMessageHasFields(memoryCandidate, 'CanonicalMemoryCandidate', rel, ['canonical_class', 'target_bank', 'record', 'source_event_id', 'policy_reason']);
+
+  const memoryView = getProtoMessageBlock(content, 'CanonicalMemoryView', rel);
+  assertMessageHasFields(memoryView, 'CanonicalMemoryView', rel, ['canonical_class', 'source_bank', 'record', 'recall_score', 'policy_reason']);
+
+  const stateMutation = getProtoMessageBlock(content, 'AgentStateMutation', rel);
+  assertMessageHasFields(stateMutation, 'AgentStateMutation', rel, ['set_status_text', 'set_world_context', 'clear_world_context', 'set_dyadic_context', 'clear_dyadic_context', 'put_attribute', 'remove_attribute']);
+
+  const agentEvent = getProtoMessageBlock(content, 'AgentEvent', rel);
+  assertMessageHasFields(agentEvent, 'AgentEvent', rel, ['event_type', 'sequence', 'agent_id', 'timestamp', 'lifecycle', 'hook', 'memory', 'budget', 'replication']);
+
+  const listAgentsReq = getProtoMessageBlock(content, 'ListAgentsRequest', rel);
+  const listAgentsResp = getProtoMessageBlock(content, 'ListAgentsResponse', rel);
+  const listHooksReq = getProtoMessageBlock(content, 'ListPendingHooksRequest', rel);
+  const listHooksResp = getProtoMessageBlock(content, 'ListPendingHooksResponse', rel);
+  assertMessageHasFields(listAgentsReq, 'ListAgentsRequest', rel, ['page_size', 'page_token']);
+  assertMessageHasFields(listAgentsResp, 'ListAgentsResponse', rel, ['next_page_token']);
+  assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
+  assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
+
+  const specAgentCore = read('spec/runtime/kernel/runtime-agent-core-contract.md');
+  for (const token of [
+    'typed trigger-detail and next-hook-intent families',
+    'typed completed / failed / canceled / rescheduled / rejected families',
+    'typed command/patch union',
+  ]) {
+    if (!specAgentCore.includes(token)) {
+      fail(`spec/runtime/kernel/runtime-agent-core-contract.md missing token: ${token}`);
+    }
+  }
+
+  const paginationSpec = read('spec/runtime/kernel/pagination-filtering.md');
+  for (const method of ['ListAgents', 'ListPendingHooks']) {
+    if (!paginationSpec.includes(method)) {
+      fail(`spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
+    }
+  }
+}
+
 function checkRequiredRuleDefinitions() {
   const requiredRuleIds = [
     'K-AUTHSVC-013',
@@ -309,6 +402,12 @@ function checkRequiredRuleDefinitions() {
     'K-GRANT-011',
     'K-GRANT-012',
     'K-GRANT-013',
+    'K-MEM-002',
+    'K-MEM-003',
+    'K-MEM-006',
+    'K-MEM-008',
+    'K-AGCORE-003',
+    'K-AGCORE-006',
     'K-LOCAL-003',
     'K-LOCAL-029',
     'K-LOCAL-030',
@@ -330,6 +429,8 @@ function main() {
   checkLocalPaginationAndAuditFields();
   checkReasonCodes359To363Linkage();
   checkPagingPairsInConnectorAndGrantProto();
+  checkMemoryProtoAdmission();
+  checkAgentCoreProtoAdmission();
 
   if (failed) {
     process.exit(1);

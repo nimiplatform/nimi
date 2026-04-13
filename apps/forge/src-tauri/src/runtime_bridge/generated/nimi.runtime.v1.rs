@@ -5958,6 +5958,7 @@ pub enum LocalAssetKind {
     Video = 3,
     Tts = 4,
     Stt = 5,
+    Embedding = 6,
     /// Passive kinds
     Vae = 10,
     Clip = 11,
@@ -5978,6 +5979,7 @@ impl LocalAssetKind {
             Self::Video => "LOCAL_ASSET_KIND_VIDEO",
             Self::Tts => "LOCAL_ASSET_KIND_TTS",
             Self::Stt => "LOCAL_ASSET_KIND_STT",
+            Self::Embedding => "LOCAL_ASSET_KIND_EMBEDDING",
             Self::Vae => "LOCAL_ASSET_KIND_VAE",
             Self::Clip => "LOCAL_ASSET_KIND_CLIP",
             Self::Lora => "LOCAL_ASSET_KIND_LORA",
@@ -5994,6 +5996,7 @@ impl LocalAssetKind {
             "LOCAL_ASSET_KIND_VIDEO" => Some(Self::Video),
             "LOCAL_ASSET_KIND_TTS" => Some(Self::Tts),
             "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
+            "LOCAL_ASSET_KIND_EMBEDDING" => Some(Self::Embedding),
             "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
             "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
             "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),
