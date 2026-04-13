@@ -1,9 +1,10 @@
-version: 2026-04-01
+version: 2026-04-09
 owner: '@team'
 description: Hard-cut rule-to-evidence map for the refactored realm kernel. This table uses repo-root executable paths because consistency checks resolve against the repository root; contract YAML `sources.*` remain contract-local provenance links.
 profiles:
   truth:
     openapi:
+      - POST /api/admin/worlds/packages/publish
       - GET /api/world/oasis
       - GET /api/world/by-id/{worldId}/rules
       - POST /api/world/by-id/{worldId}/rules
@@ -15,11 +16,16 @@ profiles:
       - GET /api/world/by-id/{id}/scenes
     prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook, Scene]
     service_files:
+      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.ts
       - nimi-backend/libs/domains/world/src/world-rule.service.ts
       - nimi-backend/libs/domains/world/src/agent-rule.service.ts
       - nimi-backend/libs/domains/world/src/world-release.service.ts
       - nimi-backend/libs/domains/world/src/projection/projection.service.ts
     test_files:
+      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.spec.ts
+      - nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.controller.spec.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
       - nimi-backend/libs/domains/world/src/world-rule.service.spec.ts
       - nimi-backend/libs/domains/world/src/agent-rule.service.spec.ts
       - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
@@ -233,6 +239,10 @@ rules:
   R-TRUTH-008: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-008, profile_refs: [truth] }
   R-TRUTH-009: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-009, profile_refs: [truth] }
   R-TRUTH-010: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-010, profile_refs: [truth] }
+  R-TRUTH-011: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-011, profile_refs: [truth] }
+  R-TRUTH-012: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-012, profile_refs: [truth] }
+  R-TRUTH-013: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-013, profile_refs: [truth] }
+  R-TRUTH-014: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-014, profile_refs: [truth] }
   R-WSTATE-001: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-001, profile_refs: [world_state] }
   R-WSTATE-002: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-002, profile_refs: [world_state] }
   R-WSTATE-003: { domain: world-state, spec_anchor: .nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-003, profile_refs: [world_state] }

@@ -5,9 +5,9 @@
 
 Contract: `TRUTH-CONTRACT-001`
 Domain: `truth`
-Version: `2026-04-01`
+Version: `2026-04-09`
 
-Rules: 10
+Rules: 14
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
@@ -21,6 +21,10 @@ Rules: 10
 | R-TRUTH-008 | must | oasis-read-surface-formal | GET /api/world/oasis is a formal Realm truth read surface for the system main world and not a legacy browse shortcut. |
 | R-TRUTH-009 | must | public-projection-aggregates-not-truth | Public read surfaces (e.g. detail-with-agents) may expose computed aggregates derived from truth (activeRuleCount, agentRuleSummary byLayer) but must not expose AgentRule content; aggregates are projection, not truth writes. |
 | R-TRUTH-010 | must | world-scenes-public-read-surface | GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity (id, name, description, activeEntities) for a world; it does not modify truth state. |
+| R-TRUTH-011 | must | official-package-publish-is-unique | Official Realm content publish must converge on one package-native publish contract; world-drafts may remain minimal candidates but are not a parallel canonical truth-write contract for official content. |
+| R-TRUTH-012 | must | official-publish-governance-provenance-required | Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance identity or verdict must fail-close. |
+| R-TRUTH-013 | must | official-publish-atomic-world-agent-release | Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; world-published/agent-pending or release-less success states are invalid. |
+| R-TRUTH-014 | must | release-governance-and-rollback-anchor | WorldRelease is the sole official truth release governance anchor; each official publish must bind package version, publish provenance, checksum/diff metadata, and rollback lineage to an explicit release identity. |
 
 Entities: 4
 
@@ -31,8 +35,9 @@ Entities: 4
 | AgentRule | AgentRule | id, agentId, ruleKey, title, statement, layer, hardness, scope, status, version | structured, dependsOn, conflictsWith |
 | WorldRelease | WorldRelease | id, worldId, versionTag, worldRuleChecksum, agentRuleChecksum | metadata |
 
-Required operations: 15
+Required operations: 16
 - GET /api/world/oasis
+- POST /api/admin/worlds/packages/publish
 - GET /api/world/by-id/{worldId}/rules
 - POST /api/world/by-id/{worldId}/rules
 - PATCH /api/world/by-id/{worldId}/rules/{ruleId}

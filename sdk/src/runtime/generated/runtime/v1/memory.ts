@@ -665,6 +665,35 @@ export interface MemoryRecallHit {
     matchReason: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.NarrativeRecallHit
+ */
+export interface NarrativeRecallHit {
+    /**
+     * @generated from protobuf field: string narrative_id = 1
+     */
+    narrativeId: string;
+    /**
+     * @generated from protobuf field: string topic = 2
+     */
+    topic: string;
+    /**
+     * @generated from protobuf field: string content = 3
+     */
+    content: string;
+    /**
+     * @generated from protobuf field: repeated string source_memory_ids = 4
+     */
+    sourceMemoryIds: string[];
+    /**
+     * @generated from protobuf field: bool is_stale = 5
+     */
+    isStale: boolean;
+    /**
+     * @generated from protobuf field: double relevance_score = 6
+     */
+    relevanceScore: number;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.MemoryReflectionRequest
  */
 export interface MemoryReflectionRequest {
@@ -808,6 +837,8 @@ export interface CreateBankRequest {
      */
     locator?: PublicMemoryBankLocator;
     /**
+     * Optional. When omitted, the bank remains valid with no bound embedding profile.
+     *
      * @generated from protobuf field: nimi.runtime.v1.MemoryEmbeddingProfile embedding_profile = 3
      */
     embeddingProfile?: MemoryEmbeddingProfile;
@@ -962,6 +993,10 @@ export interface RecallResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.MemoryRecallHit hits = 1
      */
     hits: MemoryRecallHit[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.NarrativeRecallHit narrative_hits = 2
+     */
+    narrativeHits: NarrativeRecallHit[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.HistoryRequest
@@ -1002,6 +1037,8 @@ export interface ReflectRequest {
      */
     context?: MemoryRequestContext;
     /**
+     * Canonical agent-facing scopes remain reject-on-call in Wave 2; public Reflect is infra/non-canonical only.
+     *
      * @generated from protobuf field: nimi.runtime.v1.MemoryBankLocator bank = 2
      */
     bank?: MemoryBankLocator;
@@ -3152,6 +3189,93 @@ class MemoryRecallHit$Type extends MessageType<MemoryRecallHit> {
  */
 export const MemoryRecallHit = new MemoryRecallHit$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class NarrativeRecallHit$Type extends MessageType<NarrativeRecallHit> {
+    constructor() {
+        super("nimi.runtime.v1.NarrativeRecallHit", [
+            { no: 1, name: "narrative_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "topic", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "source_memory_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "is_stale", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "relevance_score", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<NarrativeRecallHit>): NarrativeRecallHit {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.narrativeId = "";
+        message.topic = "";
+        message.content = "";
+        message.sourceMemoryIds = [];
+        message.isStale = false;
+        message.relevanceScore = 0;
+        if (value !== undefined)
+            reflectionMergePartial<NarrativeRecallHit>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: NarrativeRecallHit): NarrativeRecallHit {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string narrative_id */ 1:
+                    message.narrativeId = reader.string();
+                    break;
+                case /* string topic */ 2:
+                    message.topic = reader.string();
+                    break;
+                case /* string content */ 3:
+                    message.content = reader.string();
+                    break;
+                case /* repeated string source_memory_ids */ 4:
+                    message.sourceMemoryIds.push(reader.string());
+                    break;
+                case /* bool is_stale */ 5:
+                    message.isStale = reader.bool();
+                    break;
+                case /* double relevance_score */ 6:
+                    message.relevanceScore = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: NarrativeRecallHit, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string narrative_id = 1; */
+        if (message.narrativeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.narrativeId);
+        /* string topic = 2; */
+        if (message.topic !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.topic);
+        /* string content = 3; */
+        if (message.content !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.content);
+        /* repeated string source_memory_ids = 4; */
+        for (let i = 0; i < message.sourceMemoryIds.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.sourceMemoryIds[i]);
+        /* bool is_stale = 5; */
+        if (message.isStale !== false)
+            writer.tag(5, WireType.Varint).bool(message.isStale);
+        /* double relevance_score = 6; */
+        if (message.relevanceScore !== 0)
+            writer.tag(6, WireType.Bit64).double(message.relevanceScore);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.NarrativeRecallHit
+ */
+export const NarrativeRecallHit = new NarrativeRecallHit$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class MemoryReflectionRequest$Type extends MessageType<MemoryReflectionRequest> {
     constructor() {
         super("nimi.runtime.v1.MemoryReflectionRequest", [
@@ -4169,12 +4293,14 @@ export const RecallRequest = new RecallRequest$Type();
 class RecallResponse$Type extends MessageType<RecallResponse> {
     constructor() {
         super("nimi.runtime.v1.RecallResponse", [
-            { no: 1, name: "hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MemoryRecallHit }
+            { no: 1, name: "hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => MemoryRecallHit },
+            { no: 2, name: "narrative_hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => NarrativeRecallHit }
         ]);
     }
     create(value?: PartialMessage<RecallResponse>): RecallResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.hits = [];
+        message.narrativeHits = [];
         if (value !== undefined)
             reflectionMergePartial<RecallResponse>(this, message, value);
         return message;
@@ -4186,6 +4312,9 @@ class RecallResponse$Type extends MessageType<RecallResponse> {
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.MemoryRecallHit hits */ 1:
                     message.hits.push(MemoryRecallHit.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.NarrativeRecallHit narrative_hits */ 2:
+                    message.narrativeHits.push(NarrativeRecallHit.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4202,6 +4331,9 @@ class RecallResponse$Type extends MessageType<RecallResponse> {
         /* repeated nimi.runtime.v1.MemoryRecallHit hits = 1; */
         for (let i = 0; i < message.hits.length; i++)
             MemoryRecallHit.internalBinaryWrite(message.hits[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.NarrativeRecallHit narrative_hits = 2; */
+        for (let i = 0; i < message.narrativeHits.length; i++)
+            NarrativeRecallHit.internalBinaryWrite(message.narrativeHits[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

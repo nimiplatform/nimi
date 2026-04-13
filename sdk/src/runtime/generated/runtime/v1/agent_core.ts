@@ -12,6 +12,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { NarrativeRecallHit } from "./memory";
 import { MemoryRecordKind } from "./memory";
 import { Ack } from "./common";
 import { MemoryReplicationState } from "./memory";
@@ -1265,6 +1266,10 @@ export interface QueryAgentMemoryResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.CanonicalMemoryView memories = 1
      */
     memories: CanonicalMemoryView[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.NarrativeRecallHit narratives = 2
+     */
+    narratives: NarrativeRecallHit[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.WriteAgentMemoryRequest
@@ -5805,12 +5810,14 @@ export const QueryAgentMemoryRequest = new QueryAgentMemoryRequest$Type();
 class QueryAgentMemoryResponse$Type extends MessageType<QueryAgentMemoryResponse> {
     constructor() {
         super("nimi.runtime.v1.QueryAgentMemoryResponse", [
-            { no: 1, name: "memories", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CanonicalMemoryView }
+            { no: 1, name: "memories", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CanonicalMemoryView },
+            { no: 2, name: "narratives", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => NarrativeRecallHit }
         ]);
     }
     create(value?: PartialMessage<QueryAgentMemoryResponse>): QueryAgentMemoryResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.memories = [];
+        message.narratives = [];
         if (value !== undefined)
             reflectionMergePartial<QueryAgentMemoryResponse>(this, message, value);
         return message;
@@ -5822,6 +5829,9 @@ class QueryAgentMemoryResponse$Type extends MessageType<QueryAgentMemoryResponse
             switch (fieldNo) {
                 case /* repeated nimi.runtime.v1.CanonicalMemoryView memories */ 1:
                     message.memories.push(CanonicalMemoryView.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.NarrativeRecallHit narratives */ 2:
+                    message.narratives.push(NarrativeRecallHit.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5838,6 +5848,9 @@ class QueryAgentMemoryResponse$Type extends MessageType<QueryAgentMemoryResponse
         /* repeated nimi.runtime.v1.CanonicalMemoryView memories = 1; */
         for (let i = 0; i < message.memories.length; i++)
             CanonicalMemoryView.internalBinaryWrite(message.memories[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.NarrativeRecallHit narratives = 2; */
+        for (let i = 0; i < message.narratives.length; i++)
+            NarrativeRecallHit.internalBinaryWrite(message.narratives[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -3,9 +3,9 @@
 
 # Rule Catalog (Generated)
 
-Generated at: 2026-03-25T00:00:00Z
+Generated at: 2026-04-09T00:00:00Z
 
-Total rules: 71
+Total rules: 75
 Blocked external rules: 0
 
 | Rule ID | Domain | Level | Source | Statement |
@@ -20,6 +20,10 @@ Blocked external rules: 0
 | R-TRUTH-008 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | GET /api/world/oasis is a formal Realm truth read surface for the system main world. |
 | R-TRUTH-009 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Public read surfaces may expose computed aggregates derived from truth but must not expose AgentRule content; aggregates are projection not truth writes. |
 | R-TRUTH-010 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity for a world; it does not modify truth state. |
+| R-TRUTH-011 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official Realm content publish must converge on one package-native contract; world-drafts are minimal candidates, not a parallel official truth-write line. |
+| R-TRUTH-012 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance fields must fail-close. |
+| R-TRUTH-013 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; partial success middle states are invalid. |
+| R-TRUTH-014 | truth | must | .nimi/spec/realm/kernel/truth-contract.md | WorldRelease is the sole official release governance anchor; each official publish binds package version, provenance, diff metadata, and rollback lineage to an explicit release identity. |
 | R-WSTATE-001 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State expresses durable shared present only and excludes story runtime. |
 | R-WSTATE-002 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | State mutation uses an explicit commit envelope with fixed provenance fields. |
 | R-WSTATE-003 | world-state | must | .nimi/spec/realm/kernel/world-state-contract.md | World State scope is limited to durable shared scopes WORLD, ENTITY, or RELATION. |

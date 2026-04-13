@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-TRUTH-001
 title: Realm Truth Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-04-01
+updated: 2026-04-09
 ---
 
 # Truth Contract
@@ -54,3 +54,19 @@ Public read surfaces (e.g. `GET /api/world/by-id/{id}/detail-with-agents`) may e
 ## R-TRUTH-010
 
 `GET /api/world/by-id/{id}/scenes` is a public read surface exposing Scene identity (`id`, `name`, `description`, `activeEntities`) for a world. It does not modify truth state.
+
+## R-TRUTH-011
+
+官方内容工厂的 canonical truth write 必须收敛为单一 package-native publish contract。`world-drafts` 仍可作为 creator control-plane 的最小候选稿，但它们不是官方内容的长期 canonical publish contract，也不能与官方 package publish 并列为等价 truth-write 主线。
+
+## R-TRUTH-012
+
+官方 package publish 必须携带完整治理 provenance。至少要显式记录 official owner、editorial operator、reviewer、publisher，以及 source provenance / review verdict / publish actor；缺任一必填治理身份或治理结论时必须 fail-close，不能伪造“已审核”或“已发布”成功态。
+
+## R-TRUTH-013
+
+官方 package publish 必须原子写入 world truth、agent truth、projection inputs 与 `WorldRelease`。系统不得暴露“world 已发布但 agent truth 仍待后补”“truth 已写但 release 未冻结”这类中间态作为成功发布结果。
+
+## R-TRUTH-014
+
+`WorldRelease` 是官方 truth release governance 的唯一锚点。每次官方 publish 必须落一个显式 release identity，并绑定 package version、publish provenance、checksum / diff metadata 与 rollback lineage；rollback / supersede 必须通过 release 语义进行，不能通过 ad hoc truth rewrite 伪装完成。

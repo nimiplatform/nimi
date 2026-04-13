@@ -1,5 +1,5 @@
 id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
-generated_at: '2026-03-25T00:00:00Z'
+generated_at: '2026-04-09T00:00:00Z'
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
@@ -50,6 +50,26 @@ rules:
     domain: truth
     level: must
     statement: GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity for a world; it does not modify truth state.
+    source: .nimi/spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-011
+    domain: truth
+    level: must
+    statement: Official Realm content publish must converge on one package-native contract; world-drafts are minimal candidates, not a parallel official truth-write line.
+    source: .nimi/spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-012
+    domain: truth
+    level: must
+    statement: Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance fields must fail-close.
+    source: .nimi/spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-013
+    domain: truth
+    level: must
+    statement: Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; partial success middle states are invalid.
+    source: .nimi/spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-014
+    domain: truth
+    level: must
+    statement: WorldRelease is the sole official release governance anchor; each official publish binds package version, provenance, diff metadata, and rollback lineage to an explicit release identity.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-WSTATE-001
     domain: world-state

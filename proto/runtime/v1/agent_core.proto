@@ -485,6 +485,7 @@ message QueryAgentMemoryRequest {
 
 message QueryAgentMemoryResponse {
   repeated CanonicalMemoryView memories = 1;
+  repeated NarrativeRecallHit narratives = 2;
 }
 
 message WriteAgentMemoryRequest {

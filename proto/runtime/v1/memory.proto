@@ -262,6 +262,15 @@ message MemoryRecallHit {
   string match_reason = 3;
 }
 
+message NarrativeRecallHit {
+  string narrative_id = 1;
+  string topic = 2;
+  string content = 3;
+  repeated string source_memory_ids = 4;
+  bool is_stale = 5;
+  double relevance_score = 6;
+}
+
 message MemoryReflectionRequest {
   repeated MemoryRecordKind source_kinds = 1;
   google.protobuf.Timestamp start_time = 2;
@@ -304,6 +313,7 @@ message MemoryEvent {
 message CreateBankRequest {
   MemoryRequestContext context = 1;
   PublicMemoryBankLocator locator = 2;
+  // Optional. When omitted, the bank remains valid with no bound embedding profile.
   MemoryEmbeddingProfile embedding_profile = 3;
   string display_name = 4;
   google.protobuf.Struct metadata = 5;
@@ -362,6 +372,7 @@ message RecallRequest {
 
 message RecallResponse {
   repeated MemoryRecallHit hits = 1;
+  repeated NarrativeRecallHit narrative_hits = 2;
 }
 
 message HistoryRequest {
@@ -377,6 +388,7 @@ message HistoryResponse {
 
 message ReflectRequest {
   MemoryRequestContext context = 1;
+  // Canonical agent-facing scopes remain reject-on-call in Wave 2; public Reflect is infra/non-canonical only.
   MemoryBankLocator bank = 2;
   MemoryReflectionRequest reflection = 3;
 }

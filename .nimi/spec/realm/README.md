@@ -12,7 +12,7 @@ Realm spec follows: `Rule -> Table -> Generate -> Check -> Evidence`.
 
 Realm hard-cut semantic core is `Truth / World State / World History / Agent Memory / Chat`, with `OASIS` formalized as the unique system main world anchor. `Social / Economy / Resource / Attachment / Binding / Asset / Bundle / Transit` remain adjacent formal domains.
 
-`world-drafts` are part of the creator control-plane only as minimal publish candidates. Editor/runtime workflow state remains Forge-local.
+`world-drafts` are part of the creator control-plane only as minimal publish candidates. Editor/runtime workflow state remains Forge-local. Official content factory publish is package-native and must not create a parallel long-term truth-write contract beside the canonical package line.
 
 ## Structure
 

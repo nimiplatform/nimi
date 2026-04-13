@@ -10,7 +10,7 @@ updated: 2026-03-26
 
 ## Normative Imports
 
-- `kernel/truth-contract.md`: `R-TRUTH-001..008`
+- `kernel/truth-contract.md`: `R-TRUTH-001..014`
 - `kernel/agent-memory-contract.md`: `R-MEM-001..006`
 - `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅引用与 Agent 可见共享当前状态相关的子集，不引入 World State 全量写入边界）
 

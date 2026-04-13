@@ -1,18 +1,21 @@
 contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
-version: 2026-04-01
+version: 2026-04-09
 owner: '@team'
 sources:
   human_spec: ../truth-contract.md
   openapi:
     - ../../nimi-backend/api-nimi.yaml
+    - ../../nimi-backend/api-dashboard.yaml
   prisma: ../../nimi-backend/prisma/schema.prisma
   services:
     - ../../nimi-backend/libs/domains/world/src/world-rule.service.ts
     - ../../nimi-backend/libs/domains/world/src/agent-rule.service.ts
     - ../../nimi-backend/libs/domains/world/src/world-release.service.ts
     - ../../nimi-backend/libs/domains/world/src/projection/projection.service.ts
+    - ../../nimi-backend/apps/api/src/modules/@admin/world/admin-world-package.service.ts
+    - ../../nimi-backend/libs/domains/world/src/world-control.service.ts
 rule_id_prefix: R-TRUTH-
 rules:
   - rule_id: R-TRUTH-001
@@ -55,6 +58,22 @@ rules:
     level: must
     title: world-scenes-public-read-surface
     statement: "GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity (id, name, description, activeEntities) for a world; it does not modify truth state."
+  - rule_id: R-TRUTH-011
+    level: must
+    title: official-package-publish-is-unique
+    statement: "Official Realm content publish must converge on one package-native publish contract; world-drafts may remain minimal candidates but are not a parallel canonical truth-write contract for official content."
+  - rule_id: R-TRUTH-012
+    level: must
+    title: official-publish-governance-provenance-required
+    statement: "Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance identity or verdict must fail-close."
+  - rule_id: R-TRUTH-013
+    level: must
+    title: official-publish-atomic-world-agent-release
+    statement: "Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; world-published/agent-pending or release-less success states are invalid."
+  - rule_id: R-TRUTH-014
+    level: must
+    title: release-governance-and-rollback-anchor
+    statement: "WorldRelease is the sole official truth release governance anchor; each official publish must bind package version, publish provenance, checksum/diff metadata, and rollback lineage to an explicit release identity."
 entities:
   - name: World
     prisma_model: World
@@ -74,6 +93,7 @@ entities:
 api_surface:
   required_operations:
     - GET /api/world/oasis
+    - POST /api/admin/worlds/packages/publish
     - GET /api/world/by-id/{worldId}/rules
     - POST /api/world/by-id/{worldId}/rules
     - PATCH /api/world/by-id/{worldId}/rules/{ruleId}

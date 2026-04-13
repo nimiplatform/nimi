@@ -3,24 +3,28 @@
 
 # Rule Evidence Map (Generated)
 
-Version: `2026-04-01`
+Version: `2026-04-09`
 Owner: `@team`
 
 Profiles: 13
-Rules mapped: 71
+Rules mapped: 75
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
-| R-TRUTH-001 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-002 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-003 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-004 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-005 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-006 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-007 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-008 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-009 | truth | 9 | 7 | 4 | 4 |
-| R-TRUTH-010 | truth | 9 | 7 | 4 | 4 |
+| R-TRUTH-001 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-002 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-003 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-004 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-005 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-006 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-007 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-008 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-009 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-010 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-011 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-012 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-013 | truth | 10 | 7 | 6 | 7 |
+| R-TRUTH-014 | truth | 10 | 7 | 6 | 7 |
 | R-WSTATE-001 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-002 | world-state | 2 | 1 | 3 | 3 |
 | R-WSTATE-003 | world-state | 2 | 1 | 3 | 3 |

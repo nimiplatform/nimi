@@ -4793,6 +4793,7 @@ func (x *QueryAgentMemoryRequest) GetIncludeInvalidated() bool {
 type QueryAgentMemoryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Memories      []*CanonicalMemoryView `protobuf:"bytes,1,rep,name=memories,proto3" json:"memories,omitempty"`
+	Narratives    []*NarrativeRecallHit  `protobuf:"bytes,2,rep,name=narratives,proto3" json:"narratives,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4830,6 +4831,13 @@ func (*QueryAgentMemoryResponse) Descriptor() ([]byte, []int) {
 func (x *QueryAgentMemoryResponse) GetMemories() []*CanonicalMemoryView {
 	if x != nil {
 		return x.Memories
+	}
+	return nil
+}
+
+func (x *QueryAgentMemoryResponse) GetNarratives() []*NarrativeRecallHit {
+	if x != nil {
+		return x.Narratives
 	}
 	return nil
 }
@@ -5335,9 +5343,12 @@ const file_runtime_v1_agent_core_proto_rawDesc = "" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12R\n" +
 	"\x11canonical_classes\x18\x05 \x03(\x0e2%.nimi.runtime.v1.MemoryCanonicalClassR\x10canonicalClasses\x127\n" +
 	"\x05kinds\x18\x06 \x03(\x0e2!.nimi.runtime.v1.MemoryRecordKindR\x05kinds\x12/\n" +
-	"\x13include_invalidated\x18\a \x01(\bR\x12includeInvalidated\"\\\n" +
+	"\x13include_invalidated\x18\a \x01(\bR\x12includeInvalidated\"\xa1\x01\n" +
 	"\x18QueryAgentMemoryResponse\x12@\n" +
-	"\bmemories\x18\x01 \x03(\v2$.nimi.runtime.v1.CanonicalMemoryViewR\bmemories\"\xbf\x01\n" +
+	"\bmemories\x18\x01 \x03(\v2$.nimi.runtime.v1.CanonicalMemoryViewR\bmemories\x12C\n" +
+	"\n" +
+	"narratives\x18\x02 \x03(\v2#.nimi.runtime.v1.NarrativeRecallHitR\n" +
+	"narratives\"\xbf\x01\n" +
 	"\x17WriteAgentMemoryRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12I\n" +
@@ -5524,6 +5535,7 @@ var file_runtime_v1_agent_core_proto_goTypes = []any{
 	(*MemoryReplicationState)(nil),       // 88: nimi.runtime.v1.MemoryReplicationState
 	(*Ack)(nil),                          // 89: nimi.runtime.v1.Ack
 	(MemoryRecordKind)(0),                // 90: nimi.runtime.v1.MemoryRecordKind
+	(*NarrativeRecallHit)(nil),           // 91: nimi.runtime.v1.NarrativeRecallHit
 }
 var file_runtime_v1_agent_core_proto_depIdxs = []int32{
 	80,  // 0: nimi.runtime.v1.AgentAutonomyConfig.min_hook_interval:type_name -> google.protobuf.Duration
@@ -5648,45 +5660,46 @@ var file_runtime_v1_agent_core_proto_depIdxs = []int32{
 	84,  // 119: nimi.runtime.v1.QueryAgentMemoryRequest.canonical_classes:type_name -> nimi.runtime.v1.MemoryCanonicalClass
 	90,  // 120: nimi.runtime.v1.QueryAgentMemoryRequest.kinds:type_name -> nimi.runtime.v1.MemoryRecordKind
 	44,  // 121: nimi.runtime.v1.QueryAgentMemoryResponse.memories:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	7,   // 122: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	43,  // 123: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
-	44,  // 124: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
-	45,  // 125: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
-	7,   // 126: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
-	6,   // 127: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
-	52,  // 128: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
-	54,  // 129: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
-	56,  // 130: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
-	58,  // 131: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
-	60,  // 132: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
-	62,  // 133: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
-	64,  // 134: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
-	66,  // 135: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
-	68,  // 136: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
-	70,  // 137: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
-	72,  // 138: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
-	74,  // 139: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
-	76,  // 140: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
-	78,  // 141: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
-	53,  // 142: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
-	55,  // 143: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
-	57,  // 144: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
-	59,  // 145: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
-	61,  // 146: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
-	63,  // 147: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
-	65,  // 148: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
-	67,  // 149: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
-	69,  // 150: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
-	71,  // 151: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
-	73,  // 152: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
-	75,  // 153: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
-	77,  // 154: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
-	51,  // 155: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
-	142, // [142:156] is the sub-list for method output_type
-	128, // [128:142] is the sub-list for method input_type
-	128, // [128:128] is the sub-list for extension type_name
-	128, // [128:128] is the sub-list for extension extendee
-	0,   // [0:128] is the sub-list for field type_name
+	91,  // 122: nimi.runtime.v1.QueryAgentMemoryResponse.narratives:type_name -> nimi.runtime.v1.NarrativeRecallHit
+	7,   // 123: nimi.runtime.v1.WriteAgentMemoryRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	43,  // 124: nimi.runtime.v1.WriteAgentMemoryRequest.candidates:type_name -> nimi.runtime.v1.CanonicalMemoryCandidate
+	44,  // 125: nimi.runtime.v1.WriteAgentMemoryResponse.accepted:type_name -> nimi.runtime.v1.CanonicalMemoryView
+	45,  // 126: nimi.runtime.v1.WriteAgentMemoryResponse.rejected:type_name -> nimi.runtime.v1.CanonicalMemoryRejection
+	7,   // 127: nimi.runtime.v1.SubscribeAgentEventsRequest.context:type_name -> nimi.runtime.v1.AgentRequestContext
+	6,   // 128: nimi.runtime.v1.SubscribeAgentEventsRequest.event_filters:type_name -> nimi.runtime.v1.AgentEventType
+	52,  // 129: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:input_type -> nimi.runtime.v1.InitializeAgentRequest
+	54,  // 130: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:input_type -> nimi.runtime.v1.TerminateAgentRequest
+	56,  // 131: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:input_type -> nimi.runtime.v1.GetAgentRequest
+	58,  // 132: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:input_type -> nimi.runtime.v1.ListAgentsRequest
+	60,  // 133: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:input_type -> nimi.runtime.v1.GetAgentStateRequest
+	62,  // 134: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:input_type -> nimi.runtime.v1.UpdateAgentStateRequest
+	64,  // 135: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:input_type -> nimi.runtime.v1.EnableAutonomyRequest
+	66,  // 136: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:input_type -> nimi.runtime.v1.DisableAutonomyRequest
+	68,  // 137: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:input_type -> nimi.runtime.v1.SetAutonomyConfigRequest
+	70,  // 138: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:input_type -> nimi.runtime.v1.ListPendingHooksRequest
+	72,  // 139: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:input_type -> nimi.runtime.v1.CancelHookRequest
+	74,  // 140: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:input_type -> nimi.runtime.v1.QueryAgentMemoryRequest
+	76,  // 141: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:input_type -> nimi.runtime.v1.WriteAgentMemoryRequest
+	78,  // 142: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:input_type -> nimi.runtime.v1.SubscribeAgentEventsRequest
+	53,  // 143: nimi.runtime.v1.RuntimeAgentCoreService.InitializeAgent:output_type -> nimi.runtime.v1.InitializeAgentResponse
+	55,  // 144: nimi.runtime.v1.RuntimeAgentCoreService.TerminateAgent:output_type -> nimi.runtime.v1.TerminateAgentResponse
+	57,  // 145: nimi.runtime.v1.RuntimeAgentCoreService.GetAgent:output_type -> nimi.runtime.v1.GetAgentResponse
+	59,  // 146: nimi.runtime.v1.RuntimeAgentCoreService.ListAgents:output_type -> nimi.runtime.v1.ListAgentsResponse
+	61,  // 147: nimi.runtime.v1.RuntimeAgentCoreService.GetAgentState:output_type -> nimi.runtime.v1.GetAgentStateResponse
+	63,  // 148: nimi.runtime.v1.RuntimeAgentCoreService.UpdateAgentState:output_type -> nimi.runtime.v1.UpdateAgentStateResponse
+	65,  // 149: nimi.runtime.v1.RuntimeAgentCoreService.EnableAutonomy:output_type -> nimi.runtime.v1.EnableAutonomyResponse
+	67,  // 150: nimi.runtime.v1.RuntimeAgentCoreService.DisableAutonomy:output_type -> nimi.runtime.v1.DisableAutonomyResponse
+	69,  // 151: nimi.runtime.v1.RuntimeAgentCoreService.SetAutonomyConfig:output_type -> nimi.runtime.v1.SetAutonomyConfigResponse
+	71,  // 152: nimi.runtime.v1.RuntimeAgentCoreService.ListPendingHooks:output_type -> nimi.runtime.v1.ListPendingHooksResponse
+	73,  // 153: nimi.runtime.v1.RuntimeAgentCoreService.CancelHook:output_type -> nimi.runtime.v1.CancelHookResponse
+	75,  // 154: nimi.runtime.v1.RuntimeAgentCoreService.QueryAgentMemory:output_type -> nimi.runtime.v1.QueryAgentMemoryResponse
+	77,  // 155: nimi.runtime.v1.RuntimeAgentCoreService.WriteAgentMemory:output_type -> nimi.runtime.v1.WriteAgentMemoryResponse
+	51,  // 156: nimi.runtime.v1.RuntimeAgentCoreService.SubscribeAgentEvents:output_type -> nimi.runtime.v1.AgentEvent
+	143, // [143:157] is the sub-list for method output_type
+	129, // [129:143] is the sub-list for method input_type
+	129, // [129:129] is the sub-list for extension type_name
+	129, // [129:129] is the sub-list for extension extendee
+	0,   // [0:129] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_core_proto_init() }
