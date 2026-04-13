@@ -56,6 +56,8 @@ export type {
   OauthListenForCodeResult,
   ConfirmPrivateSyncPayload,
   ConfirmPrivateSyncResult,
+  ConfirmDialogPayload,
+  ConfirmDialogResult,
 } from './runtime-types.js';
 
 export {
@@ -92,6 +94,7 @@ export {
   parseCatalogInstallResult,
   parseOpenExternalUrlResult,
   parseConfirmPrivateSyncResult,
+  parseConfirmDialogResult,
   parseOauthTokenExchangeResult,
   parseOauthListenForCodeResult,
 } from './runtime-parsers.js';

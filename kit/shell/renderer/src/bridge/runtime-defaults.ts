@@ -40,6 +40,12 @@ function deriveDefaultJwksUrl(realmBaseUrl: string): string {
   return `${baseUrl}/api/auth/jwks`;
 }
 
+function deriveDefaultRevocationUrl(realmBaseUrl: string): string {
+  const normalizedBaseUrl = trimTrailingSlashes(realmBaseUrl);
+  const baseUrl = normalizedBaseUrl || 'http://localhost:3002';
+  return `${baseUrl}/api/auth/revocation`;
+}
+
 function readEnv(name: string): string {
   const importMetaEnv = (import.meta as { env?: Record<string, string> }).env;
   const processEnv =
@@ -57,21 +63,25 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
   const realmBaseUrl = normalizeLoopbackHttpUrl(resolveRealmBaseUrlFallback(), 3002);
   const realmPort = extractPortFromHttpUrl(realmBaseUrl);
   const realtimeUrl = readEnv('NIMI_REALTIME_URL');
+  const accessToken = readEnv('NIMI_ACCESS_TOKEN');
   const jwksUrl = normalizeLoopbackHttpUrl(
     readEnv('NIMI_REALM_JWKS_URL') || deriveDefaultJwksUrl(realmBaseUrl),
     realmPort,
   );
-  const revocationUrl = readEnv('NIMI_REALM_REVOCATION_URL');
+  const revocationUrl = normalizeLoopbackHttpUrl(
+    readEnv('NIMI_REALM_REVOCATION_URL') || deriveDefaultRevocationUrl(realmBaseUrl),
+    realmPort,
+  );
   const jwtIssuer = normalizeLoopbackHttpUrl(
     readEnv('NIMI_REALM_JWT_ISSUER') || realmBaseUrl,
     realmPort,
   );
   const jwtAudience = readEnv('NIMI_REALM_JWT_AUDIENCE') || 'nimi-runtime';
-  const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT') || 'http://127.0.0.1:1234/v1';
-  const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL') || 'local-model';
-  const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT') || 'http://127.0.0.1:1234/v1';
-  const connectorId = readEnv('NIMI_CREDENTIAL_REF_ID');
-  const targetType = readEnv('NIMI_TARGET_TYPE') || 'AGENT';
+  const localProviderEndpoint = readEnv('NIMI_LOCAL_PROVIDER_ENDPOINT');
+  const localProviderModel = readEnv('NIMI_LOCAL_PROVIDER_MODEL');
+  const localOpenAiEndpoint = readEnv('NIMI_LOCAL_OPENAI_ENDPOINT');
+  const connectorId = readEnv('NIMI_CONNECTOR_ID') || readEnv('NIMI_CREDENTIAL_REF_ID');
+  const targetType = readEnv('NIMI_TARGET_TYPE');
   const targetAccountId = readEnv('NIMI_TARGET_ACCOUNT_ID');
   const agentId = readEnv('NIMI_AGENT_ID');
   const worldId = readEnv('NIMI_WORLD_ID');
@@ -81,7 +91,7 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
     realm: {
       realmBaseUrl,
       realtimeUrl,
-      accessToken: '',
+      accessToken,
       jwksUrl,
       revocationUrl,
       jwtIssuer,
@@ -105,6 +115,7 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
 function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
   const realmBaseUrl = readEnv('NIMI_REALM_URL');
   const realtimeUrl = readEnv('NIMI_REALTIME_URL');
+  const accessToken = readEnv('NIMI_ACCESS_TOKEN');
   const nextRealmBaseUrl = normalizeLoopbackHttpUrl(realmBaseUrl || base.realm.realmBaseUrl, 3002);
   const realmPort = extractPortFromHttpUrl(nextRealmBaseUrl);
   const jwksUrl = readEnv('NIMI_REALM_JWKS_URL');
@@ -118,12 +129,15 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
       ...base.realm,
       realmBaseUrl: nextRealmBaseUrl,
       realtimeUrl: realtimeUrl || base.realm.realtimeUrl,
-      accessToken: '',
+      accessToken: accessToken || base.realm.accessToken,
       jwksUrl: normalizeLoopbackHttpUrl(
         jwksUrl || base.realm.jwksUrl || deriveDefaultJwksUrl(nextRealmBaseUrl),
         realmPort,
       ),
-      revocationUrl: revocationUrl || base.realm.revocationUrl || '',
+      revocationUrl: normalizeLoopbackHttpUrl(
+        revocationUrl || base.realm.revocationUrl || deriveDefaultRevocationUrl(nextRealmBaseUrl),
+        realmPort,
+      ),
       jwtIssuer: normalizeLoopbackHttpUrl(
         jwtIssuer || base.realm.jwtIssuer || nextRealmBaseUrl,
         realmPort,

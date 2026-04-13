@@ -48,6 +48,14 @@ function assertRecord(value: unknown, label: string): JsonObject {
   return value as JsonObject;
 }
 
+function requiredStr(value: unknown, field: string, source: string): string {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) {
+    throw new Error(`${source}: ${field} is required`);
+  }
+  return normalized;
+}
+
 function str(value: unknown, fallback = ''): string {
   return String(value ?? '').trim() || fallback;
 }
@@ -68,19 +76,19 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
   const runtimeRecord = assertRecord(record.runtime, 'runtime_defaults runtime payload is invalid');
   return {
     realm: {
-      realmBaseUrl: str(realmRecord.realmBaseUrl),
+      realmBaseUrl: requiredStr(realmRecord.realmBaseUrl, 'realm.realmBaseUrl', 'runtime_defaults'),
       realtimeUrl: str(realmRecord.realtimeUrl),
       accessToken: str(realmRecord.accessToken),
-      jwksUrl: str(realmRecord.jwksUrl),
-      revocationUrl: str(realmRecord.revocationUrl),
-      jwtIssuer: str(realmRecord.jwtIssuer),
-      jwtAudience: str(realmRecord.jwtAudience),
+      jwksUrl: requiredStr(realmRecord.jwksUrl, 'realm.jwksUrl', 'runtime_defaults'),
+      revocationUrl: requiredStr(realmRecord.revocationUrl, 'realm.revocationUrl', 'runtime_defaults'),
+      jwtIssuer: requiredStr(realmRecord.jwtIssuer, 'realm.jwtIssuer', 'runtime_defaults'),
+      jwtAudience: requiredStr(realmRecord.jwtAudience, 'realm.jwtAudience', 'runtime_defaults'),
     },
     runtime: {
       localProviderEndpoint: str(runtimeRecord.localProviderEndpoint),
       localProviderModel: str(runtimeRecord.localProviderModel),
       localOpenAiEndpoint: str(runtimeRecord.localOpenAiEndpoint),
-      connectorId: str(runtimeRecord.connectorId || runtimeRecord.credentialRefId),
+      connectorId: str(runtimeRecord.connectorId),
       targetType: str(runtimeRecord.targetType),
       targetAccountId: str(runtimeRecord.targetAccountId),
       agentId: str(runtimeRecord.agentId),

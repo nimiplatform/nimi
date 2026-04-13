@@ -1,3 +1,4 @@
+import { parseRuntimeDefaults as parseSharedRuntimeDefaults } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 import {
   assertRecord,
   parseOptionalJsonObject,
@@ -20,6 +21,7 @@ import type {
   CatalogState,
   CatalogTrustTier,
   ConfirmPrivateSyncResult,
+  ConfirmDialogResult,
   InstalledModPolicy,
   MenuBarProviderSummary,
   OauthListenForCodeResult,
@@ -28,7 +30,6 @@ import type {
   RuntimeBridgeConfigGetResult,
   RuntimeBridgeConfigSetResult,
   RuntimeBridgeDaemonStatus,
-  RuntimeDefaults,
   RuntimeLocalAsset,
   RuntimeLocalManifestSummary,
   RuntimeModDeveloperModeState,
@@ -42,54 +43,7 @@ import type {
   SystemResourceSnapshot,
 } from './runtime-types';
 
-export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
-  const record = assertRecord(value, 'runtime_defaults returned invalid payload');
-  const realmRecord = assertRecord(record.realm, 'runtime_defaults realm payload is invalid');
-  const runtimeRecord = assertRecord(record.runtime, 'runtime_defaults runtime payload is invalid');
-  return {
-    realm: {
-      realmBaseUrl: parseRequiredString(
-        realmRecord.realmBaseUrl,
-        'realm.realmBaseUrl',
-        'runtime_defaults',
-      ),
-      realtimeUrl: String(realmRecord.realtimeUrl || '').trim(),
-      accessToken: String(realmRecord.accessToken || '').trim(),
-      jwksUrl: parseRequiredString(
-        realmRecord.jwksUrl,
-        'realm.jwksUrl',
-        'runtime_defaults',
-      ),
-      revocationUrl: parseRequiredString(
-        realmRecord.revocationUrl,
-        'realm.revocationUrl',
-        'runtime_defaults',
-      ),
-      jwtIssuer: parseRequiredString(
-        realmRecord.jwtIssuer,
-        'realm.jwtIssuer',
-        'runtime_defaults',
-      ),
-      jwtAudience: parseRequiredString(
-        realmRecord.jwtAudience,
-        'realm.jwtAudience',
-        'runtime_defaults',
-      ),
-    },
-    runtime: {
-      localProviderEndpoint: String(runtimeRecord.localProviderEndpoint || '').trim(),
-      localProviderModel: String(runtimeRecord.localProviderModel || '').trim(),
-      localOpenAiEndpoint: String(runtimeRecord.localOpenAiEndpoint || '').trim(),
-      connectorId: String(runtimeRecord.connectorId || '').trim(),
-      targetType: String(runtimeRecord.targetType || '').trim(),
-      targetAccountId: String(runtimeRecord.targetAccountId || '').trim(),
-      agentId: String(runtimeRecord.agentId || '').trim(),
-      worldId: String(runtimeRecord.worldId || '').trim(),
-      provider: String(runtimeRecord.provider || '').trim(),
-      userConfirmedUpload: Boolean(runtimeRecord.userConfirmedUpload),
-    },
-  };
-}
+export const parseRuntimeDefaults = parseSharedRuntimeDefaults;
 
 export function parseDesktopReleaseInfo(value: unknown): DesktopReleaseInfo {
   const record = assertRecord(value, 'desktop_release_info_get returned invalid payload');
@@ -569,6 +523,13 @@ export function parseOpenExternalUrlResult(value: unknown): OpenExternalUrlResul
 
 export function parseConfirmPrivateSyncResult(value: unknown): ConfirmPrivateSyncResult {
   const record = assertRecord(value, 'confirm_private_sync returned invalid payload');
+  return {
+    confirmed: Boolean(record.confirmed),
+  };
+}
+
+export function parseConfirmDialogResult(value: unknown): ConfirmDialogResult {
+  const record = assertRecord(value, 'confirm_dialog returned invalid payload');
   return {
     confirmed: Boolean(record.confirmed),
   };

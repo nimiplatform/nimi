@@ -60,6 +60,8 @@
 - Delivered as a Rust crate at `kit/shell/tauri/`, consumed by Tauri apps via Cargo path dependency.
 - Must remain renderer-agnostic: pure Rust host/bridge logic, no JS/TS runtime code.
 - Must not contain app-specific business logic, desktop-only menu bar/runtime-mod, or realm/runtime typed API truth.
+- Shared `runtime_defaults` payload shape is owned here together with `shell/renderer`: canonical fields include `realmBaseUrl`, `jwksUrl`, `revocationUrl`, `jwtIssuer`, `jwtAudience`, and `connectorId`; retired `credentialRefId` must not remain emitted truth.
+- Consumer Tauri apps that wire `nimi_kit_shell_tauri::runtime_defaults` must not retain an app-local `src-tauri/src/defaults.rs` duplicate for the same payload shape.
 - D-IPC-* rules continue to govern IPC contract semantics; this module provides the shared implementation.
 - App identity and session prefix must be parameterized; no hardcoded app branding in shared code.
 - Generated runtime bridge method IDs must have a single source owner in this module.
@@ -71,6 +73,7 @@
 - Delivered as subpath exports of the single `@nimiplatform/nimi-kit` package: `./shell/renderer/bridge` and `./shell/renderer/bootstrap`.
 - Must not contain app-specific stores, navigation, UI rendering, or runtime readiness policy.
 - Must not re-own auth session truth or telemetry normalization truth already owned by `kit/auth` (domain/auth) and `kit/telemetry` (domain/telemetry).
+- Shared `parseRuntimeDefaults()` semantics are owned here: missing required realm defaults must fail closed instead of normalizing to empty strings, and consumer apps must not fork a parallel parser contract.
 - Bootstrap skeleton provides shared orchestration hooks; app-local code retains runtime readiness, daemon policy, and local data bootstrap.
 - Desktop and overtone retain local facade directories for app-specific bridge modules; shared core primitives come from this module.
 - Web-specific UI adapter components (`.web.tsx`) must not be placed in this module.

@@ -40,6 +40,7 @@ function makeRuntimeDefaults() {
       realtimeUrl: 'ws://localhost:3003',
       accessToken: 'test-token-abc',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      revocationUrl: 'http://localhost:3002/api/auth/revocation',
       jwtIssuer: 'http://localhost:3002',
       jwtAudience: 'nimi-runtime',
     },

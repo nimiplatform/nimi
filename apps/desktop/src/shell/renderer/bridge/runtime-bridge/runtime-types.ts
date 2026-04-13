@@ -1,32 +1,10 @@
 import type { JsonObject } from './shared.js';
 
-export type RealmDefaults = {
-  realmBaseUrl: string;
-  realtimeUrl: string;
-  accessToken: string;
-  jwksUrl: string;
-  revocationUrl: string;
-  jwtIssuer: string;
-  jwtAudience: string;
-};
-
-export type RuntimeExecutionDefaults = {
-  localProviderEndpoint: string;
-  localProviderModel: string;
-  localOpenAiEndpoint: string;
-  connectorId: string;
-  targetType: string;
-  targetAccountId: string;
-  agentId: string;
-  worldId: string;
-  provider: string;
-  userConfirmedUpload: boolean;
-};
-
-export type RuntimeDefaults = {
-  realm: RealmDefaults;
-  runtime: RuntimeExecutionDefaults;
-};
+export type {
+  RealmDefaults,
+  RuntimeExecutionDefaults,
+  RuntimeDefaults,
+} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 
 export type DesktopReleaseInfo = {
   desktopVersion: string;
@@ -375,5 +353,15 @@ export type ConfirmPrivateSyncPayload = {
 };
 
 export type ConfirmPrivateSyncResult = {
+  confirmed: boolean;
+};
+
+export type ConfirmDialogPayload = {
+  title: string;
+  description: string;
+  level?: 'info' | 'warning' | 'error';
+};
+
+export type ConfirmDialogResult = {
   confirmed: boolean;
 };

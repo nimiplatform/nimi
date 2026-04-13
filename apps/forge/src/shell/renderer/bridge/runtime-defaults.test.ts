@@ -37,8 +37,9 @@ describe('getRuntimeDefaults', () => {
 
       expect(defaults.realm.realmBaseUrl).toBe('http://localhost:3002');
       expect(defaults.realm.jwtAudience).toBe('nimi-runtime');
-      expect(defaults.runtime.localProviderEndpoint).toBe('http://127.0.0.1:1234/v1');
-      expect(defaults.runtime.targetType).toBe('AGENT');
+      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/revocation');
+      expect(defaults.runtime.localProviderEndpoint).toBe('');
+      expect(defaults.runtime.targetType).toBe('');
       expect(defaults.runtime.userConfirmedUpload).toBe(false);
 
       expect(mockTauriInvoke).not.toHaveBeenCalled();
@@ -56,6 +57,12 @@ describe('getRuntimeDefaults', () => {
       const defaults = await getRuntimeDefaults();
 
       expect(defaults.realm.jwksUrl).toBe('http://localhost:3002/api/auth/jwks');
+    });
+
+    it('derives revocationUrl from realmBaseUrl by default', async () => {
+      const defaults = await getRuntimeDefaults();
+
+      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/revocation');
     });
 
     it('derives jwksUrl from overridden realmBaseUrl', async () => {
@@ -81,6 +88,7 @@ describe('getRuntimeDefaults', () => {
           realtimeUrl: 'ws://localhost:3003',
           accessToken: 'tauri-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
+          revocationUrl: 'http://localhost:3002/api/auth/revocation',
           jwtIssuer: 'http://localhost:3002',
           jwtAudience: 'nimi-runtime',
         },
@@ -104,16 +112,17 @@ describe('getRuntimeDefaults', () => {
         'runtime_defaults',
         {},
       );
-      expect(defaults.realm.accessToken).toBe('');
+      expect(defaults.realm.accessToken).toBe('tauri-token');
     });
 
-    it('does not forward env or Tauri access tokens into renderer defaults', async () => {
+    it('applies env overrides on top of tauri defaults', async () => {
       mockTauriInvoke.mockResolvedValue({
         realm: {
           realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: '',
           accessToken: 'tauri-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
+          revocationUrl: 'http://localhost:3002/api/auth/revocation',
           jwtIssuer: 'http://localhost:3002',
           jwtAudience: 'nimi-runtime',
         },
@@ -139,7 +148,7 @@ describe('getRuntimeDefaults', () => {
       const defaults = await getRuntimeDefaults();
 
       expect(defaults.realm.realmBaseUrl).toBe('https://prod.example.com');
-      expect(defaults.realm.accessToken).toBe('');
+      expect(defaults.realm.accessToken).toBe('env-override-token');
     });
   });
 });

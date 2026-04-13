@@ -39,13 +39,13 @@ describe('parentos-runtime-route-options', () => {
       runtimeDefaults: {
         webBaseUrl: '',
         realm: {
-          realmBaseUrl: '',
+          realmBaseUrl: 'http://localhost:3002',
           realtimeUrl: '',
           accessToken: '',
-          jwksUrl: '',
-          revocationUrl: '',
-          jwtIssuer: '',
-          jwtAudience: '',
+          jwksUrl: 'http://localhost:3002/api/auth/jwks',
+          revocationUrl: 'http://localhost:3002/api/auth/revocation',
+          jwtIssuer: 'http://localhost:3002',
+          jwtAudience: 'nimi-runtime',
         },
         runtime: {
           localProviderEndpoint: 'http://127.0.0.1:1234/v1',
