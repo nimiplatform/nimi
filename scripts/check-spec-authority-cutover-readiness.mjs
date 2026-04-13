@@ -70,6 +70,14 @@ function exists(absPath) {
   return fs.existsSync(absPath);
 }
 
+function readBootstrapState() {
+  const bootstrapPath = relativeFromProject('.nimi/spec/bootstrap-state.yaml');
+  if (!exists(bootstrapPath)) {
+    return null;
+  }
+  return readYaml(bootstrapPath);
+}
+
 function relativeFromProject(relPath) {
   return path.join(projectRoot, relPath);
 }
@@ -413,6 +421,10 @@ function renderSuccess() {
   return 'spec-authority-cutover-readiness: ready_for_admission\n';
 }
 
+function renderAlreadyCutOver() {
+  return 'spec-authority-cutover-readiness: already_cut_over\n';
+}
+
 function main() {
   if (process.argv.length > 2) {
     process.stderr.write('check-spec-authority-cutover-readiness does not accept arguments\n');
@@ -420,6 +432,14 @@ function main() {
   }
 
   try {
+    const bootstrapState = readBootstrapState();
+    if (
+      bootstrapState?.state?.authority_mode === 'canonical_active'
+      || bootstrapState?.status?.active_authority_root === '.nimi/spec'
+    ) {
+      process.stdout.write(renderAlreadyCutOver());
+      process.exit(0);
+    }
     const report = buildReport();
     if (report.overallStatus === 'ready_for_admission') {
       process.stdout.write(renderSuccess());

@@ -221,6 +221,12 @@ export function inspectBootstrapStateContract(bootstrapStateText) {
     && authorityMode === "external_authority_active"
     && reconstructionRequired === false
     && readyForAiReconstruction === false
+  ) || (
+    mode === "reconstruction_seeded"
+    && treeState === "canonical_tree_ready"
+    && authorityMode === "canonical_active"
+    && reconstructionRequired === false
+    && readyForAiReconstruction === false
   );
 
   return {

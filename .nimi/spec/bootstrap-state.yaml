@@ -1,10 +1,10 @@
 version: 2
 state:
-  mode: bootstrap_only
-  tree_state: bootstrap_only
-  authority_mode: external_authority_active
-  blueprint_mode: repo_spec_blueprint
-  reconstruction_required: true
+  mode: reconstruction_seeded
+  tree_state: canonical_tree_ready
+  authority_mode: canonical_active
+  blueprint_mode: none
+  reconstruction_required: false
   reconstruction_owner: ai_skills
 lifecycle_contract:
   id: nimicoding.spec-bootstrap-state.v2
@@ -83,17 +83,19 @@ current_truth:
     - .nimi/contracts/acceptance.schema.yaml
 status:
   bootstrap_contract_version: 1
-  ready_for_ai_reconstruction: true
+  ready_for_ai_reconstruction: false
   external_handoff_required: true
   human_projection_mode: derived_only
   canonical_root_candidate: .nimi/spec
-  active_authority_root: external_authority
+  active_authority_root: .nimi/spec
+  retired_authority_archive_root: null
+  retired_authority_history_source: git_history
 cutover_readiness:
   authority_contract_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
-  overall_status: no_go
+  overall_status: already_cut_over
   gate_status:
-    canonical_generation_gate: pending
-    benchmark_parity_gate: pending
-    drift_pipeline_gate: pending
-    governance_routing_gate: pending
-    authority_admission_gate: pending
+    canonical_generation_gate: pass
+    benchmark_parity_gate: pass
+    drift_pipeline_gate: pass
+    governance_routing_gate: pass
+    authority_admission_gate: pass

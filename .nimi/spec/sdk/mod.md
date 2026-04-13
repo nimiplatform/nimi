@@ -1,0 +1,43 @@
+# Mod SDK Domain Spec
+
+> Scope: `@nimiplatform/sdk/mod` 主题导引（host 注入、hook 聚合、跨域边界、本地 AI profile 安装请求）。
+> Normative Imports: `.nimi/spec/sdk/kernel/*`
+
+## 0. 权威导入
+
+- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-004, S-MOD-005, S-MOD-006, S-MOD-010, S-MOD-011, S-MOD-012, S-MOD-013）
+- `kernel/surface-contract.md`（S-SURFACE-004）
+- `kernel/transport-contract.md`（S-TRANSPORT-003）
+- `kernel/error-projection.md`（S-ERROR-003）
+- `kernel/boundary-contract.md`（S-BOUNDARY-003, S-BOUNDARY-004, S-BOUNDARY-005, S-BOUNDARY-006）
+
+## 1. 文档定位
+
+本文件是 mod 子路径导引。host 注入语义、hook 聚合边界与导入约束由 sdk kernel 定义。
+
+稳定公开的 mod-facing shell 与 route lifecycle facade 仅允许通过 renderer-agnostic 子路径暴露，并且 route runtime identity 当前固定为 `tabId`。
+
+mod 本地持久化通过 host-injected `createHookClient(...).storage` 与 `@nimiplatform/sdk/mod/storage` 暴露；不再要求 mod 自己依赖浏览器存储原语。`mod/storage` 允许在 SDK 层提供像 `createModKvStore(...)` 这样的 sqlite-backed convenience facade，但不引入新的宿主能力模型。
+
+本地 AI 推荐组合相关稳定 surface 同时遵循 `S-MOD-012` 与 `S-MOD-013`：manifest 必须声明 `ai.profiles`，安装只能通过 host 确认后的 request surface 发起。
+
+## 2. 阅读路径
+
+1. 主合同：`kernel/mod-contract.md`。
+2. 稳定导出面：`kernel/surface-contract.md`。
+3. 订阅与重建约束：`kernel/transport-contract.md`。
+4. 边界规则：`kernel/boundary-contract.md`。
+
+## 3. 跨层关联
+
+- Desktop hook 能力模型：`.nimi/spec/desktop/kernel/hook-capability-contract.md`。
+- Runtime app messaging：`.nimi/spec/runtime/kernel/app-messaging-contract.md`。
+- Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.assets.list`，并用 `buildLocalProfileExtensions()` 或 relay 侧 profile builder 组装 `entry_overrides` 与 `profile_overrides`。
+- Local AI profile host projection：mod 通过 host-injected facade 枚举 `runtime.local.listProfiles()`，并以 `runtime.local.requestProfileInstall(...)` 请求 desktop host 执行受控的一键安装。
+- `S-MOD-005`: hook 注册、卸载与生命周期回调边界必须与 desktop 执行内核保持一致，不能在 SDK/mod 层私自扩展 hook 生命周期语义。
+- `S-MOD-006` / `S-BOUNDARY-005` / `S-BOUNDARY-006`: `mod/shell` 与 `mod/lifecycle` 必须保持 renderer-agnostic，且 route runtime lifecycle 的稳定公开作用域固定为 `tabId`。
+
+## 4. 非目标
+
+- 不在 domain 层定义 mod 执行内核规则。
+- 不在本文件维护运行态授权策略。

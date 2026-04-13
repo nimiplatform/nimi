@@ -5,7 +5,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 
 const PROJECT_ROOT = process.cwd();
-const REALM_ROOT = path.join(PROJECT_ROOT, 'spec', 'realm');
+const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 

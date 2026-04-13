@@ -27,21 +27,21 @@ function readYaml(rel) {
 
 // --- Load tables ---
 
-const errorCodesTable = readYaml('spec/platform/kernel/tables/protocol-error-codes.yaml');
-const primitivesTable = readYaml('spec/platform/kernel/tables/protocol-primitives.yaml');
-const complianceTable = readYaml('spec/platform/kernel/tables/compliance-test-matrix.yaml');
-const auditTable = readYaml('spec/platform/kernel/tables/audit-events.yaml');
-const presetsTable = readYaml('spec/platform/kernel/tables/app-authorization-presets.yaml');
-const profilesTable = readYaml('spec/platform/kernel/tables/participant-profiles.yaml');
-const errorCodeMappingTable = readYaml('spec/platform/kernel/tables/error-code-mapping.yaml');
-const designTokensTable = readYaml('spec/platform/kernel/tables/nimi-ui-tokens.yaml');
-const designPrimitivesTable = readYaml('spec/platform/kernel/tables/nimi-ui-primitives.yaml');
-const designThemesTable = readYaml('spec/platform/kernel/tables/nimi-ui-themes.yaml');
-const designAdoptionTable = readYaml('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
-const designCompositionsTable = readYaml('spec/platform/kernel/tables/nimi-ui-compositions.yaml');
-const designAllowlistsTable = readYaml('spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
-const nimiKitRegistryTable = readYaml('spec/platform/kernel/tables/nimi-kit-registry.yaml');
-const ruleEvidenceTable = readYaml('spec/platform/kernel/tables/rule-evidence.yaml');
+const errorCodesTable = readYaml('.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml');
+const primitivesTable = readYaml('.nimi/spec/platform/kernel/tables/protocol-primitives.yaml');
+const complianceTable = readYaml('.nimi/spec/platform/kernel/tables/compliance-test-matrix.yaml');
+const auditTable = readYaml('.nimi/spec/platform/kernel/tables/audit-events.yaml');
+const presetsTable = readYaml('.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml');
+const profilesTable = readYaml('.nimi/spec/platform/kernel/tables/participant-profiles.yaml');
+const errorCodeMappingTable = readYaml('.nimi/spec/platform/kernel/tables/error-code-mapping.yaml');
+const designTokensTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml');
+const designPrimitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml');
+const designThemesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml');
+const designAdoptionTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const designCompositionsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml');
+const designAllowlistsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
+const nimiKitRegistryTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml');
+const ruleEvidenceTable = readYaml('.nimi/spec/platform/kernel/tables/rule-evidence.yaml');
 const structuralOnlyCoverageRuleIds = new Set(
   (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
     .filter((layer) => ['L3_almi', 'L3_arch'].includes(String(layer?.layer || '').trim()))
@@ -254,7 +254,7 @@ for (const ref of allSourceRefs) {
 // Check 8: Kernel contract files exist
 // ========================================================
 
-const kernelDir = path.join(cwd, 'spec', 'platform', 'kernel');
+const kernelDir = path.join(cwd, '.nimi', 'spec', 'platform', 'kernel');
 const requiredKernelFiles = [
   'index.md',
   'protocol-contract.md',
@@ -276,7 +276,7 @@ const requiredKernelFiles = [
 
 for (const file of requiredKernelFiles) {
   if (!fs.existsSync(path.join(kernelDir, file))) {
-    fail(`kernel file missing: spec/platform/kernel/${file}`);
+    fail(`kernel file missing: .nimi/spec/platform/kernel/${file}`);
   }
 }
 
@@ -367,7 +367,7 @@ checkRuleEvidenceTraceability(definedRuleIds);
 //           in domain docs must resolve to kernel headings
 // ========================================================
 
-const domainDocs = listDomainMarkdownFiles('spec/platform');
+const domainDocs = listDomainMarkdownFiles('.nimi/spec/platform');
 if (domainDocs.length === 0) {
   fail('platform domain markdown files are empty');
 }
@@ -414,19 +414,19 @@ checkCrossDomainRuleReferences(
   [
     ...requiredKernelFiles
       .filter((file) => file.endsWith('.md'))
-      .map((file) => path.posix.join('spec/platform/kernel', file)),
+      .map((file) => path.posix.join('.nimi/spec/platform/kernel', file)),
     ...domainDocs,
   ],
   [
     {
       label: 'Runtime',
-      dir: 'spec/runtime/kernel',
+      dir: '.nimi/spec/runtime/kernel',
       headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu,
       refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/gu,
     },
     {
       label: 'Desktop',
-      dir: 'spec/desktop/kernel',
+      dir: '.nimi/spec/desktop/kernel',
       headingPattern: /^##\s+(D-[A-Z]+-\d{3}[a-z]?)\b/gmu,
       refPattern: /\bD-[A-Z]+-\d{3}[a-z]?\b/gu,
     },
@@ -439,7 +439,7 @@ if (failed) process.exit(1);
 console.log('platform-spec-kernel-consistency: OK');
 
 function checkErrorCodeMapping(definedRuleIds) {
-  const rel = 'spec/platform/kernel/tables/error-code-mapping.yaml';
+  const rel = '.nimi/spec/platform/kernel/tables/error-code-mapping.yaml';
   const mappings = Array.isArray(errorCodeMappingTable?.mappings) ? errorCodeMappingTable.mappings : [];
   if (mappings.length === 0) {
     fail(`${rel} mappings must not be empty`);
@@ -463,7 +463,7 @@ function checkErrorCodeMapping(definedRuleIds) {
 }
 
 function checkRuleEvidenceTraceability(definedRuleIds) {
-  const rel = 'spec/platform/kernel/tables/rule-evidence.yaml';
+  const rel = '.nimi/spec/platform/kernel/tables/rule-evidence.yaml';
   const catalog = ruleEvidenceTable?.evidence_catalog && typeof ruleEvidenceTable.evidence_catalog === 'object'
     ? ruleEvidenceTable.evidence_catalog
     : null;
@@ -556,12 +556,12 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
 }
 
 function checkNimiDesignTables(definedRuleIds) {
-  const tokensRel = 'spec/platform/kernel/tables/nimi-ui-tokens.yaml';
-  const primitivesRel = 'spec/platform/kernel/tables/nimi-ui-primitives.yaml';
-  const themesRel = 'spec/platform/kernel/tables/nimi-ui-themes.yaml';
-  const adoptionRel = 'spec/platform/kernel/tables/nimi-ui-adoption.yaml';
-  const compositionsRel = 'spec/platform/kernel/tables/nimi-ui-compositions.yaml';
-  const allowlistsRel = 'spec/platform/kernel/tables/nimi-ui-allowlists.yaml';
+  const tokensRel = '.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml';
+  const primitivesRel = '.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml';
+  const themesRel = '.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml';
+  const adoptionRel = '.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml';
+  const compositionsRel = '.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml';
+  const allowlistsRel = '.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml';
 
   const tokens = Array.isArray(designTokensTable?.tokens) ? designTokensTable.tokens : [];
   const allowedCategories = new Set([
@@ -744,7 +744,7 @@ function checkNimiDesignTables(definedRuleIds) {
     fail(`${tokensRel}: toolkit token taxonomy must define motion.slow`);
   }
 
-  const desktopTokenTableRel = 'spec/desktop/kernel/tables/renderer-design-tokens.yaml';
+  const desktopTokenTableRel = '.nimi/spec/desktop/kernel/tables/renderer-design-tokens.yaml';
   const desktopTokenTableRaw = read(desktopTokenTableRel);
   if (desktopTokenTableRaw.includes('motion.base') || desktopTokenTableRaw.includes('--nimi-motion-base')) {
     fail(`${desktopTokenTableRel}: downstream desktop design tokens must align to motion.slow and must not retain motion.base aliases`);
@@ -754,8 +754,8 @@ function checkNimiDesignTables(definedRuleIds) {
 function checkOrphanRules(definedRuleIds, domainDocs) {
   const refs = new Map();
   const files = [...new Set([
-    ...requiredKernelFiles.map((file) => path.posix.join('spec/platform/kernel', file)),
-    ...yamlTables.map((table) => path.posix.join('spec/platform/kernel/tables', table.name)),
+    ...requiredKernelFiles.map((file) => path.posix.join('.nimi/spec/platform/kernel', file)),
+    ...yamlTables.map((table) => path.posix.join('.nimi/spec/platform/kernel/tables', table.name)),
     ...domainDocs,
   ])].filter((rel) => !rel.endsWith('rule-evidence.yaml'));
 

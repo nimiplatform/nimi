@@ -4,32 +4,27 @@ governance_routing_cutover_checklist:
   decision_authority_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
   entries:
     - file: CLAUDE.md
-      current_active_authority: spec/**
+      current_active_authority: .nimi/spec/**
       current_generated_canonical_root: .nimi/spec/**
       post_cutover_active_authority: .nimi/spec/**
       update_phase: phase_5_flip
     - file: AGENTS.md
-      current_active_authority: spec/**
+      current_active_authority: .nimi/spec/**
       current_generated_canonical_root: .nimi/spec/**
       post_cutover_active_authority: .nimi/spec/**
       update_phase: phase_5_flip
-    - file: spec/AGENTS.md
-      current_active_authority: spec/**
-      current_generated_canonical_root: .nimi/spec/**
-      post_cutover_active_authority: archived_or_derived_only
-      update_phase: phase_5_flip
     - file: nimi-coding/README.md
-      current_active_authority: spec/**
+      current_active_authority: .nimi/spec/**
       current_generated_canonical_root: .nimi/spec/**
       post_cutover_active_authority: canonical_spec_contract_docs
       update_phase: phase_3_preparation
     - file: nimi-coding/adapters/oh-my-codex/README.md
-      current_active_authority: spec/**
+      current_active_authority: .nimi/spec/**
       current_generated_canonical_root: .nimi/spec/**
       post_cutover_active_authority: explicit_cutover_doc_required
       update_phase: phase_3_preparation
     - file: nimi-coding/cli/lib/entrypoints.mjs
-      current_active_authority: spec/**
+      current_active_authority: .nimi/spec/**
       current_generated_canonical_root: .nimi/spec/**
       post_cutover_active_authority: managed_entrypoint_flip_requires_explicit_redesign_admission
       update_phase: phase_3_preparation

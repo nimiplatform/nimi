@@ -10,7 +10,7 @@
   [![Node](https://img.shields.io/badge/node-%E2%89%A524-339933?style=flat-square&logo=node.js&logoColor=white)](package.json)
 </div>
 
-[Website](https://nimi.xyz) | [Getting Started](docs/user/index.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
+[Website](https://nimi.xyz) | [Getting Started](docs/user/index.md) | [SDK Reference](docs/reference/sdk.md) | [Examples](examples/README.md) | [Spec](.nimi/spec/INDEX.md) | [Discord](https://discord.gg/BQwHJvPn)
 
 Build AI apps against one runtime, one SDK, and one operational surface for local and cloud AI.
 
@@ -19,7 +19,7 @@ Build AI apps against one runtime, one SDK, and one operational surface for loca
 </p>
 
 > **Rapid Development Phase** Nimi is still in an extremely fast-moving stage.
-> Expect breaking changes, tightened contracts, and occasional docs drift between releases. For normative behavior, use [`spec/`](spec/INDEX.md) as the source of truth and treat [`spec/future/`](spec/future/index.md) as backlog rather than release commitments.
+> Expect breaking changes, tightened contracts, and occasional docs drift between releases. For normative behavior, use [`/.nimi/spec/`](.nimi/spec/INDEX.md) as the source of truth and treat [`/.nimi/spec/future/`](.nimi/spec/future/index.md) as backlog rather than release commitments. For retired pre-cutover authority history, use Git history rather than a repo-local archive tree.
 
 ## Download
 
@@ -172,7 +172,7 @@ Nimi's public status should be read from the current spec, not from dated roadma
 | SDK | `runtime`, `realm`, and `ai-provider` are Phase 1 active; `scope` and `mod` are defined and still evolving | Prefer `createPlatformClient()` for app entry and treat lower-level subpaths as advanced surfaces |
 | Kit | UI, auth, core, telemetry, and feature modules are active; app theme variants ship per-app | Reuse kit surfaces before building app-local shells |
 | Desktop + Apps | Kernel + domain contracts are active across shell, local AI, mod governance, and testing gates; multiple Tauri apps share runtime/sdk/kit | App UX and extension surfaces may keep shifting as runtime/sdk contracts tighten |
-| Future | `spec/future/**` is structured backlog, not a shipping promise | Planned capabilities should not be read as committed dates or guaranteed release order |
+| Future | `.nimi/spec/future/**` is structured backlog, not a shipping promise | Planned capabilities should not be read as committed dates or guaranteed release order |
 
 ## Examples
 
@@ -225,7 +225,7 @@ The same runtime surface also covers multimodal flows such as image generation a
 | [install-gateway](apps/install-gateway/) | Release distribution worker | Cloudflare Worker |
 | [nimi-mods](nimi-mods/) | Mod ecosystem | TypeScript |
 | [proto](proto/) | Protocol Buffer definitions | Protobuf, Buf |
-| [spec](spec/INDEX.md) | Normative contracts | Markdown, YAML |
+| [.nimi/spec](.nimi/spec/INDEX.md) | Normative contracts | Markdown, YAML |
 | [docs](docs/index.md) | Developer portal | VitePress |
 
 ## Supported Providers

@@ -7,10 +7,10 @@ import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
-const surfacesPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
-const sidebarsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-sidebars.yaml');
-const overlaysPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-overlays.yaml');
-const allowlistsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml');
+const surfacesPath = path.join(repoRoot, '.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
+const sidebarsPath = path.join(repoRoot, '.nimi/spec/desktop/kernel/tables/renderer-design-sidebars.yaml');
+const overlaysPath = path.join(repoRoot, '.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml');
+const allowlistsPath = path.join(repoRoot, '.nimi/spec/desktop/kernel/tables/renderer-design-allowlists.yaml');
 
 const surfacesDoc = readYamlWithFragments(surfacesPath) || {};
 const sidebarsDoc = readYamlWithFragments(sidebarsPath) || {};

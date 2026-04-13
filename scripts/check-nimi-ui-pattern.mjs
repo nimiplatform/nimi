@@ -31,12 +31,12 @@ function listFilesRecursively(dir, predicate) {
   return out;
 }
 
-const tokensTable = readYaml('spec/platform/kernel/tables/nimi-ui-tokens.yaml');
-const themesTable = readYaml('spec/platform/kernel/tables/nimi-ui-themes.yaml');
-const adoptionTable = readYaml('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
-const compositionsTable = readYaml('spec/platform/kernel/tables/nimi-ui-compositions.yaml');
-const allowlistsTable = readYaml('spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
-const primitivesTable = readYaml('spec/platform/kernel/tables/nimi-ui-primitives.yaml');
+const tokensTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml');
+const themesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml');
+const adoptionTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const compositionsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml');
+const allowlistsTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
+const primitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml');
 
 const hardFailures = [];
 const tokenRows = Array.isArray(tokensTable?.tokens) ? tokensTable.tokens : [];

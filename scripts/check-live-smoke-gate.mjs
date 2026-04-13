@@ -289,7 +289,7 @@ function detectChangedProvidersFromGit(providerUniverse) {
     'runtime/internal/services/ai/live_provider_smoke_matrix_test.go',
     'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts',
     'config/live/live-test.env.example',
-    'spec/runtime/kernel/tables/provider-catalog.yaml',
+    '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
     'config/live/live-gate-baseline.yaml',
   ];
 

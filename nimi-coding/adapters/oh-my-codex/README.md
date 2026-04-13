@@ -97,8 +97,9 @@ nimicoding handoff --skill spec_reconstruction --json
 Use the JSON payload as OMX's machine contract. `--prompt` may still be used
 as a host briefing, but it is not the authoritative surface. OMX should
 return only the declared canonical tree outputs and must not invent new semantic
-owners. Readiness evidence may show that a future migration is prepared, but it
-does not make `.nimi/spec/**` the current authority root.
+owners. In this monorepo the explicit cutover batch has already made
+`.nimi/spec/**` the current authority root; OMX still must not redefine that
+authority or promote its own runtime state into semantic truth.
 
 Then project the closeout locally:
 

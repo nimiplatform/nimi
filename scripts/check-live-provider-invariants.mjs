@@ -17,7 +17,7 @@ import {
 } from './live-provider-utils.mjs';
 
 const repoRoot = resolveRepoRoot(import.meta.url);
-const providerCatalogPath = path.join(repoRoot, 'spec/runtime/kernel/tables/provider-catalog.yaml');
+const providerCatalogPath = path.join(repoRoot, '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
 const sourceProviderDir = path.join(repoRoot, 'runtime/catalog/source/providers');
 const providerRegistryPath = path.join(repoRoot, 'runtime/internal/providerregistry/generated.go');
 const runtimeLiveSmokePath = path.join(repoRoot, 'runtime/internal/services/ai/live_provider_smoke_matrix_test.go');

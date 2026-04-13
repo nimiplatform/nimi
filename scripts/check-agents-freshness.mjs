@@ -12,7 +12,6 @@ const agentsSpecs = [
   { rel: 'AGENTS.md', maxLines: 40 },
   { rel: 'runtime/AGENTS.md', maxLines: 30 },
   { rel: 'sdk/AGENTS.md', maxLines: 30 },
-  { rel: 'spec/AGENTS.md', maxLines: 30 },
   { rel: 'scripts/AGENTS.md', maxLines: 30 },
   { rel: 'apps/desktop/AGENTS.md', maxLines: 30 },
   { rel: 'apps/web/AGENTS.md', maxLines: 30 },

@@ -15,9 +15,9 @@ const targets = [
   'sdk/src/runtime',
   'sdk/src/ai-provider',
   'apps/desktop/src/runtime',
-  'spec/runtime',
-  'spec/sdk',
-  'spec/desktop',
+  '.nimi/spec/runtime',
+  '.nimi/spec/sdk',
+  '.nimi/spec/desktop',
 ];
 
 const banned = [
@@ -45,7 +45,7 @@ const allowLineMatch = [
   },
   {
     key: 'stream_generate',
-    rel: 'spec/runtime/kernel/rpc-surface.md',
+    rel: '.nimi/spec/runtime/kernel/rpc-surface.md',
     allow: (line) => line.includes('StreamGenerateText'),
   },
   {
@@ -86,7 +86,7 @@ function walk(absPath, out) {
 }
 
 function isRpcSurfaceForbiddenNameListLine(rel, lines, lineIndex) {
-  if (rel !== 'spec/runtime/kernel/rpc-surface.md') {
+  if (rel !== '.nimi/spec/runtime/kernel/rpc-surface.md') {
     return false;
   }
   const line = String(lines[lineIndex] || '');

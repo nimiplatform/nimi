@@ -7,8 +7,8 @@ import { checkConfigOverrideTraceability } from './runtime-config-override-trace
 import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
-const runtimeRoot = path.join(cwd, 'spec/runtime');
-const sdkRoot = path.join(cwd, 'spec/sdk');
+const runtimeRoot = path.join(cwd, '.nimi/spec/runtime');
+const sdkRoot = path.join(cwd, '.nimi/spec/sdk');
 const protoRoot = path.join(cwd, 'proto/runtime/v1');
 const runtimeCatalogProvidersDir = path.join(cwd, 'runtime/catalog/providers');
 const runtimeCatalogSourceProvidersDir = path.join(cwd, 'runtime/catalog/source/providers');
@@ -30,85 +30,85 @@ const {
 });
 
 const kernelFiles = [
-  'spec/runtime/kernel/index.md',
-  'spec/runtime/kernel/rpc-surface.md',
-  'spec/runtime/kernel/authz-ownership.md',
-  'spec/runtime/kernel/authn-token-validation.md',
-  'spec/runtime/kernel/auth-service.md',
-  'spec/runtime/kernel/grant-service.md',
-  'spec/runtime/kernel/key-source-routing.md',
-  'spec/runtime/kernel/scenario-job-lifecycle.md',
-  'spec/runtime/kernel/local-category-capability.md',
-  'spec/runtime/kernel/local-engine-contract.md',
-  'spec/runtime/kernel/device-profile-contract.md',
-  'spec/runtime/kernel/endpoint-security.md',
-  'spec/runtime/kernel/streaming-contract.md',
-  'spec/runtime/kernel/error-model.md',
-  'spec/runtime/kernel/pagination-filtering.md',
-  'spec/runtime/kernel/audit-contract.md',
-  'spec/runtime/kernel/tables/rpc-methods.yaml',
-  'spec/runtime/kernel/tables/rpc-migration-map.yaml',
-  'spec/runtime/kernel/tables/reason-codes.yaml',
-  'spec/runtime/kernel/tables/error-mapping-matrix.yaml',
-  'spec/runtime/kernel/tables/metadata-keys.yaml',
-  'spec/runtime/kernel/tables/key-source-truth-table.yaml',
-  'spec/runtime/kernel/tables/provider-catalog.yaml',
-  'spec/runtime/kernel/tables/provider-capabilities.yaml',
-  'spec/runtime/kernel/tables/connector-rpc-field-rules.yaml',
-  'spec/runtime/kernel/tables/job-states.yaml',
-  'spec/runtime/kernel/tables/state-transitions.yaml',
-  'spec/runtime/kernel/tables/local-engine-catalog.yaml',
-  'spec/runtime/kernel/tables/local-adapter-routing.yaml',
+  '.nimi/spec/runtime/kernel/index.md',
+  '.nimi/spec/runtime/kernel/rpc-surface.md',
+  '.nimi/spec/runtime/kernel/authz-ownership.md',
+  '.nimi/spec/runtime/kernel/authn-token-validation.md',
+  '.nimi/spec/runtime/kernel/auth-service.md',
+  '.nimi/spec/runtime/kernel/grant-service.md',
+  '.nimi/spec/runtime/kernel/key-source-routing.md',
+  '.nimi/spec/runtime/kernel/scenario-job-lifecycle.md',
+  '.nimi/spec/runtime/kernel/local-category-capability.md',
+  '.nimi/spec/runtime/kernel/local-engine-contract.md',
+  '.nimi/spec/runtime/kernel/device-profile-contract.md',
+  '.nimi/spec/runtime/kernel/endpoint-security.md',
+  '.nimi/spec/runtime/kernel/streaming-contract.md',
+  '.nimi/spec/runtime/kernel/error-model.md',
+  '.nimi/spec/runtime/kernel/pagination-filtering.md',
+  '.nimi/spec/runtime/kernel/audit-contract.md',
+  '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
+  '.nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml',
+  '.nimi/spec/runtime/kernel/tables/reason-codes.yaml',
+  '.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml',
+  '.nimi/spec/runtime/kernel/tables/metadata-keys.yaml',
+  '.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml',
+  '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
+  '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml',
+  '.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml',
+  '.nimi/spec/runtime/kernel/tables/job-states.yaml',
+  '.nimi/spec/runtime/kernel/tables/state-transitions.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml',
   // Phase 2 kernel files (daemon, provider, deferred services)
-  'spec/runtime/kernel/daemon-lifecycle.md',
-  'spec/runtime/kernel/provider-health-contract.md',
-  'spec/runtime/kernel/workflow-contract.md',
-  'spec/runtime/kernel/voice-contract.md',
-  'spec/runtime/kernel/model-service-contract.md',
-  'spec/runtime/kernel/knowledge-contract.md',
-  'spec/runtime/kernel/runtime-memory-service-contract.md',
-  'spec/runtime/kernel/runtime-memory-substrate-contract.md',
-  'spec/runtime/kernel/runtime-agent-core-contract.md',
-  'spec/runtime/kernel/app-messaging-contract.md',
-  'spec/runtime/kernel/cli-onboarding-contract.md',
-  'spec/runtime/kernel/tables/daemon-health-states.yaml',
-  'spec/runtime/kernel/tables/interceptor-chain.yaml',
-  'spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
-  'spec/runtime/kernel/tables/provider-probe-targets.yaml',
-  'spec/runtime/kernel/tables/workflow-node-types.yaml',
-  'spec/runtime/kernel/tables/workflow-states.yaml',
-  'spec/runtime/kernel/tables/voice-enums.yaml',
-  'spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml',
+  '.nimi/spec/runtime/kernel/daemon-lifecycle.md',
+  '.nimi/spec/runtime/kernel/provider-health-contract.md',
+  '.nimi/spec/runtime/kernel/workflow-contract.md',
+  '.nimi/spec/runtime/kernel/voice-contract.md',
+  '.nimi/spec/runtime/kernel/model-service-contract.md',
+  '.nimi/spec/runtime/kernel/knowledge-contract.md',
+  '.nimi/spec/runtime/kernel/runtime-memory-service-contract.md',
+  '.nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md',
+  '.nimi/spec/runtime/kernel/runtime-agent-core-contract.md',
+  '.nimi/spec/runtime/kernel/app-messaging-contract.md',
+  '.nimi/spec/runtime/kernel/cli-onboarding-contract.md',
+  '.nimi/spec/runtime/kernel/tables/daemon-health-states.yaml',
+  '.nimi/spec/runtime/kernel/tables/interceptor-chain.yaml',
+  '.nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
+  '.nimi/spec/runtime/kernel/tables/provider-probe-targets.yaml',
+  '.nimi/spec/runtime/kernel/tables/workflow-node-types.yaml',
+  '.nimi/spec/runtime/kernel/tables/workflow-states.yaml',
+  '.nimi/spec/runtime/kernel/tables/voice-enums.yaml',
+  '.nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml',
   // Dedicated families migrated from domain-local IDs
-  'spec/runtime/kernel/config-contract.md',
-  'spec/runtime/kernel/connector-contract.md',
-  'spec/runtime/kernel/nimillm-contract.md',
-  'spec/runtime/kernel/model-catalog-contract.md',
-  'spec/runtime/kernel/multimodal-provider-contract.md',
-  'spec/runtime/kernel/delivery-gates-contract.md',
-  'spec/runtime/kernel/proto-governance-contract.md',
-  'spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
-  'spec/runtime/kernel/tables/multimodal-artifact-fields.yaml',
-  'spec/runtime/kernel/tables/scenario-types.yaml',
-  'spec/runtime/kernel/tables/scenario-execution-matrix.yaml',
-  'spec/runtime/kernel/tables/provider-extension-registry.yaml',
-  'spec/runtime/kernel/tables/runtime-memory-bank-scope.yaml',
-  'spec/runtime/kernel/tables/runtime-memory-hook-trigger.yaml',
-  'spec/runtime/kernel/tables/runtime-memory-replication-outcome.yaml',
-  'spec/runtime/kernel/tables/runtime-agent-core-typed-family.yaml',
-  'spec/runtime/kernel/tables/scenario-profile-fields.yaml',
-  'spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
-  'spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
-  'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
-  'spec/runtime/kernel/tables/config-schema.yaml',
-  'spec/runtime/kernel/tables/rule-evidence.yaml',
+  '.nimi/spec/runtime/kernel/config-contract.md',
+  '.nimi/spec/runtime/kernel/connector-contract.md',
+  '.nimi/spec/runtime/kernel/nimillm-contract.md',
+  '.nimi/spec/runtime/kernel/model-catalog-contract.md',
+  '.nimi/spec/runtime/kernel/multimodal-provider-contract.md',
+  '.nimi/spec/runtime/kernel/delivery-gates-contract.md',
+  '.nimi/spec/runtime/kernel/proto-governance-contract.md',
+  '.nimi/spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
+  '.nimi/spec/runtime/kernel/tables/multimodal-artifact-fields.yaml',
+  '.nimi/spec/runtime/kernel/tables/scenario-types.yaml',
+  '.nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml',
+  '.nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-memory-bank-scope.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-memory-hook-trigger.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-memory-replication-outcome.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-agent-core-typed-family.yaml',
+  '.nimi/spec/runtime/kernel/tables/scenario-profile-fields.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
+  '.nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
+  '.nimi/spec/runtime/kernel/tables/config-schema.yaml',
+  '.nimi/spec/runtime/kernel/tables/rule-evidence.yaml',
   // AI profile execution and scheduling
-  'spec/runtime/kernel/ai-profile-execution-contract.md',
-  'spec/runtime/kernel/scheduling-contract.md',
-  'spec/runtime/kernel/world-evolution-engine-contract.md',
+  '.nimi/spec/runtime/kernel/ai-profile-execution-contract.md',
+  '.nimi/spec/runtime/kernel/scheduling-contract.md',
+  '.nimi/spec/runtime/kernel/world-evolution-engine-contract.md',
 ];
 
-const domainFiles = listDomainMarkdownFiles('spec/runtime');
+const domainFiles = listDomainMarkdownFiles('.nimi/spec/runtime');
 
 const allRuntimeSpecs = walk(runtimeRoot).filter(isSpecDocFile);
 const runtimeMarkdownFiles = allRuntimeSpecs
@@ -147,7 +147,7 @@ for (const rel of domainFiles) {
     continue;
   }
   const content = read(rel);
-  if (!content.includes('Normative Imports: `spec/runtime/kernel/*`')) {
+  if (!content.includes('Normative Imports: `.nimi/spec/runtime/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
   if (!/\bK-[A-Z]+-\d{3}[a-z]?\b/.test(content)) {
@@ -222,7 +222,7 @@ function checkLegacyDesignReferenceDrift() {
 function checkReasonCodeNumericAssignments() {
   for (const rel of allRuntimeSpecs.map((p) => path.relative(cwd, p))) {
     const normalizedRel = rel.replaceAll('\\', '/');
-    if (normalizedRel === 'spec/runtime/kernel/tables/reason-codes.yaml') continue;
+    if (normalizedRel === '.nimi/spec/runtime/kernel/tables/reason-codes.yaml') continue;
     const txt = read(rel);
     if (/AI_[A-Z0-9_]+\s*=\s*\d+/.test(txt)) {
       fail(`ReasonCode numeric assignment must live only in reason-codes.yaml: ${normalizedRel}`);
@@ -238,7 +238,7 @@ function checkBannedExternalRpcNames() {
     'ListTokenProviderModels',
     'CheckTokenProviderHealth',
   ]);
-  const rpcTable = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcTable = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
   const services = Array.isArray(rpcTable?.services) ? rpcTable.services : [];
   for (const service of services) {
     const serviceName = String(service?.name || '').trim() || '<unknown>';
@@ -254,7 +254,7 @@ function checkBannedExternalRpcNames() {
 }
 
 function checkRuntimeDeliveryGateCoverage(kernelRuleSet) {
-  const tablePath = 'spec/runtime/kernel/tables/runtime-delivery-gates.yaml';
+  const tablePath = '.nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml';
   const table = readYaml(tablePath);
   const gates = Array.isArray(table?.gates) ? table.gates : [];
   if (gates.length === 0) {
@@ -339,7 +339,7 @@ function checkRuntimeCatalogLoaderIsolation() {
 }
 
 function checkConnectorRpcFieldRulesCoverage() {
-  const table = readYaml('spec/runtime/kernel/tables/connector-rpc-field-rules.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml');
   const rules = Array.isArray(table?.rules) ? table.rules : [];
   const requiredRpcs = new Set(['CreateConnector', 'UpdateConnector', 'DeleteConnector', 'TestConnector', 'ListConnectorModels']);
   const presentRpcs = new Set(rules.map((item) => String(item?.rpc || '').trim()).filter(Boolean));
@@ -363,8 +363,8 @@ function checkConnectorRpcFieldRulesCoverage() {
 }
 
 function checkStateTransitionCoverage(kernelRuleSet) {
-  const transitions = readYaml('spec/runtime/kernel/tables/state-transitions.yaml');
-  const jobStates = readYaml('spec/runtime/kernel/tables/job-states.yaml');
+  const transitions = readYaml('.nimi/spec/runtime/kernel/tables/state-transitions.yaml');
+  const jobStates = readYaml('.nimi/spec/runtime/kernel/tables/job-states.yaml');
 
   const machines = Array.isArray(transitions?.machines) ? transitions.machines : [];
   const machineMap = new Map();
@@ -428,15 +428,15 @@ function checkStateTransitionCoverage(kernelRuleSet) {
 function checkDomainProviderTableAnchors() {
   const requirements = [
     {
-      file: 'spec/runtime/connector.md',
+      file: '.nimi/spec/runtime/connector.md',
       mustInclude: ['kernel/tables/provider-catalog.yaml', 'kernel/tables/provider-capabilities.yaml'],
     },
     {
-      file: 'spec/runtime/nimillm.md',
+      file: '.nimi/spec/runtime/nimillm.md',
       mustInclude: ['kernel/tables/provider-catalog.yaml', 'kernel/tables/provider-capabilities.yaml'],
     },
     {
-      file: 'spec/runtime/local-model.md',
+      file: '.nimi/spec/runtime/local-model.md',
       mustInclude: ['kernel/tables/local-engine-catalog.yaml', 'kernel/tables/local-adapter-routing.yaml'],
     },
   ];
@@ -452,8 +452,8 @@ function checkDomainProviderTableAnchors() {
 }
 
 function checkConnectorRpcRulesAgainstRpcSurface() {
-  const rpcTable = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
-  const connectorRules = readYaml('spec/runtime/kernel/tables/connector-rpc-field-rules.yaml');
+  const rpcTable = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const connectorRules = readYaml('.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml');
 
   const services = Array.isArray(rpcTable?.services) ? rpcTable.services : [];
   const allRpcMethods = new Set();
@@ -501,7 +501,7 @@ function checkReasonCodeReferencesResolvable() {
 }
 
 function checkProviderReferencesResolvable() {
-  const catalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
+  const catalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
   const providerSet = new Set(
     ['local'].concat(
       (Array.isArray(catalog?.providers) ? catalog.providers : [])
@@ -586,7 +586,7 @@ function checkNoKernelRuleDefinitionsInImplementationDocs() {
 }
 
 function checkMetadataKeyContract() {
-  const table = readYaml('spec/runtime/kernel/tables/metadata-keys.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/metadata-keys.yaml');
   const keys = Array.isArray(table?.keys) ? table.keys : [];
   const byKey = new Map(
     keys.map((item) => [String(item?.key || '').trim(), item]).filter(([key]) => Boolean(key)),
@@ -611,7 +611,7 @@ function checkMetadataKeyContract() {
 }
 
 function checkMetadataKeyCrossReferences() {
-  const table = readYaml('spec/runtime/kernel/tables/metadata-keys.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/metadata-keys.yaml');
   const keys = Array.isArray(table?.keys) ? table.keys : [];
   const yamlKeys = new Set(
     keys.map((item) => String(item?.key || '').trim()).filter(Boolean),
@@ -634,7 +634,7 @@ function checkMetadataKeyCrossReferences() {
 }
 
 function checkKeySourceTruthTable() {
-  const table = readYaml('spec/runtime/kernel/tables/key-source-truth-table.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml');
   const cases = Array.isArray(table?.cases) ? table.cases : [];
   const reasonCodes = loadReasonCodeSet();
 
@@ -688,7 +688,7 @@ function checkKeySourceTruthTable() {
 }
 
 function checkErrorMappingMatrix() {
-  const table = readYaml('spec/runtime/kernel/tables/error-mapping-matrix.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml');
   const mappings = Array.isArray(table?.mappings) ? table.mappings : [];
   const reasonCodes = loadReasonCodeSet();
 
@@ -727,8 +727,8 @@ function checkErrorMappingMatrix() {
 }
 
 function checkRpcMigrationMapCoverage() {
-  const rpcMethods = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
-  const migration = readYaml('spec/runtime/kernel/tables/rpc-migration-map.yaml');
+  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
+  const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml');
   const protoMap = parseProtoServiceMethodMap();
 
   const services = Array.isArray(rpcMethods?.services) ? rpcMethods.services : [];
@@ -953,14 +953,14 @@ function checkDomainSection0ImportsCoveredInBody() {
 
 function checkDomainPrimaryRuleCoverage() {
   const primaryMap = {
-    'spec/runtime/cli.md': { kernel: 'spec/runtime/kernel/cli-onboarding-contract.md', prefix: 'K-CLI' },
-    'spec/runtime/config.md': { kernel: 'spec/runtime/kernel/config-contract.md', prefix: 'K-CFG' },
-    'spec/runtime/connector.md': { kernel: 'spec/runtime/kernel/connector-contract.md', prefix: 'K-CONN' },
-    'spec/runtime/local-model.md': { kernel: 'spec/runtime/kernel/local-category-capability.md', prefix: 'K-LOCAL' },
-    'spec/runtime/multimodal-delivery-gates.md': { kernel: 'spec/runtime/kernel/delivery-gates-contract.md', prefix: 'K-GATE' },
-    'spec/runtime/multimodal-provider.md': { kernel: 'spec/runtime/kernel/multimodal-provider-contract.md', prefix: 'K-MMPROV' },
-    'spec/runtime/nimillm.md': { kernel: 'spec/runtime/kernel/nimillm-contract.md', prefix: 'K-NIMI' },
-    'spec/runtime/proto-governance.md': { kernel: 'spec/runtime/kernel/proto-governance-contract.md', prefix: 'K-PROTO' },
+    '.nimi/spec/runtime/cli.md': { kernel: '.nimi/spec/runtime/kernel/cli-onboarding-contract.md', prefix: 'K-CLI' },
+    '.nimi/spec/runtime/config.md': { kernel: '.nimi/spec/runtime/kernel/config-contract.md', prefix: 'K-CFG' },
+    '.nimi/spec/runtime/connector.md': { kernel: '.nimi/spec/runtime/kernel/connector-contract.md', prefix: 'K-CONN' },
+    '.nimi/spec/runtime/local-model.md': { kernel: '.nimi/spec/runtime/kernel/local-category-capability.md', prefix: 'K-LOCAL' },
+    '.nimi/spec/runtime/multimodal-delivery-gates.md': { kernel: '.nimi/spec/runtime/kernel/delivery-gates-contract.md', prefix: 'K-GATE' },
+    '.nimi/spec/runtime/multimodal-provider.md': { kernel: '.nimi/spec/runtime/kernel/multimodal-provider-contract.md', prefix: 'K-MMPROV' },
+    '.nimi/spec/runtime/nimillm.md': { kernel: '.nimi/spec/runtime/kernel/nimillm-contract.md', prefix: 'K-NIMI' },
+    '.nimi/spec/runtime/proto-governance.md': { kernel: '.nimi/spec/runtime/kernel/proto-governance-contract.md', prefix: 'K-PROTO' },
   };
 
   for (const [domainRel, { kernel: kernelRel, prefix }] of Object.entries(primaryMap)) {
@@ -998,7 +998,7 @@ function checkConfigPathConsistency() {
 
 function checkConfigOverrideTraceabilityMain() {
   checkConfigOverrideTraceability({
-    configSchemaPath: 'spec/runtime/kernel/tables/config-schema.yaml',
+    configSchemaPath: '.nimi/spec/runtime/kernel/tables/config-schema.yaml',
     fail,
     read,
     readYaml,
@@ -1008,11 +1008,11 @@ function checkConfigOverrideTraceabilityMain() {
 
 function checkProbeTargetProviderCoverage() {
   // Verify every probe target in provider-probe-targets.yaml has a provider type mapping in K-PROV-006
-  const probeTargets = readYaml('spec/runtime/kernel/tables/provider-probe-targets.yaml');
+  const probeTargets = readYaml('.nimi/spec/runtime/kernel/tables/provider-probe-targets.yaml');
   const targets = Array.isArray(probeTargets?.targets) ? probeTargets.targets : [];
   const targetNames = targets.map((t) => String(t?.name || '').trim()).filter(Boolean);
 
-  const providerHealthContent = read('spec/runtime/kernel/provider-health-contract.md');
+  const providerHealthContent = read('.nimi/spec/runtime/kernel/provider-health-contract.md');
 
   // Check that K-PROV-006 section exists
   if (!providerHealthContent.includes('K-PROV-006')) {
@@ -1037,7 +1037,7 @@ function checkProbeTargetProviderCoverage() {
 }
 
 function checkRpcMethodsSourceTraceability(kernelRuleSet) {
-  const rpcTable = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
+  const rpcTable = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
   const services = Array.isArray(rpcTable?.services) ? rpcTable.services : [];
   for (const service of services) {
     const name = String(service?.name || '').trim();
@@ -1058,7 +1058,7 @@ function checkRpcMethodsSourceTraceability(kernelRuleSet) {
 }
 
 function checkProviderCatalogSourceTraceability(kernelRuleSet) {
-  const catalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
+  const catalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
   const providers = Array.isArray(catalog?.providers) ? catalog.providers : [];
   for (const item of providers) {
     const provider = String(item?.provider || '').trim();
@@ -1079,7 +1079,7 @@ function checkProviderCatalogSourceTraceability(kernelRuleSet) {
 }
 
 function checkReasonCodeSourceTraceability(kernelRuleSet) {
-  const reasonTable = readYaml('spec/runtime/kernel/tables/reason-codes.yaml');
+  const reasonTable = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
   const codes = Array.isArray(reasonTable?.codes) ? reasonTable.codes : [];
   for (const code of codes) {
     const name = String(code?.name || '').trim();
@@ -1100,7 +1100,7 @@ function checkReasonCodeSourceTraceability(kernelRuleSet) {
 }
 
 function checkCapabilityVocabularyMapping(kernelRuleSet) {
-  const rel = 'spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml';
+  const rel = '.nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml';
   const doc = readYaml(rel) || {};
   const canonicalTokens = new Set(
     (Array.isArray(doc?.canonical_tokens) ? doc.canonical_tokens : [])
@@ -1237,7 +1237,7 @@ function checkNoRuleDefinitionHeadings(content, rel) {
 }
 
 function checkRuleEvidence(kernelRuleSet) {
-  const table = readYaml('spec/runtime/kernel/tables/rule-evidence.yaml');
+  const table = readYaml('.nimi/spec/runtime/kernel/tables/rule-evidence.yaml');
   if (!table) { fail('rule-evidence.yaml: failed to parse'); return; }
 
   const catalog = table.evidence_catalog || {};
@@ -1290,7 +1290,7 @@ function checkRuleEvidence(kernelRuleSet) {
 }
 
 function loadReasonCodeSet() {
-  const reasonTable = readYaml('spec/runtime/kernel/tables/reason-codes.yaml');
+  const reasonTable = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
   return new Set(
     (Array.isArray(reasonTable?.codes) ? reasonTable.codes : [])
       .map((item) => String(item?.name || '').trim())
@@ -1299,7 +1299,7 @@ function loadReasonCodeSet() {
 }
 
 function loadWorkflowNodeTypeSet() {
-  const workflowTable = readYaml('spec/runtime/kernel/tables/workflow-node-types.yaml');
+  const workflowTable = readYaml('.nimi/spec/runtime/kernel/tables/workflow-node-types.yaml');
   return new Set(
     (Array.isArray(workflowTable?.node_types) ? workflowTable.node_types : [])
       .map((item) => String(item?.type || '').trim())

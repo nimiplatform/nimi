@@ -3244,22 +3244,19 @@ test("doctor fails closed when blueprint mode requires a missing blueprint refer
 test("repo docs keep cutover readiness separate from authority flip", async () => {
   const agents = await readFile(path.join(repoRoot, "..", "AGENTS.md"), "utf8");
   const claude = await readFile(path.join(repoRoot, "..", "CLAUDE.md"), "utf8");
-  const specAgents = await readFile(path.join(repoRoot, "..", "spec", "AGENTS.md"), "utf8");
   const packageReadme = await readFile(path.join(repoRoot, "README.md"), "utf8");
   const adapterReadme = await readFile(path.join(repoRoot, "adapters", "oh-my-codex", "README.md"), "utf8");
-  const admissionDoc = await readFile(path.join(repoRoot, "..", "spec", "canonical-authority-cutover-admission.md"), "utf8");
 
-  assert.match(agents, /spec\/\*\*.*current repo-wide (product )?authority/i);
-  assert.match(agents, /\.nimi\/spec\/\*\*.*generated canonical tree/i);
-  assert.match(agents, /(readiness green.*separate redesign admission|cutover readiness is evidence only.*explicit redesign admission)/i);
-  assert.match(claude, /spec\/\*\*.*today's repo-wide authority/i);
-  assert.match(claude, /\.nimi\/spec\/\*\*.*generated canonical tree/i);
-  assert.match(specAgents, /generated `?\.nimi\/spec\/\*\*`? trees do not replace `?spec\/\*\*`?/i);
-  assert.match(packageReadme, /Today, `spec\/\*\*` still remains the repo-wide product authority/i);
-  assert.match(packageReadme, /cutover readiness work may prove that a future migration is[\s\S]*does not authorize an authority flip/i);
+  assert.match(agents, /\.nimi\/spec\/\*\*.*current repo-wide (product )?authority/i);
+  assert.match(agents, /Git history.*pre-cutover authority history|pre-cutover authority history.*Git/i);
+  assert.match(claude, /\.nimi\/spec\/\*\*.*today's repo-wide authority/i);
+  assert.match(claude, /Git-only|Git history/i);
+  assert.match(packageReadme, /`\/\.nimi\/spec\/\*\*` is now the repo-wide product authority/i);
+  assert.match(packageReadme, /authority history now lives in Git/i);
+  assert.match(packageReadme, /Pre-cutover readiness work was[\s\S]*evidence only/i);
   assert.match(adapterReadme, /must not:?\s*[\s\S]*treat cutover readiness as an authority flip/i);
-  assert.match(admissionDoc, /spec_status: preflight-required/);
-  assert.match(admissionDoc, /long_lived_parallel_truth_allowed: false/);
+  assert.doesNotMatch(agents, /archive\/spec-authority-legacy-20260413/);
+  assert.doesNotMatch(claude, /archive\/spec-authority-legacy-20260413/);
 });
 
 test("cutover readiness check fails when the readiness artifact drops a required gate family", async () => {
@@ -3313,7 +3310,7 @@ test("cutover readiness check fails when blueprint parity fails", async () => {
   });
 });
 
-test("cutover readiness check reports ready_for_admission when every gate passes", async () => {
+test("cutover readiness check reports already_cut_over after the authority flip has executed", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -3321,10 +3318,20 @@ test("cutover readiness check reports ready_for_admission when every gate passes
     await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
     await writeLocalCloseoutArtifact(projectRoot, "spec_reconstruction", "completed", "reconstructed");
     await writeLocalCloseoutArtifact(projectRoot, "doc_spec_audit", "completed", "aligned");
+    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+    const bootstrapState = await readYamlFile(bootstrapStatePath);
+    bootstrapState.state.mode = "reconstruction_seeded";
+    bootstrapState.state.tree_state = "canonical_tree_ready";
+    bootstrapState.state.authority_mode = "canonical_active";
+    bootstrapState.state.blueprint_mode = "none";
+    bootstrapState.state.reconstruction_required = false;
+    bootstrapState.status.ready_for_ai_reconstruction = false;
+    bootstrapState.status.active_authority_root = ".nimi/spec";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
 
     const result = await runCutoverReadinessCheck(projectRoot);
     assert.equal(result.exitCode, 0);
-    assert.equal(result.stdout.trim(), "spec-authority-cutover-readiness: ready_for_admission");
+    assert.equal(result.stdout.trim(), "spec-authority-cutover-readiness: already_cut_over");
   });
 });
 

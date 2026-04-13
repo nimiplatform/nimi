@@ -24,7 +24,7 @@ function expectRegex(content, pattern, label) {
 }
 
 function collectRuntimeKernelRuleIds() {
-  const root = path.join(cwd, 'spec/runtime/kernel');
+  const root = path.join(cwd, '.nimi/spec/runtime/kernel');
   const files = walk(root)
     .filter((file) => file.endsWith('.md'))
     .filter((file) => !file.includes(`${path.sep}generated${path.sep}`))
@@ -95,7 +95,7 @@ function checkAuthJWTOnlyAndReserved() {
     }
   }
 
-  const specAuth = read('spec/runtime/kernel/auth-service.md');
+  const specAuth = read('.nimi/spec/runtime/kernel/auth-service.md');
   expectRegex(specAuth, /##\s+K-AUTHSVC-013\b/m, 'K-AUTHSVC-013 rule definition');
   expectRegex(specAuth, /\bJWT\b/, 'K-AUTHSVC-013 JWT mention');
   expectRegex(specAuth, /(?:reserved[\s\S]*\b2\b|\b2\b[\s\S]*reserved)/m, 'K-AUTHSVC-013 reserved=2 mention');
@@ -115,7 +115,7 @@ function checkConnectorUpdateMaskAndPagination() {
   assertMessageHasFields(listModelsReq, 'ListConnectorModelsRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listModelsResp, 'ListConnectorModelsResponse', rel, ['next_page_token']);
 
-  const specConnector = read('spec/runtime/kernel/connector-contract.md');
+  const specConnector = read('.nimi/spec/runtime/kernel/connector-contract.md');
   expectRegex(specConnector, /##\s+K-CONN-013\b/m, 'K-CONN-013 rule definition');
   expectRegex(specConnector, /\bupdate_mask\b/, 'K-CONN-013 update_mask mention');
   expectRegex(specConnector, /\blabel\b[\s\S]*\bendpoint\b[\s\S]*\bapi_key\b[\s\S]*\bstatus\b/m, 'K-CONN-013 allowed path set mention');
@@ -123,7 +123,7 @@ function checkConnectorUpdateMaskAndPagination() {
   expectRegex(specConnector, /##\s+K-CONN-014\b/m, 'K-CONN-014 rule definition');
   expectRegex(specConnector, /\bpage_size\b[\s\S]*\bpage_token\b[\s\S]*\bnext_page_token\b/m, 'K-CONN-014 pagination fields mention');
 
-  const connectorRules = YAML.parse(read('spec/runtime/kernel/tables/connector-rpc-field-rules.yaml'));
+  const connectorRules = YAML.parse(read('.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml'));
   const rules = Array.isArray(connectorRules?.rules) ? connectorRules.rules : [];
   const updateMaskRules = rules.filter((item) => String(item?.rpc || '') === 'UpdateConnector' && String(item?.field || '').includes('update_mask'));
   if (updateMaskRules.length === 0) {
@@ -155,7 +155,7 @@ function checkGrantTokenChainEvolution() {
   ]);
   assertMessageHasFields(resp, 'ListTokenChainResponse', rel, ['next_page_token', 'has_more']);
 
-  const specGrant = read('spec/runtime/kernel/grant-service.md');
+  const specGrant = read('.nimi/spec/runtime/kernel/grant-service.md');
   expectRegex(specGrant, /##\s+K-GRANT-011\b/m, 'K-GRANT-011 rule definition');
   expectRegex(specGrant, /##\s+K-GRANT-012\b/m, 'K-GRANT-012 rule definition');
   expectRegex(specGrant, /##\s+K-GRANT-013\b/m, 'K-GRANT-013 rule definition');
@@ -169,7 +169,7 @@ function checkGrantTokenChainEvolution() {
     'issued_scope_catalog_version',
   ]) {
     if (!specGrant.includes(token)) {
-      fail(`spec/runtime/kernel/grant-service.md missing token: ${token}`);
+      fail(`.nimi/spec/runtime/kernel/grant-service.md missing token: ${token}`);
     }
   }
 }
@@ -208,16 +208,16 @@ function checkLocalPaginationAndAuditFields() {
     assertMessageHasFields(resp, respName, rel, ['next_page_token']);
   }
 
-  const specLocal = read('spec/runtime/kernel/local-category-capability.md');
+  const specLocal = read('.nimi/spec/runtime/kernel/local-category-capability.md');
   expectRegex(specLocal, /##\s+K-LOCAL-029\b/m, 'K-LOCAL-029 rule definition');
   expectRegex(specLocal, /##\s+K-LOCAL-030\b/m, 'K-LOCAL-030 rule definition');
   for (const token of ['trace_id', 'app_id', 'domain', 'operation', 'subject_user_id', 'local_invoke_profile_id']) {
     if (!specLocal.includes(token)) {
-      fail(`spec/runtime/kernel/local-category-capability.md missing token: ${token}`);
+      fail(`.nimi/spec/runtime/kernel/local-category-capability.md missing token: ${token}`);
     }
   }
 
-  const specPagination = read('spec/runtime/kernel/pagination-filtering.md');
+  const specPagination = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
   for (const method of [
     'ListLocalAssets',
     'ListVerifiedAssets',
@@ -227,7 +227,7 @@ function checkLocalPaginationAndAuditFields() {
     'ListLocalAudits',
   ]) {
     if (!specPagination.includes(method)) {
-      fail(`spec/runtime/kernel/pagination-filtering.md missing method: ${method}`);
+      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing method: ${method}`);
     }
   }
 }
@@ -245,7 +245,7 @@ function checkReasonCodes359To363Linkage() {
     expectRegex(commonProto, new RegExp(`\\b${name}\\s*=\\s*${value}\\s*;`), `common.proto ${name}=${value}`);
   }
 
-  const reasonCodesDoc = YAML.parse(read('spec/runtime/kernel/tables/reason-codes.yaml'));
+  const reasonCodesDoc = YAML.parse(read('.nimi/spec/runtime/kernel/tables/reason-codes.yaml'));
   const codes = Array.isArray(reasonCodesDoc?.codes) ? reasonCodesDoc.codes : [];
   const byName = new Map(codes.map((item) => [String(item?.name || ''), item]));
   for (const [name, value] of expected) {
@@ -262,7 +262,7 @@ function checkReasonCodes359To363Linkage() {
     }
   }
 
-  const mappingDoc = YAML.parse(read('spec/runtime/kernel/tables/error-mapping-matrix.yaml'));
+  const mappingDoc = YAML.parse(read('.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml'));
   const mappings = Array.isArray(mappingDoc?.mappings) ? mappingDoc.mappings : [];
   const mappedReasonCodes = new Set(mappings.map((item) => String(item?.reason_code || '')));
   for (const [name] of expected) {
@@ -292,10 +292,10 @@ function checkPagingPairsInConnectorAndGrantProto() {
   assertMessageHasFields(grantReq, 'ListTokenChainRequest', 'proto/runtime/v1/grant.proto', ['page_size', 'page_token']);
   assertMessageHasFields(grantResp, 'ListTokenChainResponse', 'proto/runtime/v1/grant.proto', ['next_page_token', 'has_more']);
 
-  const paginationSpec = read('spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
   for (const method of ['ListConnectors', 'ListConnectorModels', 'ListTokenChain']) {
     if (!paginationSpec.includes(method)) {
-      fail(`spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
+      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
     }
   }
 }
@@ -323,7 +323,7 @@ function checkMemoryProtoAdmission() {
   assertMessageHasFields(listBanksReq, 'ListBanksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listBanksResp, 'ListBanksResponse', rel, ['next_page_token']);
 
-  const specMemory = read('spec/runtime/kernel/runtime-memory-service-contract.md');
+  const specMemory = read('.nimi/spec/runtime/kernel/runtime-memory-service-contract.md');
   for (const token of [
     'scope-typed bank locator family',
     'typed memory record family',
@@ -331,13 +331,13 @@ function checkMemoryProtoAdmission() {
     'infra-only locator branches',
   ]) {
     if (!specMemory.includes(token)) {
-      fail(`spec/runtime/kernel/runtime-memory-service-contract.md missing token: ${token}`);
+      fail(`.nimi/spec/runtime/kernel/runtime-memory-service-contract.md missing token: ${token}`);
     }
   }
 
-  const paginationSpec = read('spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
   if (!paginationSpec.includes('ListBanks')) {
-    fail('spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ListBanks');
+    fail('.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ListBanks');
   }
 }
 
@@ -374,21 +374,21 @@ function checkAgentCoreProtoAdmission() {
   assertMessageHasFields(listHooksReq, 'ListPendingHooksRequest', rel, ['page_size', 'page_token']);
   assertMessageHasFields(listHooksResp, 'ListPendingHooksResponse', rel, ['next_page_token']);
 
-  const specAgentCore = read('spec/runtime/kernel/runtime-agent-core-contract.md');
+  const specAgentCore = read('.nimi/spec/runtime/kernel/runtime-agent-core-contract.md');
   for (const token of [
     'typed trigger-detail and next-hook-intent families',
     'typed completed / failed / canceled / rescheduled / rejected families',
     'typed command/patch union',
   ]) {
     if (!specAgentCore.includes(token)) {
-      fail(`spec/runtime/kernel/runtime-agent-core-contract.md missing token: ${token}`);
+      fail(`.nimi/spec/runtime/kernel/runtime-agent-core-contract.md missing token: ${token}`);
     }
   }
 
-  const paginationSpec = read('spec/runtime/kernel/pagination-filtering.md');
+  const paginationSpec = read('.nimi/spec/runtime/kernel/pagination-filtering.md');
   for (const method of ['ListAgents', 'ListPendingHooks']) {
     if (!paginationSpec.includes(method)) {
-      fail(`spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
+      fail(`.nimi/spec/runtime/kernel/pagination-filtering.md missing pagination anchor for ${method}`);
     }
   }
 }

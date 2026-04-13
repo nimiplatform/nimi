@@ -15,7 +15,7 @@
 
 Before editing files in a module, Read that module's `AGENTS.md` first. The hook covers Edit/Write, but exploration and planning also need module context.
 
-When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `spec/platform/kernel/tables/nimi-kit-registry.yaml` before designing a new app-local shell.
+When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml` before designing a new app-local shell.
 
 | File path prefix | AGENTS.md to read |
 |---|---|
@@ -33,14 +33,13 @@ When iterating app UI or interaction flows, inspect `kit/README.md`, the relevan
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |
-| `spec/**` | `spec/AGENTS.md` |
 | `nimi-mods/runtime/<name>/spec/**` | That mod's `spec/AGENTS.md` |
 
 If the module has sub-level `AGENTS.md` files, read the nearest one to the file being edited.
 
 ## Methodology
 
-- `spec/**` is the only normative source.
+- `/.nimi/spec/**` is the only normative source.
 - High-risk work still requires explicit authority preflight.
 - Small, local, low-risk fixes do not need a formal execution workspace when
   the authority boundary is already clear.
@@ -52,7 +51,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Repo-Wide Hard Boundaries
 
-- `spec/**` is the only normative contract source. `nimi-coding/**` is an admitted monorepo package for methodology tooling and bootstrap contracts, but it is not repo-wide product authority. Package-owned methodology source lives under `nimi-coding/{config,contracts,methodology,spec}/**`; host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
+- `/.nimi/spec/**` is the only normative contract source. Retired pre-cutover authority history lives in Git only. `nimi-coding/**` is an admitted monorepo package for methodology tooling and bootstrap contracts, but it is not repo-wide product authority. Package-owned methodology source lives under `nimi-coding/{config,contracts,methodology,spec}/**`; host-project bootstrap truth lives under `.nimi/**`. Local-only execution workspaces and reports may live under `.local/**`; tracked support inputs live under `config/**`. `dev/**` is not an active execution-doc surface.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
@@ -69,7 +68,7 @@ If the module has sub-level `AGENTS.md` files, read the nearest one to the file 
 
 ## Retrieval Defaults
 
-- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
+- Start with: `runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/**/src`, `apps/**/src-tauri/src`, `.nimi/spec/*/kernel`, `scripts`, `nimi-coding/**`, `.local/**`, `.nimi/**`, `config/**`.
 - Skip: `_external/**`, `.iterate/**`, `.cache/**`, `archive/**`, `docs/**`, `**/generated/**`, `**/gen/**`, lockfiles, large assets.
 
 `.local/**` is the active local execution workspace family. It is local-only and non-authoritative. Do not use `.iterate/**` or `.cache/**` as execution-state substitutes.
@@ -103,5 +102,5 @@ Default posture:
 - prefer inline manager-worker unless a later admitted packet expands runtime ownership
 - keep continuity-agnostic semantics; do not assume persistent automation or self-hosting
 - treat handoff --json as the authoritative machine contract and handoff --prompt as a human-readable projection only
-- treat `spec/**` as today's repo-wide authority, `/.nimi/spec/**` as today's generated canonical tree, and cutover readiness as non-authorizing evidence until a redesign admission says otherwise
+- treat `/.nimi/spec/**` as today's repo-wide authority, treat pre-cutover authority history as Git-only, and treat cutover readiness as historical preflight evidence rather than the authority source
 <!-- nimicoding:managed:claude:end -->

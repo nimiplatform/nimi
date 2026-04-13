@@ -15,7 +15,7 @@ function managedAgentsBlock() {
 
 - Read .nimi/methodology, .nimi/spec, and .nimi/contracts before high-risk changes.
 - Treat .nimi as the primary AI truth surface for this project.
-- Treat \`spec/**\` as the current repo-wide product authority and \`/.nimi/spec/**\` as the generated canonical tree unless an explicit redesign admission says otherwise.
+- Treat \`/.nimi/spec/**\` as the current repo-wide product authority for this project, and use Git history for retired pre-cutover authority evidence.
 - If .nimi/spec remains bootstrap-only, use .nimi/methodology/spec-reconstruction.yaml and .nimi/config/skills.yaml to drive AI-side truth reconstruction.
 - Treat .nimi/methodology/spec-target-truth-profile.yaml as repo-local support guidance for future governance slices, not as the canonical reconstruction completion target or a guaranteed fresh-bootstrap seed.
 - Treat .nimi/contracts/spec-reconstruction-result.yaml, .nimi/contracts/doc-spec-audit-result.yaml, .nimi/contracts/high-risk-execution-result.yaml, and .nimi/contracts/high-risk-admission.schema.yaml as machine contracts for reconstruction, audit, local-only high-risk closeout summaries, and canonical high-risk admission truth.
@@ -26,7 +26,7 @@ function managedAgentsBlock() {
 - Use high-risk packetized execution only when authority, ownership, or cross-layer risk justifies it.
 - Keep inline manager-worker as the default methodology posture; do not assume a separate worker runtime is mandatory.
 - Keep the methodology continuity-agnostic; do not assume daemon, heartbeat, or persistent manager ownership.
-- Treat cutover readiness as evidence only; readiness green would still require a separate redesign admission before any authority flip.
+- Treat cutover readiness as preflight evidence only; the authority flip must come from an admitted cutover batch, not from readiness green by itself.
 - Do not treat this managed block as a replacement for project-specific rules outside .nimi.
 ${AGENTS_END}`;
 }
@@ -51,7 +51,7 @@ Default posture:
 - prefer inline manager-worker unless a later admitted packet expands runtime ownership
 - keep continuity-agnostic semantics; do not assume persistent automation or self-hosting
 - treat handoff --json as the authoritative machine contract and handoff --prompt as a human-readable projection only
-- treat \`spec/**\` as today's repo-wide authority, \`/.nimi/spec/**\` as today's generated canonical tree, and cutover readiness as non-authorizing evidence until a redesign admission says otherwise
+- treat \`/.nimi/spec/**\` as today's repo-wide authority, treat pre-cutover authority history as Git-only, and treat cutover readiness as historical preflight evidence rather than the authority source
 ${CLAUDE_END}`;
 }
 

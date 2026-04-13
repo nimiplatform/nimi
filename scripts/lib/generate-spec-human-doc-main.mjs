@@ -51,7 +51,7 @@ import {
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..', '..');
-const specDir = path.join(repoRoot, 'spec');
+const specDir = path.join(repoRoot, '.nimi', 'spec');
 const outPath = path.join(specDir, 'generated', 'nimi-spec.md');
 
 async function main() {
@@ -90,10 +90,10 @@ async function main() {
 
   d.text(`# Nimi Platform 技术规范
 
-> 本文档由 \`scripts/generate-spec-human-doc.mjs\` 自动生成，是 \`spec/\` 目录的人类可读版本。
+> 本文档由 \`scripts/generate-spec-human-doc.mjs\` 自动生成，是 \`/.nimi/spec/\` 规范树的人类可读投影。
 > 生成时间: ${new Date().toISOString().split('T')[0]}
 >
-> 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
+> 权威规则定义位于 \`/.nimi/spec/\` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
 ---
 
@@ -608,7 +608,7 @@ Nimi 的错误由两层组成，二者正交：
   d.blank();
   d.rule('S-SURFACE-001');
 
-  d.text(`各子路径的方法投影遵循结构化治理。Runtime SDK 的对外方法按 service 分组，与 \`spec/runtime/kernel/tables/rpc-methods.yaml\` 的设计名对齐——投影表 \`tables/runtime-method-groups.yaml\` 是唯一事实源：`);
+  d.text(`各子路径的方法投影遵循结构化治理。Runtime SDK 的对外方法按 service 分组，与 \`.nimi/spec/runtime/kernel/tables/rpc-methods.yaml\` 的设计名对齐——投影表 \`tables/runtime-method-groups.yaml\` 是唯一事实源：`);
   d.blank();
   d.rule('S-SURFACE-002');
   d.rule('S-SURFACE-009');
@@ -697,7 +697,7 @@ SDK 本地     → 参数/环境/边界违规   → SDK_* 错误码
   d.blank();
   d.rule('S-ERROR-001');
 
-  d.text(`Runtime ReasonCode 的权威来源是 \`spec/runtime/kernel/tables/reason-codes.yaml\`。SDK 文档不得重新分配 ReasonCode 的数值——只做投影，不做重定义。`);
+  d.text(`Runtime ReasonCode 的权威来源是 \`.nimi/spec/runtime/kernel/tables/reason-codes.yaml\`。SDK 文档不得重新分配 ReasonCode 的数值——只做投影，不做重定义。`);
   d.blank();
   d.rule('S-ERROR-002');
 
@@ -1144,7 +1144,7 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 追溯链
 ─────────────────────────────────────────────────
 Research Topic Doc     Backlog Item           Spec Document
-(.local/work/<topic-id>/*.md) (backlog-items.yaml)   (spec/**/*.md)
+(.local/work/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │

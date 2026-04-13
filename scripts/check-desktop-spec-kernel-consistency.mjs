@@ -34,7 +34,7 @@ for (const rel of domainFiles) {
     continue;
   }
   const content = read(rel);
-  if (!content.includes('Normative Imports: `spec/desktop/kernel/*`')) {
+  if (!content.includes('Normative Imports: `.nimi/spec/desktop/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
   if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
@@ -81,13 +81,13 @@ checkCrossDomainRuleReferences(
   [
     {
       label: 'Runtime',
-      dir: 'spec/runtime/kernel',
+      dir: '.nimi/spec/runtime/kernel',
       headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gmu,
       refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/gu,
     },
     {
       label: 'SDK',
-      dir: 'spec/sdk/kernel',
+      dir: '.nimi/spec/sdk/kernel',
       headingPattern: /^##\s+(S-[A-Z]+-\d{3}[a-z]?)\b/gmu,
       refPattern: /\bS-[A-Z]+-\d{3}[a-z]?\b/gu,
     },
@@ -198,7 +198,7 @@ function checkUiSlotsConsistency() {
     [...slotsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/ui-slots.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/ui-slots.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlSlots = new Set(
@@ -232,7 +232,7 @@ function checkTurnHookPointsConsistency() {
     [...pointsBody.matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/turn-hook-points.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/turn-hook-points.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlPoints = new Set(
@@ -290,7 +290,7 @@ function checkModKernelStagesConsistency() {
     [...stageMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/mod-kernel-stages.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-kernel-stages.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlStages = new Set(
@@ -325,7 +325,7 @@ function checkModLifecycleStatesConsistency() {
     [...stateMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/mod-lifecycle-states.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-lifecycle-states.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlStates = new Set(
@@ -360,7 +360,7 @@ function checkModAccessModesConsistency() {
     [...modeMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1]),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/mod-access-modes.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/mod-access-modes.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlModes = new Set(
@@ -401,7 +401,7 @@ function checkAppTabsConsistency() {
     ? new Set([...quickMatch[1].matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]))
     : new Set();
 
-  const yamlPath = 'spec/desktop/kernel/tables/app-tabs.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/app-tabs.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlTabs = Array.isArray(doc?.tabs) ? doc.tabs : [];
@@ -456,7 +456,7 @@ function checkRetryStatusCodesConsistency() {
     [...codesMatch[1].matchAll(/(\d+)/g)].map((m) => Number(m[1])),
   );
 
-  const yamlPath = 'spec/desktop/kernel/tables/retry-status-codes.yaml';
+  const yamlPath = '.nimi/spec/desktop/kernel/tables/retry-status-codes.yaml';
   if (!fileExists(yamlPath)) return;
   const doc = readYaml(yamlPath);
   const yamlCodes = new Set(
@@ -521,11 +521,11 @@ function checkNoKernelRuleDefinitionsInDomainDocs() {
 
 function checkRendererDesignTables() {
   const rendererRoot = path.join(sourceRoot, 'shell/renderer');
-  const tokensPath = 'spec/desktop/kernel/tables/renderer-design-tokens.yaml';
-  const surfacesPath = 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml';
-  const sidebarsPath = 'spec/desktop/kernel/tables/renderer-design-sidebars.yaml';
-  const overlaysPath = 'spec/desktop/kernel/tables/renderer-design-overlays.yaml';
-  const allowlistsPath = 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml';
+  const tokensPath = '.nimi/spec/desktop/kernel/tables/renderer-design-tokens.yaml';
+  const surfacesPath = '.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml';
+  const sidebarsPath = '.nimi/spec/desktop/kernel/tables/renderer-design-sidebars.yaml';
+  const overlaysPath = '.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml';
+  const allowlistsPath = '.nimi/spec/desktop/kernel/tables/renderer-design-allowlists.yaml';
 
   const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion', 'typography', 'spacing', 'stroke', 'state']);
   const allowedSurfaceProfiles = new Set(['baseline', 'secondary', 'exception']);
@@ -604,9 +604,9 @@ function checkRendererDesignTables() {
   }
 
   const requiredSecondaryDomains = new Map([
-    ['spec/desktop/home.md', 'features/home/'],
-    ['spec/desktop/notification.md', 'features/notification/'],
-    ['spec/desktop/profile.md', 'features/profile/'],
+    ['.nimi/spec/desktop/home.md', 'features/home/'],
+    ['.nimi/spec/desktop/notification.md', 'features/notification/'],
+    ['.nimi/spec/desktop/profile.md', 'features/profile/'],
   ]);
   for (const [docRel, modulePrefix] of requiredSecondaryDomains) {
     if (!fileExists(docRel)) {
@@ -762,17 +762,17 @@ function checkRendererDesignTables() {
 
 function checkDesignDomainAnchors() {
   const requiredAnchors = [
-    ['spec/desktop/chat.md', 'D-SHELL-019'],
-    ['spec/desktop/explore.md', 'D-SHELL-019'],
-    ['spec/desktop/contacts.md', 'D-SHELL-019'],
-    ['spec/desktop/chat.md', 'D-SHELL-023'],
-    ['spec/desktop/contacts.md', 'D-SHELL-023'],
-    ['spec/desktop/home.md', 'D-SHELL-015'],
-    ['spec/desktop/notification.md', 'D-SHELL-015'],
-    ['spec/desktop/profile.md', 'D-SHELL-015'],
-    ['spec/desktop/settings.md', 'D-SHELL-023'],
-    ['spec/desktop/runtime-config.md', 'D-SHELL-023'],
-    ['spec/desktop/world-detail.md', 'D-SHELL-020'],
+    ['.nimi/spec/desktop/chat.md', 'D-SHELL-019'],
+    ['.nimi/spec/desktop/explore.md', 'D-SHELL-019'],
+    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-019'],
+    ['.nimi/spec/desktop/chat.md', 'D-SHELL-023'],
+    ['.nimi/spec/desktop/contacts.md', 'D-SHELL-023'],
+    ['.nimi/spec/desktop/home.md', 'D-SHELL-015'],
+    ['.nimi/spec/desktop/notification.md', 'D-SHELL-015'],
+    ['.nimi/spec/desktop/profile.md', 'D-SHELL-015'],
+    ['.nimi/spec/desktop/settings.md', 'D-SHELL-023'],
+    ['.nimi/spec/desktop/runtime-config.md', 'D-SHELL-023'],
+    ['.nimi/spec/desktop/world-detail.md', 'D-SHELL-020'],
   ];
   for (const [rel, ruleId] of requiredAnchors) {
     if (!fileExists(rel)) continue;
@@ -844,7 +844,7 @@ function checkCriticalReasonCodeCoverage() {
     'APP_MODE_DOMAIN_FORBIDDEN',
   ];
 
-  const errBoundaryPath = 'spec/desktop/kernel/error-boundary-contract.md';
+  const errBoundaryPath = '.nimi/spec/desktop/kernel/error-boundary-contract.md';
   if (!fileExists(errBoundaryPath)) return;
 
   const content = read(errBoundaryPath);
@@ -869,7 +869,7 @@ function checkStreamingRpcCoverage() {
     'SubscribeAIProviderHealthEvents',
   ];
 
-  const strmPath = 'spec/desktop/kernel/streaming-consumption-contract.md';
+  const strmPath = '.nimi/spec/desktop/kernel/streaming-consumption-contract.md';
   if (!fileExists(strmPath)) return;
 
   const content = read(strmPath);
@@ -982,7 +982,7 @@ function checkBridgeReasonCodeCoverage() {
 }
 
 function checkLocalRuntimeIpcConsistency() {
-  const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
+  const tablePath = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
   const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
   const tsPaths = [
     'apps/desktop/src/runtime/local-runtime/commands.ts',
@@ -1039,7 +1039,7 @@ function compareCommandSets(label, expected, actual) {
 }
 
 function checkRuleEvidenceTraceability() {
-  const evidencePath = 'spec/desktop/kernel/tables/rule-evidence.yaml';
+  const evidencePath = '.nimi/spec/desktop/kernel/tables/rule-evidence.yaml';
   if (!fileExists(evidencePath)) {
     fail(`missing rule evidence table: ${evidencePath}`);
     return;
@@ -1146,7 +1146,7 @@ function checkRuleEvidenceTraceability() {
 }
 
 function checkDesktopTestingGateCoverage() {
-  const tablePath = 'spec/desktop/kernel/tables/desktop-testing-gates.yaml';
+  const tablePath = '.nimi/spec/desktop/kernel/tables/desktop-testing-gates.yaml';
   if (!fileExists(tablePath)) {
     fail(`missing desktop testing gate table: ${tablePath}`);
     return;
@@ -1219,7 +1219,7 @@ function checkDesktopTestingGateCoverage() {
 }
 
 function checkDesktopFeatureCoverage() {
-  const tablePath = 'spec/desktop/kernel/tables/desktop-feature-coverage.yaml';
+  const tablePath = '.nimi/spec/desktop/kernel/tables/desktop-feature-coverage.yaml';
   if (!fileExists(tablePath)) {
     fail(`missing desktop feature coverage table: ${tablePath}`);
     return;
@@ -1312,7 +1312,7 @@ function checkDesktopFeatureCoverage() {
     }
   }
 
-  const appTabsPath = 'spec/desktop/kernel/tables/app-tabs.yaml';
+  const appTabsPath = '.nimi/spec/desktop/kernel/tables/app-tabs.yaml';
   if (fileExists(appTabsPath)) {
     const appTabsDoc = readYaml(appTabsPath) || {};
     const tabs = Array.isArray(appTabsDoc?.tabs) ? appTabsDoc.tabs : [];
@@ -1330,7 +1330,7 @@ function checkDesktopFeatureCoverage() {
     }
   }
 
-  const bootstrapPath = 'spec/desktop/kernel/tables/bootstrap-phases.yaml';
+  const bootstrapPath = '.nimi/spec/desktop/kernel/tables/bootstrap-phases.yaml';
   if (fileExists(bootstrapPath)) {
     const bootstrapDoc = readYaml(bootstrapPath) || {};
     const phases = Array.isArray(bootstrapDoc?.phases) ? bootstrapDoc.phases : [];
@@ -1345,7 +1345,7 @@ function checkDesktopFeatureCoverage() {
     }
   }
 
-  const ipcPath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
+  const ipcPath = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
   if (fileExists(ipcPath)) {
     const ipcDoc = readYaml(ipcPath) || {};
     const commands = Array.isArray(ipcDoc?.commands) ? ipcDoc.commands : [];
@@ -1363,8 +1363,8 @@ function checkDesktopFeatureCoverage() {
 }
 
 function checkIpcCommandsContractProseCoverage() {
-  const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
-  const contractPath = 'spec/desktop/kernel/bridge-ipc-contract.md';
+  const tablePath = '.nimi/spec/desktop/kernel/tables/ipc-commands.yaml';
+  const contractPath = '.nimi/spec/desktop/kernel/bridge-ipc-contract.md';
   if (!fileExists(tablePath) || !fileExists(contractPath)) {
     fail(`IPC contract prose coverage inputs missing: ${[tablePath, contractPath].filter((rel) => !fileExists(rel)).join(', ')}`);
     return;

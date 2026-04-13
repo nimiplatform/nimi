@@ -26,15 +26,15 @@ function readYaml(rel) {
 
 // --- Load tables ---
 
-const backlogTable = readYaml('spec/future/kernel/tables/backlog-items.yaml');
-const sourcesTable = readYaml('spec/future/kernel/tables/research-sources.yaml');
-const graduationTable = readYaml('spec/future/kernel/tables/graduation-log.yaml');
+const backlogTable = readYaml('.nimi/spec/future/kernel/tables/backlog-items.yaml');
+const sourcesTable = readYaml('.nimi/spec/future/kernel/tables/research-sources.yaml');
+const graduationTable = readYaml('.nimi/spec/future/kernel/tables/graduation-log.yaml');
 
 const items = Array.isArray(backlogTable?.items) ? backlogTable.items : [];
 const sources = Array.isArray(sourcesTable?.sources) ? sourcesTable.sources : [];
 const graduationEntries = Array.isArray(graduationTable?.entries) ? graduationTable.entries : [];
 
-const domainDocs = listDomainMarkdownFiles('spec/future');
+const domainDocs = listDomainMarkdownFiles('.nimi/spec/future');
 if (domainDocs.length === 0) {
   fail('future domain markdown files are empty');
 }
@@ -42,7 +42,7 @@ for (const rel of domainDocs) {
   const content = fs.readFileSync(path.join(cwd, rel), 'utf8');
   checkNoLocalRuleIds(content, rel);
   checkNoRuleDefinitionHeadings(content, rel);
-  if (rel !== 'spec/future/index.md' && !/\bF-[A-Z]{2,12}-\d{3}\b/u.test(content)) {
+  if (rel !== '.nimi/spec/future/index.md' && !/\bF-[A-Z]{2,12}-\d{3}\b/u.test(content)) {
     fail(`${rel} must reference at least one future kernel Rule ID`);
   }
 }
@@ -349,20 +349,20 @@ function checkNoRuleDefinitionHeadings(content, rel) {
 }
 
 function checkGraduationContractParity() {
-  const graduationContractPath = path.join(cwd, 'spec/future/kernel/graduation-contract.md');
-  const futureIndexPath = path.join(cwd, 'spec/future/index.md');
+  const graduationContractPath = path.join(cwd, '.nimi/spec/future/kernel/graduation-contract.md');
+  const futureIndexPath = path.join(cwd, '.nimi/spec/future/index.md');
   const graduationContract = fs.readFileSync(graduationContractPath, 'utf8');
   const futureIndex = fs.readFileSync(futureIndexPath, 'utf8');
 
-  for (const token of ['check:<domain>-spec-kernel-consistency', 'check:<domain>-spec-kernel-docs-drift', 'spec/desktop/', 'spec/desktop/web-adapter.md']) {
+  for (const token of ['check:<domain>-spec-kernel-consistency', 'check:<domain>-spec-kernel-docs-drift', '.nimi/spec/desktop/', '.nimi/spec/desktop/web-adapter.md']) {
     if (!graduationContract.includes(token)) {
       fail(`graduation-contract.md must mention ${token}`);
     }
   }
 
-  for (const token of ['spec/runtime/', 'spec/sdk/', 'spec/desktop/', 'spec/desktop/web-adapter.md']) {
+  for (const token of ['.nimi/spec/runtime/', '.nimi/spec/sdk/', '.nimi/spec/desktop/', '.nimi/spec/desktop/web-adapter.md']) {
     if (!futureIndex.includes(token)) {
-      fail(`spec/future/index.md must mention ${token}`);
+      fail(`.nimi/spec/future/index.md must mention ${token}`);
     }
   }
 }

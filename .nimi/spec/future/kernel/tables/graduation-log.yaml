@@ -1,0 +1,29 @@
+version: 1
+entries:
+  - item_id: F-MULTIMODAL-001
+    graduated_date: "2026-03-09"
+    target_spec_path: .nimi/spec/runtime/kernel/multimodal-provider-contract.md
+    target_rule_ids:
+      - K-MCAT-001
+      - K-MCAT-018
+      - K-MCAT-024
+      - K-MMPROV-001
+      - K-VOICE-001
+      - K-JOB-001
+    notes: >
+      Multimodal capability framework fully specified in K-MCAT-*, K-MMPROV-*,
+      K-VOICE-*, and K-JOB-* rule families. Covers TTS, STT, image generation,
+      video generation, and voice workflows.
+  - item_id: F-RAG-001
+    graduated_date: "2026-03-09"
+    target_spec_path: .nimi/spec/runtime/kernel/knowledge-contract.md
+    target_rule_ids:
+      - K-KNOW-001
+      - K-KNOW-002
+      - K-KNOW-003
+      - K-KNOW-004
+      - K-KNOW-005
+      - K-KNOW-006
+    notes: >
+      Knowledge base system specified in K-KNOW-* rule family. Covers
+      BuildIndex, SearchIndex, DeleteIndex operations and embedding pipeline.

@@ -1,12 +1,13 @@
 version: 1
 spec_authority_cutover_readiness:
-  posture: readiness_only_not_physical_migration
-  current_authority_root: spec
+  posture: historical_pre_cutover_reference_after_physical_migration
+  current_authority_root: .nimi/spec
   canonical_generation_root: .nimi/spec
-  benchmark_posture: benchmark_oracle_to_generated_canonical_tree
+  benchmark_posture: historical_git_only_no_live_benchmark_root
   overall_status_enum:
     - no_go
     - ready_for_admission
+    - already_cut_over
   gate_families:
     - id: canonical_generation_gate
       posture: generic_methodology
@@ -28,18 +29,16 @@ spec_authority_cutover_readiness:
       failure_meaning:
         - canonical_tree_is_not_yet_a_stable_cutover_candidate
     - id: benchmark_parity_gate
-      posture: repo_local_special_case_when_blueprint_declared
-      objective: prove that the repo-local benchmark oracle and generated canonical tree are parity-checked without redefining authority
+      posture: historical_repo_local_special_case_when_blueprint_declared
+      objective: preserve pre-cutover benchmark parity methodology in git history without redefining current authority
       required_evidence:
         commands:
           - pnpm nimicoding:blueprint-audit
-        files:
-          - .nimi/spec/_meta/blueprint-reference.yaml
-          - .nimi/spec/_meta/direct-copy-validation-checklist.yaml
+        history_source: git
       pass_criteria:
-        - blueprint_reference_still_declares_spec_as_benchmark_oracle
-        - blueprint_audit_passes_when_repo_local_blueprint_is_declared
-        - direct_copy_remains_support_only_not_cutover
+        - historical_blueprint_reference_is_preserved_in_git_history_for_auditability
+        - blueprint_audit_remains_available_when_a_repo_local_blueprint_is_declared
+        - direct_copy_history_remains_support_only_not_cutover
       failure_meaning:
         - benchmark_parity_is_missing_or_is_trying_to_define_authority
     - id: drift_pipeline_gate
@@ -76,27 +75,25 @@ spec_authority_cutover_readiness:
         files:
           - AGENTS.md
           - CLAUDE.md
-          - spec/AGENTS.md
           - nimi-coding/README.md
           - nimi-coding/adapters/oh-my-codex/README.md
           - nimi-coding/cli/lib/entrypoints.mjs
           - .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
       pass_criteria:
-        - docs_state_that_spec_remains_current_authority
-        - docs_state_that_dot_nimi_spec_is_generated_canonical_tree
-        - docs_state_that_readiness_is_not_cutover
+        - docs_state_that_dot_nimi_spec_is_the_only_active_authority
+        - docs_state_that_pre_cutover_history_lives_in_git
+        - docs_state_that_readiness_is_historical_after_cutover
       failure_meaning:
         - humans_or_external_hosts_could_misread_readiness_as_authority_flip
     - id: authority_admission_gate
-      posture: repo_local_special_case
-      objective: prove that an explicit redesign admission packet exists under spec authority before any cutover execution is considered
+      posture: historical_repo_local_special_case
+      objective: preserve explicit redesign admission provenance in git history after the authority cutover has executed
       required_evidence:
-        files:
-          - spec/canonical-authority-cutover-admission.md
+        history_source: git
       pass_criteria:
-        - redesign_admission_doc_exists_under_spec_authority
+        - redesign_admission_doc_is_preserved_in_git_history
         - redesign_admission_doc_declares_required_metadata
-        - redesign_admission_doc_states_current_and_future_authority_posture
+        - redesign_admission_doc_states_the_executed_cutover_posture
         - redesign_admission_doc_forbids_long_lived_parallel_truth
       failure_meaning:
         - authority_cutover_has_not_been_preflighted_under_current_spec_authority

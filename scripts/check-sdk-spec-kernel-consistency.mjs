@@ -8,30 +8,30 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(scriptDir, '..');
 
 const kernelFiles = [
-  'spec/sdk/kernel/index.md',
-  'spec/sdk/kernel/surface-contract.md',
-  'spec/sdk/kernel/transport-contract.md',
-  'spec/sdk/kernel/error-projection.md',
-  'spec/sdk/kernel/boundary-contract.md',
-  'spec/sdk/kernel/runtime-contract.md',
-  'spec/sdk/kernel/world-evolution-engine-projection-contract.md',
-  'spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
-  'spec/sdk/kernel/realm-contract.md',
-  'spec/sdk/kernel/ai-provider-contract.md',
-  'spec/sdk/kernel/scope-contract.md',
-  'spec/sdk/kernel/mod-contract.md',
-  'spec/sdk/kernel/testing-gates-contract.md',
-  'spec/sdk/kernel/tables/sdk-surfaces.yaml',
-  'spec/sdk/kernel/tables/runtime-method-groups.yaml',
-  'spec/sdk/kernel/tables/import-boundaries.yaml',
-  'spec/sdk/kernel/tables/sdk-error-codes.yaml',
-  'spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml',
-  'spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
-  'spec/sdk/kernel/tables/sdk-testing-gates.yaml',
-  'spec/sdk/kernel/tables/rule-evidence.yaml',
+  '.nimi/spec/sdk/kernel/index.md',
+  '.nimi/spec/sdk/kernel/surface-contract.md',
+  '.nimi/spec/sdk/kernel/transport-contract.md',
+  '.nimi/spec/sdk/kernel/error-projection.md',
+  '.nimi/spec/sdk/kernel/boundary-contract.md',
+  '.nimi/spec/sdk/kernel/runtime-contract.md',
+  '.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md',
+  '.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
+  '.nimi/spec/sdk/kernel/realm-contract.md',
+  '.nimi/spec/sdk/kernel/ai-provider-contract.md',
+  '.nimi/spec/sdk/kernel/scope-contract.md',
+  '.nimi/spec/sdk/kernel/mod-contract.md',
+  '.nimi/spec/sdk/kernel/testing-gates-contract.md',
+  '.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml',
+  '.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml',
+  '.nimi/spec/sdk/kernel/tables/import-boundaries.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml',
+  '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml',
 ];
 
-const domainFiles = listDomainMarkdownFiles('spec/sdk');
+const domainFiles = listDomainMarkdownFiles('.nimi/spec/sdk');
 
 let failed = false;
 function fail(msg) {
@@ -57,7 +57,7 @@ for (const rel of domainFiles) {
     continue;
   }
   const content = read(rel);
-  if (!content.includes('Normative Imports: `spec/sdk/kernel/*`')) {
+  if (!content.includes('Normative Imports: `.nimi/spec/sdk/kernel/*`')) {
     fail(`${rel} must declare kernel imports`);
   }
   if (!/\bS-[A-Z]+-\d{3}\b/.test(content)) {
@@ -75,14 +75,14 @@ if (domainFiles.length === 0) {
 
 checkDomainSection0ImportsCoveredInBody();
 
-for (const rel of ['spec/sdk/scope.md', 'spec/sdk/mod.md']) {
+for (const rel of ['.nimi/spec/sdk/scope.md', '.nimi/spec/sdk/mod.md']) {
   const content = read(rel);
   if (!content.includes('kernel/transport-contract.md')) {
     fail(`${rel} must import transport contract and declare stream applicability`);
   }
 }
 
-const allSdkSpecs = walk(path.join(cwd, 'spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
+const allSdkSpecs = walk(path.join(cwd, '.nimi/spec/sdk')).filter((p) => p.endsWith('.md') || p.endsWith('.yaml'));
 const sdkRuntimeSourceFiles = walk(path.join(cwd, 'sdk/src/runtime'))
   .filter((p) => p.endsWith('.ts'))
   .filter((p) => !p.includes(`${path.sep}generated${path.sep}`));
@@ -94,8 +94,8 @@ for (const abs of allSdkSpecs) {
   }
 }
 
-const runtimeMethodGroups = readYaml('spec/sdk/kernel/tables/runtime-method-groups.yaml');
-const runtimeRpcMethods = readYaml('spec/runtime/kernel/tables/rpc-methods.yaml');
+const runtimeMethodGroups = readYaml('.nimi/spec/sdk/kernel/tables/runtime-method-groups.yaml');
+const runtimeRpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
 const sdkKernelRules = kernelRuleSet();
 const runtimeServices = new Map(
   (Array.isArray(runtimeRpcMethods?.services) ? runtimeRpcMethods.services : []).map((service) => {
@@ -158,9 +158,9 @@ for (const serviceName of runtimeServices.keys()) {
 }
 
 for (const rel of [
-  'spec/sdk/kernel/tables/import-boundaries.yaml',
-  'spec/sdk/kernel/tables/sdk-error-codes.yaml',
-  'spec/sdk/kernel/tables/sdk-surfaces.yaml',
+  '.nimi/spec/sdk/kernel/tables/import-boundaries.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml',
+  '.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml',
 ]) {
   const doc = readYaml(rel);
   const values = JSON.stringify(doc);
@@ -173,8 +173,8 @@ for (const rel of [
   }
 }
 
-const sdkSurfaces = readYaml('spec/sdk/kernel/tables/sdk-surfaces.yaml');
-const importBoundaries = readYaml('spec/sdk/kernel/tables/import-boundaries.yaml');
+const sdkSurfaces = readYaml('.nimi/spec/sdk/kernel/tables/sdk-surfaces.yaml');
+const importBoundaries = readYaml('.nimi/spec/sdk/kernel/tables/import-boundaries.yaml');
 const expectedBoundarySurfaces = new Set(
   (Array.isArray(sdkSurfaces?.surfaces) ? sdkSurfaces.surfaces : [])
     .map((item) => String(item?.package_subpath || '').trim())
@@ -222,7 +222,7 @@ for (const rule of Array.isArray(importBoundaries?.rules) ? importBoundaries.rul
   }
 }
 
-const sdkErrorCodes = readYaml('spec/sdk/kernel/tables/sdk-error-codes.yaml');
+const sdkErrorCodes = readYaml('.nimi/spec/sdk/kernel/tables/sdk-error-codes.yaml');
 const hasRealmErrorFamily = (Array.isArray(sdkErrorCodes?.codes) ? sdkErrorCodes.codes : [])
   .some((item) => String(item?.family || '').trim() === 'SDK_REALM');
 if (!hasRealmErrorFamily) {
@@ -250,13 +250,13 @@ function checkCrossDomainRuleReferences() {
   const checks = [
     {
       label: 'Runtime',
-      dir: 'spec/runtime/kernel',
+      dir: '.nimi/spec/runtime/kernel',
       headingPattern: /^##\s+(K-[A-Z]+-\d{3}[a-z]?)\b/gm,
       refPattern: /\bK-[A-Z]+-\d{3}[a-z]?\b/g,
     },
     {
       label: 'Desktop',
-      dir: 'spec/desktop/kernel',
+      dir: '.nimi/spec/desktop/kernel',
       headingPattern: /^##\s+(D-[A-Z]+-\d{3}[a-z]?)\b/gm,
       refPattern: /\bD-[A-Z]+-\d{3}[a-z]?\b/g,
     },
@@ -289,7 +289,7 @@ function checkCrossDomainRuleReferences() {
 }
 
 function checkRuleEvidenceTraceability(sdkKernelRules) {
-  const evidencePath = 'spec/sdk/kernel/tables/rule-evidence.yaml';
+  const evidencePath = '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml';
   const doc = readYaml(evidencePath) || {};
   const catalog = doc.evidence_catalog && typeof doc.evidence_catalog === 'object'
     ? doc.evidence_catalog
@@ -512,8 +512,8 @@ function boundarySourceRules(rule) {
 
 function checkProviderNameAlignment() {
   // Verify testing-gates S-GATE-070 references provider-catalog or has a name mapping
-  const testingGatesPath = 'spec/sdk/testing-gates.md';
-  const providerCatalogPath = 'spec/runtime/kernel/tables/provider-catalog.yaml';
+  const testingGatesPath = '.nimi/spec/sdk/testing-gates.md';
+  const providerCatalogPath = '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml';
   const mappingReportPath = '.local/report/sdk-provider-compatibility.md';
 
   if (!fs.existsSync(path.join(cwd, testingGatesPath))) return;
@@ -536,7 +536,7 @@ function checkProviderNameAlignment() {
 }
 
 function checkSdkTestingGateCoverage(sdkKernelRules) {
-  const tablePath = 'spec/sdk/kernel/tables/sdk-testing-gates.yaml';
+  const tablePath = '.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml';
   const table = readYaml(tablePath);
   const gates = Array.isArray(table?.gates) ? table.gates : [];
   if (gates.length === 0) {

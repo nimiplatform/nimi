@@ -5,7 +5,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 
 const PROJECT_ROOT = process.cwd();
-const KERNEL_DIR = path.join(PROJECT_ROOT, 'spec', 'realm', 'kernel');
+const KERNEL_DIR = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm', 'kernel');
 const TABLES_DIR = path.join(KERNEL_DIR, 'tables');
 const GENERATED_DIR = path.join(KERNEL_DIR, 'generated');
 const CHECK_MODE = process.argv.includes('--check');

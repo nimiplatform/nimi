@@ -104,8 +104,8 @@ export function createCatalogChecks(context) {
   }
 
   function checkProviderTableParity() {
-    const catalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
-    const capabilities = readYaml('spec/runtime/kernel/tables/provider-capabilities.yaml');
+    const catalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
+    const capabilities = readYaml('.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml');
     const sourceDocs = listSourceProviderDocs();
 
     const catalogProviders = new Set(
@@ -247,8 +247,8 @@ export function createCatalogChecks(context) {
       return;
     }
 
-    const providerCatalog = readYaml('spec/runtime/kernel/tables/provider-catalog.yaml');
-    const providerCapabilities = readYaml('spec/runtime/kernel/tables/provider-capabilities.yaml');
+    const providerCatalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
+    const providerCapabilities = readYaml('.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml');
 
     const catalogProviders = new Set(
       (Array.isArray(providerCatalog?.providers) ? providerCatalog.providers : [])
@@ -555,7 +555,7 @@ export function createCatalogChecks(context) {
   }
 
   function checkTtsProviderCapabilityMatrix(kernelRuleSet) {
-    const tablePath = 'spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml';
+    const tablePath = '.nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml';
     const table = readYaml(tablePath);
     const entries = Array.isArray(table?.entries) ? table.entries : [];
     if (entries.length === 0) {

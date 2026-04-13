@@ -9,8 +9,8 @@ const scanRoots = [
   'apps/web/src/desktop-adapter',
   'sdk/src/mod',
   'sdk/README.md',
-  'spec/sdk',
-  'spec/desktop',
+  '.nimi/spec/sdk',
+  '.nimi/spec/desktop',
   'apps/desktop/src',
   'apps/desktop/scripts',
   'apps/desktop/test',
@@ -49,13 +49,13 @@ const bannedChecks = [
 const failures = [];
 
 function shouldIgnoreMatch(relPath, line) {
-  if (relPath === 'spec/sdk/kernel/mod-contract.md' && line.includes('@nimiplatform/sdk/mod/ui')) {
+  if (relPath === '.nimi/spec/sdk/kernel/mod-contract.md' && line.includes('@nimiplatform/sdk/mod/ui')) {
     return true;
   }
-  if (relPath === 'spec/desktop/kernel/codegen-contract.md' && line.includes('@nimiplatform/sdk/mod/host')) {
+  if (relPath === '.nimi/spec/desktop/kernel/codegen-contract.md' && line.includes('@nimiplatform/sdk/mod/host')) {
     return true;
   }
-  if (relPath === 'spec/desktop/kernel/tables/codegen-import-allowlist.yaml' && line.includes('@nimiplatform/sdk/mod/host')) {
+  if (relPath === '.nimi/spec/desktop/kernel/tables/codegen-import-allowlist.yaml' && line.includes('@nimiplatform/sdk/mod/host')) {
     return true;
   }
   if (relPath === 'apps/desktop/src/runtime/mod/codegen/preflight.ts' && line.includes('@nimiplatform/sdk/mod/host import is forbidden')) {

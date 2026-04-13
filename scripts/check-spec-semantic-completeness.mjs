@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const cwd = process.cwd();
-const specRoot = path.join(cwd, 'spec');
+const specRoot = path.join(cwd, '.nimi', 'spec');
 const allowlistPath = path.join(cwd, 'scripts', 'spec-semantic-completeness-allowlist.json');
 
 const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3})\b/gmu;
@@ -246,7 +246,7 @@ function checkCompanionConstraints(companionFiles, definitionMap) {
 function checkGeneratedNoLegacyIdOutput() {
   const targets = [
     'scripts/generate-spec-human-doc.mjs',
-    'spec/generated/nimi-spec.md',
+    '.nimi/spec/generated/nimi-spec.md',
   ];
 
   for (const rel of targets) {
@@ -271,7 +271,7 @@ function main() {
   const definitionMap = collectKernelRuleDefinitions(kernelFiles);
 
   if (definitionMap.size === 0) {
-    fail('no kernel rule definitions found under spec/**/kernel/*.md');
+    fail('no kernel rule definitions found under .nimi/spec/**/kernel/*.md');
   }
 
   checkRuleReferencesResolvable(specFiles, definitionMap);
