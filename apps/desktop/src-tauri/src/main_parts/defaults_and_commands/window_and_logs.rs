@@ -30,6 +30,32 @@ pub(crate) fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> Confir
 }
 
 #[tauri::command]
+pub(crate) fn confirm_dialog(payload: ConfirmDialogPayload) -> ConfirmDialogResult {
+    let title = payload.title.trim();
+    let description = payload.description.trim();
+    let level = match payload.level.as_deref().map(str::trim) {
+        Some("error") => rfd::MessageLevel::Error,
+        Some("warning") => rfd::MessageLevel::Warning,
+        _ => rfd::MessageLevel::Info,
+    };
+
+    let confirmed = rfd::MessageDialog::new()
+        .set_title(if title.is_empty() { "确认" } else { title })
+        .set_description(if description.is_empty() {
+            "确认继续当前操作？"
+        } else {
+            description
+        })
+        .set_level(level)
+        .set_buttons(rfd::MessageButtons::YesNo)
+        .show();
+
+    ConfirmDialogResult {
+        confirmed: matches!(confirmed, rfd::MessageDialogResult::Yes),
+    }
+}
+
+#[tauri::command]
 pub(crate) fn log_renderer_event(payload: RendererLogPayload) {
     let area = payload.area.trim();
     if area.is_empty() {

@@ -123,6 +123,20 @@ struct ConfirmPrivateSyncResult {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct ConfirmDialogPayload {
+    title: String,
+    description: String,
+    level: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConfirmDialogResult {
+    confirmed: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct OpenExternalUrlPayload {
     url: String,
 }

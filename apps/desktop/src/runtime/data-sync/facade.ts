@@ -1,6 +1,5 @@
 import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { Realm, createRealmClient } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
@@ -175,20 +174,6 @@ export class DataSync {
   private getRealmClient(): Realm {
     if (this.realmClient) {
       return this.realmClient;
-    }
-
-    const platformClient = (() => {
-      try {
-        return getPlatformClient();
-      } catch {
-        return null;
-      }
-    })();
-    if (platformClient) {
-      const realm = platformClient.realm;
-      this.realmClient = realm;
-      this.realmClientOwned = false;
-      return realm;
     }
 
     const realm = createRealmClient({

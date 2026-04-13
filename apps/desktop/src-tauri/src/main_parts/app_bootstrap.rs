@@ -165,6 +165,7 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             super::defaults_and_commands::open_external_url,
             super::defaults_and_commands::oauth_token_exchange,
             super::defaults_and_commands::oauth_listen_for_code,
+            super::defaults_and_commands::window_and_logs::confirm_dialog,
             super::defaults_and_commands::window_and_logs::confirm_private_sync,
             super::defaults_and_commands::window_and_logs::log_renderer_event,
             super::defaults_and_commands::window_and_logs::focus_main_window,

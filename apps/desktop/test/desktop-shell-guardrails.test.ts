@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
-import { openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
+import { confirmDialog, openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
 import { subscribeRuntimeModReloadResult } from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -13,6 +13,7 @@ type WindowLike = {
     invoke?: (command: string, payload?: unknown) => Promise<unknown> | unknown;
     listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => (() => void) | Promise<() => void>;
   };
+  confirm?: (message?: string) => boolean;
   open?: (url?: string | URL, target?: string, features?: string) => unknown;
   location?: {
     origin?: string;
@@ -62,6 +63,61 @@ test('openExternalUrl rejects non-http protocols before invoking browser APIs', 
       /Only http\/https URLs are supported/,
     );
     assert.equal(opened, false);
+  } finally {
+    restoreWindow();
+  }
+});
+
+test('confirmDialog falls back to window.confirm outside Tauri', async () => {
+  let confirmMessage = '';
+  const restoreWindow = installWindowMock({
+    confirm: (message?: string) => {
+      confirmMessage = String(message || '');
+      return true;
+    },
+  });
+
+  try {
+    const result = await confirmDialog({
+      title: 'Clear agent chat history',
+      description: 'Delete all local chat history with Agent One?',
+      level: 'warning',
+    });
+    assert.equal(result.confirmed, true);
+    assert.equal(confirmMessage, 'Delete all local chat history with Agent One?');
+  } finally {
+    restoreWindow();
+  }
+});
+
+test('confirmDialog invokes the fixed tauri command and payload shape', async () => {
+  let observedCommand = '';
+  let observedPayload: unknown = null;
+  const restoreWindow = installWindowMock({
+    __NIMI_TAURI_TEST__: {
+      invoke: async (command, payload) => {
+        observedCommand = command;
+        observedPayload = payload;
+        return { confirmed: false };
+      },
+    },
+  });
+
+  try {
+    const result = await confirmDialog({
+      title: 'Clear agent chat history',
+      description: 'Delete all local chat history with Agent One?',
+      level: 'warning',
+    });
+    assert.equal(result.confirmed, false);
+    assert.equal(observedCommand, 'confirm_dialog');
+    assert.deepEqual(observedPayload, {
+      payload: {
+        title: 'Clear agent chat history',
+        description: 'Delete all local chat history with Agent One?',
+        level: 'warning',
+      },
+    });
   } finally {
     restoreWindow();
   }

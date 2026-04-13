@@ -1,8 +1,11 @@
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
+  parseConfirmDialogResult,
   parseConfirmPrivateSyncResult,
   parseOpenExternalUrlResult,
+  type ConfirmDialogPayload,
+  type ConfirmDialogResult,
   type ConfirmPrivateSyncPayload,
   type ConfirmPrivateSyncResult,
   type OpenExternalUrlResult,
@@ -50,6 +53,16 @@ export async function confirmPrivateSync(payload: ConfirmPrivateSyncPayload): Pr
   }
 
   return invokeChecked('confirm_private_sync', { payload }, parseConfirmPrivateSyncResult);
+}
+
+export async function confirmDialog(payload: ConfirmDialogPayload): Promise<ConfirmDialogResult> {
+  if (!hasTauriInvoke()) {
+    return {
+      confirmed: window.confirm(payload.description),
+    };
+  }
+
+  return invokeChecked('confirm_dialog', { payload }, parseConfirmDialogResult);
 }
 
 export async function startWindowDrag(): Promise<void> {
