@@ -25,7 +25,7 @@ Active binding object types are fixed to `RESOURCE`, `ASSET`, and `BUNDLE`. Acti
 
 ## R-BIND-003
 
-Binding legality is fail-close and matrix-governed. Only declared `(bindingKind, objectType, hostType, bindingPoint)` combinations are valid, and all undeclared combinations must be rejected. The active `bindingPoint` value set is the canonical `BINDING-POINT` enum declared in `.nimi/spec/realm/kernel/tables/domain-enums.yaml`; `USE` and `IMPORT` remain `null`-only in the active v1 matrix.
+Binding legality is fail-close and matrix-governed. Only declared `(bindingKind, objectType, hostType, bindingPoint)` combinations are valid, and all undeclared combinations must be rejected. The active `bindingPoint` value set is the canonical `BINDING-POINT` enum declared in `spec/realm/kernel/tables/domain-enums.yaml`; `USE` and `IMPORT` remain `null`-only in the active v1 matrix.
 
 ## R-BIND-004
 

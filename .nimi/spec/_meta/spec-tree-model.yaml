@@ -71,6 +71,11 @@ spec_tree_model:
         - .nimi/spec/**/kernel/generated/**/*.md
       must_reference_normative_ids: true
       normative: false
+    - id: support_registry
+      path_patterns:
+        - .nimi/spec/**/spec-exempt-modules.yaml
+      must_reference_normative_ids: false
+      normative: false
   required_files:
     minimal:
       - .nimi/spec/INDEX.md

@@ -2764,33 +2764,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/realm/kernel/generated/object-write-authorization.md
-      file_class: kernel_generated
-      source_refs:
-        - .nimi/spec/realm/kernel/tables/agent-memory-contract.yaml
-        - .nimi/spec/realm/kernel/tables/asset-contract.yaml
-        - .nimi/spec/realm/kernel/tables/attachment-contract.yaml
-        - .nimi/spec/realm/kernel/tables/binding-contract.yaml
-        - .nimi/spec/realm/kernel/tables/bundle-contract.yaml
-        - .nimi/spec/realm/kernel/tables/chat-contract.yaml
-        - .nimi/spec/realm/kernel/tables/commit-authorization-matrix.yaml
-        - .nimi/spec/realm/kernel/tables/domain-enums.yaml
-        - .nimi/spec/realm/kernel/tables/domain-state-machines.yaml
-        - .nimi/spec/realm/kernel/tables/economy-contract.yaml
-        - .nimi/spec/realm/kernel/tables/object-write-authorization.yaml
-        - .nimi/spec/realm/kernel/tables/open-spec-alignment-map.yaml
-        - .nimi/spec/realm/kernel/tables/resource-contract.yaml
-        - .nimi/spec/realm/kernel/tables/rule-catalog.yaml
-        - .nimi/spec/realm/kernel/tables/rule-evidence.yaml
-        - .nimi/spec/realm/kernel/tables/social-contract.yaml
-        - .nimi/spec/realm/kernel/tables/transit-contract.yaml
-        - .nimi/spec/realm/kernel/tables/truth-contract.yaml
-        - .nimi/spec/realm/kernel/tables/under-spec-registry.yaml
-        - .nimi/spec/realm/kernel/tables/world-history-contract.yaml
-        - .nimi/spec/realm/kernel/tables/world-state-contract.yaml
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/realm/kernel/generated/open-spec-alignment-map.md
       file_class: kernel_generated
       source_refs:
@@ -3261,6 +3234,13 @@ spec_generation_audit:
       file_class: domain_guides
       source_refs:
         - .nimi/spec/realm/realm-interop-mapping.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/realm/spec-exempt-modules.yaml
+      file_class: support_registry
+      source_refs:
+        - .nimi/spec/realm/spec-exempt-modules.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

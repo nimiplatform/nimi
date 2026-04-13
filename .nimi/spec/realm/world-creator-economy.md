@@ -14,7 +14,7 @@ updated: 2026-03-26
 
 ## Scope
 
-Bridge-only document for creator economy semantics. Kernel authority remains in `.nimi/spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
+Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
 
 ## Mapping Declaration
 

@@ -5,390 +5,390 @@ mappings:
   - external_id: R-TRUTH-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-001
-    local_anchor: .nimi/spec/realm/world.md#Scope
+    local_anchor: spec/realm/world.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-002
-    local_anchor: .nimi/spec/realm/world.md#Scope
+    local_anchor: spec/realm/world.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-003
-    local_anchor: .nimi/spec/realm/agent.md#Scope
+    local_anchor: spec/realm/agent.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-004
-    local_anchor: .nimi/spec/realm/truth.md#Scope
+    local_anchor: spec/realm/truth.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-005
-    local_anchor: .nimi/spec/realm/truth.md#Scope
+    local_anchor: spec/realm/truth.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-006
-    local_anchor: .nimi/spec/realm/truth.md#Scope
+    local_anchor: spec/realm/truth.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-007
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-007
-    local_anchor: .nimi/spec/realm/truth.md#Scope
+    local_anchor: spec/realm/truth.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-008
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-008
-    local_anchor: .nimi/spec/realm/world.md#Scope
+    local_anchor: spec/realm/world.md#Scope
     coverage_status: mapped
   - external_id: R-WSTATE-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-001
-    local_anchor: .nimi/spec/realm/world-state.md#Scope
+    local_anchor: spec/realm/world-state.md#Scope
     coverage_status: mapped
   - external_id: R-WSTATE-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-002
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-WSTATE-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-003
-    local_anchor: .nimi/spec/realm/world-state.md#Scope
+    local_anchor: spec/realm/world-state.md#Scope
     coverage_status: mapped
   - external_id: R-WSTATE-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-004
-    local_anchor: .nimi/spec/realm/world-state.md#Normative Imports
+    local_anchor: spec/realm/world-state.md#Normative Imports
     coverage_status: mapped
   - external_id: R-WSTATE-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-005
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-WSTATE-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-state-contract.md#R-WSTATE-006
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-WHIST-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-001
-    local_anchor: .nimi/spec/realm/world-history.md#Scope
+    local_anchor: spec/realm/world-history.md#Scope
     coverage_status: mapped
   - external_id: R-WHIST-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-002
-    local_anchor: .nimi/spec/realm/world-history.md#Scope
+    local_anchor: spec/realm/world-history.md#Scope
     coverage_status: mapped
   - external_id: R-WHIST-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-003
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-WHIST-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-004
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-WHIST-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-005
-    local_anchor: .nimi/spec/realm/world-history.md#Scope
+    local_anchor: spec/realm/world-history.md#Scope
     coverage_status: mapped
   - external_id: R-WHIST-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/world-history-contract.md#R-WHIST-006
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-MEM-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-001
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-MEM-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-002
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-MEM-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-003
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-MEM-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-004
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-MEM-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-005
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-MEM-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/agent-memory-contract.md#R-MEM-006
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-001
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-002
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-003
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-004
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-CHAT-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/chat-contract.md#R-CHAT-005
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-SOC-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-001
-    local_anchor: .nimi/spec/realm/social.md#Scope
+    local_anchor: spec/realm/social.md#Scope
     coverage_status: mapped
   - external_id: R-SOC-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-002
-    local_anchor: .nimi/spec/realm/social.md#Scope
+    local_anchor: spec/realm/social.md#Scope
     coverage_status: mapped
   - external_id: R-SOC-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-003
-    local_anchor: .nimi/spec/realm/social.md#Scope
+    local_anchor: spec/realm/social.md#Scope
     coverage_status: mapped
   - external_id: R-SOC-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/social-contract.md#R-SOC-004
-    local_anchor: .nimi/spec/realm/social.md#Scope
+    local_anchor: spec/realm/social.md#Scope
     coverage_status: mapped
   - external_id: R-ECON-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/economy-contract.md#R-ECON-001
-    local_anchor: .nimi/spec/realm/world-creator-economy.md#Normative Imports
+    local_anchor: spec/realm/world-creator-economy.md#Normative Imports
     coverage_status: mapped
   - external_id: R-ECON-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/economy-contract.md#R-ECON-002
-    local_anchor: .nimi/spec/realm/economy.md#Normative Imports
+    local_anchor: spec/realm/economy.md#Normative Imports
     coverage_status: mapped
   - external_id: R-ECON-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/economy-contract.md#R-ECON-003
-    local_anchor: .nimi/spec/realm/world-creator-economy.md#Normative Imports
+    local_anchor: spec/realm/world-creator-economy.md#Normative Imports
     coverage_status: mapped
   - external_id: R-ECON-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/economy-contract.md#R-ECON-004
-    local_anchor: .nimi/spec/realm/creator-revenue-policy.md#Normative Imports
+    local_anchor: spec/realm/creator-revenue-policy.md#Normative Imports
     coverage_status: mapped
   - external_id: R-RSRC-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-001
-    local_anchor: .nimi/spec/realm/asset.md#Scope
+    local_anchor: spec/realm/asset.md#Scope
     coverage_status: mapped
   - external_id: R-RSRC-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-002
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-RSRC-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-003
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-RSRC-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-004
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-RSRC-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-005
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-RSRC-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/resource-contract.md#R-RSRC-006
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-ATTACH-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-001
-    local_anchor: .nimi/spec/realm/asset.md#Scope
+    local_anchor: spec/realm/asset.md#Scope
     coverage_status: mapped
   - external_id: R-ATTACH-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-002
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-ATTACH-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-003
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-ATTACH-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-004
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: R-ASSET-101
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/asset-contract.md#R-ASSET-101
-    local_anchor: .nimi/spec/realm/asset.md#Scope
+    local_anchor: spec/realm/asset.md#Scope
     coverage_status: mapped
   - external_id: R-ASSET-102
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/asset-contract.md#R-ASSET-102
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-ASSET-103
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/asset-contract.md#R-ASSET-103
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-ASSET-104
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/asset-contract.md#R-ASSET-104
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-ASSET-105
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/asset-contract.md#R-ASSET-105
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-BNDL-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-001
-    local_anchor: .nimi/spec/realm/asset.md#Scope
+    local_anchor: spec/realm/asset.md#Scope
     coverage_status: mapped
   - external_id: R-BNDL-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-002
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-BNDL-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-003
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-BNDL-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-004
-    local_anchor: .nimi/spec/realm/asset.md#Reading Path
+    local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-TRANSIT-001
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-001
-    local_anchor: .nimi/spec/realm/world.md#Normative Imports
+    local_anchor: spec/realm/world.md#Normative Imports
     coverage_status: mapped
   - external_id: R-TRANSIT-002
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-002
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Mapping Declaration
+    local_anchor: spec/realm/realm-interop-mapping.md#Mapping Declaration
     coverage_status: mapped
   - external_id: R-TRANSIT-003
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-003
-    local_anchor: .nimi/spec/realm/world.md#Normative Imports
+    local_anchor: spec/realm/world.md#Normative Imports
     coverage_status: mapped
   - external_id: R-TRANSIT-004
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-004
-    local_anchor: .nimi/spec/realm/world.md#Normative Imports
+    local_anchor: spec/realm/world.md#Normative Imports
     coverage_status: mapped
   - external_id: R-TRANSIT-005
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-005
-    local_anchor: .nimi/spec/realm/transit.md#Scope
+    local_anchor: spec/realm/transit.md#Scope
     coverage_status: mapped
   - external_id: R-TRANSIT-006
     external_type: kernel_rule
     external_path: nimi/.nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-006
-    local_anchor: .nimi/spec/realm/transit.md#Scope
+    local_anchor: spec/realm/transit.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-APP-INTERCONNECT-MODEL
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/app-interconnect-model.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
   - external_id: REALM-DOC-TRUTH
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/truth.md
-    local_anchor: .nimi/spec/realm/truth.md#Scope
+    local_anchor: spec/realm/truth.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-WORLD-STATE
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/world-state.md
-    local_anchor: .nimi/spec/realm/world-state.md#Scope
+    local_anchor: spec/realm/world-state.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-WORLD-HISTORY
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/world-history.md
-    local_anchor: .nimi/spec/realm/world-history.md#Scope
+    local_anchor: spec/realm/world-history.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-AGENT-MEMORY
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/agent-memory.md
-    local_anchor: .nimi/spec/realm/agent-memory.md#Scope
+    local_anchor: spec/realm/agent-memory.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-CHAT
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/chat.md
-    local_anchor: .nimi/spec/realm/chat.md#Scope
+    local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
   - external_id: REALM-DOC-WORLD-CREATOR-ECONOMY
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/world-creator-economy.md
-    local_anchor: .nimi/spec/realm/world-creator-economy.md#Normative Imports
+    local_anchor: spec/realm/world-creator-economy.md#Normative Imports
     coverage_status: mapped
   - external_id: REALM-DOC-CREATOR-REVENUE-POLICY
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/creator-revenue-policy.md
-    local_anchor: .nimi/spec/realm/creator-revenue-policy.md#Normative Imports
+    local_anchor: spec/realm/creator-revenue-policy.md#Normative Imports
     coverage_status: mapped
   - external_id: REALM-DOC-REALM-INTEROP-MAPPING
     external_type: domain_doc
     external_path: nimi/.nimi/spec/realm/realm-interop-mapping.md
-    local_anchor: .nimi/spec/realm/realm-interop-mapping.md#Normative Imports
+    local_anchor: spec/realm/realm-interop-mapping.md#Normative Imports
     coverage_status: mapped
   - external_id: PLATFORM-AI-LAST-MILE
     external_type: platform_ref
     external_path: nimi/.nimi/spec/platform/ai-last-mile.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
   - external_id: MOD-WORLD-STUDIO-SPEC
     external_type: mod_spec
     external_path: nimi/nimi-mods/runtime/world-studio/spec/world-studio.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
   - external_id: MOD-NARRATIVE-ENGINE-SPEC
     external_type: mod_spec
     external_path: nimi/nimi-mods/modules/narrative-engine/spec/narrative-engine.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
   - external_id: MOD-TEXTPLAY-SPEC
     external_type: mod_spec
     external_path: nimi/nimi-mods/runtime/textplay/spec/textplay.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
   - external_id: MOD-VIDEOPLAY-SPEC
     external_type: mod_spec
     external_path: nimi/nimi-mods/runtime/videoplay/spec/videoplay.md
-    local_anchor: .nimi/spec/realm/app-interconnect-model.md#Normative Imports
+    local_anchor: spec/realm/app-interconnect-model.md#Normative Imports
     coverage_status: mapped
