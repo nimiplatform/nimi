@@ -1,6 +1,6 @@
 runtime_kernel_consistency:
   type: static_gate
-  command: pnpm check:runtime-spec-kernel-consistency
+  command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
   path: scripts/check-runtime-spec-kernel-consistency.mjs
   description: >-
     Kernel rule integrity, reason code coverage, error mapping matrix,

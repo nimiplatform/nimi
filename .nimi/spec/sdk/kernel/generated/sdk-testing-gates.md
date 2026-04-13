@@ -19,5 +19,5 @@
 | `realm_generator_smoke` | `pnpm check:realm-sdk-generator-smoke` | `S-GATE-091` |
 | `fallback_hardcut` | `pnpm check:sdk-fallback-hardcut` | `S-GATE-091` |
 | `unsafe_raw_usage` | `pnpm check:sdk-unsafe-raw-usage` | `S-GATE-091` |
-| `spec_consistency` | `pnpm check:sdk-spec-kernel-consistency` | `S-GATE-091` |
-| `docs_drift` | `pnpm check:sdk-spec-kernel-docs-drift` | `S-GATE-091` |
+| `spec_consistency` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency` | `S-GATE-091` |
+| `docs_drift` | `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check` | `S-GATE-091` |

@@ -3,49 +3,49 @@ generate_drift_migration_checklist:
   posture: subordinate_evidence_table_for_drift_pipeline_gate
   decision_authority_ref: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
   entries:
-    - command: pnpm generate:runtime-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime
       current_canonical_input_root: .nimi/spec/runtime/kernel
       current_generated_output_root: .nimi/spec/runtime/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: .nimi/spec/runtime/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:sdk-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk
       current_canonical_input_root: .nimi/spec/sdk/kernel
       current_generated_output_root: .nimi/spec/sdk/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/sdk/kernel
       post_cutover_generated_output_root: .nimi/spec/sdk/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:desktop-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop
       current_canonical_input_root: .nimi/spec/desktop/kernel
       current_generated_output_root: .nimi/spec/desktop/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/desktop/kernel
       post_cutover_generated_output_root: .nimi/spec/desktop/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:future-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future
       current_canonical_input_root: .nimi/spec/future/kernel
       current_generated_output_root: .nimi/spec/future/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/future/kernel
       post_cutover_generated_output_root: .nimi/spec/future/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:platform-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform
       current_canonical_input_root: .nimi/spec/platform/kernel
       current_generated_output_root: .nimi/spec/platform/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/platform/kernel
       post_cutover_generated_output_root: .nimi/spec/platform/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:realm-spec-kernel-docs
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm
       current_canonical_input_root: .nimi/spec/realm/kernel
       current_generated_output_root: .nimi/spec/realm/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/realm/kernel
       post_cutover_generated_output_root: .nimi/spec/realm/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm generate:spec-human-doc
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc
       current_canonical_input_root: .nimi/spec
       current_generated_output_root: .nimi/spec/generated/nimi-spec.md
       post_cutover_canonical_input_root: .nimi/spec
       post_cutover_generated_output_root: .nimi/spec/generated/nimi-spec.md
       update_phase: phase_5_flip
-    - command: pnpm check:spec-human-doc-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope spec-human-doc --check
       current_canonical_input_root: .nimi/spec
       current_generated_output_root: .nimi/spec/generated/nimi-spec.md
       post_cutover_canonical_input_root: .nimi/spec
@@ -63,73 +63,73 @@ generate_drift_migration_checklist:
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:runtime-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
       current_canonical_input_root: .nimi/spec/runtime/kernel
       current_generated_output_root: .nimi/spec/runtime/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: .nimi/spec/runtime/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm check:sdk-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
       current_canonical_input_root: .nimi/spec/sdk/kernel
       current_generated_output_root: .nimi/spec/sdk/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/sdk/kernel
       post_cutover_generated_output_root: .nimi/spec/sdk/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm check:desktop-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check
       current_canonical_input_root: .nimi/spec/desktop/kernel
       current_generated_output_root: .nimi/spec/desktop/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/desktop/kernel
       post_cutover_generated_output_root: .nimi/spec/desktop/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm check:desktop-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency
       current_canonical_input_root: .nimi/spec/desktop/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/desktop/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:future-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope future --check
       current_canonical_input_root: .nimi/spec/future/kernel
       current_generated_output_root: .nimi/spec/future/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/future/kernel
       post_cutover_generated_output_root: .nimi/spec/future/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm check:runtime-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency
       current_canonical_input_root: .nimi/spec/runtime/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/runtime/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:sdk-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
       current_canonical_input_root: .nimi/spec/sdk/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/sdk/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:future-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope future-consistency
       current_canonical_input_root: .nimi/spec/future/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/future/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:platform-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency
       current_canonical_input_root: .nimi/spec/platform/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/platform/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:platform-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope platform --check
       current_canonical_input_root: .nimi/spec/platform/kernel
       current_generated_output_root: .nimi/spec/platform/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/platform/kernel
       post_cutover_generated_output_root: .nimi/spec/platform/kernel/generated
       update_phase: phase_3_preparation
-    - command: pnpm check:realm-spec-kernel-consistency
+    - command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope realm-consistency
       current_canonical_input_root: .nimi/spec/realm/kernel
       current_generated_output_root: none
       post_cutover_canonical_input_root: .nimi/spec/realm/kernel
       post_cutover_generated_output_root: none
       update_phase: phase_5_flip
-    - command: pnpm check:realm-spec-kernel-docs-drift
+    - command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope realm --check
       current_canonical_input_root: .nimi/spec/realm/kernel
       current_generated_output_root: .nimi/spec/realm/kernel/generated
       post_cutover_canonical_input_root: .nimi/spec/realm/kernel

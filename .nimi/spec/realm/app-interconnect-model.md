@@ -19,7 +19,7 @@ updated: 2026-03-26
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
 - `kernel/asset-contract.md` (`R-ASSET-101..105`)
 - `kernel/transit-contract.md` (`R-TRANSIT-001..006`)
-- `spec/platform/ai-last-mile.md`
+- `.nimi/spec/platform/ai-last-mile.md`
 
 ## Scope
 
@@ -54,7 +54,7 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 8. `kernel/economy-contract.md`
 9. `kernel/asset-contract.md`
 10. `kernel/transit-contract.md`
-11. `spec/platform/ai-last-mile.md`
+11. `.nimi/spec/platform/ai-last-mile.md`
 
 ## Non-goals
 

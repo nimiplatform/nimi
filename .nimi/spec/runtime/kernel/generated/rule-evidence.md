@@ -6,7 +6,7 @@
 
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
-| `runtime_kernel_consistency` | `static_gate` | `pnpm check:runtime-spec-kernel-consistency` | `scripts/check-runtime-spec-kernel-consistency.mjs` | Kernel rule integrity, reason code coverage, error mapping matrix, RPC migration parity, provider catalog alignment, and domain doc compliance checks for Runtime domain. |
+| `runtime_kernel_consistency` | `static_gate` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency` | `scripts/check-runtime-spec-kernel-consistency.mjs` | Kernel rule integrity, reason code coverage, error mapping matrix, RPC migration parity, provider catalog alignment, and domain doc compliance checks for Runtime domain. |
 | `runtime_go_test` | `test_gate` | `cd runtime && make test` | `runtime/Makefile` | Go unit and integration tests verifying runtime service behavior. Rules with this evidence have behavioral test coverage in the corresponding service package. |
 | `runtime_go_lint` | `lint_gate` | `cd runtime && golangci-lint run ./...` | `runtime/.golangci.yml` | Go static analysis gate for runtime implementation. |
 | `runtime_proto_linkage` | `static_gate` | `pnpm check:runtime-proto-spec-linkage` | `scripts/check-runtime-proto-spec-linkage.mjs` | Proto definition and spec rule linkage validation. |

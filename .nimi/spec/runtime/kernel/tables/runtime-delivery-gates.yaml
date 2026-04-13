@@ -3,7 +3,7 @@ gates:
   - gate: G0
     name: ssot_freeze
     objective: freeze spec authority and rule ids
-    command: pnpm check:ai-scenario-hardcut-drift && pnpm check:runtime-spec-kernel-consistency && pnpm check:runtime-spec-kernel-docs-drift
+    command: pnpm check:ai-scenario-hardcut-drift && pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check
     blocking: hard_block
     evidence_route: .local/work/<topic-id>/*,.local/report/*
     source_rule: K-GATE-010
@@ -17,7 +17,7 @@ gates:
   - gate: G2
     name: sdk_alignment
     objective: sdk projection, boundary checks, and runtime-aligned mod or hook hard-cuts pass
-    command: pnpm check:sdk-spec-kernel-consistency && pnpm check:sdk-spec-kernel-docs-drift && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-mod-hook-hardcut
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency && pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check && pnpm check:runtime-bridge-method-drift && pnpm check:runtime-mod-hook-hardcut
     blocking: hard_block
     evidence_route: .local/report/*
     source_rule: K-GATE-030

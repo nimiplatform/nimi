@@ -3,7 +3,7 @@ evidence_catalog:
   platform_kernel_consistency:
     type: static_gate
     evidence_type: structural
-    command: pnpm check:platform-spec-kernel-consistency
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency
     path: scripts/check-platform-spec-kernel-consistency.mjs
     description: Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain.
   nimi_ui_pattern:

@@ -5,7 +5,7 @@
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
 | `sdk_behavioral_test` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | Behavioral unit/integration tests verifying rule semantics. Rules with this evidence have dedicated test cases (listed in test_files) that exercise the specific behavior the rule mandates. |
-| `sdk_kernel_consistency` | `static_gate` | `pnpm check:sdk-spec-kernel-consistency` | `scripts/check-sdk-spec-kernel-consistency.mjs` | Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain. |
+| `sdk_kernel_consistency` | `static_gate` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency` | `scripts/check-sdk-spec-kernel-consistency.mjs` | Kernel rule integrity, surface boundary validation, method group coverage, and error code checks for SDK domain. |
 | `sdk_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/sdk lint` | `sdk/package.json` | TypeScript compile and ESLint checks for SDK implementation. |
 | `sdk_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/sdk test` | `sdk/package.json` | SDK unit tests pass as a whole. Rules with this ref (without test_files) are indirectly validated by the suite. |
 | `sdk_boundary_gate` | `static_gate` | `pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config` | `scripts/check-sdk-import-boundary.mjs` | Import boundary enforcement and legacy entry point prohibition. |

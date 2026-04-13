@@ -4,7 +4,7 @@
 > Source: `.nimi/spec/platform/kernel/tables/rule-evidence.yaml`
 | Evidence Ref | Type | Evidence Type | Command | Path | Description |
 |---|---|---|---|---|---|
-| `platform_kernel_consistency` | `static_gate` | `structural` | `pnpm check:platform-spec-kernel-consistency` | `scripts/check-platform-spec-kernel-consistency.mjs` | Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain. |
+| `platform_kernel_consistency` | `static_gate` | `structural` | `pnpm exec nimicoding validate-spec-governance --profile nimi --scope platform-consistency` | `scripts/check-platform-spec-kernel-consistency.mjs` | Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain. |
 | `nimi_ui_pattern` | `static_gate` | `structural` | `pnpm check:nimi-ui-pattern` | `scripts/check-nimi-ui-pattern.mjs` | Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts. |
 | `nimi_ui_lib_drift` | `generated_projection` | `structural` | `pnpm check:nimi-ui-lib-drift` | `scripts/generate-nimi-ui-lib.mjs` | Generated Nimi design shared-lib projection drift check for tokens and theme packs. |
 | `nimi_kit_gate` | `static_gate` | `structural` | `pnpm check:nimi-kit` | `scripts/check-nimi-kit.mjs` | Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement. |

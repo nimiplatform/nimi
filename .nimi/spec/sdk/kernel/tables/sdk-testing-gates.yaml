@@ -46,8 +46,8 @@ gates:
     command: pnpm check:sdk-unsafe-raw-usage
     source_rule: S-GATE-091
   - gate: spec_consistency
-    command: pnpm check:sdk-spec-kernel-consistency
+    command: pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency
     source_rule: S-GATE-091
   - gate: docs_drift
-    command: pnpm check:sdk-spec-kernel-docs-drift
+    command: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check
     source_rule: S-GATE-091

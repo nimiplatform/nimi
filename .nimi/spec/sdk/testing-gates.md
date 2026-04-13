@@ -23,8 +23,8 @@
 
 - 单元/模块：`pnpm --filter @nimiplatform/sdk test`。
 - consumer smoke：`pnpm check:sdk-consumer-smoke`。
-- 文档漂移：`pnpm check:sdk-spec-kernel-docs-drift`。
-- 一致性：`pnpm check:sdk-spec-kernel-consistency`。
+- 文档漂移：`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`。
+- 一致性：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`。
 - 覆盖率：`pnpm check:sdk-coverage`。
 - 合同 / 边界：`pnpm check:sdk-import-boundary`、`pnpm check:sdk-public-naming`、`pnpm check:no-create-nimi-client`、`pnpm check:no-global-openapi-config`、`pnpm check:sdk-realm-legacy-clean`、`pnpm check:no-app-realm-rest-bypass`、`pnpm check:reason-code-constants`、`pnpm check:sdk-single-package-layout`。
 - Runtime 投影：`pnpm check:runtime-bridge-method-drift`。

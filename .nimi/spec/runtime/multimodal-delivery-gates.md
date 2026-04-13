@@ -19,9 +19,9 @@
 
 ## 2. 门禁入口
 
-- G0 SSOT Freeze：`pnpm check:ai-scenario-hardcut-drift`、`pnpm check:runtime-spec-kernel-consistency`、`pnpm check:runtime-spec-kernel-docs-drift`。
+- G0 SSOT Freeze：`pnpm check:ai-scenario-hardcut-drift`、`pnpm exec nimicoding validate-spec-governance --profile nimi --scope runtime-consistency`、`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope runtime --check`。
 - G1 Proto Chain：`pnpm proto:lint`、`pnpm proto:generate`、`pnpm proto:breaking`、`pnpm proto:drift-check`、`pnpm check:runtime-proto-spec-linkage`。
-- G2 SDK Alignment：`pnpm check:sdk-spec-kernel-consistency`、`pnpm check:sdk-spec-kernel-docs-drift`、`pnpm check:runtime-bridge-method-drift`、`pnpm check:runtime-mod-hook-hardcut`。
+- G2 SDK Alignment：`pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`、`pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`、`pnpm check:runtime-bridge-method-drift`、`pnpm check:runtime-mod-hook-hardcut`。
 - G3 Provider/Coverage：详见 `kernel/delivery-gates-contract.md`（K-GATE-040）。
 - G4 Workflow Async：`cd runtime && go test ./internal/services/ai/ -run Test.*ScenarioJob -count=1`。
 - G5 Matrix：`node scripts/run-live-test-matrix.mjs`。

@@ -87,5 +87,5 @@ CI 一致性守护额外检查：
 
 执行命令：
 
-- `pnpm check:sdk-spec-kernel-consistency`
-- `pnpm check:sdk-spec-kernel-docs-drift`
+- `pnpm exec nimicoding validate-spec-governance --profile nimi --scope sdk-consistency`
+- `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope sdk --check`
