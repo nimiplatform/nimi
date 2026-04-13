@@ -452,7 +452,8 @@ mod tests {
             .expect("start args include --port");
 
         assert_eq!(
-            args.get(model_index + 1).map(|value| normalize_test_path(value.as_ref())),
+            args.get(model_index + 1)
+                .map(|value| normalize_test_path(value.as_ref())),
             Some(normalize_test_path(expected_model_path.as_path()))
         );
         assert_eq!(args.get(host_index + 1), Some(&"127.0.0.1".to_string()));
@@ -490,7 +491,8 @@ mod tests {
             .position(|item| item == "--mmproj")
             .expect("start args include --mmproj");
         assert_eq!(
-            args.get(mmproj_index + 1).map(|value| normalize_test_path(value.as_ref())),
+            args.get(mmproj_index + 1)
+                .map(|value| normalize_test_path(value.as_ref())),
             Some(normalize_test_path(mmproj_path.as_path()))
         );
 

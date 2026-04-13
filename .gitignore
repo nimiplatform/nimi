@@ -50,6 +50,9 @@ dev/
 # local AI coding artifacts (never committed)
 .local/
 
+# desktop generated reports/evidence
+apps/desktop/reports/
+
 # local scratch outputs
 .tmp/
 .nimi/local/
