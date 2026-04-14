@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type {
@@ -7,7 +7,12 @@ import type {
   ShellAuthTestIds,
 } from '../types/auth-types.js';
 import { ShellAuthPage } from './shell-auth-page.js';
-import { DesktopParticleBackgroundLight } from './desktop-particle-background-light.js';
+
+const DesktopParticleBackgroundLight = lazy(() =>
+  import('./desktop-particle-background-light.js').then((mod) => ({
+    default: mod.DesktopParticleBackgroundLight,
+  })),
+);
 
 function DesktopAuthLogoMark() {
   return (
@@ -62,10 +67,12 @@ export function DesktopShellAuthPage(props: DesktopShellAuthPageProps) {
         footerPlacement: 'inside-content',
       }}
       background={({ isLogoHovered }) => (
-        <DesktopParticleBackgroundLight
-          isLogoHovered={isLogoHovered}
-          profile={mode === 'embedded' ? 'web' : 'desktop'}
-        />
+        <Suspense fallback={null}>
+          <DesktopParticleBackgroundLight
+            isLogoHovered={isLogoHovered}
+            profile={mode === 'embedded' ? 'web' : 'desktop'}
+          />
+        </Suspense>
       )}
       footer={mode === 'embedded' ? footer : undefined}
       desktopBrowserAuth={
