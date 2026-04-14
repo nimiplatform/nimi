@@ -20,8 +20,8 @@ spec/
 │       └── external-api-surface.yaml      # World Labs Marble API surface — endpoints / costs
 ```
 
-Implementation plans live outside the spec tree:
-- `.local/work/<topic-id>/**` — local phased implementation guides and execution evidence (non-normative)
+Implementation plans and human-authored topic reports live outside the spec tree:
+- `.nimi/local/report/{proposal|ongoing|closed}/<topic-id>/**` — local phased design, packet, and closeout material (non-normative)
 
 ## Rule ID Format
 

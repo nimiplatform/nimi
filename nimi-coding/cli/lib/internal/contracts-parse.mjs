@@ -50,7 +50,7 @@ const SPEC_GENERATION_ORDER_ENUM = [
   "generated_views",
   "thin_guides",
 ];
-const DATE_PREFIXED_LOCAL_REPORT_MARKDOWN = /^(?:\.nimi\/local\/report|\.local\/report)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+const TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN = /^\.nimi\/local\/report\/(?:proposal|ongoing|closed)\/\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.md$/;
 
 function normalizeAuthorityModeValue(value) {
   return value === "external_blueprint_active" ? "external_authority_active" : value;
@@ -115,18 +115,21 @@ function pathStartsWithRoot(targetPath, root) {
 }
 
 function isDatePrefixedLocalReportMarkdownPath(value) {
-  return typeof value === "string" && DATE_PREFIXED_LOCAL_REPORT_MARKDOWN.test(value);
+  if (typeof value !== "string") {
+    return false;
+  }
+  return TOPIC_LIFECYCLE_LOCAL_REPORT_MARKDOWN.test(value);
 }
 
 function localReportMarkdownPathsAreSortable(paths) {
   return paths.every((entry) => {
-    if (
-      typeof entry !== "string"
-      || !(
-        entry.startsWith(".nimi/local/report/")
-        || entry.startsWith(".local/report/")
-      )
-    ) {
+    if (typeof entry !== "string") {
+      return true;
+    }
+    if (entry.startsWith(".local/report/")) {
+      return false;
+    }
+    if (!entry.startsWith(".nimi/local/report/")) {
       return true;
     }
     if (!entry.endsWith(".md")) {
@@ -222,7 +225,8 @@ export function parseSpecGenerationInputsContract(text) {
       && requiredFields.includes("canonical_target_root")
       && requiredFields.includes("benchmark_blueprint_root")
       && hardConstraints.includes("canonical_target_root_must_be_.nimi/spec")
-      && hardConstraints.includes("local_report_markdown_paths_must_use_YYYY-MM-DD_slug_order"),
+      && hardConstraints.includes("local_report_markdown_paths_must_use_topic_lifecycle_shape")
+      && hardConstraints.includes("human_authored_topic_reports_must_use_.nimi/local/report_as_canonical_root"),
     requiredFields,
     generationOrderEnum,
     hardConstraints,

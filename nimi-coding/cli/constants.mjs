@@ -19,6 +19,7 @@ export const STANDALONE_COMPLETED_SURFACES = [
   "doctor",
   "handoff",
   "validators",
+  "topic_lifecycle_report_methodology",
   "closeout",
   "ingest",
   "review",
@@ -27,7 +28,6 @@ export const STANDALONE_COMPLETED_SURFACES = [
   "host_overlay_recognition",
 ];
 export const STANDALONE_DEFERRED_EXECUTION_SURFACES = [
-  "topic_lifecycle_workspace",
   "packet_bound_run_kernel",
   "provider_backed_execution",
   "scheduler",
@@ -36,7 +36,6 @@ export const STANDALONE_DEFERRED_EXECUTION_SURFACES = [
   "multi_topic_orchestration",
 ];
 export const STANDALONE_PROMOTED_PARITY_GAP_SUMMARY = [
-  "topic_lifecycle_workspace",
   "packet_bound_run_kernel",
   "provider_backed_execution",
   "scheduler_automation_notification",

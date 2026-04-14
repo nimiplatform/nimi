@@ -1,0 +1,37 @@
+version: 1
+topic_lifecycle_report:
+  canonical_root: .nimi/local/report
+  lifecycle_roots:
+    - proposal
+    - ongoing
+    - closed
+  topic_id_pattern: YYYY-MM-DD-topic-slug
+  topic_folder_shape: .nimi/local/report/<state>/YYYY-MM-DD-topic-slug/
+  recommended_files:
+    - README.md
+    - design.md
+    - preflight.md
+    - waves.md
+    - packet-*.md
+    - closeout.md
+  state_evidence:
+    file: topic.yaml
+    required_fields:
+      - topic_id
+      - state
+      - created_at
+      - last_transition_at
+      - last_transition_reason
+  canonical_constraints:
+    human_authored_topic_reports_must_use_canonical_root: true
+    flat_local_report_markdown_is_forbidden: true
+    legacy_local_report_root_allowed_for_human_topics: false
+    legacy_local_execution_workspace_is_primary: false
+  movement_rules:
+    allowed:
+      - proposal_to_ongoing
+      - ongoing_to_closed
+      - proposal_to_closed
+      - closed_to_ongoing
+      - ongoing_to_proposal
+    forbid_parallel_topic_copies: true

@@ -141,7 +141,8 @@ async function writeBlueprintReference(projectRoot, root = "spec") {
         mode: "repo_spec_blueprint",
         root,
         canonical_target_root: ".nimi/spec",
-        equivalence_contract_ref: ".nimi/local/report/2026-04-11-nimicoding-canonical-spec-model-redesign.md",
+        equivalence_contract_ref:
+          ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
       },
     }),
     "utf8",
@@ -1136,6 +1137,7 @@ test("doctor emits machine-readable JSON", async () => {
       "doctor",
       "handoff",
       "validators",
+      "topic_lifecycle_report_methodology",
       "closeout",
       "ingest",
       "review",
@@ -1144,7 +1146,6 @@ test("doctor emits machine-readable JSON", async () => {
       "host_overlay_recognition",
     ]);
     assert.deepEqual(payload.deferredExecutionSurfaces, [
-      "topic_lifecycle_workspace",
       "packet_bound_run_kernel",
       "provider_backed_execution",
       "scheduler",
@@ -1153,7 +1154,6 @@ test("doctor emits machine-readable JSON", async () => {
       "multi_topic_orchestration",
     ]);
     assert.deepEqual(payload.promotedParityGapSummary, [
-      "topic_lifecycle_workspace",
       "packet_bound_run_kernel",
       "provider_backed_execution",
       "scheduler_automation_notification",
@@ -1258,7 +1258,8 @@ test("blueprint-audit uses repo-local blueprint reference and can write a local 
           mode: "repo_spec_blueprint",
           root: "spec",
           canonical_target_root: ".nimi/spec",
-          equivalence_contract_ref: ".nimi/local/report/2026-04-11-nimicoding-canonical-spec-model-redesign.md",
+          equivalence_contract_ref:
+            ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
         },
       }),
       "utf8",
@@ -1342,6 +1343,95 @@ test("doctor rejects slug-date equivalence report refs in blueprint reference me
     assert.equal(payload.ok, false);
     const blueprintCheck = payload.checks.find((entry) => entry.id === "blueprint_reference_contract");
     assert.equal(blueprintCheck.ok, false);
+  });
+});
+
+test("doctor accepts topic lifecycle equivalence report refs in blueprint reference metadata", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await mkdir(path.join(projectRoot, ".nimi", "spec", "_meta"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ".nimi", "spec", "_meta", "blueprint-reference.yaml"),
+      YAML.stringify({
+        version: 1,
+        blueprint_reference: {
+          mode: "repo_spec_blueprint",
+          root: "spec",
+          canonical_target_root: ".nimi/spec",
+          equivalence_contract_ref:
+            ".nimi/local/report/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md",
+        },
+      }),
+      "utf8",
+    );
+
+    const bootstrapStatePath = path.join(projectRoot, ".nimi", "spec", "bootstrap-state.yaml");
+    const bootstrapState = YAML.parse(await readFile(bootstrapStatePath, "utf8"));
+    bootstrapState.state.blueprint_mode = "repo_spec_blueprint";
+    await writeFile(bootstrapStatePath, YAML.stringify(bootstrapState), "utf8");
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, true);
+  });
+});
+
+test("doctor accepts topic lifecycle report paths in spec generation inputs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.human_note_paths = [
+        ".nimi/local/report/proposal/2026-04-14-runtime-speech/design.md",
+      ];
+    });
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 0);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, true);
+  });
+});
+
+test("doctor rejects .local report roots for human-authored topic reports", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.human_note_paths = [
+        ".local/report/proposal/2026-04-14-runtime-speech/design.md",
+      ];
+    });
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.specGenerationInputs.ok, false);
+  });
+});
+
+test("doctor rejects flat local report paths in spec generation inputs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await updateSpecGenerationInputs(projectRoot, (inputs) => {
+      inputs.human_note_paths = [
+        ".nimi/local/report/2026-04-14-runtime-speech-design.md",
+      ];
+    });
+
+    const doctorResult = await captureRunCli(["doctor", "--json"]);
+    assert.equal(doctorResult.exitCode, 1);
+    const payload = JSON.parse(doctorResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.specGenerationInputs.ok, false);
   });
 });
 

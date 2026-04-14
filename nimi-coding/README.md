@@ -57,7 +57,6 @@ Its completed standalone scope is:
 
 It intentionally defers:
 
-- topic lifecycle workspace
 - packet-bound run kernel
 - provider-backed execution
 - scheduler, notification, and automation backend surfaces
@@ -117,13 +116,51 @@ Current `nimicoding clear` behavior is intentionally narrow:
 - preserve `.nimi/spec/**`, `.nimi/local/**`, and `.nimi/cache/**`
 - avoid deleting project-owned truth or local operational artifacts implicitly
 
-## Local Report Naming
+## Topic Lifecycle Reports
 
-Human-authored local report markdown files under `/.nimi/local/report/**` should
-use sortable date-first names:
+Human-authored local report work now uses a topic lifecycle workspace rooted at:
 
-- `YYYY-MM-DD-slug.md`
-- example: `2026-04-13-memory-substrate-wave-2-spec-cut.md`
+- `/.nimi/local/report/**`
+
+Canonical topic lifecycle roots are:
+
+- `proposal`
+- `ongoing`
+- `closed`
+
+The primary organization unit is a topic folder:
+
+- `.nimi/local/report/<state>/YYYY-MM-DD-topic-slug/`
+
+Each topic folder should carry a lightweight `topic.yaml` state record and may
+include:
+
+- `README.md`
+- `design.md`
+- `preflight.md`
+- `waves.md`
+- `packet-*.md`
+- `closeout.md`
+
+Topic folder rules:
+
+- use sortable date-first topic ids: `YYYY-MM-DD-topic-slug`
+- express lifecycle by moving the topic folder between `proposal`, `ongoing`,
+  and `closed`
+- keep one canonical copy of a topic at a time
+- record lifecycle transitions in `topic.yaml`; do not rely on folder moves
+  alone as the state evidence surface
+
+Canonical constraints:
+
+- human-authored topic lifecycle reports must use
+  `/.nimi/local/report/{proposal|ongoing|closed}/<topic-id>/**`
+- flat markdown files directly under `/.nimi/local/report/` are outside the
+  admitted methodology model
+- `.local/report/**` is not an accepted root for human-authored topic
+  lifecycle reports; keep it only for execution evidence or machine outputs
+- `.local/work/**` is no longer the primary methodology workspace for
+  human-authored topic execution materials
 
 Avoid the older `slug-YYYY-MM-DD.md` shape because it sorts poorly and makes
 cross-report navigation harder. Stable machine report artifacts that are meant

@@ -19,6 +19,7 @@ standalone_completion:
     - doctor
     - handoff
     - validators
+    - topic_lifecycle_report_methodology
     - closeout
     - ingest
     - review
@@ -26,7 +27,6 @@ standalone_completion:
     - admission
     - host_overlay_recognition
   deferred_execution_surfaces:
-    - topic_lifecycle_workspace
     - packet_bound_run_kernel
     - provider_backed_execution
     - scheduler
@@ -34,7 +34,6 @@ standalone_completion:
     - automation_backend
     - multi_topic_orchestration
   promoted_parity_gap_summary:
-    - topic_lifecycle_workspace
     - packet_bound_run_kernel
     - provider_backed_execution
     - scheduler_automation_notification
