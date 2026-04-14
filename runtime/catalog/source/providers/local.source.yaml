@@ -50,6 +50,10 @@ sources:
     url: https://github.com/hexgrad/kokoro
     retrieved_at: 2026-03-05
     note: Kokoro repository.
+  - source_id: voxcpm2_modelcard
+    url: https://huggingface.co/openbmb/VoxCPM2
+    retrieved_at: 2026-04-14
+    note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
   - source_id: audiocraft_musicgen_docs
     url: https://facebookresearch.github.io/audiocraft/docs/MUSICGEN.html
     retrieved_at: 2026-03-13
@@ -106,6 +110,14 @@ voice_sets:
         name: George
         langs: [en-GB]
 
+# NOTE: local source breadth is intentionally wider than current materialized
+# runtime-speech execution breadth. Inside the current runtime-speech topic,
+# admitted execution truth is still limited to:
+# - plain synth via materialized families such as kokoro
+# - plain transcribe via materialized STT family such as whispercpp
+# - the bounded voxcpm family slice
+# The remaining local speech families below are catalog evidence only until
+# their execution plane is explicitly materialized and admitted.
 models:
   - model_id: qwen3-tts-local
     updated_at: 2026-03-05
@@ -167,6 +179,20 @@ models:
       voice_set_ref: kokoro-defaults-v1
       supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
       langs_ref: short_v1
+
+  - model_id: voxcpm2-local
+    updated_at: 2026-04-14
+    capabilities: [audio.synthesize]
+    source_ids: [voxcpm2_modelcard]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_voxcpm2_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id, provider_voice_ref]
+      langs_ref: short_v1
+    aliases:
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
 
   - model_id: qwen3-chat-local
     model_type: chat
@@ -255,6 +281,57 @@ models:
     aliases:
       - sidecar/stable-audio-open
       - sidecar/stable-audio-open-default
+
+# NOTE: local workflow objects below are not a generic local workflow green
+# state. They currently express only the first admitted family-scoped slice:
+# voxcpm -> speech/voxcpm2.
+voice_workflow_models:
+  - workflow_model_id: voxcpm-local-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - voxcpm2-local
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
+    langs_ref: short_v1
+    source_ids: [voxcpm2_modelcard]
+  - workflow_model_id: voxcpm-local-voice-design
+    workflow_type: tts_t2v
+    input_contract_ref: local_tts_t2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - voxcpm2-local
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
+    langs_ref: short_v1
+    source_ids: [voxcpm2_modelcard]
+
+model_workflow_bindings:
+  - model_id: voxcpm2-local
+    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: local/voxcpm2
+    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: speech/voxcpm2
+    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+  - model_id: openbmb/VoxCPM2
+    workflow_model_refs: [voxcpm-local-voice-clone, voxcpm-local-voice-design]
+    workflow_types: [tts_v2v, tts_t2v]
+
+voice_handle_policies:
+  - policy_id: local_runtime_session_ephemeral_default
+    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    delete_semantics: runtime_authoritative_delete
+    runtime_reconciliation_required: false
+    source_ids: [voxcpm2_modelcard]
 
 overrides:
   models: []

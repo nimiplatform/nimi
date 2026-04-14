@@ -2960,17 +2960,3 @@ model_workflow_bindings:
       - qwen-voice-design
     workflow_types:
       - tts_t2v
-voice_handle_policies:
-  - policy_id: dashscope_provider_persistent_default
-    applies_to_workflow_types:
-      - tts_v2v
-      - tts_t2v
-    persistence: provider_persistent
-    default_ttl: none
-    scope: user_scoped
-    delete_semantics: best_effort_provider_delete
-    runtime_reconciliation_required: true
-    source_ref:
-      url: https://help.aliyun.com/zh/model-studio/developer-reference/create-a-voice
-      retrieved_at: 2026-03-05
-      note: DashScope custom voice workflow references and deletion behavior are runtime-reconciled around provider-persistent handles.

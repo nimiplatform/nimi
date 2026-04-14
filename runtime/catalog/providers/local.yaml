@@ -174,6 +174,88 @@ models:
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: voxcpm2-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-04-14
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    voice_set_id: local:local_voxcpm2_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: &a2
+      - voice_asset_id
+      - provider_voice_ref
+  - model_id: local/voxcpm2
+    provider: local
+    model_type: tts
+    updated_at: 2026-04-14
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    voice_set_id: local:local_voxcpm2_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: *a2
+  - model_id: speech/voxcpm2
+    provider: local
+    model_type: tts
+    updated_at: 2026-04-14
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    voice_set_id: local:local_voxcpm2_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: *a2
+  - model_id: openbmb/VoxCPM2
+    provider: local
+    model_type: tts
+    updated_at: 2026-04-14
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    voice_set_id: local:local_voxcpm2_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds: *a2
   - model_id: qwen3-chat-local
     provider: local
     model_type: chat
@@ -395,7 +477,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: &a2
+    video_generation: &a3
       modes:
         - t2v
         - i2v_first_frame
@@ -434,7 +516,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a2
+    video_generation: *a3
   - model_id: media/wan2.1-video
     provider: local
     model_type: video
@@ -452,7 +534,7 @@ models:
       url: https://huggingface.co/docs/diffusers/api/pipelines/wan
       retrieved_at: 2026-03-15
       note: Official Diffusers Wan text-to-video and image-to-video pipeline documentation.
-    video_generation: *a2
+    video_generation: *a3
   - model_id: ace-step-local
     provider: local
     model_type: music
@@ -811,3 +893,105 @@ voices:
       url: https://github.com/SWivid/F5-TTS
       retrieved_at: 2026-03-05
       note: F5-TTS repository.
+  - voice_id: user-custom
+    voice_set_id: local:local_voxcpm2_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+    model_ids:
+      - voxcpm2-local
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+voice_workflow_models:
+  - workflow_model_id: voxcpm-local-voice-clone
+    workflow_type: tts_v2v
+    input_contract_ref: local_tts_v2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - voxcpm2-local
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+  - workflow_model_id: voxcpm-local-voice-design
+    workflow_type: tts_t2v
+    input_contract_ref: local_tts_t2v_input_v1
+    output_persistence: session_ephemeral
+    target_model_refs:
+      - voxcpm2-local
+      - local/voxcpm2
+      - speech/voxcpm2
+      - openbmb/VoxCPM2
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.
+    langs:
+      - zh
+      - en
+      - de
+      - it
+      - pt
+      - es
+      - ja
+      - ko
+      - fr
+      - ru
+model_workflow_bindings:
+  - model_id: voxcpm2-local
+    workflow_model_refs:
+      - voxcpm-local-voice-clone
+      - voxcpm-local-voice-design
+    workflow_types:
+      - tts_v2v
+      - tts_t2v
+  - model_id: local/voxcpm2
+    workflow_model_refs:
+      - voxcpm-local-voice-clone
+      - voxcpm-local-voice-design
+    workflow_types:
+      - tts_v2v
+      - tts_t2v
+  - model_id: speech/voxcpm2
+    workflow_model_refs:
+      - voxcpm-local-voice-clone
+      - voxcpm-local-voice-design
+    workflow_types:
+      - tts_v2v
+      - tts_t2v
+  - model_id: openbmb/VoxCPM2
+    workflow_model_refs:
+      - voxcpm-local-voice-clone
+      - voxcpm-local-voice-design
+    workflow_types:
+      - tts_v2v
+      - tts_t2v

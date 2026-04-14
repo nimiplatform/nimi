@@ -122,16 +122,3 @@ model_workflow_bindings:
       - fish-audio-create-model
     workflow_types:
       - tts_v2v
-voice_handle_policies:
-  - policy_id: fish_audio_provider_persistent_default
-    applies_to_workflow_types:
-      - tts_v2v
-    persistence: provider_persistent
-    default_ttl: none
-    scope: user_scoped
-    delete_semantics: best_effort_provider_delete
-    runtime_reconciliation_required: true
-    source_ref:
-      url: https://docs.fish.audio/api-reference/endpoint/delete-model
-      retrieved_at: 2026-03-10
-      note: Fish Audio custom voice models are provider-persistent and runtime cleanup is best-effort.

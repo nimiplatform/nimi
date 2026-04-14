@@ -64,12 +64,16 @@ models:
         reference_images:
           min: 1
           max: 4
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
         seed:
           min: -1
           max: 4294967295
         duration_sec:
-          min: 1
-          max: 10
+          min: 4
+          max: 12
         fps:
           min: 1
           max: 60
@@ -183,15 +187,24 @@ models:
           - reference_video
           - reference_audio
       limits:
+        reference_images:
+          min: 1
+          max: 9
         reference_videos:
           min: 0
-          max: 1
+          max: 3
         reference_audios:
           min: 0
-          max: 1
+          max: 3
+        resolution:
+          - 480p
+          - 720p
+        seed:
+          min: -1
+          max: 4294967295
         duration_sec:
-          min: 1
-          max: 11
+          min: 4
+          max: 15
         ratio:
           - 16:9
           - 4:3
@@ -209,9 +222,12 @@ models:
           - generate_audio
           - service_tier
           - execution_expires_after_sec
+          - return_last_frame
+          - watermark
         constraints: {}
       outputs:
         video_url: true
+        last_frame_url: true
   - model_id: seedance-2.0
     provider: volcengine
     model_type: video

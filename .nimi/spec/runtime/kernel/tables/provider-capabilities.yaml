@@ -297,11 +297,12 @@ providers:
       - text.embed
       - text.generate
       - video.generate
+      - voice_workflow.tts_t2v
+      - voice_workflow.tts_v2v
     sources:
       - K-MCAT-027
       - K-LOCAL-001
       - K-LOCAL-002
-      - K-KEYSRC-009
   - provider: loudly
     runtime_plane: remote
     execution_module: nimillm
@@ -582,8 +583,7 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    capabilities:
-      - audio.synthesize
+    capabilities: []
     sources:
       - K-MCAT-027
       - K-CONN-008

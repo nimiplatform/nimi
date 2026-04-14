@@ -579,8 +579,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: true,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsTTSV2V: true,
+		SupportsTTST2V: true,
 	},
 	"loudly": {
 		ID: "loudly",

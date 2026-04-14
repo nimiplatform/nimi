@@ -11,10 +11,12 @@
 | `image` | `reference_images` | `false` | optional i2i reference image inputs | `K-MMPROV-016` |
 | `image` | `mask` | `false` | optional inpaint mask source | `K-MMPROV-002` |
 | `video` | `mode` | `true` | video generation mode selector (t2v or i2v variants) | `K-MMPROV-024` |
-| `video` | `content[].type` | `true` | content item type (text or image_url) | `K-MMPROV-024` |
-| `video` | `content[].role` | `true` | content role (prompt/first_frame/last_frame/reference_image) constrained by mode | `K-MMPROV-024` |
+| `video` | `content[].type` | `true` | content item type (text, image_url, video_url, or audio_url) | `K-MMPROV-024` |
+| `video` | `content[].role` | `true` | content role (prompt/first_frame/last_frame/reference_image/reference_video/reference_audio) constrained by mode and model capability | `K-MMPROV-024` |
 | `video` | `content[].text` | `false` | prompt text content when type=text | `K-MMPROV-024` |
 | `video` | `content[].image_url` | `false` | image URL payload when type=image_url | `K-MMPROV-024` |
+| `video` | `content[].video_url` | `false` | reference video URL payload when type=video_url | `K-MMPROV-024` |
+| `video` | `content[].audio_url` | `false` | reference audio URL payload when type=audio_url | `K-MMPROV-024` |
 | `video` | `options.resolution` | `false` | requested output resolution constrained by model capability matrix | `K-MMPROV-025` |
 | `video` | `options.ratio` | `false` | requested output ratio constrained by model capability matrix | `K-MMPROV-025` |
 | `video` | `options.duration_sec` | `false` | requested video duration | `K-MMPROV-025` |

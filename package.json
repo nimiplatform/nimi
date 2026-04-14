@@ -132,6 +132,7 @@
     "check:live-smoke-gate": "node scripts/check-live-smoke-gate.mjs",
     "check:live-smoke-gate-regression": "node --test scripts/check-live-smoke-gate.test.mjs",
     "live:audio-fixtures": "node scripts/live-audio-fixtures.mjs",
+    "run:seedance-video-smoke": "node scripts/run-seedance-video-smoke.mjs",
     "run:ai-gold-path": "node scripts/run-ai-gold-path.mjs",
     "run:ai-gold-path:dashscope": "node scripts/run-dashscope-gold-path.mjs",
     "proto:generate": "cd proto && ../scripts/run-buf.sh generate",

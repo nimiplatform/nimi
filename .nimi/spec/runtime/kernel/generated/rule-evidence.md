@@ -284,6 +284,8 @@
 | `K-MCAT-025` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-026` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MCAT-027` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-028` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
+| `K-MCAT-029` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_catalog_drift` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -347,6 +349,8 @@
 | `K-RPC-019` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-020` | `covered` | `runtime_kernel_consistency` |
 | `K-RPC-021` | `covered` | `runtime_kernel_consistency` |
+| `K-RPC-022` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-RPC-023` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-SEC-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-SEC-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-SEC-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -378,6 +382,10 @@
 | `K-VOICE-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-VOICE-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-VOICE-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-014` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-015` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-016` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-VOICE-017` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-WF-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-WF-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-WF-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

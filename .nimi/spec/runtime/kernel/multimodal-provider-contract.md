@@ -74,6 +74,11 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 - 在 local workflow execution plane 尚未 admitted 前，`/v1/voice/clone` 与 `/v1/voice/design` 必须明确返回 capability-not-admitted / fail-close 语义，而不是 generic speech success 或静默降级。
 - plain-speech admitted driver family（例如当前 `kokoro` / `whispercpp`）不得被隐式提升为 workflow-family admission truth；后续 workflow-capable local family（例如 `voxcpm` / `omnivoice`）若要 admitted，必须拥有独立的 workflow model / binding / handle policy truth。
 - workflow-capable TTS family 的成功结果不得替代 `audio.transcribe` 验收；speech 全链路成功必须继续保留独立 STT family truth。
+- 当 local workflow execution 进入 first-family admitted wave 时：
+  - `/v1/voice/clone` 与 `/v1/voice/design` 只允许对 admitted family 返回成功
+  - 当前首轮 admitted family 边界固定为 `voxcpm`
+  - unsupported local workflow family（包括 `omnivoice`）必须继续返回 family-scoped fail-close，而不是 generic local speech success
+  - `GET /healthz` 与 `GET /v1/catalog` 仍不得把某一 admitted workflow family 的成功投影为 generic local workflow-ready
 
 ## K-MMPROV-011 Workflow External Async
 
@@ -204,9 +209,13 @@ Video mode 与 content role 组合必须严格匹配：
 - `t2v`：至少 1 条 `TEXT+PROMPT`，禁止 `FIRST_FRAME/LAST_FRAME/REFERENCE_IMAGE`。
 - `i2v_first_frame`：必须且仅 1 条 `IMAGE_URL+FIRST_FRAME`，可附文本 prompt。
 - `i2v_first_last`：必须包含 `IMAGE_URL+FIRST_FRAME` 与 `IMAGE_URL+LAST_FRAME` 各 1 条，可附文本 prompt。
-- `i2v_reference`：必须包含 1-4 条 `IMAGE_URL+REFERENCE_IMAGE`，可附文本 prompt。
+- `i2v_reference`：必须包含至少 1 条 `IMAGE_URL+REFERENCE_IMAGE`，可附文本 prompt。
 
-所有模式均可附加可选的 `VIDEO_URL+REFERENCE_VIDEO`（最多 1 条）和 `AUDIO_URL+REFERENCE_AUDIO`（最多 1 条），用于视频风格参考和背景音频输入。provider/model 是否支持这些可选角色由 catalog `input_roles` 声明决定。
+`prompt` 在 `t2v` 模式下为必需字段；在 `i2v_*` 模式下是否必需由 provider/model 能力与输入角色合同决定，但若出现文本内容，则必须以 `TEXT+PROMPT` 角色表达。
+
+所有模式均可附加可选的 `VIDEO_URL+REFERENCE_VIDEO` 与 `AUDIO_URL+REFERENCE_AUDIO`，用于视频风格参考和背景音频输入。provider/model 是否支持这些可选角色及其最大数量由 catalog `input_roles + limits` 声明决定；runtime 不得把 source/snapshot 中声明的“允许角色集合”误解释为“每次请求必须显式提供的完整角色集合”。
+
+当请求包含 `AUDIO_URL+REFERENCE_AUDIO` 时，必须同时存在至少一个视觉参考输入（`FIRST_FRAME` / `LAST_FRAME` / `REFERENCE_IMAGE` / `REFERENCE_VIDEO` 之一）；不得接受“仅文本 + 音频参考”的无视觉锚点请求。
 
 任一 mode/role 冲突必须 fail-close（`AI_MEDIA_SPEC_INVALID` 或 `AI_MEDIA_OPTION_UNSUPPORTED`）。
 

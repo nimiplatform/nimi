@@ -10,8 +10,8 @@ const repoRoot = path.resolve(scriptDir, '..');
 const sourceDir = path.join(repoRoot, 'runtime', 'catalog', 'source', 'providers');
 const generatedPath = path.join(repoRoot, 'runtime', 'internal', 'providerregistry', 'generated.go');
 const sdkGeneratedPath = path.join(repoRoot, 'sdk', 'src', 'runtime', 'provider-targeting.generated.ts');
-const providerCatalogTablePath = path.join(repoRoot, 'spec', 'runtime', 'kernel', 'tables', 'provider-catalog.yaml');
-const providerCapabilitiesTablePath = path.join(repoRoot, 'spec', 'runtime', 'kernel', 'tables', 'provider-capabilities.yaml');
+const providerCatalogTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-catalog.yaml');
+const providerCapabilitiesTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-capabilities.yaml');
 
 const supplementalProviders = [
   {

@@ -978,7 +978,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
       model: routedModelId,
       mode: 't2v',
       content: [{ type: 'text', text: 'A short sunrise cinematic shot.' }],
-      options: { durationSec: 1, fps: 24 },
+      options: { durationSec: 4 },
       subjectUserId: SUBJECT_USER_ID,
       route,
       fallback: 'deny',

@@ -1112,6 +1112,9 @@
 - rule_id: K-VOICE-016
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-VOICE-017
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-WF-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

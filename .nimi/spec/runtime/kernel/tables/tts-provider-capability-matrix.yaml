@@ -58,8 +58,8 @@ entries:
   - provider_id: local
     runtime_plane: local
     supports_tts_synthesize: true
-    supports_tts_v2v: false
-    supports_tts_t2v: false
+    supports_tts_v2v: true
+    supports_tts_t2v: true
     supports_timing_alignment: false
     voice_discovery_mode: mixed
     activation_state: active

@@ -514,6 +514,10 @@ fail-close 时不得：
 - `checkHealth(...)` 对 workflow capability 必须检查 workflow driver/readiness；当 `requiresTargetSynthesisBinding=true` 时，还必须把目标 synthesis binding readiness 作为同一路径的组成条件。
 - `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
 - 任一 workflow capability 缺失独立 selection、resolution、health、或 metadata truth 时必须 fail-close，不得降级到 `audio.synthesize` 成功路径。
+- 对 local workflow execution admitted wave，workflow success 也必须保持 family-scoped：
+  - 首轮 admitted family 当前固定为 `voxcpm`
+  - `resolve(...)` / `checkHealth(...)` / `describe(...)` 对 `voxcpm` 的成功不得被解释为 generic local workflow success
+  - 其它 local workflow family（包括 `omnivoice`）在未独立 admitted 前必须继续 fail-close
 
 ## K-RPC-022 VoiceAsset Lifecycle Boundary
 

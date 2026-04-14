@@ -10,7 +10,7 @@
 | `elevenlabs` | `remote` | `true` | `true` | `true` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
 | `fish_audio` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `google_cloud_tts` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
-| `local` | `local` | `true` | `false` | `false` | `false` | `mixed` | `active` | `K-MCAT-023` |
+| `local` | `local` | `true` | `true` | `true` | `false` | `mixed` | `active` | `K-MCAT-023` |
 | `openai` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `stepfun` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `volcengine` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |

@@ -38,12 +38,12 @@ fields:
   - modality: video
     field: content[].type
     required: true
-    description: content item type (text or image_url)
+    description: content item type (text, image_url, video_url, or audio_url)
     source_rule: K-MMPROV-024
   - modality: video
     field: content[].role
     required: true
-    description: content role (prompt/first_frame/last_frame/reference_image) constrained by mode
+    description: content role (prompt/first_frame/last_frame/reference_image/reference_video/reference_audio) constrained by mode and model capability
     source_rule: K-MMPROV-024
   - modality: video
     field: content[].text
@@ -54,6 +54,16 @@ fields:
     field: content[].image_url
     required: false
     description: image URL payload when type=image_url
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].video_url
+    required: false
+    description: reference video URL payload when type=video_url
+    source_rule: K-MMPROV-024
+  - modality: video
+    field: content[].audio_url
+    required: false
+    description: reference audio URL payload when type=audio_url
     source_rule: K-MMPROV-024
   - modality: video
     field: options.resolution
