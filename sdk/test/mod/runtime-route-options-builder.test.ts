@@ -8,9 +8,10 @@ import {
   runtimeRouteModelSupportsCapability,
 } from '../../src/mod/runtime-route-options.js';
 
-test('runtime route model capability matcher accepts local aliases and workflow routing aliases', () => {
+test('runtime route model capability matcher keeps workflow capability independent from plain tts aliases', () => {
   assert.equal(runtimeRouteModelSupportsCapability(['chat'], 'text.generate'), true);
-  assert.equal(runtimeRouteModelSupportsCapability(['tts'], 'voice_workflow.tts_t2v'), true);
+  assert.equal(runtimeRouteModelSupportsCapability(['tts'], 'voice_workflow.tts_t2v'), false);
+  assert.equal(runtimeRouteModelSupportsCapability(['voice_workflow.tts_t2v'], 'voice_workflow.tts_t2v'), true);
   assert.equal(runtimeRouteModelSupportsCapability(['speech.transcribe'], 'audio.transcribe'), true);
   assert.equal(runtimeRouteModelSupportsCapability(['image'], 'text.generate'), false);
 });
@@ -18,6 +19,7 @@ test('runtime route model capability matcher accepts local aliases and workflow 
 test('runtime route local kind matcher keeps kind fallback for local assets without canonical capabilities', () => {
   assert.equal(runtimeRouteLocalKindSupportsCapability('chat', 'text.generate'), true);
   assert.equal(runtimeRouteLocalKindSupportsCapability('stt', 'audio.transcribe'), true);
+  assert.equal(runtimeRouteLocalKindSupportsCapability('tts', 'voice_workflow.tts_t2v'), false);
   assert.equal(runtimeRouteLocalKindSupportsCapability('image', 'text.generate'), false);
 });
 
@@ -44,6 +46,56 @@ test('buildRuntimeRouteSelectedBinding preserves degraded local selection when l
     modelId: 'qwen-local',
     provider: 'llama',
     engine: 'llama',
+    goRuntimeStatus: 'degraded',
+  });
+});
+
+test('buildRuntimeRouteSelectedBinding canonicalizes local plain-speech bindings when provider is generic local', () => {
+  const synthSelected = buildRuntimeRouteSelectedBinding({
+    capability: 'audio.synthesize',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/kokoro-82m',
+      modelId: 'speech/kokoro-82m',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.deepEqual(synthSelected, {
+    source: 'local',
+    connectorId: '',
+    model: 'speech/kokoro-82m',
+    modelId: 'speech/kokoro-82m',
+    provider: 'speech',
+    engine: 'speech',
+    goRuntimeStatus: 'degraded',
+  });
+
+  const sttSelected = buildRuntimeRouteSelectedBinding({
+    capability: 'audio.transcribe',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/whisper-large-v3',
+      modelId: 'speech/whisper-large-v3',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.deepEqual(sttSelected, {
+    source: 'local',
+    connectorId: '',
+    model: 'speech/whisper-large-v3',
+    modelId: 'speech/whisper-large-v3',
+    provider: 'speech',
+    engine: 'speech',
     goRuntimeStatus: 'degraded',
   });
 });

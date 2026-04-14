@@ -100,6 +100,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         }
         return {
             provider,
+            capability: String(payload.capability || ''),
             localProviderEndpoint: payload.localProviderEndpoint || runtime.localProviderEndpoint,
             localProviderModel: payload.localProviderModel || runtime.localProviderModel,
             localOpenAiEndpoint: payload.localOpenAiEndpoint || runtime.localOpenAiEndpoint,
@@ -169,6 +170,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
         const resolved = await resolveRuntimeRoute(payload);
         const result = await input.checkLocalLlmHealth({
             provider: resolved.provider,
+            capability: payload.capability,
             localProviderEndpoint: resolved.localProviderEndpoint || resolved.endpoint,
             localProviderModel: resolved.model,
             localOpenAiEndpoint: resolved.localOpenAiEndpoint || resolved.endpoint,

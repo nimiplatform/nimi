@@ -166,7 +166,7 @@ test('manual import no longer injects managed media loopback defaults and can fo
     readFileSync(
       path.resolve(
         process.cwd(),
-        'src/runtime/local-runtime/commands.ts',
+        'src/runtime/local-runtime/commands-assets.ts',
       ),
       'utf-8',
     ),

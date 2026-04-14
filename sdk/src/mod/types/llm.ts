@@ -85,6 +85,7 @@ export type ResolvedRuntimeRouteBinding = LocalRouteBinding | CloudRouteBinding;
 
 export type RuntimeLlmHealthInput = {
   provider?: string;
+  capability?: string;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;

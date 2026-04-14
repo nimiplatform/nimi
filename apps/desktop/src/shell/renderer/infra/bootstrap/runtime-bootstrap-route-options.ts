@@ -90,12 +90,11 @@ function mapCanonicalCapabilityToLocalCapability(capability: RuntimeCanonicalCap
     return undefined;
 }
 function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
-    const platform = resolveLocalRoutePlatform();
     if (capability === 'image.generate' || capability === 'video.generate') {
         return 'media';
     }
-    if (capability === 'audio.synthesize' || (platform === 'windows' && capability === 'voice_workflow.tts_t2v')) {
-        return 'sidecar';
+    if (capability === 'audio.synthesize' || capability === 'audio.transcribe') {
+        return 'speech';
     }
     return 'llama';
 }
@@ -110,6 +109,13 @@ function inferLocalEngine(provider: string, capability?: RuntimeCanonicalCapabil
         return normalizedDefault;
     }
     return fallbackLocalEngine(capability);
+}
+function isCanonicalLocalEngineToken(value: unknown): boolean {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'llama'
+        || normalized === 'media'
+        || normalized === 'speech'
+        || normalized === 'sidecar';
 }
 function rankRuntimeLocalStatus(value: unknown): number {
     const status = String(value || '').trim().toLowerCase();
@@ -412,9 +418,11 @@ export function buildSelectedBinding(input: {
     const selected = buildRuntimeRouteSelectedBinding(input);
     if (selected?.source === 'local') {
         const normalizedModelId = normalizeLocalModelRoot(String(selected.modelId || selected.model || '').trim()) || undefined;
-        if (!String(selected.engine || '').trim()) {
+        const selectedEngine = String(selected.engine || '').trim();
+        const selectedProvider = String(selected.provider || '').trim();
+        if (!selectedEngine || !isCanonicalLocalEngineToken(selectedEngine)) {
             const inferredEngine = inferLocalEngine(
-                String(selected.provider || input.selectedBinding?.engine || input.selectedBinding?.provider || '').trim(),
+                String(selectedProvider || input.selectedBinding?.engine || input.selectedBinding?.provider || '').trim(),
                 input.capability,
                 input.runtimeDefaultEngine,
             );
@@ -423,7 +431,9 @@ export function buildSelectedBinding(input: {
                 model: normalizedModelId || String(selected.model || '').trim(),
                 modelId: normalizedModelId,
                 engine: inferredEngine,
-                provider: String(selected.provider || inferredEngine).trim() || undefined,
+                provider: isCanonicalLocalEngineToken(selectedProvider)
+                    ? selectedProvider
+                    : inferredEngine,
             };
         }
         return {

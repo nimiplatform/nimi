@@ -50,10 +50,9 @@ export function buildRuntimeHostShellCapabilities(input: {
         };
       },
       useStatusBanner: () => {
-        const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-        return {
-          showStatusBanner: setStatusBanner,
-        };
+        return useAppStore((state) => ({
+          showStatusBanner: state.setStatusBanner,
+        }));
       },
     },
     settings: {

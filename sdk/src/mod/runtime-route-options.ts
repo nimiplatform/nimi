@@ -17,11 +17,34 @@ function normalizeCapabilityAlias(value: string): RuntimeCanonicalCapability | n
   return null;
 }
 
-function resolveFilterCapability(capability: RuntimeCanonicalCapability): RuntimeCanonicalCapability {
-  if (capability === 'voice_workflow.tts_v2v' || capability === 'voice_workflow.tts_t2v') {
-    return 'audio.synthesize';
+function isCanonicalLocalEngine(value: unknown): boolean {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'llama'
+    || normalized === 'media'
+    || normalized === 'speech'
+    || normalized === 'sidecar';
+}
+
+function inferCanonicalLocalEngine(
+  capability: RuntimeCanonicalCapability,
+  engineLike: unknown,
+  runtimeDefaultEngine: unknown,
+): string | undefined {
+  const normalizedEngineLike = String(engineLike || '').trim().toLowerCase();
+  if (isCanonicalLocalEngine(normalizedEngineLike)) {
+    return normalizedEngineLike;
   }
-  return capability;
+  const normalizedDefault = String(runtimeDefaultEngine || '').trim().toLowerCase();
+  if (isCanonicalLocalEngine(normalizedDefault)) {
+    return normalizedDefault;
+  }
+  if (capability === 'image.generate' || capability === 'video.generate') {
+    return 'media';
+  }
+  if (capability === 'audio.synthesize' || capability === 'audio.transcribe') {
+    return 'speech';
+  }
+  return 'llama';
 }
 
 function firstAvailableBinding(
@@ -171,8 +194,7 @@ export function runtimeRouteModelSupportsCapability(
   capabilities: string[] | undefined,
   capability: RuntimeCanonicalCapability,
 ): boolean {
-  const filterCapability = resolveFilterCapability(capability);
-  return (capabilities || []).some((item) => normalizeRuntimeRouteCapabilityToken(item) === filterCapability);
+  return (capabilities || []).some((item) => normalizeRuntimeRouteCapabilityToken(item) === capability);
 }
 
 export function runtimeRouteLocalKindSupportsCapability(
@@ -195,10 +217,7 @@ export function runtimeRouteLocalKindSupportsCapability(
   if (capability === 'video.generate' && normalizedKind === 'video') {
     return true;
   }
-  if (
-    (capability === 'audio.synthesize' || capability === 'voice_workflow.tts_v2v' || capability === 'voice_workflow.tts_t2v')
-    && normalizedKind === 'tts'
-  ) {
+  if (capability === 'audio.synthesize' && normalizedKind === 'tts') {
     return true;
   }
   if (capability === 'audio.transcribe' && normalizedKind === 'stt') {
@@ -231,15 +250,16 @@ export function buildRuntimeRouteSelectedBinding(input: {
         return toLocalBinding(exactLocal);
       }
     }
-    const engine = String(
-      matchedLocalModel.engine
-      || matchedLocalModel.provider
-      || runtimeDefaultEngine
-      || '',
-    ).trim() || undefined;
+    const engine = inferCanonicalLocalEngine(
+      input.capability,
+      matchedLocalModel.engine || matchedLocalModel.provider,
+      runtimeDefaultEngine,
+    );
     return {
       ...matchedLocalModel,
-      provider: String(matchedLocalModel.provider || matchedLocalModel.engine || runtimeDefaultEngine || '').trim() || undefined,
+      provider: isCanonicalLocalEngine(matchedLocalModel.provider)
+        ? String(matchedLocalModel.provider || '').trim()
+        : engine,
       engine,
       goRuntimeStatus: String(matchedLocalModel.goRuntimeStatus || '').trim()
         || (localMetadataDegraded ? 'degraded' : 'unavailable'),

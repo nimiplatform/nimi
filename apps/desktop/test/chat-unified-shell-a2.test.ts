@@ -208,10 +208,11 @@ test('chat unified shell a2: Phase 4 — AI and Agent adapters write through AIC
   assert.match(chatAiAdapterSource, /surface\.aiConfig\.update\(/);
   assert.doesNotMatch(chatAiAdapterSource, /setConversationCapabilityBinding/);
 
-  // Agent adapter uses surface.aiConfig.update for model selection writes
-  assert.match(chatAgentAdapterSource, /getDesktopAIConfigService/);
-  assert.match(chatAgentAdapterSource, /surface\.aiConfig\.update\(/);
-  assert.doesNotMatch(chatAgentAdapterSource, /setConversationCapabilityBinding/);
+  // Agent path uses the adapter-state seam for model selection writes
+  const chatAgentAdapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
+  assert.match(chatAgentAdapterStateSource, /getDesktopAIConfigService/);
+  assert.match(chatAgentAdapterStateSource, /surface\.aiConfig\.update\(/);
+  assert.doesNotMatch(chatAgentAdapterStateSource, /setConversationCapabilityBinding/);
 });
 
 test('chat unified shell a2: Phase 4 — conversation-capability module positions itself as submodel (D-AIPC-010)', () => {
