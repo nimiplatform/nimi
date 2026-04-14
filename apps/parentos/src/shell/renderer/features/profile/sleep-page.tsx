@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
-import { upsertSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
+import { upsertSleepRecord, deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
@@ -20,6 +20,7 @@ import {
   referenceSleepRange,
   sleepAgeTier,
   sortSleepRecordsDesc,
+  unpackNotes,
   TIER_DEFAULTS,
   TIER_LABELS,
 } from './sleep-page-shared.js';
@@ -50,6 +51,9 @@ export default function SleepPage() {
   // Dynamic nap rows: each has start/end time
   const [napRows, setNapRows] = useState<Array<{ start: string; end: string }>>([]);
   const [napAddHover, setNapAddHover] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeChildId) getSleepRecords(activeChildId).then(setRecords).catch(catchLog('sleep', 'action:load-sleep-records-failed'));
@@ -79,12 +83,15 @@ export default function SleepPage() {
     setFormNightWakings('');
     setNapRows([]);
     setShowForm(false);
+    setEditingRecordId(null);
+    setSaveError(null);
   };
 
   const autoDuration = calcDuration(formBedtime, formWakeTime);
 
   const handleSubmit = async () => {
     if (!formSleepDate) return;
+    setSaveError(null);
     const safeSleepDate = formatDateValue(clampDateToToday(parseDateValue(formSleepDate)));
     const now = isoNow();
     // Pack nap details into notes
@@ -110,7 +117,37 @@ export default function SleepPage() {
       const updated = await getSleepRecords(child.childId);
       setRecords(updated);
       resetForm();
-    } catch { /* bridge unavailable */ }
+    } catch (err) {
+      catchLog('sleep', 'action:upsert-sleep-record-failed')(err);
+      const msg = typeof err === 'string' ? err : err instanceof Error ? err.message : '未知错误';
+      setSaveError(`保存失败: ${msg}`);
+    }
+  };
+
+  const startEdit = (record: SleepRecordRow) => {
+    const { nightWakings, freeNotes } = unpackNotes(record.notes);
+    setEditingRecordId(record.recordId);
+    setFormSleepDate(record.sleepDate.split('T')[0]!);
+    setFormBedtime(record.bedtime ?? defaults.bed);
+    setFormWakeTime(record.wakeTime ?? defaults.wake);
+    setFormQuality(record.quality ?? 'good');
+    setFormNightWakings(nightWakings != null && nightWakings > 0 ? String(nightWakings) : '');
+    setFormNotes(freeNotes);
+    // Nap rows can't be fully reconstructed from packed notes, reset them
+    setNapRows([]);
+    setSaveError(null);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (recordId: string) => {
+    try {
+      await deleteSleepRecord(recordId);
+      const updated = await getSleepRecords(child.childId);
+      setRecords(updated);
+    } catch (err) {
+      catchLog('sleep', 'action:delete-sleep-record-failed')(err);
+    }
+    setDeletingRecordId(null);
   };
 
   return (
@@ -140,6 +177,7 @@ export default function SleepPage() {
       {showForm ? (
         <SleepRecordForm
           tier={tier}
+          isEditing={editingRecordId !== null}
           showNightWakings={showNightWakings}
           formSleepDate={formSleepDate}
           setFormSleepDate={setFormSleepDate}
@@ -162,6 +200,7 @@ export default function SleepPage() {
           addNapRow={addNapRow}
           removeNapRow={removeNapRow}
           updateNapRow={updateNapRow}
+          saveError={saveError}
           onClose={resetForm}
           onSave={() => void handleSubmit()}
         />
@@ -181,11 +220,25 @@ export default function SleepPage() {
         ) : (
           <div className="space-y-2">
             {sortedRecords.map((record) => (
-              <SleepRecordCard key={record.recordId} record={record} />
+              <SleepRecordCard key={record.recordId} record={record} onEdit={startEdit} onDelete={setDeletingRecordId} />
             ))}
           </div>
         )}
       </section>
+
+      {/* Delete confirmation dialog */}
+      {deletingRecordId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => setDeletingRecordId(null)}>
+          <div className={`${S.radius} p-6 w-[340px] shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+            <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>确认删除</p>
+            <p className="text-[12px] mb-5" style={{ color: S.sub }}>删除后无法恢复，确定要删除这条睡眠记录吗？</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingRecordId(null)} className={`px-4 py-2 text-[13px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={() => void handleDelete(deletingRecordId)} className={`px-4 py-2 text-[13px] font-medium text-white ${S.radiusSm}`} style={{ background: '#dc2626' }}>确认删除</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

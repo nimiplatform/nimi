@@ -40,6 +40,7 @@ Governing fact sources:
 - `tables/milestone-catalog.yaml`
 - `tables/reminder-rules.yaml`
 - `tables/routes.yaml#/profile`
+- `tables/routes.yaml#/profile/*` (routeKind and summarySource metadata)
 - `tables/routes.yaml#/profile/posture`
 
 ## PO-PROF-001 Child Record Shape
@@ -62,6 +63,8 @@ Phase 1 child records must round-trip these typed fields:
 | `allergies` | `string[] \| null` |
 | `medicalNotes` | `string[] \| null` |
 | `recorderProfiles` | `RecorderProfile[] \| null` |
+| `createdAt` | `ISO 8601 datetime string` |
+| `updatedAt` | `ISO 8601 datetime string` |
 
 Delete must cascade through all dependent child-scoped tables: growth, vaccine, milestone, journal, AI, dental, allergy, sleep, medical events, tanner, and fitness records.
 
@@ -318,6 +321,83 @@ OCR import must obey these invariants:
 - the posture surface must not invent an undocumented hidden storage schema
 - the posture surface must not render diagnosis, treatment plans, or comparative ranking
 
+## PO-PROF-021 Timeline vs Profile Responsibility Boundary
+
+`/timeline` and `/profile` serve complementary but non-overlapping display mandates.
+
+| Concern | `/timeline` (Timeline) | `/profile` (Profile) |
+|---|---|---|
+| **Core mandate** | Current action surface — what to do now and next | Complete archive — full history and structured records |
+| **Time orientation** | Present and near-future (today, this week, current stage) | All-time and cumulative |
+| **Data display** | Agenda-driven projection (reminders, recent changes, freshness alerts) | Record-oriented projection (counts, last-updated, completeness) |
+| **Owned features** | `PO-FEAT-002` reminder engine, `PO-FEAT-003` growth timeline, `PO-FEAT-011` sensitive period guide, `PO-FEAT-046` monthly report trigger | `PO-FEAT-001` child profile CRUD, `PO-FEAT-004`–`PO-FEAT-007` record surfaces, `PO-FEAT-022`/`PO-FEAT-025`/`PO-FEAT-034`–`PO-FEAT-041` extended profile surfaces |
+| **Quick stats** | May show agenda-derived counts (overdue, due-today, upcoming) | Must NOT duplicate timeline agenda counts; shows archive metadata (record counts, last-updated, completeness percentage) |
+
+Invariants:
+
+- Profile must not recompute or display reminder-agenda buckets (`todayFocus`, `thisWeek`, `overdueSummary`, etc.). Reminder state is owned by `timeline-contract`.
+- Timeline must not serve as a record browsing or history exploration surface. Deep record access is owned by `profile-contract`.
+- Both surfaces may link to each other for cross-navigation (e.g., a timeline reminder card may link to the relevant profile sub-page).
+
+## PO-PROF-022 Profile Section Summary Projection
+
+The profile index page must project a uniform summary for each archive section. Each section summary contains:
+
+| Field | Type | Semantics |
+|---|---|---|
+| `sectionId` | `string` | Route-derived identifier (e.g., `growth`, `vaccines`, `sleep`) |
+| `recordCount` | `number` | Total records in this section for the active child |
+| `lastUpdatedAt` | `string \| null` | ISO 8601 datetime of the most recent record, or `null` if no records |
+| `state` | `'ok' \| 'empty' \| 'error'` | Load result discriminator |
+| `errorMessage` | `string \| null` | Human-readable error description when `state` is `error` |
+
+The summary projection must be retrieved via a single batch call `getProfileSectionSummaries(childId)` that returns all section summaries in one response. This avoids per-section waterfall queries and provides consistent snapshot semantics.
+
+Invariants:
+
+- The projection must distinguish `empty` (zero records, successfully loaded) from `error` (load failed). A failed query must not produce `recordCount: 0`.
+- `lastUpdatedAt` must reflect the actual most-recent record timestamp, not the query timestamp.
+- The batch call must not silently drop failed sections. Every registered archive section must appear in the response with an explicit `state`.
+- The UI must render section cards using the `state` discriminator: `ok` shows count and recency, `empty` shows a contextual empty-state prompt, `error` shows the error with a retry affordance.
+
+## PO-PROF-023 Route Classification and Tool Separation
+
+Profile child routes fall into two kinds:
+
+| `routeKind` | Meaning | Examples |
+|---|---|---|
+| `archive` | A structured record domain with browsable history | `/profile/growth`, `/profile/vaccines`, `/profile/sleep`, etc. |
+| `tool` | An intake/utility surface that writes into archive domains but is not itself a browsable archive | `/profile/report-upload` |
+
+Invariants:
+
+- The profile index page must visually separate `archive` routes from `tool` routes. Archive sections form the main directory grid; tool entries are placed in a distinct utility area.
+- `tool` routes must not appear in the archive grid with record counts and last-updated metadata, because they do not own records.
+- `archive` routes must each have a section summary (PO-PROF-022). `tool` routes are exempt from summary projection.
+- The `routeKind` value is declared in `routes.yaml` for each `/profile/*` child route.
+
+## PO-PROF-024 Age-Adaptive Section Ordering
+
+The profile section grid must order archive sections by current-age relevance. The ordering is a display-time sort, not a visibility filter — all admitted archive sections remain visible regardless of age.
+
+Ordering principles:
+
+- Sections with higher expected activity at the child's current age rank higher.
+- The section set does not change by age (no hiding), but conditional sections (e.g., Tanner at ≥84 months) may be added per existing route constraints.
+- The ordering must be deterministic for a given `ageMonths` value.
+
+Phase 1 ordering tiers (descending priority):
+
+| Age range (months) | Top-tier sections |
+|---|---|
+| 0–12 | growth, milestones, vaccines, sleep, medical-events |
+| 13–36 | growth, milestones, vaccines, dental, sleep |
+| 37–72 | growth, dental, vision, vaccines, fitness |
+| 73–120 | vision, growth, fitness, dental, tanner (if admitted) |
+| 121–216 | vision, fitness, growth, tanner, dental |
+
+Sections not listed in a tier's top group appear after the top group in their default registration order from `routes.yaml`.
+
 ## PO-PROF-020 Fail-Close Behavior
 
 The profile layer must fail closed when:
@@ -337,6 +417,15 @@ The profile layer must fail closed when:
 - a Tanner stage value is outside the integer range 1-5
 - an allergy `status` transition has no `statusChangedAt` timestamp
 - a sleep record violates the `childId + sleepDate` uniqueness constraint
+
+### Card-Level Error Isolation (PO-PROF-020a)
+
+Profile index page section cards must isolate errors at the card level, not the page level.
+
+- A failed section summary query must render an error state on that specific card only. Other cards with successful loads must remain fully functional.
+- `.catch(catchLog(...))` or equivalent silent error swallowing that produces `0` / `--` / empty state indistinguishable from "no records" is a fail-close violation.
+- Each card must render one of three visual states based on the `state` discriminator from PO-PROF-022: `ok` (data loaded), `empty` (zero records, load succeeded), `error` (load failed, show error + retry).
+- A page-level loading failure (e.g., no active child) is a separate concern and renders a page-level empty state, not per-card errors.
 
 ## Phase Exclusions
 

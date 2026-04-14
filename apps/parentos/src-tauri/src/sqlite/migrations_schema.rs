@@ -292,6 +292,7 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
             run50m           REAL,
             run800m          REAL,
             run1000m         REAL,
+            run50x8          REAL,
             sitAndReach      REAL,
             standingLongJump REAL,
             sitUps           INTEGER,
@@ -304,4 +305,19 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
             createdAt        TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_fitness_child_date ON fitness_assessments (childId, assessedAt);
+
+        -- Attachments
+        CREATE TABLE IF NOT EXISTS attachments (
+            attachmentId TEXT PRIMARY KEY NOT NULL,
+            childId      TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,
+            ownerTable   TEXT NOT NULL,
+            ownerId      TEXT NOT NULL,
+            filePath     TEXT NOT NULL,
+            fileName     TEXT NOT NULL,
+            mimeType     TEXT NOT NULL,
+            caption      TEXT,
+            createdAt    TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_attach_child_owner ON attachments (childId, ownerTable, ownerId);
+        CREATE INDEX IF NOT EXISTS idx_attach_child_date  ON attachments (childId, createdAt);
 "#;

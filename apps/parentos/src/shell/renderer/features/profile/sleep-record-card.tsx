@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react';
 import { formatAge } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
@@ -11,8 +12,12 @@ import {
 
 export function SleepRecordCard({
   record,
+  onEdit,
+  onDelete,
 }: {
   record: SleepRecordRow;
+  onEdit: (record: SleepRecordRow) => void;
+  onDelete: (recordId: string) => void;
 }) {
   const tier = sleepAgeTier(record.ageMonths);
   const totalMin = (record.durationMinutes ?? 0) + (record.napMinutes ?? 0);
@@ -20,7 +25,7 @@ export function SleepRecordCard({
   const qualityColor = record.quality ? QUALITY_COLOR[record.quality] : null;
 
   return (
-    <div className={S.radius + ' p-5'} style={{ background: S.card, boxShadow: S.shadow }}>
+    <div className={`group/card ${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-semibold" style={{ color: S.text }}>{record.sleepDate.split('T')[0]}</span>
@@ -30,7 +35,17 @@ export function SleepRecordCard({
             </span>
           ) : null}
         </div>
-        <span className="text-[10px]" style={{ color: S.sub }}>{formatAge(record.ageMonths)}</span>
+        <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/card:opacity-100">
+            <button onClick={() => onEdit(record)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-[#f0f0ec] transition-colors" title="编辑">
+              <Pencil size={13} strokeWidth={1.5} style={{ color: S.sub }} />
+            </button>
+            <button onClick={() => onDelete(record.recordId)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors" title="删除">
+              <Trash2 size={13} strokeWidth={1.5} style={{ color: '#dc2626' }} />
+            </button>
+          </div>
+          <span className="text-[10px] ml-1" style={{ color: S.sub }}>{formatAge(record.ageMonths)}</span>
+        </div>
       </div>
 
       {tier === 'infant' || tier === 'toddler' ? (

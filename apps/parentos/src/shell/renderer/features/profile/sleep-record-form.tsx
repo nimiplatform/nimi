@@ -15,6 +15,7 @@ type NapRow = { start: string; end: string };
 
 type SleepRecordFormProps = {
   tier: SleepAgeTier;
+  isEditing: boolean;
   showNightWakings: boolean;
   formSleepDate: string;
   setFormSleepDate: (value: string) => void;
@@ -37,12 +38,14 @@ type SleepRecordFormProps = {
   addNapRow: () => void;
   removeNapRow: (index: number) => void;
   updateNapRow: (index: number, field: 'start' | 'end', value: string) => void;
+  saveError: string | null;
   onClose: () => void;
   onSave: () => void;
 };
 
 export function SleepRecordForm({
   tier,
+  isEditing,
   showNightWakings,
   formSleepDate,
   setFormSleepDate,
@@ -65,6 +68,7 @@ export function SleepRecordForm({
   addNapRow,
   removeNapRow,
   updateNapRow,
+  saveError,
   onClose,
   onSave,
 }: SleepRecordFormProps) {
@@ -78,7 +82,7 @@ export function SleepRecordForm({
             <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#EEF3F1' }}>
               <Moon size={18} strokeWidth={1.5} style={{ color: S.accent }} />
             </span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>新增睡眠记录</h2>
+            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{isEditing ? '编辑睡眠记录' : '新增睡眠记录'}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
@@ -190,6 +194,9 @@ export function SleepRecordForm({
         </div>
 
         <div className="px-6 pt-3 pb-5 mt-1">
+          {saveError ? (
+            <p className="text-[12px] mb-2 text-center font-medium" style={{ color: '#dc2626' }}>{saveError}</p>
+          ) : null}
           <div className="flex items-center justify-end gap-2">
             <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
             <button onClick={onSave} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>

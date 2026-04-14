@@ -19,72 +19,95 @@ routes:
     feature: profile
     description: "身高体重头围与其他结构化测量图表。"
     parent: /profile
+    routeKind: archive
+    summarySource: growth_measurements
 
   - path: /profile/milestones
     displayName: "发育里程碑"
     feature: profile
     description: "发育里程碑达成追踪。"
     parent: /profile
+    routeKind: archive
+    summarySource: milestone_records
 
   - path: /profile/vaccines
     displayName: "疫苗记录"
     feature: profile
     description: "疫苗接种记录和计划。"
     parent: /profile
+    routeKind: archive
+    summarySource: vaccine_records
 
   - path: /profile/vision
     displayName: "视力档案"
     feature: profile
     description: "视力、验光、眼轴和眼健康记录。"
     parent: /profile
+    routeKind: archive
+    summarySource: growth_measurements
 
   - path: /profile/dental
     displayName: "口腔发育"
     feature: profile
     description: "牙齿萌出、换牙、龋齿和口腔检查记录。"
     parent: /profile
+    routeKind: archive
+    summarySource: dental_records
 
   - path: /profile/allergies
     displayName: "过敏记录"
     feature: profile
     description: "过敏原追踪、严重程度和状态变化。"
     parent: /profile
+    routeKind: archive
+    summarySource: allergy_records
 
   - path: /profile/sleep
     displayName: "睡眠记录"
     feature: profile
     description: "每日睡眠时长、作息规律和睡眠质量。"
     parent: /profile
+    routeKind: archive
+    summarySource: sleep_records
 
   - path: /profile/medical-events
     displayName: "就医记录"
     feature: profile
     description: "门诊、住院、筛查、用药和其他医学事件。"
     parent: /profile
+    routeKind: archive
+    summarySource: medical_events
 
   - path: /profile/posture
     displayName: "体态档案"
     feature: profile
     description: "姿态、足弓和身体对齐相关评估。"
     parent: /profile
+    routeKind: archive
+    summarySource: null
 
   - path: /profile/tanner
     displayName: "青春期发育"
     feature: profile
     description: "Tanner 分期和青春期发育记录。"
     parent: /profile
+    routeKind: archive
+    summarySource: tanner_assessments
 
   - path: /profile/fitness
     displayName: "体能测评"
     feature: profile
     description: "学校体测和运动能力评估。"
     parent: /profile
+    routeKind: archive
+    summarySource: fitness_assessments
 
   - path: /profile/report-upload
     displayName: "智能识别"
     feature: profile
     description: "上传本地图像并在家长确认后导入体检数据。"
     parent: /profile
+    routeKind: tool
 
   - path: /journal
     displayName: "观察日记"
@@ -149,3 +172,6 @@ constraints:
   - "Every nav: true route must appear in shell-layout navigation, and no other route may appear there."
   - "Child-route feature values must match the parent route feature."
   - "Orphan or unrouted pages are not authority surfaces until listed here."
+  - "Every /profile/* child route must declare routeKind: archive | tool."
+  - "archive routes with summarySource must reference a valid local-storage.yaml table name or null."
+  - "tool routes must not have summarySource."

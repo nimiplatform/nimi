@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
-import { insertMeasurement, getMeasurements } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { insertMeasurement, getMeasurements, saveAttachment, getAttachments, deleteAttachment } from '../../bridge/sqlite-bridge.js';
+import type { MeasurementRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
@@ -29,6 +30,14 @@ const TYPE_EMOJI: Record<string, string> = {
   'bone-age': '🦴',
 };
 
+const OWNER_TABLE_LABELS: Record<string, { label: string; emoji: string }> = {
+  dental_records: { label: '口腔记录', emoji: '🦷' },
+  growth_measurements: { label: '体检报告', emoji: '📄' },
+  medical_events: { label: '就医事件', emoji: '🏥' },
+  vaccine_records: { label: '疫苗接种', emoji: '💉' },
+  milestone_records: { label: '发育里程碑', emoji: '🎯' },
+};
+
 function getDisplayInfo(typeId: string) {
   const std = GROWTH_STANDARDS.find((s) => s.typeId === typeId);
   return { name: std?.displayName ?? typeId, unit: std?.unit ?? '', emoji: TYPE_EMOJI[typeId] ?? '📋' };
@@ -47,18 +56,37 @@ export default function ReportUploadPage() {
   const [candidates, setCandidates] = useState<Array<OCRMeasurementCandidate & { selected: boolean }>>([]);
   const [importedCount, setImportedCount] = useState(0);
   const [allMeasurements, setAllMeasurements] = useState<MeasurementRow[]>([]);
-  const [activeView, setActiveView] = useState<'upload' | 'library'>('upload');
+  const [reportAttachments, setReportAttachments] = useState<Map<string, AttachmentRow>>(new Map());
+  const [allAttachments, setAllAttachments] = useState<AttachmentRow[]>([]);
+  const [attachFilter, setAttachFilter] = useState<string>('all');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'upload' | 'library' | 'attachments'>('upload');
 
   useEffect(() => {
     hasCheckupOCRRuntime().then(setRuntimeAvailable).catch(catchLogThen('report-upload', 'action:check-ocr-runtime-failed', () => setRuntimeAvailable(false)));
   }, []);
 
   useEffect(() => {
-    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
+    if (!activeChildId) return;
+    getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
+    loadAllAttachments(activeChildId);
   }, [activeChildId]);
 
+  const loadAllAttachments = (childId: string) => {
+    getAttachments(childId).then((all) => {
+      setAllAttachments(all);
+      const m = new Map<string, AttachmentRow>();
+      for (const a of all) {
+        if (a.ownerTable === 'growth_measurements') m.set(a.ownerId, a);
+      }
+      setReportAttachments(m);
+    }).catch(catchLog('report-upload', 'action:load-attachments-failed'));
+  };
+
   const reloadMeasurements = () => {
-    if (activeChildId) getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
+    if (!activeChildId) return;
+    getMeasurements(activeChildId).then(setAllMeasurements).catch(catchLog('report-upload', 'action:load-measurements-failed'));
+    loadAllAttachments(activeChildId);
   };
 
   // Group OCR-sourced measurements by date for report library
@@ -75,6 +103,33 @@ export default function ReportUploadPage() {
       .map(([date, items]) => ({ date, items, ageMonths: items[0]?.ageMonths ?? 0 }))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [allMeasurements]);
+
+  // Attachments view data
+  const filteredAttachments = useMemo(
+    () => attachFilter === 'all' ? allAttachments : allAttachments.filter((a) => a.ownerTable === attachFilter),
+    [allAttachments, attachFilter],
+  );
+  const attachGroups = useMemo(() => {
+    const m = new Map<string, AttachmentRow[]>();
+    for (const a of filteredAttachments) {
+      const date = a.createdAt.split('T')[0] ?? a.createdAt;
+      const existing = m.get(date);
+      if (existing) existing.push(a);
+      else m.set(date, [a]);
+    }
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filteredAttachments]);
+  const attachOwnerTables = useMemo(
+    () => [...new Set(allAttachments.map((a) => a.ownerTable))],
+    [allAttachments],
+  );
+
+  const handleDeleteAttachment = async (id: string) => {
+    try {
+      await deleteAttachment(id);
+      setAllAttachments((prev) => prev.filter((a) => a.attachmentId !== id));
+    } catch { /* ignore */ }
+  };
 
   if (!child) {
     return <div className="flex items-center justify-center h-full" style={{ color: S.sub }}>请先添加孩子档案</div>;
@@ -130,11 +185,14 @@ export default function ReportUploadPage() {
     setStatus('importing');
     setError(null);
     let count = 0;
+    let firstMeasurementId: string | null = null;
     try {
       for (const c of selected) {
         const now = isoNow();
+        const measurementId = ulid();
+        if (!firstMeasurementId) firstMeasurementId = measurementId;
         await insertMeasurement({
-          measurementId: ulid(),
+          measurementId,
           childId: child.childId,
           typeId: c.typeId,
           value: c.value,
@@ -147,6 +205,22 @@ export default function ReportUploadPage() {
         });
         count++;
       }
+
+      // Save original report image as attachment
+      if (imagePreview && firstMeasurementId) {
+        try {
+          const [header, base64] = imagePreview.split(',');
+          const mimeMatch = header?.match(/data:([^;]+)/);
+          const mimeType = mimeMatch?.[1] ?? 'image/jpeg';
+          await saveAttachment({
+            attachmentId: ulid(), childId: child.childId,
+            ownerTable: 'growth_measurements', ownerId: firstMeasurementId,
+            fileName: imageName ?? 'report.jpg', mimeType,
+            imageBase64: base64 ?? '', caption: null, now: isoNow(),
+          });
+        } catch { /* attachment save failed, non-critical */ }
+      }
+
       setImportedCount(count);
       setStatus('done');
       reloadMeasurements();
@@ -171,20 +245,27 @@ export default function ReportUploadPage() {
         <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-xl font-bold" style={{ color: S.text }}>智能识别报告</h1>
-        {reportGroups.length > 0 && (
-          <span className="text-[11px] px-2.5 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
-            {reportGroups.length} 份报告
-          </span>
-        )}
+        <h1 className="text-xl font-bold" style={{ color: S.text }}>智能识别 & 影像档案</h1>
+        <div className="flex items-center gap-2">
+          {reportGroups.length > 0 && (
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+              {reportGroups.length} 份报告
+            </span>
+          )}
+          {allAttachments.length > 0 && (
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full" style={{ background: '#f0eff8', color: '#7c6faf' }}>
+              {allAttachments.length} 张影像
+            </span>
+          )}
+        </div>
       </div>
       <p className="text-[12px] mb-4" style={{ color: S.sub }}>
-        上传医院报告（体检单、验血单、骨龄报告等），AI 自动提取数据并生成记录
+        上传医院报告自动提取数据，所有影像资料统一归档
       </p>
 
       {/* ── Tab toggle ─────────────────────────────────────── */}
       <div className="flex gap-1 rounded-full p-1 mb-5 w-fit" style={{ background: '#eceeed' }}>
-        {([['upload', '📄 上传报告'], ['library', '📚 报告库']] as const).map(([k, l]) => (
+        {([['upload', '📄 上传报告'], ['library', '📚 报告库'], ['attachments', '🖼️ 影像档案']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setActiveView(k)}
             className="px-4 py-1.5 text-[11px] font-medium rounded-full transition-all"
             style={activeView === k
@@ -375,10 +456,7 @@ export default function ReportUploadPage() {
             <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
               <span className="text-[36px]">📂</span>
               <p className="text-[14px] font-medium mt-3" style={{ color: S.text }}>暂无报告记录</p>
-              <p className="text-[11px] mt-1" style={{ color: S.sub }}>上传医院报告后，AI 识别的数据会自动归档到这里</p>
-              <button onClick={() => setActiveView('upload')}
-                className={`mt-4 px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm}`}
-                style={{ background: S.accent }}>去上传报告</button>
+              <p className="text-[11px] mt-1" style={{ color: S.sub }}>通过智能识别提取的数据会自动归档到这里</p>
             </div>
           ) : (
             <div className="relative">
@@ -441,12 +519,129 @@ export default function ReportUploadPage() {
                           })}
                         </div>
                       ))}
+                      {/* Original report image thumbnail */}
+                      {(() => {
+                        const att = group.items.map((m) => reportAttachments.get(m.measurementId)).find(Boolean);
+                        return att ? (
+                          <div className="px-4 py-2.5 border-t flex items-center gap-2" style={{ borderColor: '#f0f0ec', background: '#fafaf8' }}>
+                            <img src={convertFileSrc(att.filePath)} alt={att.fileName}
+                              className={`w-12 h-16 object-cover ${S.radiusSm}`} style={{ border: `1px solid ${S.border}` }} />
+                            <div>
+                              <p className="text-[10px] font-medium" style={{ color: S.sub }}>原始报告</p>
+                              <p className="text-[9px]" style={{ color: '#b0b0b0' }}>{att.fileName}</p>
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════
+         ATTACHMENTS VIEW
+         ════════════════════════════════════════════════════════ */}
+      {activeView === 'attachments' && (
+        <div>
+          {/* Source filter */}
+          {attachOwnerTables.length > 1 && (
+            <div className="flex gap-1 rounded-full p-1 mb-4 w-fit" style={{ background: '#eceeed' }}>
+              <button onClick={() => setAttachFilter('all')}
+                className="px-3.5 py-1.5 text-[11px] font-medium rounded-full transition-all"
+                style={attachFilter === 'all'
+                  ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                  : { color: S.sub }}>
+                全部
+              </button>
+              {attachOwnerTables.map((ot) => {
+                const meta = OWNER_TABLE_LABELS[ot];
+                return (
+                  <button key={ot} onClick={() => setAttachFilter(ot)}
+                    className="px-3.5 py-1.5 text-[11px] font-medium rounded-full transition-all"
+                    style={attachFilter === ot
+                      ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
+                      : { color: S.sub }}>
+                    {meta ? `${meta.emoji} ${meta.label}` : ot}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {allAttachments.length === 0 && (
+            <div className={`${S.radius} p-10 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
+              <span className="text-[36px]">📂</span>
+              <p className="text-[14px] font-medium mt-3" style={{ color: S.text }}>暂无影像资料</p>
+              <p className="text-[11px] mt-1" style={{ color: S.sub }}>各模块上传的照片和报告等原图均会在此统一存档</p>
+            </div>
+          )}
+
+          {/* Timeline grid */}
+          {attachGroups.length > 0 && (
+            <div className="relative">
+              <div className="absolute left-[18px] top-0 bottom-0 w-[2px]" style={{ background: S.border }} />
+
+              {attachGroups.map(([date, items]) => (
+                <div key={date} className="relative pl-10 pb-5">
+                  <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
+                    style={{ background: S.card, borderColor: S.accent }}>
+                    <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[13px] font-bold" style={{ color: S.text }}>{date}</span>
+                    <span className="text-[10px]" style={{ color: S.sub }}>{items.length} 张</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {items.map((a) => {
+                      const meta = OWNER_TABLE_LABELS[a.ownerTable];
+                      return (
+                        <div key={a.attachmentId} className={`${S.radius} overflow-hidden group relative`}
+                          style={{ background: S.card, boxShadow: S.shadow }}>
+                          <img
+                            src={convertFileSrc(a.filePath)}
+                            alt={a.fileName}
+                            className="w-full h-28 object-cover cursor-pointer"
+                            onClick={() => setPreviewUrl(convertFileSrc(a.filePath))}
+                          />
+                          <div className="px-2.5 py-2">
+                            <p className="text-[10px] truncate" style={{ color: S.text }}>{a.fileName}</p>
+                            <p className="text-[9px] mt-0.5" style={{ color: S.sub }}>
+                              {meta ? `${meta.emoji} ${meta.label}` : a.ownerTable}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => void handleDeleteAttachment(a.attachmentId)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Fullscreen preview modal */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setPreviewUrl(null)}>
+          <img src={previewUrl} alt="preview" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" />
+          <button onClick={() => setPreviewUrl(null)}
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/50 text-white text-[16px] flex items-center justify-center hover:bg-black/70 transition-colors">
+            ✕
+          </button>
         </div>
       )}
     </div>

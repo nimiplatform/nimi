@@ -10,6 +10,7 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { PostureGuide } from './posture-guide.js';
+import { readImageFileAsDataUrl } from './checkup-ocr.js';
 
 const SHOULDER_OPTIONS = [
   { value: '0', label: '对称' },
@@ -299,11 +300,15 @@ export default function PosturePage() {
 
       {/* Hidden photo input */}
       <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
-        onChange={(e) => {
+        onChange={async (e) => {
           const file = e.target.files?.[0];
           const slot = photoSlotRef.current;
-          if (file && slot) setFormPhotos((p) => ({ ...p, [slot]: file.name }));
           e.target.value = '';
+          if (!file || !slot) return;
+          try {
+            const dataUrl = await readImageFileAsDataUrl(file);
+            setFormPhotos((p) => ({ ...p, [slot]: dataUrl }));
+          } catch { /* ignore */ }
         }} />
 
       {/* Form */}
@@ -388,8 +393,8 @@ export default function PosturePage() {
                         const active = postureTab === tab.key;
                         const hasPhoto = formPhotos[tab.photoKey];
                         return (
-                          <button key={tab.key} onClick={() => setPostureTab(tab.key)}
-                            className="relative flex flex-col items-center gap-1.5 py-4 transition-all"
+                          <div key={tab.key} onClick={() => setPostureTab(tab.key)}
+                            className="relative flex flex-col items-center gap-1.5 py-4 transition-all cursor-pointer"
                             style={{
                               background: active ? '#f4f7ea' : '#fafaf8',
                               borderBottom: active ? `2px solid ${S.accent}` : '2px solid transparent',
@@ -403,13 +408,39 @@ export default function PosturePage() {
                               title={hasPhoto ? '已上传' : '上传照片'}>
                               {hasPhoto ? '✓' : '📷'}
                             </button>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
 
                     {/* Tab content — fields change per tab */}
                     <div className="p-4 space-y-4">
+                      {/* Photo upload/preview for current tab */}
+                      {(() => {
+                        const currentPhotoKey = tabs.find((t) => t.key === postureTab)?.photoKey;
+                        if (!currentPhotoKey) return null;
+                        const photoUrl = formPhotos[currentPhotoKey];
+                        return photoUrl ? (
+                          <div className="relative group">
+                            <img src={photoUrl} alt="preview" className={`w-full h-32 object-cover ${S.radiusSm}`} />
+                            <button
+                              onClick={() => setFormPhotos((p) => { const next = { ...p }; delete next[currentPhotoKey]; return next; })}
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >✕</button>
+                          </div>
+                        ) : (
+                          <button type="button"
+                            onClick={() => { photoSlotRef.current = currentPhotoKey; photoInputRef.current?.click(); }}
+                            className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
+                            style={{ border: `2px dashed #d0d0cc`, background: '#fafaf8' }}>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" style={{ stroke: '#b0b0aa' }}>
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <span className="text-[11px]" style={{ color: S.sub }}>点击上传照片</span>
+                          </button>
+                        );
+                      })()}
+
                       {postureTab === 'back' && (
                         <>
                           <div>{fieldLabel('高低肩')}{optionBtn(SHOULDER_OPTIONS.map((o) => ({ ...o, normal: o.value === '0' })), formShoulder, setFormShoulder)}</div>

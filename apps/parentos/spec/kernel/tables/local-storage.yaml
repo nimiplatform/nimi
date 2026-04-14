@@ -331,6 +331,24 @@ tables:
     indexes:
       - { columns: [childId, assessedAt] }
 
+  # ── 附件归档 ─────────────────────────────────────────────
+
+  - name: attachments
+    description: "Unified image attachments linked to admitted child-scoped records."
+    columns:
+      - { name: attachmentId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: ownerTable, type: TEXT, nullable: false, description: "dental_records | growth_measurements | medical_events | vaccine_records | milestone_records" }
+      - { name: ownerId, type: TEXT, nullable: false, description: "PK of the owning record" }
+      - { name: filePath, type: TEXT, nullable: false, description: "Absolute local file path" }
+      - { name: fileName, type: TEXT, nullable: false, description: "Original file name" }
+      - { name: mimeType, type: TEXT, nullable: false }
+      - { name: caption, type: TEXT, nullable: true }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, ownerTable, ownerId] }
+      - { columns: [childId, createdAt] }
+
   # ── 以下为已有系统表 ────────────────────────────────────
 
   - name: app_settings
@@ -346,5 +364,5 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, attachments."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

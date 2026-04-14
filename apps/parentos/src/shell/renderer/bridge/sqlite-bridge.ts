@@ -540,6 +540,46 @@ export function getDentalRecords(childId: string) {
   return invoke<DentalRecordRow[]>('get_dental_records', { childId });
 }
 
+// ── Attachments ───────────────────────────────────────────
+
+export interface AttachmentRow {
+  attachmentId: string;
+  childId: string;
+  ownerTable: string;
+  ownerId: string;
+  filePath: string;
+  fileName: string;
+  mimeType: string;
+  caption: string | null;
+  createdAt: string;
+}
+
+export function saveAttachment(params: {
+  attachmentId: string;
+  childId: string;
+  ownerTable: string;
+  ownerId: string;
+  fileName: string;
+  mimeType: string;
+  imageBase64: string;
+  caption: string | null;
+  now: string;
+}) {
+  return invoke<AttachmentRow>('save_attachment', params);
+}
+
+export function getAttachments(childId: string) {
+  return invoke<AttachmentRow[]>('get_attachments', { childId });
+}
+
+export function getAttachmentsByOwner(childId: string, ownerTable: string, ownerId: string) {
+  return invoke<AttachmentRow[]>('get_attachments_by_owner', { childId, ownerTable, ownerId });
+}
+
+export function deleteAttachment(attachmentId: string) {
+  return invoke<void>('delete_attachment', { attachmentId });
+}
+
 // ── Allergy Records ────────────────────────────────────────
 
 export interface AllergyRecordRow {
@@ -628,6 +668,10 @@ export function upsertSleepRecord(params: {
   now: string;
 }) {
   return invoke<void>('upsert_sleep_record', params);
+}
+
+export function deleteSleepRecord(recordId: string) {
+  return invoke<void>('delete_sleep_record', { recordId });
 }
 
 export function getSleepRecords(childId: string, limit?: number) {
@@ -786,6 +830,20 @@ export function insertFitnessAssessment(params: {
 
 export function getFitnessAssessments(childId: string) {
   return invoke<FitnessAssessmentRow[]>('get_fitness_assessments', { childId });
+}
+
+// ── Profile Section Summaries ──────────────────────────────
+
+export interface SectionSummary {
+  sectionId: string;
+  recordCount: number;
+  lastUpdatedAt: string | null;
+  state: 'ok' | 'empty' | 'error';
+  errorMessage: string | null;
+}
+
+export function getProfileSectionSummaries(childId: string) {
+  return invoke<SectionSummary[]>('get_profile_section_summaries', { childId });
 }
 
 // ── DB Init ─────────────────────────────────────────────────

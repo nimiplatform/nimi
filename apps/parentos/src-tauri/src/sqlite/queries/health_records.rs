@@ -3,6 +3,124 @@ use serde::Serialize;
 
 use super::super::get_conn;
 
+// ── Profile Section Summaries ─────────────────────────────
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SectionSummary {
+    pub section_id: String,
+    pub record_count: i64,
+    pub last_updated_at: Option<String>,
+    pub state: String, // "ok" | "empty" | "error"
+    pub error_message: Option<String>,
+}
+
+/// Section definition: (sectionId, SQL for COUNT, SQL for MAX timestamp)
+const SECTION_QUERIES: &[(&str, &str, &str)] = &[
+    (
+        "growth",
+        "SELECT COUNT(*) FROM growth_measurements WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM growth_measurements WHERE childId = ?1",
+    ),
+    (
+        "milestones",
+        "SELECT COUNT(*) FROM milestone_records WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM milestone_records WHERE childId = ?1",
+    ),
+    (
+        "vaccines",
+        "SELECT COUNT(*) FROM vaccine_records WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM vaccine_records WHERE childId = ?1",
+    ),
+    (
+        "vision",
+        "SELECT COUNT(*) FROM growth_measurements WHERE childId = ?1 AND typeId IN ('vision-left','vision-right','corrected-vision-left','corrected-vision-right','hyperopia-reserve','refraction-sph-left','refraction-sph-right','refraction-cyl-left','refraction-cyl-right','refraction-axis-left','refraction-axis-right','axial-length-left','axial-length-right','corneal-curvature-left','corneal-curvature-right')",
+        "SELECT MAX(createdAt) FROM growth_measurements WHERE childId = ?1 AND typeId IN ('vision-left','vision-right','corrected-vision-left','corrected-vision-right','hyperopia-reserve','refraction-sph-left','refraction-sph-right','refraction-cyl-left','refraction-cyl-right','refraction-axis-left','refraction-axis-right','axial-length-left','axial-length-right','corneal-curvature-left','corneal-curvature-right')",
+    ),
+    (
+        "dental",
+        "SELECT COUNT(*) FROM dental_records WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM dental_records WHERE childId = ?1",
+    ),
+    (
+        "allergies",
+        "SELECT COUNT(*) FROM allergy_records WHERE childId = ?1",
+        "SELECT MAX(COALESCE(updatedAt, createdAt)) FROM allergy_records WHERE childId = ?1",
+    ),
+    (
+        "sleep",
+        "SELECT COUNT(*) FROM sleep_records WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM sleep_records WHERE childId = ?1",
+    ),
+    (
+        "medical-events",
+        "SELECT COUNT(*) FROM medical_events WHERE childId = ?1",
+        "SELECT MAX(COALESCE(updatedAt, createdAt)) FROM medical_events WHERE childId = ?1",
+    ),
+    (
+        "posture",
+        // posture has no dedicated table yet (PO-PROF-019)
+        "SELECT 0",
+        "SELECT NULL",
+    ),
+    (
+        "tanner",
+        "SELECT COUNT(*) FROM tanner_assessments WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM tanner_assessments WHERE childId = ?1",
+    ),
+    (
+        "fitness",
+        "SELECT COUNT(*) FROM fitness_assessments WHERE childId = ?1",
+        "SELECT MAX(createdAt) FROM fitness_assessments WHERE childId = ?1",
+    ),
+];
+
+#[tauri::command]
+pub fn get_profile_section_summaries(child_id: String) -> Result<Vec<SectionSummary>, String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let mut results = Vec::with_capacity(SECTION_QUERIES.len());
+
+    for &(section_id, count_sql, max_sql) in SECTION_QUERIES {
+        let summary = (|| -> Result<SectionSummary, String> {
+            let count: i64 = if count_sql.contains("?1") {
+                conn.query_row(count_sql, params![child_id], |row| row.get(0))
+            } else {
+                conn.query_row(count_sql, [], |row| row.get(0))
+            }
+            .map_err(|e| format!("{section_id} count: {e}"))?;
+
+            let last_updated: Option<String> = if max_sql.contains("?1") {
+                conn.query_row(max_sql, params![child_id], |row| row.get(0))
+            } else {
+                conn.query_row(max_sql, [], |row| row.get(0))
+            }
+            .map_err(|e| format!("{section_id} max: {e}"))?;
+
+            let state = if count > 0 { "ok" } else { "empty" };
+            Ok(SectionSummary {
+                section_id: section_id.to_string(),
+                record_count: count,
+                last_updated_at: last_updated,
+                state: state.to_string(),
+                error_message: None,
+            })
+        })();
+
+        match summary {
+            Ok(s) => results.push(s),
+            Err(e) => results.push(SectionSummary {
+                section_id: section_id.to_string(),
+                record_count: 0,
+                last_updated_at: None,
+                state: "error".to_string(),
+                error_message: Some(e),
+            }),
+        }
+    }
+
+    Ok(results)
+}
+
 // ── Vaccine Records ────────────────────────────────────────
 
 #[tauri::command]
@@ -262,6 +380,14 @@ pub fn upsert_sleep_record(
         "INSERT INTO sleep_records (recordId, childId, sleepDate, bedtime, wakeTime, durationMinutes, napCount, napMinutes, quality, ageMonths, notes, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12) ON CONFLICT(childId, sleepDate) DO UPDATE SET bedtime=excluded.bedtime, wakeTime=excluded.wakeTime, durationMinutes=excluded.durationMinutes, napCount=excluded.napCount, napMinutes=excluded.napMinutes, quality=excluded.quality, notes=excluded.notes",
         params![record_id, child_id, sleep_date, bedtime, wake_time, duration_minutes, nap_count, nap_minutes, quality, age_months, notes, now],
     ).map_err(|e| format!("upsert_sleep_record: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_sleep_record(record_id: String) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM sleep_records WHERE recordId = ?1", params![record_id])
+        .map_err(|e| format!("delete_sleep_record: {e}"))?;
     Ok(())
 }
 

@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { insertDentalRecord, getDentalRecords, upsertReminderState } from '../../bridge/sqlite-bridge.js';
-import type { DentalRecordRow } from '../../bridge/sqlite-bridge.js';
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { insertDentalRecord, getDentalRecords, upsertReminderState, saveAttachment, getAttachments } from '../../bridge/sqlite-bridge.js';
+import type { DentalRecordRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
@@ -10,6 +11,7 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { generateDentalFollowup } from '../../engine/smart-alerts.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import { readImageFileAsDataUrl } from './checkup-ocr.js';
 
 /* ── Event types ─────────────────────────────────────────── */
 
@@ -172,9 +174,26 @@ export default function DentalPage() {
   const [formNotes, setFormNotes] = useState('');
   const [reminderMsg, setReminderMsg] = useState<string | null>(null);
   const [addEventHover, setAddEventHover] = useState(false);
+  const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
+  const [formPhotoFile, setFormPhotoFile] = useState<{ base64: string; mimeType: string; fileName: string } | null>(null);
+  const [photoDragOver, setPhotoDragOver] = useState(false);
+  const [photoDropHover, setPhotoDropHover] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const [attachmentMap, setAttachmentMap] = useState<Map<string, AttachmentRow[]>>(new Map());
 
   useEffect(() => {
-    if (activeChildId) getDentalRecords(activeChildId).then(setRecords).catch(catchLog('dental', 'action:load-dental-records-failed'));
+    if (!activeChildId) return;
+    getDentalRecords(activeChildId).then(setRecords).catch(catchLog('dental', 'action:load-dental-records-failed'));
+    getAttachments(activeChildId).then((all) => {
+      const m = new Map<string, AttachmentRow[]>();
+      for (const a of all) {
+        if (a.ownerTable !== 'dental_records') continue;
+        const existing = m.get(a.ownerId);
+        if (existing) existing.push(a);
+        else m.set(a.ownerId, [a]);
+      }
+      setAttachmentMap(m);
+    }).catch(catchLog('dental', 'action:load-dental-attachments-failed'));
   }, [activeChildId]);
 
   // Filter event types by child age
@@ -220,7 +239,7 @@ export default function DentalPage() {
     setEventEntries([makeEventEntry(ageMonths)]);
     setActiveEntryIdx(0);
     setFormEventDate(new Date().toISOString().slice(0, 10));
-    setFormHospital(''); setFormNotes(''); setShowForm(false);
+    setFormHospital(''); setFormNotes(''); setFormPhotoPreview(null); setFormPhotoFile(null); setShowForm(false);
   };
 
   const handleSubmit = async () => {
@@ -228,9 +247,12 @@ export default function DentalPage() {
     const now = isoNow();
     const age = computeAgeMonthsAt(child.birthDate, formEventDate);
     try {
+      const recordIds: string[] = [];
       for (const entry of eventEntries) {
+        const recordId = ulid();
+        recordIds.push(recordId);
         await insertDentalRecord({
-          recordId: ulid(), childId: child.childId, eventType: entry.eventType,
+          recordId, childId: child.childId, eventType: entry.eventType,
           toothId: entry.toothIds.length > 0 ? entry.toothIds.join(',') : null, toothSet: entry.toothSet,
           eventDate: formEventDate, ageMonths: age,
           severity: NEEDS_SEVERITY.has(entry.eventType) ? (entry.severity || null) : null,
@@ -260,7 +282,31 @@ export default function DentalPage() {
         }
       }
 
-      setRecords(await getDentalRecords(child.childId));
+      // Save photo as attachment linked to the first dental record
+      if (formPhotoFile && recordIds[0]) {
+        try {
+          await saveAttachment({
+            attachmentId: ulid(), childId: child.childId,
+            ownerTable: 'dental_records', ownerId: recordIds[0],
+            fileName: formPhotoFile.fileName, mimeType: formPhotoFile.mimeType,
+            imageBase64: formPhotoFile.base64, caption: null, now,
+          });
+        } catch { /* attachment save failed, non-critical */ }
+      }
+
+      const freshRecords = await getDentalRecords(child.childId);
+      setRecords(freshRecords);
+      // Refresh attachment map
+      getAttachments(child.childId).then((all) => {
+        const m = new Map<string, AttachmentRow[]>();
+        for (const a of all) {
+          if (a.ownerTable !== 'dental_records') continue;
+          const existing = m.get(a.ownerId);
+          if (existing) existing.push(a);
+          else m.set(a.ownerId, [a]);
+        }
+        setAttachmentMap(m);
+      }).catch(catchLog('dental', 'action:refresh-dental-attachments-failed'));
       resetForm();
     } catch { /* bridge */ }
   };
@@ -492,6 +538,86 @@ export default function DentalPage() {
             <input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="选填"
               className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#c8e64a]/50`} style={{ background: '#fafaf8', color: S.text }} />
           </div>
+
+          {/* Photo upload */}
+          <div>
+            <p className="text-[11px] mb-1" style={{ color: S.sub }}>照片</p>
+            <input
+              ref={photoRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                try {
+                  const dataUrl = await readImageFileAsDataUrl(file);
+                  setFormPhotoPreview(dataUrl);
+                  const [, base64] = dataUrl.split(',');
+                  setFormPhotoFile({ base64: base64 ?? '', mimeType: file.type, fileName: file.name });
+                } catch { setFormPhotoPreview(null); setFormPhotoFile(null); }
+              }}
+            />
+            {formPhotoPreview ? (
+              <div className="relative group">
+                <img src={formPhotoPreview} alt="preview" className={`w-full h-28 object-cover ${S.radiusSm}`} />
+                <button
+                  onClick={() => { setFormPhotoPreview(null); setFormPhotoFile(null); }}
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => photoRef.current?.click()}
+                onMouseEnter={() => setPhotoDropHover(true)}
+                onMouseLeave={() => setPhotoDropHover(false)}
+                onDragOver={(e) => { e.preventDefault(); setPhotoDragOver(true); }}
+                onDragLeave={() => setPhotoDragOver(false)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setPhotoDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (!file?.type.startsWith('image/')) return;
+                  try {
+                    const dataUrl = await readImageFileAsDataUrl(file);
+                    setFormPhotoPreview(dataUrl);
+                    const [, base64] = dataUrl.split(',');
+                    setFormPhotoFile({ base64: base64 ?? '', mimeType: file.type, fileName: file.name });
+                  } catch { /* ignore */ }
+                }}
+                className={`w-full h-24 ${S.radiusSm} flex flex-col items-center justify-center gap-1.5 cursor-pointer`}
+                style={{
+                  border: `2px dashed ${photoDragOver || photoDropHover ? '#c8e64a' : '#d0d0cc'}`,
+                  background: '#fafaf8',
+                  transition: 'border-color 0.25s ease',
+                }}
+              >
+                <svg
+                  width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round"
+                  style={{
+                    stroke: photoDragOver || photoDropHover ? '#94A533' : '#b0b0aa',
+                    transform: photoDragOver || photoDropHover ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'stroke 0.25s ease, transform 0.25s ease',
+                  }}
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span
+                  className="text-[11px]"
+                  style={{
+                    color: photoDragOver || photoDropHover ? '#94A533' : '#a0a0a0',
+                    transition: 'color 0.25s ease',
+                  }}
+                >
+                  点击或拖拽上传口腔照片
+                </span>
+              </button>
+            )}
+          </div>
           </div>
 
           <div className="px-6 pt-3 pb-5 mt-1">
@@ -542,6 +668,14 @@ export default function DentalPage() {
                   {r.hospital && ` · ${r.hospital}`}
                 </p>
                 {r.notes && <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>{r.notes}</p>}
+                {(attachmentMap.get(r.recordId) ?? []).length > 0 && (
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    {(attachmentMap.get(r.recordId) ?? []).map((a) => (
+                      <img key={a.attachmentId} src={convertFileSrc(a.filePath)} alt={a.fileName}
+                        className={`w-24 h-16 object-cover ${S.radiusSm} cursor-pointer hover:opacity-80 transition-opacity`} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );

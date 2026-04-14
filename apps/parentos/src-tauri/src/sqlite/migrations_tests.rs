@@ -65,6 +65,56 @@ fn migration_v3_rejects_dismissed_reminder_with_unknown_rule_id() {
 }
 
 #[test]
+fn migration_repairs_missing_sleep_and_attachment_tables_for_version_5_db() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    conn.execute_batch(V1_SCHEMA_SQL)
+        .expect("create baseline schema");
+    conn.execute_batch(
+        "CREATE TABLE _schema_version (
+            version INTEGER NOT NULL,
+            applied_at TEXT NOT NULL
+        );",
+    )
+    .expect("create schema version table");
+    conn.execute(
+        "INSERT INTO _schema_version (version, applied_at) VALUES (?1, ?2)",
+        params![5i64, "2026-01-01T00:00:00.000Z"],
+    )
+    .expect("seed schema version");
+    conn.execute_batch("DROP TABLE sleep_records;")
+        .expect("drop sleep table");
+
+    run_migrations(&conn).expect("repair missing tables");
+    seed_family_and_child(&conn);
+
+    conn.execute(
+        "INSERT INTO sleep_records (recordId, childId, sleepDate, bedtime, wakeTime, durationMinutes, quality, ageMonths, createdAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params!["sleep-1", "child-1", "2026-02-01", "2026-02-01T21:00:00.000Z", "2026-02-02T07:00:00.000Z", 600, "good", 24, "2026-02-02T08:00:00.000Z"],
+    )
+    .expect("insert repaired sleep record");
+
+    let sleep_table_exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'sleep_records'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query sleep table existence");
+    assert_eq!(sleep_table_exists, 1);
+
+    let attachments_table_exists: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'attachments'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("query attachments table existence");
+    assert_eq!(attachments_table_exists, 1);
+}
+
+#[test]
 fn child_profile_json_fields_round_trip_through_sqlite() {
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")

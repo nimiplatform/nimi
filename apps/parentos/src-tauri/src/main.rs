@@ -11,6 +11,7 @@ use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use nimi_kit_shell_tauri::session_logging;
 
 // App-local modules
+mod attachment_store;
 mod child_avatar;
 mod journal_audio;
 mod journal_photo;
@@ -215,12 +216,18 @@ fn main() {
             // Dental Records
             sqlite::queries::insert_dental_record,
             sqlite::queries::get_dental_records,
+            // Attachments
+            attachment_store::save_attachment,
+            attachment_store::get_attachments,
+            attachment_store::get_attachments_by_owner,
+            attachment_store::delete_attachment,
             // Allergy Records
             sqlite::queries::insert_allergy_record,
             sqlite::queries::update_allergy_record,
             sqlite::queries::get_allergy_records,
             // Sleep Records
             sqlite::queries::upsert_sleep_record,
+            sqlite::queries::delete_sleep_record,
             sqlite::queries::get_sleep_records,
             // Medical Events
             sqlite::queries::insert_medical_event,
@@ -234,6 +241,8 @@ fn main() {
             sqlite::queries::insert_fitness_assessment,
             sqlite::queries::get_fitness_assessments,
             sqlite::queries::delete_fitness_assessment,
+            // Profile Section Summaries
+            sqlite::queries::get_profile_section_summaries,
             // DB init
             sqlite::db_init,
         ])
