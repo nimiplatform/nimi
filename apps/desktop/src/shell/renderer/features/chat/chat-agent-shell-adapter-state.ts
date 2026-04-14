@@ -182,6 +182,7 @@ export function useAgentConversationShellState(
     queryKey: activeThreadId ? bundleQueryKey(activeThreadId) : ['chat-agent-thread-bundle', 'inactive'],
     queryFn: () => chatAgentStoreClient.getThreadBundle(activeThreadId as string),
     enabled: Boolean(activeThreadId),
+    staleTime: 60_000,
   });
   const bundle = bundleQuery.data || null;
   const messages = useMemo(

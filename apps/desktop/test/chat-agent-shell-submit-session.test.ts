@@ -136,6 +136,8 @@ function createSession() {
   });
 }
 
+const VISIBLE_BUNDLE_FLUSH_TEXT = ' visible tail keeps bundle flushes on threshold';
+
 test('agent submit session keeps assistant invisible until first-beat and then grows visible content', () => {
   let session = createSession();
 
@@ -182,11 +184,14 @@ test('agent submit session keeps assistant invisible until first-beat and then g
     event: {
       type: 'text-delta',
       turnId: 'turn-1',
-      textDelta: ' tail',
+      textDelta: VISIBLE_BUNDLE_FLUSH_TEXT,
     },
     updatedAtMs: 140,
   });
-  assert.equal(postFirstBeatText.visibleBundle?.messages.at(-1)?.contentText, 'sealed first beat tail');
+  assert.equal(
+    postFirstBeatText.visibleBundle?.messages.at(-1)?.contentText,
+    `sealed first beat${VISIBLE_BUNDLE_FLUSH_TEXT}`,
+  );
   assert.equal(postFirstBeatText.visibleBundle?.messages.at(-1)?.reasoningText, 'thinking');
 });
 
@@ -284,7 +289,7 @@ test('agent submit session keeps authoritative projection when stale text delta 
     event: {
       type: 'text-delta',
       turnId: 'turn-1',
-      textDelta: ' stale tail',
+      textDelta: VISIBLE_BUNDLE_FLUSH_TEXT,
     },
     updatedAtMs: 150,
   });

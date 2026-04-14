@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, type ReactNode, type UIEvent } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, type ReactNode, type UIEvent } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type {
   CanonicalMessageAccessorySlot,
@@ -159,7 +159,7 @@ function isNearBottom(element: HTMLElement): boolean {
   return element.scrollTop + element.clientHeight >= element.scrollHeight - 80;
 }
 
-function TranscriptMessageGroups(props: {
+const TranscriptMessageGroups = memo(function TranscriptMessageGroups(props: {
   messages: readonly ConversationCanonicalMessage[];
   renderMessageContent?: CanonicalMessageContentSlot;
   renderMessageAvatar?: CanonicalMessageAvatarSlot;
@@ -170,7 +170,7 @@ function TranscriptMessageGroups(props: {
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
-  const visualGroups = buildMessageVisualGroups(props.messages);
+  const visualGroups = useMemo(() => buildMessageVisualGroups(props.messages), [props.messages]);
   const focusGroupIndex = visualGroups.length > 0 && visualGroups[visualGroups.length - 1]?.role === 'assistant'
     ? visualGroups[visualGroups.length - 1]?.groupIndex ?? -1
     : -1;
@@ -230,7 +230,7 @@ function TranscriptMessageGroups(props: {
   }
 
   return <>{nodes}</>;
-}
+});
 
 export function buildCanonicalTranscriptGroups(
   messages: readonly ConversationCanonicalMessage[],

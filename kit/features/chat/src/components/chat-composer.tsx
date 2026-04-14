@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type CompositionEvent } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import { useChatComposer, type UseChatComposerOptions } from '../hooks/use-chat-composer.js';
 import type { ChatComposerAttachmentsSlot, ChatComposerVoiceState, ChatComposerMediaAction } from '../types.js';
@@ -58,6 +58,8 @@ export function ChatComposer<TAttachment = never>({
   const lastHeightRef = useRef(MIN_TEXTAREA_HEIGHT);
   const [showMediaActions, setShowMediaActions] = useState(false);
 
+  const composingRef = useRef(false);
+
   const resizeTextarea = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -68,13 +70,23 @@ export function ChatComposer<TAttachment = never>({
   }, []);
 
   useEffect(() => {
-    resizeTextarea();
+    if (!composingRef.current) {
+      resizeTextarea();
+    }
   }, [state.text, resizeTextarea]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     state.handleTextChange(e);
+  }, [state.handleTextChange]);
+
+  const handleCompositionStart = useCallback(() => {
+    composingRef.current = true;
+  }, []);
+
+  const handleCompositionEnd = useCallback((e: CompositionEvent<HTMLTextAreaElement>) => {
+    composingRef.current = false;
     resizeTextarea();
-  }, [state.handleTextChange, resizeTextarea]);
+  }, [resizeTextarea]);
 
   const renderDefaultAttachments = useCallback(() => {
     if (!options.attachmentAdapter || state.attachments.length === 0) {
@@ -239,6 +251,8 @@ export function ChatComposer<TAttachment = never>({
             placeholder={placeholder}
             value={state.text}
             onChange={handleChange}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
             onKeyDown={state.handleKeyDown}
             disabled={options.disabled || state.isSubmitting}
             style={{ height: `${lastHeightRef.current}px` }}

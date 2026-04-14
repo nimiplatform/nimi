@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
@@ -204,7 +204,7 @@ export type CanonicalMessageBubbleProps = {
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-export function CanonicalMessageBubble({
+export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   message,
   avatar,
   content,
@@ -497,4 +497,4 @@ export function CanonicalMessageBubble({
       ) : null}
     </>
   );
-}
+});

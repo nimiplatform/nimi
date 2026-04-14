@@ -123,8 +123,7 @@ export function ChatPage() {
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = useAppStore((state) => state.chatMode);
-  const selectedTargetBySource = useAppStore((state) => state.selectedTargetBySource);
-  const viewModeBySourceTarget = useAppStore((state) => state.viewModeBySourceTarget);
+  const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
@@ -133,12 +132,14 @@ export function ChatPage() {
   const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
   const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
   const runtimeFields = useAppStore((state) => state.runtimeFields);
-  const lastSelectedThreadByMode = useAppStore((state) => state.lastSelectedThreadByMode);
+  const lastSelectedAiThread = useAppStore((state) => state.lastSelectedThreadByMode.ai ?? null);
+  const lastSelectedAgentThread = useAppStore((state) => state.lastSelectedThreadByMode.agent ?? null);
+  const lastSelectedHumanThread = useAppStore((state) => state.lastSelectedThreadByMode.human ?? null);
   const aiConversationSelection = useAppStore((state) => state.aiConversationSelection);
   const setAiConversationSelection = useAppStore((state) => state.setAiConversationSelection);
   const agentConversationSelection = useAppStore((state) => state.agentConversationSelection);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const chatSetupState = useAppStore((state) => state.chatSetupState);
+  const currentSetupState = useAppStore((state) => state.chatSetupState[state.chatMode] ?? null);
   const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
   const [rightPanelFolded, setRightPanelFolded] = useState(false);
@@ -157,7 +158,7 @@ export function ChatPage() {
     runtimeConfigState: runtimeConfigController.state,
     runtimeFields,
     selection: aiConversationSelection,
-    lastSelectedThreadId: lastSelectedThreadByMode.ai || null,
+    lastSelectedThreadId: lastSelectedAiThread,
     setSelection: setAiConversationSelection,
   });
   const agentHost = useAgentConversationModeHost({
@@ -165,7 +166,7 @@ export function ChatPage() {
     runtimeConfigState: runtimeConfigController.state,
     runtimeFields,
     selection: agentConversationSelection,
-    lastSelectedThreadId: lastSelectedThreadByMode.agent || null,
+    lastSelectedThreadId: lastSelectedAgentThread,
     setSelection: setAgentConversationSelection,
   });
 
@@ -193,21 +194,21 @@ export function ChatPage() {
     if (chatMode !== 'human') {
       return;
     }
-    if (selectedChatId || !lastSelectedThreadByMode.human) {
+    if (selectedChatId || !lastSelectedHumanThread) {
       return;
     }
-    setSelectedChatId(lastSelectedThreadByMode.human);
-  }, [chatMode, lastSelectedThreadByMode.human, selectedChatId, setSelectedChatId]);
+    setSelectedChatId(lastSelectedHumanThread);
+  }, [chatMode, lastSelectedHumanThread, selectedChatId, setSelectedChatId]);
 
   useEffect(() => {
     if (!activeHost) {
       return;
     }
-    if (chatSetupState[activeHost.mode] === activeHost.adapter.setupState) {
+    if (currentSetupState === activeHost.adapter.setupState) {
       return;
     }
     setChatSetupState(activeHost.mode, activeHost.adapter.setupState);
-  }, [activeHost, chatSetupState, setChatSetupState]);
+  }, [activeHost, currentSetupState, setChatSetupState]);
 
   // Collect all targets from all hosts for the sidebar
   const allTargets = useMemo(
@@ -215,7 +216,6 @@ export function ChatPage() {
     [registry.hosts],
   );
 
-  const storeSelectedTargetId = selectedTargetBySource[chatMode] || null;
   const selectedTargetId = storeSelectedTargetId || activeHost?.selectedTargetId || null;
   const selectedTarget = useMemo(
     () => selectedTargetId
@@ -253,7 +253,7 @@ export function ChatPage() {
   const currentViewModeKey = selectedTarget
     ? `${selectedTarget.source}:${selectedTarget.id}`
     : `${chatMode}:landing`;
-  const currentViewMode = viewModeBySourceTarget[currentViewModeKey] || 'chat';
+  const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
 
   const canonicalMessages = activeHost?.messages || [];
 

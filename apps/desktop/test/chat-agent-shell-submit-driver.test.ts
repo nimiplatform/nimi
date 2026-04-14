@@ -136,6 +136,8 @@ function createDriverState() {
   });
 }
 
+const VISIBLE_BUNDLE_FLUSH_TEXT = ' visible tail keeps bundle flushes on threshold';
+
 function effectKinds(input: {
   streamEffects: unknown[];
   bundleEffects: unknown[];
@@ -193,12 +195,15 @@ test('agent submit driver emits stream effects before bundle effects across reas
     event: {
       type: 'text-delta',
       turnId: 'turn-1',
-      textDelta: ' tail',
+      textDelta: VISIBLE_BUNDLE_FLUSH_TEXT,
     },
     updatedAtMs: 140,
   });
   assert.deepEqual(effectKinds(postFirstBeatText), ['stream', 'bundle']);
-  assert.equal(postFirstBeatText.bundleEffects[0]?.messages.at(-1)?.contentText, 'sealed first beat tail');
+  assert.equal(
+    postFirstBeatText.bundleEffects[0]?.messages.at(-1)?.contentText,
+    `sealed first beat${VISIBLE_BUNDLE_FLUSH_TEXT}`,
+  );
 });
 
 test('agent submit driver accepts projection refresh in running state and keeps authoritative content against stale text deltas', () => {
@@ -246,7 +251,7 @@ test('agent submit driver accepts projection refresh in running state and keeps 
     event: {
       type: 'text-delta',
       turnId: 'turn-1',
-      textDelta: ' stale tail',
+      textDelta: VISIBLE_BUNDLE_FLUSH_TEXT,
     },
     updatedAtMs: 150,
   });

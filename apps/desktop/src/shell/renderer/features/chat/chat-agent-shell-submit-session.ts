@@ -27,6 +27,8 @@ import type {
   StreamState,
 } from '../turns/stream-controller';
 
+const VISIBLE_BUNDLE_FLUSH_CHARS = 32;
+
 export type AgentSubmitSessionState = {
   fallbackThread: AgentLocalThreadRecord;
   assistantMessageId: string;
@@ -39,6 +41,7 @@ export type AgentSubmitSessionState = {
   assistantVisible: boolean;
   workingBundle: AgentLocalThreadBundle | null;
   lifecycle: AgentTurnLifecycleState;
+  lastBundleFlushLength: number;
 };
 
 export type AgentSubmitSessionStep = {
@@ -163,6 +166,7 @@ export function createInitialAgentSubmitSessionState(input: {
     assistantVisible: false,
     workingBundle: input.workingBundle,
     lifecycle: createInitialAgentTurnLifecycleState(),
+    lastBundleFlushLength: 0,
   };
 }
 
@@ -208,9 +212,10 @@ export function reduceAgentSubmitSessionEvent(
         },
       };
     case 'text-delta': {
+      const nextStreamedText = state.streamedText + input.event.textDelta;
       const nextStateBase = {
         ...state,
-        streamedText: state.streamedText + input.event.textDelta,
+        streamedText: nextStreamedText,
       };
       if (!nextStateBase.assistantVisible) {
         return {
@@ -221,8 +226,18 @@ export function reduceAgentSubmitSessionEvent(
           },
         };
       }
+      const shouldFlush = nextStreamedText.length - state.lastBundleFlushLength >= VISIBLE_BUNDLE_FLUSH_CHARS;
+      if (!shouldFlush) {
+        return {
+          state: nextStateBase,
+          streamEvent: {
+            type: 'text_delta',
+            textDelta: input.event.textDelta,
+          },
+        };
+      }
       const visibleBundle = createVisibleBundle(nextStateBase, {
-        partialText: nextStateBase.streamedText,
+        partialText: nextStreamedText,
         partialReasoningText: nextStateBase.streamedReasoningText,
         updatedAtMs: input.updatedAtMs,
       });
@@ -230,6 +245,7 @@ export function reduceAgentSubmitSessionEvent(
         state: {
           ...nextStateBase,
           workingBundle: visibleBundle,
+          lastBundleFlushLength: nextStreamedText.length,
         },
         streamEvent: {
           type: 'text_delta',

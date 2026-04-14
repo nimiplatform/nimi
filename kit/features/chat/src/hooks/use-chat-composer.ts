@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -59,19 +58,6 @@ export function useChatComposer<TAttachment = never>({
     }
     setInternalAttachments(nextAttachments);
   }, [controlledAttachments, onAttachmentsChange]);
-
-  const resizeTextarea = useCallback(() => {
-    const element = textareaRef.current;
-    if (!element) {
-      return;
-    }
-    element.style.height = 'auto';
-    element.style.height = `${Math.min(element.scrollHeight, maxTextareaHeight)}px`;
-  }, [maxTextareaHeight]);
-
-  useEffect(() => {
-    resizeTextarea();
-  }, [resizeTextarea, text]);
 
   const clearError = useCallback(() => {
     setError(null);
