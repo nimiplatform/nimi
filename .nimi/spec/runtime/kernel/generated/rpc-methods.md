@@ -163,13 +163,27 @@ Source: `K-MODEL-004`
 
 ## RuntimeKnowledgeService
 
-Source: `K-KNOW-001`
+Source: `K-KNOW-003`
 
 | Method | Type |
 |---|---|
-| `BuildIndex` | `unary` |
-| `SearchIndex` | `unary` |
-| `DeleteIndex` | `unary` |
+| `CreateKnowledgeBank` | `unary` |
+| `GetKnowledgeBank` | `unary` |
+| `ListKnowledgeBanks` | `unary` |
+| `DeleteKnowledgeBank` | `unary` |
+| `PutPage` | `unary` |
+| `GetPage` | `unary` |
+| `ListPages` | `unary` |
+| `DeletePage` | `unary` |
+| `SearchKeyword` | `unary` |
+| `SearchHybrid` | `unary` |
+| `AddLink` | `unary` |
+| `RemoveLink` | `unary` |
+| `ListLinks` | `unary` |
+| `ListBacklinks` | `unary` |
+| `TraverseGraph` | `unary` |
+| `IngestDocument` | `unary` |
+| `GetIngestTask` | `unary` |
 
 ## RuntimeAppService
 

@@ -176,9 +176,23 @@ const CONNECTOR_METHODS = [
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeConnectorClient>[];
 
 const KNOWLEDGE_METHODS = [
-  'buildIndex',
-  'searchIndex',
-  'deleteIndex',
+  'createKnowledgeBank',
+  'getKnowledgeBank',
+  'listKnowledgeBanks',
+  'deleteKnowledgeBank',
+  'putPage',
+  'getPage',
+  'listPages',
+  'deletePage',
+  'searchKeyword',
+  'searchHybrid',
+  'addLink',
+  'removeLink',
+  'listLinks',
+  'listBacklinks',
+  'traverseGraph',
+  'ingestDocument',
+  'getIngestTask',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeKnowledgeClient>[];
 
 const MEMORY_METHODS = [

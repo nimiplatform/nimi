@@ -49,7 +49,7 @@ service_mappings:
   proto_service: RuntimeKnowledgeService
   mapping_status: aligned
   phase: phase2
-  source_rule: K-KNOW-001
+  source_rule: K-RPC-004c
 - design_service: RuntimeAppService
   proto_service: RuntimeAppService
   mapping_status: aligned
@@ -547,19 +547,89 @@ method_mappings:
   proto_method: CheckModelHealth
   mapping_status: aligned
 - design_service: RuntimeKnowledgeService
-  design_method: BuildIndex
+  design_method: CreateKnowledgeBank
   proto_service: RuntimeKnowledgeService
-  proto_method: BuildIndex
+  proto_method: CreateKnowledgeBank
   mapping_status: aligned
 - design_service: RuntimeKnowledgeService
-  design_method: SearchIndex
+  design_method: GetKnowledgeBank
   proto_service: RuntimeKnowledgeService
-  proto_method: SearchIndex
+  proto_method: GetKnowledgeBank
   mapping_status: aligned
 - design_service: RuntimeKnowledgeService
-  design_method: DeleteIndex
+  design_method: ListKnowledgeBanks
   proto_service: RuntimeKnowledgeService
-  proto_method: DeleteIndex
+  proto_method: ListKnowledgeBanks
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: DeleteKnowledgeBank
+  proto_service: RuntimeKnowledgeService
+  proto_method: DeleteKnowledgeBank
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: PutPage
+  proto_service: RuntimeKnowledgeService
+  proto_method: PutPage
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: GetPage
+  proto_service: RuntimeKnowledgeService
+  proto_method: GetPage
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: ListPages
+  proto_service: RuntimeKnowledgeService
+  proto_method: ListPages
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: DeletePage
+  proto_service: RuntimeKnowledgeService
+  proto_method: DeletePage
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: SearchKeyword
+  proto_service: RuntimeKnowledgeService
+  proto_method: SearchKeyword
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: SearchHybrid
+  proto_service: RuntimeKnowledgeService
+  proto_method: SearchHybrid
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: AddLink
+  proto_service: RuntimeKnowledgeService
+  proto_method: AddLink
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: RemoveLink
+  proto_service: RuntimeKnowledgeService
+  proto_method: RemoveLink
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: ListLinks
+  proto_service: RuntimeKnowledgeService
+  proto_method: ListLinks
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: ListBacklinks
+  proto_service: RuntimeKnowledgeService
+  proto_method: ListBacklinks
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: TraverseGraph
+  proto_service: RuntimeKnowledgeService
+  proto_method: TraverseGraph
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: IngestDocument
+  proto_service: RuntimeKnowledgeService
+  proto_method: IngestDocument
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: GetIngestTask
+  proto_service: RuntimeKnowledgeService
+  proto_method: GetIngestTask
   mapping_status: aligned
 - design_service: RuntimeAppService
   design_method: SendAppMessage

@@ -188,7 +188,22 @@ pub enum ReasonCode {
     /// PAGE family (520+)
     PageTokenInvalid = 520,
     /// KNOWLEDGE family (530+)
-    KnowledgeIndexAlreadyExists = 530,
+    KnowledgeBankAlreadyExists = 530,
+    KnowledgeBankNotFound = 531,
+    KnowledgeBankScopeInvalid = 532,
+    KnowledgeBankAccessDenied = 533,
+    KnowledgePageNotFound = 534,
+    KnowledgePageSlugConflict = 535,
+    KnowledgePageAccessDenied = 536,
+    KnowledgeHybridSearchUnavailable = 537,
+    KnowledgeEmbeddingProfileUnavailable = 538,
+    KnowledgeVectorIndexNotReady = 539,
+    KnowledgeIndexRefreshInProgress = 540,
+    KnowledgeLinkNotFound = 541,
+    KnowledgeLinkAlreadyExists = 542,
+    KnowledgeLinkInvalid = 543,
+    KnowledgeGraphDepthInvalid = 544,
+    KnowledgeIngestTaskNotFound = 545,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -315,7 +330,28 @@ impl ReasonCode {
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
-            Self::KnowledgeIndexAlreadyExists => "KNOWLEDGE_INDEX_ALREADY_EXISTS",
+            Self::KnowledgeBankAlreadyExists => "KNOWLEDGE_BANK_ALREADY_EXISTS",
+            Self::KnowledgeBankNotFound => "KNOWLEDGE_BANK_NOT_FOUND",
+            Self::KnowledgeBankScopeInvalid => "KNOWLEDGE_BANK_SCOPE_INVALID",
+            Self::KnowledgeBankAccessDenied => "KNOWLEDGE_BANK_ACCESS_DENIED",
+            Self::KnowledgePageNotFound => "KNOWLEDGE_PAGE_NOT_FOUND",
+            Self::KnowledgePageSlugConflict => "KNOWLEDGE_PAGE_SLUG_CONFLICT",
+            Self::KnowledgePageAccessDenied => "KNOWLEDGE_PAGE_ACCESS_DENIED",
+            Self::KnowledgeHybridSearchUnavailable => {
+                "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE"
+            }
+            Self::KnowledgeEmbeddingProfileUnavailable => {
+                "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE"
+            }
+            Self::KnowledgeVectorIndexNotReady => "KNOWLEDGE_VECTOR_INDEX_NOT_READY",
+            Self::KnowledgeIndexRefreshInProgress => {
+                "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS"
+            }
+            Self::KnowledgeLinkNotFound => "KNOWLEDGE_LINK_NOT_FOUND",
+            Self::KnowledgeLinkAlreadyExists => "KNOWLEDGE_LINK_ALREADY_EXISTS",
+            Self::KnowledgeLinkInvalid => "KNOWLEDGE_LINK_INVALID",
+            Self::KnowledgeGraphDepthInvalid => "KNOWLEDGE_GRAPH_DEPTH_INVALID",
+            Self::KnowledgeIngestTaskNotFound => "KNOWLEDGE_INGEST_TASK_NOT_FOUND",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -457,7 +493,30 @@ impl ReasonCode {
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
-            "KNOWLEDGE_INDEX_ALREADY_EXISTS" => Some(Self::KnowledgeIndexAlreadyExists),
+            "KNOWLEDGE_BANK_ALREADY_EXISTS" => Some(Self::KnowledgeBankAlreadyExists),
+            "KNOWLEDGE_BANK_NOT_FOUND" => Some(Self::KnowledgeBankNotFound),
+            "KNOWLEDGE_BANK_SCOPE_INVALID" => Some(Self::KnowledgeBankScopeInvalid),
+            "KNOWLEDGE_BANK_ACCESS_DENIED" => Some(Self::KnowledgeBankAccessDenied),
+            "KNOWLEDGE_PAGE_NOT_FOUND" => Some(Self::KnowledgePageNotFound),
+            "KNOWLEDGE_PAGE_SLUG_CONFLICT" => Some(Self::KnowledgePageSlugConflict),
+            "KNOWLEDGE_PAGE_ACCESS_DENIED" => Some(Self::KnowledgePageAccessDenied),
+            "KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE" => {
+                Some(Self::KnowledgeHybridSearchUnavailable)
+            }
+            "KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE" => {
+                Some(Self::KnowledgeEmbeddingProfileUnavailable)
+            }
+            "KNOWLEDGE_VECTOR_INDEX_NOT_READY" => {
+                Some(Self::KnowledgeVectorIndexNotReady)
+            }
+            "KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS" => {
+                Some(Self::KnowledgeIndexRefreshInProgress)
+            }
+            "KNOWLEDGE_LINK_NOT_FOUND" => Some(Self::KnowledgeLinkNotFound),
+            "KNOWLEDGE_LINK_ALREADY_EXISTS" => Some(Self::KnowledgeLinkAlreadyExists),
+            "KNOWLEDGE_LINK_INVALID" => Some(Self::KnowledgeLinkInvalid),
+            "KNOWLEDGE_GRAPH_DEPTH_INVALID" => Some(Self::KnowledgeGraphDepthInvalid),
+            "KNOWLEDGE_INGEST_TASK_NOT_FOUND" => Some(Self::KnowledgeIngestTaskNotFound),
             _ => None,
         }
     }
@@ -6606,27 +6665,524 @@ pub mod runtime_model_service_client {
         }
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BuildIndexRequest {
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KnowledgeRequestContext {
     #[prost(string, tag = "1")]
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub index_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub source_kind: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub source_uris: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "6")]
-    pub embedding_model_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "7")]
-    pub overwrite: bool,
-    #[prost(message, optional, tag = "8")]
-    pub options: ::core::option::Option<::prost_types::Struct>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct BuildIndexResponse {
+pub struct KnowledgeAppPrivateOwner {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KnowledgeWorkspacePrivateOwner {
+    #[prost(string, tag = "1")]
+    pub workspace_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KnowledgeBankLocator {
+    #[prost(enumeration = "KnowledgeBankScope", tag = "1")]
+    pub scope: i32,
+    #[prost(oneof = "knowledge_bank_locator::Owner", tags = "2, 3")]
+    pub owner: ::core::option::Option<knowledge_bank_locator::Owner>,
+}
+/// Nested message and enum types in `KnowledgeBankLocator`.
+pub mod knowledge_bank_locator {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Owner {
+        #[prost(message, tag = "2")]
+        AppPrivate(super::KnowledgeAppPrivateOwner),
+        #[prost(message, tag = "3")]
+        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PublicKnowledgeBankLocator {
+    #[prost(oneof = "public_knowledge_bank_locator::Locator", tags = "1, 2")]
+    pub locator: ::core::option::Option<public_knowledge_bank_locator::Locator>,
+}
+/// Nested message and enum types in `PublicKnowledgeBankLocator`.
+pub mod public_knowledge_bank_locator {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Locator {
+        #[prost(message, tag = "1")]
+        AppPrivate(super::KnowledgeAppPrivateOwner),
+        #[prost(message, tag = "2")]
+        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KnowledgeBankOwnerFilter {
+    #[prost(oneof = "knowledge_bank_owner_filter::Owner", tags = "1, 2")]
+    pub owner: ::core::option::Option<knowledge_bank_owner_filter::Owner>,
+}
+/// Nested message and enum types in `KnowledgeBankOwnerFilter`.
+pub mod knowledge_bank_owner_filter {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Owner {
+        #[prost(message, tag = "1")]
+        AppPrivate(super::KnowledgeAppPrivateOwner),
+        #[prost(message, tag = "2")]
+        WorkspacePrivate(super::KnowledgeWorkspacePrivateOwner),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgeBank {
+    #[prost(string, tag = "1")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<KnowledgeBankLocator>,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "5")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "6")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgePage {
+    #[prost(string, tag = "1")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub entity_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgeKeywordHit {
+    #[prost(string, tag = "1")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub snippet: ::prost::alloc::string::String,
+    #[prost(float, tag = "6")]
+    pub score: f32,
+    #[prost(message, optional, tag = "7")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgeLink {
+    #[prost(string, tag = "1")]
+    pub link_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub from_page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub to_page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub link_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(message, optional, tag = "7")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgeGraphEdge {
+    #[prost(message, optional, tag = "1")]
+    pub link: ::core::option::Option<KnowledgeLink>,
+    #[prost(string, tag = "2")]
+    pub from_slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub from_title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub from_entity_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub to_slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub to_title: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub to_entity_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KnowledgeGraphNode {
+    #[prost(string, tag = "1")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub entity_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+    #[prost(int32, tag = "7")]
+    pub depth: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct KnowledgeIngestTask {
+    #[prost(string, tag = "1")]
+    pub task_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(enumeration = "KnowledgeIngestTaskStatus", tag = "6")]
+    pub status: i32,
+    #[prost(int32, tag = "7")]
+    pub progress_percent: i32,
+    #[prost(enumeration = "ReasonCode", tag = "8")]
+    pub reason_code: i32,
+    #[prost(string, tag = "9")]
+    pub action_hint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub created_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateKnowledgeBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(message, optional, tag = "2")]
+    pub locator: ::core::option::Option<PublicKnowledgeBankLocator>,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CreateKnowledgeBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<KnowledgeBank>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetKnowledgeBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetKnowledgeBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub bank: ::core::option::Option<KnowledgeBank>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListKnowledgeBanksRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(enumeration = "KnowledgeBankScope", repeated, tag = "2")]
+    pub scope_filters: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, repeated, tag = "3")]
+    pub owner_filters: ::prost::alloc::vec::Vec<KnowledgeBankOwnerFilter>,
+    #[prost(int32, tag = "4")]
+    pub page_size: i32,
+    #[prost(string, tag = "5")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListKnowledgeBanksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub banks: ::prost::alloc::vec::Vec<KnowledgeBank>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteKnowledgeBankRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeleteKnowledgeBankResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PutPageRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub entity_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PutPageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub page: ::core::option::Option<KnowledgePage>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetPageRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(oneof = "get_page_request::Lookup", tags = "3, 4")]
+    pub lookup: ::core::option::Option<get_page_request::Lookup>,
+}
+/// Nested message and enum types in `GetPageRequest`.
+pub mod get_page_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Lookup {
+        #[prost(string, tag = "3")]
+        PageId(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        Slug(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetPageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub page: ::core::option::Option<KnowledgePage>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListPagesRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub slug_prefix: ::prost::alloc::string::String,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListPagesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub pages: ::prost::alloc::vec::Vec<KnowledgePage>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeletePageRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(oneof = "delete_page_request::Lookup", tags = "3, 4")]
+    pub lookup: ::core::option::Option<delete_page_request::Lookup>,
+}
+/// Nested message and enum types in `DeletePageRequest`.
+pub mod delete_page_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Lookup {
+        #[prost(string, tag = "3")]
+        PageId(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        Slug(::prost::alloc::string::String),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeletePageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SearchKeywordRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, repeated, tag = "2")]
+    pub bank_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "3")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub top_k: i32,
+    #[prost(string, repeated, tag = "5")]
+    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub slug_prefix: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SearchKeywordResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub hits: ::prost::alloc::vec::Vec<KnowledgeKeywordHit>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SearchHybridRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub entity_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SearchHybridResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub hits: ::prost::alloc::vec::Vec<KnowledgeKeywordHit>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddLinkRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub from_page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub to_page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub link_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AddLinkResponse {
+    #[prost(message, optional, tag = "1")]
+    pub link: ::core::option::Option<KnowledgeLink>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLinkRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub link_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemoveLinkResponse {
+    #[prost(message, optional, tag = "1")]
+    pub ack: ::core::option::Option<Ack>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListLinksRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub from_page_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListLinksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub links: ::prost::alloc::vec::Vec<KnowledgeGraphEdge>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListBacklinksRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub to_page_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub page_size: i32,
+    #[prost(string, tag = "6")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListBacklinksResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub backlinks: ::prost::alloc::vec::Vec<KnowledgeGraphEdge>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TraverseGraphRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub root_page_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub link_type_filters: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub max_depth: i32,
+    #[prost(int32, tag = "6")]
+    pub page_size: i32,
+    #[prost(string, tag = "7")]
+    pub page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TraverseGraphResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub nodes: ::prost::alloc::vec::Vec<KnowledgeGraphNode>,
+    #[prost(string, tag = "2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IngestDocumentRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
+    #[prost(string, tag = "2")]
+    pub bank_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub page_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub slug: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub entity_type: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub metadata: ::core::option::Option<::prost_types::Struct>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IngestDocumentResponse {
     #[prost(string, tag = "1")]
     pub task_id: ::prost::alloc::string::String,
     #[prost(bool, tag = "2")]
@@ -6634,47 +7190,81 @@ pub struct BuildIndexResponse {
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SearchIndexRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetIngestTaskRequest {
+    #[prost(message, optional, tag = "1")]
+    pub context: ::core::option::Option<KnowledgeRequestContext>,
     #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub index_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub query: ::prost::alloc::string::String,
-    #[prost(int32, tag = "5")]
-    pub top_k: i32,
-    #[prost(message, optional, tag = "6")]
-    pub filters: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SearchHit {
-    #[prost(string, tag = "1")]
-    pub document_id: ::prost::alloc::string::String,
-    #[prost(float, tag = "2")]
-    pub score: f32,
-    #[prost(string, tag = "3")]
-    pub snippet: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub metadata: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SearchIndexResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub hits: ::prost::alloc::vec::Vec<SearchHit>,
-    #[prost(enumeration = "ReasonCode", tag = "2")]
-    pub reason_code: i32,
+    pub task_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct DeleteIndexRequest {
-    #[prost(string, tag = "1")]
-    pub app_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub index_id: ::prost::alloc::string::String,
+pub struct GetIngestTaskResponse {
+    #[prost(message, optional, tag = "1")]
+    pub task: ::core::option::Option<KnowledgeIngestTask>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum KnowledgeBankScope {
+    Unspecified = 0,
+    AppPrivate = 1,
+    WorkspacePrivate = 2,
+}
+impl KnowledgeBankScope {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED",
+            Self::AppPrivate => "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE",
+            Self::WorkspacePrivate => "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE" => Some(Self::AppPrivate),
+            "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE" => Some(Self::WorkspacePrivate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum KnowledgeIngestTaskStatus {
+    Unspecified = 0,
+    Queued = 1,
+    Running = 2,
+    Completed = 3,
+    Failed = 4,
+}
+impl KnowledgeIngestTaskStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED",
+            Self::Queued => "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED",
+            Self::Running => "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING",
+            Self::Completed => "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED",
+            Self::Failed => "KNOWLEDGE_INGEST_TASK_STATUS_FAILED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED" => Some(Self::Queued),
+            "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING" => Some(Self::Running),
+            "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED" => Some(Self::Completed),
+            "KNOWLEDGE_INGEST_TASK_STATUS_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
 }
 /// Generated client implementations.
 pub mod runtime_knowledge_service_client {
@@ -6769,11 +7359,11 @@ pub mod runtime_knowledge_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn build_index(
+        pub async fn create_knowledge_bank(
             &mut self,
-            request: impl tonic::IntoRequest<super::BuildIndexRequest>,
+            request: impl tonic::IntoRequest<super::CreateKnowledgeBankRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::BuildIndexResponse>,
+            tonic::Response<super::CreateKnowledgeBankResponse>,
             tonic::Status,
         > {
             self.inner
@@ -6786,23 +7376,23 @@ pub mod runtime_knowledge_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/BuildIndex",
+                "/nimi.runtime.v1.RuntimeKnowledgeService/CreateKnowledgeBank",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "BuildIndex",
+                        "CreateKnowledgeBank",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn search_index(
+        pub async fn get_knowledge_bank(
             &mut self,
-            request: impl tonic::IntoRequest<super::SearchIndexRequest>,
+            request: impl tonic::IntoRequest<super::GetKnowledgeBankRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::SearchIndexResponse>,
+            tonic::Response<super::GetKnowledgeBankResponse>,
             tonic::Status,
         > {
             self.inner
@@ -6815,22 +7405,25 @@ pub mod runtime_knowledge_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/SearchIndex",
+                "/nimi.runtime.v1.RuntimeKnowledgeService/GetKnowledgeBank",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "SearchIndex",
+                        "GetKnowledgeBank",
                     ),
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn delete_index(
+        pub async fn list_knowledge_banks(
             &mut self,
-            request: impl tonic::IntoRequest<super::DeleteIndexRequest>,
-        ) -> std::result::Result<tonic::Response<super::Ack>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::ListKnowledgeBanksRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListKnowledgeBanksResponse>,
+            tonic::Status,
+        > {
             self.inner
                 .ready()
                 .await
@@ -6841,14 +7434,411 @@ pub mod runtime_knowledge_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeKnowledgeService/DeleteIndex",
+                "/nimi.runtime.v1.RuntimeKnowledgeService/ListKnowledgeBanks",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeKnowledgeService",
-                        "DeleteIndex",
+                        "ListKnowledgeBanks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_knowledge_bank(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeleteKnowledgeBankRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeleteKnowledgeBankResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/DeleteKnowledgeBank",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "DeleteKnowledgeBank",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn put_page(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PutPageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PutPageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/PutPage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "PutPage"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_page(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetPageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetPageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/GetPage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "GetPage"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_pages(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListPagesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListPagesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/ListPages",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "ListPages",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn delete_page(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DeletePageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DeletePageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/DeletePage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "DeletePage",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn search_keyword(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SearchKeywordRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SearchKeywordResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/SearchKeyword",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "SearchKeyword",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn search_hybrid(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SearchHybridRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SearchHybridResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/SearchHybrid",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "SearchHybrid",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn add_link(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AddLinkRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::AddLinkResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/AddLink",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeKnowledgeService", "AddLink"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn remove_link(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RemoveLinkRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RemoveLinkResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/RemoveLink",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "RemoveLink",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_links(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListLinksRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListLinksResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/ListLinks",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "ListLinks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_backlinks(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListBacklinksRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListBacklinksResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/ListBacklinks",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "ListBacklinks",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn traverse_graph(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TraverseGraphRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TraverseGraphResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/TraverseGraph",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "TraverseGraph",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn ingest_document(
+            &mut self,
+            request: impl tonic::IntoRequest<super::IngestDocumentRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::IngestDocumentResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/IngestDocument",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "IngestDocument",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_ingest_task(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetIngestTaskRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetIngestTaskResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeKnowledgeService/GetIngestTask",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeKnowledgeService",
+                        "GetIngestTask",
                     ),
                 );
             self.inner.unary(req, path, codec).await

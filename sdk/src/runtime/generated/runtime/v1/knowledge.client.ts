@@ -5,13 +5,41 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeKnowledgeService } from "./knowledge";
-import type { Ack } from "./common";
-import type { DeleteIndexRequest } from "./knowledge";
-import type { SearchIndexResponse } from "./knowledge";
-import type { SearchIndexRequest } from "./knowledge";
+import type { GetIngestTaskResponse } from "./knowledge";
+import type { GetIngestTaskRequest } from "./knowledge";
+import type { IngestDocumentResponse } from "./knowledge";
+import type { IngestDocumentRequest } from "./knowledge";
+import type { TraverseGraphResponse } from "./knowledge";
+import type { TraverseGraphRequest } from "./knowledge";
+import type { ListBacklinksResponse } from "./knowledge";
+import type { ListBacklinksRequest } from "./knowledge";
+import type { ListLinksResponse } from "./knowledge";
+import type { ListLinksRequest } from "./knowledge";
+import type { RemoveLinkResponse } from "./knowledge";
+import type { RemoveLinkRequest } from "./knowledge";
+import type { AddLinkResponse } from "./knowledge";
+import type { AddLinkRequest } from "./knowledge";
+import type { SearchHybridResponse } from "./knowledge";
+import type { SearchHybridRequest } from "./knowledge";
+import type { SearchKeywordResponse } from "./knowledge";
+import type { SearchKeywordRequest } from "./knowledge";
+import type { DeletePageResponse } from "./knowledge";
+import type { DeletePageRequest } from "./knowledge";
+import type { ListPagesResponse } from "./knowledge";
+import type { ListPagesRequest } from "./knowledge";
+import type { GetPageResponse } from "./knowledge";
+import type { GetPageRequest } from "./knowledge";
+import type { PutPageResponse } from "./knowledge";
+import type { PutPageRequest } from "./knowledge";
+import type { DeleteKnowledgeBankResponse } from "./knowledge";
+import type { DeleteKnowledgeBankRequest } from "./knowledge";
+import type { ListKnowledgeBanksResponse } from "./knowledge";
+import type { ListKnowledgeBanksRequest } from "./knowledge";
+import type { GetKnowledgeBankResponse } from "./knowledge";
+import type { GetKnowledgeBankRequest } from "./knowledge";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
-import type { BuildIndexResponse } from "./knowledge";
-import type { BuildIndexRequest } from "./knowledge";
+import type { CreateKnowledgeBankResponse } from "./knowledge";
+import type { CreateKnowledgeBankRequest } from "./knowledge";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
@@ -19,17 +47,73 @@ import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
  */
 export interface IRuntimeKnowledgeServiceClient {
     /**
-     * @generated from protobuf rpc: BuildIndex
+     * @generated from protobuf rpc: CreateKnowledgeBank
      */
-    buildIndex(input: BuildIndexRequest, options?: RpcOptions): UnaryCall<BuildIndexRequest, BuildIndexResponse>;
+    createKnowledgeBank(input: CreateKnowledgeBankRequest, options?: RpcOptions): UnaryCall<CreateKnowledgeBankRequest, CreateKnowledgeBankResponse>;
     /**
-     * @generated from protobuf rpc: SearchIndex
+     * @generated from protobuf rpc: GetKnowledgeBank
      */
-    searchIndex(input: SearchIndexRequest, options?: RpcOptions): UnaryCall<SearchIndexRequest, SearchIndexResponse>;
+    getKnowledgeBank(input: GetKnowledgeBankRequest, options?: RpcOptions): UnaryCall<GetKnowledgeBankRequest, GetKnowledgeBankResponse>;
     /**
-     * @generated from protobuf rpc: DeleteIndex
+     * @generated from protobuf rpc: ListKnowledgeBanks
      */
-    deleteIndex(input: DeleteIndexRequest, options?: RpcOptions): UnaryCall<DeleteIndexRequest, Ack>;
+    listKnowledgeBanks(input: ListKnowledgeBanksRequest, options?: RpcOptions): UnaryCall<ListKnowledgeBanksRequest, ListKnowledgeBanksResponse>;
+    /**
+     * @generated from protobuf rpc: DeleteKnowledgeBank
+     */
+    deleteKnowledgeBank(input: DeleteKnowledgeBankRequest, options?: RpcOptions): UnaryCall<DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse>;
+    /**
+     * @generated from protobuf rpc: PutPage
+     */
+    putPage(input: PutPageRequest, options?: RpcOptions): UnaryCall<PutPageRequest, PutPageResponse>;
+    /**
+     * @generated from protobuf rpc: GetPage
+     */
+    getPage(input: GetPageRequest, options?: RpcOptions): UnaryCall<GetPageRequest, GetPageResponse>;
+    /**
+     * @generated from protobuf rpc: ListPages
+     */
+    listPages(input: ListPagesRequest, options?: RpcOptions): UnaryCall<ListPagesRequest, ListPagesResponse>;
+    /**
+     * @generated from protobuf rpc: DeletePage
+     */
+    deletePage(input: DeletePageRequest, options?: RpcOptions): UnaryCall<DeletePageRequest, DeletePageResponse>;
+    /**
+     * @generated from protobuf rpc: SearchKeyword
+     */
+    searchKeyword(input: SearchKeywordRequest, options?: RpcOptions): UnaryCall<SearchKeywordRequest, SearchKeywordResponse>;
+    /**
+     * @generated from protobuf rpc: SearchHybrid
+     */
+    searchHybrid(input: SearchHybridRequest, options?: RpcOptions): UnaryCall<SearchHybridRequest, SearchHybridResponse>;
+    /**
+     * @generated from protobuf rpc: AddLink
+     */
+    addLink(input: AddLinkRequest, options?: RpcOptions): UnaryCall<AddLinkRequest, AddLinkResponse>;
+    /**
+     * @generated from protobuf rpc: RemoveLink
+     */
+    removeLink(input: RemoveLinkRequest, options?: RpcOptions): UnaryCall<RemoveLinkRequest, RemoveLinkResponse>;
+    /**
+     * @generated from protobuf rpc: ListLinks
+     */
+    listLinks(input: ListLinksRequest, options?: RpcOptions): UnaryCall<ListLinksRequest, ListLinksResponse>;
+    /**
+     * @generated from protobuf rpc: ListBacklinks
+     */
+    listBacklinks(input: ListBacklinksRequest, options?: RpcOptions): UnaryCall<ListBacklinksRequest, ListBacklinksResponse>;
+    /**
+     * @generated from protobuf rpc: TraverseGraph
+     */
+    traverseGraph(input: TraverseGraphRequest, options?: RpcOptions): UnaryCall<TraverseGraphRequest, TraverseGraphResponse>;
+    /**
+     * @generated from protobuf rpc: IngestDocument
+     */
+    ingestDocument(input: IngestDocumentRequest, options?: RpcOptions): UnaryCall<IngestDocumentRequest, IngestDocumentResponse>;
+    /**
+     * @generated from protobuf rpc: GetIngestTask
+     */
+    getIngestTask(input: GetIngestTaskRequest, options?: RpcOptions): UnaryCall<GetIngestTaskRequest, GetIngestTaskResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeKnowledgeService
@@ -41,24 +125,122 @@ export class RuntimeKnowledgeServiceClient implements IRuntimeKnowledgeServiceCl
     constructor(private readonly _transport: RpcTransport) {
     }
     /**
-     * @generated from protobuf rpc: BuildIndex
+     * @generated from protobuf rpc: CreateKnowledgeBank
      */
-    buildIndex(input: BuildIndexRequest, options?: RpcOptions): UnaryCall<BuildIndexRequest, BuildIndexResponse> {
+    createKnowledgeBank(input: CreateKnowledgeBankRequest, options?: RpcOptions): UnaryCall<CreateKnowledgeBankRequest, CreateKnowledgeBankResponse> {
         const method = this.methods[0], opt = this._transport.mergeOptions(options);
-        return stackIntercept<BuildIndexRequest, BuildIndexResponse>("unary", this._transport, method, opt, input);
+        return stackIntercept<CreateKnowledgeBankRequest, CreateKnowledgeBankResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * @generated from protobuf rpc: SearchIndex
+     * @generated from protobuf rpc: GetKnowledgeBank
      */
-    searchIndex(input: SearchIndexRequest, options?: RpcOptions): UnaryCall<SearchIndexRequest, SearchIndexResponse> {
+    getKnowledgeBank(input: GetKnowledgeBankRequest, options?: RpcOptions): UnaryCall<GetKnowledgeBankRequest, GetKnowledgeBankResponse> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
-        return stackIntercept<SearchIndexRequest, SearchIndexResponse>("unary", this._transport, method, opt, input);
+        return stackIntercept<GetKnowledgeBankRequest, GetKnowledgeBankResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * @generated from protobuf rpc: DeleteIndex
+     * @generated from protobuf rpc: ListKnowledgeBanks
      */
-    deleteIndex(input: DeleteIndexRequest, options?: RpcOptions): UnaryCall<DeleteIndexRequest, Ack> {
+    listKnowledgeBanks(input: ListKnowledgeBanksRequest, options?: RpcOptions): UnaryCall<ListKnowledgeBanksRequest, ListKnowledgeBanksResponse> {
         const method = this.methods[2], opt = this._transport.mergeOptions(options);
-        return stackIntercept<DeleteIndexRequest, Ack>("unary", this._transport, method, opt, input);
+        return stackIntercept<ListKnowledgeBanksRequest, ListKnowledgeBanksResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: DeleteKnowledgeBank
+     */
+    deleteKnowledgeBank(input: DeleteKnowledgeBankRequest, options?: RpcOptions): UnaryCall<DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<DeleteKnowledgeBankRequest, DeleteKnowledgeBankResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: PutPage
+     */
+    putPage(input: PutPageRequest, options?: RpcOptions): UnaryCall<PutPageRequest, PutPageResponse> {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept<PutPageRequest, PutPageResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetPage
+     */
+    getPage(input: GetPageRequest, options?: RpcOptions): UnaryCall<GetPageRequest, GetPageResponse> {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetPageRequest, GetPageResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListPages
+     */
+    listPages(input: ListPagesRequest, options?: RpcOptions): UnaryCall<ListPagesRequest, ListPagesResponse> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListPagesRequest, ListPagesResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: DeletePage
+     */
+    deletePage(input: DeletePageRequest, options?: RpcOptions): UnaryCall<DeletePageRequest, DeletePageResponse> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<DeletePageRequest, DeletePageResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SearchKeyword
+     */
+    searchKeyword(input: SearchKeywordRequest, options?: RpcOptions): UnaryCall<SearchKeywordRequest, SearchKeywordResponse> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SearchKeywordRequest, SearchKeywordResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SearchHybrid
+     */
+    searchHybrid(input: SearchHybridRequest, options?: RpcOptions): UnaryCall<SearchHybridRequest, SearchHybridResponse> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SearchHybridRequest, SearchHybridResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: AddLink
+     */
+    addLink(input: AddLinkRequest, options?: RpcOptions): UnaryCall<AddLinkRequest, AddLinkResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<AddLinkRequest, AddLinkResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: RemoveLink
+     */
+    removeLink(input: RemoveLinkRequest, options?: RpcOptions): UnaryCall<RemoveLinkRequest, RemoveLinkResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RemoveLinkRequest, RemoveLinkResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListLinks
+     */
+    listLinks(input: ListLinksRequest, options?: RpcOptions): UnaryCall<ListLinksRequest, ListLinksResponse> {
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListLinksRequest, ListLinksResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListBacklinks
+     */
+    listBacklinks(input: ListBacklinksRequest, options?: RpcOptions): UnaryCall<ListBacklinksRequest, ListBacklinksResponse> {
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListBacklinksRequest, ListBacklinksResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: TraverseGraph
+     */
+    traverseGraph(input: TraverseGraphRequest, options?: RpcOptions): UnaryCall<TraverseGraphRequest, TraverseGraphResponse> {
+        const method = this.methods[14], opt = this._transport.mergeOptions(options);
+        return stackIntercept<TraverseGraphRequest, TraverseGraphResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: IngestDocument
+     */
+    ingestDocument(input: IngestDocumentRequest, options?: RpcOptions): UnaryCall<IngestDocumentRequest, IngestDocumentResponse> {
+        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        return stackIntercept<IngestDocumentRequest, IngestDocumentResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetIngestTask
+     */
+    getIngestTask(input: GetIngestTaskRequest, options?: RpcOptions): UnaryCall<GetIngestTaskRequest, GetIngestTaskResponse> {
+        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetIngestTaskRequest, GetIngestTaskResponse>("unary", this._transport, method, opt, input);
     }
 }

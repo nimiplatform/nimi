@@ -16,6 +16,11 @@ export {
 export { ModelStatus } from './generated/runtime/v1/model.js';
 export { ModelCatalogProviderSource, CatalogModelSource } from './generated/runtime/v1/connector.js';
 export {
+  KnowledgeBankScope,
+  KnowledgeIngestTaskStatus,
+} from './generated/runtime/v1/knowledge.js';
+export type * from './generated/runtime/v1/knowledge.js';
+export {
   MemoryBankScope,
   MemoryCanonicalClass,
   MemoryDistanceMetric,

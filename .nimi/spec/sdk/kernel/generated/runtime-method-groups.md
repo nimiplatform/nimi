@@ -164,9 +164,23 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2
 
 | Method | Source Rule |
 |---|---|
-| `BuildIndex` | `S-SURFACE-002` |
-| `SearchIndex` | `S-SURFACE-002` |
-| `DeleteIndex` | `S-SURFACE-002` |
+| `CreateKnowledgeBank` | `S-SURFACE-002` |
+| `GetKnowledgeBank` | `S-SURFACE-002` |
+| `ListKnowledgeBanks` | `S-SURFACE-002` |
+| `DeleteKnowledgeBank` | `S-SURFACE-002` |
+| `PutPage` | `S-SURFACE-002` |
+| `GetPage` | `S-SURFACE-002` |
+| `ListPages` | `S-SURFACE-002` |
+| `DeletePage` | `S-SURFACE-002` |
+| `SearchKeyword` | `S-SURFACE-002` |
+| `SearchHybrid` | `S-SURFACE-002` |
+| `AddLink` | `S-SURFACE-002` |
+| `RemoveLink` | `S-SURFACE-002` |
+| `ListLinks` | `S-SURFACE-002` |
+| `ListBacklinks` | `S-SURFACE-002` |
+| `TraverseGraph` | `S-SURFACE-002` |
+| `IngestDocument` | `S-SURFACE-002` |
+| `GetIngestTask` | `S-SURFACE-002` |
 
 ## app_service_projection
 

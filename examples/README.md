@@ -67,7 +67,7 @@ Advanced examples live under `examples/sdk/advanced/`:
 
 - `app-auth.ts`: app authorization lifecycle
 - `workflow.ts`: workflow DAG orchestration
-- `knowledge.ts`: knowledge index build + search
+- `knowledge.ts`: private knowledge bank/page CRUD + keyword search
 - `custom-runtime.ts`: explicit transport + provider wiring
 
 Provider-focused examples remain in `examples/sdk/providers/`.

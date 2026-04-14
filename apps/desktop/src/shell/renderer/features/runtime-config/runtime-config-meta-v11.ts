@@ -25,6 +25,10 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
     name: 'Runtime',
     description: 'Daemon lifecycle, health, audit log, EAA, and provider diagnostics.',
   },
+  knowledge: {
+    name: 'Knowledge',
+    description: 'Runtime-local knowledge banks, pages, search, ingest tasks, and same-bank graph/backlink inspection.',
+  },
   profiles: {
     name: 'AI Profiles',
     description: 'Browse, create, edit, import and export AI capability profiles.',

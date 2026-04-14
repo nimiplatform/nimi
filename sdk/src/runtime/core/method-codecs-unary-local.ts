@@ -76,7 +76,7 @@ import {
 } from '../generated/runtime/v1/local_runtime_engine';
 import type { RuntimeUnaryMethodCodecMap } from './method-codecs-types';
 
-export const runtimeUnaryMethodCodecsLocal = {
+export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> = {
   [RuntimeMethodIds.local.listLocalAssets]: {
     requestType: ListLocalAssetsRequest,
     responseType: ListLocalAssetsResponse,

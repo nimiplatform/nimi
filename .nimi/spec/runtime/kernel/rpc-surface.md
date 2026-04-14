@@ -219,6 +219,55 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`
 
+## K-RPC-004c RuntimeKnowledgeService 方法集合
+
+`RuntimeKnowledgeService` 是 runtime-local knowledge substrate 的唯一稳定
+design-first RPC 面。
+
+Wave 1 + Wave 2A + Wave 2B + Wave 2C 方法固定为：
+
+1. `CreateKnowledgeBank`
+2. `GetKnowledgeBank`
+3. `ListKnowledgeBanks`
+4. `DeleteKnowledgeBank`
+5. `PutPage`
+6. `GetPage`
+7. `ListPages`
+8. `DeletePage`
+9. `SearchKeyword`
+10. `SearchHybrid`
+11. `AddLink`
+12. `RemoveLink`
+13. `ListLinks`
+14. `ListBacklinks`
+15. `TraverseGraph`
+16. `IngestDocument`
+17. `GetIngestTask`
+
+固定约束：
+
+- Wave 1 只 admitted runtime-local infra-scoped knowledge slice
+- Wave 2A 只 admitted retrieval expansion；不 admitted graph / ingest / AgentCore / shared truth / citation redesign
+- Wave 2B 只 admitted same-bank graph / backlink expansion；不 admitted cross-bank relation truth、cross-service citation、shared truth、AgentCore、ingest redesign
+- Wave 2C 只 admitted single-document async ingest + task polling；不 admitted batch ingest、timeline/version、workflow-service reuse、AgentCore、shared truth、或 citation redesign
+- bank owner shape 必须 typed；非法 scope/owner 组合必须 fail close
+- page 读写删继承 bank authorization
+- graph read/write 同样继承 bank authorization，并且只允许同 bank page relation
+- ingest task acceptance and task reads must remain bank-scoped and runtime-local
+- `ListKnowledgeBanks` / `ListPages` / `ListLinks` / `ListBacklinks` / `TraverseGraph` 必须遵守 `K-PAGE-*`
+- `CreateKnowledgeBank` / `DeleteKnowledgeBank` / `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument` 必须写入 `K-AUDIT-*` 覆盖的审计事件
+- `SearchKeyword` 保持 lexical / FTS-only 语义
+- `SearchHybrid` 必须 fail close，且不得静默降级为 `SearchKeyword`
+- `GetIngestTask` 必须返回显式 task status / progress projection；不得伪装为 synchronous `PutPage`
+- public proto、runtime implementation、CLI、SDK projection 必须与这 17 个方法同次对齐；旧 `BuildIndex` / `SearchIndex` / `DeleteIndex` 仅允许出现在迁移映射中
+
+最小 access matrix：
+
+- `GetKnowledgeBank` / `ListKnowledgeBanks` / `GetPage` / `ListPages` / `SearchKeyword` / `SearchHybrid` / `ListLinks` / `ListBacklinks` / `TraverseGraph`：`runtime.knowledge.read`
+- `GetIngestTask`：`runtime.knowledge.read`
+- `PutPage` / `DeletePage` / `AddLink` / `RemoveLink` / `IngestDocument`：`runtime.knowledge.write`
+- `CreateKnowledgeBank` / `DeleteKnowledgeBank`：`runtime.knowledge.admin`
+
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
 `tables/rpc-migration-map.yaml` 是 design/proto 命名映射的唯一事实源。
@@ -375,6 +424,9 @@ route capability surface 的职责固定拆分如下：
 - `runtime.route.resolve(...)`：只执行 selection -> resolved binding resolution；不得输出 health verdict 或 metadata policy truth。
 - `runtime.route.checkHealth(...)`：只返回 resolved binding 的 health/readiness truth；不得补写 resolution 或 metadata。
 - `runtime.route.describe(...)`：只返回 resolved route 的 typed metadata；不得承担 selection resolution、health 探测、provider fallback、或 Desktop-owned projection 组装。
+- 对 `audio.synthesize` 与 `audio.transcribe`，`runtime.route.checkHealth(...)` 必须回答 capability-scoped readiness，而不是 generic `speech` provider/engine reachability。
+- 对 plain speech，即使共享同一 `speech` engine，`audio.synthesize` 与 `audio.transcribe` 也允许 health truth 分离；任一 capability 缺失独立 admitted ready proof 时必须 fail-close。
+- richer plain-speech health/readiness truth 不得被 Desktop/SDK 或其它消费面倒推出 `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` admitted success；workflow independence 约束继续成立。
 
 实现层允许共享底层 resolver/cached lookup，但 public contract 上述四者的语义边界不得合并。
 
@@ -462,3 +514,25 @@ fail-close 时不得：
 - `checkHealth(...)` 对 workflow capability 必须检查 workflow driver/readiness；当 `requiresTargetSynthesisBinding=true` 时，还必须把目标 synthesis binding readiness 作为同一路径的组成条件。
 - `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
 - 任一 workflow capability 缺失独立 selection、resolution、health、或 metadata truth 时必须 fail-close，不得降级到 `audio.synthesize` 成功路径。
+
+## K-RPC-022 VoiceAsset Lifecycle Boundary
+
+`GetVoiceAsset` / `ListVoiceAssets` / `DeleteVoiceAsset` 只操作 runtime-managed `VoiceAsset` truth，不直接操作 provider-native handle truth。
+
+- `provider_voice_ref` 可以作为 `VoiceAsset` 的内部字段或 `VoiceReference` 的一种来源存在
+- 但对外公共资产生命周期主对象固定为 `VoiceAsset`
+- 调用方不得绕过 `VoiceAsset` 把 provider-native handle 当作公共资产主键
+
+`DeleteVoiceAsset` 的公共契约必须受 `voice_handle_policy.delete_semantics` 约束：
+
+- 对 `runtime_authoritative_delete`，runtime 删除 `VoiceAsset` 即构成公共删除成功
+- 对 `best_effort_provider_delete`，runtime 允许先删除本地 `VoiceAsset`，provider cleanup 作为 best-effort follow-up
+- 对未 admitted 的更强语义，必须 fail-close，不得借由模糊 ack 冒充成功
+
+## K-RPC-023 Workflow Family Validation Boundary
+
+workflow-capable speech family 的 app-facing consume 与健康验证必须保持 family-level 边界：
+
+- workflow family 的 plain TTS / workflow 成功，不得被 host、SDK、Desktop、或 tests 隐式提升成 `audio.transcribe` 成功
+- STT 必须继续由独立 STT family 的 resolved binding / health / execution truth 验证
+- family-level acceptance matrix 若缺失独立 STT sentinel，则不得宣称整条 `tts + stt + tts_t2v + tts_v2v` 链路已经 admitted

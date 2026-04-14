@@ -229,6 +229,12 @@ func (b *Backend) ensureHealthyOrRestore() error {
 func (b *Backend) ensureSchema() error {
 	stmts := []string{
 		`CREATE TABLE IF NOT EXISTS memory_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS knowledge_snapshot (
+			singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+			schema_version INTEGER NOT NULL,
+			saved_at TEXT NOT NULL,
+			snapshot_json TEXT NOT NULL
+		)`,
 		`CREATE TABLE IF NOT EXISTS memory_bank (
 			locator_key TEXT PRIMARY KEY,
 			scope INTEGER NOT NULL,

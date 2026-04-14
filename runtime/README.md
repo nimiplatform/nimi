@@ -108,7 +108,7 @@ Implemented runtime services include:
 - `RuntimeAuditService` — audit logging and replay
 - `RuntimeGrantService` — permission and grant management
 - `RuntimeAppService` — app messaging and registration
-- `RuntimeKnowledgeService` — knowledge index build and search
+- `RuntimeKnowledgeService` — private knowledge bank/page CRUD and keyword search
 - `RuntimeWorkflowService` — workflow DAG orchestration
 - `RuntimeLocalService` — local execution, supervision, provider health
 - `RuntimeAuthService` — authentication and token management

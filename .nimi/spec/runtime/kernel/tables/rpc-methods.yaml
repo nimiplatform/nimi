@@ -220,13 +220,41 @@ services:
       - name: CheckModelHealth
         type: unary
   - name: RuntimeKnowledgeService
-    source_rule: K-KNOW-001
+    source_rule: K-KNOW-003
     methods:
-      - name: BuildIndex
+      - name: CreateKnowledgeBank
         type: unary
-      - name: SearchIndex
+      - name: GetKnowledgeBank
         type: unary
-      - name: DeleteIndex
+      - name: ListKnowledgeBanks
+        type: unary
+      - name: DeleteKnowledgeBank
+        type: unary
+      - name: PutPage
+        type: unary
+      - name: GetPage
+        type: unary
+      - name: ListPages
+        type: unary
+      - name: DeletePage
+        type: unary
+      - name: SearchKeyword
+        type: unary
+      - name: SearchHybrid
+        type: unary
+      - name: AddLink
+        type: unary
+      - name: RemoveLink
+        type: unary
+      - name: ListLinks
+        type: unary
+      - name: ListBacklinks
+        type: unary
+      - name: TraverseGraph
+        type: unary
+      - name: IngestDocument
+        type: unary
+      - name: GetIngestTask
         type: unary
   - name: RuntimeAppService
     source_rule: K-APP-001

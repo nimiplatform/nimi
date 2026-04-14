@@ -285,9 +285,16 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 
+	knowledgeSvc, err := knowledgeservice.NewWithBackend(logger, memorySvc.PersistenceBackend())
+	if err != nil {
+		_ = memorySvc.Close()
+		localSvc.Close()
+		return nil, fmt.Errorf("init knowledge service: %w", err)
+	}
+
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger)) // Phase 2 Draft
+	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeSvc) // Phase 2 Draft
 	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
 	appSvc.RegisterInternalConsumer("runtime.agentcore", agentCoreSvc.ConsumeChatTrackSidecarAppMessage)
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft

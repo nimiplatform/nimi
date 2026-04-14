@@ -603,9 +603,69 @@ export enum ReasonCode {
     /**
      * KNOWLEDGE family (530+)
      *
-     * @generated from protobuf enum value: KNOWLEDGE_INDEX_ALREADY_EXISTS = 530;
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_ALREADY_EXISTS = 530;
      */
-    KNOWLEDGE_INDEX_ALREADY_EXISTS = 530
+    KNOWLEDGE_BANK_ALREADY_EXISTS = 530,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_NOT_FOUND = 531;
+     */
+    KNOWLEDGE_BANK_NOT_FOUND = 531,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_SCOPE_INVALID = 532;
+     */
+    KNOWLEDGE_BANK_SCOPE_INVALID = 532,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_ACCESS_DENIED = 533;
+     */
+    KNOWLEDGE_BANK_ACCESS_DENIED = 533,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_PAGE_NOT_FOUND = 534;
+     */
+    KNOWLEDGE_PAGE_NOT_FOUND = 534,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_PAGE_SLUG_CONFLICT = 535;
+     */
+    KNOWLEDGE_PAGE_SLUG_CONFLICT = 535,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_PAGE_ACCESS_DENIED = 536;
+     */
+    KNOWLEDGE_PAGE_ACCESS_DENIED = 536,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE = 537;
+     */
+    KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE = 537,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE = 538;
+     */
+    KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE = 538,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_VECTOR_INDEX_NOT_READY = 539;
+     */
+    KNOWLEDGE_VECTOR_INDEX_NOT_READY = 539,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS = 540;
+     */
+    KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS = 540,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_LINK_NOT_FOUND = 541;
+     */
+    KNOWLEDGE_LINK_NOT_FOUND = 541,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_LINK_ALREADY_EXISTS = 542;
+     */
+    KNOWLEDGE_LINK_ALREADY_EXISTS = 542,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_LINK_INVALID = 543;
+     */
+    KNOWLEDGE_LINK_INVALID = 543,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_GRAPH_DEPTH_INVALID = 544;
+     */
+    KNOWLEDGE_GRAPH_DEPTH_INVALID = 544,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_NOT_FOUND = 545;
+     */
+    KNOWLEDGE_INGEST_TASK_NOT_FOUND = 545
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

@@ -454,8 +454,68 @@ codes:
     value: 520
     family: PAGE
     source_rule: K-PAGE-002
-  - name: KNOWLEDGE_INDEX_ALREADY_EXISTS
+  - name: KNOWLEDGE_BANK_ALREADY_EXISTS
     value: 530
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_NOT_FOUND
+    value: 531
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_SCOPE_INVALID
+    value: 532
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_BANK_ACCESS_DENIED
+    value: 533
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_NOT_FOUND
+    value: 534
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_SLUG_CONFLICT
+    value: 535
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_PAGE_ACCESS_DENIED
+    value: 536
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE
+    value: 537
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE
+    value: 538
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_VECTOR_INDEX_NOT_READY
+    value: 539
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS
+    value: 540
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_NOT_FOUND
+    value: 541
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_ALREADY_EXISTS
+    value: 542
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_LINK_INVALID
+    value: 543
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_GRAPH_DEPTH_INVALID
+    value: 544
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
+  - name: KNOWLEDGE_INGEST_TASK_NOT_FOUND
+    value: 545
     family: KNOWLEDGE
     source_rule: K-KNOW-005
   - name: APP_MESSAGE_PAYLOAD_TOO_LARGE

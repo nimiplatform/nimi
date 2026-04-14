@@ -49,7 +49,7 @@
 | `workflow-contract.md` | `K-WF-*` | Workflow DAG、节点类型、状态机、事件流 |
 | `voice-contract.md` | `K-VOICE-*` | Voice 工作流、VoiceAsset 生命周期与引用契约 |
 | `model-service-contract.md` | `K-MODEL-*` | 模型注册、能力画像、状态枚举 |
-| `knowledge-contract.md` | `K-KNOW-*` | 索引构建、搜索、生命周期 |
+| `knowledge-contract.md` | `K-KNOW-*` | runtime-local knowledge banks、page lifecycle、keyword search |
 | `runtime-memory-service-contract.md` | `K-MEM-*` | Runtime-owned memory substrate、bank scope、provider boundary、Realm replication |
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
 | `runtime-agent-core-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、agent memory policy |

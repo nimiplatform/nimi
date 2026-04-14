@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,34 +23,132 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type BuildIndexRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	AppId            string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId    string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	IndexId          string                 `protobuf:"bytes,3,opt,name=index_id,json=indexId,proto3" json:"index_id,omitempty"`
-	SourceKind       string                 `protobuf:"bytes,4,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
-	SourceUris       []string               `protobuf:"bytes,5,rep,name=source_uris,json=sourceUris,proto3" json:"source_uris,omitempty"`
-	EmbeddingModelId string                 `protobuf:"bytes,6,opt,name=embedding_model_id,json=embeddingModelId,proto3" json:"embedding_model_id,omitempty"`
-	Overwrite        bool                   `protobuf:"varint,7,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
-	Options          *structpb.Struct       `protobuf:"bytes,8,opt,name=options,proto3" json:"options,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+type KnowledgeBankScope int32
+
+const (
+	KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED       KnowledgeBankScope = 0
+	KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE       KnowledgeBankScope = 1
+	KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE KnowledgeBankScope = 2
+)
+
+// Enum value maps for KnowledgeBankScope.
+var (
+	KnowledgeBankScope_name = map[int32]string{
+		0: "KNOWLEDGE_BANK_SCOPE_UNSPECIFIED",
+		1: "KNOWLEDGE_BANK_SCOPE_APP_PRIVATE",
+		2: "KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE",
+	}
+	KnowledgeBankScope_value = map[string]int32{
+		"KNOWLEDGE_BANK_SCOPE_UNSPECIFIED":       0,
+		"KNOWLEDGE_BANK_SCOPE_APP_PRIVATE":       1,
+		"KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE": 2,
+	}
+)
+
+func (x KnowledgeBankScope) Enum() *KnowledgeBankScope {
+	p := new(KnowledgeBankScope)
+	*p = x
+	return p
 }
 
-func (x *BuildIndexRequest) Reset() {
-	*x = BuildIndexRequest{}
+func (x KnowledgeBankScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (KnowledgeBankScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_knowledge_proto_enumTypes[0].Descriptor()
+}
+
+func (KnowledgeBankScope) Type() protoreflect.EnumType {
+	return &file_runtime_v1_knowledge_proto_enumTypes[0]
+}
+
+func (x KnowledgeBankScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use KnowledgeBankScope.Descriptor instead.
+func (KnowledgeBankScope) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{0}
+}
+
+type KnowledgeIngestTaskStatus int32
+
+const (
+	KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED KnowledgeIngestTaskStatus = 0
+	KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_QUEUED      KnowledgeIngestTaskStatus = 1
+	KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_RUNNING     KnowledgeIngestTaskStatus = 2
+	KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED   KnowledgeIngestTaskStatus = 3
+	KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_FAILED      KnowledgeIngestTaskStatus = 4
+)
+
+// Enum value maps for KnowledgeIngestTaskStatus.
+var (
+	KnowledgeIngestTaskStatus_name = map[int32]string{
+		0: "KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED",
+		1: "KNOWLEDGE_INGEST_TASK_STATUS_QUEUED",
+		2: "KNOWLEDGE_INGEST_TASK_STATUS_RUNNING",
+		3: "KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED",
+		4: "KNOWLEDGE_INGEST_TASK_STATUS_FAILED",
+	}
+	KnowledgeIngestTaskStatus_value = map[string]int32{
+		"KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED": 0,
+		"KNOWLEDGE_INGEST_TASK_STATUS_QUEUED":      1,
+		"KNOWLEDGE_INGEST_TASK_STATUS_RUNNING":     2,
+		"KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED":   3,
+		"KNOWLEDGE_INGEST_TASK_STATUS_FAILED":      4,
+	}
+)
+
+func (x KnowledgeIngestTaskStatus) Enum() *KnowledgeIngestTaskStatus {
+	p := new(KnowledgeIngestTaskStatus)
+	*p = x
+	return p
+}
+
+func (x KnowledgeIngestTaskStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (KnowledgeIngestTaskStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_knowledge_proto_enumTypes[1].Descriptor()
+}
+
+func (KnowledgeIngestTaskStatus) Type() protoreflect.EnumType {
+	return &file_runtime_v1_knowledge_proto_enumTypes[1]
+}
+
+func (x KnowledgeIngestTaskStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use KnowledgeIngestTaskStatus.Descriptor instead.
+func (KnowledgeIngestTaskStatus) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{1}
+}
+
+type KnowledgeRequestContext struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeRequestContext) Reset() {
+	*x = KnowledgeRequestContext{}
 	mi := &file_runtime_v1_knowledge_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BuildIndexRequest) String() string {
+func (x *KnowledgeRequestContext) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BuildIndexRequest) ProtoMessage() {}
+func (*KnowledgeRequestContext) ProtoMessage() {}
 
-func (x *BuildIndexRequest) ProtoReflect() protoreflect.Message {
+func (x *KnowledgeRequestContext) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_knowledge_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -61,68 +160,3084 @@ func (x *BuildIndexRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildIndexRequest.ProtoReflect.Descriptor instead.
-func (*BuildIndexRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use KnowledgeRequestContext.ProtoReflect.Descriptor instead.
+func (*KnowledgeRequestContext) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *BuildIndexRequest) GetAppId() string {
+func (x *KnowledgeRequestContext) GetAppId() string {
 	if x != nil {
 		return x.AppId
 	}
 	return ""
 }
 
-func (x *BuildIndexRequest) GetSubjectUserId() string {
+func (x *KnowledgeRequestContext) GetSubjectUserId() string {
 	if x != nil {
 		return x.SubjectUserId
 	}
 	return ""
 }
 
-func (x *BuildIndexRequest) GetIndexId() string {
+type KnowledgeAppPrivateOwner struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeAppPrivateOwner) Reset() {
+	*x = KnowledgeAppPrivateOwner{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeAppPrivateOwner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeAppPrivateOwner) ProtoMessage() {}
+
+func (x *KnowledgeAppPrivateOwner) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[1]
 	if x != nil {
-		return x.IndexId
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeAppPrivateOwner.ProtoReflect.Descriptor instead.
+func (*KnowledgeAppPrivateOwner) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KnowledgeAppPrivateOwner) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
 
-func (x *BuildIndexRequest) GetSourceKind() string {
+type KnowledgeWorkspacePrivateOwner struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeWorkspacePrivateOwner) Reset() {
+	*x = KnowledgeWorkspacePrivateOwner{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeWorkspacePrivateOwner) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeWorkspacePrivateOwner) ProtoMessage() {}
+
+func (x *KnowledgeWorkspacePrivateOwner) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[2]
 	if x != nil {
-		return x.SourceKind
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeWorkspacePrivateOwner.ProtoReflect.Descriptor instead.
+func (*KnowledgeWorkspacePrivateOwner) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *KnowledgeWorkspacePrivateOwner) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
 	}
 	return ""
 }
 
-func (x *BuildIndexRequest) GetSourceUris() []string {
+type KnowledgeBankLocator struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Scope KnowledgeBankScope     `protobuf:"varint,1,opt,name=scope,proto3,enum=nimi.runtime.v1.KnowledgeBankScope" json:"scope,omitempty"`
+	// Types that are valid to be assigned to Owner:
+	//
+	//	*KnowledgeBankLocator_AppPrivate
+	//	*KnowledgeBankLocator_WorkspacePrivate
+	Owner         isKnowledgeBankLocator_Owner `protobuf_oneof:"owner"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeBankLocator) Reset() {
+	*x = KnowledgeBankLocator{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeBankLocator) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeBankLocator) ProtoMessage() {}
+
+func (x *KnowledgeBankLocator) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[3]
 	if x != nil {
-		return x.SourceUris
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeBankLocator.ProtoReflect.Descriptor instead.
+func (*KnowledgeBankLocator) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *KnowledgeBankLocator) GetScope() KnowledgeBankScope {
+	if x != nil {
+		return x.Scope
+	}
+	return KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_UNSPECIFIED
+}
+
+func (x *KnowledgeBankLocator) GetOwner() isKnowledgeBankLocator_Owner {
+	if x != nil {
+		return x.Owner
 	}
 	return nil
 }
 
-func (x *BuildIndexRequest) GetEmbeddingModelId() string {
+func (x *KnowledgeBankLocator) GetAppPrivate() *KnowledgeAppPrivateOwner {
 	if x != nil {
-		return x.EmbeddingModelId
-	}
-	return ""
-}
-
-func (x *BuildIndexRequest) GetOverwrite() bool {
-	if x != nil {
-		return x.Overwrite
-	}
-	return false
-}
-
-func (x *BuildIndexRequest) GetOptions() *structpb.Struct {
-	if x != nil {
-		return x.Options
+		if x, ok := x.Owner.(*KnowledgeBankLocator_AppPrivate); ok {
+			return x.AppPrivate
+		}
 	}
 	return nil
 }
 
-type BuildIndexResponse struct {
+func (x *KnowledgeBankLocator) GetWorkspacePrivate() *KnowledgeWorkspacePrivateOwner {
+	if x != nil {
+		if x, ok := x.Owner.(*KnowledgeBankLocator_WorkspacePrivate); ok {
+			return x.WorkspacePrivate
+		}
+	}
+	return nil
+}
+
+type isKnowledgeBankLocator_Owner interface {
+	isKnowledgeBankLocator_Owner()
+}
+
+type KnowledgeBankLocator_AppPrivate struct {
+	AppPrivate *KnowledgeAppPrivateOwner `protobuf:"bytes,2,opt,name=app_private,json=appPrivate,proto3,oneof"`
+}
+
+type KnowledgeBankLocator_WorkspacePrivate struct {
+	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `protobuf:"bytes,3,opt,name=workspace_private,json=workspacePrivate,proto3,oneof"`
+}
+
+func (*KnowledgeBankLocator_AppPrivate) isKnowledgeBankLocator_Owner() {}
+
+func (*KnowledgeBankLocator_WorkspacePrivate) isKnowledgeBankLocator_Owner() {}
+
+type PublicKnowledgeBankLocator struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Locator:
+	//
+	//	*PublicKnowledgeBankLocator_AppPrivate
+	//	*PublicKnowledgeBankLocator_WorkspacePrivate
+	Locator       isPublicKnowledgeBankLocator_Locator `protobuf_oneof:"locator"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PublicKnowledgeBankLocator) Reset() {
+	*x = PublicKnowledgeBankLocator{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PublicKnowledgeBankLocator) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PublicKnowledgeBankLocator) ProtoMessage() {}
+
+func (x *PublicKnowledgeBankLocator) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PublicKnowledgeBankLocator.ProtoReflect.Descriptor instead.
+func (*PublicKnowledgeBankLocator) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PublicKnowledgeBankLocator) GetLocator() isPublicKnowledgeBankLocator_Locator {
+	if x != nil {
+		return x.Locator
+	}
+	return nil
+}
+
+func (x *PublicKnowledgeBankLocator) GetAppPrivate() *KnowledgeAppPrivateOwner {
+	if x != nil {
+		if x, ok := x.Locator.(*PublicKnowledgeBankLocator_AppPrivate); ok {
+			return x.AppPrivate
+		}
+	}
+	return nil
+}
+
+func (x *PublicKnowledgeBankLocator) GetWorkspacePrivate() *KnowledgeWorkspacePrivateOwner {
+	if x != nil {
+		if x, ok := x.Locator.(*PublicKnowledgeBankLocator_WorkspacePrivate); ok {
+			return x.WorkspacePrivate
+		}
+	}
+	return nil
+}
+
+type isPublicKnowledgeBankLocator_Locator interface {
+	isPublicKnowledgeBankLocator_Locator()
+}
+
+type PublicKnowledgeBankLocator_AppPrivate struct {
+	AppPrivate *KnowledgeAppPrivateOwner `protobuf:"bytes,1,opt,name=app_private,json=appPrivate,proto3,oneof"`
+}
+
+type PublicKnowledgeBankLocator_WorkspacePrivate struct {
+	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `protobuf:"bytes,2,opt,name=workspace_private,json=workspacePrivate,proto3,oneof"`
+}
+
+func (*PublicKnowledgeBankLocator_AppPrivate) isPublicKnowledgeBankLocator_Locator() {}
+
+func (*PublicKnowledgeBankLocator_WorkspacePrivate) isPublicKnowledgeBankLocator_Locator() {}
+
+type KnowledgeBankOwnerFilter struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Owner:
+	//
+	//	*KnowledgeBankOwnerFilter_AppPrivate
+	//	*KnowledgeBankOwnerFilter_WorkspacePrivate
+	Owner         isKnowledgeBankOwnerFilter_Owner `protobuf_oneof:"owner"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeBankOwnerFilter) Reset() {
+	*x = KnowledgeBankOwnerFilter{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeBankOwnerFilter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeBankOwnerFilter) ProtoMessage() {}
+
+func (x *KnowledgeBankOwnerFilter) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeBankOwnerFilter.ProtoReflect.Descriptor instead.
+func (*KnowledgeBankOwnerFilter) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *KnowledgeBankOwnerFilter) GetOwner() isKnowledgeBankOwnerFilter_Owner {
+	if x != nil {
+		return x.Owner
+	}
+	return nil
+}
+
+func (x *KnowledgeBankOwnerFilter) GetAppPrivate() *KnowledgeAppPrivateOwner {
+	if x != nil {
+		if x, ok := x.Owner.(*KnowledgeBankOwnerFilter_AppPrivate); ok {
+			return x.AppPrivate
+		}
+	}
+	return nil
+}
+
+func (x *KnowledgeBankOwnerFilter) GetWorkspacePrivate() *KnowledgeWorkspacePrivateOwner {
+	if x != nil {
+		if x, ok := x.Owner.(*KnowledgeBankOwnerFilter_WorkspacePrivate); ok {
+			return x.WorkspacePrivate
+		}
+	}
+	return nil
+}
+
+type isKnowledgeBankOwnerFilter_Owner interface {
+	isKnowledgeBankOwnerFilter_Owner()
+}
+
+type KnowledgeBankOwnerFilter_AppPrivate struct {
+	AppPrivate *KnowledgeAppPrivateOwner `protobuf:"bytes,1,opt,name=app_private,json=appPrivate,proto3,oneof"`
+}
+
+type KnowledgeBankOwnerFilter_WorkspacePrivate struct {
+	WorkspacePrivate *KnowledgeWorkspacePrivateOwner `protobuf:"bytes,2,opt,name=workspace_private,json=workspacePrivate,proto3,oneof"`
+}
+
+func (*KnowledgeBankOwnerFilter_AppPrivate) isKnowledgeBankOwnerFilter_Owner() {}
+
+func (*KnowledgeBankOwnerFilter_WorkspacePrivate) isKnowledgeBankOwnerFilter_Owner() {}
+
+type KnowledgeBank struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BankId        string                 `protobuf:"bytes,1,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	Locator       *KnowledgeBankLocator  `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Metadata      *structpb.Struct       `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeBank) Reset() {
+	*x = KnowledgeBank{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeBank) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeBank) ProtoMessage() {}
+
+func (x *KnowledgeBank) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeBank.ProtoReflect.Descriptor instead.
+func (*KnowledgeBank) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *KnowledgeBank) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgeBank) GetLocator() *KnowledgeBankLocator {
+	if x != nil {
+		return x.Locator
+	}
+	return nil
+}
+
+func (x *KnowledgeBank) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *KnowledgeBank) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *KnowledgeBank) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *KnowledgeBank) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type KnowledgePage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageId        string                 `protobuf:"bytes,1,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	BankId        string                 `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	Slug          string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Content       string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	EntityType    string                 `protobuf:"bytes,6,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
+	Metadata      *structpb.Struct       `protobuf:"bytes,7,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgePage) Reset() {
+	*x = KnowledgePage{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgePage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgePage) ProtoMessage() {}
+
+func (x *KnowledgePage) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgePage.ProtoReflect.Descriptor instead.
+func (*KnowledgePage) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *KnowledgePage) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetEntityType() string {
+	if x != nil {
+		return x.EntityType
+	}
+	return ""
+}
+
+func (x *KnowledgePage) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *KnowledgePage) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *KnowledgePage) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type KnowledgeKeywordHit struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BankId        string                 `protobuf:"bytes,1,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	PageId        string                 `protobuf:"bytes,2,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	Slug          string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Snippet       string                 `protobuf:"bytes,5,opt,name=snippet,proto3" json:"snippet,omitempty"`
+	Score         float32                `protobuf:"fixed32,6,opt,name=score,proto3" json:"score,omitempty"`
+	Metadata      *structpb.Struct       `protobuf:"bytes,7,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeKeywordHit) Reset() {
+	*x = KnowledgeKeywordHit{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeKeywordHit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeKeywordHit) ProtoMessage() {}
+
+func (x *KnowledgeKeywordHit) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeKeywordHit.ProtoReflect.Descriptor instead.
+func (*KnowledgeKeywordHit) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *KnowledgeKeywordHit) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgeKeywordHit) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *KnowledgeKeywordHit) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *KnowledgeKeywordHit) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *KnowledgeKeywordHit) GetSnippet() string {
+	if x != nil {
+		return x.Snippet
+	}
+	return ""
+}
+
+func (x *KnowledgeKeywordHit) GetScore() float32 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *KnowledgeKeywordHit) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type KnowledgeLink struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LinkId        string                 `protobuf:"bytes,1,opt,name=link_id,json=linkId,proto3" json:"link_id,omitempty"`
+	BankId        string                 `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	FromPageId    string                 `protobuf:"bytes,3,opt,name=from_page_id,json=fromPageId,proto3" json:"from_page_id,omitempty"`
+	ToPageId      string                 `protobuf:"bytes,4,opt,name=to_page_id,json=toPageId,proto3" json:"to_page_id,omitempty"`
+	LinkType      string                 `protobuf:"bytes,5,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	Metadata      *structpb.Struct       `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeLink) Reset() {
+	*x = KnowledgeLink{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeLink) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeLink) ProtoMessage() {}
+
+func (x *KnowledgeLink) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeLink.ProtoReflect.Descriptor instead.
+func (*KnowledgeLink) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *KnowledgeLink) GetLinkId() string {
+	if x != nil {
+		return x.LinkId
+	}
+	return ""
+}
+
+func (x *KnowledgeLink) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgeLink) GetFromPageId() string {
+	if x != nil {
+		return x.FromPageId
+	}
+	return ""
+}
+
+func (x *KnowledgeLink) GetToPageId() string {
+	if x != nil {
+		return x.ToPageId
+	}
+	return ""
+}
+
+func (x *KnowledgeLink) GetLinkType() string {
+	if x != nil {
+		return x.LinkType
+	}
+	return ""
+}
+
+func (x *KnowledgeLink) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *KnowledgeLink) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *KnowledgeLink) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type KnowledgeGraphEdge struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Link           *KnowledgeLink         `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+	FromSlug       string                 `protobuf:"bytes,2,opt,name=from_slug,json=fromSlug,proto3" json:"from_slug,omitempty"`
+	FromTitle      string                 `protobuf:"bytes,3,opt,name=from_title,json=fromTitle,proto3" json:"from_title,omitempty"`
+	FromEntityType string                 `protobuf:"bytes,4,opt,name=from_entity_type,json=fromEntityType,proto3" json:"from_entity_type,omitempty"`
+	ToSlug         string                 `protobuf:"bytes,5,opt,name=to_slug,json=toSlug,proto3" json:"to_slug,omitempty"`
+	ToTitle        string                 `protobuf:"bytes,6,opt,name=to_title,json=toTitle,proto3" json:"to_title,omitempty"`
+	ToEntityType   string                 `protobuf:"bytes,7,opt,name=to_entity_type,json=toEntityType,proto3" json:"to_entity_type,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *KnowledgeGraphEdge) Reset() {
+	*x = KnowledgeGraphEdge{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeGraphEdge) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeGraphEdge) ProtoMessage() {}
+
+func (x *KnowledgeGraphEdge) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeGraphEdge.ProtoReflect.Descriptor instead.
+func (*KnowledgeGraphEdge) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *KnowledgeGraphEdge) GetLink() *KnowledgeLink {
+	if x != nil {
+		return x.Link
+	}
+	return nil
+}
+
+func (x *KnowledgeGraphEdge) GetFromSlug() string {
+	if x != nil {
+		return x.FromSlug
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphEdge) GetFromTitle() string {
+	if x != nil {
+		return x.FromTitle
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphEdge) GetFromEntityType() string {
+	if x != nil {
+		return x.FromEntityType
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphEdge) GetToSlug() string {
+	if x != nil {
+		return x.ToSlug
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphEdge) GetToTitle() string {
+	if x != nil {
+		return x.ToTitle
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphEdge) GetToEntityType() string {
+	if x != nil {
+		return x.ToEntityType
+	}
+	return ""
+}
+
+type KnowledgeGraphNode struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BankId        string                 `protobuf:"bytes,1,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	PageId        string                 `protobuf:"bytes,2,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	Slug          string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	EntityType    string                 `protobuf:"bytes,5,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
+	Metadata      *structpb.Struct       `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Depth         int32                  `protobuf:"varint,7,opt,name=depth,proto3" json:"depth,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KnowledgeGraphNode) Reset() {
+	*x = KnowledgeGraphNode{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeGraphNode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeGraphNode) ProtoMessage() {}
+
+func (x *KnowledgeGraphNode) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeGraphNode.ProtoReflect.Descriptor instead.
+func (*KnowledgeGraphNode) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *KnowledgeGraphNode) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphNode) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphNode) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphNode) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphNode) GetEntityType() string {
+	if x != nil {
+		return x.EntityType
+	}
+	return ""
+}
+
+func (x *KnowledgeGraphNode) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *KnowledgeGraphNode) GetDepth() int32 {
+	if x != nil {
+		return x.Depth
+	}
+	return 0
+}
+
+type KnowledgeIngestTask struct {
+	state           protoimpl.MessageState    `protogen:"open.v1"`
+	TaskId          string                    `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	BankId          string                    `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	PageId          string                    `protobuf:"bytes,3,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	Slug            string                    `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title           string                    `protobuf:"bytes,5,opt,name=title,proto3" json:"title,omitempty"`
+	Status          KnowledgeIngestTaskStatus `protobuf:"varint,6,opt,name=status,proto3,enum=nimi.runtime.v1.KnowledgeIngestTaskStatus" json:"status,omitempty"`
+	ProgressPercent int32                     `protobuf:"varint,7,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
+	ReasonCode      ReasonCode                `protobuf:"varint,8,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	ActionHint      string                    `protobuf:"bytes,9,opt,name=action_hint,json=actionHint,proto3" json:"action_hint,omitempty"`
+	CreatedAt       *timestamppb.Timestamp    `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       *timestamppb.Timestamp    `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *KnowledgeIngestTask) Reset() {
+	*x = KnowledgeIngestTask{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KnowledgeIngestTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KnowledgeIngestTask) ProtoMessage() {}
+
+func (x *KnowledgeIngestTask) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KnowledgeIngestTask.ProtoReflect.Descriptor instead.
+func (*KnowledgeIngestTask) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *KnowledgeIngestTask) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetStatus() KnowledgeIngestTaskStatus {
+	if x != nil {
+		return x.Status
+	}
+	return KnowledgeIngestTaskStatus_KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED
+}
+
+func (x *KnowledgeIngestTask) GetProgressPercent() int32 {
+	if x != nil {
+		return x.ProgressPercent
+	}
+	return 0
+}
+
+func (x *KnowledgeIngestTask) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func (x *KnowledgeIngestTask) GetActionHint() string {
+	if x != nil {
+		return x.ActionHint
+	}
+	return ""
+}
+
+func (x *KnowledgeIngestTask) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *KnowledgeIngestTask) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type CreateKnowledgeBankRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext    `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	Locator       *PublicKnowledgeBankLocator `protobuf:"bytes,2,opt,name=locator,proto3" json:"locator,omitempty"`
+	DisplayName   string                      `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Metadata      *structpb.Struct            `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateKnowledgeBankRequest) Reset() {
+	*x = CreateKnowledgeBankRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateKnowledgeBankRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateKnowledgeBankRequest) ProtoMessage() {}
+
+func (x *CreateKnowledgeBankRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateKnowledgeBankRequest.ProtoReflect.Descriptor instead.
+func (*CreateKnowledgeBankRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreateKnowledgeBankRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *CreateKnowledgeBankRequest) GetLocator() *PublicKnowledgeBankLocator {
+	if x != nil {
+		return x.Locator
+	}
+	return nil
+}
+
+func (x *CreateKnowledgeBankRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *CreateKnowledgeBankRequest) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type CreateKnowledgeBankResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bank          *KnowledgeBank         `protobuf:"bytes,1,opt,name=bank,proto3" json:"bank,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateKnowledgeBankResponse) Reset() {
+	*x = CreateKnowledgeBankResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateKnowledgeBankResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateKnowledgeBankResponse) ProtoMessage() {}
+
+func (x *CreateKnowledgeBankResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateKnowledgeBankResponse.ProtoReflect.Descriptor instead.
+func (*CreateKnowledgeBankResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreateKnowledgeBankResponse) GetBank() *KnowledgeBank {
+	if x != nil {
+		return x.Bank
+	}
+	return nil
+}
+
+type GetKnowledgeBankRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetKnowledgeBankRequest) Reset() {
+	*x = GetKnowledgeBankRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetKnowledgeBankRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetKnowledgeBankRequest) ProtoMessage() {}
+
+func (x *GetKnowledgeBankRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetKnowledgeBankRequest.ProtoReflect.Descriptor instead.
+func (*GetKnowledgeBankRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetKnowledgeBankRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *GetKnowledgeBankRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+type GetKnowledgeBankResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bank          *KnowledgeBank         `protobuf:"bytes,1,opt,name=bank,proto3" json:"bank,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetKnowledgeBankResponse) Reset() {
+	*x = GetKnowledgeBankResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetKnowledgeBankResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetKnowledgeBankResponse) ProtoMessage() {}
+
+func (x *GetKnowledgeBankResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetKnowledgeBankResponse.ProtoReflect.Descriptor instead.
+func (*GetKnowledgeBankResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetKnowledgeBankResponse) GetBank() *KnowledgeBank {
+	if x != nil {
+		return x.Bank
+	}
+	return nil
+}
+
+type ListKnowledgeBanksRequest struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext    `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	ScopeFilters  []KnowledgeBankScope        `protobuf:"varint,2,rep,packed,name=scope_filters,json=scopeFilters,proto3,enum=nimi.runtime.v1.KnowledgeBankScope" json:"scope_filters,omitempty"`
+	OwnerFilters  []*KnowledgeBankOwnerFilter `protobuf:"bytes,3,rep,name=owner_filters,json=ownerFilters,proto3" json:"owner_filters,omitempty"`
+	PageSize      int32                       `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                      `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKnowledgeBanksRequest) Reset() {
+	*x = ListKnowledgeBanksRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKnowledgeBanksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKnowledgeBanksRequest) ProtoMessage() {}
+
+func (x *ListKnowledgeBanksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKnowledgeBanksRequest.ProtoReflect.Descriptor instead.
+func (*ListKnowledgeBanksRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListKnowledgeBanksRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *ListKnowledgeBanksRequest) GetScopeFilters() []KnowledgeBankScope {
+	if x != nil {
+		return x.ScopeFilters
+	}
+	return nil
+}
+
+func (x *ListKnowledgeBanksRequest) GetOwnerFilters() []*KnowledgeBankOwnerFilter {
+	if x != nil {
+		return x.OwnerFilters
+	}
+	return nil
+}
+
+func (x *ListKnowledgeBanksRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListKnowledgeBanksRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListKnowledgeBanksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Banks         []*KnowledgeBank       `protobuf:"bytes,1,rep,name=banks,proto3" json:"banks,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKnowledgeBanksResponse) Reset() {
+	*x = ListKnowledgeBanksResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKnowledgeBanksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKnowledgeBanksResponse) ProtoMessage() {}
+
+func (x *ListKnowledgeBanksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKnowledgeBanksResponse.ProtoReflect.Descriptor instead.
+func (*ListKnowledgeBanksResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListKnowledgeBanksResponse) GetBanks() []*KnowledgeBank {
+	if x != nil {
+		return x.Banks
+	}
+	return nil
+}
+
+func (x *ListKnowledgeBanksResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type DeleteKnowledgeBankRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteKnowledgeBankRequest) Reset() {
+	*x = DeleteKnowledgeBankRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteKnowledgeBankRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteKnowledgeBankRequest) ProtoMessage() {}
+
+func (x *DeleteKnowledgeBankRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteKnowledgeBankRequest.ProtoReflect.Descriptor instead.
+func (*DeleteKnowledgeBankRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DeleteKnowledgeBankRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *DeleteKnowledgeBankRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+type DeleteKnowledgeBankResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteKnowledgeBankResponse) Reset() {
+	*x = DeleteKnowledgeBankResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteKnowledgeBankResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteKnowledgeBankResponse) ProtoMessage() {}
+
+func (x *DeleteKnowledgeBankResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteKnowledgeBankResponse.ProtoReflect.Descriptor instead.
+func (*DeleteKnowledgeBankResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *DeleteKnowledgeBankResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+type PutPageRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	PageId        string                   `protobuf:"bytes,3,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	Slug          string                   `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title         string                   `protobuf:"bytes,5,opt,name=title,proto3" json:"title,omitempty"`
+	Content       string                   `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`
+	EntityType    string                   `protobuf:"bytes,7,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
+	Metadata      *structpb.Struct         `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutPageRequest) Reset() {
+	*x = PutPageRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutPageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutPageRequest) ProtoMessage() {}
+
+func (x *PutPageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutPageRequest.ProtoReflect.Descriptor instead.
+func (*PutPageRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *PutPageRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *PutPageRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetEntityType() string {
+	if x != nil {
+		return x.EntityType
+	}
+	return ""
+}
+
+func (x *PutPageRequest) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type PutPageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          *KnowledgePage         `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutPageResponse) Reset() {
+	*x = PutPageResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutPageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutPageResponse) ProtoMessage() {}
+
+func (x *PutPageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutPageResponse.ProtoReflect.Descriptor instead.
+func (*PutPageResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *PutPageResponse) GetPage() *KnowledgePage {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type GetPageRequest struct {
+	state   protoimpl.MessageState   `protogen:"open.v1"`
+	Context *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId  string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	// Types that are valid to be assigned to Lookup:
+	//
+	//	*GetPageRequest_PageId
+	//	*GetPageRequest_Slug
+	Lookup        isGetPageRequest_Lookup `protobuf_oneof:"lookup"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPageRequest) Reset() {
+	*x = GetPageRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPageRequest) ProtoMessage() {}
+
+func (x *GetPageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPageRequest.ProtoReflect.Descriptor instead.
+func (*GetPageRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetPageRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *GetPageRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *GetPageRequest) GetLookup() isGetPageRequest_Lookup {
+	if x != nil {
+		return x.Lookup
+	}
+	return nil
+}
+
+func (x *GetPageRequest) GetPageId() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*GetPageRequest_PageId); ok {
+			return x.PageId
+		}
+	}
+	return ""
+}
+
+func (x *GetPageRequest) GetSlug() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*GetPageRequest_Slug); ok {
+			return x.Slug
+		}
+	}
+	return ""
+}
+
+type isGetPageRequest_Lookup interface {
+	isGetPageRequest_Lookup()
+}
+
+type GetPageRequest_PageId struct {
+	PageId string `protobuf:"bytes,3,opt,name=page_id,json=pageId,proto3,oneof"`
+}
+
+type GetPageRequest_Slug struct {
+	Slug string `protobuf:"bytes,4,opt,name=slug,proto3,oneof"`
+}
+
+func (*GetPageRequest_PageId) isGetPageRequest_Lookup() {}
+
+func (*GetPageRequest_Slug) isGetPageRequest_Lookup() {}
+
+type GetPageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          *KnowledgePage         `protobuf:"bytes,1,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPageResponse) Reset() {
+	*x = GetPageResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPageResponse) ProtoMessage() {}
+
+func (x *GetPageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPageResponse.ProtoReflect.Descriptor instead.
+func (*GetPageResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetPageResponse) GetPage() *KnowledgePage {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+type ListPagesRequest struct {
+	state             protoimpl.MessageState   `protogen:"open.v1"`
+	Context           *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId            string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	EntityTypeFilters []string                 `protobuf:"bytes,3,rep,name=entity_type_filters,json=entityTypeFilters,proto3" json:"entity_type_filters,omitempty"`
+	SlugPrefix        string                   `protobuf:"bytes,4,opt,name=slug_prefix,json=slugPrefix,proto3" json:"slug_prefix,omitempty"`
+	PageSize          int32                    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken         string                   `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ListPagesRequest) Reset() {
+	*x = ListPagesRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPagesRequest) ProtoMessage() {}
+
+func (x *ListPagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPagesRequest.ProtoReflect.Descriptor instead.
+func (*ListPagesRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListPagesRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *ListPagesRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *ListPagesRequest) GetEntityTypeFilters() []string {
+	if x != nil {
+		return x.EntityTypeFilters
+	}
+	return nil
+}
+
+func (x *ListPagesRequest) GetSlugPrefix() string {
+	if x != nil {
+		return x.SlugPrefix
+	}
+	return ""
+}
+
+func (x *ListPagesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListPagesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListPagesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pages         []*KnowledgePage       `protobuf:"bytes,1,rep,name=pages,proto3" json:"pages,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPagesResponse) Reset() {
+	*x = ListPagesResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPagesResponse) ProtoMessage() {}
+
+func (x *ListPagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPagesResponse.ProtoReflect.Descriptor instead.
+func (*ListPagesResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListPagesResponse) GetPages() []*KnowledgePage {
+	if x != nil {
+		return x.Pages
+	}
+	return nil
+}
+
+func (x *ListPagesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type DeletePageRequest struct {
+	state   protoimpl.MessageState   `protogen:"open.v1"`
+	Context *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId  string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	// Types that are valid to be assigned to Lookup:
+	//
+	//	*DeletePageRequest_PageId
+	//	*DeletePageRequest_Slug
+	Lookup        isDeletePageRequest_Lookup `protobuf_oneof:"lookup"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePageRequest) Reset() {
+	*x = DeletePageRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePageRequest) ProtoMessage() {}
+
+func (x *DeletePageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePageRequest.ProtoReflect.Descriptor instead.
+func (*DeletePageRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *DeletePageRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *DeletePageRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *DeletePageRequest) GetLookup() isDeletePageRequest_Lookup {
+	if x != nil {
+		return x.Lookup
+	}
+	return nil
+}
+
+func (x *DeletePageRequest) GetPageId() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*DeletePageRequest_PageId); ok {
+			return x.PageId
+		}
+	}
+	return ""
+}
+
+func (x *DeletePageRequest) GetSlug() string {
+	if x != nil {
+		if x, ok := x.Lookup.(*DeletePageRequest_Slug); ok {
+			return x.Slug
+		}
+	}
+	return ""
+}
+
+type isDeletePageRequest_Lookup interface {
+	isDeletePageRequest_Lookup()
+}
+
+type DeletePageRequest_PageId struct {
+	PageId string `protobuf:"bytes,3,opt,name=page_id,json=pageId,proto3,oneof"`
+}
+
+type DeletePageRequest_Slug struct {
+	Slug string `protobuf:"bytes,4,opt,name=slug,proto3,oneof"`
+}
+
+func (*DeletePageRequest_PageId) isDeletePageRequest_Lookup() {}
+
+func (*DeletePageRequest_Slug) isDeletePageRequest_Lookup() {}
+
+type DeletePageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePageResponse) Reset() {
+	*x = DeletePageResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePageResponse) ProtoMessage() {}
+
+func (x *DeletePageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePageResponse.ProtoReflect.Descriptor instead.
+func (*DeletePageResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *DeletePageResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+type SearchKeywordRequest struct {
+	state             protoimpl.MessageState   `protogen:"open.v1"`
+	Context           *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankIds           []string                 `protobuf:"bytes,2,rep,name=bank_ids,json=bankIds,proto3" json:"bank_ids,omitempty"`
+	Query             string                   `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"`
+	TopK              int32                    `protobuf:"varint,4,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
+	EntityTypeFilters []string                 `protobuf:"bytes,5,rep,name=entity_type_filters,json=entityTypeFilters,proto3" json:"entity_type_filters,omitempty"`
+	SlugPrefix        string                   `protobuf:"bytes,6,opt,name=slug_prefix,json=slugPrefix,proto3" json:"slug_prefix,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SearchKeywordRequest) Reset() {
+	*x = SearchKeywordRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchKeywordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchKeywordRequest) ProtoMessage() {}
+
+func (x *SearchKeywordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchKeywordRequest.ProtoReflect.Descriptor instead.
+func (*SearchKeywordRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *SearchKeywordRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *SearchKeywordRequest) GetBankIds() []string {
+	if x != nil {
+		return x.BankIds
+	}
+	return nil
+}
+
+func (x *SearchKeywordRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchKeywordRequest) GetTopK() int32 {
+	if x != nil {
+		return x.TopK
+	}
+	return 0
+}
+
+func (x *SearchKeywordRequest) GetEntityTypeFilters() []string {
+	if x != nil {
+		return x.EntityTypeFilters
+	}
+	return nil
+}
+
+func (x *SearchKeywordRequest) GetSlugPrefix() string {
+	if x != nil {
+		return x.SlugPrefix
+	}
+	return ""
+}
+
+type SearchKeywordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hits          []*KnowledgeKeywordHit `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchKeywordResponse) Reset() {
+	*x = SearchKeywordResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchKeywordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchKeywordResponse) ProtoMessage() {}
+
+func (x *SearchKeywordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchKeywordResponse.ProtoReflect.Descriptor instead.
+func (*SearchKeywordResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *SearchKeywordResponse) GetHits() []*KnowledgeKeywordHit {
+	if x != nil {
+		return x.Hits
+	}
+	return nil
+}
+
+func (x *SearchKeywordResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type SearchHybridRequest struct {
+	state             protoimpl.MessageState   `protogen:"open.v1"`
+	Context           *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId            string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	Query             string                   `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"`
+	EntityTypeFilters []string                 `protobuf:"bytes,4,rep,name=entity_type_filters,json=entityTypeFilters,proto3" json:"entity_type_filters,omitempty"`
+	PageSize          int32                    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken         string                   `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SearchHybridRequest) Reset() {
+	*x = SearchHybridRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchHybridRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchHybridRequest) ProtoMessage() {}
+
+func (x *SearchHybridRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchHybridRequest.ProtoReflect.Descriptor instead.
+func (*SearchHybridRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *SearchHybridRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *SearchHybridRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *SearchHybridRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchHybridRequest) GetEntityTypeFilters() []string {
+	if x != nil {
+		return x.EntityTypeFilters
+	}
+	return nil
+}
+
+func (x *SearchHybridRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *SearchHybridRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type SearchHybridResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hits          []*KnowledgeKeywordHit `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,3,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchHybridResponse) Reset() {
+	*x = SearchHybridResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchHybridResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchHybridResponse) ProtoMessage() {}
+
+func (x *SearchHybridResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchHybridResponse.ProtoReflect.Descriptor instead.
+func (*SearchHybridResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *SearchHybridResponse) GetHits() []*KnowledgeKeywordHit {
+	if x != nil {
+		return x.Hits
+	}
+	return nil
+}
+
+func (x *SearchHybridResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *SearchHybridResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type AddLinkRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	FromPageId    string                   `protobuf:"bytes,3,opt,name=from_page_id,json=fromPageId,proto3" json:"from_page_id,omitempty"`
+	ToPageId      string                   `protobuf:"bytes,4,opt,name=to_page_id,json=toPageId,proto3" json:"to_page_id,omitempty"`
+	LinkType      string                   `protobuf:"bytes,5,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	Metadata      *structpb.Struct         `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddLinkRequest) Reset() {
+	*x = AddLinkRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddLinkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddLinkRequest) ProtoMessage() {}
+
+func (x *AddLinkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddLinkRequest.ProtoReflect.Descriptor instead.
+func (*AddLinkRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *AddLinkRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *AddLinkRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetFromPageId() string {
+	if x != nil {
+		return x.FromPageId
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetToPageId() string {
+	if x != nil {
+		return x.ToPageId
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetLinkType() string {
+	if x != nil {
+		return x.LinkType
+	}
+	return ""
+}
+
+func (x *AddLinkRequest) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type AddLinkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Link          *KnowledgeLink         `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddLinkResponse) Reset() {
+	*x = AddLinkResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddLinkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddLinkResponse) ProtoMessage() {}
+
+func (x *AddLinkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddLinkResponse.ProtoReflect.Descriptor instead.
+func (*AddLinkResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *AddLinkResponse) GetLink() *KnowledgeLink {
+	if x != nil {
+		return x.Link
+	}
+	return nil
+}
+
+type RemoveLinkRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	LinkId        string                   `protobuf:"bytes,3,opt,name=link_id,json=linkId,proto3" json:"link_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveLinkRequest) Reset() {
+	*x = RemoveLinkRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveLinkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveLinkRequest) ProtoMessage() {}
+
+func (x *RemoveLinkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveLinkRequest.ProtoReflect.Descriptor instead.
+func (*RemoveLinkRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *RemoveLinkRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *RemoveLinkRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *RemoveLinkRequest) GetLinkId() string {
+	if x != nil {
+		return x.LinkId
+	}
+	return ""
+}
+
+type RemoveLinkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ack           *Ack                   `protobuf:"bytes,1,opt,name=ack,proto3" json:"ack,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveLinkResponse) Reset() {
+	*x = RemoveLinkResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveLinkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveLinkResponse) ProtoMessage() {}
+
+func (x *RemoveLinkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveLinkResponse.ProtoReflect.Descriptor instead.
+func (*RemoveLinkResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *RemoveLinkResponse) GetAck() *Ack {
+	if x != nil {
+		return x.Ack
+	}
+	return nil
+}
+
+type ListLinksRequest struct {
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	Context         *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId          string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	FromPageId      string                   `protobuf:"bytes,3,opt,name=from_page_id,json=fromPageId,proto3" json:"from_page_id,omitempty"`
+	LinkTypeFilters []string                 `protobuf:"bytes,4,rep,name=link_type_filters,json=linkTypeFilters,proto3" json:"link_type_filters,omitempty"`
+	PageSize        int32                    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken       string                   `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListLinksRequest) Reset() {
+	*x = ListLinksRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLinksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLinksRequest) ProtoMessage() {}
+
+func (x *ListLinksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLinksRequest.ProtoReflect.Descriptor instead.
+func (*ListLinksRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ListLinksRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *ListLinksRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetFromPageId() string {
+	if x != nil {
+		return x.FromPageId
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetLinkTypeFilters() []string {
+	if x != nil {
+		return x.LinkTypeFilters
+	}
+	return nil
+}
+
+func (x *ListLinksRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListLinksRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListLinksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Links         []*KnowledgeGraphEdge  `protobuf:"bytes,1,rep,name=links,proto3" json:"links,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLinksResponse) Reset() {
+	*x = ListLinksResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLinksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLinksResponse) ProtoMessage() {}
+
+func (x *ListLinksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLinksResponse.ProtoReflect.Descriptor instead.
+func (*ListLinksResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ListLinksResponse) GetLinks() []*KnowledgeGraphEdge {
+	if x != nil {
+		return x.Links
+	}
+	return nil
+}
+
+func (x *ListLinksResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type ListBacklinksRequest struct {
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	Context         *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId          string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	ToPageId        string                   `protobuf:"bytes,3,opt,name=to_page_id,json=toPageId,proto3" json:"to_page_id,omitempty"`
+	LinkTypeFilters []string                 `protobuf:"bytes,4,rep,name=link_type_filters,json=linkTypeFilters,proto3" json:"link_type_filters,omitempty"`
+	PageSize        int32                    `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken       string                   `protobuf:"bytes,6,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ListBacklinksRequest) Reset() {
+	*x = ListBacklinksRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBacklinksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBacklinksRequest) ProtoMessage() {}
+
+func (x *ListBacklinksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBacklinksRequest.ProtoReflect.Descriptor instead.
+func (*ListBacklinksRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *ListBacklinksRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *ListBacklinksRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *ListBacklinksRequest) GetToPageId() string {
+	if x != nil {
+		return x.ToPageId
+	}
+	return ""
+}
+
+func (x *ListBacklinksRequest) GetLinkTypeFilters() []string {
+	if x != nil {
+		return x.LinkTypeFilters
+	}
+	return nil
+}
+
+func (x *ListBacklinksRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListBacklinksRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListBacklinksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backlinks     []*KnowledgeGraphEdge  `protobuf:"bytes,1,rep,name=backlinks,proto3" json:"backlinks,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBacklinksResponse) Reset() {
+	*x = ListBacklinksResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBacklinksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBacklinksResponse) ProtoMessage() {}
+
+func (x *ListBacklinksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBacklinksResponse.ProtoReflect.Descriptor instead.
+func (*ListBacklinksResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *ListBacklinksResponse) GetBacklinks() []*KnowledgeGraphEdge {
+	if x != nil {
+		return x.Backlinks
+	}
+	return nil
+}
+
+func (x *ListBacklinksResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type TraverseGraphRequest struct {
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	Context         *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId          string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	RootPageId      string                   `protobuf:"bytes,3,opt,name=root_page_id,json=rootPageId,proto3" json:"root_page_id,omitempty"`
+	LinkTypeFilters []string                 `protobuf:"bytes,4,rep,name=link_type_filters,json=linkTypeFilters,proto3" json:"link_type_filters,omitempty"`
+	MaxDepth        int32                    `protobuf:"varint,5,opt,name=max_depth,json=maxDepth,proto3" json:"max_depth,omitempty"`
+	PageSize        int32                    `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken       string                   `protobuf:"bytes,7,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TraverseGraphRequest) Reset() {
+	*x = TraverseGraphRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TraverseGraphRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TraverseGraphRequest) ProtoMessage() {}
+
+func (x *TraverseGraphRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TraverseGraphRequest.ProtoReflect.Descriptor instead.
+func (*TraverseGraphRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *TraverseGraphRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *TraverseGraphRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *TraverseGraphRequest) GetRootPageId() string {
+	if x != nil {
+		return x.RootPageId
+	}
+	return ""
+}
+
+func (x *TraverseGraphRequest) GetLinkTypeFilters() []string {
+	if x != nil {
+		return x.LinkTypeFilters
+	}
+	return nil
+}
+
+func (x *TraverseGraphRequest) GetMaxDepth() int32 {
+	if x != nil {
+		return x.MaxDepth
+	}
+	return 0
+}
+
+func (x *TraverseGraphRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *TraverseGraphRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type TraverseGraphResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Nodes         []*KnowledgeGraphNode  `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TraverseGraphResponse) Reset() {
+	*x = TraverseGraphResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TraverseGraphResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TraverseGraphResponse) ProtoMessage() {}
+
+func (x *TraverseGraphResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TraverseGraphResponse.ProtoReflect.Descriptor instead.
+func (*TraverseGraphResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *TraverseGraphResponse) GetNodes() []*KnowledgeGraphNode {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *TraverseGraphResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type IngestDocumentRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	BankId        string                   `protobuf:"bytes,2,opt,name=bank_id,json=bankId,proto3" json:"bank_id,omitempty"`
+	PageId        string                   `protobuf:"bytes,3,opt,name=page_id,json=pageId,proto3" json:"page_id,omitempty"`
+	Slug          string                   `protobuf:"bytes,4,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title         string                   `protobuf:"bytes,5,opt,name=title,proto3" json:"title,omitempty"`
+	Content       string                   `protobuf:"bytes,6,opt,name=content,proto3" json:"content,omitempty"`
+	EntityType    string                   `protobuf:"bytes,7,opt,name=entity_type,json=entityType,proto3" json:"entity_type,omitempty"`
+	Metadata      *structpb.Struct         `protobuf:"bytes,8,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IngestDocumentRequest) Reset() {
+	*x = IngestDocumentRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngestDocumentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngestDocumentRequest) ProtoMessage() {}
+
+func (x *IngestDocumentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngestDocumentRequest.ProtoReflect.Descriptor instead.
+func (*IngestDocumentRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *IngestDocumentRequest) GetContext() *KnowledgeRequestContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+func (x *IngestDocumentRequest) GetBankId() string {
+	if x != nil {
+		return x.BankId
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetPageId() string {
+	if x != nil {
+		return x.PageId
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetEntityType() string {
+	if x != nil {
+		return x.EntityType
+	}
+	return ""
+}
+
+func (x *IngestDocumentRequest) GetMetadata() *structpb.Struct {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+type IngestDocumentResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	Accepted      bool                   `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"`
@@ -131,21 +3246,21 @@ type BuildIndexResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *BuildIndexResponse) Reset() {
-	*x = BuildIndexResponse{}
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[1]
+func (x *IngestDocumentResponse) Reset() {
+	*x = IngestDocumentResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BuildIndexResponse) String() string {
+func (x *IngestDocumentResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BuildIndexResponse) ProtoMessage() {}
+func (*IngestDocumentResponse) ProtoMessage() {}
 
-func (x *BuildIndexResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[1]
+func (x *IngestDocumentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,59 +3271,55 @@ func (x *BuildIndexResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BuildIndexResponse.ProtoReflect.Descriptor instead.
-func (*BuildIndexResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use IngestDocumentResponse.ProtoReflect.Descriptor instead.
+func (*IngestDocumentResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{44}
 }
 
-func (x *BuildIndexResponse) GetTaskId() string {
+func (x *IngestDocumentResponse) GetTaskId() string {
 	if x != nil {
 		return x.TaskId
 	}
 	return ""
 }
 
-func (x *BuildIndexResponse) GetAccepted() bool {
+func (x *IngestDocumentResponse) GetAccepted() bool {
 	if x != nil {
 		return x.Accepted
 	}
 	return false
 }
 
-func (x *BuildIndexResponse) GetReasonCode() ReasonCode {
+func (x *IngestDocumentResponse) GetReasonCode() ReasonCode {
 	if x != nil {
 		return x.ReasonCode
 	}
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-type SearchIndexRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	IndexId       string                 `protobuf:"bytes,3,opt,name=index_id,json=indexId,proto3" json:"index_id,omitempty"`
-	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
-	TopK          int32                  `protobuf:"varint,5,opt,name=top_k,json=topK,proto3" json:"top_k,omitempty"`
-	Filters       *structpb.Struct       `protobuf:"bytes,6,opt,name=filters,proto3" json:"filters,omitempty"`
+type GetIngestTaskRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Context       *KnowledgeRequestContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	TaskId        string                   `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchIndexRequest) Reset() {
-	*x = SearchIndexRequest{}
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[2]
+func (x *GetIngestTaskRequest) Reset() {
+	*x = GetIngestTaskRequest{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SearchIndexRequest) String() string {
+func (x *GetIngestTaskRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SearchIndexRequest) ProtoMessage() {}
+func (*GetIngestTaskRequest) ProtoMessage() {}
 
-func (x *SearchIndexRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[2]
+func (x *GetIngestTaskRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,78 +3330,47 @@ func (x *SearchIndexRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SearchIndexRequest.ProtoReflect.Descriptor instead.
-func (*SearchIndexRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use GetIngestTaskRequest.ProtoReflect.Descriptor instead.
+func (*GetIngestTaskRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{45}
 }
 
-func (x *SearchIndexRequest) GetAppId() string {
+func (x *GetIngestTaskRequest) GetContext() *KnowledgeRequestContext {
 	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *SearchIndexRequest) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *SearchIndexRequest) GetIndexId() string {
-	if x != nil {
-		return x.IndexId
-	}
-	return ""
-}
-
-func (x *SearchIndexRequest) GetQuery() string {
-	if x != nil {
-		return x.Query
-	}
-	return ""
-}
-
-func (x *SearchIndexRequest) GetTopK() int32 {
-	if x != nil {
-		return x.TopK
-	}
-	return 0
-}
-
-func (x *SearchIndexRequest) GetFilters() *structpb.Struct {
-	if x != nil {
-		return x.Filters
+		return x.Context
 	}
 	return nil
 }
 
-type SearchHit struct {
+func (x *GetIngestTaskRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+type GetIngestTaskResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	DocumentId    string                 `protobuf:"bytes,1,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
-	Score         float32                `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
-	Snippet       string                 `protobuf:"bytes,3,opt,name=snippet,proto3" json:"snippet,omitempty"`
-	Metadata      *structpb.Struct       `protobuf:"bytes,4,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Task          *KnowledgeIngestTask   `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SearchHit) Reset() {
-	*x = SearchHit{}
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[3]
+func (x *GetIngestTaskResponse) Reset() {
+	*x = GetIngestTaskResponse{}
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SearchHit) String() string {
+func (x *GetIngestTaskResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SearchHit) ProtoMessage() {}
+func (*GetIngestTaskResponse) ProtoMessage() {}
 
-func (x *SearchHit) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[3]
+func (x *GetIngestTaskResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_knowledge_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -301,198 +3381,320 @@ func (x *SearchHit) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SearchHit.ProtoReflect.Descriptor instead.
-func (*SearchHit) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use GetIngestTaskResponse.ProtoReflect.Descriptor instead.
+func (*GetIngestTaskResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{46}
 }
 
-func (x *SearchHit) GetDocumentId() string {
+func (x *GetIngestTaskResponse) GetTask() *KnowledgeIngestTask {
 	if x != nil {
-		return x.DocumentId
-	}
-	return ""
-}
-
-func (x *SearchHit) GetScore() float32 {
-	if x != nil {
-		return x.Score
-	}
-	return 0
-}
-
-func (x *SearchHit) GetSnippet() string {
-	if x != nil {
-		return x.Snippet
-	}
-	return ""
-}
-
-func (x *SearchHit) GetMetadata() *structpb.Struct {
-	if x != nil {
-		return x.Metadata
+		return x.Task
 	}
 	return nil
-}
-
-type SearchIndexResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Hits          []*SearchHit           `protobuf:"bytes,1,rep,name=hits,proto3" json:"hits,omitempty"`
-	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SearchIndexResponse) Reset() {
-	*x = SearchIndexResponse{}
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SearchIndexResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SearchIndexResponse) ProtoMessage() {}
-
-func (x *SearchIndexResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SearchIndexResponse.ProtoReflect.Descriptor instead.
-func (*SearchIndexResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SearchIndexResponse) GetHits() []*SearchHit {
-	if x != nil {
-		return x.Hits
-	}
-	return nil
-}
-
-func (x *SearchIndexResponse) GetReasonCode() ReasonCode {
-	if x != nil {
-		return x.ReasonCode
-	}
-	return ReasonCode_REASON_CODE_UNSPECIFIED
-}
-
-type DeleteIndexRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	IndexId       string                 `protobuf:"bytes,3,opt,name=index_id,json=indexId,proto3" json:"index_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteIndexRequest) Reset() {
-	*x = DeleteIndexRequest{}
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteIndexRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteIndexRequest) ProtoMessage() {}
-
-func (x *DeleteIndexRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_knowledge_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteIndexRequest.ProtoReflect.Descriptor instead.
-func (*DeleteIndexRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_knowledge_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *DeleteIndexRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *DeleteIndexRequest) GetSubjectUserId() string {
-	if x != nil {
-		return x.SubjectUserId
-	}
-	return ""
-}
-
-func (x *DeleteIndexRequest) GetIndexId() string {
-	if x != nil {
-		return x.IndexId
-	}
-	return ""
 }
 
 var File_runtime_v1_knowledge_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_knowledge_proto_rawDesc = "" +
 	"\n" +
-	"\x1aruntime/v1/knowledge.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x17runtime/v1/common.proto\"\xae\x02\n" +
-	"\x11BuildIndexRequest\x12\x15\n" +
+	"\x1aruntime/v1/knowledge.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"X\n" +
+	"\x17KnowledgeRequestContext\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bindex_id\x18\x03 \x01(\tR\aindexId\x12\x1f\n" +
-	"\vsource_kind\x18\x04 \x01(\tR\n" +
-	"sourceKind\x12\x1f\n" +
-	"\vsource_uris\x18\x05 \x03(\tR\n" +
-	"sourceUris\x12,\n" +
-	"\x12embedding_model_id\x18\x06 \x01(\tR\x10embeddingModelId\x12\x1c\n" +
-	"\toverwrite\x18\a \x01(\bR\toverwrite\x121\n" +
-	"\aoptions\x18\b \x01(\v2\x17.google.protobuf.StructR\aoptions\"\x87\x01\n" +
-	"\x12BuildIndexResponse\x12\x17\n" +
+	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\"1\n" +
+	"\x18KnowledgeAppPrivateOwner\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\"C\n" +
+	"\x1eKnowledgeWorkspacePrivateOwner\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\"\x88\x02\n" +
+	"\x14KnowledgeBankLocator\x129\n" +
+	"\x05scope\x18\x01 \x01(\x0e2#.nimi.runtime.v1.KnowledgeBankScopeR\x05scope\x12L\n" +
+	"\vapp_private\x18\x02 \x01(\v2).nimi.runtime.v1.KnowledgeAppPrivateOwnerH\x00R\n" +
+	"appPrivate\x12^\n" +
+	"\x11workspace_private\x18\x03 \x01(\v2/.nimi.runtime.v1.KnowledgeWorkspacePrivateOwnerH\x00R\x10workspacePrivateB\a\n" +
+	"\x05owner\"\xd5\x01\n" +
+	"\x1aPublicKnowledgeBankLocator\x12L\n" +
+	"\vapp_private\x18\x01 \x01(\v2).nimi.runtime.v1.KnowledgeAppPrivateOwnerH\x00R\n" +
+	"appPrivate\x12^\n" +
+	"\x11workspace_private\x18\x02 \x01(\v2/.nimi.runtime.v1.KnowledgeWorkspacePrivateOwnerH\x00R\x10workspacePrivateB\t\n" +
+	"\alocator\"\xd1\x01\n" +
+	"\x18KnowledgeBankOwnerFilter\x12L\n" +
+	"\vapp_private\x18\x01 \x01(\v2).nimi.runtime.v1.KnowledgeAppPrivateOwnerH\x00R\n" +
+	"appPrivate\x12^\n" +
+	"\x11workspace_private\x18\x02 \x01(\v2/.nimi.runtime.v1.KnowledgeWorkspacePrivateOwnerH\x00R\x10workspacePrivateB\a\n" +
+	"\x05owner\"\xb7\x02\n" +
+	"\rKnowledgeBank\x12\x17\n" +
+	"\abank_id\x18\x01 \x01(\tR\x06bankId\x12?\n" +
+	"\alocator\x18\x02 \x01(\v2%.nimi.runtime.v1.KnowledgeBankLocatorR\alocator\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x123\n" +
+	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xd1\x02\n" +
+	"\rKnowledgePage\x12\x17\n" +
+	"\apage_id\x18\x01 \x01(\tR\x06pageId\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x18\n" +
+	"\acontent\x18\x05 \x01(\tR\acontent\x12\x1f\n" +
+	"\ventity_type\x18\x06 \x01(\tR\n" +
+	"entityType\x123\n" +
+	"\bmetadata\x18\a \x01(\v2\x17.google.protobuf.StructR\bmetadata\x129\n" +
+	"\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xd6\x01\n" +
+	"\x13KnowledgeKeywordHit\x12\x17\n" +
+	"\abank_id\x18\x01 \x01(\tR\x06bankId\x12\x17\n" +
+	"\apage_id\x18\x02 \x01(\tR\x06pageId\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x18\n" +
+	"\asnippet\x18\x05 \x01(\tR\asnippet\x12\x14\n" +
+	"\x05score\x18\x06 \x01(\x02R\x05score\x123\n" +
+	"\bmetadata\x18\a \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\xc9\x02\n" +
+	"\rKnowledgeLink\x12\x17\n" +
+	"\alink_id\x18\x01 \x01(\tR\x06linkId\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12 \n" +
+	"\ffrom_page_id\x18\x03 \x01(\tR\n" +
+	"fromPageId\x12\x1c\n" +
+	"\n" +
+	"to_page_id\x18\x04 \x01(\tR\btoPageId\x12\x1b\n" +
+	"\tlink_type\x18\x05 \x01(\tR\blinkType\x123\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x129\n" +
+	"\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x88\x02\n" +
+	"\x12KnowledgeGraphEdge\x122\n" +
+	"\x04link\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeLinkR\x04link\x12\x1b\n" +
+	"\tfrom_slug\x18\x02 \x01(\tR\bfromSlug\x12\x1d\n" +
+	"\n" +
+	"from_title\x18\x03 \x01(\tR\tfromTitle\x12(\n" +
+	"\x10from_entity_type\x18\x04 \x01(\tR\x0efromEntityType\x12\x17\n" +
+	"\ato_slug\x18\x05 \x01(\tR\x06toSlug\x12\x19\n" +
+	"\bto_title\x18\x06 \x01(\tR\atoTitle\x12$\n" +
+	"\x0eto_entity_type\x18\a \x01(\tR\ftoEntityType\"\xdc\x01\n" +
+	"\x12KnowledgeGraphNode\x12\x17\n" +
+	"\abank_id\x18\x01 \x01(\tR\x06bankId\x12\x17\n" +
+	"\apage_id\x18\x02 \x01(\tR\x06pageId\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x1f\n" +
+	"\ventity_type\x18\x05 \x01(\tR\n" +
+	"entityType\x123\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12\x14\n" +
+	"\x05depth\x18\a \x01(\x05R\x05depth\"\xce\x03\n" +
+	"\x13KnowledgeIngestTask\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x17\n" +
+	"\apage_id\x18\x03 \x01(\tR\x06pageId\x12\x12\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x05 \x01(\tR\x05title\x12B\n" +
+	"\x06status\x18\x06 \x01(\x0e2*.nimi.runtime.v1.KnowledgeIngestTaskStatusR\x06status\x12)\n" +
+	"\x10progress_percent\x18\a \x01(\x05R\x0fprogressPercent\x12<\n" +
+	"\vreason_code\x18\b \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\x12\x1f\n" +
+	"\vaction_hint\x18\t \x01(\tR\n" +
+	"actionHint\x129\n" +
+	"\n" +
+	"created_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xff\x01\n" +
+	"\x1aCreateKnowledgeBankRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12E\n" +
+	"\alocator\x18\x02 \x01(\v2+.nimi.runtime.v1.PublicKnowledgeBankLocatorR\alocator\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x123\n" +
+	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"Q\n" +
+	"\x1bCreateKnowledgeBankResponse\x122\n" +
+	"\x04bank\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeBankR\x04bank\"v\n" +
+	"\x17GetKnowledgeBankRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\"N\n" +
+	"\x18GetKnowledgeBankResponse\x122\n" +
+	"\x04bank\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeBankR\x04bank\"\xb5\x02\n" +
+	"\x19ListKnowledgeBanksRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12H\n" +
+	"\rscope_filters\x18\x02 \x03(\x0e2#.nimi.runtime.v1.KnowledgeBankScopeR\fscopeFilters\x12N\n" +
+	"\rowner_filters\x18\x03 \x03(\v2).nimi.runtime.v1.KnowledgeBankOwnerFilterR\fownerFilters\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"z\n" +
+	"\x1aListKnowledgeBanksResponse\x124\n" +
+	"\x05banks\x18\x01 \x03(\v2\x1e.nimi.runtime.v1.KnowledgeBankR\x05banks\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"y\n" +
+	"\x1aDeleteKnowledgeBankRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\"E\n" +
+	"\x1bDeleteKnowledgeBankResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\xa0\x02\n" +
+	"\x0ePutPageRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x17\n" +
+	"\apage_id\x18\x03 \x01(\tR\x06pageId\x12\x12\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x05 \x01(\tR\x05title\x12\x18\n" +
+	"\acontent\x18\x06 \x01(\tR\acontent\x12\x1f\n" +
+	"\ventity_type\x18\a \x01(\tR\n" +
+	"entityType\x123\n" +
+	"\bmetadata\x18\b \x01(\v2\x17.google.protobuf.StructR\bmetadata\"E\n" +
+	"\x0fPutPageResponse\x122\n" +
+	"\x04page\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgePageR\x04page\"\xa8\x01\n" +
+	"\x0eGetPageRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x19\n" +
+	"\apage_id\x18\x03 \x01(\tH\x00R\x06pageId\x12\x14\n" +
+	"\x04slug\x18\x04 \x01(\tH\x00R\x04slugB\b\n" +
+	"\x06lookup\"E\n" +
+	"\x0fGetPageResponse\x122\n" +
+	"\x04page\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgePageR\x04page\"\xfc\x01\n" +
+	"\x10ListPagesRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12.\n" +
+	"\x13entity_type_filters\x18\x03 \x03(\tR\x11entityTypeFilters\x12\x1f\n" +
+	"\vslug_prefix\x18\x04 \x01(\tR\n" +
+	"slugPrefix\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"q\n" +
+	"\x11ListPagesResponse\x124\n" +
+	"\x05pages\x18\x01 \x03(\v2\x1e.nimi.runtime.v1.KnowledgePageR\x05pages\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xab\x01\n" +
+	"\x11DeletePageRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x19\n" +
+	"\apage_id\x18\x03 \x01(\tH\x00R\x06pageId\x12\x14\n" +
+	"\x04slug\x18\x04 \x01(\tH\x00R\x04slugB\b\n" +
+	"\x06lookup\"<\n" +
+	"\x12DeletePageResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\xf1\x01\n" +
+	"\x14SearchKeywordRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x19\n" +
+	"\bbank_ids\x18\x02 \x03(\tR\abankIds\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12\x13\n" +
+	"\x05top_k\x18\x04 \x01(\x05R\x04topK\x12.\n" +
+	"\x13entity_type_filters\x18\x05 \x03(\tR\x11entityTypeFilters\x12\x1f\n" +
+	"\vslug_prefix\x18\x06 \x01(\tR\n" +
+	"slugPrefix\"\x8f\x01\n" +
+	"\x15SearchKeywordResponse\x128\n" +
+	"\x04hits\x18\x01 \x03(\v2$.nimi.runtime.v1.KnowledgeKeywordHitR\x04hits\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xf4\x01\n" +
+	"\x13SearchHybridRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12.\n" +
+	"\x13entity_type_filters\x18\x04 \x03(\tR\x11entityTypeFilters\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"\xb6\x01\n" +
+	"\x14SearchHybridResponse\x128\n" +
+	"\x04hits\x18\x01 \x03(\v2$.nimi.runtime.v1.KnowledgeKeywordHitR\x04hits\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12<\n" +
+	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xff\x01\n" +
+	"\x0eAddLinkRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12 \n" +
+	"\ffrom_page_id\x18\x03 \x01(\tR\n" +
+	"fromPageId\x12\x1c\n" +
+	"\n" +
+	"to_page_id\x18\x04 \x01(\tR\btoPageId\x12\x1b\n" +
+	"\tlink_type\x18\x05 \x01(\tR\blinkType\x123\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"E\n" +
+	"\x0fAddLinkResponse\x122\n" +
+	"\x04link\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.KnowledgeLinkR\x04link\"\x89\x01\n" +
+	"\x11RemoveLinkRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x17\n" +
+	"\alink_id\x18\x03 \x01(\tR\x06linkId\"<\n" +
+	"\x12RemoveLinkResponse\x12&\n" +
+	"\x03ack\x18\x01 \x01(\v2\x14.nimi.runtime.v1.AckR\x03ack\"\xf9\x01\n" +
+	"\x10ListLinksRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12 \n" +
+	"\ffrom_page_id\x18\x03 \x01(\tR\n" +
+	"fromPageId\x12*\n" +
+	"\x11link_type_filters\x18\x04 \x03(\tR\x0flinkTypeFilters\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"v\n" +
+	"\x11ListLinksResponse\x129\n" +
+	"\x05links\x18\x01 \x03(\v2#.nimi.runtime.v1.KnowledgeGraphEdgeR\x05links\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xf9\x01\n" +
+	"\x14ListBacklinksRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x1c\n" +
+	"\n" +
+	"to_page_id\x18\x03 \x01(\tR\btoPageId\x12*\n" +
+	"\x11link_type_filters\x18\x04 \x03(\tR\x0flinkTypeFilters\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x06 \x01(\tR\tpageToken\"\x82\x01\n" +
+	"\x15ListBacklinksResponse\x12A\n" +
+	"\tbacklinks\x18\x01 \x03(\v2#.nimi.runtime.v1.KnowledgeGraphEdgeR\tbacklinks\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x9a\x02\n" +
+	"\x14TraverseGraphRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12 \n" +
+	"\froot_page_id\x18\x03 \x01(\tR\n" +
+	"rootPageId\x12*\n" +
+	"\x11link_type_filters\x18\x04 \x03(\tR\x0flinkTypeFilters\x12\x1b\n" +
+	"\tmax_depth\x18\x05 \x01(\x05R\bmaxDepth\x12\x1b\n" +
+	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\a \x01(\tR\tpageToken\"z\n" +
+	"\x15TraverseGraphResponse\x129\n" +
+	"\x05nodes\x18\x01 \x03(\v2#.nimi.runtime.v1.KnowledgeGraphNodeR\x05nodes\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xa7\x02\n" +
+	"\x15IngestDocumentRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\abank_id\x18\x02 \x01(\tR\x06bankId\x12\x17\n" +
+	"\apage_id\x18\x03 \x01(\tR\x06pageId\x12\x12\n" +
+	"\x04slug\x18\x04 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x05 \x01(\tR\x05title\x12\x18\n" +
+	"\acontent\x18\x06 \x01(\tR\acontent\x12\x1f\n" +
+	"\ventity_type\x18\a \x01(\tR\n" +
+	"entityType\x123\n" +
+	"\bmetadata\x18\b \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x8b\x01\n" +
+	"\x16IngestDocumentResponse\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\xcc\x01\n" +
-	"\x12SearchIndexRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bindex_id\x18\x03 \x01(\tR\aindexId\x12\x14\n" +
-	"\x05query\x18\x04 \x01(\tR\x05query\x12\x13\n" +
-	"\x05top_k\x18\x05 \x01(\x05R\x04topK\x121\n" +
-	"\afilters\x18\x06 \x01(\v2\x17.google.protobuf.StructR\afilters\"\x91\x01\n" +
-	"\tSearchHit\x12\x1f\n" +
-	"\vdocument_id\x18\x01 \x01(\tR\n" +
-	"documentId\x12\x14\n" +
-	"\x05score\x18\x02 \x01(\x02R\x05score\x12\x18\n" +
-	"\asnippet\x18\x03 \x01(\tR\asnippet\x123\n" +
-	"\bmetadata\x18\x04 \x01(\v2\x17.google.protobuf.StructR\bmetadata\"\x83\x01\n" +
-	"\x13SearchIndexResponse\x12.\n" +
-	"\x04hits\x18\x01 \x03(\v2\x1a.nimi.runtime.v1.SearchHitR\x04hits\x12<\n" +
-	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"n\n" +
-	"\x12DeleteIndexRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x19\n" +
-	"\bindex_id\x18\x03 \x01(\tR\aindexId2\x94\x02\n" +
-	"\x17RuntimeKnowledgeService\x12U\n" +
+	"reasonCode\"s\n" +
+	"\x14GetIngestTaskRequest\x12B\n" +
+	"\acontext\x18\x01 \x01(\v2(.nimi.runtime.v1.KnowledgeRequestContextR\acontext\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\"Q\n" +
+	"\x15GetIngestTaskResponse\x128\n" +
+	"\x04task\x18\x01 \x01(\v2$.nimi.runtime.v1.KnowledgeIngestTaskR\x04task*\x8c\x01\n" +
+	"\x12KnowledgeBankScope\x12$\n" +
+	" KNOWLEDGE_BANK_SCOPE_UNSPECIFIED\x10\x00\x12$\n" +
+	" KNOWLEDGE_BANK_SCOPE_APP_PRIVATE\x10\x01\x12*\n" +
+	"&KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE\x10\x02*\xf1\x01\n" +
+	"\x19KnowledgeIngestTaskStatus\x12,\n" +
+	"(KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED\x10\x00\x12'\n" +
+	"#KNOWLEDGE_INGEST_TASK_STATUS_QUEUED\x10\x01\x12(\n" +
+	"$KNOWLEDGE_INGEST_TASK_STATUS_RUNNING\x10\x02\x12*\n" +
+	"&KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED\x10\x03\x12'\n" +
+	"#KNOWLEDGE_INGEST_TASK_STATUS_FAILED\x10\x042\xd5\f\n" +
+	"\x17RuntimeKnowledgeService\x12p\n" +
+	"\x13CreateKnowledgeBank\x12+.nimi.runtime.v1.CreateKnowledgeBankRequest\x1a,.nimi.runtime.v1.CreateKnowledgeBankResponse\x12g\n" +
+	"\x10GetKnowledgeBank\x12(.nimi.runtime.v1.GetKnowledgeBankRequest\x1a).nimi.runtime.v1.GetKnowledgeBankResponse\x12m\n" +
+	"\x12ListKnowledgeBanks\x12*.nimi.runtime.v1.ListKnowledgeBanksRequest\x1a+.nimi.runtime.v1.ListKnowledgeBanksResponse\x12p\n" +
+	"\x13DeleteKnowledgeBank\x12+.nimi.runtime.v1.DeleteKnowledgeBankRequest\x1a,.nimi.runtime.v1.DeleteKnowledgeBankResponse\x12L\n" +
+	"\aPutPage\x12\x1f.nimi.runtime.v1.PutPageRequest\x1a .nimi.runtime.v1.PutPageResponse\x12L\n" +
+	"\aGetPage\x12\x1f.nimi.runtime.v1.GetPageRequest\x1a .nimi.runtime.v1.GetPageResponse\x12R\n" +
+	"\tListPages\x12!.nimi.runtime.v1.ListPagesRequest\x1a\".nimi.runtime.v1.ListPagesResponse\x12U\n" +
 	"\n" +
-	"BuildIndex\x12\".nimi.runtime.v1.BuildIndexRequest\x1a#.nimi.runtime.v1.BuildIndexResponse\x12X\n" +
-	"\vSearchIndex\x12#.nimi.runtime.v1.SearchIndexRequest\x1a$.nimi.runtime.v1.SearchIndexResponse\x12H\n" +
-	"\vDeleteIndex\x12#.nimi.runtime.v1.DeleteIndexRequest\x1a\x14.nimi.runtime.v1.AckB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"DeletePage\x12\".nimi.runtime.v1.DeletePageRequest\x1a#.nimi.runtime.v1.DeletePageResponse\x12^\n" +
+	"\rSearchKeyword\x12%.nimi.runtime.v1.SearchKeywordRequest\x1a&.nimi.runtime.v1.SearchKeywordResponse\x12[\n" +
+	"\fSearchHybrid\x12$.nimi.runtime.v1.SearchHybridRequest\x1a%.nimi.runtime.v1.SearchHybridResponse\x12L\n" +
+	"\aAddLink\x12\x1f.nimi.runtime.v1.AddLinkRequest\x1a .nimi.runtime.v1.AddLinkResponse\x12U\n" +
+	"\n" +
+	"RemoveLink\x12\".nimi.runtime.v1.RemoveLinkRequest\x1a#.nimi.runtime.v1.RemoveLinkResponse\x12R\n" +
+	"\tListLinks\x12!.nimi.runtime.v1.ListLinksRequest\x1a\".nimi.runtime.v1.ListLinksResponse\x12^\n" +
+	"\rListBacklinks\x12%.nimi.runtime.v1.ListBacklinksRequest\x1a&.nimi.runtime.v1.ListBacklinksResponse\x12^\n" +
+	"\rTraverseGraph\x12%.nimi.runtime.v1.TraverseGraphRequest\x1a&.nimi.runtime.v1.TraverseGraphResponse\x12a\n" +
+	"\x0eIngestDocument\x12&.nimi.runtime.v1.IngestDocumentRequest\x1a'.nimi.runtime.v1.IngestDocumentResponse\x12^\n" +
+	"\rGetIngestTask\x12%.nimi.runtime.v1.GetIngestTaskRequest\x1a&.nimi.runtime.v1.GetIngestTaskResponseB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_knowledge_proto_rawDescOnce sync.Once
@@ -506,36 +3708,170 @@ func file_runtime_v1_knowledge_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_knowledge_proto_rawDescData
 }
 
-var file_runtime_v1_knowledge_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_runtime_v1_knowledge_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_runtime_v1_knowledge_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_runtime_v1_knowledge_proto_goTypes = []any{
-	(*BuildIndexRequest)(nil),   // 0: nimi.runtime.v1.BuildIndexRequest
-	(*BuildIndexResponse)(nil),  // 1: nimi.runtime.v1.BuildIndexResponse
-	(*SearchIndexRequest)(nil),  // 2: nimi.runtime.v1.SearchIndexRequest
-	(*SearchHit)(nil),           // 3: nimi.runtime.v1.SearchHit
-	(*SearchIndexResponse)(nil), // 4: nimi.runtime.v1.SearchIndexResponse
-	(*DeleteIndexRequest)(nil),  // 5: nimi.runtime.v1.DeleteIndexRequest
-	(*structpb.Struct)(nil),     // 6: google.protobuf.Struct
-	(ReasonCode)(0),             // 7: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                 // 8: nimi.runtime.v1.Ack
+	(KnowledgeBankScope)(0),                // 0: nimi.runtime.v1.KnowledgeBankScope
+	(KnowledgeIngestTaskStatus)(0),         // 1: nimi.runtime.v1.KnowledgeIngestTaskStatus
+	(*KnowledgeRequestContext)(nil),        // 2: nimi.runtime.v1.KnowledgeRequestContext
+	(*KnowledgeAppPrivateOwner)(nil),       // 3: nimi.runtime.v1.KnowledgeAppPrivateOwner
+	(*KnowledgeWorkspacePrivateOwner)(nil), // 4: nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	(*KnowledgeBankLocator)(nil),           // 5: nimi.runtime.v1.KnowledgeBankLocator
+	(*PublicKnowledgeBankLocator)(nil),     // 6: nimi.runtime.v1.PublicKnowledgeBankLocator
+	(*KnowledgeBankOwnerFilter)(nil),       // 7: nimi.runtime.v1.KnowledgeBankOwnerFilter
+	(*KnowledgeBank)(nil),                  // 8: nimi.runtime.v1.KnowledgeBank
+	(*KnowledgePage)(nil),                  // 9: nimi.runtime.v1.KnowledgePage
+	(*KnowledgeKeywordHit)(nil),            // 10: nimi.runtime.v1.KnowledgeKeywordHit
+	(*KnowledgeLink)(nil),                  // 11: nimi.runtime.v1.KnowledgeLink
+	(*KnowledgeGraphEdge)(nil),             // 12: nimi.runtime.v1.KnowledgeGraphEdge
+	(*KnowledgeGraphNode)(nil),             // 13: nimi.runtime.v1.KnowledgeGraphNode
+	(*KnowledgeIngestTask)(nil),            // 14: nimi.runtime.v1.KnowledgeIngestTask
+	(*CreateKnowledgeBankRequest)(nil),     // 15: nimi.runtime.v1.CreateKnowledgeBankRequest
+	(*CreateKnowledgeBankResponse)(nil),    // 16: nimi.runtime.v1.CreateKnowledgeBankResponse
+	(*GetKnowledgeBankRequest)(nil),        // 17: nimi.runtime.v1.GetKnowledgeBankRequest
+	(*GetKnowledgeBankResponse)(nil),       // 18: nimi.runtime.v1.GetKnowledgeBankResponse
+	(*ListKnowledgeBanksRequest)(nil),      // 19: nimi.runtime.v1.ListKnowledgeBanksRequest
+	(*ListKnowledgeBanksResponse)(nil),     // 20: nimi.runtime.v1.ListKnowledgeBanksResponse
+	(*DeleteKnowledgeBankRequest)(nil),     // 21: nimi.runtime.v1.DeleteKnowledgeBankRequest
+	(*DeleteKnowledgeBankResponse)(nil),    // 22: nimi.runtime.v1.DeleteKnowledgeBankResponse
+	(*PutPageRequest)(nil),                 // 23: nimi.runtime.v1.PutPageRequest
+	(*PutPageResponse)(nil),                // 24: nimi.runtime.v1.PutPageResponse
+	(*GetPageRequest)(nil),                 // 25: nimi.runtime.v1.GetPageRequest
+	(*GetPageResponse)(nil),                // 26: nimi.runtime.v1.GetPageResponse
+	(*ListPagesRequest)(nil),               // 27: nimi.runtime.v1.ListPagesRequest
+	(*ListPagesResponse)(nil),              // 28: nimi.runtime.v1.ListPagesResponse
+	(*DeletePageRequest)(nil),              // 29: nimi.runtime.v1.DeletePageRequest
+	(*DeletePageResponse)(nil),             // 30: nimi.runtime.v1.DeletePageResponse
+	(*SearchKeywordRequest)(nil),           // 31: nimi.runtime.v1.SearchKeywordRequest
+	(*SearchKeywordResponse)(nil),          // 32: nimi.runtime.v1.SearchKeywordResponse
+	(*SearchHybridRequest)(nil),            // 33: nimi.runtime.v1.SearchHybridRequest
+	(*SearchHybridResponse)(nil),           // 34: nimi.runtime.v1.SearchHybridResponse
+	(*AddLinkRequest)(nil),                 // 35: nimi.runtime.v1.AddLinkRequest
+	(*AddLinkResponse)(nil),                // 36: nimi.runtime.v1.AddLinkResponse
+	(*RemoveLinkRequest)(nil),              // 37: nimi.runtime.v1.RemoveLinkRequest
+	(*RemoveLinkResponse)(nil),             // 38: nimi.runtime.v1.RemoveLinkResponse
+	(*ListLinksRequest)(nil),               // 39: nimi.runtime.v1.ListLinksRequest
+	(*ListLinksResponse)(nil),              // 40: nimi.runtime.v1.ListLinksResponse
+	(*ListBacklinksRequest)(nil),           // 41: nimi.runtime.v1.ListBacklinksRequest
+	(*ListBacklinksResponse)(nil),          // 42: nimi.runtime.v1.ListBacklinksResponse
+	(*TraverseGraphRequest)(nil),           // 43: nimi.runtime.v1.TraverseGraphRequest
+	(*TraverseGraphResponse)(nil),          // 44: nimi.runtime.v1.TraverseGraphResponse
+	(*IngestDocumentRequest)(nil),          // 45: nimi.runtime.v1.IngestDocumentRequest
+	(*IngestDocumentResponse)(nil),         // 46: nimi.runtime.v1.IngestDocumentResponse
+	(*GetIngestTaskRequest)(nil),           // 47: nimi.runtime.v1.GetIngestTaskRequest
+	(*GetIngestTaskResponse)(nil),          // 48: nimi.runtime.v1.GetIngestTaskResponse
+	(*structpb.Struct)(nil),                // 49: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),          // 50: google.protobuf.Timestamp
+	(ReasonCode)(0),                        // 51: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                            // 52: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_knowledge_proto_depIdxs = []int32{
-	6, // 0: nimi.runtime.v1.BuildIndexRequest.options:type_name -> google.protobuf.Struct
-	7, // 1: nimi.runtime.v1.BuildIndexResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6, // 2: nimi.runtime.v1.SearchIndexRequest.filters:type_name -> google.protobuf.Struct
-	6, // 3: nimi.runtime.v1.SearchHit.metadata:type_name -> google.protobuf.Struct
-	3, // 4: nimi.runtime.v1.SearchIndexResponse.hits:type_name -> nimi.runtime.v1.SearchHit
-	7, // 5: nimi.runtime.v1.SearchIndexResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0, // 6: nimi.runtime.v1.RuntimeKnowledgeService.BuildIndex:input_type -> nimi.runtime.v1.BuildIndexRequest
-	2, // 7: nimi.runtime.v1.RuntimeKnowledgeService.SearchIndex:input_type -> nimi.runtime.v1.SearchIndexRequest
-	5, // 8: nimi.runtime.v1.RuntimeKnowledgeService.DeleteIndex:input_type -> nimi.runtime.v1.DeleteIndexRequest
-	1, // 9: nimi.runtime.v1.RuntimeKnowledgeService.BuildIndex:output_type -> nimi.runtime.v1.BuildIndexResponse
-	4, // 10: nimi.runtime.v1.RuntimeKnowledgeService.SearchIndex:output_type -> nimi.runtime.v1.SearchIndexResponse
-	8, // 11: nimi.runtime.v1.RuntimeKnowledgeService.DeleteIndex:output_type -> nimi.runtime.v1.Ack
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	0,  // 0: nimi.runtime.v1.KnowledgeBankLocator.scope:type_name -> nimi.runtime.v1.KnowledgeBankScope
+	3,  // 1: nimi.runtime.v1.KnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 2: nimi.runtime.v1.KnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	3,  // 3: nimi.runtime.v1.PublicKnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 4: nimi.runtime.v1.PublicKnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	3,  // 5: nimi.runtime.v1.KnowledgeBankOwnerFilter.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 6: nimi.runtime.v1.KnowledgeBankOwnerFilter.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	5,  // 7: nimi.runtime.v1.KnowledgeBank.locator:type_name -> nimi.runtime.v1.KnowledgeBankLocator
+	49, // 8: nimi.runtime.v1.KnowledgeBank.metadata:type_name -> google.protobuf.Struct
+	50, // 9: nimi.runtime.v1.KnowledgeBank.created_at:type_name -> google.protobuf.Timestamp
+	50, // 10: nimi.runtime.v1.KnowledgeBank.updated_at:type_name -> google.protobuf.Timestamp
+	49, // 11: nimi.runtime.v1.KnowledgePage.metadata:type_name -> google.protobuf.Struct
+	50, // 12: nimi.runtime.v1.KnowledgePage.created_at:type_name -> google.protobuf.Timestamp
+	50, // 13: nimi.runtime.v1.KnowledgePage.updated_at:type_name -> google.protobuf.Timestamp
+	49, // 14: nimi.runtime.v1.KnowledgeKeywordHit.metadata:type_name -> google.protobuf.Struct
+	49, // 15: nimi.runtime.v1.KnowledgeLink.metadata:type_name -> google.protobuf.Struct
+	50, // 16: nimi.runtime.v1.KnowledgeLink.created_at:type_name -> google.protobuf.Timestamp
+	50, // 17: nimi.runtime.v1.KnowledgeLink.updated_at:type_name -> google.protobuf.Timestamp
+	11, // 18: nimi.runtime.v1.KnowledgeGraphEdge.link:type_name -> nimi.runtime.v1.KnowledgeLink
+	49, // 19: nimi.runtime.v1.KnowledgeGraphNode.metadata:type_name -> google.protobuf.Struct
+	1,  // 20: nimi.runtime.v1.KnowledgeIngestTask.status:type_name -> nimi.runtime.v1.KnowledgeIngestTaskStatus
+	51, // 21: nimi.runtime.v1.KnowledgeIngestTask.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	50, // 22: nimi.runtime.v1.KnowledgeIngestTask.created_at:type_name -> google.protobuf.Timestamp
+	50, // 23: nimi.runtime.v1.KnowledgeIngestTask.updated_at:type_name -> google.protobuf.Timestamp
+	2,  // 24: nimi.runtime.v1.CreateKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	6,  // 25: nimi.runtime.v1.CreateKnowledgeBankRequest.locator:type_name -> nimi.runtime.v1.PublicKnowledgeBankLocator
+	49, // 26: nimi.runtime.v1.CreateKnowledgeBankRequest.metadata:type_name -> google.protobuf.Struct
+	8,  // 27: nimi.runtime.v1.CreateKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 28: nimi.runtime.v1.GetKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	8,  // 29: nimi.runtime.v1.GetKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 30: nimi.runtime.v1.ListKnowledgeBanksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	0,  // 31: nimi.runtime.v1.ListKnowledgeBanksRequest.scope_filters:type_name -> nimi.runtime.v1.KnowledgeBankScope
+	7,  // 32: nimi.runtime.v1.ListKnowledgeBanksRequest.owner_filters:type_name -> nimi.runtime.v1.KnowledgeBankOwnerFilter
+	8,  // 33: nimi.runtime.v1.ListKnowledgeBanksResponse.banks:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 34: nimi.runtime.v1.DeleteKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	52, // 35: nimi.runtime.v1.DeleteKnowledgeBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 36: nimi.runtime.v1.PutPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	49, // 37: nimi.runtime.v1.PutPageRequest.metadata:type_name -> google.protobuf.Struct
+	9,  // 38: nimi.runtime.v1.PutPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 39: nimi.runtime.v1.GetPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	9,  // 40: nimi.runtime.v1.GetPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 41: nimi.runtime.v1.ListPagesRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	9,  // 42: nimi.runtime.v1.ListPagesResponse.pages:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 43: nimi.runtime.v1.DeletePageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	52, // 44: nimi.runtime.v1.DeletePageResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 45: nimi.runtime.v1.SearchKeywordRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	10, // 46: nimi.runtime.v1.SearchKeywordResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
+	51, // 47: nimi.runtime.v1.SearchKeywordResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 48: nimi.runtime.v1.SearchHybridRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	10, // 49: nimi.runtime.v1.SearchHybridResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
+	51, // 50: nimi.runtime.v1.SearchHybridResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 51: nimi.runtime.v1.AddLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	49, // 52: nimi.runtime.v1.AddLinkRequest.metadata:type_name -> google.protobuf.Struct
+	11, // 53: nimi.runtime.v1.AddLinkResponse.link:type_name -> nimi.runtime.v1.KnowledgeLink
+	2,  // 54: nimi.runtime.v1.RemoveLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	52, // 55: nimi.runtime.v1.RemoveLinkResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 56: nimi.runtime.v1.ListLinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	12, // 57: nimi.runtime.v1.ListLinksResponse.links:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
+	2,  // 58: nimi.runtime.v1.ListBacklinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	12, // 59: nimi.runtime.v1.ListBacklinksResponse.backlinks:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
+	2,  // 60: nimi.runtime.v1.TraverseGraphRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	13, // 61: nimi.runtime.v1.TraverseGraphResponse.nodes:type_name -> nimi.runtime.v1.KnowledgeGraphNode
+	2,  // 62: nimi.runtime.v1.IngestDocumentRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	49, // 63: nimi.runtime.v1.IngestDocumentRequest.metadata:type_name -> google.protobuf.Struct
+	51, // 64: nimi.runtime.v1.IngestDocumentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 65: nimi.runtime.v1.GetIngestTaskRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	14, // 66: nimi.runtime.v1.GetIngestTaskResponse.task:type_name -> nimi.runtime.v1.KnowledgeIngestTask
+	15, // 67: nimi.runtime.v1.RuntimeKnowledgeService.CreateKnowledgeBank:input_type -> nimi.runtime.v1.CreateKnowledgeBankRequest
+	17, // 68: nimi.runtime.v1.RuntimeKnowledgeService.GetKnowledgeBank:input_type -> nimi.runtime.v1.GetKnowledgeBankRequest
+	19, // 69: nimi.runtime.v1.RuntimeKnowledgeService.ListKnowledgeBanks:input_type -> nimi.runtime.v1.ListKnowledgeBanksRequest
+	21, // 70: nimi.runtime.v1.RuntimeKnowledgeService.DeleteKnowledgeBank:input_type -> nimi.runtime.v1.DeleteKnowledgeBankRequest
+	23, // 71: nimi.runtime.v1.RuntimeKnowledgeService.PutPage:input_type -> nimi.runtime.v1.PutPageRequest
+	25, // 72: nimi.runtime.v1.RuntimeKnowledgeService.GetPage:input_type -> nimi.runtime.v1.GetPageRequest
+	27, // 73: nimi.runtime.v1.RuntimeKnowledgeService.ListPages:input_type -> nimi.runtime.v1.ListPagesRequest
+	29, // 74: nimi.runtime.v1.RuntimeKnowledgeService.DeletePage:input_type -> nimi.runtime.v1.DeletePageRequest
+	31, // 75: nimi.runtime.v1.RuntimeKnowledgeService.SearchKeyword:input_type -> nimi.runtime.v1.SearchKeywordRequest
+	33, // 76: nimi.runtime.v1.RuntimeKnowledgeService.SearchHybrid:input_type -> nimi.runtime.v1.SearchHybridRequest
+	35, // 77: nimi.runtime.v1.RuntimeKnowledgeService.AddLink:input_type -> nimi.runtime.v1.AddLinkRequest
+	37, // 78: nimi.runtime.v1.RuntimeKnowledgeService.RemoveLink:input_type -> nimi.runtime.v1.RemoveLinkRequest
+	39, // 79: nimi.runtime.v1.RuntimeKnowledgeService.ListLinks:input_type -> nimi.runtime.v1.ListLinksRequest
+	41, // 80: nimi.runtime.v1.RuntimeKnowledgeService.ListBacklinks:input_type -> nimi.runtime.v1.ListBacklinksRequest
+	43, // 81: nimi.runtime.v1.RuntimeKnowledgeService.TraverseGraph:input_type -> nimi.runtime.v1.TraverseGraphRequest
+	45, // 82: nimi.runtime.v1.RuntimeKnowledgeService.IngestDocument:input_type -> nimi.runtime.v1.IngestDocumentRequest
+	47, // 83: nimi.runtime.v1.RuntimeKnowledgeService.GetIngestTask:input_type -> nimi.runtime.v1.GetIngestTaskRequest
+	16, // 84: nimi.runtime.v1.RuntimeKnowledgeService.CreateKnowledgeBank:output_type -> nimi.runtime.v1.CreateKnowledgeBankResponse
+	18, // 85: nimi.runtime.v1.RuntimeKnowledgeService.GetKnowledgeBank:output_type -> nimi.runtime.v1.GetKnowledgeBankResponse
+	20, // 86: nimi.runtime.v1.RuntimeKnowledgeService.ListKnowledgeBanks:output_type -> nimi.runtime.v1.ListKnowledgeBanksResponse
+	22, // 87: nimi.runtime.v1.RuntimeKnowledgeService.DeleteKnowledgeBank:output_type -> nimi.runtime.v1.DeleteKnowledgeBankResponse
+	24, // 88: nimi.runtime.v1.RuntimeKnowledgeService.PutPage:output_type -> nimi.runtime.v1.PutPageResponse
+	26, // 89: nimi.runtime.v1.RuntimeKnowledgeService.GetPage:output_type -> nimi.runtime.v1.GetPageResponse
+	28, // 90: nimi.runtime.v1.RuntimeKnowledgeService.ListPages:output_type -> nimi.runtime.v1.ListPagesResponse
+	30, // 91: nimi.runtime.v1.RuntimeKnowledgeService.DeletePage:output_type -> nimi.runtime.v1.DeletePageResponse
+	32, // 92: nimi.runtime.v1.RuntimeKnowledgeService.SearchKeyword:output_type -> nimi.runtime.v1.SearchKeywordResponse
+	34, // 93: nimi.runtime.v1.RuntimeKnowledgeService.SearchHybrid:output_type -> nimi.runtime.v1.SearchHybridResponse
+	36, // 94: nimi.runtime.v1.RuntimeKnowledgeService.AddLink:output_type -> nimi.runtime.v1.AddLinkResponse
+	38, // 95: nimi.runtime.v1.RuntimeKnowledgeService.RemoveLink:output_type -> nimi.runtime.v1.RemoveLinkResponse
+	40, // 96: nimi.runtime.v1.RuntimeKnowledgeService.ListLinks:output_type -> nimi.runtime.v1.ListLinksResponse
+	42, // 97: nimi.runtime.v1.RuntimeKnowledgeService.ListBacklinks:output_type -> nimi.runtime.v1.ListBacklinksResponse
+	44, // 98: nimi.runtime.v1.RuntimeKnowledgeService.TraverseGraph:output_type -> nimi.runtime.v1.TraverseGraphResponse
+	46, // 99: nimi.runtime.v1.RuntimeKnowledgeService.IngestDocument:output_type -> nimi.runtime.v1.IngestDocumentResponse
+	48, // 100: nimi.runtime.v1.RuntimeKnowledgeService.GetIngestTask:output_type -> nimi.runtime.v1.GetIngestTaskResponse
+	84, // [84:101] is the sub-list for method output_type
+	67, // [67:84] is the sub-list for method input_type
+	67, // [67:67] is the sub-list for extension type_name
+	67, // [67:67] is the sub-list for extension extendee
+	0,  // [0:67] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_knowledge_proto_init() }
@@ -544,18 +3880,39 @@ func file_runtime_v1_knowledge_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
+	file_runtime_v1_knowledge_proto_msgTypes[3].OneofWrappers = []any{
+		(*KnowledgeBankLocator_AppPrivate)(nil),
+		(*KnowledgeBankLocator_WorkspacePrivate)(nil),
+	}
+	file_runtime_v1_knowledge_proto_msgTypes[4].OneofWrappers = []any{
+		(*PublicKnowledgeBankLocator_AppPrivate)(nil),
+		(*PublicKnowledgeBankLocator_WorkspacePrivate)(nil),
+	}
+	file_runtime_v1_knowledge_proto_msgTypes[5].OneofWrappers = []any{
+		(*KnowledgeBankOwnerFilter_AppPrivate)(nil),
+		(*KnowledgeBankOwnerFilter_WorkspacePrivate)(nil),
+	}
+	file_runtime_v1_knowledge_proto_msgTypes[23].OneofWrappers = []any{
+		(*GetPageRequest_PageId)(nil),
+		(*GetPageRequest_Slug)(nil),
+	}
+	file_runtime_v1_knowledge_proto_msgTypes[27].OneofWrappers = []any{
+		(*DeletePageRequest_PageId)(nil),
+		(*DeletePageRequest_Slug)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_knowledge_proto_rawDesc), len(file_runtime_v1_knowledge_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      2,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_runtime_v1_knowledge_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_knowledge_proto_depIdxs,
+		EnumInfos:         file_runtime_v1_knowledge_proto_enumTypes,
 		MessageInfos:      file_runtime_v1_knowledge_proto_msgTypes,
 	}.Build()
 	File_runtime_v1_knowledge_proto = out.File

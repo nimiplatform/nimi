@@ -15,6 +15,6 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
   ...runtimeUnaryMethodCodecsAuthAi,
   ...runtimeUnaryMethodCodecsLocal,
   ...runtimeUnaryMethodCodecsDomain,
-};
+} as RuntimeUnaryMethodCodecMap;
 
 export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = runtimeStreamMethodCodecs;

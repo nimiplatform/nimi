@@ -19,18 +19,46 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeKnowledgeService_BuildIndex_FullMethodName  = "/nimi.runtime.v1.RuntimeKnowledgeService/BuildIndex"
-	RuntimeKnowledgeService_SearchIndex_FullMethodName = "/nimi.runtime.v1.RuntimeKnowledgeService/SearchIndex"
-	RuntimeKnowledgeService_DeleteIndex_FullMethodName = "/nimi.runtime.v1.RuntimeKnowledgeService/DeleteIndex"
+	RuntimeKnowledgeService_CreateKnowledgeBank_FullMethodName = "/nimi.runtime.v1.RuntimeKnowledgeService/CreateKnowledgeBank"
+	RuntimeKnowledgeService_GetKnowledgeBank_FullMethodName    = "/nimi.runtime.v1.RuntimeKnowledgeService/GetKnowledgeBank"
+	RuntimeKnowledgeService_ListKnowledgeBanks_FullMethodName  = "/nimi.runtime.v1.RuntimeKnowledgeService/ListKnowledgeBanks"
+	RuntimeKnowledgeService_DeleteKnowledgeBank_FullMethodName = "/nimi.runtime.v1.RuntimeKnowledgeService/DeleteKnowledgeBank"
+	RuntimeKnowledgeService_PutPage_FullMethodName             = "/nimi.runtime.v1.RuntimeKnowledgeService/PutPage"
+	RuntimeKnowledgeService_GetPage_FullMethodName             = "/nimi.runtime.v1.RuntimeKnowledgeService/GetPage"
+	RuntimeKnowledgeService_ListPages_FullMethodName           = "/nimi.runtime.v1.RuntimeKnowledgeService/ListPages"
+	RuntimeKnowledgeService_DeletePage_FullMethodName          = "/nimi.runtime.v1.RuntimeKnowledgeService/DeletePage"
+	RuntimeKnowledgeService_SearchKeyword_FullMethodName       = "/nimi.runtime.v1.RuntimeKnowledgeService/SearchKeyword"
+	RuntimeKnowledgeService_SearchHybrid_FullMethodName        = "/nimi.runtime.v1.RuntimeKnowledgeService/SearchHybrid"
+	RuntimeKnowledgeService_AddLink_FullMethodName             = "/nimi.runtime.v1.RuntimeKnowledgeService/AddLink"
+	RuntimeKnowledgeService_RemoveLink_FullMethodName          = "/nimi.runtime.v1.RuntimeKnowledgeService/RemoveLink"
+	RuntimeKnowledgeService_ListLinks_FullMethodName           = "/nimi.runtime.v1.RuntimeKnowledgeService/ListLinks"
+	RuntimeKnowledgeService_ListBacklinks_FullMethodName       = "/nimi.runtime.v1.RuntimeKnowledgeService/ListBacklinks"
+	RuntimeKnowledgeService_TraverseGraph_FullMethodName       = "/nimi.runtime.v1.RuntimeKnowledgeService/TraverseGraph"
+	RuntimeKnowledgeService_IngestDocument_FullMethodName      = "/nimi.runtime.v1.RuntimeKnowledgeService/IngestDocument"
+	RuntimeKnowledgeService_GetIngestTask_FullMethodName       = "/nimi.runtime.v1.RuntimeKnowledgeService/GetIngestTask"
 )
 
 // RuntimeKnowledgeServiceClient is the client API for RuntimeKnowledgeService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeKnowledgeServiceClient interface {
-	BuildIndex(ctx context.Context, in *BuildIndexRequest, opts ...grpc.CallOption) (*BuildIndexResponse, error)
-	SearchIndex(ctx context.Context, in *SearchIndexRequest, opts ...grpc.CallOption) (*SearchIndexResponse, error)
-	DeleteIndex(ctx context.Context, in *DeleteIndexRequest, opts ...grpc.CallOption) (*Ack, error)
+	CreateKnowledgeBank(ctx context.Context, in *CreateKnowledgeBankRequest, opts ...grpc.CallOption) (*CreateKnowledgeBankResponse, error)
+	GetKnowledgeBank(ctx context.Context, in *GetKnowledgeBankRequest, opts ...grpc.CallOption) (*GetKnowledgeBankResponse, error)
+	ListKnowledgeBanks(ctx context.Context, in *ListKnowledgeBanksRequest, opts ...grpc.CallOption) (*ListKnowledgeBanksResponse, error)
+	DeleteKnowledgeBank(ctx context.Context, in *DeleteKnowledgeBankRequest, opts ...grpc.CallOption) (*DeleteKnowledgeBankResponse, error)
+	PutPage(ctx context.Context, in *PutPageRequest, opts ...grpc.CallOption) (*PutPageResponse, error)
+	GetPage(ctx context.Context, in *GetPageRequest, opts ...grpc.CallOption) (*GetPageResponse, error)
+	ListPages(ctx context.Context, in *ListPagesRequest, opts ...grpc.CallOption) (*ListPagesResponse, error)
+	DeletePage(ctx context.Context, in *DeletePageRequest, opts ...grpc.CallOption) (*DeletePageResponse, error)
+	SearchKeyword(ctx context.Context, in *SearchKeywordRequest, opts ...grpc.CallOption) (*SearchKeywordResponse, error)
+	SearchHybrid(ctx context.Context, in *SearchHybridRequest, opts ...grpc.CallOption) (*SearchHybridResponse, error)
+	AddLink(ctx context.Context, in *AddLinkRequest, opts ...grpc.CallOption) (*AddLinkResponse, error)
+	RemoveLink(ctx context.Context, in *RemoveLinkRequest, opts ...grpc.CallOption) (*RemoveLinkResponse, error)
+	ListLinks(ctx context.Context, in *ListLinksRequest, opts ...grpc.CallOption) (*ListLinksResponse, error)
+	ListBacklinks(ctx context.Context, in *ListBacklinksRequest, opts ...grpc.CallOption) (*ListBacklinksResponse, error)
+	TraverseGraph(ctx context.Context, in *TraverseGraphRequest, opts ...grpc.CallOption) (*TraverseGraphResponse, error)
+	IngestDocument(ctx context.Context, in *IngestDocumentRequest, opts ...grpc.CallOption) (*IngestDocumentResponse, error)
+	GetIngestTask(ctx context.Context, in *GetIngestTaskRequest, opts ...grpc.CallOption) (*GetIngestTaskResponse, error)
 }
 
 type runtimeKnowledgeServiceClient struct {
@@ -41,30 +69,170 @@ func NewRuntimeKnowledgeServiceClient(cc grpc.ClientConnInterface) RuntimeKnowle
 	return &runtimeKnowledgeServiceClient{cc}
 }
 
-func (c *runtimeKnowledgeServiceClient) BuildIndex(ctx context.Context, in *BuildIndexRequest, opts ...grpc.CallOption) (*BuildIndexResponse, error) {
+func (c *runtimeKnowledgeServiceClient) CreateKnowledgeBank(ctx context.Context, in *CreateKnowledgeBankRequest, opts ...grpc.CallOption) (*CreateKnowledgeBankResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BuildIndexResponse)
-	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_BuildIndex_FullMethodName, in, out, cOpts...)
+	out := new(CreateKnowledgeBankResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_CreateKnowledgeBank_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeKnowledgeServiceClient) SearchIndex(ctx context.Context, in *SearchIndexRequest, opts ...grpc.CallOption) (*SearchIndexResponse, error) {
+func (c *runtimeKnowledgeServiceClient) GetKnowledgeBank(ctx context.Context, in *GetKnowledgeBankRequest, opts ...grpc.CallOption) (*GetKnowledgeBankResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchIndexResponse)
-	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_SearchIndex_FullMethodName, in, out, cOpts...)
+	out := new(GetKnowledgeBankResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_GetKnowledgeBank_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeKnowledgeServiceClient) DeleteIndex(ctx context.Context, in *DeleteIndexRequest, opts ...grpc.CallOption) (*Ack, error) {
+func (c *runtimeKnowledgeServiceClient) ListKnowledgeBanks(ctx context.Context, in *ListKnowledgeBanksRequest, opts ...grpc.CallOption) (*ListKnowledgeBanksResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Ack)
-	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_DeleteIndex_FullMethodName, in, out, cOpts...)
+	out := new(ListKnowledgeBanksResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_ListKnowledgeBanks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) DeleteKnowledgeBank(ctx context.Context, in *DeleteKnowledgeBankRequest, opts ...grpc.CallOption) (*DeleteKnowledgeBankResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteKnowledgeBankResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_DeleteKnowledgeBank_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) PutPage(ctx context.Context, in *PutPageRequest, opts ...grpc.CallOption) (*PutPageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutPageResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_PutPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) GetPage(ctx context.Context, in *GetPageRequest, opts ...grpc.CallOption) (*GetPageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPageResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_GetPage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) ListPages(ctx context.Context, in *ListPagesRequest, opts ...grpc.CallOption) (*ListPagesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPagesResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_ListPages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) DeletePage(ctx context.Context, in *DeletePageRequest, opts ...grpc.CallOption) (*DeletePageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeletePageResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_DeletePage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) SearchKeyword(ctx context.Context, in *SearchKeywordRequest, opts ...grpc.CallOption) (*SearchKeywordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchKeywordResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_SearchKeyword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) SearchHybrid(ctx context.Context, in *SearchHybridRequest, opts ...grpc.CallOption) (*SearchHybridResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchHybridResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_SearchHybrid_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) AddLink(ctx context.Context, in *AddLinkRequest, opts ...grpc.CallOption) (*AddLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddLinkResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_AddLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) RemoveLink(ctx context.Context, in *RemoveLinkRequest, opts ...grpc.CallOption) (*RemoveLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveLinkResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_RemoveLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) ListLinks(ctx context.Context, in *ListLinksRequest, opts ...grpc.CallOption) (*ListLinksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLinksResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_ListLinks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) ListBacklinks(ctx context.Context, in *ListBacklinksRequest, opts ...grpc.CallOption) (*ListBacklinksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBacklinksResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_ListBacklinks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) TraverseGraph(ctx context.Context, in *TraverseGraphRequest, opts ...grpc.CallOption) (*TraverseGraphResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TraverseGraphResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_TraverseGraph_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) IngestDocument(ctx context.Context, in *IngestDocumentRequest, opts ...grpc.CallOption) (*IngestDocumentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IngestDocumentResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_IngestDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeKnowledgeServiceClient) GetIngestTask(ctx context.Context, in *GetIngestTaskRequest, opts ...grpc.CallOption) (*GetIngestTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetIngestTaskResponse)
+	err := c.cc.Invoke(ctx, RuntimeKnowledgeService_GetIngestTask_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +243,23 @@ func (c *runtimeKnowledgeServiceClient) DeleteIndex(ctx context.Context, in *Del
 // All implementations should embed UnimplementedRuntimeKnowledgeServiceServer
 // for forward compatibility.
 type RuntimeKnowledgeServiceServer interface {
-	BuildIndex(context.Context, *BuildIndexRequest) (*BuildIndexResponse, error)
-	SearchIndex(context.Context, *SearchIndexRequest) (*SearchIndexResponse, error)
-	DeleteIndex(context.Context, *DeleteIndexRequest) (*Ack, error)
+	CreateKnowledgeBank(context.Context, *CreateKnowledgeBankRequest) (*CreateKnowledgeBankResponse, error)
+	GetKnowledgeBank(context.Context, *GetKnowledgeBankRequest) (*GetKnowledgeBankResponse, error)
+	ListKnowledgeBanks(context.Context, *ListKnowledgeBanksRequest) (*ListKnowledgeBanksResponse, error)
+	DeleteKnowledgeBank(context.Context, *DeleteKnowledgeBankRequest) (*DeleteKnowledgeBankResponse, error)
+	PutPage(context.Context, *PutPageRequest) (*PutPageResponse, error)
+	GetPage(context.Context, *GetPageRequest) (*GetPageResponse, error)
+	ListPages(context.Context, *ListPagesRequest) (*ListPagesResponse, error)
+	DeletePage(context.Context, *DeletePageRequest) (*DeletePageResponse, error)
+	SearchKeyword(context.Context, *SearchKeywordRequest) (*SearchKeywordResponse, error)
+	SearchHybrid(context.Context, *SearchHybridRequest) (*SearchHybridResponse, error)
+	AddLink(context.Context, *AddLinkRequest) (*AddLinkResponse, error)
+	RemoveLink(context.Context, *RemoveLinkRequest) (*RemoveLinkResponse, error)
+	ListLinks(context.Context, *ListLinksRequest) (*ListLinksResponse, error)
+	ListBacklinks(context.Context, *ListBacklinksRequest) (*ListBacklinksResponse, error)
+	TraverseGraph(context.Context, *TraverseGraphRequest) (*TraverseGraphResponse, error)
+	IngestDocument(context.Context, *IngestDocumentRequest) (*IngestDocumentResponse, error)
+	GetIngestTask(context.Context, *GetIngestTaskRequest) (*GetIngestTaskResponse, error)
 }
 
 // UnimplementedRuntimeKnowledgeServiceServer should be embedded to have
@@ -87,14 +269,56 @@ type RuntimeKnowledgeServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeKnowledgeServiceServer struct{}
 
-func (UnimplementedRuntimeKnowledgeServiceServer) BuildIndex(context.Context, *BuildIndexRequest) (*BuildIndexResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method BuildIndex not implemented")
+func (UnimplementedRuntimeKnowledgeServiceServer) CreateKnowledgeBank(context.Context, *CreateKnowledgeBankRequest) (*CreateKnowledgeBankResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateKnowledgeBank not implemented")
 }
-func (UnimplementedRuntimeKnowledgeServiceServer) SearchIndex(context.Context, *SearchIndexRequest) (*SearchIndexResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SearchIndex not implemented")
+func (UnimplementedRuntimeKnowledgeServiceServer) GetKnowledgeBank(context.Context, *GetKnowledgeBankRequest) (*GetKnowledgeBankResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetKnowledgeBank not implemented")
 }
-func (UnimplementedRuntimeKnowledgeServiceServer) DeleteIndex(context.Context, *DeleteIndexRequest) (*Ack, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteIndex not implemented")
+func (UnimplementedRuntimeKnowledgeServiceServer) ListKnowledgeBanks(context.Context, *ListKnowledgeBanksRequest) (*ListKnowledgeBanksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListKnowledgeBanks not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) DeleteKnowledgeBank(context.Context, *DeleteKnowledgeBankRequest) (*DeleteKnowledgeBankResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteKnowledgeBank not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) PutPage(context.Context, *PutPageRequest) (*PutPageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutPage not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) GetPage(context.Context, *GetPageRequest) (*GetPageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPage not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) ListPages(context.Context, *ListPagesRequest) (*ListPagesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPages not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) DeletePage(context.Context, *DeletePageRequest) (*DeletePageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeletePage not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) SearchKeyword(context.Context, *SearchKeywordRequest) (*SearchKeywordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchKeyword not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) SearchHybrid(context.Context, *SearchHybridRequest) (*SearchHybridResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchHybrid not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) AddLink(context.Context, *AddLinkRequest) (*AddLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddLink not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) RemoveLink(context.Context, *RemoveLinkRequest) (*RemoveLinkResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLink not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) ListLinks(context.Context, *ListLinksRequest) (*ListLinksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLinks not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) ListBacklinks(context.Context, *ListBacklinksRequest) (*ListBacklinksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBacklinks not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) TraverseGraph(context.Context, *TraverseGraphRequest) (*TraverseGraphResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TraverseGraph not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) IngestDocument(context.Context, *IngestDocumentRequest) (*IngestDocumentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IngestDocument not implemented")
+}
+func (UnimplementedRuntimeKnowledgeServiceServer) GetIngestTask(context.Context, *GetIngestTaskRequest) (*GetIngestTaskResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetIngestTask not implemented")
 }
 func (UnimplementedRuntimeKnowledgeServiceServer) testEmbeddedByValue() {}
 
@@ -116,56 +340,308 @@ func RegisterRuntimeKnowledgeServiceServer(s grpc.ServiceRegistrar, srv RuntimeK
 	s.RegisterService(&RuntimeKnowledgeService_ServiceDesc, srv)
 }
 
-func _RuntimeKnowledgeService_BuildIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BuildIndexRequest)
+func _RuntimeKnowledgeService_CreateKnowledgeBank_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateKnowledgeBankRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeKnowledgeServiceServer).BuildIndex(ctx, in)
+		return srv.(RuntimeKnowledgeServiceServer).CreateKnowledgeBank(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeKnowledgeService_BuildIndex_FullMethodName,
+		FullMethod: RuntimeKnowledgeService_CreateKnowledgeBank_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeKnowledgeServiceServer).BuildIndex(ctx, req.(*BuildIndexRequest))
+		return srv.(RuntimeKnowledgeServiceServer).CreateKnowledgeBank(ctx, req.(*CreateKnowledgeBankRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeKnowledgeService_SearchIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchIndexRequest)
+func _RuntimeKnowledgeService_GetKnowledgeBank_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetKnowledgeBankRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeKnowledgeServiceServer).SearchIndex(ctx, in)
+		return srv.(RuntimeKnowledgeServiceServer).GetKnowledgeBank(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeKnowledgeService_SearchIndex_FullMethodName,
+		FullMethod: RuntimeKnowledgeService_GetKnowledgeBank_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeKnowledgeServiceServer).SearchIndex(ctx, req.(*SearchIndexRequest))
+		return srv.(RuntimeKnowledgeServiceServer).GetKnowledgeBank(ctx, req.(*GetKnowledgeBankRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeKnowledgeService_DeleteIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteIndexRequest)
+func _RuntimeKnowledgeService_ListKnowledgeBanks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListKnowledgeBanksRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeKnowledgeServiceServer).DeleteIndex(ctx, in)
+		return srv.(RuntimeKnowledgeServiceServer).ListKnowledgeBanks(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeKnowledgeService_DeleteIndex_FullMethodName,
+		FullMethod: RuntimeKnowledgeService_ListKnowledgeBanks_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeKnowledgeServiceServer).DeleteIndex(ctx, req.(*DeleteIndexRequest))
+		return srv.(RuntimeKnowledgeServiceServer).ListKnowledgeBanks(ctx, req.(*ListKnowledgeBanksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_DeleteKnowledgeBank_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteKnowledgeBankRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).DeleteKnowledgeBank(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_DeleteKnowledgeBank_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).DeleteKnowledgeBank(ctx, req.(*DeleteKnowledgeBankRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_PutPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).PutPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_PutPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).PutPage(ctx, req.(*PutPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_GetPage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).GetPage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_GetPage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).GetPage(ctx, req.(*GetPageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_ListPages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).ListPages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_ListPages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).ListPages(ctx, req.(*ListPagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_DeletePage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).DeletePage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_DeletePage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).DeletePage(ctx, req.(*DeletePageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_SearchKeyword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchKeywordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).SearchKeyword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_SearchKeyword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).SearchKeyword(ctx, req.(*SearchKeywordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_SearchHybrid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchHybridRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).SearchHybrid(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_SearchHybrid_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).SearchHybrid(ctx, req.(*SearchHybridRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_AddLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).AddLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_AddLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).AddLink(ctx, req.(*AddLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_RemoveLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).RemoveLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_RemoveLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).RemoveLink(ctx, req.(*RemoveLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_ListLinks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLinksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).ListLinks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_ListLinks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).ListLinks(ctx, req.(*ListLinksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_ListBacklinks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBacklinksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).ListBacklinks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_ListBacklinks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).ListBacklinks(ctx, req.(*ListBacklinksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_TraverseGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TraverseGraphRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).TraverseGraph(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_TraverseGraph_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).TraverseGraph(ctx, req.(*TraverseGraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_IngestDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IngestDocumentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).IngestDocument(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_IngestDocument_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).IngestDocument(ctx, req.(*IngestDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeKnowledgeService_GetIngestTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIngestTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeKnowledgeServiceServer).GetIngestTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeKnowledgeService_GetIngestTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeKnowledgeServiceServer).GetIngestTask(ctx, req.(*GetIngestTaskRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -178,16 +654,72 @@ var RuntimeKnowledgeService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RuntimeKnowledgeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "BuildIndex",
-			Handler:    _RuntimeKnowledgeService_BuildIndex_Handler,
+			MethodName: "CreateKnowledgeBank",
+			Handler:    _RuntimeKnowledgeService_CreateKnowledgeBank_Handler,
 		},
 		{
-			MethodName: "SearchIndex",
-			Handler:    _RuntimeKnowledgeService_SearchIndex_Handler,
+			MethodName: "GetKnowledgeBank",
+			Handler:    _RuntimeKnowledgeService_GetKnowledgeBank_Handler,
 		},
 		{
-			MethodName: "DeleteIndex",
-			Handler:    _RuntimeKnowledgeService_DeleteIndex_Handler,
+			MethodName: "ListKnowledgeBanks",
+			Handler:    _RuntimeKnowledgeService_ListKnowledgeBanks_Handler,
+		},
+		{
+			MethodName: "DeleteKnowledgeBank",
+			Handler:    _RuntimeKnowledgeService_DeleteKnowledgeBank_Handler,
+		},
+		{
+			MethodName: "PutPage",
+			Handler:    _RuntimeKnowledgeService_PutPage_Handler,
+		},
+		{
+			MethodName: "GetPage",
+			Handler:    _RuntimeKnowledgeService_GetPage_Handler,
+		},
+		{
+			MethodName: "ListPages",
+			Handler:    _RuntimeKnowledgeService_ListPages_Handler,
+		},
+		{
+			MethodName: "DeletePage",
+			Handler:    _RuntimeKnowledgeService_DeletePage_Handler,
+		},
+		{
+			MethodName: "SearchKeyword",
+			Handler:    _RuntimeKnowledgeService_SearchKeyword_Handler,
+		},
+		{
+			MethodName: "SearchHybrid",
+			Handler:    _RuntimeKnowledgeService_SearchHybrid_Handler,
+		},
+		{
+			MethodName: "AddLink",
+			Handler:    _RuntimeKnowledgeService_AddLink_Handler,
+		},
+		{
+			MethodName: "RemoveLink",
+			Handler:    _RuntimeKnowledgeService_RemoveLink_Handler,
+		},
+		{
+			MethodName: "ListLinks",
+			Handler:    _RuntimeKnowledgeService_ListLinks_Handler,
+		},
+		{
+			MethodName: "ListBacklinks",
+			Handler:    _RuntimeKnowledgeService_ListBacklinks_Handler,
+		},
+		{
+			MethodName: "TraverseGraph",
+			Handler:    _RuntimeKnowledgeService_TraverseGraph_Handler,
+		},
+		{
+			MethodName: "IngestDocument",
+			Handler:    _RuntimeKnowledgeService_IngestDocument_Handler,
+		},
+		{
+			MethodName: "GetIngestTask",
+			Handler:    _RuntimeKnowledgeService_GetIngestTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

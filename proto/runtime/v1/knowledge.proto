@@ -5,54 +5,368 @@ package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 import "runtime/v1/common.proto";
 
-message BuildIndexRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string index_id = 3;
-  string source_kind = 4;
-  repeated string source_uris = 5;
-  string embedding_model_id = 6;
-  bool overwrite = 7;
-  google.protobuf.Struct options = 8;
+enum KnowledgeBankScope {
+  KNOWLEDGE_BANK_SCOPE_UNSPECIFIED = 0;
+  KNOWLEDGE_BANK_SCOPE_APP_PRIVATE = 1;
+  KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE = 2;
 }
 
-message BuildIndexResponse {
+message KnowledgeRequestContext {
+  string app_id = 1;
+  string subject_user_id = 2;
+}
+
+message KnowledgeAppPrivateOwner {
+  string app_id = 1;
+}
+
+message KnowledgeWorkspacePrivateOwner {
+  string workspace_id = 1;
+}
+
+message KnowledgeBankLocator {
+  KnowledgeBankScope scope = 1;
+  oneof owner {
+    KnowledgeAppPrivateOwner app_private = 2;
+    KnowledgeWorkspacePrivateOwner workspace_private = 3;
+  }
+}
+
+message PublicKnowledgeBankLocator {
+  oneof locator {
+    KnowledgeAppPrivateOwner app_private = 1;
+    KnowledgeWorkspacePrivateOwner workspace_private = 2;
+  }
+}
+
+message KnowledgeBankOwnerFilter {
+  oneof owner {
+    KnowledgeAppPrivateOwner app_private = 1;
+    KnowledgeWorkspacePrivateOwner workspace_private = 2;
+  }
+}
+
+message KnowledgeBank {
+  string bank_id = 1;
+  KnowledgeBankLocator locator = 2;
+  string display_name = 3;
+  google.protobuf.Struct metadata = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message KnowledgePage {
+  string page_id = 1;
+  string bank_id = 2;
+  string slug = 3;
+  string title = 4;
+  string content = 5;
+  string entity_type = 6;
+  google.protobuf.Struct metadata = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message KnowledgeKeywordHit {
+  string bank_id = 1;
+  string page_id = 2;
+  string slug = 3;
+  string title = 4;
+  string snippet = 5;
+  float score = 6;
+  google.protobuf.Struct metadata = 7;
+}
+
+message KnowledgeLink {
+  string link_id = 1;
+  string bank_id = 2;
+  string from_page_id = 3;
+  string to_page_id = 4;
+  string link_type = 5;
+  google.protobuf.Struct metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message KnowledgeGraphEdge {
+  KnowledgeLink link = 1;
+  string from_slug = 2;
+  string from_title = 3;
+  string from_entity_type = 4;
+  string to_slug = 5;
+  string to_title = 6;
+  string to_entity_type = 7;
+}
+
+message KnowledgeGraphNode {
+  string bank_id = 1;
+  string page_id = 2;
+  string slug = 3;
+  string title = 4;
+  string entity_type = 5;
+  google.protobuf.Struct metadata = 6;
+  int32 depth = 7;
+}
+
+enum KnowledgeIngestTaskStatus {
+  KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED = 0;
+  KNOWLEDGE_INGEST_TASK_STATUS_QUEUED = 1;
+  KNOWLEDGE_INGEST_TASK_STATUS_RUNNING = 2;
+  KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED = 3;
+  KNOWLEDGE_INGEST_TASK_STATUS_FAILED = 4;
+}
+
+message KnowledgeIngestTask {
+  string task_id = 1;
+  string bank_id = 2;
+  string page_id = 3;
+  string slug = 4;
+  string title = 5;
+  KnowledgeIngestTaskStatus status = 6;
+  int32 progress_percent = 7;
+  ReasonCode reason_code = 8;
+  string action_hint = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+message CreateKnowledgeBankRequest {
+  KnowledgeRequestContext context = 1;
+  PublicKnowledgeBankLocator locator = 2;
+  string display_name = 3;
+  google.protobuf.Struct metadata = 4;
+}
+
+message CreateKnowledgeBankResponse {
+  KnowledgeBank bank = 1;
+}
+
+message GetKnowledgeBankRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+}
+
+message GetKnowledgeBankResponse {
+  KnowledgeBank bank = 1;
+}
+
+message ListKnowledgeBanksRequest {
+  KnowledgeRequestContext context = 1;
+  repeated KnowledgeBankScope scope_filters = 2;
+  repeated KnowledgeBankOwnerFilter owner_filters = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListKnowledgeBanksResponse {
+  repeated KnowledgeBank banks = 1;
+  string next_page_token = 2;
+}
+
+message DeleteKnowledgeBankRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+}
+
+message DeleteKnowledgeBankResponse {
+  Ack ack = 1;
+}
+
+message PutPageRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string page_id = 3;
+  string slug = 4;
+  string title = 5;
+  string content = 6;
+  string entity_type = 7;
+  google.protobuf.Struct metadata = 8;
+}
+
+message PutPageResponse {
+  KnowledgePage page = 1;
+}
+
+message GetPageRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  oneof lookup {
+    string page_id = 3;
+    string slug = 4;
+  }
+}
+
+message GetPageResponse {
+  KnowledgePage page = 1;
+}
+
+message ListPagesRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  repeated string entity_type_filters = 3;
+  string slug_prefix = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message ListPagesResponse {
+  repeated KnowledgePage pages = 1;
+  string next_page_token = 2;
+}
+
+message DeletePageRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  oneof lookup {
+    string page_id = 3;
+    string slug = 4;
+  }
+}
+
+message DeletePageResponse {
+  Ack ack = 1;
+}
+
+message SearchKeywordRequest {
+  KnowledgeRequestContext context = 1;
+  repeated string bank_ids = 2;
+  string query = 3;
+  int32 top_k = 4;
+  repeated string entity_type_filters = 5;
+  string slug_prefix = 6;
+}
+
+message SearchKeywordResponse {
+  repeated KnowledgeKeywordHit hits = 1;
+  ReasonCode reason_code = 2;
+}
+
+message SearchHybridRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string query = 3;
+  repeated string entity_type_filters = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message SearchHybridResponse {
+  repeated KnowledgeKeywordHit hits = 1;
+  string next_page_token = 2;
+  ReasonCode reason_code = 3;
+}
+
+message AddLinkRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string from_page_id = 3;
+  string to_page_id = 4;
+  string link_type = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message AddLinkResponse {
+  KnowledgeLink link = 1;
+}
+
+message RemoveLinkRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string link_id = 3;
+}
+
+message RemoveLinkResponse {
+  Ack ack = 1;
+}
+
+message ListLinksRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string from_page_id = 3;
+  repeated string link_type_filters = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message ListLinksResponse {
+  repeated KnowledgeGraphEdge links = 1;
+  string next_page_token = 2;
+}
+
+message ListBacklinksRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string to_page_id = 3;
+  repeated string link_type_filters = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+
+message ListBacklinksResponse {
+  repeated KnowledgeGraphEdge backlinks = 1;
+  string next_page_token = 2;
+}
+
+message TraverseGraphRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string root_page_id = 3;
+  repeated string link_type_filters = 4;
+  int32 max_depth = 5;
+  int32 page_size = 6;
+  string page_token = 7;
+}
+
+message TraverseGraphResponse {
+  repeated KnowledgeGraphNode nodes = 1;
+  string next_page_token = 2;
+}
+
+message IngestDocumentRequest {
+  KnowledgeRequestContext context = 1;
+  string bank_id = 2;
+  string page_id = 3;
+  string slug = 4;
+  string title = 5;
+  string content = 6;
+  string entity_type = 7;
+  google.protobuf.Struct metadata = 8;
+}
+
+message IngestDocumentResponse {
   string task_id = 1;
   bool accepted = 2;
   ReasonCode reason_code = 3;
 }
 
-message SearchIndexRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string index_id = 3;
-  string query = 4;
-  int32 top_k = 5;
-  google.protobuf.Struct filters = 6;
+message GetIngestTaskRequest {
+  KnowledgeRequestContext context = 1;
+  string task_id = 2;
 }
 
-message SearchHit {
-  string document_id = 1;
-  float score = 2;
-  string snippet = 3;
-  google.protobuf.Struct metadata = 4;
-}
-
-message SearchIndexResponse {
-  repeated SearchHit hits = 1;
-  ReasonCode reason_code = 2;
-}
-
-message DeleteIndexRequest {
-  string app_id = 1;
-  string subject_user_id = 2;
-  string index_id = 3;
+message GetIngestTaskResponse {
+  KnowledgeIngestTask task = 1;
 }
 
 service RuntimeKnowledgeService {
-  rpc BuildIndex(BuildIndexRequest) returns (BuildIndexResponse);
-  rpc SearchIndex(SearchIndexRequest) returns (SearchIndexResponse);
-  rpc DeleteIndex(DeleteIndexRequest) returns (Ack);
+  rpc CreateKnowledgeBank(CreateKnowledgeBankRequest) returns (CreateKnowledgeBankResponse);
+  rpc GetKnowledgeBank(GetKnowledgeBankRequest) returns (GetKnowledgeBankResponse);
+  rpc ListKnowledgeBanks(ListKnowledgeBanksRequest) returns (ListKnowledgeBanksResponse);
+  rpc DeleteKnowledgeBank(DeleteKnowledgeBankRequest) returns (DeleteKnowledgeBankResponse);
+  rpc PutPage(PutPageRequest) returns (PutPageResponse);
+  rpc GetPage(GetPageRequest) returns (GetPageResponse);
+  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
+  rpc DeletePage(DeletePageRequest) returns (DeletePageResponse);
+  rpc SearchKeyword(SearchKeywordRequest) returns (SearchKeywordResponse);
+  rpc SearchHybrid(SearchHybridRequest) returns (SearchHybridResponse);
+  rpc AddLink(AddLinkRequest) returns (AddLinkResponse);
+  rpc RemoveLink(RemoveLinkRequest) returns (RemoveLinkResponse);
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+  rpc ListBacklinks(ListBacklinksRequest) returns (ListBacklinksResponse);
+  rpc TraverseGraph(TraverseGraphRequest) returns (TraverseGraphResponse);
+  rpc IngestDocument(IngestDocumentRequest) returns (IngestDocumentResponse);
+  rpc GetIngestTask(GetIngestTaskRequest) returns (GetIngestTaskResponse);
 }

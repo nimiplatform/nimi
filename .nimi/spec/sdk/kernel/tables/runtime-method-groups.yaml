@@ -184,16 +184,37 @@ groups:
   - group: knowledge_service_projection
     service: RuntimeKnowledgeService
     phase: 2
-    status: deferred
+    status: active
     note: >
-      Runtime implementation complete (~300 LOC): in-memory vector index
-      per K-KNOW-005. Knowledge-base mod uses independent sqlite persistence.
-      Not consumed by Desktop UI. Deferred per pre-launch audit 2026-03-18.
+      Wave 1 runtime-local knowledge projection is admitted and landed.
+      Wave 2A extends the same projection with explicit hybrid retrieval while
+      keeping `SearchKeyword` stable and lexical-only. Wave 2B extends the
+      same projection with same-bank graph / backlink reads and writes.
+      Wave 2C extends the same projection with single-document async ingest
+      plus explicit task polling.
+      Consumer surfaces must not imply cross-service citation, AgentCore, or
+      shared-truth behavior.
+      SDK projection must stay aligned with runtime proto, reason-code, and
+      pagination semantics. Desktop product UI may still lag behind.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
-      - BuildIndex
-      - SearchIndex
-      - DeleteIndex
+      - CreateKnowledgeBank
+      - GetKnowledgeBank
+      - ListKnowledgeBanks
+      - DeleteKnowledgeBank
+      - PutPage
+      - GetPage
+      - ListPages
+      - DeletePage
+      - SearchKeyword
+      - SearchHybrid
+      - AddLink
+      - RemoveLink
+      - ListLinks
+      - ListBacklinks
+      - TraverseGraph
+      - IngestDocument
+      - GetIngestTask
     source_rule: S-SURFACE-002
   - group: app_service_projection
     service: RuntimeAppService

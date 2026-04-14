@@ -185,4 +185,4 @@ func ListTokenChainGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.L
 	return resp, nil
 }
 
-// BuildKnowledgeIndexGRPC calls RuntimeKnowledgeService.BuildIndex over gRPC.
+// Runtime grant gRPC wrappers are defined in this file; knowledge wrappers live in knowledge_client.go.

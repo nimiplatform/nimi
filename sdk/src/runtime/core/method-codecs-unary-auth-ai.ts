@@ -75,7 +75,7 @@ import {
 } from '../generated/runtime/v1/model';
 import type { RuntimeUnaryMethodCodecMap } from './method-codecs-types';
 
-export const runtimeUnaryMethodCodecsAuthAi = {
+export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap> = {
   [RuntimeMethodIds.auth.registerApp]: {
     requestType: RegisterAppRequest,
     responseType: RegisterAppResponse,

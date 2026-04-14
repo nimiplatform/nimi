@@ -2,86 +2,212 @@
 
 > Owner Domain: `K-KNOW-*`
 
-## K-KNOW-001 RuntimeKnowledgeService 方法集合
+## K-KNOW-001 RuntimeKnowledgeService Authority Home
 
-`RuntimeKnowledgeService` 方法固定为：
+`RuntimeKnowledgeService` is the runtime-owned authority for **runtime-local
+knowledge banks and knowledge pages** in Wave 1.
 
-1. `BuildIndex` — 构建向量索引
-2. `SearchIndex` — 搜索索引
-3. `DeleteIndex` — 删除索引
+Wave 1 owns:
 
-## K-KNOW-002 BuildIndex 语义
+- runtime-local knowledge bank lifecycle
+- runtime-local knowledge page lifecycle
+- keyword-based knowledge search
 
-构建向量索引请求：
+Wave 1 does not own:
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `app_id` | string | 是 | 应用标识 |
-| `subject_user_id` | string | 是 | 用户标识 |
-| `index_id` | string | 是 | 索引唯一 ID |
-| `source_kind` | string | 否 | 来源类型 |
-| `source_uris` | repeated string | 是 | 数据源 URI 列表 |
-| `embedding_model_id` | string | 否 | 嵌入模型 ID（未指定则使用默认） |
-| `overwrite` | bool | 否 | 是否覆盖已存在的索引 |
-| `options` | Struct | 否 | 引擎特定选项 |
+- Realm/shared knowledge truth
+- knowledge replication or sync backlog truth
+- canonical agent-facing knowledge policy
+- AgentCore prompt-assembly knowledge lanes
+- cross-service citation/relation truth
 
-返回 `task_id`（异步任务 ID）、`accepted`、`reason_code`。
+## K-KNOW-002 Wave 1 Bank Scope And Owner Boundary
 
-## K-KNOW-003 SearchIndex 语义
+Wave 1 public knowledge scopes are fixed to:
 
-搜索向量索引：
+- `APP_PRIVATE`
+- `WORKSPACE_PRIVATE`
 
-| 字段 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| `app_id` | string | 是 | 应用标识 |
-| `subject_user_id` | string | 是 | 用户标识 |
-| `index_id` | string | 是 | 索引 ID |
-| `query` | string | 是 | 查询文本 |
-| `top_k` | int32 | 否 | 返回前 K 个结果 |
-| `filters` | Struct | 否 | 结构化过滤条件 |
+Wave 1 public surface must reject:
 
-返回 `repeated SearchHit`：
+- `AGENT_CORE`
+- `AGENT_DYADIC`
+- `WORLD_SHARED`
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `document_id` | string | 文档 ID |
-| `score` | float | 相似度分数 |
-| `snippet` | string | 匹配片段 |
-| `metadata` | Struct | 文档元数据 |
+Fixed rules:
 
-## K-KNOW-004 DeleteIndex 语义
+- every knowledge page belongs to exactly one knowledge bank
+- every knowledge bank uses an admitted typed owner shape rather than free-form `scope + owner_id`
+- `APP_PRIVATE` knowledge banks are app-owned
+- `WORKSPACE_PRIVATE` knowledge banks are workspace-owned
+- illegal scope/owner combinations must fail close
+- page access inherits bank authorization; Wave 1 does not admit a separate page owner model
 
-删除指定索引。`app_id` + `subject_user_id` + `index_id` 唯一定位。返回 `Ack`。
+## K-KNOW-003 RuntimeKnowledgeService Public Surface
 
-## K-KNOW-005 索引生命周期
+`RuntimeKnowledgeService` admits the following public operations:
 
-- `BuildIndex` 为异步操作，返回 `task_id` 用于追踪。
-- 索引构建完成前对该 `index_id` 的搜索返回空结果。
-- 已存在同一 `app_id` + `subject_user_id` + `index_id` 且 `overwrite=false` 时，`BuildIndex` 必须返回 `ALREADY_EXISTS` + `KNOWLEDGE_INDEX_ALREADY_EXISTS`。
-- `overwrite=true` 时先删除旧索引再构建新索引。
-- 索引存储为 in-memory，runtime 重启后丢失。此为 Phase 2 有意的设计约束（见 K-KNOW-006 deferred decisions）。
-- in-memory Phase 1 实现必须对总活跃索引数设置硬上限，默认 `512` 个 index。达到上限后，新建索引必须以 `RESOURCE_EXHAUSTED` fail-close；已存在索引的 `overwrite=true` 不受该上限阻塞。
+1. `CreateKnowledgeBank`
+2. `GetKnowledgeBank`
+3. `ListKnowledgeBanks`
+4. `DeleteKnowledgeBank`
+5. `PutPage`
+6. `GetPage`
+7. `ListPages`
+8. `DeletePage`
+9. `SearchKeyword`
+10. `SearchHybrid`
+11. `AddLink`
+12. `RemoveLink`
+13. `ListLinks`
+14. `ListBacklinks`
+15. `TraverseGraph`
+16. `IngestDocument`
+17. `GetIngestTask`
+
+Fixed rules:
+
+- this Wave 1 local slice replaces the older design-first 3-method index draft as the admitted design authority
+- `CreateKnowledgeBank` / `DeleteKnowledgeBank` are admitted only for Wave 1 infra scopes
+- `PutPage` creates or updates one page inside one admitted bank
+- `DeletePage` is page-level delete; `DeleteKnowledgeBank` is bank-level delete
+- `ListKnowledgeBanks` and `ListPages` are paginated list surfaces
+- `SearchKeyword` remains the Wave 1 lexical / FTS-only surface
+- `SearchHybrid` is the only Wave 2A retrieval-expansion delta
+- Wave 2B admits only same-bank page-to-page graph / backlink surfaces
+- `AddLink` and `RemoveLink` operate on runtime-local page links inside one admitted bank
+- `ListLinks` returns outgoing links for one page inside one admitted bank
+- `ListBacklinks` returns incoming links for one page inside one admitted bank
+- `TraverseGraph` returns same-bank graph expansion from one root page and does not imply cross-bank or cross-service citation
+- Wave 2C admits only single-document async ingest plus explicit task polling
+- `IngestDocument` accepts one runtime-local document payload and returns one ingest task rather than synchronously returning a page write result
+- `GetIngestTask` is the only admitted Wave 2C progress surface; Wave 2C does not admit ingest event streams or batch task lists
+- public proto, runtime implementation, CLI, and SDK method projection must stay aligned to this admitted surface
+- legacy `BuildIndex` / `SearchIndex` / `DeleteIndex` names remain migration-only and must not be treated as stable public contract
+
+## K-KNOW-004 SearchKeyword Semantics
+
+`SearchKeyword` is lexical / FTS-only in Wave 1.
+
+Fixed rules:
+
+- Wave 1 keyword search does not require an embedding profile
+- Wave 1 does not admit vector search
+- Wave 1 does not admit hybrid search / RRF fusion
+- Wave 1 does not admit graph expansion
+- Wave 1 does not admit multi-query expansion
+- search results remain runtime-local knowledge hits; they do not imply AgentCore or canonical-memory admission
+
+## K-KNOW-004a SearchHybrid Semantics
+
+`SearchHybrid` is a runtime-local Wave 2A retrieval-expansion surface.
+
+Fixed rules:
+
+- combines lexical and vector-backed recall
+- may use fusion / dedup internally
+- does not imply graph expansion
+- does not imply AgentCore admission
+- does not imply shared truth
+- must fail close when hybrid retrieval capability is unavailable
+- must not silently downgrade to `SearchKeyword`
+
+## K-KNOW-004b Graph / Backlink Semantics
+
+`AddLink` / `RemoveLink` / `ListLinks` / `ListBacklinks` / `TraverseGraph` are a
+runtime-local Wave 2B same-bank graph expansion.
+
+Fixed rules:
+
+- links are directed page-to-page relations inside exactly one admitted bank
+- public graph surfaces must reject cross-bank and cross-service relation truth
+- page existence and bank authorization must be validated before graph reads or writes
+- `link_type` is caller-provided but non-empty; runtime does not admit a blank relation type
+- duplicate same-bank relations with the same `from_page_id + to_page_id + link_type` must fail close
+- self-links must fail close
+- `ListLinks` and `ListBacklinks` are paginated read surfaces
+- `TraverseGraph` is a paginated breadth-first graph read surface
+- `TraverseGraph` depth must be explicit and bounded; invalid depth must fail close
+- graph hits remain runtime-local knowledge projections; they do not imply citation redesign, canonical truth, or AgentCore admission
+
+## K-KNOW-004c Ingest / Progress Semantics
+
+`IngestDocument` / `GetIngestTask` are a runtime-local Wave 2C async ingest
+surface.
+
+Fixed rules:
+
+- Wave 2C admits only single-document ingest; it does not admit multi-document batch ingest
+- `IngestDocument` must validate bank existence and bank authorization before accepting a task
+- `IngestDocument` must fail close on invalid envelopes; it must not silently coerce missing `bank_id`, `slug`, or `content`
+- accepted ingest work is represented as a runtime-local knowledge ingest task with explicit status and `progress_percent`
+- `GetIngestTask` must return task state by explicit `task_id`; missing task ids must fail close
+- ingest task completion may create or update one page inside one admitted bank
+- Wave 2C ingest does not admit timeline/version/revert semantics
+- Wave 2C ingest does not admit cross-bank ingest, cross-service citation, shared truth, or AgentCore admission
+- Wave 2C progress is poll-based; it does not imply workflow-service reuse or server-stream task events
+
+## K-KNOW-005 Supporting Requirements
+
+Supporting contract requirements are fixed:
+
+- bank/page authorization is bank-scoped and must fail close
+- `ListKnowledgeBanks` and `ListPages` must use admitted pagination semantics from `K-PAGE-*`
+- admitted write paths must emit audit events under `K-AUDIT-*`
+- admitted Wave 1 failures must map to explicit knowledge reason codes
+- `SearchHybrid` pagination semantics and unavailable states must be explicit
+- Wave 2B graph reads must use explicit pagination semantics
+- Wave 2B graph writes must remain same-bank only and auditable
+- Wave 2C ingest task reads and writes must remain runtime-local, explicit, and auditable
+- if page writes affect durable hybrid retrieval readiness, the resulting indexing-side-effect posture must be explicit and auditable
+
+Minimum Wave 1 audited writes:
+
+- `CreateKnowledgeBank`
+- `DeleteKnowledgeBank`
+- `PutPage`
+- `DeletePage`
+- `AddLink`
+- `RemoveLink`
+- `IngestDocument`
+
+Minimum Wave 1 paginated reads:
+
+- `ListKnowledgeBanks`
+- `ListPages`
+- `ListLinks`
+- `ListBacklinks`
+- `TraverseGraph`
 
 ## K-KNOW-005a 消费契约状态
 
 KnowledgeService 的跨域消费契约状态：
 
-| 消费层 | 当前状态 | Phase 2 启动前必须 |
+| 消费层 | 当前状态 | Wave 1 启动前必须 |
 |---|---|---|
-| **SDK 方法投影** | Phase 2 deferred | 创建 SDK 方法投影（BuildIndex、SearchIndex、DeleteIndex），定义 gRPC→SDK 参数映射和错误投影 |
-| **Desktop UI Spec** | 完全缺失 | 创建 Knowledge UI spec，至少定义：(1) 索引构建触发 UI（K-KNOW-002 参数收集）；(2) 构建中不确定进度指示（K-KNOW-006 deferred：无进度回调）；(3) 搜索结果展示（K-KNOW-003 SearchHit 映射）；(4) 重启后索引丢失的用户告知（K-KNOW-006 deferred：in-memory only） |
-| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 使用 Desktop host per-mod sqlite 持久化向量与会话状态，并在浏览器侧保留 in-memory cosine similarity 检索，不依赖 RuntimeKnowledgeService。当 K-KNOW Phase 2 持久化+真向量搜索就绪后，评估迁移。详见 `nimi-mods/runtime/knowledge-base/SSOT.md` |
+| **SDK 方法投影** | admitted / landed | 保持 Wave 1 SDK 方法投影与 runtime proto / reason-code / pagination 语义对齐 |
+| **Desktop UI Spec** | admitted / landed | 保持 Knowledge Wave 1 UI spec 与 Runtime-path authz / unavailable / pagination / method surface 对齐 |
+| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeKnowledgeService；Wave 1 不要求该 mod 迁移，只要求不再把旧 index-only draft当作 Runtime 稳定目标 |
 
-> **设计完整性注意**：K-KNOW-001~005 定义了完整的索引操作模型，但 SDK 和 Desktop 均无消费契约。Runtime 实现完成后，功能不可交付直到消费层就绪。knowledge-base mod 当前独立实现向量持久化（Desktop host sqlite），不消费 RuntimeKnowledgeService。
+> **设计完整性注意**：当前 admitted knowledge slice 只定义 runtime-local infra-scoped ownership；AgentCore integration、shared truth、cross-service citation redesign 仍未交付。Runtime、CLI、SDK、Desktop UI spec 已就绪，但 Desktop/Forge 产品消费实现仍属于后续交付。
+>
+> **Wave 2A 注意**：`SearchHybrid` 只扩 retrieval surface；它不改变 Wave 1 bank/page ownership、也不引入 graph、AgentCore、shared truth 或 citation admission。
+>
+> **Wave 2B 注意**：graph/backlink 只扩同 bank page-to-page runtime-local relations；它不引入 cross-bank relation truth、cross-service citation、shared truth 或 AgentCore knowledge lane。
+>
+> **Wave 2C 注意**：ingest/progress 只扩 runtime-local single-document async ingest 与 task polling；它不引入 batch ingest、timeline/version、workflow-service ownership、shared truth 或 AgentCore admission。
 
-## K-KNOW-006 Deferred Decisions
+## K-KNOW-006 Explicit Deferrals
 
-以下决策在 Phase 2 Draft 阶段有意推迟，实现期允许修正：
+Current admitted surface之外，以下内容仍明确 deferred：
 
-| 决策 | 当前状态 | 推迟原因 | 消费方影响 |
-|---|---|---|---|
-| **持久化策略** | in-memory only（K-KNOW-005），重启丢失 | 需评估嵌入模型规模与磁盘 I/O 成本后决定持久化格式（SQLite/mmap/文件系统） | **Desktop UI 必须向用户明确告知"索引在重启后丢失"**。SDK 消费方必须处理重启后 SearchIndex 返回空结果的场景（不应视为错误） |
-| **索引更新策略** | 仅支持全量覆盖（`overwrite=true`） | 增量更新需定义文档变更检测机制与部分重建协议 | Desktop 必须在 UI 中提示"更新索引将替换全部内容" |
-| **BuildIndex 进度上报** | 仅返回 `task_id`，无进度回调。**当前无追踪 RPC**：task_id 既非 ScenarioJob（无 SubscribeScenarioJobEvents 可用）也非 Workflow task（无 SubscribeWorkflowEvents 可用），且无 `GetIndexBuildStatus` 或 `SubscribeKnowledgeEvents` RPC | 需与 Workflow 事件流（K-WF-*）集成后统一设计。候选方案：(1) 纳入 Workflow 体系作为 INLINE 节点；(2) 新增 `GetBuildStatus(task_id)` 轮询 RPC；(3) 新增 `SubscribeKnowledgeEvents` 流 | Desktop/SDK 无法显示索引构建进度，只能显示"构建中"不确定进度指示。完成检测的临时方案：轮询 `SearchIndex` 判断是否返回非空结果 |
-| **SearchIndex 分页** | 无分页，`top_k` 限制返回数量 | 向量搜索的分页语义（score-based cursor）与标准 page_token 不同，需专门设计 | — |
-| **多索引联合搜索** | 不支持 | 需定义跨索引 score 归一化与合并策略 | — |
+- shared-truth / Realm replication
+- `AGENT_CORE` / `AGENT_DYADIC` / `WORLD_SHARED`
+- AgentCore `QueryAgentMemory` knowledge expansion
+- `Layer 1K`
+- consolidation / dream cycle
+- public reindex / ingest admin surface
+- richer ingest admin / batch progress protocol
+- timeline management
+- version history / revert
+- relation-based memory-to-knowledge citation redesign

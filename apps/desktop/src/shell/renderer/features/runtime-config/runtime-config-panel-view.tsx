@@ -12,6 +12,7 @@ import { LocalPage } from './runtime-config-page-local';
 import { CloudPage } from './runtime-config-page-cloud';
 import { CatalogPage } from './runtime-config-page-catalog';
 import { RuntimePage } from './runtime-config-page-runtime';
+import { KnowledgePage } from './runtime-config-page-knowledge';
 import { ModsPage } from './runtime-config-page-mods';
 import { ProfileCatalogPage } from './runtime-config-page-profiles';
 import { DataManagementPage } from '../settings/settings-data-management-page';
@@ -236,6 +237,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               {activePage === 'runtime' && (
                 <div data-testid={E2E_IDS.runtimePageRoot('runtime')}>
                   <RuntimePage model={model} state={state} />
+                </div>
+              )}
+              {activePage === 'knowledge' && (
+                <div data-testid={E2E_IDS.runtimePageRoot('knowledge')}>
+                  <KnowledgePage model={model} />
                 </div>
               )}
               {activePage === 'profiles' && (

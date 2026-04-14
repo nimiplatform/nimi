@@ -49,6 +49,11 @@ export {
   GetRuntimeHealthResponse,
 } from './generated/runtime/v1/audit.js';
 export {
+  KnowledgeBankScope,
+  KnowledgeIngestTaskStatus,
+} from './generated/runtime/v1/knowledge.js';
+export type * from './generated/runtime/v1/knowledge.js';
+export {
   MemoryBankScope,
   MemoryCanonicalClass,
   MemoryDistanceMetric,

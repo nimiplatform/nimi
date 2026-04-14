@@ -29,6 +29,20 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 		return runtimev1.ReasonCode_ACTION_EXECUTED, false
 	}
 
+	type ackResponse interface {
+		GetAck() *runtimev1.Ack
+	}
+	type reasonCodeResponse interface {
+		GetReasonCode() runtimev1.ReasonCode
+	}
+
+	if item, ok := resp.(ackResponse); ok && item.GetAck() != nil {
+		return item.GetAck().GetReasonCode(), true
+	}
+	if item, ok := resp.(reasonCodeResponse); ok {
+		return item.GetReasonCode(), true
+	}
+
 	switch value := resp.(type) {
 	case *runtimev1.Ack:
 		return value.GetReasonCode(), true
@@ -39,10 +53,6 @@ func inferReasonCodeFromResponse(resp any) (runtimev1.ReasonCode, bool) {
 	case *runtimev1.PullModelResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.CheckModelHealthResponse:
-		return value.GetReasonCode(), true
-	case *runtimev1.BuildIndexResponse:
-		return value.GetReasonCode(), true
-	case *runtimev1.SearchIndexResponse:
 		return value.GetReasonCode(), true
 	case *runtimev1.ValidateAppAccessTokenResponse:
 		return value.GetReasonCode(), true

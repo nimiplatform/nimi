@@ -2,7 +2,6 @@
 // @generated from protobuf file "runtime/v1/knowledge.proto" (package "nimi.runtime.v1", syntax proto3)
 // tslint:disable
 // @ts-nocheck
-import { Ack } from "./common";
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import type { BinaryWriteOptions } from "@protobuf-ts/runtime";
 import type { IBinaryWriter } from "@protobuf-ts/runtime";
@@ -13,12 +12,14 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { Ack } from "./common";
 import { ReasonCode } from "./common";
+import { Timestamp } from "../../google/protobuf/timestamp";
 import { Struct } from "../../google/protobuf/struct";
 /**
- * @generated from protobuf message nimi.runtime.v1.BuildIndexRequest
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeRequestContext
  */
-export interface BuildIndexRequest {
+export interface KnowledgeRequestContext {
     /**
      * @generated from protobuf field: string app_id = 1
      */
@@ -27,35 +28,956 @@ export interface BuildIndexRequest {
      * @generated from protobuf field: string subject_user_id = 2
      */
     subjectUserId: string;
-    /**
-     * @generated from protobuf field: string index_id = 3
-     */
-    indexId: string;
-    /**
-     * @generated from protobuf field: string source_kind = 4
-     */
-    sourceKind: string;
-    /**
-     * @generated from protobuf field: repeated string source_uris = 5
-     */
-    sourceUris: string[];
-    /**
-     * @generated from protobuf field: string embedding_model_id = 6
-     */
-    embeddingModelId: string;
-    /**
-     * @generated from protobuf field: bool overwrite = 7
-     */
-    overwrite: boolean;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct options = 8
-     */
-    options?: Struct;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.BuildIndexResponse
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeAppPrivateOwner
  */
-export interface BuildIndexResponse {
+export interface KnowledgeAppPrivateOwner {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+ */
+export interface KnowledgeWorkspacePrivateOwner {
+    /**
+     * @generated from protobuf field: string workspace_id = 1
+     */
+    workspaceId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeBankLocator
+ */
+export interface KnowledgeBankLocator {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBankScope scope = 1
+     */
+    scope: KnowledgeBankScope;
+    /**
+     * @generated from protobuf oneof: owner
+     */
+    owner: {
+        oneofKind: "appPrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 2
+         */
+        appPrivate: KnowledgeAppPrivateOwner;
+    } | {
+        oneofKind: "workspacePrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 3
+         */
+        workspacePrivate: KnowledgeWorkspacePrivateOwner;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PublicKnowledgeBankLocator
+ */
+export interface PublicKnowledgeBankLocator {
+    /**
+     * @generated from protobuf oneof: locator
+     */
+    locator: {
+        oneofKind: "appPrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 1
+         */
+        appPrivate: KnowledgeAppPrivateOwner;
+    } | {
+        oneofKind: "workspacePrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 2
+         */
+        workspacePrivate: KnowledgeWorkspacePrivateOwner;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeBankOwnerFilter
+ */
+export interface KnowledgeBankOwnerFilter {
+    /**
+     * @generated from protobuf oneof: owner
+     */
+    owner: {
+        oneofKind: "appPrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 1
+         */
+        appPrivate: KnowledgeAppPrivateOwner;
+    } | {
+        oneofKind: "workspacePrivate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 2
+         */
+        workspacePrivate: KnowledgeWorkspacePrivateOwner;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeBank
+ */
+export interface KnowledgeBank {
+    /**
+     * @generated from protobuf field: string bank_id = 1
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBankLocator locator = 2
+     */
+    locator?: KnowledgeBankLocator;
+    /**
+     * @generated from protobuf field: string display_name = 3
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 4
+     */
+    metadata?: Struct;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 5
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 6
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgePage
+ */
+export interface KnowledgePage {
+    /**
+     * @generated from protobuf field: string page_id = 1
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string slug = 3
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 4
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string content = 5
+     */
+    content: string;
+    /**
+     * @generated from protobuf field: string entity_type = 6
+     */
+    entityType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 7
+     */
+    metadata?: Struct;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 8
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 9
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeKeywordHit
+ */
+export interface KnowledgeKeywordHit {
+    /**
+     * @generated from protobuf field: string bank_id = 1
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string page_id = 2
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string slug = 3
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 4
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string snippet = 5
+     */
+    snippet: string;
+    /**
+     * @generated from protobuf field: float score = 6
+     */
+    score: number;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 7
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeLink
+ */
+export interface KnowledgeLink {
+    /**
+     * @generated from protobuf field: string link_id = 1
+     */
+    linkId: string;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string from_page_id = 3
+     */
+    fromPageId: string;
+    /**
+     * @generated from protobuf field: string to_page_id = 4
+     */
+    toPageId: string;
+    /**
+     * @generated from protobuf field: string link_type = 5
+     */
+    linkType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 6
+     */
+    metadata?: Struct;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 7
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 8
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeGraphEdge
+ */
+export interface KnowledgeGraphEdge {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeLink link = 1
+     */
+    link?: KnowledgeLink;
+    /**
+     * @generated from protobuf field: string from_slug = 2
+     */
+    fromSlug: string;
+    /**
+     * @generated from protobuf field: string from_title = 3
+     */
+    fromTitle: string;
+    /**
+     * @generated from protobuf field: string from_entity_type = 4
+     */
+    fromEntityType: string;
+    /**
+     * @generated from protobuf field: string to_slug = 5
+     */
+    toSlug: string;
+    /**
+     * @generated from protobuf field: string to_title = 6
+     */
+    toTitle: string;
+    /**
+     * @generated from protobuf field: string to_entity_type = 7
+     */
+    toEntityType: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeGraphNode
+ */
+export interface KnowledgeGraphNode {
+    /**
+     * @generated from protobuf field: string bank_id = 1
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string page_id = 2
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string slug = 3
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 4
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string entity_type = 5
+     */
+    entityType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 6
+     */
+    metadata?: Struct;
+    /**
+     * @generated from protobuf field: int32 depth = 7
+     */
+    depth: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.KnowledgeIngestTask
+ */
+export interface KnowledgeIngestTask {
+    /**
+     * @generated from protobuf field: string task_id = 1
+     */
+    taskId: string;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string page_id = 3
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string slug = 4
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 5
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeIngestTaskStatus status = 6
+     */
+    status: KnowledgeIngestTaskStatus;
+    /**
+     * @generated from protobuf field: int32 progress_percent = 7
+     */
+    progressPercent: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 8
+     */
+    reasonCode: ReasonCode;
+    /**
+     * @generated from protobuf field: string action_hint = 9
+     */
+    actionHint: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 10
+     */
+    createdAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 11
+     */
+    updatedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CreateKnowledgeBankRequest
+ */
+export interface CreateKnowledgeBankRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.PublicKnowledgeBankLocator locator = 2
+     */
+    locator?: PublicKnowledgeBankLocator;
+    /**
+     * @generated from protobuf field: string display_name = 3
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 4
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CreateKnowledgeBankResponse
+ */
+export interface CreateKnowledgeBankResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBank bank = 1
+     */
+    bank?: KnowledgeBank;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetKnowledgeBankRequest
+ */
+export interface GetKnowledgeBankRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetKnowledgeBankResponse
+ */
+export interface GetKnowledgeBankResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeBank bank = 1
+     */
+    bank?: KnowledgeBank;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListKnowledgeBanksRequest
+ */
+export interface ListKnowledgeBanksRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeBankScope scope_filters = 2
+     */
+    scopeFilters: KnowledgeBankScope[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters = 3
+     */
+    ownerFilters: KnowledgeBankOwnerFilter[];
+    /**
+     * @generated from protobuf field: int32 page_size = 4
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 5
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListKnowledgeBanksResponse
+ */
+export interface ListKnowledgeBanksResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeBank banks = 1
+     */
+    banks: KnowledgeBank[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteKnowledgeBankRequest
+ */
+export interface DeleteKnowledgeBankRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeleteKnowledgeBankResponse
+ */
+export interface DeleteKnowledgeBankResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PutPageRequest
+ */
+export interface PutPageRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string page_id = 3
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string slug = 4
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 5
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string content = 6
+     */
+    content: string;
+    /**
+     * @generated from protobuf field: string entity_type = 7
+     */
+    entityType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 8
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PutPageResponse
+ */
+export interface PutPageResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgePage page = 1
+     */
+    page?: KnowledgePage;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetPageRequest
+ */
+export interface GetPageRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf oneof: lookup
+     */
+    lookup: {
+        oneofKind: "pageId";
+        /**
+         * @generated from protobuf field: string page_id = 3
+         */
+        pageId: string;
+    } | {
+        oneofKind: "slug";
+        /**
+         * @generated from protobuf field: string slug = 4
+         */
+        slug: string;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetPageResponse
+ */
+export interface GetPageResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgePage page = 1
+     */
+    page?: KnowledgePage;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListPagesRequest
+ */
+export interface ListPagesRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: repeated string entity_type_filters = 3
+     */
+    entityTypeFilters: string[];
+    /**
+     * @generated from protobuf field: string slug_prefix = 4
+     */
+    slugPrefix: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 5
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 6
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListPagesResponse
+ */
+export interface ListPagesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgePage pages = 1
+     */
+    pages: KnowledgePage[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeletePageRequest
+ */
+export interface DeletePageRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf oneof: lookup
+     */
+    lookup: {
+        oneofKind: "pageId";
+        /**
+         * @generated from protobuf field: string page_id = 3
+         */
+        pageId: string;
+    } | {
+        oneofKind: "slug";
+        /**
+         * @generated from protobuf field: string slug = 4
+         */
+        slug: string;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DeletePageResponse
+ */
+export interface DeletePageResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SearchKeywordRequest
+ */
+export interface SearchKeywordRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: repeated string bank_ids = 2
+     */
+    bankIds: string[];
+    /**
+     * @generated from protobuf field: string query = 3
+     */
+    query: string;
+    /**
+     * @generated from protobuf field: int32 top_k = 4
+     */
+    topK: number;
+    /**
+     * @generated from protobuf field: repeated string entity_type_filters = 5
+     */
+    entityTypeFilters: string[];
+    /**
+     * @generated from protobuf field: string slug_prefix = 6
+     */
+    slugPrefix: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SearchKeywordResponse
+ */
+export interface SearchKeywordResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeKeywordHit hits = 1
+     */
+    hits: KnowledgeKeywordHit[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SearchHybridRequest
+ */
+export interface SearchHybridRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string query = 3
+     */
+    query: string;
+    /**
+     * @generated from protobuf field: repeated string entity_type_filters = 4
+     */
+    entityTypeFilters: string[];
+    /**
+     * @generated from protobuf field: int32 page_size = 5
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 6
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.SearchHybridResponse
+ */
+export interface SearchHybridResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeKeywordHit hits = 1
+     */
+    hits: KnowledgeKeywordHit[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 3
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AddLinkRequest
+ */
+export interface AddLinkRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string from_page_id = 3
+     */
+    fromPageId: string;
+    /**
+     * @generated from protobuf field: string to_page_id = 4
+     */
+    toPageId: string;
+    /**
+     * @generated from protobuf field: string link_type = 5
+     */
+    linkType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 6
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AddLinkResponse
+ */
+export interface AddLinkResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeLink link = 1
+     */
+    link?: KnowledgeLink;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLinkRequest
+ */
+export interface RemoveLinkRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string link_id = 3
+     */
+    linkId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RemoveLinkResponse
+ */
+export interface RemoveLinkResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.Ack ack = 1
+     */
+    ack?: Ack;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLinksRequest
+ */
+export interface ListLinksRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string from_page_id = 3
+     */
+    fromPageId: string;
+    /**
+     * @generated from protobuf field: repeated string link_type_filters = 4
+     */
+    linkTypeFilters: string[];
+    /**
+     * @generated from protobuf field: int32 page_size = 5
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 6
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLinksResponse
+ */
+export interface ListLinksResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeGraphEdge links = 1
+     */
+    links: KnowledgeGraphEdge[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListBacklinksRequest
+ */
+export interface ListBacklinksRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string to_page_id = 3
+     */
+    toPageId: string;
+    /**
+     * @generated from protobuf field: repeated string link_type_filters = 4
+     */
+    linkTypeFilters: string[];
+    /**
+     * @generated from protobuf field: int32 page_size = 5
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 6
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListBacklinksResponse
+ */
+export interface ListBacklinksResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeGraphEdge backlinks = 1
+     */
+    backlinks: KnowledgeGraphEdge[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TraverseGraphRequest
+ */
+export interface TraverseGraphRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string root_page_id = 3
+     */
+    rootPageId: string;
+    /**
+     * @generated from protobuf field: repeated string link_type_filters = 4
+     */
+    linkTypeFilters: string[];
+    /**
+     * @generated from protobuf field: int32 max_depth = 5
+     */
+    maxDepth: number;
+    /**
+     * @generated from protobuf field: int32 page_size = 6
+     */
+    pageSize: number;
+    /**
+     * @generated from protobuf field: string page_token = 7
+     */
+    pageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TraverseGraphResponse
+ */
+export interface TraverseGraphResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.KnowledgeGraphNode nodes = 1
+     */
+    nodes: KnowledgeGraphNode[];
+    /**
+     * @generated from protobuf field: string next_page_token = 2
+     */
+    nextPageToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IngestDocumentRequest
+ */
+export interface IngestDocumentRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
+     */
+    context?: KnowledgeRequestContext;
+    /**
+     * @generated from protobuf field: string bank_id = 2
+     */
+    bankId: string;
+    /**
+     * @generated from protobuf field: string page_id = 3
+     */
+    pageId: string;
+    /**
+     * @generated from protobuf field: string slug = 4
+     */
+    slug: string;
+    /**
+     * @generated from protobuf field: string title = 5
+     */
+    title: string;
+    /**
+     * @generated from protobuf field: string content = 6
+     */
+    content: string;
+    /**
+     * @generated from protobuf field: string entity_type = 7
+     */
+    entityType: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Struct metadata = 8
+     */
+    metadata?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.IngestDocumentResponse
+ */
+export interface IngestDocumentResponse {
     /**
      * @generated from protobuf field: string task_id = 1
      */
@@ -70,113 +992,86 @@ export interface BuildIndexResponse {
     reasonCode: ReasonCode;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SearchIndexRequest
+ * @generated from protobuf message nimi.runtime.v1.GetIngestTaskRequest
  */
-export interface SearchIndexRequest {
+export interface GetIngestTaskRequest {
     /**
-     * @generated from protobuf field: string app_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeRequestContext context = 1
      */
-    appId: string;
+    context?: KnowledgeRequestContext;
     /**
-     * @generated from protobuf field: string subject_user_id = 2
+     * @generated from protobuf field: string task_id = 2
      */
-    subjectUserId: string;
-    /**
-     * @generated from protobuf field: string index_id = 3
-     */
-    indexId: string;
-    /**
-     * @generated from protobuf field: string query = 4
-     */
-    query: string;
-    /**
-     * @generated from protobuf field: int32 top_k = 5
-     */
-    topK: number;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct filters = 6
-     */
-    filters?: Struct;
+    taskId: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SearchHit
+ * @generated from protobuf message nimi.runtime.v1.GetIngestTaskResponse
  */
-export interface SearchHit {
+export interface GetIngestTaskResponse {
     /**
-     * @generated from protobuf field: string document_id = 1
+     * @generated from protobuf field: nimi.runtime.v1.KnowledgeIngestTask task = 1
      */
-    documentId: string;
-    /**
-     * @generated from protobuf field: float score = 2
-     */
-    score: number;
-    /**
-     * @generated from protobuf field: string snippet = 3
-     */
-    snippet: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct metadata = 4
-     */
-    metadata?: Struct;
+    task?: KnowledgeIngestTask;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SearchIndexResponse
+ * @generated from protobuf enum nimi.runtime.v1.KnowledgeBankScope
  */
-export interface SearchIndexResponse {
+export enum KnowledgeBankScope {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.SearchHit hits = 1
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_SCOPE_UNSPECIFIED = 0;
      */
-    hits: SearchHit[];
+    UNSPECIFIED = 0,
     /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_SCOPE_APP_PRIVATE = 1;
      */
-    reasonCode: ReasonCode;
+    APP_PRIVATE = 1,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE = 2;
+     */
+    WORKSPACE_PRIVATE = 2
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.DeleteIndexRequest
+ * @generated from protobuf enum nimi.runtime.v1.KnowledgeIngestTaskStatus
  */
-export interface DeleteIndexRequest {
+export enum KnowledgeIngestTaskStatus {
     /**
-     * @generated from protobuf field: string app_id = 1
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_STATUS_UNSPECIFIED = 0;
      */
-    appId: string;
+    UNSPECIFIED = 0,
     /**
-     * @generated from protobuf field: string subject_user_id = 2
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_STATUS_QUEUED = 1;
      */
-    subjectUserId: string;
+    QUEUED = 1,
     /**
-     * @generated from protobuf field: string index_id = 3
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_STATUS_RUNNING = 2;
      */
-    indexId: string;
+    RUNNING = 2,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_STATUS_COMPLETED = 3;
+     */
+    COMPLETED = 3,
+    /**
+     * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_STATUS_FAILED = 4;
+     */
+    FAILED = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class BuildIndexRequest$Type extends MessageType<BuildIndexRequest> {
+class KnowledgeRequestContext$Type extends MessageType<KnowledgeRequestContext> {
     constructor() {
-        super("nimi.runtime.v1.BuildIndexRequest", [
+        super("nimi.runtime.v1.KnowledgeRequestContext", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "index_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "source_uris", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "embedding_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "overwrite", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "options", kind: "message", T: () => Struct }
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<BuildIndexRequest>): BuildIndexRequest {
+    create(value?: PartialMessage<KnowledgeRequestContext>): KnowledgeRequestContext {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.appId = "";
         message.subjectUserId = "";
-        message.indexId = "";
-        message.sourceKind = "";
-        message.sourceUris = [];
-        message.embeddingModelId = "";
-        message.overwrite = false;
         if (value !== undefined)
-            reflectionMergePartial<BuildIndexRequest>(this, message, value);
+            reflectionMergePartial<KnowledgeRequestContext>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BuildIndexRequest): BuildIndexRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeRequestContext): KnowledgeRequestContext {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -186,24 +1081,6 @@ class BuildIndexRequest$Type extends MessageType<BuildIndexRequest> {
                     break;
                 case /* string subject_user_id */ 2:
                     message.subjectUserId = reader.string();
-                    break;
-                case /* string index_id */ 3:
-                    message.indexId = reader.string();
-                    break;
-                case /* string source_kind */ 4:
-                    message.sourceKind = reader.string();
-                    break;
-                case /* repeated string source_uris */ 5:
-                    message.sourceUris.push(reader.string());
-                    break;
-                case /* string embedding_model_id */ 6:
-                    message.embeddingModelId = reader.string();
-                    break;
-                case /* bool overwrite */ 7:
-                    message.overwrite = reader.bool();
-                    break;
-                case /* google.protobuf.Struct options */ 8:
-                    message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -216,31 +1093,13 @@ class BuildIndexRequest$Type extends MessageType<BuildIndexRequest> {
         }
         return message;
     }
-    internalBinaryWrite(message: BuildIndexRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: KnowledgeRequestContext, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string app_id = 1; */
         if (message.appId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.appId);
         /* string subject_user_id = 2; */
         if (message.subjectUserId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
-        /* string index_id = 3; */
-        if (message.indexId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.indexId);
-        /* string source_kind = 4; */
-        if (message.sourceKind !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.sourceKind);
-        /* repeated string source_uris = 5; */
-        for (let i = 0; i < message.sourceUris.length; i++)
-            writer.tag(5, WireType.LengthDelimited).string(message.sourceUris[i]);
-        /* string embedding_model_id = 6; */
-        if (message.embeddingModelId !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.embeddingModelId);
-        /* bool overwrite = 7; */
-        if (message.overwrite !== false)
-            writer.tag(7, WireType.Varint).bool(message.overwrite);
-        /* google.protobuf.Struct options = 8; */
-        if (message.options)
-            Struct.internalBinaryWrite(message.options, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -248,28 +1107,3054 @@ class BuildIndexRequest$Type extends MessageType<BuildIndexRequest> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.BuildIndexRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeRequestContext
  */
-export const BuildIndexRequest = new BuildIndexRequest$Type();
+export const KnowledgeRequestContext = new KnowledgeRequestContext$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class BuildIndexResponse$Type extends MessageType<BuildIndexResponse> {
+class KnowledgeAppPrivateOwner$Type extends MessageType<KnowledgeAppPrivateOwner> {
     constructor() {
-        super("nimi.runtime.v1.BuildIndexResponse", [
+        super("nimi.runtime.v1.KnowledgeAppPrivateOwner", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeAppPrivateOwner>): KnowledgeAppPrivateOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeAppPrivateOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeAppPrivateOwner): KnowledgeAppPrivateOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeAppPrivateOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeAppPrivateOwner
+ */
+export const KnowledgeAppPrivateOwner = new KnowledgeAppPrivateOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeWorkspacePrivateOwner$Type extends MessageType<KnowledgeWorkspacePrivateOwner> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeWorkspacePrivateOwner", [
+            { no: 1, name: "workspace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeWorkspacePrivateOwner>): KnowledgeWorkspacePrivateOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.workspaceId = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeWorkspacePrivateOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeWorkspacePrivateOwner): KnowledgeWorkspacePrivateOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string workspace_id */ 1:
+                    message.workspaceId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeWorkspacePrivateOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string workspace_id = 1; */
+        if (message.workspaceId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.workspaceId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+ */
+export const KnowledgeWorkspacePrivateOwner = new KnowledgeWorkspacePrivateOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeBankLocator$Type extends MessageType<KnowledgeBankLocator> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeBankLocator", [
+            { no: 1, name: "scope", kind: "enum", T: () => ["nimi.runtime.v1.KnowledgeBankScope", KnowledgeBankScope, "KNOWLEDGE_BANK_SCOPE_"] },
+            { no: 2, name: "app_private", kind: "message", oneof: "owner", T: () => KnowledgeAppPrivateOwner },
+            { no: 3, name: "workspace_private", kind: "message", oneof: "owner", T: () => KnowledgeWorkspacePrivateOwner }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeBankLocator>): KnowledgeBankLocator {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.scope = 0;
+        message.owner = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeBankLocator>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeBankLocator): KnowledgeBankLocator {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeBankScope scope */ 1:
+                    message.scope = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private */ 2:
+                    message.owner = {
+                        oneofKind: "appPrivate",
+                        appPrivate: KnowledgeAppPrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).appPrivate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private */ 3:
+                    message.owner = {
+                        oneofKind: "workspacePrivate",
+                        workspacePrivate: KnowledgeWorkspacePrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).workspacePrivate)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeBankLocator, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeBankScope scope = 1; */
+        if (message.scope !== 0)
+            writer.tag(1, WireType.Varint).int32(message.scope);
+        /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 2; */
+        if (message.owner.oneofKind === "appPrivate")
+            KnowledgeAppPrivateOwner.internalBinaryWrite(message.owner.appPrivate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 3; */
+        if (message.owner.oneofKind === "workspacePrivate")
+            KnowledgeWorkspacePrivateOwner.internalBinaryWrite(message.owner.workspacePrivate, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeBankLocator
+ */
+export const KnowledgeBankLocator = new KnowledgeBankLocator$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PublicKnowledgeBankLocator$Type extends MessageType<PublicKnowledgeBankLocator> {
+    constructor() {
+        super("nimi.runtime.v1.PublicKnowledgeBankLocator", [
+            { no: 1, name: "app_private", kind: "message", oneof: "locator", T: () => KnowledgeAppPrivateOwner },
+            { no: 2, name: "workspace_private", kind: "message", oneof: "locator", T: () => KnowledgeWorkspacePrivateOwner }
+        ]);
+    }
+    create(value?: PartialMessage<PublicKnowledgeBankLocator>): PublicKnowledgeBankLocator {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.locator = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<PublicKnowledgeBankLocator>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PublicKnowledgeBankLocator): PublicKnowledgeBankLocator {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private */ 1:
+                    message.locator = {
+                        oneofKind: "appPrivate",
+                        appPrivate: KnowledgeAppPrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.locator as any).appPrivate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private */ 2:
+                    message.locator = {
+                        oneofKind: "workspacePrivate",
+                        workspacePrivate: KnowledgeWorkspacePrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.locator as any).workspacePrivate)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PublicKnowledgeBankLocator, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 1; */
+        if (message.locator.oneofKind === "appPrivate")
+            KnowledgeAppPrivateOwner.internalBinaryWrite(message.locator.appPrivate, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 2; */
+        if (message.locator.oneofKind === "workspacePrivate")
+            KnowledgeWorkspacePrivateOwner.internalBinaryWrite(message.locator.workspacePrivate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PublicKnowledgeBankLocator
+ */
+export const PublicKnowledgeBankLocator = new PublicKnowledgeBankLocator$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeBankOwnerFilter$Type extends MessageType<KnowledgeBankOwnerFilter> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeBankOwnerFilter", [
+            { no: 1, name: "app_private", kind: "message", oneof: "owner", T: () => KnowledgeAppPrivateOwner },
+            { no: 2, name: "workspace_private", kind: "message", oneof: "owner", T: () => KnowledgeWorkspacePrivateOwner }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeBankOwnerFilter>): KnowledgeBankOwnerFilter {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.owner = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeBankOwnerFilter>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeBankOwnerFilter): KnowledgeBankOwnerFilter {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private */ 1:
+                    message.owner = {
+                        oneofKind: "appPrivate",
+                        appPrivate: KnowledgeAppPrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).appPrivate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private */ 2:
+                    message.owner = {
+                        oneofKind: "workspacePrivate",
+                        workspacePrivate: KnowledgeWorkspacePrivateOwner.internalBinaryRead(reader, reader.uint32(), options, (message.owner as any).workspacePrivate)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeBankOwnerFilter, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeAppPrivateOwner app_private = 1; */
+        if (message.owner.oneofKind === "appPrivate")
+            KnowledgeAppPrivateOwner.internalBinaryWrite(message.owner.appPrivate, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.KnowledgeWorkspacePrivateOwner workspace_private = 2; */
+        if (message.owner.oneofKind === "workspacePrivate")
+            KnowledgeWorkspacePrivateOwner.internalBinaryWrite(message.owner.workspacePrivate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeBankOwnerFilter
+ */
+export const KnowledgeBankOwnerFilter = new KnowledgeBankOwnerFilter$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeBank$Type extends MessageType<KnowledgeBank> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeBank", [
+            { no: 1, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "locator", kind: "message", T: () => KnowledgeBankLocator },
+            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "metadata", kind: "message", T: () => Struct },
+            { no: 5, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeBank>): KnowledgeBank {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeBank>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeBank): KnowledgeBank {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string bank_id */ 1:
+                    message.bankId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.KnowledgeBankLocator locator */ 2:
+                    message.locator = KnowledgeBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.locator);
+                    break;
+                case /* string display_name */ 3:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 4:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 5:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 6:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeBank, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string bank_id = 1; */
+        if (message.bankId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.bankId);
+        /* nimi.runtime.v1.KnowledgeBankLocator locator = 2; */
+        if (message.locator)
+            KnowledgeBankLocator.internalBinaryWrite(message.locator, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 3; */
+        if (message.displayName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct metadata = 4; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp created_at = 5; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 6; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeBank
+ */
+export const KnowledgeBank = new KnowledgeBank$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgePage$Type extends MessageType<KnowledgePage> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgePage", [
+            { no: 1, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "metadata", kind: "message", T: () => Struct },
+            { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgePage>): KnowledgePage {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.pageId = "";
+        message.bankId = "";
+        message.slug = "";
+        message.title = "";
+        message.content = "";
+        message.entityType = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgePage>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgePage): KnowledgePage {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string page_id */ 1:
+                    message.pageId = reader.string();
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string slug */ 3:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 4:
+                    message.title = reader.string();
+                    break;
+                case /* string content */ 5:
+                    message.content = reader.string();
+                    break;
+                case /* string entity_type */ 6:
+                    message.entityType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 7:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 8:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 9:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgePage, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string page_id = 1; */
+        if (message.pageId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.pageId);
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string slug = 3; */
+        if (message.slug !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.slug);
+        /* string title = 4; */
+        if (message.title !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.title);
+        /* string content = 5; */
+        if (message.content !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.content);
+        /* string entity_type = 6; */
+        if (message.entityType !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.entityType);
+        /* google.protobuf.Struct metadata = 7; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp created_at = 8; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 9; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgePage
+ */
+export const KnowledgePage = new KnowledgePage$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeKeywordHit$Type extends MessageType<KnowledgeKeywordHit> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeKeywordHit", [
+            { no: 1, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "snippet", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "score", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
+            { no: 7, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeKeywordHit>): KnowledgeKeywordHit {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.pageId = "";
+        message.slug = "";
+        message.title = "";
+        message.snippet = "";
+        message.score = 0;
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeKeywordHit>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeKeywordHit): KnowledgeKeywordHit {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string bank_id */ 1:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 2:
+                    message.pageId = reader.string();
+                    break;
+                case /* string slug */ 3:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 4:
+                    message.title = reader.string();
+                    break;
+                case /* string snippet */ 5:
+                    message.snippet = reader.string();
+                    break;
+                case /* float score */ 6:
+                    message.score = reader.float();
+                    break;
+                case /* google.protobuf.Struct metadata */ 7:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeKeywordHit, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string bank_id = 1; */
+        if (message.bankId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 2; */
+        if (message.pageId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.pageId);
+        /* string slug = 3; */
+        if (message.slug !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.slug);
+        /* string title = 4; */
+        if (message.title !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.title);
+        /* string snippet = 5; */
+        if (message.snippet !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.snippet);
+        /* float score = 6; */
+        if (message.score !== 0)
+            writer.tag(6, WireType.Bit32).float(message.score);
+        /* google.protobuf.Struct metadata = 7; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeKeywordHit
+ */
+export const KnowledgeKeywordHit = new KnowledgeKeywordHit$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeLink$Type extends MessageType<KnowledgeLink> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeLink", [
+            { no: 1, name: "link_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "from_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "to_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "link_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "metadata", kind: "message", T: () => Struct },
+            { no: 7, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeLink>): KnowledgeLink {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.linkId = "";
+        message.bankId = "";
+        message.fromPageId = "";
+        message.toPageId = "";
+        message.linkType = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeLink>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeLink): KnowledgeLink {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string link_id */ 1:
+                    message.linkId = reader.string();
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string from_page_id */ 3:
+                    message.fromPageId = reader.string();
+                    break;
+                case /* string to_page_id */ 4:
+                    message.toPageId = reader.string();
+                    break;
+                case /* string link_type */ 5:
+                    message.linkType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 6:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 7:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 8:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeLink, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string link_id = 1; */
+        if (message.linkId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.linkId);
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string from_page_id = 3; */
+        if (message.fromPageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.fromPageId);
+        /* string to_page_id = 4; */
+        if (message.toPageId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.toPageId);
+        /* string link_type = 5; */
+        if (message.linkType !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.linkType);
+        /* google.protobuf.Struct metadata = 6; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp created_at = 7; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 8; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeLink
+ */
+export const KnowledgeLink = new KnowledgeLink$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeGraphEdge$Type extends MessageType<KnowledgeGraphEdge> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeGraphEdge", [
+            { no: 1, name: "link", kind: "message", T: () => KnowledgeLink },
+            { no: 2, name: "from_slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "from_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "from_entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "to_slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "to_title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "to_entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeGraphEdge>): KnowledgeGraphEdge {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fromSlug = "";
+        message.fromTitle = "";
+        message.fromEntityType = "";
+        message.toSlug = "";
+        message.toTitle = "";
+        message.toEntityType = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeGraphEdge>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeGraphEdge): KnowledgeGraphEdge {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeLink link */ 1:
+                    message.link = KnowledgeLink.internalBinaryRead(reader, reader.uint32(), options, message.link);
+                    break;
+                case /* string from_slug */ 2:
+                    message.fromSlug = reader.string();
+                    break;
+                case /* string from_title */ 3:
+                    message.fromTitle = reader.string();
+                    break;
+                case /* string from_entity_type */ 4:
+                    message.fromEntityType = reader.string();
+                    break;
+                case /* string to_slug */ 5:
+                    message.toSlug = reader.string();
+                    break;
+                case /* string to_title */ 6:
+                    message.toTitle = reader.string();
+                    break;
+                case /* string to_entity_type */ 7:
+                    message.toEntityType = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeGraphEdge, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeLink link = 1; */
+        if (message.link)
+            KnowledgeLink.internalBinaryWrite(message.link, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string from_slug = 2; */
+        if (message.fromSlug !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.fromSlug);
+        /* string from_title = 3; */
+        if (message.fromTitle !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.fromTitle);
+        /* string from_entity_type = 4; */
+        if (message.fromEntityType !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.fromEntityType);
+        /* string to_slug = 5; */
+        if (message.toSlug !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.toSlug);
+        /* string to_title = 6; */
+        if (message.toTitle !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.toTitle);
+        /* string to_entity_type = 7; */
+        if (message.toEntityType !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.toEntityType);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeGraphEdge
+ */
+export const KnowledgeGraphEdge = new KnowledgeGraphEdge$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeGraphNode$Type extends MessageType<KnowledgeGraphNode> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeGraphNode", [
+            { no: 1, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "metadata", kind: "message", T: () => Struct },
+            { no: 7, name: "depth", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeGraphNode>): KnowledgeGraphNode {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.pageId = "";
+        message.slug = "";
+        message.title = "";
+        message.entityType = "";
+        message.depth = 0;
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeGraphNode>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeGraphNode): KnowledgeGraphNode {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string bank_id */ 1:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 2:
+                    message.pageId = reader.string();
+                    break;
+                case /* string slug */ 3:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 4:
+                    message.title = reader.string();
+                    break;
+                case /* string entity_type */ 5:
+                    message.entityType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 6:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                case /* int32 depth */ 7:
+                    message.depth = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeGraphNode, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string bank_id = 1; */
+        if (message.bankId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 2; */
+        if (message.pageId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.pageId);
+        /* string slug = 3; */
+        if (message.slug !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.slug);
+        /* string title = 4; */
+        if (message.title !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.title);
+        /* string entity_type = 5; */
+        if (message.entityType !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.entityType);
+        /* google.protobuf.Struct metadata = 6; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* int32 depth = 7; */
+        if (message.depth !== 0)
+            writer.tag(7, WireType.Varint).int32(message.depth);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeGraphNode
+ */
+export const KnowledgeGraphNode = new KnowledgeGraphNode$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class KnowledgeIngestTask$Type extends MessageType<KnowledgeIngestTask> {
+    constructor() {
+        super("nimi.runtime.v1.KnowledgeIngestTask", [
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.KnowledgeIngestTaskStatus", KnowledgeIngestTaskStatus, "KNOWLEDGE_INGEST_TASK_STATUS_"] },
+            { no: 7, name: "progress_percent", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 8, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 9, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "updated_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<KnowledgeIngestTask>): KnowledgeIngestTask {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.taskId = "";
+        message.bankId = "";
+        message.pageId = "";
+        message.slug = "";
+        message.title = "";
+        message.status = 0;
+        message.progressPercent = 0;
+        message.reasonCode = 0;
+        message.actionHint = "";
+        if (value !== undefined)
+            reflectionMergePartial<KnowledgeIngestTask>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: KnowledgeIngestTask): KnowledgeIngestTask {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string task_id */ 1:
+                    message.taskId = reader.string();
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 3:
+                    message.pageId = reader.string();
+                    break;
+                case /* string slug */ 4:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 5:
+                    message.title = reader.string();
+                    break;
+                case /* nimi.runtime.v1.KnowledgeIngestTaskStatus status */ 6:
+                    message.status = reader.int32();
+                    break;
+                case /* int32 progress_percent */ 7:
+                    message.progressPercent = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 8:
+                    message.reasonCode = reader.int32();
+                    break;
+                case /* string action_hint */ 9:
+                    message.actionHint = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp created_at */ 10:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* google.protobuf.Timestamp updated_at */ 11:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: KnowledgeIngestTask, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string task_id = 1; */
+        if (message.taskId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.taskId);
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 3; */
+        if (message.pageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageId);
+        /* string slug = 4; */
+        if (message.slug !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.slug);
+        /* string title = 5; */
+        if (message.title !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.title);
+        /* nimi.runtime.v1.KnowledgeIngestTaskStatus status = 6; */
+        if (message.status !== 0)
+            writer.tag(6, WireType.Varint).int32(message.status);
+        /* int32 progress_percent = 7; */
+        if (message.progressPercent !== 0)
+            writer.tag(7, WireType.Varint).int32(message.progressPercent);
+        /* nimi.runtime.v1.ReasonCode reason_code = 8; */
+        if (message.reasonCode !== 0)
+            writer.tag(8, WireType.Varint).int32(message.reasonCode);
+        /* string action_hint = 9; */
+        if (message.actionHint !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.actionHint);
+        /* google.protobuf.Timestamp created_at = 10; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 11; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.KnowledgeIngestTask
+ */
+export const KnowledgeIngestTask = new KnowledgeIngestTask$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CreateKnowledgeBankRequest$Type extends MessageType<CreateKnowledgeBankRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CreateKnowledgeBankRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "locator", kind: "message", T: () => PublicKnowledgeBankLocator },
+            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<CreateKnowledgeBankRequest>): CreateKnowledgeBankRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<CreateKnowledgeBankRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateKnowledgeBankRequest): CreateKnowledgeBankRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* nimi.runtime.v1.PublicKnowledgeBankLocator locator */ 2:
+                    message.locator = PublicKnowledgeBankLocator.internalBinaryRead(reader, reader.uint32(), options, message.locator);
+                    break;
+                case /* string display_name */ 3:
+                    message.displayName = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 4:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CreateKnowledgeBankRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.PublicKnowledgeBankLocator locator = 2; */
+        if (message.locator)
+            PublicKnowledgeBankLocator.internalBinaryWrite(message.locator, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 3; */
+        if (message.displayName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
+        /* google.protobuf.Struct metadata = 4; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CreateKnowledgeBankRequest
+ */
+export const CreateKnowledgeBankRequest = new CreateKnowledgeBankRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CreateKnowledgeBankResponse$Type extends MessageType<CreateKnowledgeBankResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CreateKnowledgeBankResponse", [
+            { no: 1, name: "bank", kind: "message", T: () => KnowledgeBank }
+        ]);
+    }
+    create(value?: PartialMessage<CreateKnowledgeBankResponse>): CreateKnowledgeBankResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CreateKnowledgeBankResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateKnowledgeBankResponse): CreateKnowledgeBankResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeBank bank */ 1:
+                    message.bank = KnowledgeBank.internalBinaryRead(reader, reader.uint32(), options, message.bank);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CreateKnowledgeBankResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeBank bank = 1; */
+        if (message.bank)
+            KnowledgeBank.internalBinaryWrite(message.bank, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CreateKnowledgeBankResponse
+ */
+export const CreateKnowledgeBankResponse = new CreateKnowledgeBankResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetKnowledgeBankRequest$Type extends MessageType<GetKnowledgeBankRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetKnowledgeBankRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetKnowledgeBankRequest>): GetKnowledgeBankRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetKnowledgeBankRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetKnowledgeBankRequest): GetKnowledgeBankRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetKnowledgeBankRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetKnowledgeBankRequest
+ */
+export const GetKnowledgeBankRequest = new GetKnowledgeBankRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetKnowledgeBankResponse$Type extends MessageType<GetKnowledgeBankResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetKnowledgeBankResponse", [
+            { no: 1, name: "bank", kind: "message", T: () => KnowledgeBank }
+        ]);
+    }
+    create(value?: PartialMessage<GetKnowledgeBankResponse>): GetKnowledgeBankResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetKnowledgeBankResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetKnowledgeBankResponse): GetKnowledgeBankResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeBank bank */ 1:
+                    message.bank = KnowledgeBank.internalBinaryRead(reader, reader.uint32(), options, message.bank);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetKnowledgeBankResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeBank bank = 1; */
+        if (message.bank)
+            KnowledgeBank.internalBinaryWrite(message.bank, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetKnowledgeBankResponse
+ */
+export const GetKnowledgeBankResponse = new GetKnowledgeBankResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListKnowledgeBanksRequest$Type extends MessageType<ListKnowledgeBanksRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListKnowledgeBanksRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "scope_filters", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.KnowledgeBankScope", KnowledgeBankScope, "KNOWLEDGE_BANK_SCOPE_"] },
+            { no: 3, name: "owner_filters", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeBankOwnerFilter },
+            { no: 4, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListKnowledgeBanksRequest>): ListKnowledgeBanksRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.scopeFilters = [];
+        message.ownerFilters = [];
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListKnowledgeBanksRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListKnowledgeBanksRequest): ListKnowledgeBanksRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* repeated nimi.runtime.v1.KnowledgeBankScope scope_filters */ 2:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.scopeFilters.push(reader.int32());
+                    else
+                        message.scopeFilters.push(reader.int32());
+                    break;
+                case /* repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters */ 3:
+                    message.ownerFilters.push(KnowledgeBankOwnerFilter.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* int32 page_size */ 4:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 5:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListKnowledgeBanksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.KnowledgeBankScope scope_filters = 2; */
+        if (message.scopeFilters.length) {
+            writer.tag(2, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.scopeFilters.length; i++)
+                writer.int32(message.scopeFilters[i]);
+            writer.join();
+        }
+        /* repeated nimi.runtime.v1.KnowledgeBankOwnerFilter owner_filters = 3; */
+        for (let i = 0; i < message.ownerFilters.length; i++)
+            KnowledgeBankOwnerFilter.internalBinaryWrite(message.ownerFilters[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* int32 page_size = 4; */
+        if (message.pageSize !== 0)
+            writer.tag(4, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 5; */
+        if (message.pageToken !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListKnowledgeBanksRequest
+ */
+export const ListKnowledgeBanksRequest = new ListKnowledgeBanksRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListKnowledgeBanksResponse$Type extends MessageType<ListKnowledgeBanksResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListKnowledgeBanksResponse", [
+            { no: 1, name: "banks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeBank },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListKnowledgeBanksResponse>): ListKnowledgeBanksResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.banks = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListKnowledgeBanksResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListKnowledgeBanksResponse): ListKnowledgeBanksResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeBank banks */ 1:
+                    message.banks.push(KnowledgeBank.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListKnowledgeBanksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeBank banks = 1; */
+        for (let i = 0; i < message.banks.length; i++)
+            KnowledgeBank.internalBinaryWrite(message.banks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListKnowledgeBanksResponse
+ */
+export const ListKnowledgeBanksResponse = new ListKnowledgeBanksResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteKnowledgeBankRequest$Type extends MessageType<DeleteKnowledgeBankRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteKnowledgeBankRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DeleteKnowledgeBankRequest>): DeleteKnowledgeBankRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        if (value !== undefined)
+            reflectionMergePartial<DeleteKnowledgeBankRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteKnowledgeBankRequest): DeleteKnowledgeBankRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteKnowledgeBankRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteKnowledgeBankRequest
+ */
+export const DeleteKnowledgeBankRequest = new DeleteKnowledgeBankRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeleteKnowledgeBankResponse$Type extends MessageType<DeleteKnowledgeBankResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DeleteKnowledgeBankResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack }
+        ]);
+    }
+    create(value?: PartialMessage<DeleteKnowledgeBankResponse>): DeleteKnowledgeBankResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DeleteKnowledgeBankResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteKnowledgeBankResponse): DeleteKnowledgeBankResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeleteKnowledgeBankResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeleteKnowledgeBankResponse
+ */
+export const DeleteKnowledgeBankResponse = new DeleteKnowledgeBankResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PutPageRequest$Type extends MessageType<PutPageRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PutPageRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<PutPageRequest>): PutPageRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.pageId = "";
+        message.slug = "";
+        message.title = "";
+        message.content = "";
+        message.entityType = "";
+        if (value !== undefined)
+            reflectionMergePartial<PutPageRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutPageRequest): PutPageRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 3:
+                    message.pageId = reader.string();
+                    break;
+                case /* string slug */ 4:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 5:
+                    message.title = reader.string();
+                    break;
+                case /* string content */ 6:
+                    message.content = reader.string();
+                    break;
+                case /* string entity_type */ 7:
+                    message.entityType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 8:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PutPageRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 3; */
+        if (message.pageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageId);
+        /* string slug = 4; */
+        if (message.slug !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.slug);
+        /* string title = 5; */
+        if (message.title !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.title);
+        /* string content = 6; */
+        if (message.content !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.content);
+        /* string entity_type = 7; */
+        if (message.entityType !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.entityType);
+        /* google.protobuf.Struct metadata = 8; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PutPageRequest
+ */
+export const PutPageRequest = new PutPageRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PutPageResponse$Type extends MessageType<PutPageResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PutPageResponse", [
+            { no: 1, name: "page", kind: "message", T: () => KnowledgePage }
+        ]);
+    }
+    create(value?: PartialMessage<PutPageResponse>): PutPageResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<PutPageResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PutPageResponse): PutPageResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgePage page */ 1:
+                    message.page = KnowledgePage.internalBinaryRead(reader, reader.uint32(), options, message.page);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PutPageResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgePage page = 1; */
+        if (message.page)
+            KnowledgePage.internalBinaryWrite(message.page, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PutPageResponse
+ */
+export const PutPageResponse = new PutPageResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPageRequest$Type extends MessageType<GetPageRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetPageRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_id", kind: "scalar", oneof: "lookup", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug", kind: "scalar", oneof: "lookup", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetPageRequest>): GetPageRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.lookup = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<GetPageRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPageRequest): GetPageRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 3:
+                    message.lookup = {
+                        oneofKind: "pageId",
+                        pageId: reader.string()
+                    };
+                    break;
+                case /* string slug */ 4:
+                    message.lookup = {
+                        oneofKind: "slug",
+                        slug: reader.string()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPageRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 3; */
+        if (message.lookup.oneofKind === "pageId")
+            writer.tag(3, WireType.LengthDelimited).string(message.lookup.pageId);
+        /* string slug = 4; */
+        if (message.lookup.oneofKind === "slug")
+            writer.tag(4, WireType.LengthDelimited).string(message.lookup.slug);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPageRequest
+ */
+export const GetPageRequest = new GetPageRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPageResponse$Type extends MessageType<GetPageResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetPageResponse", [
+            { no: 1, name: "page", kind: "message", T: () => KnowledgePage }
+        ]);
+    }
+    create(value?: PartialMessage<GetPageResponse>): GetPageResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetPageResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPageResponse): GetPageResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgePage page */ 1:
+                    message.page = KnowledgePage.internalBinaryRead(reader, reader.uint32(), options, message.page);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPageResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgePage page = 1; */
+        if (message.page)
+            KnowledgePage.internalBinaryWrite(message.page, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPageResponse
+ */
+export const GetPageResponse = new GetPageResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListPagesRequest$Type extends MessageType<ListPagesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListPagesRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "entity_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug_prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListPagesRequest>): ListPagesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.entityTypeFilters = [];
+        message.slugPrefix = "";
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListPagesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPagesRequest): ListPagesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* repeated string entity_type_filters */ 3:
+                    message.entityTypeFilters.push(reader.string());
+                    break;
+                case /* string slug_prefix */ 4:
+                    message.slugPrefix = reader.string();
+                    break;
+                case /* int32 page_size */ 5:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 6:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListPagesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* repeated string entity_type_filters = 3; */
+        for (let i = 0; i < message.entityTypeFilters.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.entityTypeFilters[i]);
+        /* string slug_prefix = 4; */
+        if (message.slugPrefix !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.slugPrefix);
+        /* int32 page_size = 5; */
+        if (message.pageSize !== 0)
+            writer.tag(5, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 6; */
+        if (message.pageToken !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListPagesRequest
+ */
+export const ListPagesRequest = new ListPagesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListPagesResponse$Type extends MessageType<ListPagesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListPagesResponse", [
+            { no: 1, name: "pages", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgePage },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListPagesResponse>): ListPagesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.pages = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListPagesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListPagesResponse): ListPagesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgePage pages */ 1:
+                    message.pages.push(KnowledgePage.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListPagesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgePage pages = 1; */
+        for (let i = 0; i < message.pages.length; i++)
+            KnowledgePage.internalBinaryWrite(message.pages[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListPagesResponse
+ */
+export const ListPagesResponse = new ListPagesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeletePageRequest$Type extends MessageType<DeletePageRequest> {
+    constructor() {
+        super("nimi.runtime.v1.DeletePageRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_id", kind: "scalar", oneof: "lookup", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug", kind: "scalar", oneof: "lookup", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DeletePageRequest>): DeletePageRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.lookup = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<DeletePageRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeletePageRequest): DeletePageRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 3:
+                    message.lookup = {
+                        oneofKind: "pageId",
+                        pageId: reader.string()
+                    };
+                    break;
+                case /* string slug */ 4:
+                    message.lookup = {
+                        oneofKind: "slug",
+                        slug: reader.string()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeletePageRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 3; */
+        if (message.lookup.oneofKind === "pageId")
+            writer.tag(3, WireType.LengthDelimited).string(message.lookup.pageId);
+        /* string slug = 4; */
+        if (message.lookup.oneofKind === "slug")
+            writer.tag(4, WireType.LengthDelimited).string(message.lookup.slug);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeletePageRequest
+ */
+export const DeletePageRequest = new DeletePageRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DeletePageResponse$Type extends MessageType<DeletePageResponse> {
+    constructor() {
+        super("nimi.runtime.v1.DeletePageResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack }
+        ]);
+    }
+    create(value?: PartialMessage<DeletePageResponse>): DeletePageResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DeletePageResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeletePageResponse): DeletePageResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeletePageResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeletePageResponse
+ */
+export const DeletePageResponse = new DeletePageResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SearchKeywordRequest$Type extends MessageType<SearchKeywordRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SearchKeywordRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "top_k", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 5, name: "entity_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "slug_prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SearchKeywordRequest>): SearchKeywordRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankIds = [];
+        message.query = "";
+        message.topK = 0;
+        message.entityTypeFilters = [];
+        message.slugPrefix = "";
+        if (value !== undefined)
+            reflectionMergePartial<SearchKeywordRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchKeywordRequest): SearchKeywordRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* repeated string bank_ids */ 2:
+                    message.bankIds.push(reader.string());
+                    break;
+                case /* string query */ 3:
+                    message.query = reader.string();
+                    break;
+                case /* int32 top_k */ 4:
+                    message.topK = reader.int32();
+                    break;
+                case /* repeated string entity_type_filters */ 5:
+                    message.entityTypeFilters.push(reader.string());
+                    break;
+                case /* string slug_prefix */ 6:
+                    message.slugPrefix = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SearchKeywordRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string bank_ids = 2; */
+        for (let i = 0; i < message.bankIds.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.bankIds[i]);
+        /* string query = 3; */
+        if (message.query !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.query);
+        /* int32 top_k = 4; */
+        if (message.topK !== 0)
+            writer.tag(4, WireType.Varint).int32(message.topK);
+        /* repeated string entity_type_filters = 5; */
+        for (let i = 0; i < message.entityTypeFilters.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.entityTypeFilters[i]);
+        /* string slug_prefix = 6; */
+        if (message.slugPrefix !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.slugPrefix);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SearchKeywordRequest
+ */
+export const SearchKeywordRequest = new SearchKeywordRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SearchKeywordResponse$Type extends MessageType<SearchKeywordResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SearchKeywordResponse", [
+            { no: 1, name: "hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeKeywordHit },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<SearchKeywordResponse>): SearchKeywordResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.hits = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SearchKeywordResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchKeywordResponse): SearchKeywordResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeKeywordHit hits */ 1:
+                    message.hits.push(KnowledgeKeywordHit.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SearchKeywordResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeKeywordHit hits = 1; */
+        for (let i = 0; i < message.hits.length; i++)
+            KnowledgeKeywordHit.internalBinaryWrite(message.hits[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SearchKeywordResponse
+ */
+export const SearchKeywordResponse = new SearchKeywordResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SearchHybridRequest$Type extends MessageType<SearchHybridRequest> {
+    constructor() {
+        super("nimi.runtime.v1.SearchHybridRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "entity_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SearchHybridRequest>): SearchHybridRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.query = "";
+        message.entityTypeFilters = [];
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<SearchHybridRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchHybridRequest): SearchHybridRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string query */ 3:
+                    message.query = reader.string();
+                    break;
+                case /* repeated string entity_type_filters */ 4:
+                    message.entityTypeFilters.push(reader.string());
+                    break;
+                case /* int32 page_size */ 5:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 6:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SearchHybridRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string query = 3; */
+        if (message.query !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.query);
+        /* repeated string entity_type_filters = 4; */
+        for (let i = 0; i < message.entityTypeFilters.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.entityTypeFilters[i]);
+        /* int32 page_size = 5; */
+        if (message.pageSize !== 0)
+            writer.tag(5, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 6; */
+        if (message.pageToken !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SearchHybridRequest
+ */
+export const SearchHybridRequest = new SearchHybridRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SearchHybridResponse$Type extends MessageType<SearchHybridResponse> {
+    constructor() {
+        super("nimi.runtime.v1.SearchHybridResponse", [
+            { no: 1, name: "hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeKeywordHit },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<SearchHybridResponse>): SearchHybridResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.hits = [];
+        message.nextPageToken = "";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<SearchHybridResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchHybridResponse): SearchHybridResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeKeywordHit hits */ 1:
+                    message.hits.push(KnowledgeKeywordHit.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 3:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SearchHybridResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeKeywordHit hits = 1; */
+        for (let i = 0; i < message.hits.length; i++)
+            KnowledgeKeywordHit.internalBinaryWrite(message.hits[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        /* nimi.runtime.v1.ReasonCode reason_code = 3; */
+        if (message.reasonCode !== 0)
+            writer.tag(3, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.SearchHybridResponse
+ */
+export const SearchHybridResponse = new SearchHybridResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AddLinkRequest$Type extends MessageType<AddLinkRequest> {
+    constructor() {
+        super("nimi.runtime.v1.AddLinkRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "from_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "to_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "link_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<AddLinkRequest>): AddLinkRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.fromPageId = "";
+        message.toPageId = "";
+        message.linkType = "";
+        if (value !== undefined)
+            reflectionMergePartial<AddLinkRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddLinkRequest): AddLinkRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string from_page_id */ 3:
+                    message.fromPageId = reader.string();
+                    break;
+                case /* string to_page_id */ 4:
+                    message.toPageId = reader.string();
+                    break;
+                case /* string link_type */ 5:
+                    message.linkType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 6:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AddLinkRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string from_page_id = 3; */
+        if (message.fromPageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.fromPageId);
+        /* string to_page_id = 4; */
+        if (message.toPageId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.toPageId);
+        /* string link_type = 5; */
+        if (message.linkType !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.linkType);
+        /* google.protobuf.Struct metadata = 6; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AddLinkRequest
+ */
+export const AddLinkRequest = new AddLinkRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AddLinkResponse$Type extends MessageType<AddLinkResponse> {
+    constructor() {
+        super("nimi.runtime.v1.AddLinkResponse", [
+            { no: 1, name: "link", kind: "message", T: () => KnowledgeLink }
+        ]);
+    }
+    create(value?: PartialMessage<AddLinkResponse>): AddLinkResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<AddLinkResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddLinkResponse): AddLinkResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeLink link */ 1:
+                    message.link = KnowledgeLink.internalBinaryRead(reader, reader.uint32(), options, message.link);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AddLinkResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeLink link = 1; */
+        if (message.link)
+            KnowledgeLink.internalBinaryWrite(message.link, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AddLinkResponse
+ */
+export const AddLinkResponse = new AddLinkResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLinkRequest$Type extends MessageType<RemoveLinkRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLinkRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "link_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLinkRequest>): RemoveLinkRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.linkId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLinkRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLinkRequest): RemoveLinkRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string link_id */ 3:
+                    message.linkId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLinkRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string link_id = 3; */
+        if (message.linkId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.linkId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLinkRequest
+ */
+export const RemoveLinkRequest = new RemoveLinkRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveLinkResponse$Type extends MessageType<RemoveLinkResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RemoveLinkResponse", [
+            { no: 1, name: "ack", kind: "message", T: () => Ack }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveLinkResponse>): RemoveLinkResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RemoveLinkResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveLinkResponse): RemoveLinkResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.Ack ack */ 1:
+                    message.ack = Ack.internalBinaryRead(reader, reader.uint32(), options, message.ack);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveLinkResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.Ack ack = 1; */
+        if (message.ack)
+            Ack.internalBinaryWrite(message.ack, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RemoveLinkResponse
+ */
+export const RemoveLinkResponse = new RemoveLinkResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLinksRequest$Type extends MessageType<ListLinksRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLinksRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "from_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "link_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLinksRequest>): ListLinksRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.fromPageId = "";
+        message.linkTypeFilters = [];
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListLinksRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLinksRequest): ListLinksRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string from_page_id */ 3:
+                    message.fromPageId = reader.string();
+                    break;
+                case /* repeated string link_type_filters */ 4:
+                    message.linkTypeFilters.push(reader.string());
+                    break;
+                case /* int32 page_size */ 5:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 6:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLinksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string from_page_id = 3; */
+        if (message.fromPageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.fromPageId);
+        /* repeated string link_type_filters = 4; */
+        for (let i = 0; i < message.linkTypeFilters.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.linkTypeFilters[i]);
+        /* int32 page_size = 5; */
+        if (message.pageSize !== 0)
+            writer.tag(5, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 6; */
+        if (message.pageToken !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLinksRequest
+ */
+export const ListLinksRequest = new ListLinksRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLinksResponse$Type extends MessageType<ListLinksResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLinksResponse", [
+            { no: 1, name: "links", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeGraphEdge },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListLinksResponse>): ListLinksResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.links = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListLinksResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLinksResponse): ListLinksResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeGraphEdge links */ 1:
+                    message.links.push(KnowledgeGraphEdge.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLinksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeGraphEdge links = 1; */
+        for (let i = 0; i < message.links.length; i++)
+            KnowledgeGraphEdge.internalBinaryWrite(message.links[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLinksResponse
+ */
+export const ListLinksResponse = new ListLinksResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListBacklinksRequest$Type extends MessageType<ListBacklinksRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListBacklinksRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "to_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "link_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListBacklinksRequest>): ListBacklinksRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.toPageId = "";
+        message.linkTypeFilters = [];
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListBacklinksRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListBacklinksRequest): ListBacklinksRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string to_page_id */ 3:
+                    message.toPageId = reader.string();
+                    break;
+                case /* repeated string link_type_filters */ 4:
+                    message.linkTypeFilters.push(reader.string());
+                    break;
+                case /* int32 page_size */ 5:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 6:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListBacklinksRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string to_page_id = 3; */
+        if (message.toPageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.toPageId);
+        /* repeated string link_type_filters = 4; */
+        for (let i = 0; i < message.linkTypeFilters.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.linkTypeFilters[i]);
+        /* int32 page_size = 5; */
+        if (message.pageSize !== 0)
+            writer.tag(5, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 6; */
+        if (message.pageToken !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListBacklinksRequest
+ */
+export const ListBacklinksRequest = new ListBacklinksRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListBacklinksResponse$Type extends MessageType<ListBacklinksResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListBacklinksResponse", [
+            { no: 1, name: "backlinks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeGraphEdge },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListBacklinksResponse>): ListBacklinksResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.backlinks = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListBacklinksResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListBacklinksResponse): ListBacklinksResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeGraphEdge backlinks */ 1:
+                    message.backlinks.push(KnowledgeGraphEdge.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListBacklinksResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeGraphEdge backlinks = 1; */
+        for (let i = 0; i < message.backlinks.length; i++)
+            KnowledgeGraphEdge.internalBinaryWrite(message.backlinks[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListBacklinksResponse
+ */
+export const ListBacklinksResponse = new ListBacklinksResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TraverseGraphRequest$Type extends MessageType<TraverseGraphRequest> {
+    constructor() {
+        super("nimi.runtime.v1.TraverseGraphRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "root_page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "link_type_filters", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "max_depth", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 6, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 7, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TraverseGraphRequest>): TraverseGraphRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.rootPageId = "";
+        message.linkTypeFilters = [];
+        message.maxDepth = 0;
+        message.pageSize = 0;
+        message.pageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<TraverseGraphRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TraverseGraphRequest): TraverseGraphRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string root_page_id */ 3:
+                    message.rootPageId = reader.string();
+                    break;
+                case /* repeated string link_type_filters */ 4:
+                    message.linkTypeFilters.push(reader.string());
+                    break;
+                case /* int32 max_depth */ 5:
+                    message.maxDepth = reader.int32();
+                    break;
+                case /* int32 page_size */ 6:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 7:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TraverseGraphRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string root_page_id = 3; */
+        if (message.rootPageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.rootPageId);
+        /* repeated string link_type_filters = 4; */
+        for (let i = 0; i < message.linkTypeFilters.length; i++)
+            writer.tag(4, WireType.LengthDelimited).string(message.linkTypeFilters[i]);
+        /* int32 max_depth = 5; */
+        if (message.maxDepth !== 0)
+            writer.tag(5, WireType.Varint).int32(message.maxDepth);
+        /* int32 page_size = 6; */
+        if (message.pageSize !== 0)
+            writer.tag(6, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 7; */
+        if (message.pageToken !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.pageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TraverseGraphRequest
+ */
+export const TraverseGraphRequest = new TraverseGraphRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TraverseGraphResponse$Type extends MessageType<TraverseGraphResponse> {
+    constructor() {
+        super("nimi.runtime.v1.TraverseGraphResponse", [
+            { no: 1, name: "nodes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => KnowledgeGraphNode },
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TraverseGraphResponse>): TraverseGraphResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.nodes = [];
+        message.nextPageToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<TraverseGraphResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TraverseGraphResponse): TraverseGraphResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.KnowledgeGraphNode nodes */ 1:
+                    message.nodes.push(KnowledgeGraphNode.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string next_page_token */ 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TraverseGraphResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.KnowledgeGraphNode nodes = 1; */
+        for (let i = 0; i < message.nodes.length; i++)
+            KnowledgeGraphNode.internalBinaryWrite(message.nodes[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string next_page_token = 2; */
+        if (message.nextPageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TraverseGraphResponse
+ */
+export const TraverseGraphResponse = new TraverseGraphResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IngestDocumentRequest$Type extends MessageType<IngestDocumentRequest> {
+    constructor() {
+        super("nimi.runtime.v1.IngestDocumentRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "bank_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "page_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "slug", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "entity_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "metadata", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<IngestDocumentRequest>): IngestDocumentRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bankId = "";
+        message.pageId = "";
+        message.slug = "";
+        message.title = "";
+        message.content = "";
+        message.entityType = "";
+        if (value !== undefined)
+            reflectionMergePartial<IngestDocumentRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IngestDocumentRequest): IngestDocumentRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string bank_id */ 2:
+                    message.bankId = reader.string();
+                    break;
+                case /* string page_id */ 3:
+                    message.pageId = reader.string();
+                    break;
+                case /* string slug */ 4:
+                    message.slug = reader.string();
+                    break;
+                case /* string title */ 5:
+                    message.title = reader.string();
+                    break;
+                case /* string content */ 6:
+                    message.content = reader.string();
+                    break;
+                case /* string entity_type */ 7:
+                    message.entityType = reader.string();
+                    break;
+                case /* google.protobuf.Struct metadata */ 8:
+                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: IngestDocumentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string bank_id = 2; */
+        if (message.bankId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bankId);
+        /* string page_id = 3; */
+        if (message.pageId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.pageId);
+        /* string slug = 4; */
+        if (message.slug !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.slug);
+        /* string title = 5; */
+        if (message.title !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.title);
+        /* string content = 6; */
+        if (message.content !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.content);
+        /* string entity_type = 7; */
+        if (message.entityType !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.entityType);
+        /* google.protobuf.Struct metadata = 8; */
+        if (message.metadata)
+            Struct.internalBinaryWrite(message.metadata, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.IngestDocumentRequest
+ */
+export const IngestDocumentRequest = new IngestDocumentRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class IngestDocumentResponse$Type extends MessageType<IngestDocumentResponse> {
+    constructor() {
+        super("nimi.runtime.v1.IngestDocumentResponse", [
             { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
-    create(value?: PartialMessage<BuildIndexResponse>): BuildIndexResponse {
+    create(value?: PartialMessage<IngestDocumentResponse>): IngestDocumentResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.taskId = "";
         message.accepted = false;
         message.reasonCode = 0;
         if (value !== undefined)
-            reflectionMergePartial<BuildIndexResponse>(this, message, value);
+            reflectionMergePartial<IngestDocumentResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BuildIndexResponse): BuildIndexResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: IngestDocumentResponse): IngestDocumentResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -294,7 +4179,7 @@ class BuildIndexResponse$Type extends MessageType<BuildIndexResponse> {
         }
         return message;
     }
-    internalBinaryWrite(message: BuildIndexResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: IngestDocumentResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* string task_id = 1; */
         if (message.taskId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.taskId);
@@ -311,54 +4196,34 @@ class BuildIndexResponse$Type extends MessageType<BuildIndexResponse> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.BuildIndexResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.IngestDocumentResponse
  */
-export const BuildIndexResponse = new BuildIndexResponse$Type();
+export const IngestDocumentResponse = new IngestDocumentResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SearchIndexRequest$Type extends MessageType<SearchIndexRequest> {
+class GetIngestTaskRequest$Type extends MessageType<GetIngestTaskRequest> {
     constructor() {
-        super("nimi.runtime.v1.SearchIndexRequest", [
-            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "index_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "top_k", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 6, name: "filters", kind: "message", T: () => Struct }
+        super("nimi.runtime.v1.GetIngestTaskRequest", [
+            { no: 1, name: "context", kind: "message", T: () => KnowledgeRequestContext },
+            { no: 2, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<SearchIndexRequest>): SearchIndexRequest {
+    create(value?: PartialMessage<GetIngestTaskRequest>): GetIngestTaskRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.appId = "";
-        message.subjectUserId = "";
-        message.indexId = "";
-        message.query = "";
-        message.topK = 0;
+        message.taskId = "";
         if (value !== undefined)
-            reflectionMergePartial<SearchIndexRequest>(this, message, value);
+            reflectionMergePartial<GetIngestTaskRequest>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchIndexRequest): SearchIndexRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIngestTaskRequest): GetIngestTaskRequest {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string app_id */ 1:
-                    message.appId = reader.string();
+                case /* nimi.runtime.v1.KnowledgeRequestContext context */ 1:
+                    message.context = KnowledgeRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
                     break;
-                case /* string subject_user_id */ 2:
-                    message.subjectUserId = reader.string();
-                    break;
-                case /* string index_id */ 3:
-                    message.indexId = reader.string();
-                    break;
-                case /* string query */ 4:
-                    message.query = reader.string();
-                    break;
-                case /* int32 top_k */ 5:
-                    message.topK = reader.int32();
-                    break;
-                case /* google.protobuf.Struct filters */ 6:
-                    message.filters = Struct.internalBinaryRead(reader, reader.uint32(), options, message.filters);
+                case /* string task_id */ 2:
+                    message.taskId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -371,25 +4236,13 @@ class SearchIndexRequest$Type extends MessageType<SearchIndexRequest> {
         }
         return message;
     }
-    internalBinaryWrite(message: SearchIndexRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string app_id = 1; */
-        if (message.appId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.appId);
-        /* string subject_user_id = 2; */
-        if (message.subjectUserId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
-        /* string index_id = 3; */
-        if (message.indexId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.indexId);
-        /* string query = 4; */
-        if (message.query !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.query);
-        /* int32 top_k = 5; */
-        if (message.topK !== 0)
-            writer.tag(5, WireType.Varint).int32(message.topK);
-        /* google.protobuf.Struct filters = 6; */
-        if (message.filters)
-            Struct.internalBinaryWrite(message.filters, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: GetIngestTaskRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeRequestContext context = 1; */
+        if (message.context)
+            KnowledgeRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string task_id = 2; */
+        if (message.taskId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.taskId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -397,44 +4250,29 @@ class SearchIndexRequest$Type extends MessageType<SearchIndexRequest> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.SearchIndexRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetIngestTaskRequest
  */
-export const SearchIndexRequest = new SearchIndexRequest$Type();
+export const GetIngestTaskRequest = new GetIngestTaskRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class SearchHit$Type extends MessageType<SearchHit> {
+class GetIngestTaskResponse$Type extends MessageType<GetIngestTaskResponse> {
     constructor() {
-        super("nimi.runtime.v1.SearchHit", [
-            { no: 1, name: "document_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "score", kind: "scalar", T: 2 /*ScalarType.FLOAT*/ },
-            { no: 3, name: "snippet", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "metadata", kind: "message", T: () => Struct }
+        super("nimi.runtime.v1.GetIngestTaskResponse", [
+            { no: 1, name: "task", kind: "message", T: () => KnowledgeIngestTask }
         ]);
     }
-    create(value?: PartialMessage<SearchHit>): SearchHit {
+    create(value?: PartialMessage<GetIngestTaskResponse>): GetIngestTaskResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.documentId = "";
-        message.score = 0;
-        message.snippet = "";
         if (value !== undefined)
-            reflectionMergePartial<SearchHit>(this, message, value);
+            reflectionMergePartial<GetIngestTaskResponse>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchHit): SearchHit {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetIngestTaskResponse): GetIngestTaskResponse {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string document_id */ 1:
-                    message.documentId = reader.string();
-                    break;
-                case /* float score */ 2:
-                    message.score = reader.float();
-                    break;
-                case /* string snippet */ 3:
-                    message.snippet = reader.string();
-                    break;
-                case /* google.protobuf.Struct metadata */ 4:
-                    message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
+                case /* nimi.runtime.v1.KnowledgeIngestTask task */ 1:
+                    message.task = KnowledgeIngestTask.internalBinaryRead(reader, reader.uint32(), options, message.task);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -447,19 +4285,10 @@ class SearchHit$Type extends MessageType<SearchHit> {
         }
         return message;
     }
-    internalBinaryWrite(message: SearchHit, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string document_id = 1; */
-        if (message.documentId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.documentId);
-        /* float score = 2; */
-        if (message.score !== 0)
-            writer.tag(2, WireType.Bit32).float(message.score);
-        /* string snippet = 3; */
-        if (message.snippet !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.snippet);
-        /* google.protobuf.Struct metadata = 4; */
-        if (message.metadata)
-            Struct.internalBinaryWrite(message.metadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: GetIngestTaskResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.KnowledgeIngestTask task = 1; */
+        if (message.task)
+            KnowledgeIngestTask.internalBinaryWrite(message.task, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -467,132 +4296,28 @@ class SearchHit$Type extends MessageType<SearchHit> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.SearchHit
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetIngestTaskResponse
  */
-export const SearchHit = new SearchHit$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SearchIndexResponse$Type extends MessageType<SearchIndexResponse> {
-    constructor() {
-        super("nimi.runtime.v1.SearchIndexResponse", [
-            { no: 1, name: "hits", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SearchHit },
-            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
-        ]);
-    }
-    create(value?: PartialMessage<SearchIndexResponse>): SearchIndexResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.hits = [];
-        message.reasonCode = 0;
-        if (value !== undefined)
-            reflectionMergePartial<SearchIndexResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SearchIndexResponse): SearchIndexResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.SearchHit hits */ 1:
-                    message.hits.push(SearchHit.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
-                    message.reasonCode = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SearchIndexResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.SearchHit hits = 1; */
-        for (let i = 0; i < message.hits.length; i++)
-            SearchHit.internalBinaryWrite(message.hits[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
-        if (message.reasonCode !== 0)
-            writer.tag(2, WireType.Varint).int32(message.reasonCode);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SearchIndexResponse
- */
-export const SearchIndexResponse = new SearchIndexResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class DeleteIndexRequest$Type extends MessageType<DeleteIndexRequest> {
-    constructor() {
-        super("nimi.runtime.v1.DeleteIndexRequest", [
-            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "index_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<DeleteIndexRequest>): DeleteIndexRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.appId = "";
-        message.subjectUserId = "";
-        message.indexId = "";
-        if (value !== undefined)
-            reflectionMergePartial<DeleteIndexRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteIndexRequest): DeleteIndexRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string app_id */ 1:
-                    message.appId = reader.string();
-                    break;
-                case /* string subject_user_id */ 2:
-                    message.subjectUserId = reader.string();
-                    break;
-                case /* string index_id */ 3:
-                    message.indexId = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: DeleteIndexRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string app_id = 1; */
-        if (message.appId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.appId);
-        /* string subject_user_id = 2; */
-        if (message.subjectUserId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
-        /* string index_id = 3; */
-        if (message.indexId !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.indexId);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.DeleteIndexRequest
- */
-export const DeleteIndexRequest = new DeleteIndexRequest$Type();
+export const GetIngestTaskResponse = new GetIngestTaskResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeKnowledgeService
  */
 export const RuntimeKnowledgeService = new ServiceType("nimi.runtime.v1.RuntimeKnowledgeService", [
-    { name: "BuildIndex", options: {}, I: BuildIndexRequest, O: BuildIndexResponse },
-    { name: "SearchIndex", options: {}, I: SearchIndexRequest, O: SearchIndexResponse },
-    { name: "DeleteIndex", options: {}, I: DeleteIndexRequest, O: Ack }
+    { name: "CreateKnowledgeBank", options: {}, I: CreateKnowledgeBankRequest, O: CreateKnowledgeBankResponse },
+    { name: "GetKnowledgeBank", options: {}, I: GetKnowledgeBankRequest, O: GetKnowledgeBankResponse },
+    { name: "ListKnowledgeBanks", options: {}, I: ListKnowledgeBanksRequest, O: ListKnowledgeBanksResponse },
+    { name: "DeleteKnowledgeBank", options: {}, I: DeleteKnowledgeBankRequest, O: DeleteKnowledgeBankResponse },
+    { name: "PutPage", options: {}, I: PutPageRequest, O: PutPageResponse },
+    { name: "GetPage", options: {}, I: GetPageRequest, O: GetPageResponse },
+    { name: "ListPages", options: {}, I: ListPagesRequest, O: ListPagesResponse },
+    { name: "DeletePage", options: {}, I: DeletePageRequest, O: DeletePageResponse },
+    { name: "SearchKeyword", options: {}, I: SearchKeywordRequest, O: SearchKeywordResponse },
+    { name: "SearchHybrid", options: {}, I: SearchHybridRequest, O: SearchHybridResponse },
+    { name: "AddLink", options: {}, I: AddLinkRequest, O: AddLinkResponse },
+    { name: "RemoveLink", options: {}, I: RemoveLinkRequest, O: RemoveLinkResponse },
+    { name: "ListLinks", options: {}, I: ListLinksRequest, O: ListLinksResponse },
+    { name: "ListBacklinks", options: {}, I: ListBacklinksRequest, O: ListBacklinksResponse },
+    { name: "TraverseGraph", options: {}, I: TraverseGraphRequest, O: TraverseGraphResponse },
+    { name: "IngestDocument", options: {}, I: IngestDocumentRequest, O: IngestDocumentResponse },
+    { name: "GetIngestTask", options: {}, I: GetIngestTaskRequest, O: GetIngestTaskResponse }
 ]);

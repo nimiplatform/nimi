@@ -156,11 +156,40 @@ import type {
   StopEngineResponse,
 } from './generated/runtime/v1/local_runtime_engine';
 import type {
-  BuildIndexRequest,
-  BuildIndexResponse,
-  DeleteIndexRequest,
-  SearchIndexRequest,
-  SearchIndexResponse,
+  CreateKnowledgeBankRequest,
+  CreateKnowledgeBankResponse,
+  DeleteKnowledgeBankRequest,
+  DeleteKnowledgeBankResponse,
+  AddLinkRequest,
+  AddLinkResponse,
+  DeletePageRequest,
+  DeletePageResponse,
+  GetIngestTaskRequest,
+  GetIngestTaskResponse,
+  GetKnowledgeBankRequest,
+  GetKnowledgeBankResponse,
+  GetPageRequest,
+  GetPageResponse,
+  IngestDocumentRequest,
+  IngestDocumentResponse,
+  ListBacklinksRequest,
+  ListBacklinksResponse,
+  ListKnowledgeBanksRequest,
+  ListKnowledgeBanksResponse,
+  ListLinksRequest,
+  ListLinksResponse,
+  ListPagesRequest,
+  ListPagesResponse,
+  PutPageRequest,
+  PutPageResponse,
+  RemoveLinkRequest,
+  RemoveLinkResponse,
+  SearchKeywordRequest,
+  SearchKeywordResponse,
+  SearchHybridRequest,
+  SearchHybridResponse,
+  TraverseGraphRequest,
+  TraverseGraphResponse,
 } from './generated/runtime/v1/knowledge';
 import type {
   CreateBankRequest,
@@ -337,9 +366,23 @@ export type RuntimeModelClient = {
 };
 
 export type RuntimeKnowledgeClient = {
-  buildIndex(request: BuildIndexRequest, options?: RuntimeCallOptions): Promise<BuildIndexResponse>;
-  searchIndex(request: SearchIndexRequest, options?: RuntimeCallOptions): Promise<SearchIndexResponse>;
-  deleteIndex(request: DeleteIndexRequest, options?: RuntimeCallOptions): Promise<Ack>;
+  createKnowledgeBank(request: CreateKnowledgeBankRequest, options?: RuntimeCallOptions): Promise<CreateKnowledgeBankResponse>;
+  getKnowledgeBank(request: GetKnowledgeBankRequest, options?: RuntimeCallOptions): Promise<GetKnowledgeBankResponse>;
+  listKnowledgeBanks(request: ListKnowledgeBanksRequest, options?: RuntimeCallOptions): Promise<ListKnowledgeBanksResponse>;
+  deleteKnowledgeBank(request: DeleteKnowledgeBankRequest, options?: RuntimeCallOptions): Promise<DeleteKnowledgeBankResponse>;
+  putPage(request: PutPageRequest, options?: RuntimeCallOptions): Promise<PutPageResponse>;
+  getPage(request: GetPageRequest, options?: RuntimeCallOptions): Promise<GetPageResponse>;
+  listPages(request: ListPagesRequest, options?: RuntimeCallOptions): Promise<ListPagesResponse>;
+  deletePage(request: DeletePageRequest, options?: RuntimeCallOptions): Promise<DeletePageResponse>;
+  searchKeyword(request: SearchKeywordRequest, options?: RuntimeCallOptions): Promise<SearchKeywordResponse>;
+  searchHybrid(request: SearchHybridRequest, options?: RuntimeCallOptions): Promise<SearchHybridResponse>;
+  addLink(request: AddLinkRequest, options?: RuntimeCallOptions): Promise<AddLinkResponse>;
+  removeLink(request: RemoveLinkRequest, options?: RuntimeCallOptions): Promise<RemoveLinkResponse>;
+  listLinks(request: ListLinksRequest, options?: RuntimeCallOptions): Promise<ListLinksResponse>;
+  listBacklinks(request: ListBacklinksRequest, options?: RuntimeCallOptions): Promise<ListBacklinksResponse>;
+  traverseGraph(request: TraverseGraphRequest, options?: RuntimeCallOptions): Promise<TraverseGraphResponse>;
+  ingestDocument(request: IngestDocumentRequest, options?: RuntimeCallOptions): Promise<IngestDocumentResponse>;
+  getIngestTask(request: GetIngestTaskRequest, options?: RuntimeCallOptions): Promise<GetIngestTaskResponse>;
 };
 
 export type RuntimeMemoryClient = {

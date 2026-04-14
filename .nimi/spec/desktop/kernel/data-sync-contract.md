@@ -144,10 +144,12 @@ Desktop 存在两套并行数据获取架构：
 |---|---|---|
 | Workflow UI（K-WF-012） | Runtime 数据路径 | Workflow 数据来源为 Runtime gRPC（SubscribeWorkflowEvents），不经过 Realm |
 | Audit UI（K-AUDIT-013） | Runtime 数据路径 | 审计数据来源为 Runtime gRPC（ListAuditEvents/ExportAuditEvents）。注：Phase 2 Audit UI 应通过 SDK gRPC 路径消费全局审计（K-AUDIT-013: ListAuditEvents 20k ring buffer），而非 D-IPC-011 `runtime_local_audits_list`（K-LOCAL-016: 仅 5k 条本地审计）。`runtime_local_audits_list` IPC 命令仅用于本地 AI 调试视图 |
-| Knowledge UI（K-KNOW-005a） | Runtime 数据路径 | 索引数据来源为 Runtime gRPC（BuildIndex/SearchIndex） |
+| Knowledge UI（K-KNOW-005a） | Runtime 数据路径 | Knowledge bank/page/search/graph 数据来源为 Runtime gRPC（Create/Get/List/DeleteKnowledgeBank，Put/Get/List/DeletePage，SearchKeyword，SearchHybrid，AddLink，RemoveLink，ListLinks，ListBacklinks，TraverseGraph） |
 | AppMessage UI（K-APP-006a） | Runtime 数据路径 | 应用消息来源为 Runtime gRPC（SubscribeAppMessages） |
 
 Runtime 数据路径当前缺少统一 facade。Phase 2 服务较多地使用 Runtime 路径时，应评估是否创建类似 DataSync 的 RuntimeSync facade（提供统一的错误归一化、重试、状态管理）。
+
+Knowledge UI 的具体 surface、authz、unavailable、pagination 与 ingest task 消费规则见 `knowledge-ui-contract.md`（`D-DSYNC-014` ~ `D-DSYNC-020`）。
 
 ## Fact Sources
 

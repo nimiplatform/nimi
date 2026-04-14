@@ -475,12 +475,40 @@ func runRuntimeKnowledge(args []string) error {
 	}
 
 	switch args[0] {
-	case "build":
-		return runRuntimeKnowledgeBuild(args[1:])
+	case "create-bank":
+		return runRuntimeKnowledgeCreateBank(args[1:])
+	case "get-bank":
+		return runRuntimeKnowledgeGetBank(args[1:])
+	case "list-banks":
+		return runRuntimeKnowledgeListBanks(args[1:])
+	case "put-page":
+		return runRuntimeKnowledgePutPage(args[1:])
+	case "get-page":
+		return runRuntimeKnowledgeGetPage(args[1:])
+	case "list-pages":
+		return runRuntimeKnowledgeListPages(args[1:])
+	case "delete-page":
+		return runRuntimeKnowledgeDeletePage(args[1:])
 	case "search":
 		return runRuntimeKnowledgeSearch(args[1:])
-	case "delete":
-		return runRuntimeKnowledgeDelete(args[1:])
+	case "search-hybrid":
+		return runRuntimeKnowledgeSearchHybrid(args[1:])
+	case "add-link":
+		return runRuntimeKnowledgeAddLink(args[1:])
+	case "remove-link":
+		return runRuntimeKnowledgeRemoveLink(args[1:])
+	case "list-links":
+		return runRuntimeKnowledgeListLinks(args[1:])
+	case "list-backlinks":
+		return runRuntimeKnowledgeListBacklinks(args[1:])
+	case "traverse-graph":
+		return runRuntimeKnowledgeTraverseGraph(args[1:])
+	case "ingest-document":
+		return runRuntimeKnowledgeIngestDocument(args[1:])
+	case "get-ingest-task":
+		return runRuntimeKnowledgeGetIngestTask(args[1:])
+	case "delete-bank":
+		return runRuntimeKnowledgeDeleteBank(args[1:])
 	default:
 		printRuntimeKnowledgeUsage()
 		return flag.ErrHelp

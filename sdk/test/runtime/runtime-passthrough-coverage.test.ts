@@ -192,7 +192,25 @@ test('passthrough: connector module methods are callable and forwarded', async (
 // ---------------------------------------------------------------------------
 test('passthrough: knowledge module methods are callable and forwarded', async () => {
   const { clients, guardCalls, invokeCalls } = createMockClients();
-  const methods = ['buildIndex', 'searchIndex', 'deleteIndex'] as const;
+  const methods = [
+    'createKnowledgeBank',
+    'getKnowledgeBank',
+    'listKnowledgeBanks',
+    'deleteKnowledgeBank',
+    'putPage',
+    'getPage',
+    'listPages',
+    'deletePage',
+    'ingestDocument',
+    'getIngestTask',
+    'searchKeyword',
+    'searchHybrid',
+    'addLink',
+    'removeLink',
+    'listLinks',
+    'listBacklinks',
+    'traverseGraph',
+  ] as const;
 
   for (const m of methods) {
     await (clients.knowledge as Record<string, (req: unknown, opts?: unknown) => Promise<unknown>>)[m]({});

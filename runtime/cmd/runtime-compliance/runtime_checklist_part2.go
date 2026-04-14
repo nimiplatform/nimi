@@ -253,8 +253,8 @@ func runtimeChecklistPart2(
 			ID:          "RS-11-62",
 			Requirement: "KnowledgeService reason-code alignment (K-KNOW-002/K-KNOW-003/K-KNOW-005)",
 			Tests: []testRef{
-				{Package: pkgKnowledge, Name: "TestBuildIndexExistingNoOverwriteReasonCode"},
-				{Package: pkgKnowledge, Name: "TestSearchIndexNotFoundReturnsEmpty"},
+				{Package: pkgKnowledge, Name: "TestCreateKnowledgeBankDuplicateReasonCode"},
+				{Package: pkgKnowledge, Name: "TestGetKnowledgeBankMissingReasonCode"},
 			},
 		},
 		{

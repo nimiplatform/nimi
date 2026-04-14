@@ -1,11 +1,39 @@
 import { RuntimeMethodIds } from '../method-ids';
-import { Ack } from '../generated/runtime/v1/common';
 import {
-  BuildIndexRequest,
-  BuildIndexResponse,
-  DeleteIndexRequest,
-  SearchIndexRequest,
-  SearchIndexResponse,
+  AddLinkRequest,
+  AddLinkResponse,
+  CreateKnowledgeBankRequest,
+  CreateKnowledgeBankResponse,
+  DeleteKnowledgeBankRequest,
+  DeleteKnowledgeBankResponse,
+  DeletePageRequest,
+  DeletePageResponse,
+  GetIngestTaskRequest,
+  GetIngestTaskResponse,
+  GetKnowledgeBankRequest,
+  GetKnowledgeBankResponse,
+  GetPageRequest,
+  GetPageResponse,
+  IngestDocumentRequest,
+  IngestDocumentResponse,
+  ListBacklinksRequest,
+  ListBacklinksResponse,
+  ListKnowledgeBanksRequest,
+  ListKnowledgeBanksResponse,
+  ListLinksRequest,
+  ListLinksResponse,
+  ListPagesRequest,
+  ListPagesResponse,
+  PutPageRequest,
+  PutPageResponse,
+  RemoveLinkRequest,
+  RemoveLinkResponse,
+  SearchKeywordRequest,
+  SearchKeywordResponse,
+  SearchHybridRequest,
+  SearchHybridResponse,
+  TraverseGraphRequest,
+  TraverseGraphResponse,
 } from '../generated/runtime/v1/knowledge';
 import {
   CreateBankRequest,
@@ -104,7 +132,7 @@ import {
 } from '../generated/runtime/v1/audit';
 import type { RuntimeUnaryMethodCodecMap } from './method-codecs-types';
 
-export const runtimeUnaryMethodCodecsDomain = {
+export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap> = {
   [RuntimeMethodIds.connector.createConnector]: {
     requestType: CreateConnectorRequest,
     responseType: CreateConnectorResponse,
@@ -165,17 +193,73 @@ export const runtimeUnaryMethodCodecsDomain = {
     requestType: DeleteCatalogModelOverlayRequest,
     responseType: DeleteCatalogModelOverlayResponse,
   },
-  [RuntimeMethodIds.knowledge.buildIndex]: {
-    requestType: BuildIndexRequest,
-    responseType: BuildIndexResponse,
+  [RuntimeMethodIds.knowledge.createKnowledgeBank]: {
+    requestType: CreateKnowledgeBankRequest,
+    responseType: CreateKnowledgeBankResponse,
   },
-  [RuntimeMethodIds.knowledge.searchIndex]: {
-    requestType: SearchIndexRequest,
-    responseType: SearchIndexResponse,
+  [RuntimeMethodIds.knowledge.getKnowledgeBank]: {
+    requestType: GetKnowledgeBankRequest,
+    responseType: GetKnowledgeBankResponse,
   },
-  [RuntimeMethodIds.knowledge.deleteIndex]: {
-    requestType: DeleteIndexRequest,
-    responseType: Ack,
+  [RuntimeMethodIds.knowledge.listKnowledgeBanks]: {
+    requestType: ListKnowledgeBanksRequest,
+    responseType: ListKnowledgeBanksResponse,
+  },
+  [RuntimeMethodIds.knowledge.deleteKnowledgeBank]: {
+    requestType: DeleteKnowledgeBankRequest,
+    responseType: DeleteKnowledgeBankResponse,
+  },
+  [RuntimeMethodIds.knowledge.putPage]: {
+    requestType: PutPageRequest,
+    responseType: PutPageResponse,
+  },
+  [RuntimeMethodIds.knowledge.getPage]: {
+    requestType: GetPageRequest,
+    responseType: GetPageResponse,
+  },
+  [RuntimeMethodIds.knowledge.listPages]: {
+    requestType: ListPagesRequest,
+    responseType: ListPagesResponse,
+  },
+  [RuntimeMethodIds.knowledge.deletePage]: {
+    requestType: DeletePageRequest,
+    responseType: DeletePageResponse,
+  },
+  [RuntimeMethodIds.knowledge.ingestDocument]: {
+    requestType: IngestDocumentRequest,
+    responseType: IngestDocumentResponse,
+  },
+  [RuntimeMethodIds.knowledge.getIngestTask]: {
+    requestType: GetIngestTaskRequest,
+    responseType: GetIngestTaskResponse,
+  },
+  [RuntimeMethodIds.knowledge.searchKeyword]: {
+    requestType: SearchKeywordRequest,
+    responseType: SearchKeywordResponse,
+  },
+  [RuntimeMethodIds.knowledge.searchHybrid]: {
+    requestType: SearchHybridRequest,
+    responseType: SearchHybridResponse,
+  },
+  [RuntimeMethodIds.knowledge.addLink]: {
+    requestType: AddLinkRequest,
+    responseType: AddLinkResponse,
+  },
+  [RuntimeMethodIds.knowledge.removeLink]: {
+    requestType: RemoveLinkRequest,
+    responseType: RemoveLinkResponse,
+  },
+  [RuntimeMethodIds.knowledge.listLinks]: {
+    requestType: ListLinksRequest,
+    responseType: ListLinksResponse,
+  },
+  [RuntimeMethodIds.knowledge.listBacklinks]: {
+    requestType: ListBacklinksRequest,
+    responseType: ListBacklinksResponse,
+  },
+  [RuntimeMethodIds.knowledge.traverseGraph]: {
+    requestType: TraverseGraphRequest,
+    responseType: TraverseGraphResponse,
   },
   [RuntimeMethodIds.memory.createBank]: {
     requestType: CreateBankRequest,
