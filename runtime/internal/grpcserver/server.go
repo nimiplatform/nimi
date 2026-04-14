@@ -49,6 +49,7 @@ type Server struct {
 	aiHealth         *providerhealth.Tracker
 	auditStore       *auditlog.Store
 	aiSvc            *aiservice.Service
+	appService       *appservice.Service
 	localService     *localservice.Service
 	memoryService    *memoryservice.Service
 	agentCoreService *agentcoreservice.Service
@@ -182,6 +183,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentCoreSvc.SetLifeTrackExecutor(agentcoreservice.NewAIBackedLifeTrackExecutor(aiSvc))
+	agentCoreSvc.SetChatTrackSidecarExecutor(agentcoreservice.NewAIBackedChatTrackSidecarExecutor(aiSvc))
+	agentCoreSvc.SetCanonicalReviewExecutor(agentcoreservice.NewAIBackedCanonicalReviewExecutor(aiSvc))
 	runtimev1.RegisterRuntimeAgentCoreServiceServer(g, agentCoreSvc)
 
 	// K-SCHED-004: register target-agnostic denial checks. Device profile is
@@ -284,8 +287,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger))                               // Phase 2 Draft
-	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger, appservice.WithSessionValidator(authSvc))) // Phase 2 Draft
+	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger)) // Phase 2 Draft
+	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
+	appSvc.RegisterInternalConsumer("runtime.agentcore", agentCoreSvc.ConsumeChatTrackSidecarAppMessage)
+	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
 
 	s := &Server{
 		addr:             addr,
@@ -297,6 +302,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		aiHealth:         aiHealth,
 		auditStore:       auditStore,
 		aiSvc:            aiSvc,
+		appService:       appSvc,
 		localService:     localSvc,
 		memoryService:    memorySvc,
 		agentCoreService: agentCoreSvc,
@@ -315,6 +321,10 @@ func (s *Server) AuditStore() *auditlog.Store {
 
 func (s *Server) AIService() *aiservice.Service {
 	return s.aiSvc
+}
+
+func (s *Server) AppService() *appservice.Service {
+	return s.appService
 }
 
 // LocalService returns the in-process local runtime service for engine

@@ -30,6 +30,7 @@ type lifeTurnRequest struct {
 }
 
 type lifeTurnResult struct {
+	PosturePatch              *BehavioralPosturePatch
 	StatusText                *string
 	CanonicalMemoryCandidates []*lifeTurnMemoryCandidate
 	NextHookIntent            *runtimev1.NextHookIntent
@@ -60,17 +61,27 @@ type lifeTurnExecutionError struct {
 }
 
 type lifeTurnExecutorJSON struct {
-	StatusText                *string                       `json:"status_text"`
-	Summary                   string                        `json:"summary"`
-	TokensUsed                *int64                        `json:"tokens_used"`
-	CanonicalMemoryCandidates []lifeTurnMemoryCandidateJSON `json:"canonical_memory_candidates"`
-	NextHookIntent            json.RawMessage               `json:"next_hook_intent"`
+	BehavioralPosture         *lifeTurnBehavioralPostureJSON `json:"behavioral_posture"`
+	StatusText                *string                        `json:"status_text"`
+	Summary                   string                         `json:"summary"`
+	TokensUsed                *int64                         `json:"tokens_used"`
+	CanonicalMemoryCandidates []lifeTurnMemoryCandidateJSON  `json:"canonical_memory_candidates"`
+	NextHookIntent            json.RawMessage                `json:"next_hook_intent"`
 }
 
 type lifeTurnMemoryCandidateJSON struct {
 	CanonicalClass string          `json:"canonical_class"`
 	PolicyReason   string          `json:"policy_reason"`
 	Record         json.RawMessage `json:"record"`
+}
+
+type lifeTurnBehavioralPostureJSON struct {
+	PostureClass     string   `json:"posture_class"`
+	ActionFamily     string   `json:"action_family"`
+	InterruptMode    string   `json:"interrupt_mode"`
+	TransitionReason string   `json:"transition_reason"`
+	TruthBasisIDs    []string `json:"truth_basis_ids"`
+	StatusText       string   `json:"status_text"`
 }
 
 func NewAIBackedLifeTrackExecutor(ai lifeTurnScenarioExecutor) LifeTrackExecutor {
@@ -210,6 +221,7 @@ func lifeTurnPrompts(req *lifeTurnRequest) (string, string, error) {
 	systemPrompt := strings.TrimSpace(`You are the runtime-private Life Track executor for Nimi Agent Core.
 Return exactly one JSON object and nothing else.
 Allowed top-level fields:
+- behavioral_posture: object or null
 - status_text: string or null
 - summary: string
 - tokens_used: integer
@@ -220,6 +232,13 @@ Rules:
 - Do not emit markdown, prose, code fences, or comments.
 - Do not emit initiate_chat_intent or any app-facing action.
 - Do not mutate arbitrary attributes or world/user state directly.
+- behavioral_posture, if present, may only contain:
+  - posture_class: string
+  - action_family: observe | engage | support | assist | reflect | rest
+  - interrupt_mode: welcome | cautious | focused
+  - transition_reason: string
+  - truth_basis_ids: array of truth ids
+  - status_text: string
 - canonical_memory_candidates entries may only contain:
   - canonical_class: PUBLIC_SHARED | WORLD_SHARED | DYADIC
   - policy_reason: string
@@ -265,6 +284,7 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 		return nil, fmt.Errorf("life turn executor output invalid: %w", err)
 	}
 	result := &lifeTurnResult{
+		PosturePatch:              nil,
 		StatusText:                payload.StatusText,
 		Summary:                   strings.TrimSpace(payload.Summary),
 		CanonicalMemoryCandidates: make([]*lifeTurnMemoryCandidate, 0, len(payload.CanonicalMemoryCandidates)),
@@ -275,6 +295,34 @@ func decodeLifeTurnExecutorResult(raw string, fallbackTokens int64) (*lifeTurnRe
 	}
 	if result.TokensUsed <= 0 && payload.TokensUsed != nil {
 		result.TokensUsed = *payload.TokensUsed
+	}
+	if payload.BehavioralPosture != nil {
+		patch := &BehavioralPosturePatch{
+			PostureClass:     payload.BehavioralPosture.PostureClass,
+			ActionFamily:     payload.BehavioralPosture.ActionFamily,
+			InterruptMode:    payload.BehavioralPosture.InterruptMode,
+			TransitionReason: payload.BehavioralPosture.TransitionReason,
+			TruthBasisIDs:    append([]string(nil), payload.BehavioralPosture.TruthBasisIDs...),
+			StatusText:       payload.BehavioralPosture.StatusText,
+		}
+		if strings.TrimSpace(patch.StatusText) == "" && payload.StatusText != nil {
+			patch.StatusText = strings.TrimSpace(*payload.StatusText)
+		}
+		normalized, err := normalizeBehavioralPosturePatch("life_track", *patch)
+		if err != nil {
+			return nil, fmt.Errorf("life turn executor behavioral_posture invalid: %w", err)
+		}
+		result.PosturePatch = &BehavioralPosturePatch{
+			PostureClass:     normalized.PostureClass,
+			ActionFamily:     normalized.ActionFamily,
+			InterruptMode:    normalized.InterruptMode,
+			TransitionReason: normalized.TransitionReason,
+			TruthBasisIDs:    append([]string(nil), normalized.TruthBasisIDs...),
+			StatusText:       normalized.StatusText,
+		}
+		if result.StatusText == nil {
+			result.StatusText = &result.PosturePatch.StatusText
+		}
 	}
 	if len(payload.NextHookIntent) > 0 && string(payload.NextHookIntent) != "null" {
 		intent := &runtimev1.NextHookIntent{}

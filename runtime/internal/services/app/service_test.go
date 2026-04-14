@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -519,6 +520,71 @@ func TestSendAppMessageRejectsContextAppMismatch(t *testing.T) {
 	}
 	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
 		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestSendAppMessageDispatchesRegisteredInternalConsumer(t *testing.T) {
+	svc := newTestService()
+	var received *runtimev1.AppMessageEvent
+	svc.RegisterInternalConsumer("runtime.agentcore", func(_ context.Context, event *runtimev1.AppMessageEvent) error {
+		received = event
+		return nil
+	})
+
+	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId:     "desktop.core",
+		ToAppId:       "runtime.agentcore",
+		SubjectUserId: "user-1",
+		MessageType:   "agent.chat_track.sidecar_input.v1",
+		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
+			"agent_id": structpb.NewStringValue("agent-1"),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage: %v", err)
+	}
+	if received == nil {
+		t.Fatal("expected internal consumer to receive event")
+	}
+	if received.GetToAppId() != "runtime.agentcore" || received.GetMessageType() != "agent.chat_track.sidecar_input.v1" {
+		t.Fatalf("unexpected consumer event: %#v", received)
+	}
+	if !svc.HasInternalConsumer("runtime.agentcore") {
+		t.Fatal("expected registered internal consumer")
+	}
+}
+
+func TestSendAppMessageWithoutInternalConsumerKeepsAcceptedBehavior(t *testing.T) {
+	svc := newTestService()
+
+	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "desktop.core",
+		ToAppId:   "runtime.unbound",
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response: %#v", resp)
+	}
+	if svc.HasInternalConsumer("runtime.unbound") {
+		t.Fatal("expected runtime.unbound to remain unregistered")
+	}
+}
+
+func TestSendAppMessageFailsClosedWhenInternalConsumerReturnsError(t *testing.T) {
+	svc := newTestService()
+	wantErr := status.Error(codes.InvalidArgument, "consumer rejected payload")
+	svc.RegisterInternalConsumer("runtime.agentcore", func(_ context.Context, _ *runtimev1.AppMessageEvent) error {
+		return wantErr
+	})
+
+	_, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
+		FromAppId: "desktop.core",
+		ToAppId:   "runtime.agentcore",
+	})
+	if !errors.Is(err, wantErr) && status.Convert(err).Message() != status.Convert(wantErr).Message() {
+		t.Fatalf("expected consumer error, got %v", err)
 	}
 }
 

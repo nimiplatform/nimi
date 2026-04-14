@@ -20,6 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -214,6 +215,161 @@ func TestAgentCoreInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_MEMORY {
 		t.Fatalf("unexpected event type: %s", stream.events[0].GetEventType())
+	}
+}
+
+func TestAgentCoreRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testing.T) {
+	t.Parallel()
+
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId:     "agent-feedback",
+		DisplayName: "Feedback Agent",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	writeResp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		AgentId: "agent-feedback",
+		Candidates: []*runtimev1.CanonicalMemoryCandidate{
+			{
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+				TargetBank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-feedback"},
+					},
+				},
+				SourceEventId: "evt-feedback-1",
+				Record: &runtimev1.MemoryRecordInput{
+					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+					Payload: &runtimev1.MemoryRecordInput_Observational{
+						Observational: &runtimev1.ObservationalMemoryRecord{Observation: "alpha project note"},
+					},
+				},
+			},
+			{
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+				TargetBank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-feedback"},
+					},
+				},
+				SourceEventId: "evt-feedback-2",
+				Record: &runtimev1.MemoryRecordInput{
+					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+					Payload: &runtimev1.MemoryRecordInput_Observational{
+						Observational: &runtimev1.ObservationalMemoryRecord{Observation: "alpha project plan"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("WriteAgentMemory: %v", err)
+	}
+	if len(writeResp.GetAccepted()) != 2 {
+		t.Fatalf("expected 2 accepted memories, got %d", len(writeResp.GetAccepted()))
+	}
+	firstID := writeResp.GetAccepted()[0].GetRecord().GetMemoryId()
+	secondID := writeResp.GetAccepted()[1].GetRecord().GetMemoryId()
+
+	if err := svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
+		FeedbackID: "agent-feedback-helpful-1",
+		AgentID:    "agent-feedback",
+		TargetKind: "record",
+		TargetID:   secondID,
+		Polarity:   "helpful",
+		QueryText:  "alpha",
+	}); err != nil {
+		t.Fatalf("RecordAgentMemoryRecallFeedback(helpful): %v", err)
+	}
+	if err := svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
+		FeedbackID: "agent-feedback-unhelpful-1",
+		AgentID:    "agent-feedback",
+		TargetKind: "record",
+		TargetID:   firstID,
+		Polarity:   "unhelpful",
+		QueryText:  "alpha",
+	}); err != nil {
+		t.Fatalf("RecordAgentMemoryRecallFeedback(unhelpful): %v", err)
+	}
+
+	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		AgentId: "agent-feedback",
+		Query:   "alpha",
+		Limit:   10,
+	})
+	if err != nil {
+		t.Fatalf("QueryAgentMemory: %v", err)
+	}
+	if len(queryResp.GetMemories()) < 2 {
+		t.Fatalf("expected at least 2 memories, got %#v", queryResp.GetMemories())
+	}
+	if queryResp.GetMemories()[0].GetRecord().GetMemoryId() != secondID {
+		t.Fatalf("expected helpful memory to rank first, got %#v", queryResp.GetMemories())
+	}
+	if queryResp.GetMemories()[1].GetRecord().GetMemoryId() != firstID {
+		t.Fatalf("expected unhelpful memory to rank after helpful memory, got %#v", queryResp.GetMemories())
+	}
+}
+
+func TestAgentCoreRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *testing.T) {
+	t.Parallel()
+
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId:     "agent-feedback-boundary",
+		DisplayName: "Feedback Boundary Agent",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	err = svc.RecordAgentMemoryRecallFeedback(ctx, AgentMemoryRecallFeedback{
+		FeedbackID: "agent-feedback-boundary-1",
+		AgentID:    "agent-feedback-boundary",
+		Bank: &runtimev1.MemoryBankLocator{
+			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+			Owner: &runtimev1.MemoryBankLocator_AgentCore{
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "someone-else"},
+			},
+		},
+		TargetKind: "record",
+		TargetID:   "memory-x",
+		Polarity:   "helpful",
+	})
+	if err == nil {
+		t.Fatal("expected mismatched bank validation error")
+	}
+	if !strings.Contains(err.Error(), "agent_core review bank must match agent_id") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -444,10 +600,14 @@ func TestAgentCoreBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 		t.Fatalf("InitializeAgent: %v", err)
 	}
 	want := BehavioralPosture{
-		AgentID:       "agent-posture",
-		StatusText:    "steady and terse",
-		TruthBasisIDs: []string{"truth-1", "truth-2"},
-		InterruptMode: "baseline",
+		AgentID:          "agent-posture",
+		PostureClass:     "steady_support",
+		ActionFamily:     "support",
+		StatusText:       "steady and terse",
+		TruthBasisIDs:    []string{"truth-1", "truth-2"},
+		InterruptMode:    "cautious",
+		TransitionReason: "user needs steady support",
+		ModeID:           "support",
 	}
 	if err := svc.PutBehavioralPosture(ctx, want); err != nil {
 		t.Fatalf("PutBehavioralPosture: %v", err)
@@ -481,7 +641,7 @@ func TestAgentCoreBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	if got == nil {
 		t.Fatal("expected persisted posture")
 	}
-	if got.AgentID != want.AgentID || got.StatusText != want.StatusText || got.InterruptMode != want.InterruptMode {
+	if got.AgentID != want.AgentID || got.StatusText != want.StatusText || got.InterruptMode != want.InterruptMode || got.PostureClass != want.PostureClass || got.ActionFamily != want.ActionFamily || got.TransitionReason != want.TransitionReason || got.ModeID != want.ModeID {
 		t.Fatalf("unexpected posture: %#v", got)
 	}
 	if len(got.TruthBasisIDs) != len(want.TruthBasisIDs) {
@@ -622,6 +782,640 @@ func TestAgentCoreRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	}
 	if followUp == nil || followUp.ReviewRunID != "review-run-1" || followUp.CheckpointBasis != sourceRecordID {
 		t.Fatalf("unexpected review follow-up: %#v", followUp)
+	}
+}
+
+func TestAgentCoreRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	localStatePath := filepath.Join(dir, "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-wave4-threshold",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-wave4-threshold"},
+		},
+	}
+	if _, err := memorySvc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "shared project planning"},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "ongoing collaboration cadence"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	sourceIDs := []string{
+		retainResp.GetRecords()[0].GetMemoryId(),
+		retainResp.GetRecords()[1].GetMemoryId(),
+	}
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:     "review-run-wave4-threshold",
+		AgentID:         "agent-wave4-threshold",
+		BankLocatorKey:  memoryservice.LocatorKey(locator),
+		CheckpointBasis: sourceIDs[1],
+		PreparedOutcomes: memoryservice.CanonicalReviewOutcomes{
+			Truths: []memoryservice.TruthCandidate{
+				{
+					TruthID:         "truth-wave4-threshold",
+					Dimension:       "relational",
+					NormalizedKey:   "relationship:cadence",
+					Statement:       "The relationship cadence is becoming stable.",
+					Confidence:      0.9,
+					Status:          "admitted",
+					SourceMemoryIDs: sourceIDs,
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun: %v", err)
+	}
+
+	if err := memorySvc.PersistenceBackend().Close(); err != nil {
+		t.Fatalf("Close(first backend): %v", err)
+	}
+
+	memorySvc, err = memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New(restart): %v", err)
+	}
+	defer func() {
+		if err := memorySvc.PersistenceBackend().Close(); err != nil {
+			t.Fatalf("Close(second backend): %v", err)
+		}
+	}()
+	svc, err = New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New(restart): %v", err)
+	}
+
+	var truthStatus string
+	if err := memorySvc.PersistenceBackend().DB().QueryRow(`
+		SELECT status
+		FROM agent_truth
+		WHERE truth_id = ?
+	`, "truth-wave4-threshold").Scan(&truthStatus); err != nil {
+		t.Fatalf("load truth status: %v", err)
+	}
+	if truthStatus != "candidate" {
+		t.Fatalf("expected relational truth to downgrade to candidate, got %q", truthStatus)
+	}
+	truths, err := memorySvc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 0 {
+		t.Fatalf("expected no admitted truths after downgrade, got %#v", truths)
+	}
+}
+
+func TestAgentCoreExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) {
+	t.Parallel()
+
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       32,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	})
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-canonical-review",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-canonical-review"},
+		},
+	}
+	if _, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "memory redesign review quality"},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "review quality memory redesign"},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "astronomy telescope note"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+
+	var sawRequest *CanonicalReviewExecutorRequest
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		sawRequest = req
+		return &CanonicalReviewExecutorResult{
+			TokensUsed: 77,
+			Outcomes: memoryservice.CanonicalReviewOutcomes{
+				Narratives: []memoryservice.NarrativeCandidate{
+					{
+						NarrativeID:     "nar-exec-1",
+						Topic:           "memory redesign",
+						Content:         "The current focus remains memory redesign review quality.",
+						SourceVersion:   "wave4",
+						Status:          "active",
+						SourceMemoryIDs: []string{req.Clusters[0].RecordIDs[0], req.Clusters[0].RecordIDs[1]},
+					},
+				},
+				Truths: []memoryservice.TruthCandidate{
+					{
+						TruthID:         "truth-exec-1",
+						Dimension:       "source",
+						NormalizedKey:   "relationship:review-cadence",
+						Statement:       "The agent and user are iterating closely on review quality.",
+						Confidence:      0.9,
+						Status:          "admitted",
+						SourceMemoryIDs: []string{req.Clusters[0].RecordIDs[0], req.Clusters[0].RecordIDs[1], retainResp.GetRecords()[2].GetMemoryId(), req.Clusters[0].RecordIDs[0]},
+					},
+				},
+				Relations: []memoryservice.RelationCandidate{
+					{
+						SourceID:     req.Clusters[0].RecordIDs[0],
+						TargetID:     retainResp.GetRecords()[2].GetMemoryId(),
+						RelationType: "thematic",
+						Confidence:   0.9,
+					},
+				},
+			},
+		}, nil
+	}))
+
+	result, err := svc.ExecuteCanonicalReview(ctx, CanonicalReviewRequest{
+		AgentID: "agent-canonical-review",
+		Bank:    locator,
+		Limit:   10,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteCanonicalReview: %v", err)
+	}
+	if result.Skipped {
+		t.Fatalf("expected review execution, got skipped result %#v", result)
+	}
+	if result.ClusterCount != 1 || result.LeftoverCount != 1 || result.NarrativeCount != 1 || result.TruthCount != 1 || result.TokensUsed != 77 {
+		t.Fatalf("unexpected execution result: %#v", result)
+	}
+	if sawRequest == nil {
+		t.Fatal("expected executor request to be captured")
+	}
+	if len(sawRequest.Clusters) != 1 || len(sawRequest.Clusters[0].RecordIDs) != 2 {
+		t.Fatalf("expected one 2-record cluster, got %#v", sawRequest.Clusters)
+	}
+	if len(sawRequest.Leftovers) != 1 || sawRequest.Leftovers[0].GetMemoryId() != retainResp.GetRecords()[2].GetMemoryId() {
+		t.Fatalf("expected astronomy record leftover, got %#v", sawRequest.Leftovers)
+	}
+
+	var reviewStatus string
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM agentcore_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
+		t.Fatalf("load review run status: %v", err)
+	}
+	if reviewStatus != "completed" {
+		t.Fatalf("expected completed review run, got %q", reviewStatus)
+	}
+	truths, err := memorySvc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 1 || truths[0].TruthID != "truth-exec-1" || truths[0].Status != "admitted" {
+		t.Fatalf("unexpected admitted truths: %#v", truths)
+	}
+	narratives, err := memorySvc.ListNarrativeContext(ctx, locator, "memory redesign", 5)
+	if err != nil {
+		t.Fatalf("ListNarrativeContext: %v", err)
+	}
+	if len(narratives) != 1 || narratives[0].GetNarrativeId() != "nar-exec-1" {
+		t.Fatalf("unexpected narratives: %#v", narratives)
+	}
+	var relationCount int
+	if err := memorySvc.PersistenceBackend().DB().QueryRow(`
+		SELECT COUNT(*)
+		FROM memory_relation
+		WHERE bank_locator_key = ? AND relation_type = 'thematic'
+	`, memoryservice.LocatorKey(locator)).Scan(&relationCount); err != nil {
+		t.Fatalf("count memory_relation: %v", err)
+	}
+	if relationCount != 1 {
+		t.Fatalf("expected one persisted relation, got %d", relationCount)
+	}
+}
+
+type canonicalReviewExecutorFunc func(context.Context, *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error)
+
+func (fn canonicalReviewExecutorFunc) ExecuteCanonicalReview(ctx context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+	return fn(ctx, req)
+}
+
+func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
+	t.Parallel()
+
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{
+  "summary": "review complete",
+  "tokens_used": 42,
+  "narratives": [
+    {
+      "narrative_id": "nar-ai-1",
+      "topic": "review quality",
+      "content": "The work remains focused on review quality.",
+      "source_version": "wave4",
+      "status": "active",
+      "source_memory_ids": ["mem-1", "mem-2"]
+    }
+  ],
+  "truths": [
+    {
+      "truth_id": "truth-ai-1",
+      "dimension": "relational",
+      "normalized_key": "relationship:review-quality",
+      "statement": "The agent and user are collaborating on review quality.",
+      "confidence": 0.91,
+      "source_count": 2,
+      "review_count": 1,
+      "status": "admitted",
+      "source_memory_ids": ["mem-1", "mem-3"]
+    }
+  ]
+}`,
+					},
+				},
+			},
+		},
+	}
+	executor := NewAIBackedCanonicalReviewExecutor(fakeAI)
+
+	result, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
+		Agent: &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
+		State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
+		Bank: &runtimev1.MemoryBankLocator{
+			Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+			Owner: &runtimev1.MemoryBankLocator_AgentCore{
+				AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-ai"},
+			},
+		},
+		CheckpointBasis: "mem-0",
+		Clusters: []memoryservice.ReviewTopicCluster{
+			{RecordIDs: []string{"mem-1", "mem-2"}},
+		},
+		Leftovers: []*runtimev1.MemoryRecord{
+			{MemoryId: "mem-3"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteCanonicalReview: %v", err)
+	}
+	if len(fakeAI.requests) != 1 {
+		t.Fatalf("expected one AI request, got %d", len(fakeAI.requests))
+	}
+	if result.TokensUsed != 42 || result.Outcomes.Summary != "review complete" {
+		t.Fatalf("unexpected canonical review result: %#v", result)
+	}
+	if len(result.Outcomes.Narratives) != 1 || result.Outcomes.Narratives[0].NarrativeID != "nar-ai-1" {
+		t.Fatalf("unexpected narratives: %#v", result.Outcomes.Narratives)
+	}
+	if len(result.Outcomes.Truths) != 1 || result.Outcomes.Truths[0].TruthID != "truth-ai-1" {
+		t.Fatalf("unexpected truths: %#v", result.Outcomes.Truths)
+	}
+}
+
+func TestAIBackedCanonicalReviewExecutorRejectsInvalidOutput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		output  string
+		wantErr string
+	}{
+		{
+			name:    "markdown",
+			output:  "```json\n{}\n```",
+			wantErr: "output invalid",
+		},
+		{
+			name: "unknown_field",
+			output: `{
+  "summary": "bad",
+  "narratives": [],
+  "truths": [],
+  "extra_field": []
+}`,
+			wantErr: "unknown field",
+		},
+		{
+			name: "invalid_dimension",
+			output: `{
+  "summary": "bad",
+  "narratives": [],
+  "truths": [
+    {
+      "truth_id": "truth-bad-1",
+      "dimension": "employment",
+      "normalized_key": "bad:key",
+      "statement": "bad",
+      "confidence": 0.9,
+      "source_memory_ids": ["mem-1"]
+    }
+  ]
+}`,
+			wantErr: "dimension must be relational, cognitive, value, or procedural",
+		},
+		{
+			name: "invalid_relation_type",
+			output: `{
+  "summary": "bad",
+  "narratives": [],
+  "truths": [],
+  "relations": [
+    {
+      "source_id": "mem-1",
+      "target_id": "mem-2",
+      "relation_type": "same_event",
+      "confidence": 0.9
+    }
+  ]
+}`,
+			wantErr: "relation_type must be causal, emotional, or thematic",
+		},
+		{
+			name: "narrative_from_leftover_only",
+			output: `{
+  "summary": "bad",
+  "narratives": [
+    {
+      "narrative_id": "nar-bad-1",
+      "topic": "singleton",
+      "content": "bad singleton narrative",
+      "source_memory_ids": ["mem-3", "mem-3"]
+    }
+  ],
+  "truths": []
+}`,
+			wantErr: "must cite at least 2 distinct source_memory_ids",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			executor := NewAIBackedCanonicalReviewExecutor(&fakeLifeTurnAI{
+				response: &runtimev1.ExecuteScenarioResponse{
+					Output: &runtimev1.ScenarioOutput{
+						Output: &runtimev1.ScenarioOutput_TextGenerate{
+							TextGenerate: &runtimev1.TextGenerateOutput{Text: tt.output},
+						},
+					},
+				},
+			})
+			_, err := executor.ExecuteCanonicalReview(context.Background(), &CanonicalReviewExecutorRequest{
+				Agent: &runtimev1.AgentRecord{AgentId: "agent-review-ai"},
+				State: &runtimev1.AgentStateProjection{ActiveUserId: "user-1"},
+				Bank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-review-ai"},
+					},
+				},
+				Clusters: []memoryservice.ReviewTopicCluster{
+					{RecordIDs: []string{"mem-1", "mem-2"}},
+				},
+				Leftovers: []*runtimev1.MemoryRecord{
+					{MemoryId: "mem-3"},
+				},
+			})
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error containing %q, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestAgentCoreExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Normalization(t *testing.T) {
+	t.Parallel()
+
+	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+	memorySvc, err := memoryservice.New(nil, config.Config{
+		LocalStatePath:       localStatePath,
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("memory.New: %v", err)
+	}
+	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       32,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	})
+	svc, err := New(nil, localStatePath, memorySvc)
+	if err != nil {
+		t.Fatalf("agentcore.New: %v", err)
+	}
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-canonical-review-ai",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-canonical-review-ai"},
+		},
+	}
+	if _, err := memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
+	}
+	retainResp, err := memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "memory redesign review quality"},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "review quality memory redesign"},
+				},
+			},
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "astronomy telescope note"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	svc.SetCanonicalReviewExecutor(NewAIBackedCanonicalReviewExecutor(&fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: fmt.Sprintf(`{
+  "summary": "wave 4 review",
+  "tokens_used": 64,
+  "narratives": [
+    {
+      "narrative_id": "nar-ai-exec-1",
+      "topic": "memory redesign",
+      "content": "The current focus remains memory redesign review quality.",
+      "source_version": "wave4",
+      "status": "active",
+      "source_memory_ids": ["%s", "%s"]
+    }
+  ],
+  "truths": [
+    {
+      "truth_id": "truth-ai-exec-1",
+      "dimension": "relational",
+      "normalized_key": "relationship:review-cadence",
+      "statement": "The agent and user are iterating closely on review quality.",
+      "confidence": 0.9,
+      "source_count": 2,
+      "status": "admitted",
+      "source_memory_ids": ["%s", "%s"]
+    }
+  ],
+  "relations": [
+    {
+      "source_id": "%s",
+      "target_id": "%s",
+      "relation_type": "thematic",
+      "confidence": 0.9
+    }
+  ]
+}`, retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[1].GetMemoryId(), retainResp.GetRecords()[0].GetMemoryId(), retainResp.GetRecords()[2].GetMemoryId()),
+					},
+				},
+			},
+		},
+	}))
+
+	result, err := svc.ExecuteCanonicalReview(ctx, CanonicalReviewRequest{
+		AgentID: "agent-canonical-review-ai",
+		Bank:    locator,
+		Limit:   10,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteCanonicalReview: %v", err)
+	}
+	if result.Skipped {
+		t.Fatalf("expected review execution, got skipped result %#v", result)
+	}
+	if result.NarrativeCount != 1 || result.TruthCount != 1 || result.LeftoverCount != 1 {
+		t.Fatalf("unexpected execution result: %#v", result)
+	}
+	var reviewStatus string
+	if err := svc.backend.DB().QueryRow(`SELECT status FROM agentcore_review_run WHERE review_run_id = ?`, result.ReviewRunID).Scan(&reviewStatus); err != nil {
+		t.Fatalf("load review run status: %v", err)
+	}
+	if reviewStatus != "completed" {
+		t.Fatalf("expected completed review run, got %q", reviewStatus)
+	}
+	var truthStatus string
+	var sourceCount int32
+	if err := memorySvc.PersistenceBackend().DB().QueryRow(`
+		SELECT status, truth_json
+		FROM agent_truth
+		WHERE truth_id = ?
+	`, "truth-ai-exec-1").Scan(&truthStatus, new(string)); err != nil {
+		t.Fatalf("load truth row: %v", err)
+	}
+	truths, err := memorySvc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 0 {
+		t.Fatalf("expected no admitted truths after Wave 4 normalization, got %#v", truths)
+	}
+	var truthJSON string
+	if err := memorySvc.PersistenceBackend().DB().QueryRow(`SELECT truth_json FROM agent_truth WHERE truth_id = ?`, "truth-ai-exec-1").Scan(&truthJSON); err != nil {
+		t.Fatalf("load truth json: %v", err)
+	}
+	var storedTruth memoryservice.TruthCandidate
+	if err := json.Unmarshal([]byte(truthJSON), &storedTruth); err != nil {
+		t.Fatalf("unmarshal stored truth: %v", err)
+	}
+	sourceCount = storedTruth.SourceCount
+	if truthStatus != "candidate" || sourceCount != 2 {
+		t.Fatalf("expected stored truth to downgrade to candidate with source_count=2, got status=%q source_count=%d truth=%#v", truthStatus, sourceCount, storedTruth)
 	}
 }
 
@@ -2264,6 +3058,92 @@ func TestAgentCoreLifeTrackLoopReschedulesWithAIOutput(t *testing.T) {
 	}
 }
 
+func TestAgentCoreLifeTrackLoopPersistsBehavioralPostureFromAIOutput(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-loop-posture",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			DailyTokenBudget: 25,
+		},
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	now := time.Now().UTC()
+	if err := svc.admitPendingHook("agent-loop-posture", &runtimev1.PendingHook{
+		HookId: "hook-loop-posture",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		ScheduledFor: timestamppb.New(now.Add(-time.Second)),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	svc.SetLifeTrackExecutor(NewAIBackedLifeTrackExecutor(&fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{"behavioral_posture":{"posture_class":"careful_support","action_family":"support","interrupt_mode":"cautious","transition_reason":"user seems discouraged","truth_basis_ids":["truth-1","truth-1","truth-2"],"status_text":"staying close and careful"},"summary":"posture updated","tokens_used":4,"canonical_memory_candidates":[],"next_hook_intent":null}`,
+					},
+				},
+			},
+		},
+	}))
+
+	loopCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := svc.StartLifeTrackLoop(loopCtx); err != nil {
+		t.Fatalf("StartLifeTrackLoop: %v", err)
+	}
+	defer svc.StopLifeTrackLoop()
+
+	waitForAgentCoreCondition(t, 2*time.Second, func() bool {
+		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			AgentId:      "agent-loop-posture",
+			StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_COMPLETED,
+		})
+		return err == nil && len(resp.GetHooks()) == 1
+	})
+
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-loop-posture")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture == nil {
+		t.Fatal("expected persisted posture")
+	}
+	if posture.PostureClass != "careful_support" || posture.ActionFamily != "support" || posture.InterruptMode != "cautious" || posture.ModeID != "support" {
+		t.Fatalf("unexpected posture values: %#v", posture)
+	}
+	if posture.StatusText != "staying close and careful" || posture.TransitionReason != "user seems discouraged" {
+		t.Fatalf("unexpected posture text fields: %#v", posture)
+	}
+	if len(posture.TruthBasisIDs) != 2 || posture.TruthBasisIDs[0] != "truth-1" || posture.TruthBasisIDs[1] != "truth-2" {
+		t.Fatalf("unexpected truth basis ids: %#v", posture.TruthBasisIDs)
+	}
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-loop-posture"})
+	if err != nil {
+		t.Fatalf("GetAgentState: %v", err)
+	}
+	if stateResp.GetState().GetStatusText() != "staying close and careful" {
+		t.Fatalf("expected status_text projection update, got %#v", stateResp.GetState())
+	}
+}
+
 func TestAgentCoreLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	t.Parallel()
 
@@ -2351,6 +3231,479 @@ func TestAgentCoreLifeTrackLoopFailsOnInvalidAIOutput(t *testing.T) {
 	}
 	if last.GetHook().GetOutcome().GetFailed().GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 		t.Fatalf("expected AI_OUTPUT_INVALID, got %#v", last.GetHook().GetOutcome())
+	}
+}
+
+func TestAgentCoreLifeTrackLoopFailsOnInvalidBehavioralPostureOutput(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-loop-invalid-posture",
+		AutonomyConfig: &runtimev1.AgentAutonomyConfig{
+			DailyTokenBudget: 25,
+		},
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	now := time.Now().UTC()
+	if err := svc.admitPendingHook("agent-loop-invalid-posture", &runtimev1.PendingHook{
+		HookId: "hook-loop-invalid-posture",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(now.Add(-time.Second))},
+			},
+		},
+		ScheduledFor: timestamppb.New(now.Add(-time.Second)),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	svc.SetLifeTrackExecutor(NewAIBackedLifeTrackExecutor(&fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{"behavioral_posture":{"posture_class":"bad","action_family":"freestyle","interrupt_mode":"welcome","transition_reason":"bad","status_text":"bad"},"summary":"bad","tokens_used":2,"canonical_memory_candidates":[],"next_hook_intent":null}`,
+					},
+				},
+			},
+		},
+	}))
+
+	loopCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := svc.StartLifeTrackLoop(loopCtx); err != nil {
+		t.Fatalf("StartLifeTrackLoop: %v", err)
+	}
+	defer svc.StopLifeTrackLoop()
+
+	waitForAgentCoreCondition(t, 2*time.Second, func() bool {
+		resp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+			AgentId:      "agent-loop-invalid-posture",
+			StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_FAILED,
+		})
+		return err == nil && len(resp.GetHooks()) == 1
+	})
+
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-loop-invalid-posture")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture != nil {
+		t.Fatalf("expected no committed posture after invalid output, got %#v", posture)
+	}
+}
+
+func TestAgentCoreApplyChatTrackSidecarPersistsBehavioralPosture(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-posture",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-posture", "chat-turn-posture", ChatTrackSidecarResult{
+		PosturePatch: &BehavioralPosturePatch{
+			PostureClass:     "careful_support",
+			ActionFamily:     "support",
+			InterruptMode:    "cautious",
+			TransitionReason: "chat sidecar alignment",
+			TruthBasisIDs:    []string{"truth-1", "truth-1", "truth-2"},
+			StatusText:       "staying close and careful",
+		},
+	})
+	if err != nil {
+		t.Fatalf("ApplyChatTrackSidecar: %v", err)
+	}
+
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-posture")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture == nil {
+		t.Fatal("expected persisted posture")
+	}
+	if posture.PostureClass != "careful_support" || posture.ActionFamily != "support" || posture.InterruptMode != "cautious" || posture.ModeID != "support" {
+		t.Fatalf("unexpected posture values: %#v", posture)
+	}
+	if len(posture.TruthBasisIDs) != 2 || posture.TruthBasisIDs[0] != "truth-1" || posture.TruthBasisIDs[1] != "truth-2" {
+		t.Fatalf("unexpected truth basis ids: %#v", posture.TruthBasisIDs)
+	}
+	stateResp, err := svc.GetAgentState(ctx, &runtimev1.GetAgentStateRequest{AgentId: "agent-chat-sidecar-posture"})
+	if err != nil {
+		t.Fatalf("GetAgentState: %v", err)
+	}
+	if stateResp.GetState().GetStatusText() != "staying close and careful" {
+		t.Fatalf("expected status_text projection update, got %#v", stateResp.GetState())
+	}
+}
+
+func TestAgentCoreApplyChatTrackSidecarRejectsInvalidBehavioralPosture(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-invalid",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-invalid", "chat-turn-invalid", ChatTrackSidecarResult{
+		PosturePatch: &BehavioralPosturePatch{
+			PostureClass:  "bad",
+			ActionFamily:  "freestyle",
+			InterruptMode: "welcome",
+			StatusText:    "bad",
+		},
+	})
+	if err == nil {
+		t.Fatal("expected invalid posture patch to fail")
+	}
+
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-invalid")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture != nil {
+		t.Fatalf("expected no committed posture after invalid sidecar, got %#v", posture)
+	}
+}
+
+func TestAgentCoreApplyChatTrackSidecarCancelsHooksAddsFollowUpAndWritesMemory(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-combined",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	scheduledFor := time.Now().Add(10 * time.Minute)
+	if err := svc.admitPendingHook("agent-chat-sidecar-combined", &runtimev1.PendingHook{
+		HookId: "hook-chat-sidecar-old",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(scheduledFor)},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(scheduledFor)},
+			},
+		},
+		ScheduledFor: timestamppb.New(scheduledFor),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-combined", "chat-turn-combined", ChatTrackSidecarResult{
+		CancelPendingHookIDs: []string{"hook-chat-sidecar-old"},
+		NextHookIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(scheduledFor.Add(15 * time.Minute))},
+			},
+		},
+		CanonicalMemoryCandidates: []*runtimev1.CanonicalMemoryCandidate{
+			{
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+				TargetBank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-combined"},
+					},
+				},
+				Record: &runtimev1.MemoryRecordInput{
+					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+					Payload: &runtimev1.MemoryRecordInput_Observational{
+						Observational: &runtimev1.ObservationalMemoryRecord{Observation: "chat sidecar memory note"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ApplyChatTrackSidecar: %v", err)
+	}
+
+	canceledResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		AgentId:      "agent-chat-sidecar-combined",
+		StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
+	})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(canceled): %v", err)
+	}
+	if len(canceledResp.GetHooks()) != 1 || canceledResp.GetHooks()[0].GetHookId() != "hook-chat-sidecar-old" {
+		t.Fatalf("expected original hook canceled, got %#v", canceledResp.GetHooks())
+	}
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		AgentId:      "agent-chat-sidecar-combined",
+		StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+	})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(pending): %v", err)
+	}
+	if len(pendingResp.GetHooks()) != 1 {
+		t.Fatalf("expected one follow-up pending hook, got %#v", pendingResp.GetHooks())
+	}
+	if pendingResp.GetHooks()[0].GetHookId() == "hook-chat-sidecar-old" {
+		t.Fatal("expected follow-up hook to have a distinct id")
+	}
+
+	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		AgentId: "agent-chat-sidecar-combined",
+		Query:   "chat sidecar memory",
+		Limit:   5,
+	})
+	if err != nil {
+		t.Fatalf("QueryAgentMemory: %v", err)
+	}
+	if len(queryResp.GetMemories()) == 0 {
+		t.Fatalf("expected sidecar memory write, got %#v", queryResp.GetMemories())
+	}
+}
+
+func TestAgentCoreExecuteChatTrackSidecarWithAIBackedExecutorAppliesOutputs(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-exec",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	scheduledFor := time.Now().Add(5 * time.Minute)
+	if err := svc.admitPendingHook("agent-chat-exec", &runtimev1.PendingHook{
+		HookId: "hook-chat-exec-old",
+		Trigger: &runtimev1.HookTriggerDetail{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.HookTriggerDetail_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeTriggerDetail{ScheduledFor: timestamppb.New(scheduledFor)},
+			},
+		},
+		NextIntent: &runtimev1.NextHookIntent{
+			TriggerKind: runtimev1.HookTriggerKind_HOOK_TRIGGER_KIND_SCHEDULED_TIME,
+			Detail: &runtimev1.NextHookIntent_ScheduledTime{
+				ScheduledTime: &runtimev1.ScheduledTimeHookIntent{ScheduledFor: timestamppb.New(scheduledFor)},
+			},
+		},
+		ScheduledFor: timestamppb.New(scheduledFor),
+	}); err != nil {
+		t.Fatalf("admitPendingHook: %v", err)
+	}
+
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: fmt.Sprintf(`{"behavioral_posture":{"posture_class":"focused_support","action_family":"support","interrupt_mode":"focused","transition_reason":"chat sidecar","truth_basis_ids":["truth-a","truth-a","truth-b"],"status_text":"focused and present"},"cancel_pending_hook_ids":["hook-chat-exec-old"],"next_hook_intent":{"triggerKind":"HOOK_TRIGGER_KIND_SCHEDULED_TIME","reason":"follow up later","scheduledTime":{"scheduledFor":"%s"}},"canonical_memory_candidates":[{"canonical_class":"PUBLIC_SHARED","policy_reason":"chat_summary","record":{"kind":"MEMORY_RECORD_KIND_OBSERVATIONAL","observational":{"observation":"user asked about wave 6 chat posture patch"}}}]}`, scheduledFor.Add(10*time.Minute).Format(time.RFC3339)),
+					},
+				},
+			},
+		},
+	}
+	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
+
+	err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
+		AgentID:       "agent-chat-exec",
+		SourceEventID: "chat-turn-1",
+		Messages: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "please keep the agent focused and remember this request"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteChatTrackSidecar: %v", err)
+	}
+	if len(fakeAI.requests) != 1 {
+		t.Fatalf("expected one AI request, got %d", len(fakeAI.requests))
+	}
+
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-exec")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture == nil || posture.ModeID != "support" || posture.StatusText != "focused and present" {
+		t.Fatalf("unexpected posture after chat sidecar execution: %#v", posture)
+	}
+
+	canceledResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		AgentId:      "agent-chat-exec",
+		StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_CANCELED,
+	})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(canceled): %v", err)
+	}
+	if len(canceledResp.GetHooks()) != 1 || canceledResp.GetHooks()[0].GetHookId() != "hook-chat-exec-old" {
+		t.Fatalf("expected canceled original hook, got %#v", canceledResp.GetHooks())
+	}
+	pendingResp, err := svc.ListPendingHooks(ctx, &runtimev1.ListPendingHooksRequest{
+		AgentId:      "agent-chat-exec",
+		StatusFilter: runtimev1.AgentHookStatus_AGENT_HOOK_STATUS_PENDING,
+	})
+	if err != nil {
+		t.Fatalf("ListPendingHooks(pending): %v", err)
+	}
+	if len(pendingResp.GetHooks()) != 1 {
+		t.Fatalf("expected one follow-up hook, got %#v", pendingResp.GetHooks())
+	}
+
+	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		AgentId: "agent-chat-exec",
+		Query:   "wave 6 posture patch",
+		Limit:   5,
+	})
+	if err != nil {
+		t.Fatalf("QueryAgentMemory: %v", err)
+	}
+	if len(queryResp.GetMemories()) == 0 {
+		t.Fatalf("expected chat sidecar memory write, got %#v", queryResp.GetMemories())
+	}
+}
+
+func TestAgentCoreExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInvalidOutput(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-exec-invalid",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(&fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{"behavioral_posture":{"posture_class":"bad","action_family":"freestyle","interrupt_mode":"welcome","status_text":"bad"},"initiate_chat_intent":{"message":"hi"}}`,
+					},
+				},
+			},
+		},
+	}))
+
+	err := svc.ExecuteChatTrackSidecar(ctx, ChatTrackSidecarExecutionRequest{
+		AgentID:       "agent-chat-exec-invalid",
+		SourceEventID: "chat-turn-invalid",
+		Messages: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected invalid AI-backed chat sidecar output to fail")
+	}
+
+	posture, getErr := svc.GetBehavioralPosture(ctx, "agent-chat-exec-invalid")
+	if getErr != nil {
+		t.Fatalf("GetBehavioralPosture: %v", getErr)
+	}
+	if posture != nil {
+		t.Fatalf("expected no committed posture after invalid AI output, got %#v", posture)
+	}
+}
+
+func TestAgentCoreConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-ingress",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{
+						Text: `{"behavioral_posture":{"posture_class":"engaged","action_family":"engage","interrupt_mode":"welcome","transition_reason":"chat ingress","truth_basis_ids":["truth-1"],"status_text":"ready to engage"},"cancel_pending_hook_ids":[],"next_hook_intent":null,"canonical_memory_candidates":[]}`,
+					},
+				},
+			},
+		},
+	}
+	svc.SetChatTrackSidecarExecutor(NewAIBackedChatTrackSidecarExecutor(fakeAI))
+
+	err := svc.ConsumeChatTrackSidecarAppMessage(ctx, &runtimev1.AppMessageEvent{
+		ToAppId:     "runtime.agentcore",
+		MessageType: "agent.chat_track.sidecar_input.v1",
+		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
+			"agent_id":        structpb.NewStringValue("agent-chat-sidecar-ingress"),
+			"source_event_id": structpb.NewStringValue("turn-sidecar-1"),
+			"thread_id":       structpb.NewStringValue("thread-1"),
+			"messages": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
+				structpb.NewStructValue(&structpb.Struct{Fields: map[string]*structpb.Value{
+					"role":    structpb.NewStringValue("user"),
+					"content": structpb.NewStringValue("please stay engaged"),
+				}}),
+				structpb.NewStructValue(&structpb.Struct{Fields: map[string]*structpb.Value{
+					"role":    structpb.NewStringValue("assistant"),
+					"content": structpb.NewStringValue("I will stay engaged."),
+				}}),
+			}}),
+		}},
+	})
+	if err != nil {
+		t.Fatalf("ConsumeChatTrackSidecarAppMessage: %v", err)
+	}
+	if len(fakeAI.requests) != 1 {
+		t.Fatalf("expected one executor request, got %d", len(fakeAI.requests))
+	}
+	posture, err := svc.GetBehavioralPosture(ctx, "agent-chat-sidecar-ingress")
+	if err != nil {
+		t.Fatalf("GetBehavioralPosture: %v", err)
+	}
+	if posture == nil || posture.ModeID != "engage" {
+		t.Fatalf("expected engage posture, got %#v", posture)
+	}
+}
+
+func TestAgentCoreConsumeChatTrackSidecarAppMessageFailsClosedOnInvalidPayload(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	err := svc.ConsumeChatTrackSidecarAppMessage(context.Background(), &runtimev1.AppMessageEvent{
+		ToAppId:     "runtime.agentcore",
+		MessageType: "agent.chat_track.sidecar_input.v1",
+		Payload: &structpb.Struct{Fields: map[string]*structpb.Value{
+			"agent_id":           structpb.NewStringValue("agent-1"),
+			"source_event_id":    structpb.NewStringValue("turn-1"),
+			"thread_id":          structpb.NewStringValue("thread-1"),
+			"behavioral_posture": structpb.NewStructValue(&structpb.Struct{}),
+			"messages": structpb.NewListValue(&structpb.ListValue{Values: []*structpb.Value{
+				structpb.NewStructValue(&structpb.Struct{Fields: map[string]*structpb.Value{
+					"role":    structpb.NewStringValue("user"),
+					"content": structpb.NewStringValue("hello"),
+				}}),
+			}}),
+		}},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", err)
 	}
 }
 

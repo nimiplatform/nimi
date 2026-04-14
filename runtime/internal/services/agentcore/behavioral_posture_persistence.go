@@ -68,5 +68,8 @@ func (s sqliteBehavioralPosturePersistence) GetBehavioralPosture(ctx context.Con
 	if err := json.Unmarshal([]byte(raw), &posture); err != nil {
 		return nil, err
 	}
+	if posture.ModeID == "" {
+		posture.ModeID = deriveBehavioralModeID(posture.ActionFamily)
+	}
 	return &posture, nil
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
@@ -44,6 +45,7 @@ func (s sqliteReviewPersistence) SavePreparedReviewRun(ctx context.Context, run 
 	if strings.TrimSpace(run.Status) == "" {
 		run.Status = "prepared"
 	}
+	run.PreparedOutcomes = memoryengine.NormalizeReviewOutcomesForWave4(run.PreparedOutcomes)
 	payload, err := json.Marshal(run.PreparedOutcomes)
 	if err != nil {
 		return err

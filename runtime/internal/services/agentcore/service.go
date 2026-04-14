@@ -38,12 +38,14 @@ type subscriber struct {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentCoreServiceServer
 
-	logger    *slog.Logger
-	memorySvc *memoryservice.Service
-	statePath string
-	backend   *runtimepersistence.Backend
-	reviews   reviewPersistence
-	postures  behavioralPosturePersistence
+	logger     *slog.Logger
+	memorySvc  *memoryservice.Service
+	statePath  string
+	backend    *runtimepersistence.Backend
+	reviews    reviewPersistence
+	postures   behavioralPosturePersistence
+	reviewExec CanonicalReviewExecutor
+	chatExec   ChatTrackSidecarExecutor
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -72,6 +74,8 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		backend:      memorySvc.PersistenceBackend(),
 		reviews:      newReviewPersistence(memorySvc.PersistenceBackend()),
 		postures:     newBehavioralPosturePersistence(memorySvc.PersistenceBackend()),
+		reviewExec:   rejectingCanonicalReviewExecutor{},
+		chatExec:     rejectingChatTrackSidecarExecutor{},
 		agents:       make(map[string]*agentEntry),
 		events:       make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
 		subscribers:  make(map[uint64]*subscriber),

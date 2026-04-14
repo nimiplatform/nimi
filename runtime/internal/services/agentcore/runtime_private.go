@@ -6,14 +6,19 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
+	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
 type BehavioralPosture struct {
-	AgentID       string   `json:"agent_id"`
-	StatusText    string   `json:"status_text"`
-	TruthBasisIDs []string `json:"truth_basis_ids"`
-	InterruptMode string   `json:"interrupt_mode"`
-	UpdatedAt     string   `json:"updated_at"`
+	AgentID          string   `json:"agent_id"`
+	PostureClass     string   `json:"posture_class,omitempty"`
+	ActionFamily     string   `json:"action_family,omitempty"`
+	StatusText       string   `json:"status_text"`
+	TruthBasisIDs    []string `json:"truth_basis_ids"`
+	InterruptMode    string   `json:"interrupt_mode"`
+	TransitionReason string   `json:"transition_reason,omitempty"`
+	ModeID           string   `json:"mode_id,omitempty"`
+	UpdatedAt        string   `json:"updated_at"`
 }
 
 type ReviewRunRecord struct {
@@ -33,6 +38,17 @@ type ReviewFollowUpRecord struct {
 	ReviewRunID     string `json:"review_run_id"`
 	CheckpointBasis string `json:"checkpoint_basis"`
 	CompletedAt     string `json:"completed_at"`
+}
+
+type AgentMemoryRecallFeedback struct {
+	FeedbackID   string                       `json:"feedback_id"`
+	AgentID      string                       `json:"agent_id"`
+	Bank         *runtimev1.MemoryBankLocator `json:"bank"`
+	TargetKind   string                       `json:"target_kind"`
+	TargetID     string                       `json:"target_id"`
+	Polarity     string                       `json:"polarity"`
+	QueryText    string                       `json:"query_text,omitempty"`
+	SourceSystem string                       `json:"source_system,omitempty"`
 }
 
 func (s *Service) PutBehavioralPosture(ctx context.Context, posture BehavioralPosture) error {
@@ -77,6 +93,25 @@ func (s *Service) GetReviewFollowUp(ctx context.Context, locator *runtimev1.Memo
 	return s.reviews.GetReviewFollowUp(ctx, locator)
 }
 
+func (s *Service) RecordAgentMemoryRecallFeedback(ctx context.Context, feedback AgentMemoryRecallFeedback) error {
+	_, locator, err := s.resolveCanonicalReviewTarget(CanonicalReviewRequest{
+		AgentID: feedback.AgentID,
+		Bank:    feedback.Bank,
+	})
+	if err != nil {
+		return err
+	}
+	return s.memorySvc.RecordRecallFeedback(ctx, memoryservice.RecallFeedback{
+		FeedbackID:   feedback.FeedbackID,
+		Bank:         locator,
+		TargetKind:   feedback.TargetKind,
+		TargetID:     feedback.TargetID,
+		Polarity:     feedback.Polarity,
+		QueryText:    feedback.QueryText,
+		SourceSystem: feedback.SourceSystem,
+	})
+}
+
 func (s *Service) recoverReviewRuns(ctx context.Context) error {
 	if s.reviews == nil {
 		return nil
@@ -86,26 +121,9 @@ func (s *Service) recoverReviewRuns(ctx context.Context) error {
 		return err
 	}
 	for _, run := range runs {
-		if run.Status == "prepared" {
-			locator, err := s.reviewRunLocator(run)
-			if err != nil {
-				_ = s.updateReviewRunStatus(ctx, run.ReviewRunID, "failed", err.Error())
-				continue
-			}
-			if err := s.memorySvc.CommitCanonicalReview(ctx, run.ReviewRunID, locator, run.CheckpointBasis, run.PreparedOutcomes); err != nil {
-				_ = s.updateReviewRunStatus(ctx, run.ReviewRunID, "failed", err.Error())
-				continue
-			}
-			if err := s.updateReviewRunStatus(ctx, run.ReviewRunID, "memory_committed", ""); err != nil {
-				return err
-			}
-		}
-		if err := s.recordReviewFollowUp(ctx, run); err != nil {
+		if err := s.finalizePreparedReviewRun(ctx, run); err != nil {
 			_ = s.updateReviewRunStatus(ctx, run.ReviewRunID, "failed", err.Error())
 			continue
-		}
-		if err := s.updateReviewRunStatus(ctx, run.ReviewRunID, "completed", ""); err != nil {
-			return err
 		}
 	}
 	return nil

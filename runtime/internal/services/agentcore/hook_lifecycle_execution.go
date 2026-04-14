@@ -177,11 +177,22 @@ func (s *Service) applyLifeTurnResult(ctx context.Context, agentID string, hookI
 	if result == nil {
 		result = &lifeTurnResult{}
 	}
-	accepted, rejected := s.writeLifeTurnCandidates(ctx, entry, hook, result.CanonicalMemoryCandidates, now)
-	if result.StatusText != nil {
+	if result.PosturePatch != nil {
+		posture, err := normalizeBehavioralPosturePatch(entry.Agent.GetAgentId(), *result.PosturePatch)
+		if err != nil {
+			return s.failHookAt(agentID, hookID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error(), false, result.TokensUsed, now)
+		}
+		posture.UpdatedAt = now.UTC().Format(time.RFC3339Nano)
+		if err := s.PutBehavioralPosture(ctx, posture); err != nil {
+			return nil, err
+		}
+		entry.State.StatusText = posture.StatusText
+		entry.State.UpdatedAt = timestamppb.New(now)
+	} else if result.StatusText != nil {
 		entry.State.StatusText = *result.StatusText
 		entry.State.UpdatedAt = timestamppb.New(now)
 	}
+	accepted, rejected := s.writeLifeTurnCandidates(ctx, entry, hook, result.CanonicalMemoryCandidates, now)
 
 	beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
 	var outcome *runtimev1.HookExecutionOutcome

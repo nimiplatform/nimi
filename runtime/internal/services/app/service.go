@@ -35,19 +35,22 @@ type subscriber struct {
 	relay         *streamutil.Relay[*runtimev1.AppMessageEvent]
 }
 
+type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
+
 // Service implements RuntimeAppService with in-memory pub/sub channels.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	logger *slog.Logger
 
-	mu               sync.RWMutex
-	nextSeq          uint64
-	nextSubID        uint64
-	subscribers      map[uint64]subscriber
-	now              func() time.Time
-	sessionValidator sessionValidator
-	rateLimiter      *appRateLimiter
-	loopDetector     *appLoopDetector
+	mu                sync.RWMutex
+	nextSeq           uint64
+	nextSubID         uint64
+	subscribers       map[uint64]subscriber
+	internalConsumers map[string]InternalConsumer
+	now               func() time.Time
+	sessionValidator  sessionValidator
+	rateLimiter       *appRateLimiter
+	loopDetector      *appLoopDetector
 }
 
 func WithSessionValidator(validator sessionValidator) Option {
@@ -66,11 +69,12 @@ func WithClock(now func() time.Time) Option {
 
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
-		logger:       logger,
-		subscribers:  make(map[uint64]subscriber),
-		now:          time.Now,
-		rateLimiter:  newAppRateLimiter(),
-		loopDetector: newAppLoopDetector(),
+		logger:            logger,
+		subscribers:       make(map[uint64]subscriber),
+		internalConsumers: make(map[string]InternalConsumer),
+		now:               time.Now,
+		rateLimiter:       newAppRateLimiter(),
+		loopDetector:      newAppLoopDetector(),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -126,6 +130,11 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		TraceId:       traceID,
 		Timestamp:     timestamppb.New(now),
 	}
+	if consumer := s.internalConsumer(toAppID); consumer != nil {
+		if err := consumer(ctx, cloneEvent(receivedEvent)); err != nil {
+			return nil, err
+		}
+	}
 	s.publish(receivedEvent)
 
 	if req.GetRequireAck() {
@@ -148,6 +157,21 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		Accepted:   true,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) RegisterInternalConsumer(appID string, consumer InternalConsumer) {
+	key := strings.TrimSpace(appID)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if key == "" || consumer == nil {
+		delete(s.internalConsumers, key)
+		return
+	}
+	s.internalConsumers[key] = consumer
+}
+
+func (s *Service) HasInternalConsumer(appID string) bool {
+	return s.internalConsumer(strings.TrimSpace(appID)) != nil
 }
 
 func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesRequest, stream runtimev1.RuntimeAppService_SubscribeAppMessagesServer) error {
@@ -247,6 +271,12 @@ func (s *Service) publish(event *runtimev1.AppMessageEvent) {
 			s.logger.Warn("app subscriber relay closed", "subscriber_id", sub.id, "error", err)
 		}
 	}
+}
+
+func (s *Service) internalConsumer(appID string) InternalConsumer {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.internalConsumers[strings.TrimSpace(appID)]
 }
 
 func matches(sub subscriber, event *runtimev1.AppMessageEvent) bool {

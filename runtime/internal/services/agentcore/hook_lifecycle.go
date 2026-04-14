@@ -41,6 +41,16 @@ func (rejectingLifeTrackExecutor) ExecuteLifeTrackHook(_ context.Context, _ *lif
 	}
 }
 
+func (s *Service) HasLifeTrackExecutor() bool {
+	s.lifeLoopMu.Lock()
+	defer s.lifeLoopMu.Unlock()
+	if s.lifeExecutor == nil {
+		return false
+	}
+	_, rejecting := s.lifeExecutor.(rejectingLifeTrackExecutor)
+	return !rejecting
+}
+
 func (s *Service) currentLifeTrackExecutor() LifeTrackExecutor {
 	s.lifeLoopMu.Lock()
 	defer s.lifeLoopMu.Unlock()
