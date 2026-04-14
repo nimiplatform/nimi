@@ -201,6 +201,130 @@ func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
 	}
 }
 
+func TestCheckModelHealthLocalSpeechWorkflowFailsClosedBeforeAdmission(t *testing.T) {
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "speech/qwen3tts",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"voice_workflow.tts_v2v"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			_, _ = w.Write([]byte(`{"models":[{"id":"qwen3tts","ready":true}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "speech/qwen3tts",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("local speech workflow model must fail closed before admission")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if got := resp.GetActionHint(); got != "use cloud workflow route" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestCheckModelHealthLocalSpeechRequiresTargetReadyCatalogCapability(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/kokoro-v1","ready":true,"capabilities":["audio.synthesize"]}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
+
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "speech/kokoro-v1",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"audio.synthesize"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "speech/kokoro-v1",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if !resp.GetHealthy() {
+		t.Fatalf("local speech model with matching ready catalog capability must be healthy: %+v", resp)
+	}
+}
+
+func TestCheckModelHealthLocalSpeechFailsClosedWhenCatalogMissesRequiredCapability(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech/kokoro-v1","ready":true,"capabilities":["audio.transcribe"]}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", server.URL)
+
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "speech/kokoro-v1",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"audio.synthesize"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "speech/kokoro-v1",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("local speech model must fail closed when target catalog capability is missing")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if got := resp.GetActionHint(); got != "start local speech engine" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
 func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
@@ -224,6 +348,66 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 	}
 	if !resp.GetHealthy() {
 		t.Fatalf("active local model from local service must be healthy: %+v", resp)
+	}
+}
+
+func TestCheckModelHealthLocalSpeechLocalServiceRequiresAdmittedPlainCapability(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "speech-1",
+				LogicalModelId: "speech/kokoro-v1",
+				Engine:         "speech",
+				Capabilities:   []string{},
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+			}},
+		}},
+	})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "speech/kokoro-v1",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("speech localservice fast path must fail closed when admitted plain-speech capability truth is missing: %+v", resp)
+	}
+	if got := resp.GetReasonCode(); got != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("reason_code = %v, want AI_MODEL_NOT_READY", got)
+	}
+	if got := resp.GetActionHint(); got != "repair local model metadata" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestCheckModelHealthLocalSpeechLocalServiceUsesAdmittedPlainCapability(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "speech-1",
+				LogicalModelId: "speech/kokoro-v1",
+				Engine:         "speech",
+				Capabilities:   []string{"audio.synthesize"},
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				WarmState:      runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+			}},
+		}},
+	})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "speech/kokoro-v1",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if !resp.GetHealthy() {
+		t.Fatalf("speech localservice fast path with admitted plain-speech capability must stay healthy: %+v", resp)
 	}
 }
 
@@ -322,7 +506,7 @@ func TestCheckModelHealthLocalMediaRequiresTargetReadyCatalogEntry(t *testing.T)
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"models":[{"id":"media/demo-image","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"media/demo-image","ready":true}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -360,7 +544,7 @@ func TestCheckModelHealthLocalMediaFailsClosedWhenCatalogMissesTarget(t *testing
 			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
 		case "/v1/catalog":
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"models":[{"id":"media/other-model","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"media/other-model","ready":true}]}`))
 		default:
 			http.NotFound(w, r)
 		}

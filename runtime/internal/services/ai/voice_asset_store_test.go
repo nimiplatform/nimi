@@ -162,3 +162,60 @@ func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
 		t.Fatalf("expected expired terminal voice asset to be pruned")
 	}
 }
+
+func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
+	store := newVoiceAssetStore()
+	cases := []struct {
+		name            string
+		modelID         string
+		targetModelID   string
+		workflowModelID string
+		wantFamily      string
+	}{
+		{
+			name:            "voxcpm2",
+			modelID:         "openbmb/VoxCPM2",
+			targetModelID:   "openbmb/VoxCPM2",
+			workflowModelID: "local/voxcpm-voice-design",
+			wantFamily:      "voxcpm",
+		},
+		{
+			name:            "omnivoice",
+			modelID:         "k2-fsa/OmniVoice",
+			targetModelID:   "k2-fsa/OmniVoice",
+			workflowModelID: "local/omnivoice-voice-clone",
+			wantFamily:      "omnivoice",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, asset := store.submit(&voiceWorkflowSubmitInput{
+				Head: &runtimev1.ScenarioRequestHead{
+					AppId:         "app-1",
+					SubjectUserId: "user-1",
+					ModelId:       tc.modelID,
+					RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				},
+				ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+				Spec: &runtimev1.ScenarioSpec{
+					Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+						TargetModelId: tc.targetModelID,
+						Input: &runtimev1.VoiceT2VInput{
+							InstructionText: "warm cinematic narrator",
+						},
+					}},
+				},
+				ModelResolved:   tc.modelID,
+				WorkflowModelID: tc.workflowModelID,
+				Provider:        "local",
+			})
+			if asset == nil {
+				t.Fatalf("submit should create voice asset")
+			}
+			if got := asset.GetMetadata().GetFields()["workflow_family"].GetStringValue(); got != tc.wantFamily {
+				t.Fatalf("workflow_family=%q, want=%q", got, tc.wantFamily)
+			}
+		})
+	}
+}

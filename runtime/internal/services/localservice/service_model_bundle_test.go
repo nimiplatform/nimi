@@ -589,6 +589,57 @@ func TestManagedMediaImageHealingNormalizesSupervisedEndpoint(t *testing.T) {
 	}
 }
 
+func TestManagedSpeechHealingNormalizesSupervisedEndpoint(t *testing.T) {
+	svc := newTestService(t)
+
+	localModelID := "01TESTSPEECHHEALING"
+	svc.mu.Lock()
+	svc.assets[localModelID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId:    localModelID,
+		AssetId:         "speech/kokoro-82m",
+		Kind:            runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS,
+		Capabilities:    []string{"audio.synthesize"},
+		Engine:          "speech",
+		Entry:           "model.safetensors",
+		License:         "unknown",
+		Source:          &runtimev1.LocalAssetSource{Repo: "local-import/speech-kokoro-82m", Revision: "local"},
+		Status:          runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		InstalledAt:     nowISO(),
+		UpdatedAt:       nowISO(),
+		HealthDetail:    "managed speech endpoint missing",
+		Endpoint:        defaultLocalEndpoint,
+		LogicalModelId:  "speech/kokoro-82m",
+		PreferredEngine: "speech",
+	}
+	svc.setModelRuntimeModeLocked(localModelID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+
+	healed, changed, err := svc.healManagedSupervisedRuntimeMode(localModelID)
+	if err != nil {
+		t.Fatalf("heal managed speech endpoint: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected managed speech endpoint heal to change the record")
+	}
+	if got := healed.GetEndpoint(); got != defaultSpeechEndpoint {
+		t.Fatalf("endpoint = %q, want %q", got, defaultSpeechEndpoint)
+	}
+	if got := svc.modelByID(localModelID).GetEndpoint(); got != defaultSpeechEndpoint {
+		t.Fatalf("stored endpoint = %q, want %q", got, defaultSpeechEndpoint)
+	}
+
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	if len(svc.audits) == 0 {
+		t.Fatal("expected runtime binding heal audit")
+	}
+	last := svc.audits[len(svc.audits)-1]
+	if got := last.GetDetail(); got != "managed speech runtime binding healed to supervised managed endpoint" {
+		t.Fatalf("audit detail = %q", got)
+	}
+}
+
 func TestEnsureManagedLocalModelBundleReadyRejectsLegacyManagedLocalImportRecord(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
@@ -616,5 +667,55 @@ func TestEnsureManagedLocalModelBundleReadyRejectsLegacyManagedLocalImportRecord
 	}
 	if !strings.Contains(err.Error(), "legacy local-import record is unsupported") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEnsureManagedLocalModelBundleReadyRejectsManagedSpeechBundleMissingDeclaredFile(t *testing.T) {
+	svc := newTestService(t)
+
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, model, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx": []byte("fake-onnx"),
+	})
+
+	_, _, err := svc.ensureManagedLocalModelBundleReady(context.Background(), svc.modelByID(model.GetLocalAssetId()))
+	if err == nil {
+		t.Fatal("expected managed speech bundle validation to fail-close")
+	}
+	if !strings.Contains(err.Error(), `managed bundle file "voices.json" missing`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEnsureManagedLocalModelBundleReadyAcceptsManagedSpeechBundleWithDeclaredFiles(t *testing.T) {
+	svc := newTestService(t)
+
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, model, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+
+	entryPath, repaired, err := svc.ensureManagedLocalModelBundleReady(context.Background(), svc.modelByID(model.GetLocalAssetId()))
+	if err != nil {
+		t.Fatalf("expected managed speech bundle to validate: %v", err)
+	}
+	if repaired {
+		t.Fatal("expected no repair path for valid managed speech bundle")
+	}
+	if got := filepath.Base(entryPath); got != "model.onnx" {
+		t.Fatalf("entry path = %q", entryPath)
 	}
 }

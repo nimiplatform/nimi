@@ -268,6 +268,8 @@ voice_handle_policies:
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: true
     source_ids: [stepfun_voice_clone_doc]
 
 overrides:

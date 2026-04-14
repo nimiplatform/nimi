@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -261,6 +262,71 @@ func (s *Service) validateManagedModelEntryForModel(path string, model *runtimev
 	return nil
 }
 
+func resolveManagedSpeechBundleManifestPath(modelsRoot string, model *runtimev1.LocalAssetRecord) (string, error) {
+	if model == nil {
+		return "", fmt.Errorf("managed local model is unavailable")
+	}
+	repo := strings.TrimSpace(model.GetSource().GetRepo())
+	if strings.HasPrefix(strings.ToLower(repo), "file://") && strings.HasSuffix(strings.ToLower(repo), "/asset.manifest.json") {
+		manifestPath, err := resolveManagedFileRepoPath(repo)
+		if err != nil {
+			return "", fmt.Errorf("managed speech bundle manifest path invalid: %w", err)
+		}
+		if err := validateResolvedModelManifestPath(manifestPath, modelsRoot); err != nil {
+			return "", err
+		}
+		return manifestPath, nil
+	}
+	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
+	if logicalModelID != "" {
+		manifestPath := runtimeManagedAssetManifestPath(strings.TrimSpace(modelsRoot), logicalModelID)
+		if _, err := os.Stat(manifestPath); err == nil {
+			return manifestPath, nil
+		}
+	}
+	return "", fmt.Errorf("managed speech bundle manifest missing")
+}
+
+func declaredManagedSpeechBundleFiles(manifestPath string, model *runtimev1.LocalAssetRecord) ([]string, error) {
+	raw, err := os.ReadFile(strings.TrimSpace(manifestPath))
+	if err != nil {
+		return nil, fmt.Errorf("read managed speech bundle manifest: %w", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return nil, fmt.Errorf("decode managed speech bundle manifest: %w", err)
+	}
+	files := valueAsStringSlice(manifest["files"])
+	if len(files) == 0 {
+		files = normalizeStringSlice(model.GetFiles())
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("managed speech bundle manifest missing declared files")
+	}
+	return files, nil
+}
+
+func validateManagedSpeechBundleFiles(modelsRoot string, model *runtimev1.LocalAssetRecord) error {
+	if model == nil {
+		return fmt.Errorf("managed local model is unavailable")
+	}
+	manifestPath, err := resolveManagedSpeechBundleManifestPath(modelsRoot, model)
+	if err != nil {
+		return err
+	}
+	bundleFiles, err := declaredManagedSpeechBundleFiles(manifestPath, model)
+	if err != nil {
+		return err
+	}
+	bundleRoot := filepath.Dir(strings.TrimSpace(manifestPath))
+	for _, bundleFile := range bundleFiles {
+		if err := validateManagedBundleRelativeFileExists(bundleRoot, bundleFile); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func managedLocalModelBundleFailureDetail(err error) string {
 	if err == nil {
 		return "managed local model bundle invalid"
@@ -353,16 +419,33 @@ func isManagedSupervisedImageModel(model *runtimev1.LocalAssetRecord, mode runti
 	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 }
 
+func isManagedSupervisedSpeechModel(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
+	if model == nil {
+		return false
+	}
+	if !strings.EqualFold(
+		managedRuntimeEngineForModel(model),
+		"speech",
+	) {
+		return false
+	}
+	if shouldHealManagedSupervisedRuntimeMode(model, mode) {
+		return true
+	}
+	return normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+}
+
 func shouldHealManagedSupervisedRuntimeMode(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
 	if model == nil {
 		return false
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
-		return false
-	}
 	isManagedLlama := strings.EqualFold(managedRuntimeEngineForModel(model), "llama")
 	isManagedImage := isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind())
-	if !isManagedLlama && !isManagedImage {
+	isManagedSpeech := strings.EqualFold(managedRuntimeEngineForModel(model), "speech")
+	if !isManagedLlama && !isManagedImage && !isManagedSpeech {
+		return false
+	}
+	if !isManagedSpeech && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
 		return false
 	}
 	expectedEndpoint := storedEndpointForAssetRuntimeMode(
@@ -390,6 +473,9 @@ func shouldHealManagedSupervisedRuntimeMode(model *runtimev1.LocalAssetRecord, m
 func managedSupervisedRuntimeBindingHealDetail(model *runtimev1.LocalAssetRecord) string {
 	if isCanonicalSupervisedImageAsset(model.GetEngine(), model.GetCapabilities(), model.GetKind()) {
 		return "managed image runtime binding healed to supervised managed endpoint"
+	}
+	if strings.EqualFold(managedRuntimeEngineForModel(model), "speech") {
+		return "managed speech runtime binding healed to supervised managed endpoint"
 	}
 	return "managed llama runtime binding healed to supervised managed endpoint"
 }
@@ -505,25 +591,39 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
 		return "", false, err
 	}
-	if strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
-		return "", false, nil
-	}
 	mode := s.modelRuntimeMode(model.GetLocalAssetId())
 	if normalizeRuntimeMode(mode) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		return "", false, nil
 	}
 	shouldSyncManagedLlamaAssets := isManagedSupervisedLlamaModel(model, mode)
+	shouldValidateManagedSpeechBundle := isManagedSupervisedSpeechModel(model, mode)
+	if !shouldValidateManagedSpeechBundle && strings.ToLower(filepath.Ext(strings.TrimSpace(model.GetEntry()))) != ".gguf" {
+		return "", false, nil
+	}
 
 	modelsRoot := s.resolvedLocalModelsPath()
 	entryPath, err := resolveManagedModelEntryAbsolutePath(modelsRoot, model)
 	if err == nil {
 		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr == nil {
-			if shouldSyncManagedLlamaAssets {
-				if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
-					return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+			if shouldValidateManagedSpeechBundle {
+				if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
+					err = validateErr
+				} else {
+					if shouldSyncManagedLlamaAssets {
+						if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
+							return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+						}
+					}
+					return entryPath, false, nil
 				}
+			} else {
+				if shouldSyncManagedLlamaAssets {
+					if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {
+						return "", false, fmt.Errorf("sync managed llama assets: %w", syncErr)
+					}
+				}
+				return entryPath, false, nil
 			}
-			return entryPath, false, nil
 		} else {
 			err = validateErr
 		}
@@ -537,6 +637,11 @@ func (s *Service) ensureManagedLocalModelBundleReady(ctx context.Context, model 
 		}
 		if validateErr := s.validateManagedModelEntryForModel(entryPath, model); validateErr != nil {
 			return "", true, fmt.Errorf("validate repaired managed local model entry: %w", validateErr)
+		}
+		if shouldValidateManagedSpeechBundle {
+			if validateErr := validateManagedSpeechBundleFiles(modelsRoot, model); validateErr != nil {
+				return "", true, fmt.Errorf("validate repaired managed speech bundle: %w", validateErr)
+			}
 		}
 		if shouldSyncManagedLlamaAssets {
 			if syncErr := s.SyncManagedLlamaAssets(ctx); syncErr != nil {

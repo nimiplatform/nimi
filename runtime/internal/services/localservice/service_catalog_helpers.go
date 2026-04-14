@@ -66,7 +66,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 		}
 	case "speech":
 		switch normalizedCapability {
-		case "audio.transcribe", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+		case "audio.transcribe", "audio.synthesize":
 			return "speech_native_adapter"
 		default:
 			return "openai_compat_adapter"
@@ -334,14 +334,14 @@ func defaultVerifiedAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 		},
 		{
 			TemplateId:      "verified.voice.qwen3_tts",
-			Title:           "Qwen3 TTS Voice Workflow",
-			Description:     "Heavy local voice workflow family for synthesize, clone, and design flows",
+			Title:           "Qwen3 TTS Local Speech Reference",
+			Description:     "Heavy local speech reference bundle retained for synthesize-only admission until local workflow is explicitly admitted",
 			InstallKind:     "verified-hf-multi-file",
 			AssetId:         "local/qwen3-tts",
 			LogicalModelId:  "nimi/voice-qwen3-tts",
 			Repo:            "Qwen/Qwen3-TTS-30B-A3B-Instruct",
 			Revision:        "main",
-			Capabilities:    []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
+			Capabilities:    []string{"audio.synthesize"},
 			Engine:          "speech",
 			Entry:           "model.safetensors",
 			Files:           []string{"model.safetensors", "speech_tokenizer/model.safetensors"},
@@ -350,8 +350,8 @@ func defaultVerifiedAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 			Endpoint:        "",
 			FileCount:       2,
 			TotalSizeBytes:  0,
-			Tags:            []string{"tts", "voice", "verified", "heavy"},
-			ArtifactRoles:   []string{"voice_workflow_model", "speech_tokenizer", "tokenizer"},
+			Tags:            []string{"tts", "voice", "verified", "heavy", "reference-only"},
+			ArtifactRoles:   []string{"tts_model", "speech_tokenizer", "tokenizer"},
 			PreferredEngine: "speech",
 		},
 		{

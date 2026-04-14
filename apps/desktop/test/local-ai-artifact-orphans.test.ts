@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
+const runtimeCommandsFacadePath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
 const runtimeCommandPickersPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-pickers.ts');
 const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
 const localModelCenterPath = path.resolve(
@@ -32,6 +33,7 @@ const localModelCenterImportActionsPath = path.resolve(
 );
 
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
+const runtimeCommandsFacadeSource = readFileSync(runtimeCommandsFacadePath, 'utf-8');
 const runtimeCommandPickersSource = readFileSync(runtimeCommandPickersPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
@@ -46,7 +48,8 @@ const localModelCenterCatalogSectionsSource = readFileSync(localModelCenterCatal
 const localModelCenterHelpersSource = readFileSync(localModelCenterHelpersPath, 'utf-8');
 
 test('local runtime exposes unified asset intake command surface', () => {
-  assert.match(runtimeCommandsSource, /runtime_local_assets_scan_unregistered/);
+  assert.match(runtimeCommandsSource, /runtime\.scanUnregisteredAssets\(\{\}\)/);
+  assert.match(runtimeCommandsFacadeSource, /runtime_local_assets_scan_unregistered/);
   assert.match(runtimeCommandPickersSource, /runtime_local_pick_asset_manifest_path/);
   assert.match(runtimeCommandsSource, /export async function scanLocalRuntimeUnregisteredAssets/);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);

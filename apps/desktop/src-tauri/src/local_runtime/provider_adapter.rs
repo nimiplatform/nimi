@@ -121,9 +121,6 @@ fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bo
                 || normalized.contains("voice")
                 || normalized.contains("speech")
         }
-        "voice_workflow.tts_v2v" | "voice_workflow.tts_t2v" => {
-            normalized.contains("qwen3-tts") || normalized.contains("voice")
-        }
         _ => false,
     }
 }
@@ -160,11 +157,6 @@ pub fn infer_backend_hint_for_provider(
             if normalized_model.contains("kokoro") =>
         {
             Some("kokoro".to_string())
-        }
-        ("speech", "voice_workflow.tts_v2v") | ("speech", "voice_workflow.tts_t2v")
-            if normalized_model.contains("qwen3-tts") =>
-        {
-            Some("qwen3tts".to_string())
         }
         ("media", "image") if normalized_model.contains("flux") => Some("sdcpp".to_string()),
         ("media", "video") if normalized_model.contains("wan") => Some("sdcpp".to_string()),
@@ -329,9 +321,7 @@ pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capabil
         "stt"
         | "tts"
         | "audio.transcribe"
-        | "audio.synthesize"
-        | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => {
+        | "audio.synthesize" => {
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
         }
         "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
@@ -362,8 +352,6 @@ pub fn adapter_supports_capability_for_provider(
                         | "tts"
                         | "audio.transcribe"
                         | "audio.synthesize"
-                        | "voice_workflow.tts_v2v"
-                        | "voice_workflow.tts_t2v"
                 )
         }
         "sidecar" => {
@@ -404,8 +392,6 @@ pub fn provider_available_for_capability(provider: &str, capability: &str) -> bo
                 | "tts"
                 | "audio.transcribe"
                 | "audio.synthesize"
-                | "voice_workflow.tts_v2v"
-                | "voice_workflow.tts_t2v"
         ),
         "sidecar" => matches!(normalize_capability(capability).as_str(), "music"),
         _ => true,
@@ -423,9 +409,11 @@ pub fn default_policy_gate_for_provider(provider: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_provider_hints_for_provider_capability, infer_backend_hint_for_provider,
+        adapter_supports_capability_for_provider, default_provider_hints_for_provider_capability,
+        infer_backend_hint_for_provider, provider_available_for_capability,
         with_provider_backend_hint,
     };
+    use crate::local_runtime::types::LocalAiProviderAdapterKind;
 
     #[test]
     fn default_media_hints_do_not_synthesize_driver_or_family() {
@@ -457,5 +445,22 @@ mod tests {
             .expect("speech payload");
         assert_eq!(speech.backend.as_deref(), Some("kokoro"));
         assert!(speech.family.is_none());
+    }
+
+    #[test]
+    fn speech_provider_no_longer_admits_local_workflow_capabilities() {
+        assert!(!provider_available_for_capability(
+            "speech",
+            "voice_workflow.tts_t2v"
+        ));
+        assert!(!adapter_supports_capability_for_provider(
+            "speech",
+            &LocalAiProviderAdapterKind::SpeechNativeAdapter,
+            "voice_workflow.tts_v2v"
+        ));
+        assert_eq!(
+            infer_backend_hint_for_provider("speech", "voice_workflow.tts_t2v", Some("qwen3-tts")),
+            None
+        );
     }
 }

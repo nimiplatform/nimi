@@ -2,6 +2,10 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,6 +26,7 @@ type warmLocalModelExecutionState struct {
 	startedAt     time.Time
 	traceID       string
 	modelResolved string
+	capability    string
 	alreadyWarm   bool
 }
 
@@ -155,16 +160,33 @@ func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAs
 }
 
 func modelSupportsWarmup(model *runtimev1.LocalAssetRecord) bool {
+	return warmCapabilityForModel(model) != ""
+}
+
+func warmCapabilityForModel(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
+		return ""
+	}
+	hasCapability := func(target string) bool {
+		for _, capability := range model.GetCapabilities() {
+			if strings.EqualFold(strings.TrimSpace(capability), target) {
+				return true
+			}
+		}
 		return false
 	}
-	for _, capability := range model.GetCapabilities() {
-		normalized := strings.ToLower(strings.TrimSpace(capability))
-		if normalized == "chat" || normalized == "text.generate" {
-			return true
-		}
+	switch {
+	case hasCapability("chat"):
+		return "chat"
+	case hasCapability("text.generate"):
+		return "text.generate"
+	case hasCapability("audio.transcribe"):
+		return "audio.transcribe"
+	case hasCapability("audio.synthesize"):
+		return "audio.synthesize"
+	default:
+		return ""
 	}
-	return false
 }
 
 func normalizeWarmResolvedModelID(modelID string) string {
@@ -194,9 +216,13 @@ func (s *Service) performWarmLocalModelExecution(
 		startedAt:     time.Now(),
 		traceID:       ulid.Make().String(),
 		modelResolved: normalizeWarmResolvedModelID(model.GetAssetId()),
+		capability:    warmCapabilityForModel(model),
+	}
+	if result.capability == "" {
+		return result, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
 
-	warmKey := warmCacheKey(model, endpoint, result.modelResolved)
+	warmKey := warmCacheKey(model, endpoint, result.modelResolved, result.capability)
 	if s.isWarmKeyCached(warmKey) {
 		result.alreadyWarm = true
 		return result, nil
@@ -209,16 +235,55 @@ func (s *Service) performWarmLocalModelExecution(
 			ActionHint: "check_local_runtime_endpoint",
 		})
 	}
-	if _, _, _, err := backend.GenerateText(
-		ctx,
-		result.modelResolved,
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "Respond with the single word ready."}},
-		"",
-		0,
-		0,
-		1,
-	); err != nil {
-		return result, err
+	switch result.capability {
+	case "chat", "text.generate":
+		if _, _, _, err := backend.GenerateText(
+			ctx,
+			result.modelResolved,
+			[]*runtimev1.ChatMessage{{Role: "user", Content: "Respond with the single word ready."}},
+			"",
+			0,
+			0,
+			1,
+		); err != nil {
+			return result, err
+		}
+	case "audio.synthesize":
+		voiceRef, voiceErr := s.resolveWarmSpeechVoiceReference(model)
+		if voiceErr != nil {
+			return result, voiceErr
+		}
+		if _, _, err := backend.SynthesizeSpeech(
+			ctx,
+			strings.TrimSpace(model.GetAssetId()),
+			&runtimev1.SpeechSynthesizeScenarioSpec{
+				Text:     "warmup",
+				VoiceRef: voiceRef,
+			},
+			nil,
+		); err != nil {
+			return result, err
+		}
+	case "audio.transcribe":
+		if _, _, err := backend.Transcribe(
+			ctx,
+			strings.TrimSpace(model.GetAssetId()),
+			&runtimev1.SpeechTranscribeScenarioSpec{
+				MimeType:       "audio/wav",
+				Language:       "en",
+				ResponseFormat: "json",
+				Timestamps:     true,
+				Diarization:    true,
+				SpeakerCount:   2,
+			},
+			warmLocalSpeechTranscriptionAudioBytes(),
+			"audio/wav",
+			nil,
+		); err != nil {
+			return result, err
+		}
+	default:
+		return result, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
 
 	s.recordWarmKey(warmKey)
@@ -306,7 +371,7 @@ func appendWarmWaitDetail(detail string, err error) string {
 	return base + "; " + waitDetail
 }
 
-func warmCacheKey(model *runtimev1.LocalAssetRecord, endpoint string, modelResolved string) string {
+func warmCacheKey(model *runtimev1.LocalAssetRecord, endpoint string, modelResolved string, capability string) string {
 	if model == nil {
 		return ""
 	}
@@ -314,7 +379,93 @@ func warmCacheKey(model *runtimev1.LocalAssetRecord, endpoint string, modelResol
 		strings.TrimSpace(model.GetLocalAssetId()),
 		strings.TrimSpace(endpoint),
 		strings.TrimSpace(modelResolved),
+		strings.TrimSpace(capability),
 	}, "|")
+}
+
+func (s *Service) resolveWarmSpeechVoiceReference(model *runtimev1.LocalAssetRecord) (*runtimev1.VoiceReference, error) {
+	if model == nil {
+		return nil, nil
+	}
+	if !strings.EqualFold(warmCapabilityForModel(model), "audio.synthesize") {
+		return nil, nil
+	}
+	if !isManagedSupervisedSpeechModel(model, s.modelRuntimeMode(model.GetLocalAssetId())) {
+		return nil, nil
+	}
+	modelsRoot := strings.TrimSpace(s.resolvedLocalModelsPath())
+	if modelsRoot == "" {
+		return nil, nil
+	}
+	manifestPath, err := resolveManagedSpeechBundleManifestPath(modelsRoot, model)
+	if err != nil {
+		return nil, err
+	}
+	voicesPath := filepath.Join(filepath.Dir(manifestPath), "voices.json")
+	if _, err := os.Stat(voicesPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("managed speech voices invalid: %w", err)
+	}
+	voiceID, err := firstWarmSpeechVoiceID(voicesPath)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(voiceID) == "" {
+		return nil, nil
+	}
+	return &runtimev1.VoiceReference{
+		Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET,
+		Reference: &runtimev1.VoiceReference_PresetVoiceId{
+			PresetVoiceId: strings.TrimSpace(voiceID),
+		},
+	}, nil
+}
+
+func firstWarmSpeechVoiceID(voicesPath string) (string, error) {
+	raw, err := os.ReadFile(strings.TrimSpace(voicesPath))
+	if err != nil {
+		return "", fmt.Errorf("managed speech voices invalid: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return "", fmt.Errorf("managed speech voices invalid: no voices declared")
+	}
+
+	var payload any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return "", fmt.Errorf("managed speech voices invalid: decode voices.json: %w", err)
+	}
+	if voiceID := firstVoiceIDFromPayload(payload); strings.TrimSpace(voiceID) != "" {
+		return strings.TrimSpace(voiceID), nil
+	}
+	return "", fmt.Errorf("managed speech voices invalid: no voices declared")
+}
+
+func firstVoiceIDFromPayload(payload any) string {
+	switch typed := payload.(type) {
+	case []any:
+		for _, item := range typed {
+			if voiceID := firstVoiceIDFromPayload(item); strings.TrimSpace(voiceID) != "" {
+				return strings.TrimSpace(voiceID)
+			}
+		}
+	case map[string]any:
+		if voices, ok := typed["voices"]; ok {
+			if voiceID := firstVoiceIDFromPayload(voices); strings.TrimSpace(voiceID) != "" {
+				return strings.TrimSpace(voiceID)
+			}
+		}
+		for _, key := range []string{"voice_id", "id", "name"} {
+			if value, ok := typed[key].(string); ok && strings.TrimSpace(value) != "" {
+				return strings.TrimSpace(value)
+			}
+		}
+	case string:
+		return strings.TrimSpace(typed)
+	}
+	return ""
 }
 
 func (s *Service) isWarmKeyCached(key string) bool {
@@ -386,8 +537,28 @@ func (s *Service) appendWarmLocalModelAudit(
 			"engine":        strings.TrimSpace(model.GetEngine()),
 			"latency_ms":    time.Since(startedAt).Milliseconds(),
 			"modelResolved": strings.TrimSpace(modelResolved),
+			"capability":    warmCapabilityForModel(model),
 		}),
 	})
+}
+
+func warmLocalSpeechTranscriptionAudioBytes() []byte {
+	return []byte{
+		'R', 'I', 'F', 'F',
+		0x24, 0x00, 0x00, 0x00,
+		'W', 'A', 'V', 'E',
+		'f', 'm', 't', ' ',
+		0x10, 0x00, 0x00, 0x00,
+		0x01, 0x00,
+		0x01, 0x00,
+		0x40, 0x1f, 0x00, 0x00,
+		0x80, 0x3e, 0x00, 0x00,
+		0x02, 0x00,
+		0x10, 0x00,
+		'd', 'a', 't', 'a',
+		0x04, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00,
+	}
 }
 
 func (s *Service) newWarmLocalAssetResponse(

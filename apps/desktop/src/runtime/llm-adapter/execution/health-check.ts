@@ -50,6 +50,61 @@ function normalizeLocalStatus(value: unknown): string {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeCapability(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isAdmittedPlainSpeechCapability(value: unknown): boolean {
+  const normalized = normalizeCapability(value);
+  return normalized === 'audio.synthesize' || normalized === 'audio.transcribe';
+}
+
+function normalizeEndpointForPlane(endpoint: string): string {
+  const normalized = String(endpoint || '').trim().replace(/\/+$/, '');
+  if (!normalized) return '';
+  if (normalized.endsWith('/v1')) return normalized;
+  return normalized;
+}
+
+function canonicalLocalPlaneForEngine(
+  engine: ReturnType<typeof normalizeLocalEngine>,
+): string {
+  if (engine === 'speech') return 'http://127.0.0.1:8330/v1';
+  if (engine === 'media') return 'http://127.0.0.1:8321/v1';
+  if (engine === 'llama') return 'http://127.0.0.1:1234/v1';
+  return '';
+}
+
+function resolveHealthPlane(
+  engine: ReturnType<typeof normalizeLocalEngine>,
+  endpoint: string,
+  connectorId: string | undefined,
+): 'local-supervised' | 'attached-endpoint' | 'cloud-connector' | 'unknown' {
+  if (String(connectorId || '').trim()) return 'cloud-connector';
+  const normalizedEndpoint = normalizeEndpointForPlane(endpoint);
+  if (!normalizedEndpoint) return 'unknown';
+  if (inferRouteSourceFromEndpoint(normalizedEndpoint) !== 'local') return 'attached-endpoint';
+  const canonical = canonicalLocalPlaneForEngine(engine);
+  if (canonical && normalizeEndpointForPlane(canonical) === normalizedEndpoint) {
+    return 'local-supervised';
+  }
+  return 'attached-endpoint';
+}
+
+function withPlaneDetail(
+  plane: ReturnType<typeof resolveHealthPlane>,
+  detail: string,
+): string {
+  const base = String(detail || '').trim();
+  if (!plane || plane === 'unknown') return base;
+  return base ? `plane=${plane}; ${base}` : `plane=${plane}`;
+}
+
+function isVoiceWorkflowCapability(value: unknown): boolean {
+  const normalized = normalizeCapability(value);
+  return normalized === 'voice_workflow.tts_v2v' || normalized === 'voice_workflow.tts_t2v';
+}
+
 function hasRuntimeAuthoritativeLocalModelRef(input: CheckLlmHealthInput): boolean {
   return Boolean(
     String(input.goRuntimeLocalModelId || '').trim()
@@ -172,6 +227,9 @@ async function probeOpenAiCompatibleEndpoint(
 async function probeMediaEndpoint(
   fetchImpl: typeof fetch,
   endpoint: string,
+  engine: ReturnType<typeof normalizeLocalEngine>,
+  model: string,
+  capability: string,
 ): Promise<{ status: ProviderHealth['status']; detail: string }> {
   const root = normalizeMediaRoot(endpoint);
   const healthResponse = await fetchImpl(`${root}/healthz`, {
@@ -194,12 +252,41 @@ async function probeMediaEndpoint(
     return { status: 'degraded', detail: `HTTP ${modelsResponse.status}` };
   }
   const modelsPayload = await modelsResponse.json().catch(() => null) as {
+    ready?: boolean;
     detail?: string;
-    models?: Array<{ id?: string; ready?: boolean }>;
+    models?: Array<{ id?: string; ready?: boolean; capabilities?: string[] }>;
   } | null;
-  const listedModels = (modelsPayload?.models || []).filter((item) => String(item?.id || '').trim());
-  if (listedModels.length === 0) {
+  const readyRows = (modelsPayload?.models || []).filter(
+    (item) => String(item?.id || '').trim() && item?.ready,
+  );
+  if (engine === 'speech' && !modelsPayload?.ready) {
+    return { status: 'degraded', detail: String(modelsPayload?.detail || 'catalog ready=false') };
+  }
+  if (readyRows.length === 0) {
     return { status: 'degraded', detail: String(modelsPayload?.detail || 'models missing ready entries') };
+  }
+
+  if (engine === 'speech') {
+    const normalizedModel = normalizeModelRoot(model);
+    const requiredCapability = isAdmittedPlainSpeechCapability(capability) ? normalizeCapability(capability) : '';
+    const matchedRow = normalizedModel
+      ? readyRows.find((item) => normalizeModelRoot(String(item?.id || '')) === normalizedModel)
+      : undefined;
+    if (normalizedModel && !matchedRow) {
+      return { status: 'degraded', detail: `speech catalog missing ready target model ${JSON.stringify(normalizedModel)}` };
+    }
+    if (requiredCapability) {
+      const candidateRows = matchedRow ? [matchedRow] : readyRows;
+      const hasCapability = candidateRows.some((item) => (item.capabilities || []).some((current) => normalizeCapability(current) === requiredCapability));
+      if (!hasCapability) {
+        return {
+          status: 'degraded',
+          detail: matchedRow
+            ? `speech catalog missing required capability ${JSON.stringify(requiredCapability)} for target model`
+            : `speech catalog missing required capability ${JSON.stringify(requiredCapability)}`,
+        };
+      }
+    }
   }
   return { status: 'healthy', detail: '' };
 }
@@ -210,26 +297,45 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const model = String(input.localProviderModel || '').trim();
   const provider = String(input.provider || '').trim();
   const engine = normalizeLocalEngine(provider);
+  const capability = normalizeCapability(input.capability);
+  const plane = engine === 'speech'
+    ? resolveHealthPlane(engine, endpoint, input.connectorId)
+    : 'unknown';
+
+  if (
+    engine === 'speech'
+    && isVoiceWorkflowCapability(capability)
+    && (!input.connectorId && (!endpoint || source === 'local'))
+  ) {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unsupported',
+      detail: withPlaneDetail(plane, 'local workflow health requires capability-scoped readiness and is not admitted on the canonical local speech path'),
+      checkedAt: new Date().toISOString(),
+    };
+  }
 
   const runtimeAuthoritativeLocalHealth = !input.connectorId && (
     usesRuntimeAuthoritativeLocalModelHealth(engine)
     || usesRuntimeAuthoritativeLocalMediaHealth(engine, endpoint, input)
   );
-  if ((endpoint && source === 'local') || runtimeAuthoritativeLocalHealth) {
+  if ((endpoint && !input.connectorId) || runtimeAuthoritativeLocalHealth) {
     try {
       if (runtimeAuthoritativeLocalHealth) {
         return await checkRuntimeAuthoritativeLocalModelHealth(input, provider, endpoint, model);
       }
       const localFetch = input.fetchImpl || fetch;
       const response = usesCanonicalCatalogProbe(engine)
-        ? await probeMediaEndpoint(localFetch, endpoint)
+        ? await probeMediaEndpoint(localFetch, endpoint, engine, model, capability)
         : await probeOpenAiCompatibleEndpoint(localFetch, endpoint);
       return {
         provider,
         endpoint,
         model,
         status: response.status,
-        detail: response.detail,
+        detail: engine === 'speech' ? withPlaneDetail(plane, response.detail) : response.detail,
         checkedAt: new Date().toISOString(),
       };
     } catch (error) {
@@ -238,7 +344,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
         endpoint,
         model,
         status: 'unreachable',
-        detail: formatProviderError(error),
+        detail: engine === 'speech' ? withPlaneDetail(plane, formatProviderError(error)) : formatProviderError(error),
         checkedAt: new Date().toISOString(),
       };
     }
@@ -256,7 +362,9 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
         endpoint,
         model,
         status: ok ? 'healthy' : 'degraded',
-        detail: ok ? '' : (result?.ack?.actionHint || 'connector test failed'),
+        detail: engine === 'speech'
+          ? withPlaneDetail(plane, ok ? '' : (result?.ack?.actionHint || 'connector test failed'))
+          : (ok ? '' : (result?.ack?.actionHint || 'connector test failed')),
         checkedAt: new Date().toISOString(),
       };
     } catch (error) {
@@ -265,7 +373,7 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
         endpoint,
         model,
         status: 'unreachable',
-        detail: formatProviderError(error),
+        detail: engine === 'speech' ? withPlaneDetail(plane, formatProviderError(error)) : formatProviderError(error),
         checkedAt: new Date().toISOString(),
       };
     }

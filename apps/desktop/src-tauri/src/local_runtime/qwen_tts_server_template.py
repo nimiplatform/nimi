@@ -137,7 +137,6 @@ def create_app(model_dir: str, model_id: str) -> FastAPI:
                     "ready": True,
                     "capabilities": [
                         "audio.synthesize",
-                        "voice_workflow.tts_t2v",
                     ],
                 }
             ],

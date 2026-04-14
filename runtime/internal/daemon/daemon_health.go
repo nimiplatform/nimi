@@ -129,6 +129,7 @@ func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
 
 	add("local", runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
 	add("local-media", runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
+	add("local-speech", runtimeGetenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SPEECH_API_KEY"))
 	add("local-sidecar", runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
 	for _, target := range cloudTargets {
 		add(cloudProviderTargetName(target.CanonicalID), target.BaseURL, target.APIKey)
@@ -188,6 +189,9 @@ func probeAIProvider(ctx context.Context, client *http.Client, target aiProvider
 
 func providerProbePaths(name string) []string {
 	if strings.EqualFold(strings.TrimSpace(name), "local-media") {
+		return []string{"/healthz", "/v1/catalog"}
+	}
+	if strings.EqualFold(strings.TrimSpace(name), "local-speech") {
 		return []string{"/healthz", "/v1/catalog"}
 	}
 	if strings.EqualFold(strings.TrimSpace(name), "local") {

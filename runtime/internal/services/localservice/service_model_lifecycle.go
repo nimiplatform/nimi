@@ -171,6 +171,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, current)
 	probe := s.probeLocalModelEndpoint(ctx, current, endpoint)
 	if modelProbeSucceeded(current, probe, registration) {
+		didWarmOnStart := false
 		if s.shouldWarmLocalModelOnStart(current, endpoint, probe) {
 			warmTimeout := warmLocalModelTimeout(0)
 			warmCtx, cancel := context.WithTimeout(ctx, warmTimeout)
@@ -180,14 +181,33 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 				failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 				detail := appendWarnings(warmExecutionFailureDetail(warmErr), warnings)
 				detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
-				unhealthy, err := s.transitionModelToUnhealthy(localModelID, detail)
+				unhealthy, err := s.updateModelAvailabilityAndWarmState(
+					localModelID,
+					runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+					runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+					detail,
+					true,
+				)
 				if err != nil {
 					return nil, err
 				}
 				return &runtimev1.StartLocalAssetResponse{Asset: unhealthy}, nil
 			}
+			didWarmOnStart = true
 		}
-		if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		if didWarmOnStart {
+			activated, err := s.updateModelAvailabilityAndWarmState(
+				localModelID,
+				runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+				appendWarnings(managedLocalModelReadyDetail(), warnings),
+				true,
+			)
+			if err != nil {
+				return nil, err
+			}
+			current = activated
+		} else if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 			activated, err := s.updateModelStatus(
 				localModelID,
 				runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
@@ -211,10 +231,7 @@ func (s *Service) StartLocalAsset(ctx context.Context, req *runtimev1.StartLocal
 
 	failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 	detail := appendWarnings(modelProbeFailureDetail(current, probe, registration), warnings)
-	detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
-	if strings.TrimSpace(probe.probeURL) != "" {
-		detail += "; probe_url=" + probe.probeURL
-	}
+	detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
 	detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
 	unhealthy, err := s.transitionModelToUnhealthy(localModelID, detail)
 	if err != nil {
@@ -302,6 +319,14 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, health)
 			continue
 		}
+		if isManagedSupervisedSpeechModel(model, s.modelRuntimeMode(localModelID)) {
+			health, err := s.checkManagedSupervisedSpeechHealth(ctx, model)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, health)
+			continue
+		}
 		if isManagedSupervisedImageModel(model, s.modelRuntimeMode(localModelID)) {
 			if target != "" {
 				health, err := s.checkManagedSupervisedImageHealth(ctx, model)
@@ -348,10 +373,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			detail := modelProbeFailureDetail(model, probe, registration)
-			detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
-			if strings.TrimSpace(probe.probeURL) != "" {
-				detail += "; probe_url=" + probe.probeURL
-			}
+			detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
 			detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 			transitioned, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, detail)
 			if err != nil {
@@ -374,10 +396,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 					result = append(result, modelHealth(recovered))
 				} else {
 					health := modelHealth(model)
-					detail := fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold)
-					if strings.TrimSpace(probe.probeURL) != "" {
-						detail += "; probe_url=" + probe.probeURL
-					}
+					detail := sanitizedModelProbeDetail(fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold), s.modelRuntimeMode(localModelID), nil)
 					health.Detail = detail
 					result = append(result, health)
 				}
@@ -386,10 +405,7 @@ func (s *Service) CheckLocalAssetHealth(ctx context.Context, req *runtimev1.Chec
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			health := modelHealth(model)
 			detail := modelProbeFailureDetail(model, probe, registration)
-			detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
-			if strings.TrimSpace(probe.probeURL) != "" {
-				detail += "; probe_url=" + probe.probeURL
-			}
+			detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
 			health.Detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 			result = append(result, health)
 		default:
@@ -410,7 +426,8 @@ func (s *Service) normalizeManagedSupervisedManagedStatuses(ctx context.Context)
 		if model == nil {
 			continue
 		}
-		if !isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+		mode := s.assetRuntimeModes[model.GetLocalAssetId()]
+		if !isManagedSupervisedLlamaModel(model, mode) && !isManagedSupervisedSpeechModel(model, mode) {
 			continue
 		}
 		models = append(models, cloneLocalAsset(model))
@@ -425,8 +442,16 @@ func (s *Service) normalizeManagedSupervisedManagedStatuses(ctx context.Context)
 		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
-			if _, err := s.checkManagedSupervisedLlamaHealth(ctx, model); err != nil {
-				s.logger.Debug("normalize managed llama status failed", "local_model_id", model.GetLocalAssetId(), "error", err)
+			if isManagedSupervisedLlamaModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+				if _, err := s.checkManagedSupervisedLlamaHealth(ctx, model); err != nil {
+					s.logger.Debug("normalize managed llama status failed", "local_model_id", model.GetLocalAssetId(), "error", err)
+				}
+				continue
+			}
+			if isManagedSupervisedSpeechModel(model, s.assetRuntimeModes[model.GetLocalAssetId()]) {
+				if _, err := s.checkManagedSupervisedSpeechHealth(ctx, model); err != nil {
+					s.logger.Debug("normalize managed speech status failed", "local_model_id", model.GetLocalAssetId(), "error", err)
+				}
 			}
 		}
 	}
@@ -507,7 +532,95 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 	return modelHealth(coldModel), nil
 }
 
+func (s *Service) checkManagedSupervisedSpeechHealth(ctx context.Context, model *runtimev1.LocalAssetRecord) (*runtimev1.LocalAssetHealth, error) {
+	if model == nil {
+		return nil, nil
+	}
+	localModelID := strings.TrimSpace(model.GetLocalAssetId())
+	if healedModel, _, err := s.healManagedSupervisedRuntimeMode(localModelID); err != nil {
+		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
+	} else if healedModel != nil {
+		model = healedModel
+	}
+	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localModelID)); err != nil {
+		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
+	}
+	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
+		return s.setManagedSupervisedSpeechUnhealthy(model, managedLocalModelBundleFailureDetail(err))
+	}
+	if refreshed := s.modelByID(localModelID); refreshed != nil {
+		model = refreshed
+	}
+
+	endpoint := s.effectiveLocalModelEndpoint(model)
+	bootstrapErr := s.bootstrapLocalModelIfManaged(ctx, model)
+	probe := s.probeLocalModelEndpoint(ctx, model, endpoint)
+	if modelProbeSucceeded(model, probe, managedLlamaRegistration{}) {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+			successes := s.modelRecoverySuccess(localModelID, time.Now().UTC())
+			if successes < localRecoverySuccessThreshold {
+				health := modelHealth(model)
+				health.Detail = sanitizedModelProbeDetail(
+					fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold),
+					s.modelRuntimeMode(localModelID),
+					nil,
+				)
+				return health, nil
+			}
+		}
+		s.resetModelRecovery(localModelID)
+		warmState := runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD
+		detail := managedLocalModelColdDetail()
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+			model.GetWarmState() == runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+			warmState = runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY
+			detail = managedLocalModelReadyDetail()
+		}
+		updated, err := s.updateModelAvailabilityAndWarmState(
+			localModelID,
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			warmState,
+			detail,
+			true,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return modelHealth(updated), nil
+	}
+
+	failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+	detail := modelProbeFailureDetail(model, probe, managedLlamaRegistration{})
+	detail = sanitizedModelProbeDetail(detail, s.modelRuntimeMode(localModelID), bootstrapErr)
+	detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+	return s.setManagedSupervisedSpeechUnhealthy(model, detail)
+}
+
 func (s *Service) setManagedSupervisedLlamaUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {
+	if model == nil {
+		return nil, nil
+	}
+	localModelID := strings.TrimSpace(model.GetLocalAssetId())
+	if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		if _, err := s.updateModelWarmState(localModelID, runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED, detail); err != nil {
+			return nil, err
+		}
+		return modelHealth(s.modelByID(localModelID)), nil
+	}
+	transitioned, err := s.updateModelAvailabilityAndWarmState(
+		localModelID,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+		detail,
+		true,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return modelHealth(transitioned), nil
+}
+
+func (s *Service) setManagedSupervisedSpeechUnhealthy(model *runtimev1.LocalAssetRecord, detail string) (*runtimev1.LocalAssetHealth, error) {
 	if model == nil {
 		return nil, nil
 	}
@@ -596,10 +709,15 @@ func (s *Service) shouldWarmLocalModelOnStart(
 	if !probe.responded {
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
-		return false
-	}
-	if s.engineManagerOrNil() == nil {
+	switch strings.ToLower(strings.TrimSpace(managedRuntimeEngineForModel(model))) {
+	case "llama":
+		if s.engineManagerOrNil() == nil {
+			return false
+		}
+	case "speech":
+		// speech supervised start may use runtime-owned minimal capability
+		// requests as warm proof without depending on an engine manager handle.
+	default:
 		return false
 	}
 	if s.modelRuntimeMode(model.GetLocalAssetId()) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {

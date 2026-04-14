@@ -13,6 +13,7 @@ export type ProviderHealth = {
 
 export type CheckLlmHealthInput = {
   provider: string;
+  capability?: string;
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;

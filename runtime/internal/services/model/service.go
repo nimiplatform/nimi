@@ -303,6 +303,21 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 		return false, nil, false
 	}
 
+	if localSpeechWorkflowAssetRequiresAdmission(selected) {
+		return false, &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+			ActionHint: "use cloud workflow route",
+		}, true
+	}
+	if localSpeechAssetMissingAdmittedPlainCapability(selected) {
+		return false, &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+			ActionHint: "repair local model metadata",
+		}, true
+	}
+
 	switch selected.GetStatus() {
 	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		switch selected.GetWarmState() {
@@ -398,6 +413,9 @@ func checkLocalNativeModelHealth(
 	item modelregistry.Entry,
 	projection modelregistry.NativeProjection,
 ) (bool, runtimev1.ReasonCode, string) {
+	if localSpeechWorkflowModelRequiresAdmission(item) {
+		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "use cloud workflow route"
+	}
 	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
 		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "finish local model install"
 	}
@@ -415,11 +433,11 @@ func checkLocalNativeModelHealth(
 			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local llama engine"
 		}
 	case "media":
-		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", engine.DefaultMediaConfig().Endpoint()), "media", projection.LogicalModelID, item.ModelID); err != nil {
+		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", engine.DefaultMediaConfig().Endpoint()), "media", nil, projection.LogicalModelID, item.ModelID); err != nil {
 			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local media engine"
 		}
 	case "speech":
-		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", engine.DefaultSpeechConfig().Endpoint()), "speech", projection.LogicalModelID, item.ModelID); err != nil {
+		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", engine.DefaultSpeechConfig().Endpoint()), "speech", item.Capabilities, projection.LogicalModelID, item.ModelID); err != nil {
 			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local speech engine"
 		}
 	case "sidecar":
@@ -429,6 +447,42 @@ func checkLocalNativeModelHealth(
 		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "validate sidecar availability via a music request"
 	}
 	return true, runtimev1.ReasonCode_ACTION_EXECUTED, ""
+}
+
+func localSpeechWorkflowAssetRequiresAdmission(asset *runtimev1.LocalAssetRecord) bool {
+	if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "speech") {
+		return false
+	}
+	for _, capability := range asset.GetCapabilities() {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			return true
+		}
+	}
+	return false
+}
+
+func localSpeechAssetMissingAdmittedPlainCapability(asset *runtimev1.LocalAssetRecord) bool {
+	if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetEngine()), "speech") {
+		return false
+	}
+	for _, capability := range asset.GetCapabilities() {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "audio.synthesize", "audio.transcribe":
+			return false
+		}
+	}
+	return true
+}
+
+func localSpeechWorkflowModelRequiresAdmission(item modelregistry.Entry) bool {
+	for _, capability := range item.Capabilities {
+		switch strings.ToLower(strings.TrimSpace(capability)) {
+		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			return true
+		}
+	}
+	return false
 }
 
 func probeLlamaHealth(ctx context.Context) error {
@@ -443,7 +497,7 @@ func resolveEngineEndpoint(envKey string, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
-func probeTargetCatalogHealth(ctx context.Context, endpoint string, engineLabel string, expectedIDs ...string) error {
+func probeTargetCatalogHealth(ctx context.Context, endpoint string, engineLabel string, requiredCapabilities []string, expectedIDs ...string) error {
 	normalizedEndpoint := strings.TrimSpace(endpoint)
 	if normalizedEndpoint == "" {
 		return fmt.Errorf("%s endpoint missing", engineLabel)
@@ -461,20 +515,33 @@ func probeTargetCatalogHealth(ctx context.Context, endpoint string, engineLabel 
 		return fmt.Errorf("unsupported engine probe: %s", engineLabel)
 	}
 
-	models, err := fetchReadyCatalogModels(ctx, normalizedEndpoint)
+	rows, err := fetchReadyCatalogRows(ctx, normalizedEndpoint)
 	if err != nil {
 		return err
 	}
-	if len(models) == 0 {
+	if len(rows) == 0 {
 		return fmt.Errorf("%s catalog missing ready models", engineLabel)
 	}
-	if hasComparableProbeModel(models, expectedIDs...) {
+	for _, row := range rows {
+		if !hasComparableProbeModel([]string{row.id}, expectedIDs...) {
+			continue
+		}
+		if engineLabel == "speech" && len(normalizeProbeCapabilities(requiredCapabilities)) > 0 {
+			if missing, ok := firstMissingProbeCapability(row.capabilities, requiredCapabilities); ok {
+				return fmt.Errorf("%s catalog missing required capability %q for target model", engineLabel, missing)
+			}
+		}
 		return nil
 	}
 	return fmt.Errorf("%s catalog missing target model", engineLabel)
 }
 
-func fetchReadyCatalogModels(ctx context.Context, endpoint string) ([]string, error) {
+type readyCatalogRow struct {
+	id           string
+	capabilities []string
+}
+
+func fetchReadyCatalogRows(ctx context.Context, endpoint string) ([]readyCatalogRow, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(endpoint, "/")+"/v1/catalog", nil)
 	if err != nil {
 		return nil, fmt.Errorf("build catalog probe: %w", err)
@@ -493,22 +560,56 @@ func fetchReadyCatalogModels(ctx context.Context, endpoint string) ([]string, er
 
 	payload := struct {
 		Models []struct {
-			ID    string `json:"id"`
-			Ready bool   `json:"ready"`
+			ID           string   `json:"id"`
+			Ready        bool     `json:"ready"`
+			Capabilities []string `json:"capabilities"`
 		} `json:"models"`
 	}{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return nil, fmt.Errorf("catalog probe parse failed: %w", err)
 	}
 
-	readyModels := make([]string, 0, len(payload.Models))
+	readyModels := make([]readyCatalogRow, 0, len(payload.Models))
 	for _, model := range payload.Models {
 		if strings.TrimSpace(model.ID) == "" || !model.Ready {
 			continue
 		}
-		readyModels = append(readyModels, strings.TrimSpace(model.ID))
+		readyModels = append(readyModels, readyCatalogRow{
+			id:           strings.TrimSpace(model.ID),
+			capabilities: normalizeProbeCapabilities(model.Capabilities),
+		})
 	}
 	return readyModels, nil
+}
+
+func normalizeProbeCapabilities(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.ToLower(strings.TrimSpace(value))
+		if trimmed == "" {
+			continue
+		}
+		normalized = append(normalized, trimmed)
+	}
+	return normalized
+}
+
+func firstMissingProbeCapability(available []string, required []string) (string, bool) {
+	normalizedAvailable := normalizeProbeCapabilities(available)
+	normalizedRequired := normalizeProbeCapabilities(required)
+	for _, capability := range normalizedRequired {
+		found := false
+		for _, current := range normalizedAvailable {
+			if current == capability {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return capability, true
+		}
+	}
+	return "", false
 }
 
 func hasComparableProbeModel(models []string, expectedIDs ...string) bool {

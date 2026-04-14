@@ -67,7 +67,10 @@ func classifyManagedEngineSupportForAsset(
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
 		}
-		return localEngineSupportSupportedSupervised, ""
+		if engine.SpeechSupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
+			return localEngineSupportSupportedSupervised, ""
+		}
+		return localEngineSupportAttachedOnly, "speech-backed supervised mode is unavailable on this host; configure an attached endpoint instead"
 	default:
 		return localEngineSupportUnsupported, "unknown managed engine"
 	}

@@ -17,8 +17,6 @@
 | `media` | `i2v` | `media_native_adapter` | `K-LOCAL-017` |
 | `speech` | `audio.transcribe` | `speech_native_adapter` | `K-LOCAL-017` |
 | `speech` | `audio.synthesize` | `speech_native_adapter` | `K-LOCAL-017` |
-| `speech` | `voice_workflow.tts_v2v` | `speech_native_adapter` | `K-LOCAL-017` |
-| `speech` | `voice_workflow.tts_t2v` | `speech_native_adapter` | `K-LOCAL-017` |
 | `sidecar` | `music` | `sidecar_music_adapter` | `K-LOCAL-017` |
 | `sidecar` | `music.generate` | `sidecar_music_adapter` | `K-LOCAL-017` |
 | `*` | `*` | `openai_compat_adapter` | `K-LOCAL-017` |

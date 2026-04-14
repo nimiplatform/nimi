@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 const speechPythonVersion = "3.12"
@@ -13,6 +14,29 @@ const speechPythonVersion = "3.12"
 var nimiSpeechPackages = []string{
 	"fastapi==0.121.1",
 	"uvicorn[standard]==0.38.0",
+}
+
+var speechPassThroughEnvKeys = []string{
+	"NIMI_RUNTIME_SPEECH_KOKORO_CMD",
+	"NIMI_RUNTIME_SPEECH_WHISPERCPP_CMD",
+	"NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS",
+}
+
+func speechCommandEnv() map[string]string {
+	env := map[string]string{
+		"PYTHONUNBUFFERED": "1",
+	}
+	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH")) != "" {
+		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH"))
+	} else if homeDir, err := os.UserHomeDir(); err == nil {
+		env["NIMI_RUNTIME_LOCAL_MODELS_PATH"] = filepath.Join(homeDir, ".nimi", "data", "models")
+	}
+	for _, key := range speechPassThroughEnvKeys {
+		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
+			env[key] = value
+		}
+	}
+	return env
 }
 
 func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
@@ -52,6 +76,8 @@ func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (Engine
 	if cfg.CommandEnv == nil {
 		cfg.CommandEnv = map[string]string{}
 	}
-	cfg.CommandEnv["PYTHONUNBUFFERED"] = "1"
+	for key, value := range speechCommandEnv() {
+		cfg.CommandEnv[key] = value
+	}
 	return cfg, nil
 }

@@ -50,6 +50,7 @@ engines:
     runtime_mode: attached_endpoint
     protocol: nimi_runtime_speech
     phase1: true
+    # Advanced/self-hosted local speech path only; not the ordinary-user default.
     source_rule: K-LENG-005
   - engine: speech
     runtime_mode: supervised
@@ -57,6 +58,11 @@ engines:
     phase1: true
     source_rule: K-LENG-004
     discovery: uv_managed_python
+    # Ordinary-user canonical local speech path. The readiness signature below
+    # applies only after an admitted plain-speech execution plane exists; the
+    # current bootstrap placeholder must remain non-ready and fail-closed.
+    # `health_response` below therefore describes the admitted-state readiness
+    # signature, not the current placeholder fact surface.
     supported_platforms:
       - darwin/arm64
       - darwin/amd64

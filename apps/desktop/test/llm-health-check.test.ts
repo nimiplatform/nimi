@@ -167,7 +167,7 @@ test('speech health uses /healthz + /v1/catalog', async () => {
       return new Response(JSON.stringify({ ready: true }), { status: 200 });
     }
     if (url.endsWith('/v1/catalog')) {
-      return new Response(JSON.stringify({ models: [{ id: 'qwen3-tts', ready: true }] }), { status: 200 });
+      return new Response(JSON.stringify({ ready: true, models: [{ id: 'qwen3-tts', ready: true }] }), { status: 200 });
     }
     return new Response('not found', { status: 404 });
   });
@@ -179,9 +179,145 @@ test('speech health uses /healthz + /v1/catalog', async () => {
   });
 
   assert.equal(result.status, 'healthy');
+  assert.equal(result.detail, 'plane=local-supervised');
   assert.equal(mockFetch.mock.callCount(), 2);
   assert.ok(String(mockFetch.mock.calls[0]!.arguments[0]).endsWith('/healthz'));
   assert.ok(String(mockFetch.mock.calls[1]!.arguments[0]).endsWith('/v1/catalog'));
+});
+
+test('local speech workflow health fails closed without borrowing plain speech readiness', async () => {
+  const mockFetch = mock.fn(async () => new Response('not used', { status: 200 }));
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    capability: 'voice_workflow.tts_t2v',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    localProviderModel: 'speech/qwen3-tts',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'unsupported');
+  assert.match(result.detail, /plane=local-supervised/);
+  assert.match(result.detail, /capability-scoped readiness/i);
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
+test('speech attached endpoint health stays plane-visible', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ ready: true, models: [{ id: 'qwen3-tts', ready: true }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    localProviderEndpoint: 'https://speech.example.com/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'healthy');
+  assert.equal(result.detail, 'plane=attached-endpoint');
+});
+
+test('speech health fails closed when catalog ready=false', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ ready: false, detail: 'catalog still warming', models: [{ id: 'qwen3-tts', ready: true }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'degraded');
+  assert.equal(result.detail, 'plane=local-supervised; catalog still warming');
+});
+
+test('speech health fails closed when ready target model is missing', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ ready: true, models: [{ id: 'other-model', ready: true, capabilities: ['audio.synthesize'] }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    capability: 'audio.synthesize',
+    localProviderModel: 'speech/qwen3-tts',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'degraded');
+  assert.match(result.detail, /plane=local-supervised/);
+  assert.match(result.detail, /missing ready target model/i);
+});
+
+test('speech health fails closed when required capability is missing', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ ready: true, models: [{ id: 'speech/qwen3-tts', ready: true, capabilities: ['audio.transcribe'] }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    capability: 'audio.synthesize',
+    localProviderModel: 'speech/qwen3-tts',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'degraded');
+  assert.match(result.detail, /plane=local-supervised/);
+  assert.match(result.detail, /missing required capability/i);
+});
+
+test('speech health accepts matching ready target model and admitted capability', async () => {
+  const mockFetch = mock.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/healthz')) {
+      return new Response(JSON.stringify({ ready: true }), { status: 200 });
+    }
+    if (url.endsWith('/v1/catalog')) {
+      return new Response(JSON.stringify({ ready: true, models: [{ id: 'speech/qwen3-tts', ready: true, capabilities: ['audio.synthesize'] }] }), { status: 200 });
+    }
+    return new Response('not found', { status: 404 });
+  });
+
+  const result = await checkLocalLlmHealth({
+    provider: 'speech',
+    capability: 'audio.synthesize',
+    localProviderModel: 'speech/qwen3-tts',
+    localProviderEndpoint: 'http://127.0.0.1:8330/v1',
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'healthy');
+  assert.equal(result.detail, 'plane=local-supervised');
 });
 
 test('no endpoint no connectorId → unsupported', async () => {

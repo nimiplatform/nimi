@@ -59,6 +59,9 @@ func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
 	if got := adapterForProviderCapability("speech", "audio.synthesize"); got != "speech_native_adapter" {
 		t.Fatalf("speech synth adapter mismatch: %s", got)
 	}
+	if got := adapterForProviderCapability("speech", "voice_workflow.tts_t2v"); got != "openai_compat_adapter" {
+		t.Fatalf("speech workflow adapter should fail closed to non-native adapter, got: %s", got)
+	}
 	if got := adapterForProviderCapability("sidecar", "music"); got != "sidecar_music_adapter" {
 		t.Fatalf("sidecar music adapter mismatch: %s", got)
 	}

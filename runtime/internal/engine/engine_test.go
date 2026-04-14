@@ -333,7 +333,7 @@ func TestProbeMediaHealthSuccess(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"models":[{"id":"flux.1-schnell","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"flux.1-schnell","ready":true}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -353,7 +353,7 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"models":[]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -385,6 +385,26 @@ func TestProbeMediaHealthProxyExecutionAllowsReadyEmptyCatalog(t *testing.T) {
 	}
 }
 
+func TestProbeSpeechHealthRequiresCatalogReadyTrue(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":false,"detail":"speech placeholder","models":[{"id":"speech-default","ready":true}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeSpeechHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected speech health probe to fail when catalog reports ready=false")
+	}
+}
+
 func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
 	oversizedModelID := strings.Repeat("m", canonicalCatalogProbeBodyLimitBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -394,7 +414,7 @@ func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"models":[{"id":"` + oversizedModelID + `","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"` + oversizedModelID + `","ready":true}]}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -414,7 +434,7 @@ func TestProbeSupervisorHealthUsesSpeechProbe(t *testing.T) {
 			_, _ = w.Write([]byte(`{"ready":true}`))
 		case "/v1/catalog":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"models":[{"id":"speech-default","ready":true}]}`))
+			_, _ = w.Write([]byte(`{"ready":true,"models":[{"id":"speech-default","ready":true}]}`))
 		case "/v1/models":
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = w.Write([]byte(`{"detail":"generic health path should not be used for speech"}`))

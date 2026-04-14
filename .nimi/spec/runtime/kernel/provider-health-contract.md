@@ -64,8 +64,11 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
   - health attribution detail 必须包含 `backend_family=diffusers`、`entry_id`、`internal_reason_key`。
   - Python runtime / venv 损坏、依赖安装失败等必须以对应 `internal_reason_key` 归因，不得泛化为 generic provider unavailable。
 - `local-speech` 作为完整 supervised engine，与 `local` / `local-media` 一样按显式 Base URL 配置参与 provider health 探测。
+- `local-speech` 的 canonical provider probe 固定为 `/healthz` → `/v1/catalog`；不得错误回落到 `/v1/models`。
+- `local-speech` provider health 只回答 provider-facing reachability 与 canonical provider probe truth；不得被解释为 `audio.synthesize` / `audio.transcribe` capability-route readiness 或 admitted plain-speech success。
+- route health、model health、asset health 可以消费 provider health 作为 reachability 输入，但不得回写、覆盖、或替代 provider health truth owner。
 - `local-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
-- v2 观测字段（`backend_family`、`backend_class`、`product_state`、`control_plane`、`execution_plane`）本轮只允许落在 runtime-private resolved detail、provider hints `extra`、audit detail；不新增 `AIProviderHealthSnapshot` typed 字段。
+- v2 观测字段（`backend_family`、`backend_class`、`product_state`、`control_plane`、`execution_plane`）以及任何后续 speech-specific provider detail，本轮只允许落在 runtime-private resolved detail、provider hints `extra`、audit detail；不新增 `AIProviderHealthSnapshot` typed 字段。
 
 ## K-PROV-003 探测间隔与策略
 
@@ -74,7 +77,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - **基础探测间隔**：默认 8s（`NIMI_RUNTIME_AI_HEALTH_INTERVAL` 可覆盖）。
 - **HTTP 超时**：默认 30s（`NIMI_RUNTIME_AI_HTTP_TIMEOUT` 可覆盖）。
 - **探测路径**：按序尝试 `/healthz` → `/v1/models`，任一路径返回 `2xx` 即视为健康；`401`/`403`/`429`（server 可达但配置/限流问题）亦视为健康；`404` 触发下一探测路径；其余 `4xx` 与 `5xx` 视为不健康。
-- `local-media` 为例外：canonical provider probe 固定为 `/healthz` → `/v1/catalog`。
+- `local-media` 与 `local-speech` 为例外：canonical provider probe 固定为 `/healthz` → `/v1/catalog`。
   - **设计取舍（K-PROV-003）**：`401`/`403` 标记为 healthy 意味着 API key 无效或权限不足的 provider 在健康面板显示"健康"，但该 provider 的所有 AI consume 请求会失败并返回 `UNAVAILABLE + AI_PROVIDER_UNAVAILABLE`（K-ERR-005）。此为有意设计：健康探测回答的是"server 是否可达"，而非"凭据是否有效"。两个信号服务不同用途——健康面板用于网络连通性诊断，consume 错误用于凭据配置诊断。Desktop UI 应在 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，引导用户检查 API key 配置而非网络连通性。
 - **探测时机**：daemon 启动后立即执行首次探测，之后按间隔周期性执行。
 - **暂停条件**：daemon 处于 `STOPPING`/`STOPPED` 时跳过探测。

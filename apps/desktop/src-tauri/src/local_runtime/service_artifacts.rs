@@ -61,13 +61,14 @@ fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
             timeout_ms: 4_000,
         },
         nodes: vec![LocalAiNodeContract {
-            node_id: "voice_workflow.tts_t2v.qwen3tts".to_string(),
-            title: "Qwen3 TTS Voice Design".to_string(),
-            capability: "voice_workflow.tts_t2v".to_string(),
-            api_path: "/v1/voice/design".to_string(),
+            node_id: "audio.synthesize.qwen3tts".to_string(),
+            title: "Qwen3 TTS Synthesize".to_string(),
+            capability: "audio.synthesize".to_string(),
+            api_path: "/v1/audio/speech".to_string(),
             input_schema: Some(serde_json::json!({
                 "text": "string",
-                "voiceId": "string?",
+                "voice": "string?",
+                "language": "string?",
                 "providerHints": "object?"
             })),
             output_schema: Some(serde_json::json!({
@@ -116,6 +117,6 @@ mod tests {
         assert!(artifact
             .nodes
             .iter()
-            .any(|node| node.api_path == "/v1/voice/design"));
+            .any(|node| node.capability == "audio.synthesize" && node.api_path == "/v1/audio/speech"));
     }
 }

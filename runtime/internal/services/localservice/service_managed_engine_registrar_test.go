@@ -201,6 +201,73 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 	}
 }
 
+func TestSetManagedSpeechEndpointSyncsSupervisedSpeechProjection(t *testing.T) {
+	svc := newTestService(t)
+
+	supervised := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-managed",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+	})
+	attached := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-attached",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		endpoint:     "https://speech.example.com/v1",
+	})
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-speech-supervised",
+		Engine:       "speech",
+		Capabilities: []string{"audio.synthesize"},
+		LocalModelId: supervised.GetLocalAssetId(),
+	}); err != nil {
+		t.Fatalf("install supervised speech service: %v", err)
+	}
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-speech-attached",
+		Engine:       "speech",
+		Capabilities: []string{"audio.synthesize"},
+		LocalModelId: attached.GetLocalAssetId(),
+		Endpoint:     "https://speech.example.com/v1",
+	}); err != nil {
+		t.Fatalf("install attached speech service: %v", err)
+	}
+
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	supervisedModel := svc.modelByID(supervised.GetLocalAssetId())
+	if supervisedModel == nil {
+		t.Fatal("expected supervised speech model to exist")
+	}
+	if got := supervisedModel.GetEndpoint(); got != "http://127.0.0.1:18330/v1" {
+		t.Fatalf("supervised speech model endpoint = %q", got)
+	}
+
+	attachedModel := svc.modelByID(attached.GetLocalAssetId())
+	if attachedModel == nil {
+		t.Fatal("expected attached speech model to exist")
+	}
+	if got := attachedModel.GetEndpoint(); got != "https://speech.example.com/v1" {
+		t.Fatalf("attached speech model endpoint must stay explicit, got %q", got)
+	}
+
+	supervisedService := svc.serviceByID("svc-speech-supervised")
+	if supervisedService == nil {
+		t.Fatal("expected supervised speech service to exist")
+	}
+	if got := supervisedService.GetEndpoint(); got != "http://127.0.0.1:18330/v1" {
+		t.Fatalf("supervised speech service endpoint = %q", got)
+	}
+
+	attachedService := svc.serviceByID("svc-speech-attached")
+	if attachedService == nil {
+		t.Fatal("expected attached speech service to exist")
+	}
+	if got := attachedService.GetEndpoint(); got != "https://speech.example.com/v1" {
+		t.Fatalf("attached speech service endpoint must stay explicit, got %q", got)
+	}
+}
+
 func TestSyncManagedLlamaAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	svc := newTestService(t)
 	modelsPath := filepath.Join(t.TempDir(), "models")
@@ -696,7 +763,7 @@ func TestRenderManagedLlamaPresetResolvesMmprojAgainstModelsRoot(t *testing.T) {
 	modelPath := filepath.Join(modelsPath, "resolved", "nimi", "local-gemma-test", "weights", "model.gguf")
 	registrations := []managedLlamaRegistration{
 		{
-			ExposedModelName: "gemma-test",
+			ExposedModelName:  "gemma-test",
 			AbsoluteModelPath: modelPath,
 			LlamaEngineConfig: &engine.ManagedLlamaEngineConfig{
 				Mmproj: "resolved/nimi/local-gemma-test/mmproj-BF16.gguf",

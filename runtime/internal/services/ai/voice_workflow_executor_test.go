@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -556,6 +557,63 @@ func TestVoiceWorkflowDoesNotSynthesizeProviderJobID(t *testing.T) {
 	}
 	if strings.TrimSpace(result.ProviderJobID) != "" {
 		t.Fatalf("provider job id should stay empty when provider does not return one, got=%q", result.ProviderJobID)
+	}
+}
+
+func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"voice_id":"voice-123","job_id":"job-123"}`)
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+	req := voiceCloneRequest()
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "dashscope/qwen3-tts-vc", "tts_v2v")
+	if err != nil {
+		t.Fatalf("resolveVoiceWorkflow: %v", err)
+	}
+	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head:              req.GetHead(),
+		ScenarioType:      req.GetScenarioType(),
+		Spec:              req.GetSpec(),
+		ModelResolved:     "dashscope/qwen3-tts-vc",
+		Provider:          "dashscope",
+		WorkflowModelID:   resolution.WorkflowModelID,
+		OutputPersistence: resolution.OutputPersistence,
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("submit should create workflow job and asset")
+	}
+
+	svc.executeVoiceWorkflowJob(
+		context.Background(),
+		job.GetJobId(),
+		asset.GetVoiceAssetId(),
+		resolution,
+		req,
+		svc.resolveNativeAdapterConfig("dashscope", nil),
+	)
+
+	stored, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("expected stored asset")
+	}
+	if got := stored.GetMetadata().GetFields()["workflow_family"].GetStringValue(); got != "dashscope" {
+		t.Fatalf("workflow_family=%q, want dashscope", got)
+	}
+	if got := stored.GetMetadata().GetFields()["voice_handle_policy_id"].GetStringValue(); got != "dashscope_provider_persistent_default" {
+		t.Fatalf("voice_handle_policy_id=%q", got)
+	}
+	if got := stored.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue(); got != "best_effort_provider_delete" {
+		t.Fatalf("voice_handle_policy_delete_semantics=%q", got)
+	}
+	if !stored.GetMetadata().GetFields()["voice_handle_policy_runtime_reconciliation_required"].GetBoolValue() {
+		t.Fatalf("expected runtime reconciliation flag")
 	}
 }
 

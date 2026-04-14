@@ -299,6 +299,73 @@ func TestDefaultEndpointProbeMediaCollectsReadyModels(t *testing.T) {
 	}
 }
 
+func TestDefaultEndpointProbeMediaProxyAllowsReadyEmptyCatalog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"checks": map[string]any{
+					"proxy_mode": true,
+				},
+			})
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"detail": "proxy execution catalog is informational only",
+				"models": []map[string]any{},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	probe := defaultEndpointProbe(context.Background(), "media", server.URL)
+	if !probe.healthy {
+		t.Fatalf("expected media proxy probe to succeed, got detail=%q", probe.detail)
+	}
+}
+
+func TestDefaultEndpointProbeSpeechRejectsCatalogReadyFalse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"ready":  true,
+				"detail": "health endpoint reachable",
+			})
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status": "placeholder",
+				"ready":  false,
+				"detail": "speech placeholder catalog",
+				"models": []map[string]any{
+					{"id": "speech-default", "ready": true, "capabilities": []string{"audio.synthesize"}},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	probe := defaultEndpointProbe(context.Background(), "speech", server.URL)
+	if probe.healthy {
+		t.Fatal("expected speech probe to fail when catalog reports ready=false")
+	}
+	if !strings.Contains(probe.detail, "placeholder") && !strings.Contains(probe.detail, "ready=false") {
+		t.Fatalf("expected placeholder-ready=false detail, got %q", probe.detail)
+	}
+}
+
 func TestLocalModelLifecycle(t *testing.T) {
 	svc := newTestService(t)
 
@@ -775,6 +842,56 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	}
 }
 
+func TestLocalStartLocalServiceSanitizesProbeMetadata(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	svc.SetEngineManager(&mockEngineManager{
+		startErr: fmt.Errorf("bootstrap failed for /tmp/private-service-model on 127.0.0.1:1234"),
+	})
+
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/bootstrap-service-sanitize-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+	})
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-bootstrap-sanitize",
+		Engine:       "llama",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetLocalAssetId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+
+	started, err := svc.StartLocalService(context.Background(), &runtimev1.StartLocalServiceRequest{
+		ServiceId: "svc-bootstrap-sanitize",
+	})
+	if err != nil {
+		t.Fatalf("start local service: %v", err)
+	}
+	detail := started.GetService().GetDetail()
+	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
+		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
+	}
+	if !strings.Contains(detail, "plane=local-supervised") {
+		t.Fatalf("expected supervised plane marker, got %q", detail)
+	}
+	if strings.Contains(detail, "/tmp/private-service-model") {
+		t.Fatalf("bootstrap detail should not leak filesystem paths: %q", detail)
+	}
+	if strings.Contains(detail, "http://127.0.0.1:1234") {
+		t.Fatalf("service detail should not leak raw probe urls: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("service detail should not emit raw probe_url markers: %q", detail)
+	}
+}
+
 func TestLocalBootstrapSkipsNonLoopbackEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	mgr := &mockEngineManager{}
@@ -958,6 +1075,54 @@ func TestLocalCheckLocalServiceHealthUnhealthyPathBootstrapsManagedEngine(t *tes
 	}
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
+	}
+}
+
+func TestLocalCheckLocalServiceHealthSanitizesAttachedProbeMetadata(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/attached-service-sanitize-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "https://speech.example.com/v1",
+	})
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-attached-sanitize",
+		Engine:       "llama",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetLocalAssetId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-attached-sanitize", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active"); err != nil {
+		t.Fatalf("promote service to active: %v", err)
+	}
+
+	resp, err := svc.CheckLocalServiceHealth(context.Background(), &runtimev1.CheckLocalServiceHealthRequest{
+		ServiceId: "svc-attached-sanitize",
+	})
+	if err != nil {
+		t.Fatalf("check local service health: %v", err)
+	}
+	if len(resp.GetServices()) != 1 {
+		t.Fatalf("expected one service row, got %d", len(resp.GetServices()))
+	}
+	detail := resp.GetServices()[0].GetDetail()
+	if !strings.Contains(detail, "plane=attached-endpoint") {
+		t.Fatalf("expected attached plane marker, got %q", detail)
+	}
+	if strings.Contains(detail, "speech.example.com") {
+		t.Fatalf("service detail should not leak attached endpoint hosts: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("service detail should not emit raw probe_url markers: %q", detail)
 	}
 }
 
@@ -1187,6 +1352,346 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	}
 	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("expected ACTIVE after third successful recovery sweep, got %s", current.GetStatus())
+	}
+}
+
+func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+		"seed unhealthy",
+		true,
+	); err != nil {
+		t.Fatalf("seed supervised speech unhealthy state: %v", err)
+	}
+
+	for i := 1; i <= 2; i++ {
+		if i > 1 {
+			svc.mu.Lock()
+			state := svc.assetProbeState[installed.GetLocalAssetId()]
+			if state == nil {
+				svc.mu.Unlock()
+				t.Fatal("expected speech probe state to exist")
+			}
+			state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+			svc.mu.Unlock()
+		}
+		svc.runRecoverySweep(context.Background())
+
+		current := svc.modelByID(installed.GetLocalAssetId())
+		if current == nil {
+			t.Fatal("speech asset should still exist")
+		}
+		if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+			t.Fatalf("speech recovery sweep #%d status = %s, want UNHEALTHY", i, current.GetStatus())
+		}
+		if current.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+			t.Fatalf("speech recovery sweep #%d warm_state = %s, want FAILED", i, current.GetWarmState())
+		}
+	}
+
+	svc.mu.Lock()
+	state := svc.assetProbeState[installed.GetLocalAssetId()]
+	if state == nil {
+		svc.mu.Unlock()
+		t.Fatal("expected speech probe state before final sweep")
+	}
+	state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+	svc.mu.Unlock()
+	svc.runRecoverySweep(context.Background())
+
+	current := svc.modelByID(installed.GetLocalAssetId())
+	if current == nil {
+		t.Fatal("speech asset should still exist")
+	}
+	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech recovery sweep final status = %s, want ACTIVE", current.GetStatus())
+	}
+	if current.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("speech recovery sweep final warm_state = %s, want COLD", current.GetWarmState())
+	}
+	if current.GetHealthDetail() != managedLocalModelColdDetail() {
+		t.Fatalf("speech recovery sweep final detail = %q", current.GetHealthDetail())
+	}
+}
+
+func TestListLocalAssetsManagedSpeechProbeFailureTransitionsFailed(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+		managedLocalModelReadyDetail(),
+		true,
+	); err != nil {
+		t.Fatalf("seed managed speech active state: %v", err)
+	}
+
+	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	if err != nil {
+		t.Fatalf("ListLocalAssets: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one managed speech asset, got %d", len(resp.GetAssets()))
+	}
+	row := resp.GetAssets()[0]
+	if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("list row status = %s, want UNHEALTHY", row.GetStatus())
+	}
+	if row.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("list row warm_state = %s, want FAILED", row.GetWarmState())
+	}
+	if !strings.Contains(row.GetHealthDetail(), "connection refused") {
+		t.Fatalf("unexpected list row detail: %q", row.GetHealthDetail())
+	}
+
+	stored := svc.modelByID(installed.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored managed speech asset")
+	}
+	if stored.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("stored status = %s, want UNHEALTHY", stored.GetStatus())
+	}
+	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("stored warm_state = %s, want FAILED", stored.GetWarmState())
+	}
+}
+
+func TestListLocalAssetsManagedSpeechRecoveryProjectsColdAfterThreshold(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+		"seed unhealthy",
+		true,
+	); err != nil {
+		t.Fatalf("seed managed speech unhealthy state: %v", err)
+	}
+
+	for i := 1; i <= 2; i++ {
+		if i > 1 {
+			svc.mu.Lock()
+			state := svc.assetProbeState[installed.GetLocalAssetId()]
+			if state == nil {
+				svc.mu.Unlock()
+				t.Fatal("expected speech probe state to exist")
+			}
+			state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+			svc.mu.Unlock()
+		}
+		resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+		if err != nil {
+			t.Fatalf("ListLocalAssets recovery #%d: %v", i, err)
+		}
+		if len(resp.GetAssets()) != 1 {
+			t.Fatalf("expected one managed speech asset at recovery #%d, got %d", i, len(resp.GetAssets()))
+		}
+		row := resp.GetAssets()[0]
+		if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+			t.Fatalf("list recovery #%d status = %s, want UNHEALTHY", i, row.GetStatus())
+		}
+	}
+
+	svc.mu.Lock()
+	state := svc.assetProbeState[installed.GetLocalAssetId()]
+	if state == nil {
+		svc.mu.Unlock()
+		t.Fatal("expected speech probe state before final list recovery")
+	}
+	state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
+	svc.mu.Unlock()
+
+	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
+	if err != nil {
+		t.Fatalf("ListLocalAssets final recovery: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one managed speech asset after recovery, got %d", len(resp.GetAssets()))
+	}
+	row := resp.GetAssets()[0]
+	if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("final list recovery status = %s, want ACTIVE", row.GetStatus())
+	}
+	if row.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("final list recovery warm_state = %s, want COLD", row.GetWarmState())
+	}
+	if row.GetHealthDetail() != managedLocalModelColdDetail() {
+		t.Fatalf("final list recovery detail = %q", row.GetHealthDetail())
+	}
+}
+
+func TestLocalRecoverySweepSanitizesModelProbeMetadata(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	svc.SetEngineManager(&mockEngineManager{
+		startErr: fmt.Errorf("bootstrap failed for /tmp/private-recovery-model on 127.0.0.1:1234"),
+	})
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/recovery-model-sanitize",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+	})
+	localModelID := installed.GetLocalAssetId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
+		t.Fatalf("promote model to active: %v", err)
+	}
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "model unhealthy"); err != nil {
+		t.Fatalf("promote model to unhealthy: %v", err)
+	}
+
+	svc.runRecoverySweep(context.Background())
+
+	current := svc.modelByID(localModelID)
+	if current == nil {
+		t.Fatal("model should still exist")
+	}
+	detail := current.GetHealthDetail()
+	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
+		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
+	}
+	if !strings.Contains(detail, "plane=local-supervised") {
+		t.Fatalf("expected supervised plane marker, got %q", detail)
+	}
+	if strings.Contains(detail, "/tmp/private-recovery-model") {
+		t.Fatalf("recovery detail should not leak filesystem paths: %q", detail)
+	}
+	if strings.Contains(detail, "http://127.0.0.1:1234") {
+		t.Fatalf("recovery detail should not leak raw probe urls: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("recovery detail should not emit raw probe_url markers: %q", detail)
+	}
+}
+
+func TestLocalRecoverySweepSanitizesServiceProbeMetadata(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	svc.SetEngineManager(&mockEngineManager{
+		startErr: fmt.Errorf("bootstrap failed for /tmp/private-recovery-service on 127.0.0.1:1234"),
+	})
+
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/recovery-service-sanitize-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+	})
+	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
+		ServiceId:    "svc-recovery-sanitize",
+		Engine:       "llama",
+		Capabilities: []string{"chat"},
+		LocalModelId: modelResp.GetLocalAssetId(),
+	}); err != nil {
+		t.Fatalf("install local service: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-recovery-sanitize", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_ACTIVE, "service active"); err != nil {
+		t.Fatalf("promote service to active: %v", err)
+	}
+	if _, err := svc.updateServiceStatus("svc-recovery-sanitize", runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY, "service unhealthy"); err != nil {
+		t.Fatalf("promote service to unhealthy: %v", err)
+	}
+
+	svc.runRecoverySweep(context.Background())
+
+	current := svc.serviceByID("svc-recovery-sanitize")
+	if current == nil {
+		t.Fatal("service should still exist")
+	}
+	detail := current.GetDetail()
+	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
+		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
+	}
+	if !strings.Contains(detail, "plane=local-supervised") {
+		t.Fatalf("expected supervised plane marker, got %q", detail)
+	}
+	if strings.Contains(detail, "/tmp/private-recovery-service") {
+		t.Fatalf("recovery detail should not leak filesystem paths: %q", detail)
+	}
+	if strings.Contains(detail, "http://127.0.0.1:1234") {
+		t.Fatalf("recovery detail should not leak raw probe urls: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("recovery detail should not emit raw probe_url markers: %q", detail)
 	}
 }
 
@@ -4158,7 +4663,7 @@ func TestInstallLocalModelMediaVideoRequiresExplicitEndpointOnUnsupportedHost(t 
 	assertGRPCReasonCode(t, err, "InstallLocalModel(media video unsupported host)", runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 }
 
-func TestStartLocalModelSpeechTTSProbePassesThroughCurrentAttachedEndpointBehavior(t *testing.T) {
+func TestStartLocalModelSpeechProbeFailsClosedWhenCatalogMissingExpectedModel(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -4185,8 +4690,11 @@ func TestStartLocalModelSpeechTTSProbePassesThroughCurrentAttachedEndpointBehavi
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-		t.Fatalf("speech attached-endpoint model should follow generic probe health, got %s", started.GetAsset().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech model should fail closed when catalog is missing expected model, got %s", started.GetAsset().GetStatus())
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), `speech probe missing expected model "local/kokoro-tts-model"`) {
+		t.Fatalf("expected speech missing-model detail, got %q", started.GetAsset().GetHealthDetail())
 	}
 }
 
@@ -4198,6 +4706,9 @@ func TestStartLocalModelSpeechTTSProbeSuccess(t *testing.T) {
 			detail:    "probe succeeded",
 			probeURL:  endpoint,
 			models:    []string{"models/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"models/kokoro-tts-model": {"audio.synthesize"},
+			},
 		}
 	})
 
@@ -4219,6 +4730,481 @@ func TestStartLocalModelSpeechTTSProbeSuccess(t *testing.T) {
 	}
 	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("speech tts model should become active when capability probe matches, got %s", started.GetAsset().GetStatus())
+	}
+}
+
+func TestStartLocalModelSpeechProbeFailsClosedWhenCatalogMissingRequiredCapability(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/whisper-large-v3"},
+			modelCaps: map[string][]string{
+				"speech/whisper-large-v3": {"audio.synthesize"},
+			},
+		}
+	})
+
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "speech/whisper-large-v3",
+		capabilities: []string{"audio.transcribe"},
+		engine:       "speech",
+		endpoint:     "http://127.0.0.1:18181/v1",
+	})
+	if err != nil {
+		t.Fatalf("install local model: %v", err)
+	}
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech model should fail closed when catalog row misses required capability, got %s", started.GetAsset().GetStatus())
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), `speech probe missing required capability "audio.transcribe"`) {
+		t.Fatalf("expected speech missing-capability detail, got %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestStartLocalModelSpeechSupervisedUsesManagedSpeechEndpoint(t *testing.T) {
+	speechWarmCalls := 0
+	requestVoices := make([]string, 0, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/audio/speech":
+			speechWarmCalls++
+			var req struct {
+				Voice string `json:"voice"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode speech synth request: %v", err)
+			}
+			requestVoices = append(requestVoices, strings.TrimSpace(req.Voice))
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write([]byte("RIFFdemo"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	probedEndpoints := make([]string, 0, 1)
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probedEndpoints = append(probedEndpoints, endpoint)
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"models/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"models/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint(server.URL + "/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech supervised model should become active when managed endpoint probe succeeds, got %s", started.GetAsset().GetStatus())
+	}
+	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+		t.Fatalf("speech supervised model should be warm-ready after start, got %s", started.GetAsset().GetWarmState())
+	}
+	if len(probedEndpoints) != 1 {
+		t.Fatalf("expected exactly one speech probe, got %d", len(probedEndpoints))
+	}
+	if got := probedEndpoints[0]; got != server.URL+"/v1" {
+		t.Fatalf("expected managed speech endpoint to be probed, got %q", got)
+	}
+	if speechWarmCalls != 1 {
+		t.Fatalf("expected exactly one speech warm request, got %d", speechWarmCalls)
+	}
+	if len(requestVoices) != 1 || requestVoices[0] != "af" {
+		t.Fatalf("expected start-path warm request to carry preset voice af, got %#v", requestVoices)
+	}
+}
+
+func TestStartLocalModelSpeechSupervisedFailsClosedWhenManagedBundleFileMissing(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"models/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"models/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx": []byte("fake-onnx"),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech supervised model should fail closed when bundle file is missing, got %s", started.GetAsset().GetStatus())
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), `managed bundle file "voices.json" missing`) {
+		t.Fatalf("unexpected health detail: %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestStartLocalModelSpeechSupervisedWarmFailureTransitionsUnhealthy(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/audio/speech":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"message":"speech synth unavailable"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"models/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"models/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint(server.URL + "/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech supervised model should fail closed on warm execution failure, got %s", started.GetAsset().GetStatus())
+	}
+	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("speech supervised model warm_state = %s", started.GetAsset().GetWarmState())
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "warm execution failed") {
+		t.Fatalf("unexpected health detail: %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestStartLocalModelSpeechSupervisedFailsClosedWhenVoicesFileInvalid(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/audio/speech":
+			t.Fatal("speech synth request should not execute when voices.json is invalid")
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"models/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"models/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint(server.URL + "/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":[]}`),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech supervised model should fail closed on invalid voices.json, got %s", started.GetAsset().GetStatus())
+	}
+	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("speech supervised invalid voices warm_state = %s", started.GetAsset().GetWarmState())
+	}
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "managed speech voices invalid") {
+		t.Fatalf("unexpected invalid voices detail: %q", started.GetAsset().GetHealthDetail())
+	}
+}
+
+func TestCheckLocalAssetHealthSpeechSupervisedRetainsReadyAfterSuccessfulStart(t *testing.T) {
+	speechWarmCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/audio/speech":
+			speechWarmCalls++
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write([]byte("RIFFdemo"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint(server.URL + "/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("start supervised speech model: %v", err)
+	}
+	if started.GetAsset().GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+		t.Fatalf("speech supervised model warm_state = %s", started.GetAsset().GetWarmState())
+	}
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("check local asset health: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one speech health row, got %d", len(resp.GetAssets()))
+	}
+	health := resp.GetAssets()[0]
+	if health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech supervised health status = %s", health.GetStatus())
+	}
+	if health.GetDetail() != managedLocalModelReadyDetail() {
+		t.Fatalf("speech supervised health detail = %q", health.GetDetail())
+	}
+	stored := svc.modelByID(installed.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored speech asset")
+	}
+	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+		t.Fatalf("stored speech supervised warm_state = %s", stored.GetWarmState())
+	}
+	if speechWarmCalls != 1 {
+		t.Fatalf("expected one warm request during start, got %d", speechWarmCalls)
+	}
+}
+
+func TestCheckLocalAssetHealthSpeechSupervisedRecoveryProjectsColdAfterThreshold(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"speech/kokoro-tts-model"},
+			modelCaps: map[string][]string{
+				"speech/kokoro-tts-model": {"audio.synthesize"},
+			},
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+		"seed unhealthy",
+		true,
+	); err != nil {
+		t.Fatalf("seed supervised speech unhealthy state: %v", err)
+	}
+
+	for attempt := 1; attempt < localRecoverySuccessThreshold; attempt++ {
+		resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+			LocalAssetId: installed.GetLocalAssetId(),
+		})
+		if err != nil {
+			t.Fatalf("recovery check #%d: %v", attempt, err)
+		}
+		health := resp.GetAssets()[0]
+		if health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+			t.Fatalf("recovery check #%d status = %s, want UNHEALTHY", attempt, health.GetStatus())
+		}
+		if !strings.Contains(health.GetDetail(), fmt.Sprintf("recovery probe succeeded (%d/%d)", attempt, localRecoverySuccessThreshold)) {
+			t.Fatalf("recovery check #%d detail = %q", attempt, health.GetDetail())
+		}
+	}
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("recovery check threshold: %v", err)
+	}
+	health := resp.GetAssets()[0]
+	if health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("recovered speech supervised status = %s", health.GetStatus())
+	}
+	if health.GetDetail() != managedLocalModelColdDetail() {
+		t.Fatalf("recovered speech supervised detail = %q", health.GetDetail())
+	}
+	stored := svc.modelByID(installed.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored recovered speech asset")
+	}
+	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
+		t.Fatalf("stored recovered speech warm_state = %s", stored.GetWarmState())
+	}
+}
+
+func TestCheckLocalAssetHealthSpeechSupervisedProbeFailureTransitionsFailed(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	svc.SetManagedSpeechEndpoint("http://127.0.0.1:18330/v1")
+
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/kokoro-tts-model",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+		files:        []string{"model.onnx", "voices.json"},
+	})
+	writeManagedBundleFilesForTest(t, svc, installed, []string{"model.onnx", "voices.json"}, map[string][]byte{
+		"model.onnx":  []byte("fake-onnx"),
+		"voices.json": []byte(`{"voices":["af"]}`),
+	})
+	if _, err := svc.updateModelAvailabilityAndWarmState(
+		installed.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+		managedLocalModelReadyDetail(),
+		true,
+	); err != nil {
+		t.Fatalf("seed supervised speech ready state: %v", err)
+	}
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
+	})
+	if err != nil {
+		t.Fatalf("check local asset health: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one speech health row, got %d", len(resp.GetAssets()))
+	}
+	health := resp.GetAssets()[0]
+	if health.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("speech supervised failed health status = %s", health.GetStatus())
+	}
+	if !strings.Contains(health.GetDetail(), "connection refused") {
+		t.Fatalf("unexpected failed health detail: %q", health.GetDetail())
+	}
+	if !strings.Contains(health.GetDetail(), "plane=local-supervised") {
+		t.Fatalf("expected supervised plane marker, got %q", health.GetDetail())
+	}
+	stored := svc.modelByID(installed.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored failed speech asset")
+	}
+	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("stored speech supervised failed warm_state = %s", stored.GetWarmState())
 	}
 }
 
@@ -4401,7 +5387,7 @@ func TestStartLocalModelSanitizesBootstrapFailureDetail(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:  false,
-			detail:   "probe request failed: connection refused",
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
 			probeURL: endpoint,
 		}
 	})
@@ -4424,8 +5410,57 @@ func TestStartLocalModelSanitizesBootstrapFailureDetail(t *testing.T) {
 	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
 		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
 	}
+	if !strings.Contains(detail, "plane=local-supervised") {
+		t.Fatalf("expected supervised plane marker, got %q", detail)
+	}
 	if strings.Contains(detail, "/tmp/private-model") {
 		t.Fatalf("bootstrap detail should not leak filesystem paths: %q", detail)
+	}
+	if strings.Contains(detail, "http://127.0.0.1:1234") {
+		t.Fatalf("model detail should not leak raw probe urls: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("model detail should not emit raw probe_url markers: %q", detail)
+	}
+}
+
+func TestCheckLocalModelHealthSanitizesAttachedProbeMetadata(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
+			probeURL: endpoint,
+		}
+	})
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/attached-model-sanitize",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "https://models.example.com/v1",
+	})
+	localModelID := installed.GetLocalAssetId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
+		t.Fatalf("promote model to active: %v", err)
+	}
+
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: localModelID,
+	})
+	if err != nil {
+		t.Fatalf("check local model health: %v", err)
+	}
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one model row, got %d", len(resp.GetAssets()))
+	}
+	detail := resp.GetAssets()[0].GetDetail()
+	if !strings.Contains(detail, "plane=attached-endpoint") {
+		t.Fatalf("expected attached plane marker, got %q", detail)
+	}
+	if strings.Contains(detail, "models.example.com") {
+		t.Fatalf("model detail should not leak attached endpoint hosts: %q", detail)
+	}
+	if strings.Contains(detail, "probe_url=") {
+		t.Fatalf("model detail should not emit raw probe_url markers: %q", detail)
 	}
 }
 

@@ -22,6 +22,7 @@ type indexedSnapshot struct {
 	voicesBySet      map[string][]VoiceEntry
 	workflowModels   map[string]map[string]VoiceWorkflowModel
 	workflowBindings map[string]map[string]ModelWorkflowBinding
+	workflowPolicies map[string][]VoiceHandlePolicy
 }
 
 type providerState struct {
@@ -297,13 +298,21 @@ func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, provider
 		if normalizeWorkflowType(workflowModel.WorkflowType) != normalizedWorkflowType {
 			continue
 		}
+		policy, _ := resolveVoiceHandlePolicy(state.snapshot, provider, normalizedWorkflowType)
 		return ResolveVoiceWorkflowResult{
 			Provider:                       provider,
 			ModelID:                        strings.TrimSpace(modelEntry.ModelID),
 			WorkflowType:                   normalizedWorkflowType,
 			WorkflowModelID:                strings.TrimSpace(workflowModel.WorkflowModelID),
+			WorkflowFamily:                 inferWorkflowFamily(workflowModel.WorkflowModelID, modelEntry.ModelID),
 			InputContractRef:               strings.TrimSpace(workflowModel.InputContractRef),
 			OutputPersistence:              strings.TrimSpace(workflowModel.OutputPersistence),
+			HandlePolicyID:                 strings.TrimSpace(policy.PolicyID),
+			HandlePolicyPersistence:        strings.TrimSpace(policy.Persistence),
+			HandlePolicyScope:              strings.TrimSpace(policy.Scope),
+			HandlePolicyDefaultTTL:         strings.TrimSpace(policy.DefaultTTL),
+			HandlePolicyDeleteSemantics:    strings.TrimSpace(policy.DeleteSemantics),
+			RuntimeReconciliationRequired:  policy.RuntimeReconciliationRequired,
 			SupportsTextPromptInput:        workflowSupportsTextPromptInput(normalizedWorkflowType, workflowModel.InputContractRef),
 			RequiresTargetSynthesisBinding: len(binding.WorkflowModelRefs) > 0,
 			CatalogVersion:                 state.snapshot.catalogVersion,

@@ -35,6 +35,7 @@ type endpointProbeResult struct {
 	detail    string
 	probeURL  string
 	models    []string
+	modelCaps map[string][]string
 }
 
 type probeRecoveryState struct {
@@ -186,6 +187,9 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 		Status string `json:"status"`
 		Ready  bool   `json:"ready"`
 		Detail string `json:"detail"`
+		Checks struct {
+			ProxyMode bool `json:"proxy_mode"`
+		} `json:"checks"`
 	}{}
 	if err := json.Unmarshal(healthBody, &healthPayload); err != nil {
 		return endpointProbeResult{
@@ -233,9 +237,11 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 	}
 
 	catalogPayload := struct {
+		Ready  bool `json:"ready"`
 		Models []struct {
-			ID    string `json:"id"`
-			Ready bool   `json:"ready"`
+			ID           string   `json:"id"`
+			Ready        bool     `json:"ready"`
+			Capabilities []string `json:"capabilities"`
 		} `json:"models"`
 		Detail string `json:"detail"`
 	}{}
@@ -247,12 +253,41 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 			probeURL:  catalogURL,
 		}
 	}
+	if healthPayload.Checks.ProxyMode {
+		if !catalogPayload.Ready {
+			return endpointProbeResult{
+				healthy:   false,
+				responded: true,
+				detail:    defaultString(strings.TrimSpace(catalogPayload.Detail), "catalog reported ready=false in proxy mode"),
+				probeURL:  catalogURL,
+			}
+		}
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    defaultString(strings.TrimSpace(catalogPayload.Detail), "catalog ready in proxy mode"),
+			probeURL:  catalogURL,
+		}
+	}
+	if !catalogPayload.Ready {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: true,
+			detail:    defaultString(strings.TrimSpace(catalogPayload.Detail), "catalog reported ready=false"),
+			probeURL:  catalogURL,
+		}
+	}
 	modelIDs := make([]string, 0, len(catalogPayload.Models))
+	modelCaps := make(map[string][]string, len(catalogPayload.Models))
 	for _, item := range catalogPayload.Models {
 		if strings.TrimSpace(item.ID) == "" || !item.Ready {
 			continue
 		}
-		modelIDs = append(modelIDs, strings.TrimSpace(item.ID))
+		modelID := strings.TrimSpace(item.ID)
+		modelIDs = append(modelIDs, modelID)
+		if normalized := normalizeStringSlice(item.Capabilities); len(normalized) > 0 {
+			modelCaps[modelID] = normalized
+		}
 	}
 	if len(modelIDs) == 0 {
 		return endpointProbeResult{
@@ -268,6 +303,7 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 		detail:    "probe succeeded",
 		probeURL:  catalogURL,
 		models:    modelIDs,
+		modelCaps: modelCaps,
 	}
 }
 

@@ -142,6 +142,7 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 		voicesBySet:      make(map[string][]VoiceEntry),
 		workflowModels:   make(map[string]map[string]VoiceWorkflowModel),
 		workflowBindings: make(map[string]map[string]ModelWorkflowBinding),
+		workflowPolicies: make(map[string][]VoiceHandlePolicy),
 	}
 	if indexed.catalogVersion == "" {
 		indexed.catalogVersion = "unknown"
@@ -219,6 +220,13 @@ func buildIndexedSnapshot(snapshot Snapshot) (*indexedSnapshot, error) {
 			break
 		}
 	}
+	for _, policy := range snapshot.VoiceHandlePolicies {
+		provider := normalizeProvider(policy.Provider)
+		if provider == "" {
+			continue
+		}
+		indexed.workflowPolicies[provider] = append(indexed.workflowPolicies[provider], policy)
+	}
 	return indexed, nil
 }
 
@@ -271,6 +279,25 @@ func bindingSupportsWorkflowType(binding ModelWorkflowBinding, workflowType stri
 		}
 	}
 	return false
+}
+
+func resolveVoiceHandlePolicy(snapshot *indexedSnapshot, provider string, workflowType string) (VoiceHandlePolicy, bool) {
+	policies := snapshot.workflowPolicies[provider]
+	if len(policies) == 0 {
+		return VoiceHandlePolicy{}, false
+	}
+	normalizedWorkflowType := normalizeWorkflowType(workflowType)
+	if normalizedWorkflowType == "" {
+		return VoiceHandlePolicy{}, false
+	}
+	for _, policy := range policies {
+		for _, item := range policy.AppliesToWorkflowTypes {
+			if normalizeWorkflowType(item) == normalizedWorkflowType {
+				return policy, true
+			}
+		}
+	}
+	return VoiceHandlePolicy{}, false
 }
 
 func normalizeLookupModelID(raw string, provider string) string {
@@ -549,6 +576,7 @@ func providerDocumentIsEmptyOverlay(doc ProviderDocument) bool {
 		len(doc.Voices) == 0 &&
 		len(doc.VoiceWorkflowModels) == 0 &&
 		len(doc.ModelWorkflowBindings) == 0 &&
+		len(doc.VoiceHandlePolicies) == 0 &&
 		strings.TrimSpace(doc.DefaultTextModel) == ""
 }
 
@@ -584,6 +612,17 @@ func (r *Resolver) getModelDetailFromState(state *catalogState, provider string,
 		for _, workflowRef := range binding.WorkflowModelRefs {
 			if workflow, workflowOK := resolveWorkflowModel(state.snapshot, provider, workflowRef); workflowOK {
 				detail.VoiceWorkflowModels = append(detail.VoiceWorkflowModels, workflow)
+			}
+		}
+		addedPolicies := map[string]struct{}{}
+		for _, workflowType := range binding.WorkflowTypes {
+			if policy, ok := resolveVoiceHandlePolicy(state.snapshot, provider, workflowType); ok {
+				key := normalizeID(policy.PolicyID)
+				if _, exists := addedPolicies[key]; exists {
+					continue
+				}
+				addedPolicies[key] = struct{}{}
+				detail.VoiceHandlePolicies = append(detail.VoiceHandlePolicies, policy)
 			}
 		}
 	}

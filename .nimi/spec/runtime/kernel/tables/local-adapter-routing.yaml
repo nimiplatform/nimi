@@ -52,14 +52,6 @@ routes:
     capability: audio.synthesize
     adapter: speech_native_adapter
     source_rule: K-LOCAL-017
-  - provider: speech
-    capability: voice_workflow.tts_v2v
-    adapter: speech_native_adapter
-    source_rule: K-LOCAL-017
-  - provider: speech
-    capability: voice_workflow.tts_t2v
-    adapter: speech_native_adapter
-    source_rule: K-LOCAL-017
   - provider: sidecar
     capability: music
     adapter: sidecar_music_adapter

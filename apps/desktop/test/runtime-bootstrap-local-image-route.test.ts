@@ -233,6 +233,50 @@ test('buildSelectedBinding keeps selection missing instead of inventing a local 
   }
 });
 
+test('buildSelectedBinding infers speech engine for local audio.synthesize bindings without explicit engine', () => {
+  const selected = buildSelectedBinding({
+    capability: 'audio.synthesize',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/kokoro-82m',
+      modelId: 'speech/kokoro-82m',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.ok(selected);
+  assert.equal(selected?.source, 'local');
+  assert.equal(selected?.engine, 'speech');
+  assert.equal(selected?.provider, 'speech');
+  assert.equal(selected?.goRuntimeStatus, 'degraded');
+});
+
+test('buildSelectedBinding infers speech engine for local audio.transcribe bindings without explicit engine', () => {
+  const selected = buildSelectedBinding({
+    capability: 'audio.transcribe',
+    selectedBinding: {
+      source: 'local',
+      connectorId: '',
+      model: 'speech/whisper-large-v3',
+      modelId: 'speech/whisper-large-v3',
+      provider: 'local',
+    },
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
+
+  assert.ok(selected);
+  assert.equal(selected?.source, 'local');
+  assert.equal(selected?.engine, 'speech');
+  assert.equal(selected?.provider, 'speech');
+  assert.equal(selected?.goRuntimeStatus, 'degraded');
+});
+
 test('loadRuntimeRouteOptions preserves media routing for managed image workflow models', async () => {
   const options = await loadRuntimeRouteOptions({
     capability: 'image.generate',

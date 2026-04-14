@@ -90,7 +90,7 @@ func (s *Service) SetManagedLlamaEndpoint(endpoint string) {
 	if s.managedLlamaEndpointValue == "" {
 		return
 	}
-
+	s.syncManagedEndpointProjectionLocked("llama", s.managedLlamaEndpointValue)
 }
 
 // ManagedLlamaEndpoint returns the currently exposed managed llama loopback
@@ -109,7 +109,7 @@ func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 	if s.managedMediaEndpointValue == "" {
 		return
 	}
-
+	s.syncManagedEndpointProjectionLocked("media", s.managedMediaEndpointValue)
 }
 
 // ManagedMediaEndpoint returns the currently exposed managed media loopback
@@ -138,7 +138,61 @@ func (s *Service) SetManagedSpeechEndpoint(endpoint string) {
 	if s.managedSpeechEndpointValue == "" {
 		return
 	}
+	s.syncManagedEndpointProjectionLocked("speech", s.managedSpeechEndpointValue)
+}
 
+func (s *Service) syncManagedEndpointProjectionLocked(engineName string, endpoint string) {
+	normalizedEngine := strings.ToLower(strings.TrimSpace(engineName))
+	normalizedEndpoint := strings.TrimSpace(endpoint)
+	if normalizedEngine == "" || normalizedEndpoint == "" {
+		return
+	}
+	changed := false
+	now := nowISO()
+
+	for id, record := range s.assets {
+		if record == nil {
+			continue
+		}
+		if normalizeRuntimeMode(s.assetRuntimeModes[id]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+			continue
+		}
+		if managedRuntimeEngineForModel(record) != normalizedEngine {
+			continue
+		}
+		if strings.TrimSpace(record.GetEndpoint()) == normalizedEndpoint {
+			continue
+		}
+		cloned := cloneLocalAsset(record)
+		cloned.Endpoint = normalizedEndpoint
+		cloned.UpdatedAt = now
+		s.assets[id] = cloned
+		changed = true
+	}
+
+	for id, record := range s.services {
+		if record == nil {
+			continue
+		}
+		if normalizeRuntimeMode(s.serviceRuntimeModes[id]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+			continue
+		}
+		if strings.ToLower(strings.TrimSpace(record.GetEngine())) != normalizedEngine {
+			continue
+		}
+		if strings.TrimSpace(record.GetEndpoint()) == normalizedEndpoint {
+			continue
+		}
+		cloned := cloneServiceDescriptor(record)
+		cloned.Endpoint = normalizedEndpoint
+		cloned.UpdatedAt = now
+		s.services[id] = cloned
+		changed = true
+	}
+
+	if changed {
+		s.persistStateLocked()
+	}
 }
 
 // SetManagedImageBackendConfig records whether the managed image
@@ -502,7 +556,7 @@ func renderManagedLlamaPreset(modelsPath string, registrations []managedLlamaReg
 		if managedLlamaRegistrationIsEmbeddingOnly(registration) {
 			builder.WriteString("embeddings = true\n")
 		}
-			if cfg := registration.LlamaEngineConfig; cfg != nil {
+		if cfg := registration.LlamaEngineConfig; cfg != nil {
 			if cfg.Mmproj != "" {
 				builder.WriteString("mmproj = " + absoluteManagedLlamaPresetPath(cfg.Mmproj, modelsPath) + "\n")
 			}

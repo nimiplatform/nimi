@@ -7,7 +7,7 @@ const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
-const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
+const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-assets.ts');
 const runtimeHookFacadePath = path.resolve(process.cwd(), 'src/runtime/hook/contracts/facade.ts');
 const tauriAssetsCommandsPath = path.resolve(process.cwd(), 'src-tauri/src/local_runtime/commands/commands_assets.rs');
 

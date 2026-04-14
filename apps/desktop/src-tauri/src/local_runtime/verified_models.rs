@@ -129,7 +129,7 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
     LocalAiVerifiedModelDescriptor {
         template_id: VERIFIED_TEMPLATE_ID_QWEN3_TTS_VOICEDESIGN.to_string(),
         title: "Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
-        description: "Qwen VoiceDesign local voice workflow model for runtime-native speech."
+        description: "Qwen local speech reference bundle retained for synthesize-only admission until local workflow is explicitly admitted."
             .to_string(),
         install_kind: "verified-hf-multi-file".to_string(),
         model_id: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign".to_string(),
@@ -138,8 +138,6 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
         revision: "main".to_string(),
         capabilities: vec![
             "audio.synthesize".to_string(),
-            "voice_workflow.tts_t2v".to_string(),
-            "voice_workflow.tts_v2v".to_string(),
         ],
         engine: "speech".to_string(),
         entry: "model.safetensors".to_string(),
@@ -154,9 +152,10 @@ fn qwen3_tts_voicedesign_descriptor() -> LocalAiVerifiedModelDescriptor {
             "voice-design".to_string(),
             "verified".to_string(),
             "speech".to_string(),
+            "reference-only".to_string(),
         ],
         artifact_roles: vec![
-            "voice_workflow_model".to_string(),
+            "tts_model".to_string(),
             "speech_tokenizer".to_string(),
             "tokenizer".to_string(),
         ],
@@ -224,11 +223,7 @@ mod tests {
         assert_eq!(descriptor.engine, "speech");
         assert_eq!(
             descriptor.capabilities,
-            vec![
-                "audio.synthesize".to_string(),
-                "voice_workflow.tts_t2v".to_string(),
-                "voice_workflow.tts_v2v".to_string()
-            ]
+            vec!["audio.synthesize".to_string()]
         );
         assert!(descriptor.files.contains(&"model.safetensors".to_string()));
     }

@@ -55,6 +55,30 @@ persistence_types:
     description: short-lived session scoped voice asset
     source_rule: K-VOICE-004
 
+handle_scopes:
+  - scope: user_scoped
+    enum_name: VOICE_HANDLE_SCOPE_USER_SCOPED
+    enum_value: 1
+    description: handle/asset is visible only to the subject user inside the runtime tenant boundary
+    source_rule: K-VOICE-015
+  - scope: app_scoped
+    enum_name: VOICE_HANDLE_SCOPE_APP_SCOPED
+    enum_value: 2
+    description: handle/asset is reusable inside one app scope but not cross-tenant global
+    source_rule: K-VOICE-015
+
+delete_semantics:
+  - delete_semantics: runtime_authoritative_delete
+    enum_name: VOICE_HANDLE_DELETE_RUNTIME_AUTHORITATIVE
+    enum_value: 1
+    description: runtime-owned asset deletion is the public source of truth
+    source_rule: K-VOICE-015
+  - delete_semantics: best_effort_provider_delete
+    enum_name: VOICE_HANDLE_DELETE_BEST_EFFORT_PROVIDER
+    enum_value: 2
+    description: runtime deletes local asset truth and attempts provider cleanup on a best-effort basis
+    source_rule: K-VOICE-015
+
 asset_statuses:
   - status: UNSPECIFIED
     enum_name: VOICE_ASSET_STATUS_UNSPECIFIED

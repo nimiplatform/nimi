@@ -155,6 +155,27 @@ func (s *Service) executeVoiceWorkflowJob(
 	result.Metadata["voice_asset_id"] = voiceAssetID
 	result.Metadata["workflow_model_id"] = resolution.WorkflowModelID
 	result.Metadata["workflow_type"] = resolution.WorkflowType
+	if strings.TrimSpace(resolution.WorkflowFamily) != "" {
+		result.Metadata["workflow_family"] = strings.TrimSpace(resolution.WorkflowFamily)
+	}
+	if strings.TrimSpace(resolution.HandlePolicyID) != "" {
+		result.Metadata["voice_handle_policy_id"] = strings.TrimSpace(resolution.HandlePolicyID)
+	}
+	if strings.TrimSpace(resolution.HandlePolicyPersistence) != "" {
+		result.Metadata["voice_handle_policy_persistence"] = strings.TrimSpace(resolution.HandlePolicyPersistence)
+	}
+	if strings.TrimSpace(resolution.HandlePolicyScope) != "" {
+		result.Metadata["voice_handle_policy_scope"] = strings.TrimSpace(resolution.HandlePolicyScope)
+	}
+	if strings.TrimSpace(resolution.HandlePolicyDefaultTTL) != "" {
+		result.Metadata["voice_handle_policy_default_ttl"] = strings.TrimSpace(resolution.HandlePolicyDefaultTTL)
+	}
+	if strings.TrimSpace(resolution.HandlePolicyDeleteSemantics) != "" {
+		result.Metadata["voice_handle_policy_delete_semantics"] = strings.TrimSpace(resolution.HandlePolicyDeleteSemantics)
+	}
+	if resolution.RuntimeReconciliationRequired {
+		result.Metadata["voice_handle_policy_runtime_reconciliation_required"] = true
+	}
 
 	s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
 }

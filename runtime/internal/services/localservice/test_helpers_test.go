@@ -2,6 +2,9 @@ package localservice
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"sort"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -61,4 +64,54 @@ func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLoca
 		t.Fatalf("install supervised local model: %v", err)
 	}
 	return record
+}
+
+func writeManagedBundleFilesForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, declaredFiles []string, files map[string][]byte) string {
+	t.Helper()
+	if model == nil {
+		t.Fatal("missing local asset")
+	}
+	modelsRoot := resolveLocalModelsPath(svc.localModelsPath)
+	bundleDir := runtimeManagedResolvedModelDir(modelsRoot, model.GetLogicalModelId())
+	if err := os.MkdirAll(bundleDir, 0o755); err != nil {
+		t.Fatalf("mkdir managed bundle dir: %v", err)
+	}
+	for relativePath, content := range files {
+		targetPath := filepath.Join(bundleDir, filepath.FromSlash(relativePath))
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+			t.Fatalf("mkdir managed bundle file dir: %v", err)
+		}
+		if err := os.WriteFile(targetPath, content, 0o644); err != nil {
+			t.Fatalf("write managed bundle file %q: %v", relativePath, err)
+		}
+	}
+	normalizedDeclaredFiles := normalizeStringSlice(declaredFiles)
+	if len(normalizedDeclaredFiles) == 0 {
+		normalizedDeclaredFiles = make([]string, 0, len(files))
+		for relativePath := range files {
+			normalizedDeclaredFiles = append(normalizedDeclaredFiles, relativePath)
+		}
+	}
+	sort.Strings(normalizedDeclaredFiles)
+	manifestPath := runtimeManagedAssetManifestPath(modelsRoot, model.GetLogicalModelId())
+	if err := writeModelManifest(manifestPath, managedModelManifestDescriptor{
+		assetID:        model.GetAssetId(),
+		kind:           model.GetKind(),
+		logicalModelID: model.GetLogicalModelId(),
+		capabilities:   append([]string(nil), model.GetCapabilities()...),
+		engine:         model.GetEngine(),
+		entry:          model.GetEntry(),
+		files:          normalizedDeclaredFiles,
+		license:        model.GetLicense(),
+		repo:           defaultString(model.GetSource().GetRepo(), "test/managed-bundle"),
+		revision:       defaultString(model.GetSource().GetRevision(), "main"),
+		hashes:         cloneStringMap(model.GetHashes()),
+		endpoint:       model.GetEndpoint(),
+		engineConfig:   cloneStruct(model.GetEngineConfig()),
+		integrityMode:  "test",
+	}); err != nil {
+		t.Fatalf("write managed bundle manifest: %v", err)
+	}
+	svc.rewriteManagedLocalAssetSourceRepo(model.GetLocalAssetId(), manifestPath)
+	return bundleDir
 }

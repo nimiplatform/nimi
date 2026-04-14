@@ -65,6 +65,10 @@ func TestInferVoiceAssetProvider(t *testing.T) {
 		{modelID: "dashscope/qwen3-tts-vc", want: "dashscope"},
 		{modelID: "qwen3-tts-local", want: "local"},
 		{modelID: "cosyvoice2-local", want: "local"},
+		{modelID: "openbmb/VoxCPM2", want: "local"},
+		{modelID: "k2-fsa/OmniVoice", want: "local"},
+		{modelID: "voxcpm2-local", want: "local"},
+		{modelID: "omnivoice-local", want: "local"},
 		{modelID: "", want: ""},
 	}
 	for _, tc := range cases {

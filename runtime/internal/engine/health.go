@@ -161,6 +161,9 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 		}
 		return fmt.Errorf("%s catalog probe reported ready=false in proxy mode", engineLabel)
 	}
+	if !payload.Ready {
+		return fmt.Errorf("%s catalog probe reported ready=false", engineLabel)
+	}
 	for _, model := range payload.Models {
 		if strings.TrimSpace(model.ID) != "" && model.Ready {
 			return nil

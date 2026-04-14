@@ -32,7 +32,7 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 
 ## K-VOICE-004 VoiceAsset Contract
 
-`VoiceAsset` 为可持久化资源，最小必填字段：
+`VoiceAsset` 是 runtime-managed voice resource object，最小必填字段：
 
 - `voice_asset_id`
 - `app_id`
@@ -47,6 +47,9 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 
 `persistence` 取值以 `tables/voice-enums.yaml` `persistence_types` 为事实源。
 `status` 取值以 `tables/voice-enums.yaml` `asset_statuses` 为事实源。
+
+`VoiceAsset` 的 `persistence` 只表达逻辑生命周期与 handle policy，不自动承诺 runtime 已拥有 durable local substrate。
+在 durable local substrate 被单独 admitted 前，local-generated `VoiceAsset` 允许保持 session-local orchestration object 语义。
 
 ## K-VOICE-005 Voice ScenarioJob Lifecycle
 
@@ -116,3 +119,49 @@ Catalog `voice.discovery_mode` 与发现接口职责必须严格对应：
 - `mixed`：provider 同时暴露预置音色与用户资产，两条发现通道都必须可用，但仍由调用方分别调用 `ListPresetVoices` 与 `ListVoiceAssets`。
 
 provider 同时支持全局预置与用户资产时，允许同时暴露两条通道，但不得混流返回。
+
+## K-VOICE-014 Runtime-Owned Asset Truth vs Provider-Owned Handle Truth
+
+`VoiceAsset` 与 `provider_voice_ref` 必须严格分离：
+
+- `VoiceAsset`：runtime-owned object truth
+- `provider_voice_ref`：provider-owned native handle truth
+
+二者不得互相替代：
+
+- runtime 不得把 `provider_voice_ref` 升格成公共主键或公共资产真相
+- provider 也不得绕过 `VoiceAsset` 直接成为 runtime 用户资产主对象
+
+当 provider 返回 native custom voice handle 时，runtime 必须将其收敛到 `VoiceAsset + VoiceReference` 公共契约中对外暴露。
+
+## K-VOICE-015 Voice Handle Policy Minimum Contract
+
+workflow-capable voice family 一旦 admitted，必须显式声明 `voice_handle_policy`。
+
+`voice_handle_policy` 最小字段固定为：
+
+- `persistence`
+- `scope`
+- `default_ttl`
+- `delete_semantics`
+- `runtime_reconciliation_required`
+
+其中：
+
+- `persistence` 继续取值于 `tables/voice-enums.yaml` `persistence_types`
+- `scope` 取值于 `tables/voice-enums.yaml` `handle_scopes`
+- `delete_semantics` 取值于 `tables/voice-enums.yaml` `delete_semantics`
+
+未声明 `voice_handle_policy` 的 workflow-capable family 不得被 admitted。
+
+## K-VOICE-016 Family-Level Workflow Validation Boundary
+
+workflow-capable speech family 的验收必须保持 family-level 边界，不得把不同 family 的 truth 混为一次“模型全绿”：
+
+- workflow-capable local speech family（例如后续 admitted 的 `voxcpm`、`omnivoice`）可用于验证：
+  - `audio.synthesize`
+  - `voice_workflow.tts_t2v`
+  - `voice_workflow.tts_v2v`
+- 但它们不得被当作 `audio.transcribe` 的替代验收对象
+
+`audio.transcribe` 必须继续通过独立 STT family 的 admitted truth 验证，禁止以 workflow-capable TTS family 的成功结果隐式覆盖 STT readiness。

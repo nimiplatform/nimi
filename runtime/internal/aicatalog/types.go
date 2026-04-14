@@ -104,6 +104,18 @@ type VoiceWorkflowModel struct {
 	SourceRef         SourceRef `yaml:"source_ref" json:"source_ref"`
 }
 
+type VoiceHandlePolicy struct {
+	Provider                      string    `yaml:"provider,omitempty" json:"provider,omitempty"`
+	PolicyID                      string    `yaml:"policy_id" json:"policy_id"`
+	AppliesToWorkflowTypes        []string  `yaml:"applies_to_workflow_types" json:"applies_to_workflow_types"`
+	Persistence                   string    `yaml:"persistence" json:"persistence"`
+	DefaultTTL                    string    `yaml:"default_ttl" json:"default_ttl"`
+	Scope                         string    `yaml:"scope" json:"scope"`
+	DeleteSemantics               string    `yaml:"delete_semantics,omitempty" json:"delete_semantics,omitempty"`
+	RuntimeReconciliationRequired bool      `yaml:"runtime_reconciliation_required,omitempty" json:"runtime_reconciliation_required,omitempty"`
+	SourceRef                     SourceRef `yaml:"source_ref" json:"source_ref"`
+}
+
 type ModelWorkflowBinding struct {
 	ModelID           string   `yaml:"model_id" json:"model_id"`
 	WorkflowModelRefs []string `yaml:"workflow_model_refs" json:"workflow_model_refs"`
@@ -119,6 +131,7 @@ type ProviderDocument struct {
 	Voices                []VoiceEntry           `yaml:"voices,omitempty" json:"voices,omitempty"`
 	VoiceWorkflowModels   []VoiceWorkflowModel   `yaml:"voice_workflow_models,omitempty" json:"voice_workflow_models,omitempty"`
 	ModelWorkflowBindings []ModelWorkflowBinding `yaml:"model_workflow_bindings,omitempty" json:"model_workflow_bindings,omitempty"`
+	VoiceHandlePolicies   []VoiceHandlePolicy    `yaml:"voice_handle_policies,omitempty" json:"voice_handle_policies,omitempty"`
 
 	RawYAML string `yaml:"-" json:"raw_yaml"`
 }
@@ -129,6 +142,7 @@ type Snapshot struct {
 	Voices                []VoiceEntry
 	VoiceWorkflowModels   []VoiceWorkflowModel
 	ModelWorkflowBindings []ModelWorkflowBinding
+	VoiceHandlePolicies   []VoiceHandlePolicy
 }
 
 type VoiceDescriptor struct {
@@ -151,8 +165,15 @@ type ResolveVoiceWorkflowResult struct {
 	ModelID                        string
 	WorkflowType                   string
 	WorkflowModelID                string
+	WorkflowFamily                 string
 	InputContractRef               string
 	OutputPersistence              string
+	HandlePolicyID                 string
+	HandlePolicyPersistence        string
+	HandlePolicyScope              string
+	HandlePolicyDefaultTTL         string
+	HandlePolicyDeleteSemantics    string
+	RuntimeReconciliationRequired  bool
 	SupportsTextPromptInput        bool
 	RequiresTargetSynthesisBinding bool
 	CatalogVersion                 string
@@ -195,6 +216,7 @@ type CatalogModelDetailRecord struct {
 	Warnings             []CatalogOverlayWarning
 	Voices               []VoiceEntry
 	VoiceWorkflowModels  []VoiceWorkflowModel
+	VoiceHandlePolicies  []VoiceHandlePolicy
 	ModelWorkflowBinding *ModelWorkflowBinding
 }
 

@@ -176,6 +176,18 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
 		t.Fatalf("workflow model id must be set")
 	}
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "dashscope" {
+		t.Fatalf("workflow family mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyID); got != "dashscope_provider_persistent_default" {
+		t.Fatalf("handle policy mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyDeleteSemantics); got != "best_effort_provider_delete" {
+		t.Fatalf("delete semantics mismatch: got=%q", got)
+	}
+	if !resolved.RuntimeReconciliationRequired {
+		t.Fatalf("expected runtime reconciliation requirement")
+	}
 }
 
 func TestResolveVoiceWorkflowElevenLabsClone(t *testing.T) {
@@ -196,6 +208,12 @@ func TestResolveVoiceWorkflowElevenLabsClone(t *testing.T) {
 	}
 	if resolved.WorkflowModelID != "elevenlabs-voice-clone" {
 		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
+	}
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "elevenlabs" {
+		t.Fatalf("workflow family mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyID); got != "elevenlabs_provider_persistent_default" {
+		t.Fatalf("handle policy mismatch: got=%q", got)
 	}
 }
 

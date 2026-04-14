@@ -194,12 +194,7 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 
 	failures, _ := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
 	detail := appendWarnings(defaultString(probe.detail, "service probe failed"), warnings)
-	if bootstrapErr != nil {
-		detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-	}
-	if strings.TrimSpace(probe.probeURL) != "" {
-		detail += "; probe_url=" + probe.probeURL
-	}
+	detail = sanitizedServiceProbeDetail(detail, s.serviceRuntimeMode(serviceID), bootstrapErr)
 	detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
 	unhealthy, err := s.updateServiceStatus(serviceID, runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY, detail)
 	if err != nil {
@@ -277,13 +272,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 				continue
 			}
 			failures, interval := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
-			detail := defaultString(probe.detail, "service probe failed")
-			if bootstrapErr != nil {
-				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-			}
-			if strings.TrimSpace(probe.probeURL) != "" {
-				detail += "; probe_url=" + probe.probeURL
-			}
+			detail := sanitizedServiceProbeDetail(defaultString(probe.detail, "service probe failed"), s.serviceRuntimeMode(serviceID), bootstrapErr)
 			detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 			transitioned, err := s.updateServiceStatus(serviceID, runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY, detail)
 			if err != nil {
@@ -305,10 +294,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 					healthRows = append(healthRows, recovered)
 				} else {
 					health := cloneServiceDescriptor(service)
-					detail := fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold)
-					if strings.TrimSpace(probe.probeURL) != "" {
-						detail += "; probe_url=" + probe.probeURL
-					}
+					detail := sanitizedServiceProbeDetail(fmt.Sprintf("recovery probe succeeded (%d/%d)", successes, localRecoverySuccessThreshold), s.serviceRuntimeMode(serviceID), nil)
 					health.Detail = detail
 					healthRows = append(healthRows, health)
 				}
@@ -316,13 +302,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 			}
 			failures, interval := s.serviceRecoveryFailure(serviceID, time.Now().UTC())
 			health := cloneServiceDescriptor(service)
-			detail := defaultString(probe.detail, "service probe failed")
-			if bootstrapErr != nil {
-				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-			}
-			if strings.TrimSpace(probe.probeURL) != "" {
-				detail += "; probe_url=" + probe.probeURL
-			}
+			detail := sanitizedServiceProbeDetail(defaultString(probe.detail, "service probe failed"), s.serviceRuntimeMode(serviceID), bootstrapErr)
 			health.Detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 			healthRows = append(healthRows, health)
 		case runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED:

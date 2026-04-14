@@ -62,6 +62,11 @@ func inferVoiceAssetProvider(modelID string) string {
 	if normalized == "" {
 		return ""
 	}
+	switch {
+	case strings.HasPrefix(normalized, "openbmb/voxcpm2"),
+		strings.HasPrefix(normalized, "k2-fsa/omnivoice"):
+		return "local"
+	}
 	if strings.HasPrefix(normalized, "local/") {
 		return "local"
 	}
@@ -72,11 +77,44 @@ func inferVoiceAssetProvider(modelID string) string {
 	switch {
 	case strings.HasPrefix(normalized, "qwen3-tts"):
 		return "local"
-	case strings.HasPrefix(normalized, "cosyvoice"), strings.HasPrefix(normalized, "gpt-sovits"), strings.HasPrefix(normalized, "f5-tts"), strings.HasPrefix(normalized, "piper"), strings.HasPrefix(normalized, "kokoro"):
+	case strings.HasPrefix(normalized, "cosyvoice"),
+		strings.HasPrefix(normalized, "gpt-sovits"),
+		strings.HasPrefix(normalized, "f5-tts"),
+		strings.HasPrefix(normalized, "piper"),
+		strings.HasPrefix(normalized, "kokoro"),
+		strings.HasPrefix(normalized, "voxcpm"),
+		strings.HasPrefix(normalized, "omnivoice"):
 		return "local"
 	default:
 		return ""
 	}
+}
+
+func inferVoiceWorkflowFamily(ids ...string) string {
+	for _, raw := range ids {
+		normalized := strings.ToLower(strings.TrimSpace(raw))
+		if normalized == "" {
+			continue
+		}
+		switch {
+		case strings.Contains(normalized, "voxcpm"):
+			return "voxcpm"
+		case strings.Contains(normalized, "omnivoice"):
+			return "omnivoice"
+		case strings.Contains(normalized, "qwen3-tts"),
+			strings.Contains(normalized, "qwen3tts"):
+			return "qwen3tts"
+		case strings.Contains(normalized, "cosyvoice"):
+			return "cosyvoice"
+		case strings.Contains(normalized, "f5-tts"),
+			strings.Contains(normalized, "f5tts"):
+			return "f5tts"
+		case strings.Contains(normalized, "gpt-sovits"),
+			strings.Contains(normalized, "gptsovits"):
+			return "gpt-sovits"
+		}
+	}
+	return ""
 }
 
 func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.ScenarioJob, *runtimev1.VoiceAsset) {
@@ -129,11 +167,21 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
-	if strings.TrimSpace(input.WorkflowModelID) != "" {
-		asset.Metadata = structFromMap(map[string]any{
+	workflowFamily := inferVoiceWorkflowFamily(
+		input.WorkflowModelID,
+		input.ModelResolved,
+		targetModelID,
+		head.GetModelId(),
+	)
+	if strings.TrimSpace(input.WorkflowModelID) != "" || workflowFamily != "" || strings.TrimSpace(input.ModelResolved) != "" {
+		metadata := map[string]any{
 			"workflow_model_id": strings.TrimSpace(input.WorkflowModelID),
 			"model_resolved":    strings.TrimSpace(input.ModelResolved),
-		})
+		}
+		if workflowFamily != "" {
+			metadata["workflow_family"] = workflowFamily
+		}
+		asset.Metadata = structFromMap(metadata)
 	}
 	job := &runtimev1.ScenarioJob{
 		JobId:             jobID,

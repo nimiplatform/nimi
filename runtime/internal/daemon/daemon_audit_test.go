@@ -79,6 +79,7 @@ func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:2834/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", "http://127.0.0.1:8330/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL", "http://127.0.0.1:3234")
 	cfg := config.Config{
 		Providers: map[string]config.RuntimeFileTarget{
@@ -99,6 +100,7 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	required := []string{
 		"local",
 		"local-media",
+		"local-speech",
 		"local-sidecar",
 		"cloud-nimillm",
 		"cloud-volcengine-openspeech",
@@ -139,6 +141,13 @@ func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
 	got := providerProbePaths("local-media")
 	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
 		t.Fatalf("unexpected media probe paths: %v", got)
+	}
+}
+
+func TestProviderProbePathsUsesCanonicalSpeechCatalog(t *testing.T) {
+	got := providerProbePaths("local-speech")
+	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
+		t.Fatalf("unexpected speech probe paths: %v", got)
 	}
 }
 

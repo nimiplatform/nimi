@@ -66,6 +66,12 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			}
 			continue
 		}
+		if isManagedSupervisedSpeechModel(localModel, model.mode) {
+			if _, err := s.checkManagedSupervisedSpeechHealth(ctx, localModel); err != nil {
+				s.logger.Debug("managed speech recovery health failed", "local_model_id", localModelID, "error", err)
+			}
+			continue
+		}
 		if isManagedSupervisedImageModel(localModel, model.mode) {
 			continue
 		}
@@ -85,12 +91,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		}
 		failures, interval := s.modelRecoveryFailure(localModelID, now)
 		detail := modelProbeFailureDetail(localModel, probe, registration)
-		if bootstrapErr != nil {
-			detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-		}
-		if strings.TrimSpace(probe.probeURL) != "" {
-			detail += "; probe_url=" + probe.probeURL
-		}
+		detail = sanitizedModelProbeDetail(detail, model.mode, bootstrapErr)
 		detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 		s.setModelHealthDetail(localModelID, detail)
 	}
@@ -115,13 +116,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			continue
 		}
 		failures, interval := s.serviceRecoveryFailure(serviceID, now)
-		detail := defaultString(probe.detail, "service probe failed")
-		if bootstrapErr != nil {
-			detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-		}
-		if strings.TrimSpace(probe.probeURL) != "" {
-			detail += "; probe_url=" + probe.probeURL
-		}
+		detail := sanitizedServiceProbeDetail(defaultString(probe.detail, "service probe failed"), service.mode, bootstrapErr)
 		detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
 		s.setServiceHealthDetail(serviceID, detail)
 	}

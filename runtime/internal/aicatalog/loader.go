@@ -191,6 +191,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		Voices:                append([]VoiceEntry(nil), parsed.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), parsed.VoiceWorkflowModels...),
 		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), parsed.ModelWorkflowBindings...),
+		VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), parsed.VoiceHandlePolicies...),
 	}
 	if doc.Version <= 0 {
 		doc.Version = 1
@@ -231,6 +232,14 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 			return ProviderDocument{}, errors.New("model workflow binding missing model_id")
 		}
 	}
+	for _, policy := range doc.VoiceHandlePolicies {
+		if normalizeID(policy.PolicyID) == "" {
+			return ProviderDocument{}, errors.New("voice handle policy missing policy_id")
+		}
+	}
+	for i := range doc.VoiceHandlePolicies {
+		doc.VoiceHandlePolicies[i].Provider = provider
+	}
 
 	if !overlay {
 		if len(doc.Models) == 0 {
@@ -242,6 +251,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 			Voices:                append([]VoiceEntry(nil), doc.Voices...),
 			VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
 			ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+			VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), doc.VoiceHandlePolicies...),
 		}
 		if err := validateSnapshot(snapshot); err != nil {
 			return ProviderDocument{}, err
@@ -253,6 +263,7 @@ func normalizeProviderDocument(parsed ProviderDocument, filename string, overlay
 		len(doc.Voices) == 0 &&
 		len(doc.VoiceWorkflowModels) == 0 &&
 		len(doc.ModelWorkflowBindings) == 0 &&
+		len(doc.VoiceHandlePolicies) == 0 &&
 		strings.TrimSpace(doc.DefaultTextModel) == "" {
 		return ProviderDocument{}, errors.New("overlay provider document must not be empty")
 	}
@@ -308,6 +319,10 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 	workflowModelsByID := make(map[string]VoiceWorkflowModel, len(base.VoiceWorkflowModels))
 	for _, workflow := range base.VoiceWorkflowModels {
 		workflowModelsByID[normalizeID(workflow.WorkflowModelID)] = workflow
+	}
+	handlePoliciesByID := make(map[string]VoiceHandlePolicy, len(base.VoiceHandlePolicies))
+	for _, policy := range base.VoiceHandlePolicies {
+		handlePoliciesByID[normalizeID(policy.PolicyID)] = policy
 	}
 
 	bindingsByModelID := make(map[string]ModelWorkflowBinding, len(base.ModelWorkflowBindings))
@@ -372,6 +387,9 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 		for _, binding := range overlay.doc.ModelWorkflowBindings {
 			bindingsByModelID[normalizeID(binding.ModelID)] = binding
 		}
+		for _, policy := range overlay.doc.VoiceHandlePolicies {
+			handlePoliciesByID[normalizeID(policy.PolicyID)] = policy
+		}
 	}
 
 	mergedDoc.Models = mapValuesSorted(modelsByID, func(left, right ModelEntry) bool {
@@ -415,6 +433,9 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 	mergedDoc.ModelWorkflowBindings = mapValuesSorted(bindingsByModelID, func(left, right ModelWorkflowBinding) bool {
 		return normalizeID(left.ModelID) < normalizeID(right.ModelID)
 	})
+	mergedDoc.VoiceHandlePolicies = mapValuesSorted(handlePoliciesByID, func(left, right VoiceHandlePolicy) bool {
+		return normalizeID(left.PolicyID) < normalizeID(right.PolicyID)
+	})
 
 	snapshot := Snapshot{
 		CatalogVersion:        mergedDoc.CatalogVersion,
@@ -422,6 +443,7 @@ func mergeProviderDocument(base ProviderDocument, overlays ...overlayDocument) (
 		Voices:                append([]VoiceEntry(nil), mergedDoc.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), mergedDoc.VoiceWorkflowModels...),
 		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), mergedDoc.ModelWorkflowBindings...),
+		VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), mergedDoc.VoiceHandlePolicies...),
 	}
 	if err := validateSnapshot(snapshot); err != nil {
 		return mergedProviderDocument{}, err
@@ -467,6 +489,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDo
 	voices := make([]VoiceEntry, 0, 64)
 	voiceWorkflowModels := make([]VoiceWorkflowModel, 0, 8)
 	modelWorkflowBindings := make([]ModelWorkflowBinding, 0, 8)
+	voiceHandlePolicies := make([]VoiceHandlePolicy, 0, 8)
 	versionTokens := make([]string, 0, len(providers))
 	for _, provider := range providers {
 		doc := providerDocs[provider].document
@@ -474,6 +497,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDo
 		voices = append(voices, doc.Voices...)
 		voiceWorkflowModels = append(voiceWorkflowModels, doc.VoiceWorkflowModels...)
 		modelWorkflowBindings = append(modelWorkflowBindings, doc.ModelWorkflowBindings...)
+		voiceHandlePolicies = append(voiceHandlePolicies, doc.VoiceHandlePolicies...)
 		versionTokens = append(versionTokens, provider+":"+firstNonEmpty(doc.CatalogVersion, "unknown"))
 	}
 
@@ -491,6 +515,7 @@ func buildSnapshotFromProviderDocuments(providerDocs map[string]mergedProviderDo
 		Voices:                voices,
 		VoiceWorkflowModels:   voiceWorkflowModels,
 		ModelWorkflowBindings: modelWorkflowBindings,
+		VoiceHandlePolicies:   voiceHandlePolicies,
 	}
 	if err := validateSnapshot(snapshot); err != nil {
 		return Snapshot{}, err
@@ -535,6 +560,7 @@ func cloneProviderDocument(doc ProviderDocument) ProviderDocument {
 		Voices:                append([]VoiceEntry(nil), doc.Voices...),
 		VoiceWorkflowModels:   append([]VoiceWorkflowModel(nil), doc.VoiceWorkflowModels...),
 		ModelWorkflowBindings: append([]ModelWorkflowBinding(nil), doc.ModelWorkflowBindings...),
+		VoiceHandlePolicies:   append([]VoiceHandlePolicy(nil), doc.VoiceHandlePolicies...),
 		RawYAML:               doc.RawYAML,
 	}
 }
@@ -768,6 +794,47 @@ func validateSnapshot(snapshot Snapshot) error {
 			WorkflowModelRefs: refs,
 			WorkflowTypes:     workflowTypes,
 		}
+	}
+
+	policyByKey := make(map[string]VoiceHandlePolicy, len(snapshot.VoiceHandlePolicies))
+	for _, policy := range snapshot.VoiceHandlePolicies {
+		policyID := normalizeID(policy.PolicyID)
+		if policyID == "" {
+			return fmt.Errorf("voice handle policy missing policy_id")
+		}
+		workflowTypes := normalizeStringSlice(policy.AppliesToWorkflowTypes)
+		if len(workflowTypes) == 0 {
+			return fmt.Errorf("voice handle policy %s missing applies_to_workflow_types", policyID)
+		}
+		for i := range workflowTypes {
+			workflowTypes[i] = normalizeWorkflowType(workflowTypes[i])
+			if workflowTypes[i] == "" {
+				return fmt.Errorf("voice handle policy %s has invalid applies_to_workflow_types entry", policyID)
+			}
+		}
+		if !isAllowedVoicePersistence(policy.Persistence) {
+			return fmt.Errorf("voice handle policy %s has invalid persistence %q", policyID, policy.Persistence)
+		}
+		if !isAllowedVoiceHandleScope(policy.Scope) {
+			return fmt.Errorf("voice handle policy %s has invalid scope %q", policyID, policy.Scope)
+		}
+		if strings.TrimSpace(policy.DefaultTTL) == "" {
+			return fmt.Errorf("voice handle policy %s missing default_ttl", policyID)
+		}
+		if !isAllowedVoiceDeleteSemantics(policy.DeleteSemantics) {
+			return fmt.Errorf("voice handle policy %s has invalid delete_semantics %q", policyID, policy.DeleteSemantics)
+		}
+		if strings.TrimSpace(policy.SourceRef.URL) == "" || strings.TrimSpace(policy.SourceRef.RetrievedAt) == "" {
+			return fmt.Errorf("voice handle policy %s missing source_ref", policyID)
+		}
+		if _, exists := policyByKey[policyID]; exists {
+			return fmt.Errorf("duplicate voice handle policy %s", policyID)
+		}
+		policy.AppliesToWorkflowTypes = workflowTypes
+		policyByKey[policyID] = policy
+	}
+	if len(snapshot.VoiceWorkflowModels) > 0 && len(policyByKey) == 0 {
+		return errors.New("voice_handle_policies must not be empty when voice_workflow_models exist")
 	}
 
 	return nil
