@@ -19,6 +19,19 @@
 
 管理 RPC 与 consume RPC 都必须记录成功与失败事件。
 
+Wave 1 knowledge management 路径同样受本规则约束。最小覆盖写路径至少包括：
+
+- `knowledge.bank.create`
+- `knowledge.bank.delete`
+- `knowledge.page.put`
+- `knowledge.page.delete`
+- `knowledge.link.add`
+- `knowledge.link.remove`
+
+Wave 2A retrieval expansion 不要求为 `SearchHybrid` 本身新增读审计基线；但如果
+page write 会改变 durable hybrid retrieval readiness（例如索引就绪、索引刷新中、
+索引失败），对应的知识域状态变更事件必须仍受本规则约束。
+
 ## K-AUDIT-003 request_id / trace_id 规则
 
 Phase 1 固定 `request_id == trace_id`（同一 ULID），为后续 fan-out 分离预留。

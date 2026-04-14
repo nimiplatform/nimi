@@ -28,12 +28,36 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 
 	now := time.Now().UTC()
 	retained := make([]*runtimev1.MemoryRecord, 0, len(req.GetRecords()))
+	inserted := make([]*runtimev1.MemoryRecord, 0, len(req.GetRecords()))
+	seenSemantic := make(map[string]*runtimev1.MemoryRecord)
+	for _, record := range bankState.Records {
+		if !recordEligibleForRetainDedup(record) {
+			continue
+		}
+		key, ok := semanticRetainDedupKey(record)
+		if !ok {
+			continue
+		}
+		seenSemantic[key] = cloneRecord(record)
+	}
 	for _, input := range req.GetRecords() {
+		if inputEligibleForRetainDedup(bankState.Bank, input) {
+			if key, ok := semanticRetainDedupKeyFromInput(input); ok {
+				if existing := seenSemantic[key]; existing != nil {
+					retained = append(retained, cloneRecord(existing))
+					continue
+				}
+			}
+		}
 		record := buildRuntimeRecord(bankState.Bank, input, now)
 		retained = append(retained, record)
+		inserted = append(inserted, record)
+		if key, ok := semanticRetainDedupKey(record); ok {
+			seenSemantic[key] = cloneRecord(record)
+		}
 	}
-	events := make([]*runtimev1.MemoryEvent, 0, len(retained))
-	for _, record := range retained {
+	events := make([]*runtimev1.MemoryEvent, 0, len(inserted))
+	for _, record := range inserted {
 		events = append(events, &runtimev1.MemoryEvent{
 			EventType: runtimev1.MemoryEventType_MEMORY_EVENT_TYPE_RECORD_RETAINED,
 			Bank:      cloneLocator(bankState.Bank.GetLocator()),
@@ -43,8 +67,10 @@ func (s *Service) Retain(ctx context.Context, req *runtimev1.RetainRequest) (*ru
 			},
 		})
 	}
-	if err := s.insertRecords(locatorKey(bankState.Bank.GetLocator()), retained, events); err != nil {
-		return nil, err
+	if len(inserted) > 0 {
+		if err := s.insertRecords(locatorKey(bankState.Bank.GetLocator()), inserted, events); err != nil {
+			return nil, err
+		}
 	}
 	return &runtimev1.RetainResponse{Records: retained}, nil
 }
@@ -210,6 +236,10 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 	if len(deleted) == 0 {
 		return &runtimev1.DeleteMemoryResponse{Ack: okAck(), DeletedMemoryIds: []string{}}, nil
 	}
+	deletedIDs := make([]string, 0, len(deleted))
+	for _, record := range deleted {
+		deletedIDs = append(deletedIDs, record.GetMemoryId())
+	}
 	now := time.Now().UTC()
 	event := &runtimev1.MemoryEvent{
 		EventType: runtimev1.MemoryEventType_MEMORY_EVENT_TYPE_RECORD_DELETED,
@@ -222,7 +252,7 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 			},
 		},
 	}
-	if err := s.replaceBankRecords(locatorKey(bankState.Bank.GetLocator()), remaining, event); err != nil {
+	if err := s.replaceBankRecordsWithTxHook(locatorKey(bankState.Bank.GetLocator()), remaining, event, sourceMemoryInvalidationCascadeHook(bankState.Bank.GetLocator(), deletedIDs, now)); err != nil {
 		return nil, err
 	}
 	return &runtimev1.DeleteMemoryResponse{

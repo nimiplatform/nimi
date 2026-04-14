@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-13
+> 生成时间: 2026-04-14
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -448,6 +448,7 @@ message Connector {
 - `VISION` 表示“可接受视觉输入”的能力标记，不是独立执行模态。
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
+- `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 视为由 `TTS` category 自动隐含。
 
 local category / local manifest token 到 canonical capability token 的正式映射以 `tables/capability-vocabulary-mapping.yaml` 为唯一事实源；本规则只定义语义边界，不复制第二套映射表。
 
@@ -613,7 +614,7 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `speech`：本地语音引擎族，负责 `audio.transcribe`、`audio.synthesize`、`voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`
+- `speech`：本地语音引擎族。当前 admitted baseline 只覆盖 `audio.transcribe` 与 `audio.synthesize`；`voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
 `media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
@@ -636,6 +637,11 @@ Phase 1 本地执行引擎固定为：
 - `SUPERVISED`
 
 `sidecar` 当前只允许 `ATTACHED_ENDPOINT`；`llama`、`media` 与 `speech` 允许 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
+
+speech product posture:
+
+- ordinary-user canonical local speech path 固定为 `engine=speech + SUPERVISED`
+- `speech + ATTACHED_ENDPOINT` 只允许作为高级/自托管路径存在，不得在产品语义上与 supervised 等价
 
 所有引擎通过标准 OpenAI-compatible HTTP API 通信：
 
@@ -676,7 +682,7 @@ Phase 1 本地执行引擎固定为：
 
 - `media` / `media.diffusers` 不得再通过 OpenAI-compatible provider 语义暴露给上层。
 - `speech` 不得把 voice workflow 伪装为 OpenAI-compatible TTS 成功语义。
-- `llama` 只承载文本与理解能力；`media` / `media.diffusers` 只承载图像/视频生成能力；`speech` 只承载语音与 voice workflow 能力。
+- `llama` 只承载文本与理解能力；`media` / `media.diffusers` 只承载图像/视频生成能力；`speech` 当前 canonical local truth 只承载 `audio.transcribe` / `audio.synthesize`，workflow 仍需等待显式 admission。
 - 用户层不得直接暴露 workflow、companion model 拼装或 pipeline DAG。
 
 健康探测使用 `GET /v1/models` 判定引擎可达性：
@@ -701,10 +707,13 @@ Phase 1 本地执行引擎固定为：
 
 `speech` 健康探测：
 
-- `/healthz` 返回 ready 且 `/v1/catalog` 暴露目标 `logical_model_id` 的 ready entry，才算健康。
-- `audio.transcribe` 必须至少验证 STT driver 与主 artifact 完整。
-- `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整。
-- `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；缺失 `qwen3tts` 等必要 bundle 时必须 fail-close。
+- `speech` 的 local plain-speech truth 至少区分四层：`provider_reachability`、`engine_readiness`、`bundle_readiness`、`capability_route_readiness`。上层 truth 不得自动推出下一层 truth；`K-PROV-*` provider health 只回答 `provider_reachability`，不得直接提升为 plain-speech admitted success。
+- `/healthz` 返回 ready 只证明 `engine_readiness`；`/v1/catalog` 暴露 target `logical_model_id` 的 ready entry 只在与 bundle / capability proof 共同成立时，才允许提升到 `capability_route_readiness`。
+- `audio.transcribe` 必须至少验证 STT driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.transcribe` 时，才允许投影为 admitted local ready。
+- `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.synthesize`，且 supervised path 下 target endpoint 与 managed speech endpoint 一致时，才允许投影为 admitted local ready。
+- placeholder host 与 admitted plain-speech host 必须显式分离：在 admitted local plain-speech execution plane 尚未 materialize 前，speech canonical HTTP surface 可以存在，但必须保持 non-ready / fail-close；不得借 `ACTIVE`、`READY`、generic health 或静态 catalog 投影成 admitted success。
+- speech supervised data-boundary minimum 属于 admitted contract：temp files 必须有 bounded lifecycle；public detail 不得暴露 raw bootstrap path、raw probe URL 或 raw request payload；reference audio、transcription text、voice design prompt 不得因 generic logging 默认进入长期保留路径。
+- 当未来 local workflow 被 admission 时，`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
 
@@ -878,8 +887,6 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `media` | `video.generate` / `i2v` | `media_native_adapter` |
 | `speech` | `audio.transcribe` | `speech_native_adapter` |
 | `speech` | `audio.synthesize` | `speech_native_adapter` |
-| `speech` | `voice_workflow.tts_v2v` | `speech_native_adapter` |
-| `speech` | `voice_workflow.tts_t2v` | `speech_native_adapter` |
 | `sidecar` | `music` / `music.generate` | `sidecar_music_adapter` |
 | `*`（任意） | `*`（任意） | `openai_compat_adapter` |
 
@@ -931,7 +938,7 @@ AI 执行路径根据 model_id 前缀确定引擎：
 | `media/` | 仅匹配 `media` 引擎的已安装模型 |
 | `speech/` | 仅匹配 `speech` 引擎的已安装模型 |
 | `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize/voice_workflow.tts_v2v/voice_workflow.tts_t2v -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers` |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.tts_v2v/voice_workflow.tts_t2v` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
@@ -3181,7 +3188,7 @@ Future Capabilities 系统用三个互锁的注册表解决这个问题：能力
 追溯链
 ─────────────────────────────────────────────────
 Research Topic Doc     Backlog Item           Spec Document
-(.local/work/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
+(.nimi/local/report/{proposal|ongoing|closed}/<topic-id>/*.md) (backlog-items.yaml)   (.nimi/spec/**/*.md)
        │                      │                      │
    source_id ─────→ source_ids[]              target_spec_path
                               │                      │
@@ -3512,9 +3519,23 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 | 方法 | 类型 |
 |---|---|
-| BuildIndex | unary |
-| SearchIndex | unary |
-| DeleteIndex | unary |
+| CreateKnowledgeBank | unary |
+| GetKnowledgeBank | unary |
+| ListKnowledgeBanks | unary |
+| DeleteKnowledgeBank | unary |
+| PutPage | unary |
+| GetPage | unary |
+| ListPages | unary |
+| DeletePage | unary |
+| SearchKeyword | unary |
+| SearchHybrid | unary |
+| AddLink | unary |
+| RemoveLink | unary |
+| ListLinks | unary |
+| ListBacklinks | unary |
+| TraverseGraph | unary |
+| IngestDocument | unary |
+| GetIngestTask | unary |
 
 **RuntimeAppService**
 
@@ -3670,7 +3691,22 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND | 510 | GRANT |
 | GRANT_TOKEN_CHAIN_ROOT_REQUIRED | 511 | GRANT |
 | PAGE_TOKEN_INVALID | 520 | PAGE |
-| KNOWLEDGE_INDEX_ALREADY_EXISTS | 530 | KNOWLEDGE |
+| KNOWLEDGE_BANK_ALREADY_EXISTS | 530 | KNOWLEDGE |
+| KNOWLEDGE_BANK_NOT_FOUND | 531 | KNOWLEDGE |
+| KNOWLEDGE_BANK_SCOPE_INVALID | 532 | KNOWLEDGE |
+| KNOWLEDGE_BANK_ACCESS_DENIED | 533 | KNOWLEDGE |
+| KNOWLEDGE_PAGE_NOT_FOUND | 534 | KNOWLEDGE |
+| KNOWLEDGE_PAGE_SLUG_CONFLICT | 535 | KNOWLEDGE |
+| KNOWLEDGE_PAGE_ACCESS_DENIED | 536 | KNOWLEDGE |
+| KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE | 537 | KNOWLEDGE |
+| KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE | 538 | KNOWLEDGE |
+| KNOWLEDGE_VECTOR_INDEX_NOT_READY | 539 | KNOWLEDGE |
+| KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS | 540 | KNOWLEDGE |
+| KNOWLEDGE_LINK_NOT_FOUND | 541 | KNOWLEDGE |
+| KNOWLEDGE_LINK_ALREADY_EXISTS | 542 | KNOWLEDGE |
+| KNOWLEDGE_LINK_INVALID | 543 | KNOWLEDGE |
+| KNOWLEDGE_GRAPH_DEPTH_INVALID | 544 | KNOWLEDGE |
+| KNOWLEDGE_INGEST_TASK_NOT_FOUND | 545 | KNOWLEDGE |
 | APP_MESSAGE_PAYLOAD_TOO_LARGE | 550 | APP_MESSAGE |
 | APP_MESSAGE_RATE_LIMITED | 551 | APP_MESSAGE |
 | APP_MESSAGE_LOOP_DETECTED | 552 | APP_MESSAGE |
@@ -3793,7 +3829,22 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND | NOT_FOUND | grant_list_token_chain | grpc_status |
 | GRANT_TOKEN_CHAIN_ROOT_REQUIRED | INVALID_ARGUMENT | grant_list_token_chain | grpc_status |
 | PAGE_TOKEN_INVALID | INVALID_ARGUMENT | list_rpc_page_token_validation | grpc_status |
-| KNOWLEDGE_INDEX_ALREADY_EXISTS | ALREADY_EXISTS | build_knowledge_index_without_overwrite | grpc_status |
+| KNOWLEDGE_BANK_ALREADY_EXISTS | ALREADY_EXISTS | create_knowledge_bank_duplicate_typed_owner | grpc_status |
+| KNOWLEDGE_BANK_NOT_FOUND | NOT_FOUND | get_or_delete_knowledge_bank_missing | grpc_status |
+| KNOWLEDGE_BANK_SCOPE_INVALID | INVALID_ARGUMENT | create_knowledge_bank_non_wave1_scope | grpc_status |
+| KNOWLEDGE_BANK_ACCESS_DENIED | PERMISSION_DENIED | bank_scoped_knowledge_access_denied | grpc_status |
+| KNOWLEDGE_PAGE_NOT_FOUND | NOT_FOUND | get_or_delete_knowledge_page_missing | grpc_status |
+| KNOWLEDGE_PAGE_SLUG_CONFLICT | ALREADY_EXISTS | put_knowledge_page_duplicate_slug_within_bank | grpc_status |
+| KNOWLEDGE_PAGE_ACCESS_DENIED | PERMISSION_DENIED | page_scoped_knowledge_access_denied | grpc_status |
+| KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE | FAILED_PRECONDITION | search_hybrid_capability_unavailable | grpc_status |
+| KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE | FAILED_PRECONDITION | search_hybrid_embedding_profile_unavailable | grpc_status |
+| KNOWLEDGE_VECTOR_INDEX_NOT_READY | FAILED_PRECONDITION | search_hybrid_vector_index_not_ready | grpc_status |
+| KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS | UNAVAILABLE | search_hybrid_index_refresh_in_progress | grpc_status |
+| KNOWLEDGE_LINK_NOT_FOUND | NOT_FOUND | remove_or_list_knowledge_link_missing | grpc_status |
+| KNOWLEDGE_LINK_ALREADY_EXISTS | ALREADY_EXISTS | add_knowledge_link_duplicate_same_bank_relation | grpc_status |
+| KNOWLEDGE_LINK_INVALID | INVALID_ARGUMENT | add_knowledge_link_invalid_same_bank_relation | grpc_status |
+| KNOWLEDGE_GRAPH_DEPTH_INVALID | INVALID_ARGUMENT | traverse_knowledge_graph_invalid_depth | grpc_status |
+| KNOWLEDGE_INGEST_TASK_NOT_FOUND | NOT_FOUND | get_knowledge_ingest_task_missing | grpc_status |
 
 ### 12.4 Runtime — Key Source 真值表
 
@@ -3921,8 +3972,6 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | media | i2v | media_native_adapter |
 | speech | audio.transcribe | speech_native_adapter |
 | speech | audio.synthesize | speech_native_adapter |
-| speech | voice_workflow.tts_v2v | speech_native_adapter |
-| speech | voice_workflow.tts_t2v | speech_native_adapter |
 | sidecar | music | sidecar_music_adapter |
 | sidecar | music.generate | sidecar_music_adapter |
 | * | * | openai_compat_adapter |
@@ -4118,9 +4167,23 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 **knowledge_service_projection** → RuntimeKnowledgeService
 
-- BuildIndex
-- SearchIndex
-- DeleteIndex
+- CreateKnowledgeBank
+- GetKnowledgeBank
+- ListKnowledgeBanks
+- DeleteKnowledgeBank
+- PutPage
+- GetPage
+- ListPages
+- DeletePage
+- SearchKeyword
+- SearchHybrid
+- AddLink
+- RemoveLink
+- ListLinks
+- ListBacklinks
+- TraverseGraph
+- IngestDocument
+- GetIngestTask
 
 **app_service_projection** → RuntimeAppService
 

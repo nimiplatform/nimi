@@ -96,13 +96,13 @@ test('conversation capability UI contract: AI bootstrap only refreshes text.gene
 test('conversation capability UI contract: agent bootstrap prioritizes text.generate and submit owns route gating', () => {
   const agentEffectsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-capability-effects.ts');
   const agentAdapterSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
-  const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
+  const agentHostActionsSource = readSource('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES:[\s\S]*'text\.generate'/);
   assert.match(agentEffectsSource, /const AGENT_CONVERSATION_DEFERRED_CAPABILITIES:[\s\S]*'audio\.synthesize'/);
   assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_BOOTSTRAP_CAPABILITIES\)/);
   assert.match(agentEffectsSource, /refreshConversationCapabilityProjections\(AGENT_CONVERSATION_DEFERRED_CAPABILITIES\)/);
   assert.match(agentAdapterSource, /return createReadyConversationSetupState\('agent'\);/);
-  assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleQuery\.error/);
+  assert.match(agentAdapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
   assert.doesNotMatch(agentAdapterSource, /resolveAiConversationSetupStateFromProjection/);
   assert.match(agentHostActionsSource, /ensureAgentConversationSubmitRouteReady/);
 });

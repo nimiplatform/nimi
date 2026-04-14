@@ -130,4 +130,13 @@ export type AgentLocalChatProviderMetadata = {
 export type AgentLocalChatProviderOptions = {
   runtimeAdapter?: AgentLocalChatRuntimeAdapter;
   continuityAdapter?: import('./chat-agent-continuity').AgentLocalChatContinuityAdapter;
+  followUpAssistantRuntimeFollowUp?: (input: {
+    agentId: string;
+    displayName: string;
+    worldId: string | null;
+    assistantText: string;
+    turnId: string;
+    threadId: string;
+    history: readonly import('@nimiplatform/nimi-kit/features/chat').ConversationTurnHistoryMessage[];
+  }) => Promise<void>;
 };

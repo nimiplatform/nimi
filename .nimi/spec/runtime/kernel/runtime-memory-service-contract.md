@@ -130,6 +130,7 @@ Access rules:
 - implementation-facing transport must encode bank locator invariants strongly enough that illegal scope/owner combinations are not treated as a normal public contract shape
 - public `Reflect` must reject canonical agent-facing scopes (`AGENT_CORE`, `AGENT_DYADIC`, `WORLD_SHARED`) rather than silently widening into Agent Core owned review behavior
 - public `Recall` may project canonical record hits plus additive narrative projections where later admitted in proto; admitted truths and behavioral posture remain outside this public Memory Service surface
+- when public `Recall` projects a stale narrative, the stale state must remain explicit in the typed projection rather than being silently widened into admitted truth
 
 ## K-MEM-007 Failure Model
 
@@ -211,7 +212,10 @@ Fixed rules:
 - source-junction truth for derived outputs must remain runtime-owned and committed before publication of derived results
 - lineage rows must soft-deactivate on cascade rather than hard-delete audit history by default
 - canonical delete, governance invalidation, or admitted DYADIC delete must invalidate dependent derived outputs immediately and fail-close them out of default serving paths
-- canonical supersession must mark dependent derived outputs stale rather than silently deleting them, unless a stricter invalidation rule applies
+- canonical supersession must prefer `stale` over silent delete for derived outputs whose canonical source lineage remains valid, unless a stricter invalidation rule applies
+- `invalidated` and `stale` are not interchangeable: `invalidated` derived outputs fail closed out of default serving paths, while `stale` narrative projections may remain as additive projections with explicit stale state
+- stale narrative projection is tolerated adaptation lag rather than admitted truth; runtime must not silently treat a stale narrative as an admitted truth row or canonical source record
+- runtime may later suppress, replace, or further down-rank stale narrative projections through admitted runtime-owned review or decay policy, but that later lifecycle must not silently promote narrative projection into canonical memory
 - public memory recall may expose admitted narrative projections, but admitted truths remain runtime-private and are consumed through Agent Core owned internal paths only
 
 ## K-MEM-012 Runtime-Private Canonical Read And Review Commit Boundary
@@ -226,3 +230,42 @@ Fixed rules:
 - all Memory Service owned narrative / truth / lineage mutations for a canonical review run must commit atomically before Agent Core publishes follow-up checkpoint or event truth
 - the typed facade may be implemented by a runtime-owned internal memory library, but that library must remain behind the Memory Service owned runtime-private boundary
 - the review boundary must not require distributed transactions across Agent Core and Memory Service
+
+## K-MEM-013 Retain-Time Duplicate Suppression On Eligible Banks
+
+`RuntimeMemoryService` may admit a narrow retain-time duplicate suppression rule
+for already-stabilized semantic memory candidates.
+
+It owns:
+
+- same-bank duplicate comparison over retained memory rows
+- reuse of an existing retained row when a duplicate match is admitted
+
+It does not own:
+
+- dialogue/window stabilization before candidate admission
+- in-place canonical rewriting of retained memory rows
+- structural `updates` / `extends` relation admission
+
+Fixed rules:
+
+- retain-time duplicate suppression is admitted only for banks with a non-null
+  bound embedding profile
+- first-slice duplicate suppression must remain same-bank only and must not
+  widen into cross-bank matching
+- first-slice duplicate suppression must remain conservative; it may only reuse
+  an existing retained row when the runtime can determine that a stabilized
+  semantic candidate is materially the same memory under the admitted
+  first-slice equality rule
+- for the current first slice, the admitted equality rule is strict normalized
+  semantic subject/predicate/object equality inside the same eligible bank
+- duplicate suppression in the first slice must return the existing retained row
+  in `RetainResponse` rather than mutating that row in place
+- duplicate suppression in the first slice must preserve existing canonical row
+  immutability; it must not silently rewrite prior payload, provenance, or
+  version lineage
+- duplicate suppression in the first slice must not require `updates` /
+  `extends` relation admission
+- duplicate suppression in the first slice must not publish
+  `MEMORY_EVENT_TYPE_RECORD_RETAINED` as if a new canonical row were inserted
+  when the runtime reuses an existing retained row

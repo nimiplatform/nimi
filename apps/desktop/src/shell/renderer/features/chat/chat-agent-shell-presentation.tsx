@@ -40,6 +40,10 @@ import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/
 import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { resolveExecutionSchedulingGuardDecision } from './chat-execution-scheduling-guard';
 import type { AgentChatExperienceSettings } from './chat-settings-storage';
+import type {
+  RuntimeAgentInspectEventSummary,
+  RuntimeAgentInspectSnapshot,
+} from '@renderer/infra/runtime-agent-inspect';
 import {
   resolveAgentComposerVoiceState,
   type AgentVoiceSessionShellState,
@@ -59,6 +63,16 @@ type UseAgentConversationPresentationInput = {
     footerState: AgentHostFlowFooterState;
     lifecycle: AgentTurnLifecycleState;
   } | null;
+  mutationPendingAction: string | null;
+  onCancelPendingHook: (hookId: string) => void;
+  onClearDyadicContext: () => void;
+  onClearWorldContext: () => void;
+  onDisableAutonomy: () => void;
+  onEnableAutonomy: () => void;
+  onRefreshInspect: () => void;
+  onUpdateRuntimeState: (input: { statusText: string; worldId: string; userId: string }) => void;
+  onUpdateAutonomyConfig: (input: { dailyTokenBudget: string; maxTokensPerHook: string }) => void;
+  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
   handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
   hostFeedback: InlineFeedbackState | null;
   initialModelSelection?: Partial<RouteModelPickerSelection>;
@@ -74,6 +88,8 @@ type UseAgentConversationPresentationInput = {
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;
   routeReady: boolean;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
   schedulingJudgement: AISchedulingJudgement | null;
   selectedTargetId: string | null;
   behaviorSettings: AgentChatExperienceSettings;
@@ -263,11 +279,41 @@ export function useAgentConversationPresentation(
     <AgentDiagnosticsPanel
       activeTarget={input.activeTarget}
       lifecycle={input.currentFooterHostState?.lifecycle || null}
+      mutationPendingAction={input.mutationPendingAction}
+      onCancelHook={input.onCancelPendingHook}
+      onClearDyadicContext={input.onClearDyadicContext}
+      onClearWorldContext={input.onClearWorldContext}
+      onDisableAutonomy={input.onDisableAutonomy}
+      onEnableAutonomy={input.onEnableAutonomy}
+      onRefreshInspect={input.onRefreshInspect}
+      onUpdateRuntimeState={input.onUpdateRuntimeState}
+      onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
+      recentRuntimeEvents={input.recentRuntimeEvents}
       routeReady={input.routeReady}
+      runtimeInspect={input.runtimeInspect}
+      runtimeInspectLoading={input.runtimeInspectLoading}
       t={input.t}
       targetsPending={input.targetsPending}
     />
-  ), [input.activeTarget, input.currentFooterHostState?.lifecycle, input.routeReady, input.t, input.targetsPending]);
+  ), [
+    input.activeTarget,
+    input.currentFooterHostState?.lifecycle,
+    input.mutationPendingAction,
+    input.onCancelPendingHook,
+    input.onClearDyadicContext,
+    input.onClearWorldContext,
+    input.onDisableAutonomy,
+    input.onEnableAutonomy,
+    input.onRefreshInspect,
+    input.onUpdateRuntimeState,
+    input.onUpdateAutonomyConfig,
+    input.recentRuntimeEvents,
+    input.routeReady,
+    input.runtimeInspect,
+    input.runtimeInspectLoading,
+    input.t,
+    input.targetsPending,
+  ]);
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;

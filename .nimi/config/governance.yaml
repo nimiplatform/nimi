@@ -88,6 +88,9 @@ ai_governance:
       temporary_large_spec_yaml:
         warning_lines: 800
         error_lines: 1400
+      temporary_large_generated:
+        warning_lines: 2000
+        error_lines: 8000
       proto_schema:
         warning_lines: 500
         warning_bytes: 61440
@@ -125,9 +128,13 @@ ai_governance:
         - runtime/internal/services/memory/service.go
         - sdk/src/internal/world-evolution-selector-read.ts
         - sdk/src/runtime/core/method-codecs.ts
+        - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-editor.tsx
       temporary_large_spec_yaml:
         - apps/parentos/spec/kernel/tables/reminder-rules.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
+        - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
+      temporary_large_generated:
+        - .nimi/spec/_meta/spec-generation-audit.yaml
       proto_schema:
         - proto/**/*.proto
       tests_and_scripts:
@@ -143,11 +150,14 @@ ai_governance:
         - "**/*_test.go"
         - "**/__tests__/**"
       spec_yaml:
+        - .nimi/spec/**/*.yaml
+        - .nimi/spec/**/*.yml
         - spec/**/*.yaml
         - spec/**/*.yml
         - apps/**/spec/**/*.yaml
         - apps/**/spec/**/*.yml
       generated:
+        - .nimi/spec/**/kernel/generated/**
         - runtime/internal/providerregistry/generated.go
         - runtime/catalog/providers/**
         - runtime/catalog/generated/**
@@ -209,6 +219,9 @@ ai_governance:
       - path: runtime/internal/services/agentcore/service_test.go
         until: 2026-07-31
         reason: Agentcore service coverage remains in one matrix file pending test sharding.
+      - path: runtime/internal/services/memory/service_test.go
+        until: 2026-07-31
+        reason: Memory service end-to-end coverage remains in one matrix file pending test sharding.
   structure_budget:
     version: 1
     allowed_forwarding_shells:

@@ -13,6 +13,7 @@ import {
     type AgentModelOutputClassification,
     type AgentModelOutputDiagnostics,
     type AgentModelOutputRecoveryPath,
+    type AgentPreflightExecutionDiagnostics,
     type AgentModelOutputUsage,
     type AgentPromptContextWindowSource,
     type ResolveAgentModelOutputEnvelopeInput,
@@ -37,6 +38,13 @@ function normalizeOptionalPositiveInteger(value: unknown): number | null {
 function normalizeNullableText(value: unknown): string | null {
     const normalized = String(value || '').trim();
     return normalized || null;
+}
+
+function normalizeContextWindowSource(value: unknown): AgentPromptContextWindowSource | null {
+    const normalized = normalizeNullableText(value);
+    return normalized === 'route-profile' || normalized === 'default-estimate'
+        ? normalized
+        : null;
 }
 
 function normalizeUsage(value: AgentModelOutputUsage | undefined): AgentModelOutputUsage | null {
@@ -82,6 +90,21 @@ function parseAgentImageExecutionDiagnostics(value: unknown): AgentImageExecutio
         profileOverrideCfgScale: normalizeOptionalNonNegativeNumber(record.profileOverrideCfgScale),
         profileOverrideSampler: normalizeNullableText(record.profileOverrideSampler),
         profileOverrideScheduler: normalizeNullableText(record.profileOverrideScheduler),
+    };
+    return Object.values(diagnostics).some((entry) => entry !== null) ? diagnostics : null;
+}
+
+function parseAgentPreflightExecutionDiagnostics(value: unknown): AgentPreflightExecutionDiagnostics | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return null;
+    }
+    const record = value as Record<string, unknown>;
+    const diagnostics: AgentPreflightExecutionDiagnostics = {
+        totalInputTokens: normalizeOptionalNonNegativeNumber(record.totalInputTokens),
+        promptBudgetTokens: normalizeOptionalNonNegativeNumber(record.promptBudgetTokens),
+        systemTokens: normalizeOptionalNonNegativeNumber(record.systemTokens),
+        historyTokens: normalizeOptionalNonNegativeNumber(record.historyTokens),
+        userTokens: normalizeOptionalNonNegativeNumber(record.userTokens),
     };
     return Object.values(diagnostics).some((entry) => entry !== null) ? diagnostics : null;
 }
@@ -134,6 +157,7 @@ function buildAgentModelOutputDiagnostics(input: {
         followUpCanceledByUser: input.followUpCanceledByUser === true,
         followUpSourceActionId: normalizeNullableText(input.followUpSourceActionId),
         image: null,
+        preflight: null,
     };
 }
 
@@ -332,6 +356,53 @@ export function parseAgentModelOutputDiagnostics(value: unknown): AgentModelOutp
         followUpCanceledByUser: record.followUpCanceledByUser === true,
         followUpSourceActionId: normalizeNullableText(record.followUpSourceActionId),
         image: parseAgentImageExecutionDiagnostics(record.image),
+        preflight: parseAgentPreflightExecutionDiagnostics(record.preflight),
+    };
+}
+
+export function buildAgentPreflightDiagnosticsFromError(error: unknown): AgentModelOutputDiagnostics | null {
+    const record = error && typeof error === 'object' && !Array.isArray(error)
+        ? error as Record<string, unknown>
+        : null;
+    const details = record?.details;
+    if (!details || typeof details !== 'object' || Array.isArray(details)) {
+        return null;
+    }
+    const contextWindowSource = normalizeContextWindowSource((details as Record<string, unknown>).contextWindowSource);
+    if ((details as Record<string, unknown>).promptOverflow !== true || !contextWindowSource) {
+        return null;
+    }
+    return {
+        classification: 'preflight-rejected',
+        recoveryPath: 'none',
+        suspectedTruncation: false,
+        parseErrorDetail: normalizeNullableText(record?.message) || 'Local preflight rejected the request.',
+        rawOutputChars: 0,
+        normalizedOutputChars: 0,
+        finishReason: null,
+        traceId: normalizeNullableText(record?.traceId),
+        promptTraceId: null,
+        usage: null,
+        contextWindowSource,
+        maxOutputTokensRequested: normalizeOptionalPositiveInteger((details as Record<string, unknown>).maxOutputTokensRequested),
+        promptOverflow: true,
+        requestPrompt: normalizeNullableText((details as Record<string, unknown>).requestPrompt),
+        requestSystemPrompt: normalizeNullableText((details as Record<string, unknown>).requestSystemPrompt),
+        rawModelOutputText: null,
+        normalizedModelOutputText: null,
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
+        image: null,
+        preflight: {
+            totalInputTokens: normalizeOptionalNonNegativeNumber((details as Record<string, unknown>).totalInputTokens),
+            promptBudgetTokens: normalizeOptionalNonNegativeNumber((details as Record<string, unknown>).promptBudgetTokens),
+            systemTokens: normalizeOptionalNonNegativeNumber((details as Record<string, unknown>).systemTokens),
+            historyTokens: normalizeOptionalNonNegativeNumber((details as Record<string, unknown>).historyTokens),
+            userTokens: normalizeOptionalNonNegativeNumber((details as Record<string, unknown>).userTokens),
+        },
     };
 }
 

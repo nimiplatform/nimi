@@ -551,6 +551,15 @@
 - rule_id: K-KNOW-004
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-KNOW-004a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-KNOW-004b
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-KNOW-004c
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-KNOW-005
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -800,6 +809,12 @@
 - rule_id: K-MCAT-027
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
+- rule_id: K-MCAT-028
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
+- rule_id: K-MCAT-029
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_catalog_drift]
 - rule_id: K-MODEL-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -989,6 +1004,12 @@
 - rule_id: K-RPC-021
   status: covered
   evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-022
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-RPC-023
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-SEC-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1080,6 +1101,15 @@
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-VOICE-013
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-VOICE-014
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-VOICE-015
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-VOICE-016
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-WF-001
@@ -1213,6 +1243,9 @@
 - rule_id: K-MEM-012
   status: deferred
   evidence_refs: []
+- rule_id: K-MEM-013
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 # Runtime memory local substrate (K-MEMSUB-*)
 - rule_id: K-MEMSUB-001
   status: deferred
@@ -1296,11 +1329,17 @@
 - rule_id: K-AGCORE-019
   status: deferred
   evidence_refs: []
+- rule_id: K-AGCORE-020
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 # Runtime RPC additions for memory and agent core
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []
 - rule_id: K-RPC-004b
+  status: deferred
+  evidence_refs: []
+- rule_id: K-RPC-004c
   status: deferred
   evidence_refs: []
 # Scheduling five-state judgement (K-SCHED-*)

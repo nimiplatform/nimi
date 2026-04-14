@@ -1,4 +1,8 @@
 import type { AgentLocalTargetSnapshot } from '@renderer/bridge/runtime-bridge/types';
+import type {
+  RuntimeAgentInspectEventSummary,
+  RuntimeAgentInspectSnapshot,
+} from '@renderer/infra/runtime-agent-inspect';
 import type { AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 
 export type DiagnosticsTranslate = (key: string, options?: { defaultValue?: string }) => string;
@@ -12,6 +16,7 @@ export type AgentDiagnosticsCardData = {
 
 export type AgentDiagnosticsViewModel = {
   runtimeCard: AgentDiagnosticsCardData;
+  stateCards: AgentDiagnosticsCardData[];
   turnCards: AgentDiagnosticsCardData[];
   emptyLabel: string | null;
 };
@@ -155,7 +160,266 @@ function buildBudgetCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCa
         ? `maxOutputTokensRequested=${diagnostics.maxOutputTokensRequested ?? '-'}`
         : null,
       diagnostics ? `promptOverflow=${diagnostics.promptOverflow}` : null,
+      diagnostics?.preflight?.totalInputTokens !== null && diagnostics?.preflight?.totalInputTokens !== undefined
+        ? `totalInputTokens=${diagnostics.preflight.totalInputTokens}`
+        : null,
+      diagnostics?.preflight?.promptBudgetTokens !== null && diagnostics?.preflight?.promptBudgetTokens !== undefined
+        ? `promptBudgetTokens=${diagnostics.preflight.promptBudgetTokens}`
+        : null,
+      diagnostics?.preflight?.systemTokens !== null && diagnostics?.preflight?.systemTokens !== undefined
+        ? `systemTokens=${diagnostics.preflight.systemTokens}`
+        : null,
+      diagnostics?.preflight?.historyTokens !== null && diagnostics?.preflight?.historyTokens !== undefined
+        ? `historyTokens=${diagnostics.preflight.historyTokens}`
+        : null,
+      diagnostics?.preflight?.userTokens !== null && diagnostics?.preflight?.userTokens !== undefined
+        ? `userTokens=${diagnostics.preflight.userTokens}`
+        : null,
     ]),
+  };
+}
+
+function buildAgentStateCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  if (input.runtimeInspectLoading) {
+    return {
+      key: 'agent-state',
+      label: 'Agent State',
+      value: 'Loading…',
+      detail: null,
+    };
+  }
+  if (!input.runtimeInspect) {
+    return null;
+  }
+  return {
+    key: 'agent-state',
+    label: 'Agent State',
+    value: input.runtimeInspect.statusText || input.runtimeInspect.executionState || 'Captured',
+    detail: joinDetails([
+      input.runtimeInspect.lifecycleStatus ? `lifecycle=${input.runtimeInspect.lifecycleStatus}` : null,
+      input.runtimeInspect.executionState ? `executionState=${input.runtimeInspect.executionState}` : null,
+      input.runtimeInspect.activeWorldId ? `activeWorldId=${input.runtimeInspect.activeWorldId}` : null,
+      input.runtimeInspect.activeUserId ? `activeUserId=${input.runtimeInspect.activeUserId}` : null,
+    ]),
+  };
+}
+
+function buildAutonomyCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  if (input.runtimeInspectLoading) {
+    return {
+      key: 'agent-autonomy',
+      label: 'Autonomy',
+      value: 'Loading…',
+      detail: null,
+    };
+  }
+  if (!input.runtimeInspect) {
+    return null;
+  }
+  return {
+    key: 'agent-autonomy',
+    label: 'Autonomy',
+    value: input.runtimeInspect.autonomyEnabled === true
+      ? 'Enabled'
+      : input.runtimeInspect.autonomyEnabled === false
+        ? 'Disabled'
+        : 'Unavailable',
+    detail: joinDetails([
+      input.runtimeInspect.autonomyBudgetExhausted !== null
+        ? `budgetExhausted=${input.runtimeInspect.autonomyBudgetExhausted}`
+        : null,
+      input.runtimeInspect.autonomyUsedTokensInWindow !== null
+        ? `usedTokensInWindow=${input.runtimeInspect.autonomyUsedTokensInWindow}`
+        : null,
+      input.runtimeInspect.autonomyDailyTokenBudget !== null
+        ? `dailyTokenBudget=${input.runtimeInspect.autonomyDailyTokenBudget}`
+        : null,
+      input.runtimeInspect.autonomyMaxTokensPerHook !== null
+        ? `maxTokensPerHook=${input.runtimeInspect.autonomyMaxTokensPerHook}`
+        : null,
+      input.runtimeInspect.autonomyWindowStartedAt
+        ? `windowStartedAt=${input.runtimeInspect.autonomyWindowStartedAt}`
+        : null,
+      input.runtimeInspect.autonomySuspendedUntil
+        ? `suspendedUntil=${input.runtimeInspect.autonomySuspendedUntil}`
+        : null,
+    ]),
+  };
+}
+
+function buildPendingHooksCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  if (input.runtimeInspectLoading) {
+    return {
+      key: 'agent-hooks',
+      label: 'Pending Hooks',
+      value: 'Loading…',
+      detail: null,
+    };
+  }
+  if (!input.runtimeInspect) {
+    return null;
+  }
+  return {
+    key: 'agent-hooks',
+    label: 'Pending Hooks',
+    value: String(input.runtimeInspect.pendingHooksCount),
+    detail: joinDetails([
+      input.runtimeInspect.pendingHooksCount > input.runtimeInspect.pendingHooks.length
+        ? `showing=${input.runtimeInspect.pendingHooks.length}/${input.runtimeInspect.pendingHooksCount}`
+        : null,
+      input.runtimeInspect.nextScheduledFor
+        ? `nextScheduledFor=${input.runtimeInspect.nextScheduledFor}`
+        : null,
+      ...input.runtimeInspect.pendingHooks.map((hook) => (
+        [
+          hook.hookId || '(hook)',
+          hook.status || 'unknown',
+          hook.triggerKind || 'unknown-trigger',
+          hook.scheduledFor || 'unscheduled',
+        ].join(' · ')
+      )),
+    ]),
+  };
+}
+
+function buildTerminalHookHistoryCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  if (input.runtimeInspectLoading) {
+    return {
+      key: 'agent-terminal-hook-history',
+      label: 'Terminal Hook History',
+      value: 'Loading…',
+      detail: null,
+    };
+  }
+  if (!input.runtimeInspect || input.runtimeInspect.recentTerminalHooks.length === 0) {
+    return null;
+  }
+  const latest = input.runtimeInspect.recentTerminalHooks[0] || null;
+  return {
+    key: 'agent-terminal-hook-history',
+    label: 'Terminal Hook History',
+    value: latest?.status || 'Captured',
+    detail: joinDetails(input.runtimeInspect.recentTerminalHooks.map((hook) => (
+      [
+        hook.hookId || '(hook)',
+        hook.status || 'unknown',
+        hook.triggerKind || 'unknown-trigger',
+        hook.admittedAt || hook.scheduledFor || null,
+      ].filter(Boolean).join(' · ')
+    ))),
+  };
+}
+
+function buildRecentCanonicalMemoryCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  if (input.runtimeInspectLoading) {
+    return {
+      key: 'agent-canonical-memory-history',
+      label: 'Recent Memory',
+      value: 'Loading…',
+      detail: null,
+    };
+  }
+  if (!input.runtimeInspect || input.runtimeInspect.recentCanonicalMemories.length === 0) {
+    return null;
+  }
+  const latest = input.runtimeInspect.recentCanonicalMemories[0] || null;
+  return {
+    key: 'agent-canonical-memory-history',
+    label: 'Recent Memory',
+    value: latest?.canonicalClass || 'Captured',
+    detail: joinDetails(input.runtimeInspect.recentCanonicalMemories.map((memory) => (
+      [
+        memory.memoryId,
+        memory.canonicalClass || 'memory',
+        memory.kind || 'unknown-kind',
+        memory.summary,
+        memory.updatedAt || null,
+      ].filter(Boolean).join(' · ')
+    ))),
+  };
+}
+
+function buildRecentEventsCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget || input.recentRuntimeEvents.length === 0) {
+    return null;
+  }
+  const latest = input.recentRuntimeEvents[0] || null;
+  return {
+    key: 'agent-recent-events',
+    label: 'Recent Events',
+    value: latest?.eventTypeLabel || latest?.detailKind || 'Captured',
+    detail: joinDetails(input.recentRuntimeEvents.slice(0, 4).map((event) => (
+      [
+        event.sequence ? `#${event.sequence}` : null,
+        event.eventTypeLabel || event.detailKind || 'event',
+        event.summaryText || null,
+        event.timestamp || null,
+      ].filter(Boolean).join(' · ')
+    ))),
+  };
+}
+
+function buildRecentHookOutcomesCard(input: {
+  activeTarget: AgentLocalTargetSnapshot | null;
+  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
+}): AgentDiagnosticsCardData | null {
+  if (!input.activeTarget) {
+    return null;
+  }
+  const hookEvents = input.recentRuntimeEvents.filter((event) => event.detailKind === 'hook');
+  if (hookEvents.length === 0) {
+    return null;
+  }
+  const latest = hookEvents[0] || null;
+  return {
+    key: 'agent-hook-history',
+    label: 'Recent Hook Outcomes',
+    value: latest?.hookStatus || 'Captured',
+    detail: joinDetails(hookEvents.slice(0, 4).map((event) => (
+      [
+        event.hookId || '(hook)',
+        event.hookStatus || 'unknown',
+        event.timestamp || null,
+      ].filter(Boolean).join(' · ')
+    ))),
   };
 }
 
@@ -250,7 +514,10 @@ function buildFollowUpChainCard(lifecycle: AgentTurnLifecycleState): AgentDiagno
 export function buildAgentDiagnosticsViewModel(input: {
   activeTarget: AgentLocalTargetSnapshot | null;
   lifecycle: AgentTurnLifecycleState | null;
+  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
   routeReady: boolean;
+  runtimeInspect: RuntimeAgentInspectSnapshot | null;
+  runtimeInspectLoading: boolean;
   t: DiagnosticsTranslate;
   targetsPending: boolean;
 }): AgentDiagnosticsViewModel {
@@ -270,9 +537,19 @@ export function buildAgentDiagnosticsViewModel(input: {
       }),
     ).trim(),
   };
+  const stateCards = [
+    buildAgentStateCard(input),
+    buildAutonomyCard(input),
+    buildPendingHooksCard(input),
+    buildTerminalHookHistoryCard(input),
+    buildRecentCanonicalMemoryCard(input),
+    buildRecentEventsCard(input),
+    buildRecentHookOutcomesCard(input),
+  ].filter(Boolean) as AgentDiagnosticsCardData[];
   if (!hasRecentTurn(input.lifecycle)) {
     return {
       runtimeCard,
+      stateCards,
       turnCards: [],
       emptyLabel: 'No recent agent turn diagnostics yet.',
     };
@@ -280,6 +557,7 @@ export function buildAgentDiagnosticsViewModel(input: {
   const lifecycle = input.lifecycle!;
   return {
     runtimeCard,
+    stateCards,
     turnCards: [
       buildTurnStatusCard(lifecycle),
       buildTraceCard(lifecycle),

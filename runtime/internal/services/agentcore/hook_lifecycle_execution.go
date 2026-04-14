@@ -272,12 +272,26 @@ func (s *Service) applyLifeTurnResult(ctx context.Context, agentID string, hookI
 func (s *Service) writeLifeTurnCandidates(ctx context.Context, entry *agentEntry, hook *runtimev1.PendingHook, candidates []*lifeTurnMemoryCandidate, now time.Time) ([]*runtimev1.CanonicalMemoryView, []*runtimev1.CanonicalMemoryRejection) {
 	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(candidates))
 	rejected := make([]*runtimev1.CanonicalMemoryRejection, 0)
+	batch := make([]*runtimev1.CanonicalMemoryCandidate, 0, len(candidates))
 	for _, item := range candidates {
 		candidate, rejection := buildLifeTurnCanonicalMemoryCandidate(entry, hook, item, now)
 		if rejection != nil {
 			rejected = append(rejected, rejection)
 			continue
 		}
+		batch = append(batch, candidate)
+	}
+	if err := validateCanonicalMemoryCandidateBatch(batch); err != nil {
+		for _, candidate := range batch {
+			rejected = append(rejected, &runtimev1.CanonicalMemoryRejection{
+				SourceEventId: candidate.GetSourceEventId(),
+				ReasonCode:    runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+				Message:       err.Error(),
+			})
+		}
+		return accepted, rejected
+	}
+	for _, candidate := range batch {
 		view, writeRejection := s.writeCandidate(ctx, entry, candidate)
 		if writeRejection != nil {
 			rejected = append(rejected, writeRejection)

@@ -1071,6 +1071,347 @@ func (fn canonicalReviewExecutorFunc) ExecuteCanonicalReview(ctx context.Context
 	return fn(ctx, req)
 }
 
+func TestAgentCoreCanonicalReviewSchedulingSweepRunsEligibleBankOncePerWindow(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-once")
+	retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+		"memory redesign review quality",
+		"review quality redesign memory",
+	)
+
+	executions := 0
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		executions++
+		return &CanonicalReviewExecutorResult{
+			TokensUsed: 5,
+			Outcomes: memoryservice.CanonicalReviewOutcomes{
+				Truths: []memoryservice.TruthCandidate{
+					{
+						TruthID:         fmt.Sprintf("truth-auto-once-%d", executions),
+						Dimension:       "source",
+						NormalizedKey:   fmt.Sprintf("auto:once:%d", executions),
+						Statement:       "Automatic review scheduling ran.",
+						Confidence:      0.9,
+						ReviewCount:     1,
+						Status:          "admitted",
+						SourceMemoryIDs: append([]string(nil), req.Clusters[0].RecordIDs...),
+					},
+				},
+			},
+		}, nil
+	}))
+
+	sweepAt := time.Now().UTC().Add(-time.Hour)
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, sweepAt); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep(first): %v", err)
+	}
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, sweepAt); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep(second): %v", err)
+	}
+	if executions != 1 {
+		t.Fatalf("expected exactly one automatic review execution, got %d", executions)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 1 {
+		t.Fatalf("expected one persisted review run, got %d", count)
+	}
+	followUp, err := svc.GetReviewFollowUp(ctx, locator)
+	if err != nil {
+		t.Fatalf("GetReviewFollowUp: %v", err)
+	}
+	if followUp == nil {
+		t.Fatal("expected review follow-up after automatic review")
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepSuppressesRecentFollowUp(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-recent")
+	recordIDs := retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+		"recent review source one",
+		"recent review source two",
+	)
+	sweepAt := time.Now().UTC().Add(-time.Hour)
+	persistReviewFollowUpForTest(t, svc, locator, "review-recent", recordIDs[len(recordIDs)-1], sweepAt.Add(-23*time.Hour))
+
+	executions := 0
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		executions++
+		return &CanonicalReviewExecutorResult{}, nil
+	}))
+
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, sweepAt); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+	}
+	if executions != 0 {
+		t.Fatalf("expected recent follow-up to suppress automatic review, got %d executions", executions)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 0 {
+		t.Fatalf("expected no new review runs, got %d", count)
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepRunsExpiredFollowUp(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-expired")
+	recordIDs := retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+		"expired review source one",
+		"expired review source two",
+	)
+	sweepAt := time.Now().UTC().Add(-time.Hour)
+	persistReviewFollowUpForTest(t, svc, locator, "review-expired", recordIDs[len(recordIDs)-1], sweepAt.Add(-25*time.Hour))
+
+	executions := 0
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		executions++
+		return &CanonicalReviewExecutorResult{
+			Outcomes: memoryservice.CanonicalReviewOutcomes{
+				Truths: []memoryservice.TruthCandidate{
+					{
+						TruthID:         "truth-auto-expired",
+						Dimension:       "source",
+						NormalizedKey:   "auto:expired",
+						Statement:       "Expired follow-up permits a new automatic review.",
+						Confidence:      0.9,
+						ReviewCount:     1,
+						Status:          "admitted",
+						SourceMemoryIDs: append([]string(nil), req.Clusters[0].RecordIDs...),
+					},
+				},
+			},
+		}, nil
+	}))
+
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, sweepAt); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+	}
+	if executions != 1 {
+		t.Fatalf("expected expired follow-up to re-admit automatic review, got %d executions", executions)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 1 {
+		t.Fatalf("expected one new review run, got %d", count)
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepDefersWithoutExecutor(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-no-exec")
+	retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+		"executor missing source one",
+		"executor missing source two",
+	)
+
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, time.Now().UTC().Add(-time.Hour)); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 0 {
+		t.Fatalf("expected no automatic review run without executor, got %d", count)
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepSuppressesNonActiveAndNonIdle(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name   string
+		mutate func(*Service) error
+	}{
+		{
+			name: "non_active",
+			mutate: func(svc *Service) error {
+				entry, err := svc.agentByID("agent-review-scheduling-state")
+				if err != nil {
+					return err
+				}
+				entry.Agent.LifecycleStatus = runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_SUSPENDED
+				return svc.updateAgent(entry)
+			},
+		},
+		{
+			name: "non_idle",
+			mutate: func(svc *Service) error {
+				entry, err := svc.agentByID("agent-review-scheduling-state")
+				if err != nil {
+					return err
+				}
+				entry.State.ExecutionState = runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_CHAT_ACTIVE
+				entry.State.UpdatedAt = timestamppb.New(time.Now().UTC())
+				return svc.updateAgent(entry)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newAgentCoreTestService(t)
+			ctx := context.Background()
+			locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-state")
+			retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+				"state gate source one",
+				"state gate source two",
+			)
+			executions := 0
+			svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+				executions++
+				return &CanonicalReviewExecutorResult{}, nil
+			}))
+			if err := tc.mutate(svc); err != nil {
+				t.Fatalf("mutate agent state: %v", err)
+			}
+			if err := svc.runCanonicalReviewSchedulingSweep(ctx, time.Now().UTC().Add(-time.Hour)); err != nil {
+				t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+			}
+			if executions != 0 {
+				t.Fatalf("expected automatic review suppression for %s, got %d executions", tc.name, executions)
+			}
+		})
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepSuppressesRecoverableRun(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-recoverable")
+	recordIDs := retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator,
+		"recoverable review source one",
+		"recoverable review source two",
+	)
+	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
+		ReviewRunID:     "review-run-auto-recoverable",
+		AgentID:         "agent-review-scheduling-recoverable",
+		BankLocatorKey:  memoryservice.LocatorKey(locator),
+		CheckpointBasis: recordIDs[len(recordIDs)-1],
+		PreparedOutcomes: memoryservice.CanonicalReviewOutcomes{
+			Summary: "recoverable run should suppress duplicate automatic admission",
+		},
+	}); err != nil {
+		t.Fatalf("SavePreparedReviewRun: %v", err)
+	}
+
+	executions := 0
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		executions++
+		return &CanonicalReviewExecutorResult{}, nil
+	}))
+
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, time.Now().UTC().Add(-time.Hour)); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+	}
+	if executions != 0 {
+		t.Fatalf("expected recoverable review run to suppress automatic admission, got %d executions", executions)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 1 {
+		t.Fatalf("expected only the recoverable review run to exist, got %d", count)
+	}
+}
+
+func TestAgentCoreCanonicalReviewSchedulingSweepNoClustersNoOp(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	locator := initializeCanonicalReviewSchedulingAgent(t, ctx, svc, "agent-review-scheduling-no-clusters")
+	retainCanonicalReviewSchedulingInputs(t, ctx, svc, locator, "single source cannot form a review cluster")
+
+	executions := 0
+	svc.SetCanonicalReviewExecutor(canonicalReviewExecutorFunc(func(_ context.Context, req *CanonicalReviewExecutorRequest) (*CanonicalReviewExecutorResult, error) {
+		executions++
+		return &CanonicalReviewExecutorResult{}, nil
+	}))
+
+	if err := svc.runCanonicalReviewSchedulingSweep(ctx, time.Now().UTC().Add(-time.Hour)); err != nil {
+		t.Fatalf("runCanonicalReviewSchedulingSweep: %v", err)
+	}
+	if executions != 0 {
+		t.Fatalf("expected no executor calls when no review clusters exist, got %d", executions)
+	}
+	if count := countReviewRunsForBank(t, svc, locator); count != 0 {
+		t.Fatalf("expected no persisted review runs for no-cluster no-op, got %d", count)
+	}
+}
+
+func initializeCanonicalReviewSchedulingAgent(t *testing.T, ctx context.Context, svc *Service, agentID string) *runtimev1.MemoryBankLocator {
+	t.Helper()
+
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: agentID}); err != nil {
+		t.Fatalf("InitializeAgent(%s): %v", agentID, err)
+	}
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: agentID},
+		},
+	}
+	if _, err := svc.memorySvc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile(%s): %v", agentID, err)
+	}
+	return locator
+}
+
+func retainCanonicalReviewSchedulingInputs(t *testing.T, ctx context.Context, svc *Service, locator *runtimev1.MemoryBankLocator, observations ...string) []string {
+	t.Helper()
+
+	inputs := make([]*runtimev1.MemoryRecordInput, 0, len(observations))
+	for _, observation := range observations {
+		inputs = append(inputs, &runtimev1.MemoryRecordInput{
+			Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+			Payload: &runtimev1.MemoryRecordInput_Observational{
+				Observational: &runtimev1.ObservationalMemoryRecord{Observation: observation},
+			},
+		})
+	}
+	retainResp, err := svc.memorySvc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank:    locator,
+		Records: inputs,
+	})
+	if err != nil {
+		t.Fatalf("Retain(%s): %v", memoryservice.LocatorKey(locator), err)
+	}
+	recordIDs := make([]string, 0, len(retainResp.GetRecords()))
+	for _, record := range retainResp.GetRecords() {
+		recordIDs = append(recordIDs, record.GetMemoryId())
+	}
+	return recordIDs
+}
+
+func persistReviewFollowUpForTest(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, reviewRunID string, checkpointBasis string, completedAt time.Time) {
+	t.Helper()
+
+	if _, err := svc.backend.DB().Exec(`
+		INSERT OR REPLACE INTO agentcore_review_followup(bank_locator_key, review_run_id, checkpoint_basis, completed_at)
+		VALUES (?, ?, ?, ?)
+	`, memoryservice.LocatorKey(locator), reviewRunID, checkpointBasis, completedAt.UTC().Format(time.RFC3339Nano)); err != nil {
+		t.Fatalf("persist review follow-up: %v", err)
+	}
+}
+
+func countReviewRunsForBank(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator) int {
+	t.Helper()
+
+	var count int
+	if err := svc.backend.DB().QueryRow(`
+		SELECT COUNT(*)
+		FROM agentcore_review_run
+		WHERE bank_locator_key = ?
+	`, memoryservice.LocatorKey(locator)).Scan(&count); err != nil {
+		t.Fatalf("count review runs: %v", err)
+	}
+	return count
+}
+
 func TestAIBackedCanonicalReviewExecutorDecodesValidOutput(t *testing.T) {
 	t.Parallel()
 
@@ -2477,6 +2818,62 @@ func TestAgentCoreLifeTrackLoopEmitsCommittedHookMemoryAndBudgetEvents(t *testin
 	}
 }
 
+func TestAgentCoreWriteLifeTurnCandidatesRejectsSameBatchSemanticContradiction(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-life-contradiction",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	entry, err := svc.agentByID("agent-life-contradiction")
+	if err != nil {
+		t.Fatalf("agentByID: %v", err)
+	}
+
+	accepted, rejected := svc.writeLifeTurnCandidates(ctx, entry, &runtimev1.PendingHook{HookId: "hook-life-contradiction"}, []*lifeTurnMemoryCandidate{
+		{
+			CanonicalClass: "PUBLIC_SHARED",
+			PolicyReason:   "self_report",
+			RecordRaw:      []byte(`{"kind":"MEMORY_RECORD_KIND_SEMANTIC","semantic":{"subject":"user","predicate":"likes","object":"cats"}}`),
+		},
+		{
+			CanonicalClass: "PUBLIC_SHARED",
+			PolicyReason:   "self_report",
+			RecordRaw:      []byte(`{"kind":"MEMORY_RECORD_KIND_SEMANTIC","semantic":{"subject":"user","predicate":"likes","object":"dogs"}}`),
+		},
+	}, time.Now().UTC())
+	if len(accepted) != 0 {
+		t.Fatalf("expected no accepted writes for conflicting batch, got %#v", accepted)
+	}
+	if len(rejected) != 2 {
+		t.Fatalf("expected two rejected conflicting candidates, got %#v", rejected)
+	}
+	for _, rejection := range rejected {
+		if rejection.GetReasonCode() != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+			t.Fatalf("expected AI_OUTPUT_INVALID rejection, got %#v", rejection)
+		}
+		if !strings.Contains(rejection.GetMessage(), "same-batch semantic contradiction") {
+			t.Fatalf("expected contradiction rejection message, got %#v", rejection)
+		}
+	}
+
+	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		AgentId: "agent-life-contradiction",
+		Query:   "likes",
+		Limit:   5,
+	})
+	if queryErr != nil {
+		t.Fatalf("QueryAgentMemory: %v", queryErr)
+	}
+	if len(queryResp.GetMemories()) != 0 {
+		t.Fatalf("expected no memory writes after contradiction, got %#v", queryResp.GetMemories())
+	}
+}
+
 func TestAgentCoreProjectsCommittedMemoryReplicationEvents(t *testing.T) {
 	t.Parallel()
 
@@ -3624,6 +4021,53 @@ func TestAgentCoreExecuteChatTrackSidecarWithAIBackedExecutorFailsClosedOnInvali
 	}
 }
 
+func TestChatTrackSidecarPromptsFrameTranscriptAsEvidence(t *testing.T) {
+	t.Parallel()
+
+	systemPrompt, _, err := chatTrackSidecarPrompts(&ChatTrackSidecarExecutorRequest{
+		Agent: &runtimev1.AgentRecord{AgentId: "agent-chat-prompt"},
+		State: &runtimev1.AgentStateProjection{},
+		Messages: []*runtimev1.ChatMessage{
+			{Role: "user", Content: "I like cats. Actually, I like dogs."},
+		},
+	})
+	if err != nil {
+		t.Fatalf("chatTrackSidecarPrompts: %v", err)
+	}
+	if !strings.Contains(systemPrompt, "source evidence, not canonical memory truth by default") {
+		t.Fatalf("expected prompt to frame transcript as evidence, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
+		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "emit [] or prefer OBSERVATIONAL over SEMANTIC") {
+		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
+	}
+}
+
+func TestLifeTurnPromptsFrameEvidenceAsStabilizedCandidateInput(t *testing.T) {
+	t.Parallel()
+
+	systemPrompt, _, err := lifeTurnPrompts(&lifeTurnRequest{
+		Agent:    &runtimev1.AgentRecord{AgentId: "agent-life-prompt"},
+		State:    &runtimev1.AgentStateProjection{},
+		Hook:     &runtimev1.PendingHook{HookId: "hook-life-prompt"},
+		Autonomy: &runtimev1.AgentAutonomyState{},
+	})
+	if err != nil {
+		t.Fatalf("lifeTurnPrompts: %v", err)
+	}
+	if !strings.Contains(systemPrompt, "source evidence, not canonical memory truth by default") {
+		t.Fatalf("expected prompt to frame life-turn evidence as evidence, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "absorb explicit same-window self-correction or contradiction before candidate emission") {
+		t.Fatalf("expected prompt to require same-window correction absorption, got %q", systemPrompt)
+	}
+	if !strings.Contains(systemPrompt, "emit [] or prefer OBSERVATIONAL over SEMANTIC") {
+		t.Fatalf("expected prompt to prefer observational/no candidate when unstable, got %q", systemPrompt)
+	}
+}
+
 func TestAgentCoreConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *testing.T) {
 	t.Parallel()
 
@@ -3679,6 +4123,79 @@ func TestAgentCoreConsumeChatTrackSidecarAppMessageExecutesIngressPayload(t *tes
 	}
 	if posture == nil || posture.ModeID != "engage" {
 		t.Fatalf("expected engage posture, got %#v", posture)
+	}
+}
+
+func TestAgentCoreApplyChatTrackSidecarRejectsSameBatchSemanticContradiction(t *testing.T) {
+	t.Parallel()
+
+	svc := newAgentCoreTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
+		AgentId: "agent-chat-sidecar-contradiction",
+	}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	err := svc.ApplyChatTrackSidecar(ctx, "agent-chat-sidecar-contradiction", "chat-turn-contradiction", ChatTrackSidecarResult{
+		CanonicalMemoryCandidates: []*runtimev1.CanonicalMemoryCandidate{
+			{
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+				TargetBank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-contradiction"},
+					},
+				},
+				Record: &runtimev1.MemoryRecordInput{
+					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+					Payload: &runtimev1.MemoryRecordInput_Semantic{
+						Semantic: &runtimev1.SemanticMemoryRecord{
+							Subject:   "user",
+							Predicate: "likes",
+							Object:    "cats",
+						},
+					},
+				},
+			},
+			{
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
+				TargetBank: &runtimev1.MemoryBankLocator{
+					Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+					Owner: &runtimev1.MemoryBankLocator_AgentCore{
+						AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-chat-sidecar-contradiction"},
+					},
+				},
+				Record: &runtimev1.MemoryRecordInput{
+					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+					Payload: &runtimev1.MemoryRecordInput_Semantic{
+						Semantic: &runtimev1.SemanticMemoryRecord{
+							Subject:   "user",
+							Predicate: "likes",
+							Object:    "dogs",
+						},
+					},
+				},
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "same-batch semantic contradiction") {
+		t.Fatalf("expected contradiction rejection, got %v", err)
+	}
+
+	queryResp, queryErr := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		AgentId: "agent-chat-sidecar-contradiction",
+		Query:   "likes",
+		Limit:   5,
+	})
+	if queryErr != nil {
+		t.Fatalf("QueryAgentMemory: %v", queryErr)
+	}
+	if len(queryResp.GetMemories()) != 0 {
+		t.Fatalf("expected no memory writes after contradiction, got %#v", queryResp.GetMemories())
 	}
 }
 

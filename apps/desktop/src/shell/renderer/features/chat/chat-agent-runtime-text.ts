@@ -3,10 +3,11 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import {
   createNimiError,
+  type TextGenerateOutput,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { invokeModLlm } from '@runtime/llm-adapter/execution';
 import {
+  buildRuntimeCallOptions,
   buildRuntimeStreamOptions,
   ensureRuntimeLocalModelWarm,
   getRuntimeClient,
@@ -50,26 +51,6 @@ function resolveRuntimeTextInput(input: ChatAgentRuntimeInvokeInput): string | T
     return input.messages.map((message) => toSdkTextMessage(message));
   }
   return requirePrompt(input.prompt);
-}
-
-async function resolveInvokeInput(
-  input: ChatAgentRuntimeInvokeInput,
-): Promise<import('@runtime/llm-adapter/execution').InvokeModLlmInput> {
-  const routeInput = await resolveRouteInput(input);
-  return {
-    ...routeInput,
-    prompt: requirePrompt(input.prompt),
-    maxTokens: Number.isFinite(Number(input.maxOutputTokensRequested))
-      && Number(input.maxOutputTokensRequested) > 0
-      ? Math.floor(Number(input.maxOutputTokensRequested))
-      : undefined,
-    agentId: requireValue(
-      input.agentId,
-      ReasonCode.AI_INPUT_INVALID,
-      'select_runtime_route_binding',
-      'agentId is missing',
-    ),
-  };
 }
 
 export async function resolveRouteInput(
@@ -195,12 +176,47 @@ export async function invokeChatAgentRuntime(
   input: ChatAgentRuntimeInvokeInput,
   deps: ChatAgentRuntimeInvokeDeps = {},
 ): Promise<ChatAgentRuntimeInvokeResult> {
-  const invokeModLlmImpl = deps.invokeModLlmImpl || invokeModLlm;
-  const invokeInput = await (deps.resolveInvokeInputImpl || resolveInvokeInput)(input);
-  const result = await invokeModLlmImpl(invokeInput);
+  const routeInput = await (deps.resolveRouteInputImpl || resolveRouteInput)(input);
+  const resolved = resolveSourceAndModel(routeInput);
+  const timeoutMs = 120_000;
+
+  await (deps.ensureRuntimeLocalModelWarmImpl || ensureRuntimeLocalModelWarm)({
+    modId: routeInput.modId,
+    source: resolved.source,
+    modelId: resolved.modelId,
+    engine: resolved.provider,
+    endpoint: resolved.endpoint,
+    timeoutMs,
+  });
+
+  const callOptions = await (deps.buildRuntimeCallOptionsImpl || buildRuntimeCallOptions)({
+    modId: routeInput.modId,
+    timeoutMs,
+    source: resolved.source,
+    connectorId: routeInput.connectorId,
+    providerEndpoint: resolved.endpoint,
+  });
+  const result: TextGenerateOutput = await (deps.getRuntimeClientImpl || getRuntimeClient)().ai.text.generate({
+    model: resolved.modelId,
+    route: resolved.source,
+    connectorId: routeInput.connectorId,
+    input: resolveRuntimeTextInput(input),
+    system: normalizeText(input.systemPrompt) || undefined,
+    maxTokens: Number.isFinite(Number(input.maxOutputTokensRequested))
+      && Number(input.maxOutputTokensRequested) > 0
+      ? Math.floor(Number(input.maxOutputTokensRequested))
+      : undefined,
+    reasoning: resolveChatThinkingConfig(
+      input.reasoningPreference,
+      resolveAgentChatThinkingSupport(),
+    ),
+    timeoutMs: callOptions.timeoutMs,
+    metadata: callOptions.metadata,
+  });
+  const promptTraceId = String(callOptions.metadata.traceId || '');
   return {
     text: String(result.text || ''),
-    traceId: String(result.traceId || ''),
-    promptTraceId: String(result.promptTraceId || ''),
+    traceId: String(result.trace?.traceId || promptTraceId),
+    promptTraceId,
   };
 }

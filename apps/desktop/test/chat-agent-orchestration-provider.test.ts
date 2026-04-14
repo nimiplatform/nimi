@@ -690,11 +690,11 @@ test('agent local chat execution seam compacts continuity and packs history by b
         },
       ],
     },
-    modelContextTokens: 1200,
+    modelContextTokens: 2000,
   });
 
   assert.equal(request.diagnostics.contextWindowSource, 'route-profile');
-  assert.equal(request.diagnostics.budget.modelContextTokens, 1200);
+  assert.equal(request.diagnostics.budget.modelContextTokens, 2000);
   assert.equal(request.diagnostics.maxOutputTokensRequested, null);
   assert.ok(request.diagnostics.estimate.droppedHistoryMessages > 0);
   assert.ok(request.diagnostics.estimate.droppedRecallEntries > 0);
@@ -715,7 +715,62 @@ test('agent local chat execution seam compacts continuity and packs history by b
   assert.equal(request.diagnostics.transcript.emittedMessages, request.messages.length);
 });
 
+test('agent local chat execution seam drops assistant replies whose user turn no longer fits', () => {
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Stay in character.',
+    targetSnapshot: sampleTarget(),
+    history: [
+      {
+        id: 'history-user-0',
+        role: 'user',
+        text: 'Earlier user turn.',
+      },
+      {
+        id: 'history-assistant-0',
+        role: 'assistant',
+        text: 'Earlier assistant reply.',
+      },
+      {
+        id: 'history-user-1',
+        role: 'user',
+        text: `Oversized user turn ${'detail '.repeat(120)}`,
+      },
+      {
+        id: 'history-assistant-1',
+        role: 'assistant',
+        text: 'This reply must not survive without its user turn.',
+      },
+      {
+        id: 'history-user-2',
+        role: 'user',
+        text: 'Latest retained user turn.',
+      },
+    ],
+    userText: 'What should we do next?',
+    context: sampleTurnContext(),
+    modelContextTokens: 2000,
+  });
+
+  assert.ok(request.messages.some((message) => message.text === 'Earlier assistant reply.'));
+  assert.ok(request.messages.some((message) => message.text === 'Latest retained user turn.'));
+  assert.ok(!request.messages.some((message) => message.text === 'This reply must not survive without its user turn.'));
+  assert.ok(!request.messages.some((message) => message.text?.startsWith('Oversized user turn')));
+});
+
 test('agent local chat execution seam emits multimodal user content when image attachments are present', () => {
+  const textOnlyRequest = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: 'Describe this image.',
+    context: sampleTurnContext(),
+    resolvedBehavior: resolveAgentChatBehavior({
+      userText: 'Describe this image.',
+      settings: {
+        thinkingPreference: 'off',
+      },
+    }),
+  });
   const request = buildAgentLocalChatExecutionTextRequest({
     systemPrompt: 'Be warm and concise.',
     targetSnapshot: sampleTarget(),
@@ -749,6 +804,7 @@ test('agent local chat execution seam emits multimodal user content when image a
   }]);
   assert.match(request.prompt, /UserAttachments:/);
   assert.match(request.prompt, /"resourceId": "resource-image-1"/);
+  assert.ok(request.diagnostics.estimate.userTokens > textOnlyRequest.diagnostics.estimate.userTokens);
 });
 
 test('agent local chat execution seam allows attachment-only turns and emits image placeholder prompt text', () => {
@@ -781,6 +837,17 @@ test('agent local chat execution seam allows attachment-only turns and emits ima
     imageUrl: 'https://cdn.nimi.test/uploads/attachment-only.png',
   }]);
   assert.match(request.prompt, /User: \[Image attachment\]/);
+});
+
+test('agent local chat execution seam fails close when irreducible input still exceeds budget', () => {
+  assert.throws(() => buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [],
+    userText: `Need a very long answer ${'detail '.repeat(800)}`,
+    context: sampleTurnContext(),
+    modelContextTokens: 80,
+  }), /exceeds the available input budget/i);
 });
 
 test('agent local chat diagnostics inspection returns a stable copy surface', () => {
@@ -917,6 +984,50 @@ test('agent local chat provider seals a single message before terminal and commi
   assert.equal(events.at(-1)?.type, 'turn-completed');
 });
 
+test('agent local chat provider emits a first-packet text-delta when raw output starts without reasoning deltas', async () => {
+  const envelopeText = createBeatActionEnvelopeText({
+    beats: [{
+      beatIndex: 0,
+      text: 'hello world',
+    }],
+  });
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield { type: 'text-delta', textDelta: envelopeText.slice(0, 24) };
+          yield { type: 'text-delta', textDelta: envelopeText.slice(24) };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-first-packet',
+              promptTraceId: 'prompt-first-packet',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter([]),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+  assert.deepEqual(
+    events.map((event) => event.type),
+    [
+      'turn-started',
+      'text-delta',
+      'message-sealed',
+      'projection-rebuilt',
+      'turn-completed',
+    ],
+  );
+  const firstPacketEvent = events.find((event) => event.type === 'text-delta');
+  assert.equal(firstPacketEvent?.type === 'text-delta' ? firstPacketEvent.textDelta : null, '');
+});
+
 test('agent local chat provider commits canceled turns with turn scope before the envelope resolves', async () => {
   const committed: AgentCommitInput[] = [];
   const provider = createAgentLocalChatConversationProvider({
@@ -945,6 +1056,7 @@ test('agent local chat provider commits canceled turns with turn scope before th
 test('agent local chat provider schedules a follow-up turn from the model envelope', async () => {
   const fakeTimers = installFakeTimers();
   const committed: AgentCommitInput[] = [];
+  const followUpRuntimeWrites: Array<{ turnId: string; assistantText: string; historyLength: number }> = [];
   try {
     const provider = createAgentLocalChatConversationProvider({
       runtimeAdapter: createRuntimeAdapter({
@@ -997,6 +1109,13 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
         },
       }),
       continuityAdapter: createContinuityAdapter(committed, 'truth:151:t1:b2:s0:m0:r0'),
+      followUpAssistantRuntimeFollowUp: async (input) => {
+        followUpRuntimeWrites.push({
+          turnId: input.turnId,
+          assistantText: input.assistantText,
+          historyLength: input.history.length,
+        });
+      },
     });
 
     const iterator = provider.runTurn(sampleTurnInput({
@@ -1038,14 +1157,17 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
       firstFourEvents.map((event) => event.type),
       [
         'turn-started',
+        'text-delta',
         'message-sealed',
         'projection-rebuilt',
-        'turn-completed',
       ],
     );
     assert.equal(committed.length, 1);
     assert.equal(committed[0]?.textMessageState?.text, '先给你一句短答。');
     assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /What should we do next/);
+
+    const completionEvent = await iterator.next();
+    assert.equal(completionEvent.value?.type, 'turn-completed');
 
     const pendingFollowUpProjection = iterator.next();
     await Promise.resolve();
@@ -1072,6 +1194,11 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpSourceActionId, 'action-0');
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDelayMs, 400);
+    assert.deepEqual(followUpRuntimeWrites, [{
+      turnId: committed[1]?.turnId || '',
+      assistantText: '过一会儿我再补一句跟进。',
+      historyLength: 3,
+    }]);
     assert.deepEqual(
       committed[1]?.events.map((event) => event.type),
       [
@@ -1090,6 +1217,7 @@ test('agent local chat provider lets follow-up turns continue their own actions 
   const committed: AgentCommitInput[] = [];
   const imagePrompts: string[] = [];
   const invokedPrompts: string[] = [];
+  const followUpRuntimeWrites: string[] = [];
   try {
     const provider = createAgentLocalChatConversationProvider({
       runtimeAdapter: createRuntimeAdapter({
@@ -1193,6 +1321,9 @@ test('agent local chat provider lets follow-up turns continue their own actions 
         },
       }),
       continuityAdapter: createContinuityAdapter(committed, 'truth:152:t1:b3:s0:m0:r0'),
+      followUpAssistantRuntimeFollowUp: async (input) => {
+        followUpRuntimeWrites.push(`${input.turnId}:${input.assistantText}`);
+      },
     });
 
     const iterator = provider.runTurn(sampleTurnInput({
@@ -1232,10 +1363,13 @@ test('agent local chat provider lets follow-up turns continue their own actions 
     ].map((entry) => entry.value?.type);
     assert.deepEqual(initialEvents, [
       'turn-started',
+      'text-delta',
       'message-sealed',
       'projection-rebuilt',
-      'turn-completed',
     ]);
+
+    const completionEvent = await iterator.next();
+    assert.equal(completionEvent.value?.type, 'turn-completed');
 
     const firstFollowUpProjectionPromise = iterator.next();
     await Promise.resolve();
@@ -1270,6 +1404,10 @@ test('agent local chat provider lets follow-up turns continue their own actions 
     assert.equal(committed[2]?.textMessageState?.metadataJson?.followUpDepth, 2);
     assert.equal(committed[1]?.imageState?.status, 'complete');
     assert.equal(committed[2]?.imageState?.status, 'none');
+    assert.deepEqual(followUpRuntimeWrites, [
+      `${committed[1]?.turnId || ''}:我还在，继续陪你。`,
+      `${committed[2]?.turnId || ''}:我还在这里，想说的时候随时告诉我。`,
+    ]);
   } finally {
     fakeTimers.restore();
   }
@@ -1323,6 +1461,8 @@ test('agent local chat provider stops a pending follow-up chain when the turn si
     await iterator.next();
     await iterator.next();
     await iterator.next();
+    const completionEvent = await iterator.next();
+    assert.equal(completionEvent.value?.type, 'turn-completed');
 
     const pendingProjection = iterator.next();
     await Promise.resolve();
@@ -1437,6 +1577,7 @@ test('agent local chat provider can emit a second image beat from the resolved m
     events.map((event) => event.type),
     [
       'turn-started',
+      'text-delta',
       'message-sealed',
       'beat-planned',
       'beat-delivery-started',
@@ -1742,6 +1883,7 @@ test('agent local chat provider executes voice actions and keeps video deferred 
     events.map((event) => event.type),
     [
       'turn-started',
+      'text-delta',
       'message-sealed',
       'beat-planned',
       'beat-delivery-started',
@@ -2313,17 +2455,8 @@ test('agent local chat provider fails partial JSON outputs with truncation diagn
   });
 
   const events = await collectEvents(provider, sampleTurnInput({
-    history: [{
-      id: 'history-overflow-1',
-      role: 'assistant',
-      text: `Old answer ${'detail '.repeat(300)}`,
-    }],
     agentLocalChat: {
-      targetSnapshot: {
-        ...sampleTarget(),
-        bio: `Long bio ${'detail '.repeat(600)}`,
-      },
-      textModelContextTokens: 80,
+      textModelContextTokens: 4096,
       textMaxOutputTokensRequested: 111,
     },
   }));
@@ -2354,7 +2487,62 @@ test('agent local chat provider fails partial JSON outputs with truncation diagn
   assert.equal(diagnostics?.promptTraceId, 'prompt-partial');
   assert.equal(diagnostics?.contextWindowSource, 'route-profile');
   assert.equal(diagnostics?.maxOutputTokensRequested, 111);
+  assert.equal(diagnostics?.promptOverflow, false);
+});
+
+test('agent local chat provider fails close before runtime when prompt preflight still overflows after reduction', async () => {
+  const committed: AgentCommitInput[] = [];
+  let runtimeCalled = 0;
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        runtimeCalled += 1;
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:147:t1:b0:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput({
+    userMessage: {
+      id: 'user-overflow-1',
+      text: `Need a very long answer ${'detail '.repeat(800)}`,
+    },
+    agentLocalChat: {
+      textModelContextTokens: 80,
+      textMaxOutputTokensRequested: 111,
+    },
+  }));
+
+  assert.equal(runtimeCalled, 0);
+  assert.equal(committed[0]?.outcome, 'failed');
+  assert.equal(events[0]?.type, 'turn-started');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
+  }
+  assert.match(failedEvent.error.message, /available input budget/i);
+  const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'preflight-rejected');
+  assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.promptOverflow, true);
+  assert.equal(diagnostics?.contextWindowSource, 'route-profile');
+  assert.match(String(diagnostics?.requestPrompt || ''), /UserMessage:/);
+  const preflight = diagnostics?.preflight as Record<string, unknown> | undefined;
+  assert.equal(typeof preflight?.totalInputTokens, 'number');
+  assert.equal(typeof preflight?.promptBudgetTokens, 'number');
+  assert.equal(typeof preflight?.systemTokens, 'number');
+  assert.equal(typeof preflight?.historyTokens, 'number');
+  assert.equal(typeof preflight?.userTokens, 'number');
+  assert.ok(Number(preflight?.totalInputTokens) > Number(preflight?.promptBudgetTokens));
+  assert.ok(Number(preflight?.promptBudgetTokens) >= 0);
+  assert.ok(Number(preflight?.systemTokens) >= 0);
+  assert.ok(Number(preflight?.historyTokens) >= 0);
+  assert.ok(Number(preflight?.userTokens) >= 0);
 });
 
 test('agent local chat provider fails close when runtime stream ends without terminal event', async () => {

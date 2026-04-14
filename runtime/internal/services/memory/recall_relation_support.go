@@ -285,7 +285,8 @@ func (s *Service) loadNarrativeRecallCandidates(locator *runtimev1.MemoryBankLoc
 		if err := rows.Scan(&item.NarrativeID, &item.Topic, &item.Content, &item.Status); err != nil {
 			return nil, err
 		}
-		if strings.ToLower(strings.TrimSpace(item.Status)) == "invalidated" {
+		switch strings.ToLower(strings.TrimSpace(item.Status)) {
+		case "invalidated":
 			continue
 		}
 		sourceIDs, err := s.loadNarrativeSourceIDs(item.NarrativeID)

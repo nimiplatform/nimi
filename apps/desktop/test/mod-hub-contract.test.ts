@@ -442,7 +442,7 @@ test('store types no longer include removed app tab alias', () => {
 test('app-tabs.yaml includes mods tab with correct gating', () => {
   const yamlPath = resolve(
     import.meta.dirname,
-    '../../../spec/desktop/kernel/tables/app-tabs.yaml',
+    '../../../.nimi/spec/desktop/kernel/tables/app-tabs.yaml',
   );
   const content = readFileSync(yamlPath, 'utf-8');
 

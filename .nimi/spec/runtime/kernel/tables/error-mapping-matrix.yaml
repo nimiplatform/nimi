@@ -578,8 +578,83 @@ mappings:
     surface: list_rpc_page_token_validation
     exit_shape: grpc_status
     source_rule: K-PAGE-002
-  - reason_code: KNOWLEDGE_INDEX_ALREADY_EXISTS
+  - reason_code: KNOWLEDGE_BANK_ALREADY_EXISTS
     grpc_code: ALREADY_EXISTS
-    surface: build_knowledge_index_without_overwrite
+    surface: create_knowledge_bank_duplicate_typed_owner
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_BANK_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: get_or_delete_knowledge_bank_missing
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_BANK_SCOPE_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: create_knowledge_bank_non_wave1_scope
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_BANK_ACCESS_DENIED
+    grpc_code: PERMISSION_DENIED
+    surface: bank_scoped_knowledge_access_denied
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_PAGE_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: get_or_delete_knowledge_page_missing
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_PAGE_SLUG_CONFLICT
+    grpc_code: ALREADY_EXISTS
+    surface: put_knowledge_page_duplicate_slug_within_bank
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_PAGE_ACCESS_DENIED
+    grpc_code: PERMISSION_DENIED
+    surface: page_scoped_knowledge_access_denied
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_HYBRID_SEARCH_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: search_hybrid_capability_unavailable
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_EMBEDDING_PROFILE_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: search_hybrid_embedding_profile_unavailable
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_VECTOR_INDEX_NOT_READY
+    grpc_code: FAILED_PRECONDITION
+    surface: search_hybrid_vector_index_not_ready
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_INDEX_REFRESH_IN_PROGRESS
+    grpc_code: UNAVAILABLE
+    surface: search_hybrid_index_refresh_in_progress
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_LINK_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: remove_or_list_knowledge_link_missing
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_LINK_ALREADY_EXISTS
+    grpc_code: ALREADY_EXISTS
+    surface: add_knowledge_link_duplicate_same_bank_relation
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_LINK_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: add_knowledge_link_invalid_same_bank_relation
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_GRAPH_DEPTH_INVALID
+    grpc_code: INVALID_ARGUMENT
+    surface: traverse_knowledge_graph_invalid_depth
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005
+  - reason_code: KNOWLEDGE_INGEST_TASK_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: get_knowledge_ingest_task_missing
     exit_shape: grpc_status
     source_rule: K-KNOW-005

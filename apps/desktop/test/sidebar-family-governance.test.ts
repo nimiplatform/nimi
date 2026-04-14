@@ -18,10 +18,10 @@ const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-co
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
 const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
-const adoptionTable = readRepo('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
-const compositionsTable = readRepo('spec/platform/kernel/tables/nimi-ui-compositions.yaml');
-const designContractSource = readRepo('spec/platform/kernel/design-pattern-contract.md');
-const designOverviewSource = readRepo('spec/platform/design-pattern.md');
+const adoptionTable = readRepo('.nimi/spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const compositionsTable = readRepo('.nimi/spec/platform/kernel/tables/nimi-ui-compositions.yaml');
+const designContractSource = readRepo('.nimi/spec/platform/kernel/design-pattern-contract.md');
+const designOverviewSource = readRepo('.nimi/spec/platform/design-pattern.md');
 
 test('platform design registries align with the desktop chat contact rail refactor', () => {
   assert.doesNotMatch(adoptionTable, /features\/chats\/chat-list\.tsx/);

@@ -107,6 +107,7 @@ Primary semantic outputs on this surface must use Nimi-owned typed messages:
 - hook trigger detail must remain typed rather than free-form execution payload
 - recalled agent memory must project typed memory records rather than raw provider JSON
 - `QueryAgentMemory` may expose additive narrative projections, but it must not expose admitted truth state or behavioral posture as public wire truth
+- when `QueryAgentMemory` exposes a stale narrative projection, the stale marker must remain explicit; Agent Core must not collapse stale narrative context into admitted truth state
 - agent events must expose explicit failure / reschedule / budget states as typed event kinds
 - dynamic envelopes remain limited to auxiliary details / extensions fields
 - implementation-facing transport must distinguish read projections from mutation commands; public agent state mutation may not devolve into arbitrary blob replacement
@@ -315,3 +316,41 @@ Fixed rules:
 - internal library extraction must preserve this dual-phase coordination model rather than collapsing Agent Core into direct store mutation or distributed-transaction coupling
 - Agent Core recovery and coordination must not absorb backlog/replay ownership or mutate pending replay truth outside the Memory Service owned boundary, even when internal helper extraction changes where storage mechanics live
 - the admitted coordination model is idempotent dual-phase coordination, not distributed transaction coupling
+
+## K-AGCORE-020 Chat/Life Evidence To Canonical Memory Admission Boundary
+
+`RuntimeAgentCoreService` owns the runtime-private stabilization boundary between
+chat/life conversational evidence and canonical memory candidate admission.
+
+It owns:
+
+- evidence-to-candidate stabilization for chat-track and life-track outputs
+- same-window correction absorption before durable candidate admission
+- candidate-level distinction between transient conversational evidence and
+  stable canonical memory proposal
+
+It does not own:
+
+- direct persistence of raw chat transcript as canonical memory truth
+- `RuntimeMemoryService` retain mechanics or downstream dedup storage behavior
+- truth-level supersession once conflicting durable memory has already been
+  committed across separate windows
+
+Fixed rules:
+
+- chat transcript, thread continuity, and life-turn conversational evidence are
+  source evidence inputs, not canonical memory truth by default
+- runtime-private chat-sidecar and life-turn outputs may emit canonical memory
+  candidates only after Agent Core owned stabilization over the current evidence
+  window
+- explicit same-window self-correction or contradiction must not by default be
+  emitted as two conflicting durable canonical memory candidates from the same
+  evidence window
+- candidate `source_event_id` and provenance preserve evidence lineage, but
+  they do not imply that every intermediate utterance becomes durable memory
+  truth
+- retain-time dedup remains a downstream concern over stabilized candidates; it
+  must not become the primary owner of immediate conversational correction
+- truth admission, stale/supersession, and later derived projection updates
+  remain the downstream path for cross-window correction after durable memory
+  has already been committed

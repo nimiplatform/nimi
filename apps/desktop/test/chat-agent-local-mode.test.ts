@@ -34,14 +34,19 @@ function readWorkspaceFile(relativePath: string): string {
 }
 
 type CapturedRuntimeTextStreamInput = {
+  model?: string;
+  route?: string;
+  connectorId?: string;
   input: Array<{
     role: string;
     content: string;
     name?: string | undefined;
-  }>;
+  }> | string;
   system?: string | null;
   maxTokens?: number;
   reasoning?: unknown;
+  timeoutMs?: number;
+  metadata?: Record<string, string>;
 };
 
 test('agent local mode filters social snapshot to agent friends and fails close on broken agent targets', () => {
@@ -144,7 +149,7 @@ test('agent local mode keeps one thread per agent when restoring selection', () 
   }), 'thread-agent-1');
 });
 
-test('agent local runtime invoke passes core mod id and agentId to the runtime call', async () => {
+test('agent local runtime invoke uses runtime text generate with desktop-core metadata', async () => {
   const projection = {
     capability: 'text.generate' as const,
     selectedBinding: {
@@ -195,6 +200,8 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
     agentResolution,
   });
 
+  let capturedGenerateInput: CapturedRuntimeTextStreamInput | null = null;
+
   const result = await invokeChatAgentRuntime({
     agentId: 'agent-1',
     prompt: 'hello',
@@ -220,18 +227,160 @@ test('agent local runtime invoke passes core mod id and agentId to the runtime c
       userConfirmedUpload: false,
     },
   }, {
-    invokeModLlmImpl: async (input) => {
-      assert.equal(input.modId, CORE_CHAT_AGENT_MOD_ID);
-      assert.equal(input.agentId, 'agent-1');
-      return {
-        text: 'hi',
-        traceId: 'trace-1',
-        promptTraceId: 'prompt-trace-1',
-      };
-    },
+    resolveRouteInputImpl: async () => ({
+      modId: CORE_CHAT_AGENT_MOD_ID,
+      provider: 'llama',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+      localProviderModel: 'llama3',
+      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+    }),
+    ensureRuntimeLocalModelWarmImpl: async () => undefined,
+    buildRuntimeCallOptionsImpl: async () => ({
+      idempotencyKey: 'runtime-idem-1',
+      timeoutMs: 120000,
+      metadata: {
+        traceId: 'prompt-trace-1',
+        callerKind: 'desktop-core',
+        callerId: CORE_CHAT_AGENT_MOD_ID,
+        surfaceId: 'desktop.renderer',
+      },
+    }),
+    getRuntimeClientImpl: () => ({
+      ai: {
+        text: {
+          generate: async (input: CapturedRuntimeTextStreamInput) => {
+            capturedGenerateInput = input;
+            return {
+              text: 'hi',
+              finishReason: 'stop',
+              usage: {},
+              trace: {
+                traceId: 'trace-1',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
   });
 
   assert.equal(result.text, 'hi');
+  assert.equal(result.traceId, 'trace-1');
+  assert.equal(result.promptTraceId, 'prompt-trace-1');
+  assert.deepEqual(capturedGenerateInput, {
+    model: 'llama/llama3',
+    route: 'local',
+    connectorId: undefined,
+    input: 'hello',
+    system: undefined,
+    maxTokens: undefined,
+    reasoning: resolveChatThinkingConfig('off', resolveAgentChatThinkingSupport()),
+    timeoutMs: 120000,
+    metadata: {
+      traceId: 'prompt-trace-1',
+      callerKind: 'desktop-core',
+      callerId: CORE_CHAT_AGENT_MOD_ID,
+      surfaceId: 'desktop.renderer',
+    },
+  });
+});
+
+test('agent runtime invoke admits structured messages and system prompt', async () => {
+  const runtimeFields = {
+    targetType: '',
+    targetAccountId: '',
+    agentId: '',
+    targetId: '',
+    worldId: '',
+    provider: 'llama',
+    runtimeModelType: 'chat',
+    localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    localProviderModel: 'llama3',
+    localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+    connectorId: '',
+    mode: 'STORY' as const,
+    turnIndex: 1,
+    userConfirmedUpload: false,
+  };
+  let capturedGenerateInput: CapturedRuntimeTextStreamInput | null = null;
+
+  const result = await invokeChatAgentRuntime({
+    agentId: 'agent-1',
+    messages: [
+      { role: 'assistant', text: 'We should summarize the plan.' },
+      { role: 'user', text: 'What should we do next?' },
+    ],
+    systemPrompt: 'Be warm and concise.',
+    threadId: 'thread-structured',
+    reasoningPreference: 'off',
+    maxOutputTokensRequested: 321,
+    agentResolution: null,
+    executionSnapshot: null,
+    runtimeConfigState: null,
+    runtimeFields,
+  }, {
+    resolveRouteInputImpl: async () => ({
+      modId: CORE_CHAT_AGENT_MOD_ID,
+      provider: 'llama',
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+      localProviderModel: 'llama3',
+      localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+    }),
+    ensureRuntimeLocalModelWarmImpl: async () => undefined,
+    buildRuntimeCallOptionsImpl: async () => ({
+      idempotencyKey: 'runtime-idem-structured',
+      timeoutMs: 120000,
+      metadata: {
+        traceId: 'prompt-trace-structured-invoke',
+        callerKind: 'desktop-core',
+        callerId: CORE_CHAT_AGENT_MOD_ID,
+        surfaceId: 'desktop.renderer',
+      },
+    }),
+    getRuntimeClientImpl: () => ({
+      ai: {
+        text: {
+          generate: async (input: CapturedRuntimeTextStreamInput) => {
+            capturedGenerateInput = input;
+            return {
+              text: 'Structured reply',
+              finishReason: 'stop',
+              usage: {},
+              trace: {
+                traceId: 'trace-structured-invoke',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
+  });
+
+  assert.equal(result.text, 'Structured reply');
+  assert.equal(result.traceId, 'trace-structured-invoke');
+  assert.equal(result.promptTraceId, 'prompt-trace-structured-invoke');
+  const invokeInput = capturedGenerateInput as CapturedRuntimeTextStreamInput | null;
+  if (!invokeInput) {
+    throw new Error('structured invoke input was not captured');
+  }
+  assert.deepEqual(invokeInput.input, [
+    {
+      role: 'assistant',
+      content: 'We should summarize the plan.',
+      name: undefined,
+    },
+    {
+      role: 'user',
+      content: 'What should we do next?',
+      name: undefined,
+    },
+  ]);
+  assert.equal(invokeInput.system, 'Be warm and concise.');
+  assert.equal(invokeInput.maxTokens, 321);
+  assert.deepEqual(
+    invokeInput.reasoning,
+    resolveChatThinkingConfig('off', resolveAgentChatThinkingSupport()),
+  );
 });
 
 test('agent local host turn timeout honors larger image timeout settings', () => {
@@ -325,19 +474,44 @@ test('agent runtime invoke supports cloud routes via connectorId', async () => {
       userConfirmedUpload: false,
     },
   }, {
-    invokeModLlmImpl: async (input) => {
-      assert.equal(input.modId, CORE_CHAT_AGENT_MOD_ID);
-      assert.equal(input.agentId, 'agent-1');
-      assert.equal(input.provider, 'openai');
-      assert.equal(input.connectorId, 'connector-openai');
-      assert.equal(input.localProviderModel, 'gpt-5.4-mini');
-      assert.equal(input.maxTokens, 222);
-      return {
-        text: 'hi cloud',
-        traceId: 'trace-cloud',
-        promptTraceId: 'prompt-trace-cloud',
-      };
-    },
+    resolveRouteInputImpl: async () => ({
+      modId: CORE_CHAT_AGENT_MOD_ID,
+      provider: 'openai',
+      connectorId: 'connector-openai',
+      localProviderModel: 'gpt-5.4-mini',
+    }),
+    ensureRuntimeLocalModelWarmImpl: async () => undefined,
+    buildRuntimeCallOptionsImpl: async () => ({
+      idempotencyKey: 'runtime-idem-cloud',
+      timeoutMs: 120000,
+      metadata: {
+        traceId: 'prompt-trace-cloud',
+        callerKind: 'desktop-core',
+        callerId: CORE_CHAT_AGENT_MOD_ID,
+        surfaceId: 'desktop.renderer',
+        keySource: 'managed',
+      },
+    }),
+    getRuntimeClientImpl: () => ({
+      ai: {
+        text: {
+          generate: async (input: CapturedRuntimeTextStreamInput) => {
+            assert.equal(input.model, 'cloud/gpt-5.4-mini');
+            assert.equal(input.route, 'cloud');
+            assert.equal(input.connectorId, 'connector-openai');
+            assert.equal(input.maxTokens, 222);
+            return {
+              text: 'hi cloud',
+              finishReason: 'stop',
+              usage: {},
+              trace: {
+                traceId: 'trace-cloud',
+              },
+            };
+          },
+        },
+      },
+    }) as never,
   });
 
   assert.equal(result.text, 'hi cloud');
@@ -520,6 +694,7 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
   });
 
   await assert.doesNotReject(async () => {
+    let capturedWarmInput: Record<string, unknown> | null = null;
     await invokeChatAgentRuntime({
       agentId: 'agent-1',
       prompt: 'hello local',
@@ -545,16 +720,36 @@ test('agent local runtime invoke falls back to resolved endpoint when provider-s
         userConfirmedUpload: false,
       },
     }, {
-      invokeModLlmImpl: async (input) => {
-        assert.equal(input.localProviderEndpoint, 'http://127.0.0.1:11434/v1');
-        assert.equal(input.localOpenAiEndpoint, 'http://127.0.0.1:11434/v1');
-        return {
-          text: 'hi local',
-          traceId: 'trace-local',
-          promptTraceId: 'prompt-trace-local',
-        };
+      ensureRuntimeLocalModelWarmImpl: async (input) => {
+        capturedWarmInput = input as unknown as Record<string, unknown>;
       },
+      buildRuntimeCallOptionsImpl: async () => ({
+        idempotencyKey: 'runtime-idem-local',
+        timeoutMs: 120000,
+        metadata: {
+          traceId: 'prompt-trace-local',
+          callerKind: 'desktop-core',
+          callerId: CORE_CHAT_AGENT_MOD_ID,
+          surfaceId: 'desktop.renderer',
+        },
+      }),
+      getRuntimeClientImpl: () => ({
+        ai: {
+          text: {
+            generate: async () => ({
+              text: 'hi local',
+              finishReason: 'stop',
+              usage: {},
+              trace: {
+                traceId: 'trace-local',
+              },
+            }),
+          },
+        },
+      }) as never,
     });
+    assert.equal(capturedWarmInput?.['endpoint'], 'http://127.0.0.1:11434/v1');
+    assert.equal(capturedWarmInput?.['modelId'], 'llama/qwen3');
   });
 });
 
@@ -1445,49 +1640,53 @@ test('agent local mode keeps thinking unsupported and forces effective off confi
 
 test('agent shell stays desktop-owned and uses social snapshot plus local agent store', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
-  const hostActionsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts');
+  const adapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
+  const hostActionHelpersSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.ts');
+  const hostActionSubmitSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit.ts');
+  const hostActionSubmitRunSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts');
+  const voiceAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-voice.ts');
   const presentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
   const effectsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-effects.ts');
   const humanAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-human-adapter.tsx');
   const orchestrationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-orchestration.ts');
-  assert.match(adapterSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
   assert.match(adapterSource, /useAgentConversationEffects/);
   assert.match(adapterSource, /useAgentConversationPresentation/);
-  assert.match(hostActionsSource, /chatAgentStoreClient\.createThread/);
-  assert.match(hostActionsSource, /chatAgentStoreClient\.commitTurnResult/);
-  assert.match(hostActionsSource, /matchConversationTurnEvent/);
-  assert.match(hostActionsSource, /createInitialAgentSubmitDriverState/);
-  assert.match(hostActionsSource, /reduceAgentSubmitDriverEvent/);
-  assert.match(hostActionsSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
-  assert.match(hostActionsSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
-  assert.match(hostActionsSource, /resolveAgentSubmitDriverProjectionRefresh/);
-  assert.match(hostActionsSource, /resolveAuthoritativeAgentThreadBundle/);
-  assert.match(hostActionsSource, /assertAgentTurnLifecycleCompleted/);
-  assert.match(hostActionsSource, /const activeTarget = input\.activeTarget;/);
-  assert.match(hostActionsSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(activeTarget\);/);
-  assert.match(hostActionsSource, /setSubmittingThreadId\(effectiveThreadId\)/);
-  assert.match(hostActionsSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
-  assert.match(hostActionsSource, /finally\s*\{[\s\S]*input\.setSubmittingThreadId\(null\);/);
+  assert.match(adapterStateSource, /dataSync\.loadSocialSnapshot\(\)/);
+  assert.match(adapterStateSource, /getDesktopAIConfigService\(\)/);
+  assert.match(hostActionHelpersSource, /chatAgentStoreClient\.createThread/);
+  assert.match(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
+  assert.match(hostActionSubmitRunSource, /matchConversationTurnEvent/);
+  assert.match(hostActionSubmitSource, /createInitialAgentSubmitDriverState/);
+  assert.match(hostActionSubmitRunSource, /reduceAgentSubmitDriverEvent/);
+  assert.match(hostActionSubmitRunSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
+  assert.match(hostActionSubmitSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);
+  assert.match(hostActionSubmitRunSource, /resolveAgentSubmitDriverProjectionRefresh/);
+  assert.match(hostActionSubmitSource, /resolveAuthoritativeAgentThreadBundle/);
+  assert.match(hostActionSubmitRunSource, /assertAgentTurnLifecycleCompleted/);
+  assert.match(hostActionSubmitSource, /const activeTarget = input\.hostInput\.activeTarget;/);
+  assert.match(hostActionSubmitSource, /if \(!effectiveThreadId \|\| !effectiveThreadRecord\) \{\s+effectiveThreadRecord = await createOrRestoreThreadForTarget\(input\.hostInput, activeTarget\);/);
+  assert.match(hostActionSubmitSource, /setSubmittingThreadId\(effectiveThreadId\)/);
+  assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
+  assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);
   assert.ok(
-    hostActionsSource.indexOf('input.setSubmittingThreadId(effectiveThreadId);')
-    < hostActionsSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({'),
+    hostActionSubmitSource.indexOf('input.hostInput.setSubmittingThreadId(effectiveThreadId);')
+    < hostActionSubmitSource.indexOf('const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({'),
     'agent host actions must enter submitting state before route readiness checks so thinking appears immediately',
   );
-  assert.match(hostActionsSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
-  assert.match(hostActionsSource, /if \(submitSession\.lifecycle\.projectionVersion\) \{\s+refreshedBundle = await chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\);/);
-  assert.match(hostActionsSource, /projectionRefreshPromise = chatAgentStoreClient\.getThreadBundle\(effectiveThreadId\)/);
+  assert.match(hostActionSubmitRunSource, /submitSession\.lifecycle\.projectionVersion\s*\?\s*await chatAgentStoreClient\.getThreadBundle\(input\.threadId\)/);
+  assert.match(hostActionSubmitRunSource, /if \(projectionEffects\.awaitRefresh\) \{\s+const rebuiltBundle =/s);
   assert.match(adapterSource, /logRendererEvent/);
   assert.match(adapterSource, /conversationCapabilityProjectionByCapability\['audio\.transcribe'\]/);
   assert.match(adapterSource, /voiceSessionState/);
-  assert.match(adapterSource, /handleVoiceSessionToggle/);
-  assert.match(adapterSource, /resolveIsVoiceSessionForeground/);
-  assert.match(adapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
-  assert.match(adapterSource, /autoStopMode:\s*'silence'/);
+  assert.match(voiceAdapterSource, /handleVoiceSessionToggle/);
+  assert.match(voiceAdapterSource, /resolveIsVoiceSessionForeground/);
+  assert.match(voiceAdapterSource, /document\.addEventListener\('visibilitychange', syncForegroundState\)/);
+  assert.match(voiceAdapterSource, /autoStopMode:\s*'silence'/);
   assert.match(adapterSource, /return createReadyConversationSetupState\('agent'\);/);
-  assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleQuery\.error/);
-  assert.match(hostActionsSource, /ensureAgentConversationSubmitRouteReady/);
-  assert.match(orchestrationSource, /normalizeConversationRuntimeTextStreamPart/);
+  assert.match(adapterSource, /const composerReady = setupState\.status === 'ready'\s+&& !isBundleLoading\s+&& !bundleError/);
+  assert.match(hostActionSubmitSource, /ensureAgentConversationSubmitRouteReady/);
+  assert.match(orchestrationSource, /case 'text-delta':/);
   assert.doesNotMatch(orchestrationSource, /Unsupported agent runtime stream part/);
   assert.doesNotMatch(orchestrationSource, /yield \{ type: 'start' \};/);
   assert.match(presentationSource, /showStreamingText=\{false\}/);

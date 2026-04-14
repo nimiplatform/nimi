@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createNimiError,
   MemoryBankScope,
@@ -47,7 +48,7 @@ function createRuntimeMock() {
         return {
           messageId: 'app-msg-1',
           accepted: true,
-          reasonCode: 'ACTION_EXECUTED',
+          reasonCode: ReasonCode.ACTION_EXECUTED,
         };
       },
     },

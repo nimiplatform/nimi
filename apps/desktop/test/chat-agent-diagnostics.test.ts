@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import { buildAgentDiagnosticsViewModel } from '../src/shell/renderer/features/chat/chat-agent-diagnostics-view-model.js';
 import type { AgentTurnLifecycleState } from '../src/shell/renderer/features/chat/chat-agent-shell-lifecycle.js';
@@ -33,23 +35,42 @@ function baseLifecycle(): AgentTurnLifecycleState {
   };
 }
 
-test('agent diagnostics view model shows empty state before any completed turn', () => {
-  const viewModel = buildAgentDiagnosticsViewModel({
+function baseInput() {
+  return {
     activeTarget: sampleTarget(),
-    lifecycle: baseLifecycle(),
     routeReady: true,
+    recentRuntimeEvents: [],
+    runtimeInspect: null,
+    runtimeInspectLoading: false,
     t,
     targetsPending: false,
+  };
+}
+
+async function loadAgentDiagnosticsPanel() {
+  Object.defineProperty(globalThis, 'React', {
+    value: React,
+    configurable: true,
+  });
+  const module = await import('../src/shell/renderer/features/chat/chat-agent-diagnostics.js');
+  return module.AgentDiagnosticsPanel;
+}
+
+test('agent diagnostics view model shows empty state before any completed turn', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    ...baseInput(),
+    lifecycle: baseLifecycle(),
   });
 
   assert.equal(viewModel.runtimeCard.value, 'Runtime ready');
+  assert.equal(viewModel.stateCards.length, 0);
   assert.equal(viewModel.turnCards.length, 0);
   assert.equal(viewModel.emptyLabel, 'No recent agent turn diagnostics yet.');
 });
 
 test('agent diagnostics view model shows recovered turn details', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
-    activeTarget: sampleTarget(),
+    ...baseInput(),
     lifecycle: {
       ...baseLifecycle(),
       terminal: 'completed',
@@ -87,9 +108,6 @@ test('agent diagnostics view model shows recovered turn details', () => {
         followUpSourceActionId: null,
       },
     },
-    routeReady: true,
-    t,
-    targetsPending: false,
   });
 
   assert.equal(viewModel.emptyLabel, null);
@@ -108,7 +126,7 @@ test('agent diagnostics view model shows recovered turn details', () => {
 
 test('agent diagnostics view model shows truncation diagnostics for failed turns', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
-    activeTarget: sampleTarget(),
+    ...baseInput(),
     lifecycle: {
       ...baseLifecycle(),
       terminal: 'failed',
@@ -150,9 +168,6 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
         followUpSourceActionId: null,
       },
     },
-    routeReady: true,
-    t,
-    targetsPending: false,
   });
 
   assert.equal(viewModel.emptyLabel, null);
@@ -165,9 +180,66 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
   assert.equal(viewModel.turnCards[6]?.label, 'Returned Data');
 });
 
+test('agent diagnostics view model shows preflight rejection diagnostics for local prompt overflow failures', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    ...baseInput(),
+    lifecycle: {
+      ...baseLifecycle(),
+      terminal: 'failed',
+      error: {
+        code: 'AI_INPUT_INVALID',
+        message: 'Agent request exceeds the available input budget after prompt reduction.',
+      },
+      diagnostics: {
+        classification: 'preflight-rejected',
+        recoveryPath: 'none',
+        suspectedTruncation: false,
+        parseErrorDetail: 'Agent request exceeds the available input budget after prompt reduction.',
+        rawOutputChars: 0,
+        normalizedOutputChars: 0,
+        finishReason: null,
+        traceId: null,
+        promptTraceId: null,
+        usage: null,
+        contextWindowSource: 'route-profile',
+        maxOutputTokensRequested: 111,
+        promptOverflow: true,
+        requestPrompt: 'UserMessage:\n继续说',
+        requestSystemPrompt: 'Preset:\nStay concise.',
+        rawModelOutputText: null,
+        normalizedModelOutputText: null,
+        chainId: null,
+        followUpDepth: null,
+        maxFollowUpTurns: null,
+        followUpCanceledByUser: false,
+        followUpSourceActionId: null,
+        preflight: {
+          totalInputTokens: 820,
+          promptBudgetTokens: 512,
+          systemTokens: 120,
+          historyTokens: 220,
+          userTokens: 480,
+        },
+      },
+    },
+  });
+
+  assert.equal(viewModel.turnCards[0]?.value, 'Failed');
+  assert.match(viewModel.turnCards[0]?.detail || '', /available input budget/i);
+  assert.equal(viewModel.turnCards[3]?.value, 'preflight-rejected');
+  assert.match(viewModel.turnCards[4]?.detail || '', /promptOverflow=true/);
+  assert.match(viewModel.turnCards[4]?.detail || '', /totalInputTokens=820/);
+  assert.match(viewModel.turnCards[4]?.detail || '', /promptBudgetTokens=512/);
+  assert.match(viewModel.turnCards[4]?.detail || '', /systemTokens=120/);
+  assert.match(viewModel.turnCards[4]?.detail || '', /historyTokens=220/);
+  assert.match(viewModel.turnCards[4]?.detail || '', /userTokens=480/);
+  assert.equal(viewModel.turnCards[5]?.label, 'Prompt');
+  assert.equal(viewModel.turnCards[6], undefined);
+});
+
 test('agent diagnostics view model shows image execution diagnostics when present', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
-    activeTarget: sampleTarget(),
+    ...baseInput(),
     lifecycle: {
       ...baseLifecycle(),
       terminal: 'completed',
@@ -212,9 +284,6 @@ test('agent diagnostics view model shows image execution diagnostics when presen
         },
       },
     },
-    routeReady: true,
-    t,
-    targetsPending: false,
   });
 
   const imageCard = viewModel.turnCards.find((card) => card.label === 'Image Path');
@@ -226,7 +295,7 @@ test('agent diagnostics view model shows image execution diagnostics when presen
 
 test('agent diagnostics view model shows follow-up chain diagnostics when present', () => {
   const viewModel = buildAgentDiagnosticsViewModel({
-    activeTarget: sampleTarget(),
+    ...baseInput(),
     lifecycle: {
       ...baseLifecycle(),
       terminal: 'completed',
@@ -255,13 +324,251 @@ test('agent diagnostics view model shows follow-up chain diagnostics when presen
         followUpSourceActionId: 'action-follow-up-2',
       },
     },
-    routeReady: true,
-    t,
-    targetsPending: false,
   });
 
   const chainCard = viewModel.turnCards.find((card) => card.label === 'Follow-up Chain');
   assert.equal(chainCard?.value, '2/8');
   assert.match(chainCard?.detail || '', /chainId=chain-1/);
   assert.match(chainCard?.detail || '', /sourceActionId=action-follow-up-2/);
+});
+
+test('agent diagnostics view model shows runtime agent state and pending hook inspect when available', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    ...baseInput(),
+    lifecycle: baseLifecycle(),
+    runtimeInspect: {
+      lifecycleStatus: 'active',
+      executionState: 'life-pending',
+      statusText: 'waiting to follow up',
+      activeWorldId: 'world-1',
+      activeUserId: 'user-1',
+      autonomyEnabled: true,
+      autonomyBudgetExhausted: false,
+      autonomyUsedTokensInWindow: 88,
+      autonomyDailyTokenBudget: 400,
+      autonomyMaxTokensPerHook: 120,
+      autonomyWindowStartedAt: '2026-04-14T00:00:00.000Z',
+      autonomySuspendedUntil: null,
+      pendingHooksCount: 2,
+      nextScheduledFor: '2026-04-14T03:00:00.000Z',
+      pendingHooks: [
+        {
+          hookId: 'hook-1',
+          status: 'pending',
+          triggerKind: 'scheduled-time',
+          scheduledFor: '2026-04-14T03:00:00.000Z',
+        },
+        {
+          hookId: 'hook-2',
+          status: 'pending',
+          triggerKind: 'turn-completed',
+          scheduledFor: null,
+        },
+      ],
+      recentTerminalHooks: [
+        {
+          hookId: 'hook-completed-1',
+          status: 'completed',
+          triggerKind: 'turn-completed',
+          scheduledFor: '2026-04-14T02:50:00.000Z',
+          admittedAt: '2026-04-14T03:10:00.000Z',
+        },
+      ],
+      recentCanonicalMemories: [
+        {
+          memoryId: 'mem-dyadic-1',
+          canonicalClass: 'dyadic',
+          kind: 'observational',
+          summary: 'user prefers jasmine tea',
+          updatedAt: '2026-04-14T03:12:00.000Z',
+          sourceEventId: 'turn-dyadic-1',
+          policyReason: 'query_agent_memory_history',
+          recallScore: 0,
+        },
+      ],
+    },
+  });
+
+  assert.equal(viewModel.stateCards.length, 5);
+  const agentStateCard = viewModel.stateCards.find((card) => card.label === 'Agent State');
+  assert.equal(agentStateCard?.value, 'waiting to follow up');
+  assert.match(agentStateCard?.detail || '', /lifecycle=active/);
+  assert.match(agentStateCard?.detail || '', /executionState=life-pending/);
+  const autonomyCard = viewModel.stateCards.find((card) => card.label === 'Autonomy');
+  assert.equal(autonomyCard?.value, 'Enabled');
+  assert.match(autonomyCard?.detail || '', /usedTokensInWindow=88/);
+  assert.match(autonomyCard?.detail || '', /dailyTokenBudget=400/);
+  const hooksCard = viewModel.stateCards.find((card) => card.label === 'Pending Hooks');
+  assert.equal(hooksCard?.value, '2');
+  assert.match(hooksCard?.detail || '', /nextScheduledFor=2026-04-14T03:00:00.000Z/);
+  assert.match(hooksCard?.detail || '', /hook-1 · pending · scheduled-time/);
+  const terminalHistoryCard = viewModel.stateCards.find((card) => card.label === 'Terminal Hook History');
+  assert.equal(terminalHistoryCard?.value, 'completed');
+  assert.match(terminalHistoryCard?.detail || '', /hook-completed-1 · completed/);
+  const memoryCard = viewModel.stateCards.find((card) => card.label === 'Recent Memory');
+  assert.equal(memoryCard?.value, 'dyadic');
+  assert.match(memoryCard?.detail || '', /mem-dyadic-1 · dyadic · observational · user prefers jasmine tea/);
+  assert.equal(viewModel.turnCards.length, 0);
+  assert.equal(viewModel.emptyLabel, 'No recent agent turn diagnostics yet.');
+});
+
+test('agent diagnostics view model shows recent runtime events and hook history when available', () => {
+  const viewModel = buildAgentDiagnosticsViewModel({
+    ...baseInput(),
+    lifecycle: baseLifecycle(),
+    recentRuntimeEvents: [
+      {
+        agentId: 'agent-1',
+        eventType: 2,
+        eventTypeLabel: 'hook',
+        sequence: '17',
+        detailKind: 'hook',
+        timestamp: '2026-04-14T03:00:00.000Z',
+        summaryText: 'hook-1 · completed',
+        hookId: 'hook-1',
+        hookStatus: 'completed',
+        lifecycleStatus: null,
+        budgetExhausted: null,
+        remainingTokens: null,
+      },
+      {
+        agentId: 'agent-1',
+        eventType: 3,
+        eventTypeLabel: 'memory',
+        sequence: '18',
+        detailKind: 'memory',
+        timestamp: '2026-04-14T03:05:00.000Z',
+        summaryText: 'accepted=1 · rejected=0',
+        hookId: null,
+        hookStatus: null,
+        lifecycleStatus: null,
+        budgetExhausted: null,
+        remainingTokens: null,
+      },
+      {
+        agentId: 'agent-1',
+        eventType: 5,
+        eventTypeLabel: 'replication',
+        sequence: '19',
+        detailKind: 'replication',
+        timestamp: '2026-04-14T03:06:00.000Z',
+        summaryText: 'mem-dyadic-1 · synced',
+        hookId: null,
+        hookStatus: null,
+        lifecycleStatus: null,
+        budgetExhausted: null,
+        remainingTokens: null,
+      },
+    ],
+  });
+
+  const recentEventsCard = viewModel.stateCards.find((card) => card.label === 'Recent Events');
+  assert.equal(recentEventsCard?.value, 'hook');
+  assert.match(recentEventsCard?.detail || '', /#17 · hook · hook-1 · completed/);
+  assert.match(recentEventsCard?.detail || '', /#18 · memory · accepted=1 · rejected=0/);
+  assert.match(recentEventsCard?.detail || '', /#19 · replication · mem-dyadic-1 · synced/);
+  const hookHistoryCard = viewModel.stateCards.find((card) => card.label === 'Recent Hook Outcomes');
+  assert.equal(hookHistoryCard?.value, 'completed');
+  assert.match(hookHistoryCard?.detail || '', /hook-1 · completed/);
+});
+
+test('agent diagnostics panel renders runtime control actions when inspect data is available', async () => {
+  const AgentDiagnosticsPanel = await loadAgentDiagnosticsPanel();
+  const markup = renderToStaticMarkup(
+    React.createElement(AgentDiagnosticsPanel, {
+      activeTarget: sampleTarget(),
+      lifecycle: baseLifecycle(),
+      mutationPendingAction: null,
+      onCancelHook: () => undefined,
+      onClearDyadicContext: () => undefined,
+      onClearWorldContext: () => undefined,
+      onDisableAutonomy: () => undefined,
+      onEnableAutonomy: () => undefined,
+      onUpdateAutonomyConfig: () => undefined,
+      onUpdateRuntimeState: () => undefined,
+      recentRuntimeEvents: [{
+        agentId: 'agent-1',
+        eventType: 2,
+        eventTypeLabel: 'hook',
+        sequence: '17',
+        detailKind: 'hook',
+        timestamp: '2026-04-14T03:00:00.000Z',
+        summaryText: 'hook-1 · pending',
+        hookId: 'hook-1',
+        hookStatus: 'pending',
+        lifecycleStatus: null,
+        budgetExhausted: null,
+        remainingTokens: null,
+      }],
+      routeReady: true,
+      runtimeInspect: {
+        lifecycleStatus: 'active',
+        executionState: 'life-pending',
+        statusText: 'waiting to follow up',
+        activeWorldId: 'world-1',
+        activeUserId: 'user-1',
+        autonomyEnabled: true,
+        autonomyBudgetExhausted: false,
+        autonomyUsedTokensInWindow: 88,
+        autonomyDailyTokenBudget: 400,
+        autonomyMaxTokensPerHook: 120,
+        autonomyWindowStartedAt: '2026-04-14T00:00:00.000Z',
+        autonomySuspendedUntil: null,
+        pendingHooksCount: 1,
+        nextScheduledFor: '2026-04-14T03:00:00.000Z',
+        pendingHooks: [{
+          hookId: 'hook-1',
+          status: 'pending',
+          triggerKind: 'scheduled-time',
+          scheduledFor: '2026-04-14T03:00:00.000Z',
+        }, {
+          hookId: 'hook-2',
+          status: 'running',
+          triggerKind: 'turn-completed',
+          scheduledFor: null,
+        }],
+        recentTerminalHooks: [{
+          hookId: 'hook-completed-1',
+          status: 'completed',
+          triggerKind: 'turn-completed',
+          scheduledFor: '2026-04-14T02:50:00.000Z',
+          admittedAt: '2026-04-14T03:10:00.000Z',
+        }],
+        recentCanonicalMemories: [{
+          memoryId: 'mem-dyadic-1',
+          canonicalClass: 'dyadic',
+          kind: 'observational',
+          summary: 'user prefers jasmine tea',
+          updatedAt: '2026-04-14T03:12:00.000Z',
+          sourceEventId: 'turn-dyadic-1',
+          policyReason: 'query_agent_memory_history',
+          recallScore: 0,
+        }],
+      },
+      runtimeInspectLoading: false,
+      onRefreshInspect: () => undefined,
+      t,
+      targetsPending: false,
+    }),
+  );
+
+  assert.match(markup, /Refresh inspect/u);
+  assert.match(markup, /Apply runtime state/u);
+  assert.match(markup, /Clear world context/u);
+  assert.match(markup, /Clear dyadic context/u);
+  assert.match(markup, /Status text/u);
+  assert.match(markup, /World context/u);
+  assert.match(markup, /Dyadic user/u);
+  assert.match(markup, /Apply autonomy config/u);
+  assert.match(markup, /Daily token budget/u);
+  assert.match(markup, /Max tokens per hook/u);
+  assert.match(markup, /Disable autonomy/u);
+  assert.match(markup, /Cancel hook-1/u);
+  assert.match(markup, /Cancel hook-2/u);
+  assert.match(markup, /Runtime autonomy is on/u);
+  assert.match(markup, /Terminal Hook History/u);
+  assert.match(markup, /Recent Memory/u);
+  assert.match(markup, /user prefers jasmine tea/u);
+  assert.match(markup, /Recent Events/u);
+  assert.match(markup, /Recent Hook Outcomes/u);
 });

@@ -18,6 +18,7 @@ import type {
   AgentResolvedMessageActionEnvelope,
 } from './chat-agent-behavior';
 import {
+  buildAgentPreflightDiagnosticsFromError,
   buildAgentResolvedOutputText,
   resolveAgentModelOutputEnvelope,
   toAgentModelOutputTurnError,
@@ -39,6 +40,7 @@ import {
 import { createAgentLocalChatConversationRuntimeAdapter } from './chat-agent-orchestration-runtime';
 import { runResolvedEnvelopeActions } from './chat-agent-orchestration-actions';
 import { runScheduledFollowUpTurn } from './chat-agent-orchestration-follow-up';
+import { runDesktopAgentAssistantTurnRuntimeFollowUp } from './chat-agent-runtime-memory';
 import {
   AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES,
   type AgentLocalChatProviderOptions,
@@ -69,6 +71,7 @@ export function createAgentLocalChatConversationProvider(
 ): ConversationOrchestrationProvider {
   const runtimeAdapter = options.runtimeAdapter ?? createAgentLocalChatConversationRuntimeAdapter();
   const continuityAdapter = options.continuityAdapter ?? createAgentLocalChatContinuityAdapter();
+  const followUpAssistantRuntimeFollowUp = options.followUpAssistantRuntimeFollowUp ?? runDesktopAgentAssistantTurnRuntimeFollowUp;
   return {
     modeId: 'agent-local-chat-v1',
     capabilities: AGENT_LOCAL_CHAT_PROVIDER_CAPABILITIES,
@@ -81,24 +84,6 @@ export function createAgentLocalChatConversationProvider(
       if (!userText && userAttachments.length === 0) {
         throw new Error('agent-local-chat-v1 requires a non-empty user message or image attachment');
       }
-
-      const turnContext = await continuityAdapter.loadTurnContext({
-        modeId: 'agent-local-chat-v1',
-        threadId: input.threadId,
-        turnId: input.turnId,
-        signal: input.signal,
-      });
-      const executionRequest = buildAgentLocalChatExecutionTextRequest({
-        systemPrompt: normalizeText(input.systemPrompt) || null,
-        targetSnapshot: metadata.targetSnapshot,
-        history: input.history,
-        userText,
-        userAttachments,
-        context: turnContext,
-        resolvedBehavior: metadata.resolvedBehavior,
-        modelContextTokens: metadata.textModelContextTokens,
-        maxOutputTokensRequested: metadata.textMaxOutputTokensRequested,
-      });
 
       const emittedEvents: ConversationTurnEvent[] = [];
       const turnStarted: ConversationTurnEvent = {
@@ -119,6 +104,23 @@ export function createAgentLocalChatConversationProvider(
       const textPlanningStartedAt = Date.now();
 
       try {
+        const turnContext = await continuityAdapter.loadTurnContext({
+          modeId: 'agent-local-chat-v1',
+          threadId: input.threadId,
+          turnId: input.turnId,
+          signal: input.signal,
+        });
+        const executionRequest = buildAgentLocalChatExecutionTextRequest({
+          systemPrompt: normalizeText(input.systemPrompt) || null,
+          targetSnapshot: metadata.targetSnapshot,
+          history: input.history,
+          userText,
+          userAttachments,
+          context: turnContext,
+          resolvedBehavior: metadata.resolvedBehavior,
+          modelContextTokens: metadata.textModelContextTokens,
+          maxOutputTokensRequested: metadata.textMaxOutputTokensRequested,
+        });
         const runtimeResult = await runtimeAdapter.streamText({
           agentId: metadata.agentId,
           prompt: executionRequest.prompt,
@@ -150,6 +152,15 @@ export function createAgentLocalChatConversationProvider(
               break;
             }
             case 'text-delta': {
+              if (!rawModelOutput && !normalizeText(reasoningText)) {
+                const firstPacketEvent: ConversationTurnEvent = {
+                  type: 'text-delta',
+                  turnId: input.turnId,
+                  textDelta: '',
+                };
+                emittedEvents.push(firstPacketEvent);
+                yield firstPacketEvent;
+              }
               rawModelOutput += part.textDelta;
               break;
             }
@@ -295,6 +306,7 @@ export function createAgentLocalChatConversationProvider(
                   metadata,
                   runtimeAdapter,
                   continuityAdapter,
+                  followUpAssistantRuntimeFollowUp,
                   followUpAction: actionResult.followUpAction,
                   priorAssistantText: outputText,
                   chainContext: {
@@ -391,6 +403,7 @@ export function createAgentLocalChatConversationProvider(
           yield terminalEvent;
           return;
         }
+        outputDiagnostics = outputDiagnostics || buildAgentPreflightDiagnosticsFromError(error);
         const runtimeError = toChatAgentRuntimeError(error);
         const terminalEvent: ConversationTurnEvent = {
           type: 'turn-failed',

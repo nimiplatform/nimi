@@ -9,6 +9,7 @@ export const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
     'plain-text',
     'partial-json',
     'invalid-json',
+    'preflight-rejected',
 ] as const;
 export const AGENT_MODEL_OUTPUT_RECOVERY_PATHS = [
     'none',
@@ -41,6 +42,13 @@ export type AgentImageExecutionDiagnostics = {
     profileOverrideSampler: string | null;
     profileOverrideScheduler: string | null;
 };
+export type AgentPreflightExecutionDiagnostics = {
+    totalInputTokens: number | null;
+    promptBudgetTokens: number | null;
+    systemTokens: number | null;
+    historyTokens: number | null;
+    userTokens: number | null;
+};
 export type AgentModelOutputDiagnostics = {
     classification: AgentModelOutputClassification;
     recoveryPath: AgentModelOutputRecoveryPath;
@@ -65,6 +73,7 @@ export type AgentModelOutputDiagnostics = {
     followUpCanceledByUser: boolean;
     followUpSourceActionId: string | null;
     image?: AgentImageExecutionDiagnostics | null;
+    preflight?: AgentPreflightExecutionDiagnostics | null;
 };
 export type ResolveAgentModelOutputEnvelopeInput = {
     modelOutput: string;

@@ -84,7 +84,11 @@ func (s *Service) ApplyReplicationObservation(locator *runtimev1.MemoryBankLocat
 		},
 	}
 	s.assignSequenceLocked(event)
-	if err := s.persistLocked(); err != nil {
+	txHook := persistTxHook(nil)
+	if replication.GetOutcome() == runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED {
+		txHook = sourceMemoryInvalidationCascadeHook(record.GetBank(), []string{record.GetMemoryId()}, observedAt)
+	}
+	if err := s.persistLockedWithTxHook(txHook); err != nil {
 		state.Records[memoryID] = previousRecord
 		state.Bank.UpdatedAt = previousBankUpdatedAt
 		s.sequence = previousSequence

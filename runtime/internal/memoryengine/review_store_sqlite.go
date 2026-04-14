@@ -206,6 +206,9 @@ func (s sqliteCanonicalReviewStore) CommitCanonicalReview(ctx context.Context, r
 			}
 		}
 		for _, truth := range req.Outcomes.Truths {
+			if err := markSupersededTruthStale(ctx, tx, locatorKeyValue, truth.SupersedesTruthID, now); err != nil {
+				return err
+			}
 			raw, err := json.Marshal(truth)
 			if err != nil {
 				return err
@@ -319,4 +322,32 @@ func canonicalReviewRelationCommitID(locatorKeyValue string, sourceID string, ta
 		strings.ToLower(strings.TrimSpace(relationType)),
 	}, "|")))
 	return fmt.Sprintf("rel_%x", hash[:8])
+}
+
+func markSupersededTruthStale(ctx context.Context, tx *sql.Tx, locatorKeyValue string, truthID string, now string) error {
+	if tx == nil || locatorKeyValue == "" || strings.TrimSpace(truthID) == "" {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE truth_source
+		SET is_active = 0,
+			deactivated_at = COALESCE(deactivated_at, ?)
+		WHERE bank_locator_key = ?
+			AND truth_id = ?
+			AND is_active = 1
+	`, now, locatorKeyValue, strings.TrimSpace(truthID)); err != nil {
+		return fmt.Errorf("deactivate superseded truth_source rows: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE agent_truth
+		SET status = CASE
+				WHEN LOWER(TRIM(status)) = 'invalidated' THEN status
+				ELSE 'stale'
+			END,
+			updated_at = ?
+		WHERE bank_locator_key = ? AND truth_id = ?
+	`, now, locatorKeyValue, strings.TrimSpace(truthID)); err != nil {
+		return fmt.Errorf("mark superseded truth stale: %w", err)
+	}
+	return nil
 }

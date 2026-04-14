@@ -125,12 +125,24 @@ func (s *Service) insertRecords(bankKey string, records []*runtimev1.MemoryRecor
 }
 
 func (s *Service) replaceBankRecords(bankKey string, records []*runtimev1.MemoryRecord, event *runtimev1.MemoryEvent) error {
+	return s.replaceBankRecordsWithTxHook(bankKey, records, event, nil)
+}
+
+func (s *Service) replaceBankRecordsWithTxHook(bankKey string, records []*runtimev1.MemoryRecord, event *runtimev1.MemoryEvent, txHook persistTxHook) error {
 	s.mu.Lock()
 	previousSequence := s.sequence
 	state := s.banks[bankKey]
 	if state == nil {
 		s.mu.Unlock()
 		return status.Error(codes.NotFound, "memory bank not found")
+	}
+	previousState := cloneBankState(state)
+	previousBacklog := make(map[string]*ReplicationBacklogItem)
+	for key, item := range s.replicationBacklog {
+		if item == nil || locatorKey(item.Locator) != bankKey {
+			continue
+		}
+		previousBacklog[key] = cloneReplicationBacklogItem(item)
 	}
 	state.Records = make(map[string]*runtimev1.MemoryRecord, len(records))
 	state.Order = make([]string, 0, len(records))
@@ -141,7 +153,12 @@ func (s *Service) replaceBankRecords(bankKey string, records []*runtimev1.Memory
 	state.Bank.UpdatedAt = timestamppb.Now()
 	s.syncReplicationBacklogForBankLocked(state.Bank, records)
 	s.assignSequenceLocked(event)
-	if err := s.persistLocked(); err != nil {
+	if err := s.persistLockedWithTxHook(txHook); err != nil {
+		s.banks[bankKey] = previousState
+		s.removeReplicationBacklogForBankLocked(bankKey)
+		for key, item := range previousBacklog {
+			s.replicationBacklog[key] = item
+		}
 		s.sequence = previousSequence
 		s.mu.Unlock()
 		return err
@@ -249,6 +266,10 @@ func (s *Service) loadState() error {
 }
 
 func (s *Service) persistLocked() error {
+	return s.persistLockedWithTxHook(nil)
+}
+
+func (s *Service) persistLockedWithTxHook(txHook persistTxHook) error {
 	snapshot := persistedMemoryState{
 		SchemaVersion:      memoryStateSchemaVersion,
 		SavedAt:            time.Now().UTC().Format(time.RFC3339Nano),
@@ -306,7 +327,7 @@ func (s *Service) persistLocked() error {
 		return fmt.Errorf("marshal memory state snapshot: %w", err)
 	}
 	_ = payload
-	return s.persistSnapshot(snapshot)
+	return s.persistSnapshotWithTxHook(snapshot, txHook)
 }
 
 func (s *Service) importLegacyStateIfPresent() error {
@@ -449,6 +470,10 @@ func (s *Service) loadStateFromDB() error {
 }
 
 func (s *Service) persistSnapshot(snapshot persistedMemoryState) error {
+	return s.persistSnapshotWithTxHook(snapshot, nil)
+}
+
+func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHook persistTxHook) error {
 	if s.backend == nil {
 		return nil
 	}
@@ -521,6 +546,11 @@ func (s *Service) persistSnapshot(snapshot persistedMemoryState) error {
 		}
 		if err := deleteMissingEmbeddings(tx, liveRecordIDs); err != nil {
 			return err
+		}
+		if txHook != nil {
+			if err := txHook(context.Background(), tx); err != nil {
+				return err
+			}
 		}
 		if _, err := tx.Exec(`INSERT INTO memory_meta(key, value) VALUES ('state_initialized','1') ON CONFLICT(key) DO UPDATE SET value=excluded.value`); err != nil {
 			return err

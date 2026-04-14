@@ -118,6 +118,10 @@ test('phase 3: agent setup uses AgentEffectiveCapabilityResolution, not old rout
     path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-adapter.tsx'),
     'utf8',
   );
+  const agentAdapterStateSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-adapter-state.ts'),
+    'utf8',
+  );
   // Must not import resolveAiConversationRouteReadiness
   assert.equal(
     /resolveAiConversationRouteReadiness/.test(agentAdapterSource),
@@ -126,8 +130,8 @@ test('phase 3: agent setup uses AgentEffectiveCapabilityResolution, not old rout
   );
   // Must consume agentEffectiveCapabilityResolution from store
   assert.ok(
-    /agentEffectiveCapabilityResolution/.test(agentAdapterSource),
-    'chat-agent-shell-adapter.tsx must consume agentEffectiveCapabilityResolution',
+    /agentEffectiveCapabilityResolution/.test(agentAdapterStateSource),
+    'chat-agent-shell-adapter-state.ts must consume agentEffectiveCapabilityResolution',
   );
 });
 
@@ -145,19 +149,28 @@ test('phase 3: AI runtime adapter does not pass routeSnapshot to streamChatAiRun
 
 
 test('phase 3: agent adapter passes resolution to host actions, not separate readiness', () => {
-  const hostActionsSource = fs.readFileSync(
-    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions.ts'),
+  const hostActionsTypesSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-types.ts'),
+    'utf8',
+  );
+  const hostActionsSubmitRunSource = fs.readFileSync(
+    path.join(srcDir, 'shell/renderer/features/chat/chat-agent-shell-host-actions-submit-run.ts'),
     'utf8',
   );
   // Host actions input type must have agentResolution, not agentRouteReady
   assert.ok(
-    /agentResolution:\s*AgentEffectiveCapabilityResolution/.test(hostActionsSource),
+    /agentResolution:\s*AgentEffectiveCapabilityResolution/.test(hostActionsTypesSource),
     'host actions input must have agentResolution field typed as AgentEffectiveCapabilityResolution',
   );
   assert.equal(
-    /agentRouteReady:\s*boolean/.test(hostActionsSource),
+    /agentRouteReady:\s*boolean/.test(hostActionsTypesSource),
     false,
     'host actions input must not have agentRouteReady boolean field',
+  );
+  assert.match(
+    hostActionsSubmitRunSource,
+    /agentResolution:\s*input\.agentResolution/,
+    'submit runner must pass agentResolution through to runAgentTurn',
   );
 });
 

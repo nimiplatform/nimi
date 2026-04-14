@@ -62,9 +62,19 @@ func (s *Service) currentLifeTrackExecutor() LifeTrackExecutor {
 
 func (s *Service) runLifeTrackLoop(ctx context.Context, done chan struct{}) {
 	defer close(done)
-	if err := s.runLifeTrackSweep(ctx, time.Now().UTC()); err != nil && ctx.Err() == nil {
-		s.logger.Warn("agentcore life-track sweep failed", "error", err)
+	runMaintenanceSweep := func(now time.Time, lastCanonicalReviewSweep *time.Time) {
+		if shouldRunCanonicalReviewSchedulingSweep(*lastCanonicalReviewSweep, now) {
+			*lastCanonicalReviewSweep = now
+			if err := s.runCanonicalReviewSchedulingSweep(ctx, now); err != nil && ctx.Err() == nil {
+				s.logger.Warn("agentcore canonical-review scheduling sweep failed", "error", err)
+			}
+		}
+		if err := s.runLifeTrackSweep(ctx, now); err != nil && ctx.Err() == nil {
+			s.logger.Warn("agentcore life-track sweep failed", "error", err)
+		}
 	}
+	var lastCanonicalReviewSweep time.Time
+	runMaintenanceSweep(time.Now().UTC(), &lastCanonicalReviewSweep)
 	ticker := time.NewTicker(lifeTrackLoopInterval)
 	defer ticker.Stop()
 	for {
@@ -72,9 +82,7 @@ func (s *Service) runLifeTrackLoop(ctx context.Context, done chan struct{}) {
 		case <-ctx.Done():
 			return
 		case tickAt := <-ticker.C:
-			if err := s.runLifeTrackSweep(ctx, tickAt.UTC()); err != nil && ctx.Err() == nil {
-				s.logger.Warn("agentcore life-track sweep failed", "error", err)
-			}
+			runMaintenanceSweep(tickAt.UTC(), &lastCanonicalReviewSweep)
 		}
 	}
 }

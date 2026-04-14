@@ -7,6 +7,7 @@ import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   buildAgentLocalChatExecutionTextRequest,
+  type AgentLocalChatExecutionTextRequest,
 } from './chat-ai-execution-engine';
 import {
   buildAgentResolvedOutputText,
@@ -102,6 +103,7 @@ export async function* runScheduledFollowUpTurn(input: {
   metadata: AgentLocalChatProviderMetadata;
   runtimeAdapter: AgentLocalChatRuntimeAdapter;
   continuityAdapter: AgentLocalChatContinuityAdapter;
+  followUpAssistantRuntimeFollowUp: NonNullable<import('./chat-agent-orchestration-types').AgentLocalChatProviderOptions['followUpAssistantRuntimeFollowUp']>;
   followUpAction: import('./chat-agent-behavior').AgentResolvedMessageActionEnvelope['actions'][number];
   priorAssistantText: string;
   chainContext: AgentFollowUpChainContext;
@@ -168,31 +170,51 @@ export async function* runScheduledFollowUpTurn(input: {
     turnId: followUpTurnId,
     signal: input.baseInput.signal,
   });
-  const executionRequest = buildAgentLocalChatExecutionTextRequest({
-    systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
-    targetSnapshot: input.metadata.targetSnapshot,
-    history: followUpHistory,
-    userText: followUpPromptPayload.promptText,
-    userAttachments: [],
-    context: turnContext,
-    resolvedBehavior: null,
-    modelContextTokens: input.metadata.textModelContextTokens,
-    maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
-  });
-  const invokeResult = await input.runtimeAdapter.invokeText({
-    agentId: input.metadata.agentId,
-    prompt: executionRequest.prompt,
-    messages: executionRequest.messages,
-    systemPrompt: executionRequest.systemPrompt,
-    maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
-    threadId: input.baseInput.threadId,
-    agentResolution: input.metadata.agentResolution,
-    textExecutionSnapshot: input.metadata.textExecutionSnapshot,
-    runtimeConfigState: input.metadata.runtimeConfigState,
-    runtimeFields: input.metadata.runtimeFields,
-    reasoningPreference: input.metadata.reasoningPreference,
-    signal: input.baseInput.signal,
-  });
+  let executionRequest: AgentLocalChatExecutionTextRequest;
+  let invokeResult: Awaited<ReturnType<AgentLocalChatRuntimeAdapter['invokeText']>>;
+  try {
+    executionRequest = buildAgentLocalChatExecutionTextRequest({
+      systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
+      targetSnapshot: input.metadata.targetSnapshot,
+      history: followUpHistory,
+      userText: followUpPromptPayload.promptText,
+      userAttachments: [],
+      context: turnContext,
+      resolvedBehavior: null,
+      modelContextTokens: input.metadata.textModelContextTokens,
+      maxOutputTokensRequested: input.metadata.textMaxOutputTokensRequested,
+    });
+    invokeResult = await input.runtimeAdapter.invokeText({
+      agentId: input.metadata.agentId,
+      prompt: executionRequest.prompt,
+      messages: executionRequest.messages,
+      systemPrompt: executionRequest.systemPrompt,
+      maxOutputTokensRequested: executionRequest.diagnostics.maxOutputTokensRequested,
+      threadId: input.baseInput.threadId,
+      agentResolution: input.metadata.agentResolution,
+      textExecutionSnapshot: input.metadata.textExecutionSnapshot,
+      runtimeConfigState: input.metadata.runtimeConfigState,
+      runtimeFields: input.metadata.runtimeFields,
+      reasoningPreference: input.metadata.reasoningPreference,
+      signal: input.baseInput.signal,
+    });
+  } catch (error) {
+    if (isAbortLikeError(error) || input.baseInput.signal?.aborted) {
+      return;
+    }
+    logRendererEvent({
+      level: 'warn',
+      area: 'agent-chat-followup',
+      message: 'action:agent-local-chat-v1-follow-up-preflight-failed',
+      details: {
+        chainId: input.chainContext.chainId,
+        followUpDepth: input.chainContext.followUpDepth,
+        sourceActionId: input.chainContext.followUpSourceActionId,
+        reason: error instanceof Error ? error.message : String(error || 'follow-up preflight failed'),
+      },
+    });
+    return;
+  }
   const resolvedOutput = resolveAgentModelOutputEnvelope({
     modelOutput: invokeResult.text,
     requestPrompt: executionRequest.prompt,
@@ -301,6 +323,30 @@ export async function* runScheduledFollowUpTurn(input: {
     voiceState: actionResult.voiceState,
     textMessageState,
   });
+  try {
+    await input.followUpAssistantRuntimeFollowUp({
+      agentId: input.metadata.agentId,
+      displayName: input.metadata.targetSnapshot.displayName,
+      worldId: input.metadata.targetSnapshot.worldId,
+      assistantText: followUpOutputText,
+      turnId: followUpTurnId,
+      threadId: input.baseInput.threadId,
+      history: followUpHistory,
+    });
+  } catch (error) {
+    logRendererEvent({
+      level: 'warn',
+      area: 'agent-chat-followup',
+      message: 'action:agent-local-chat-v1-follow-up-runtime-writeback-failed',
+      details: {
+        chainId: input.chainContext.chainId,
+        followUpDepth: input.chainContext.followUpDepth,
+        turnId: followUpTurnId,
+        sourceActionId: input.chainContext.followUpSourceActionId,
+        reason: error instanceof Error ? error.message : String(error || 'follow-up runtime write-back failed'),
+      },
+    });
+  }
   yield {
     threadId: input.baseInput.threadId,
     projectionVersion: commitResult.projectionVersion,
@@ -326,6 +372,7 @@ export async function* runScheduledFollowUpTurn(input: {
       metadata: input.metadata,
       runtimeAdapter: input.runtimeAdapter,
       continuityAdapter: input.continuityAdapter,
+      followUpAssistantRuntimeFollowUp: input.followUpAssistantRuntimeFollowUp,
       followUpAction: nextFollowUpAction,
       priorAssistantText: followUpOutputText,
       chainContext: {

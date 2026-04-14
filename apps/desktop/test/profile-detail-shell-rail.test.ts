@@ -17,8 +17,8 @@ const mainLayoutSource = readWorkspaceFile('src/shell/renderer/app-shell/layouts
 const profilePanelSource = readWorkspaceFile('src/shell/renderer/features/profile/profile-panel.tsx');
 const contactDetailProfileModalSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
-const stateContractSource = readRepoFile('spec/desktop/kernel/state-contract.md');
-const storeSlicesSource = readRepoFile('spec/desktop/kernel/tables/store-slices.yaml');
+const stateContractSource = readRepoFile('.nimi/spec/desktop/kernel/state-contract.md');
+const storeSlicesSource = readRepoFile('.nimi/spec/desktop/kernel/tables/store-slices.yaml');
 
 test('profile detail shell rail: ui slice tracks shared profile overlay state', () => {
   assert.match(storeTypesSource, /profileDetailOverlayOpen: boolean;/);

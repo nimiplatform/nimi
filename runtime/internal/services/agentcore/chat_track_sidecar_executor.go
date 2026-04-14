@@ -196,6 +196,10 @@ Rules:
 - Do not emit markdown, prose, code fences, or comments.
 - Do not emit any field outside behavioral_posture, cancel_pending_hook_ids, next_hook_intent, and canonical_memory_candidates.
 - Do not emit proactive initiate-chat semantics, arbitrary state mutation, direct world/user mutation, or free-form scheduling logic.
+- current chat transcript is source evidence, not canonical memory truth by default.
+- emit canonical_memory_candidates only when the current evidence window supports a stable durable memory proposal.
+- absorb explicit same-window self-correction or contradiction before candidate emission; do not emit two conflicting durable candidates from one evidence window.
+- if the evidence remains unstable, tentative, or situational, emit [] or prefer OBSERVATIONAL over SEMANTIC.
 - behavioral_posture, if present, may only contain:
   - posture_class: string
   - action_family: observe | engage | support | assist | reflect | rest

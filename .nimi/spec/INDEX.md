@@ -105,6 +105,15 @@ Runtime 规范采用 kernel + domain 的两层结构，覆盖 Runtime proto 全�
 2. `.nimi/spec/runtime/kernel/tables/state-transitions.yaml`
 3. 受影响 kernel/domain 文档（按 Rule ID 引用）
 
+### 修改 Memory Substrate / Canonical Review / Canonical Bank 边界
+
+1. `.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`（`K-MEM-001 ~ K-MEM-012`，优先看 `K-MEM-004`, `K-MEM-010`, `K-MEM-011`, `K-MEM-012`）
+2. `.nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md`（`K-MEMSUB-001 ~ K-MEMSUB-008`）
+3. `.nimi/spec/runtime/kernel/runtime-agent-core-contract.md`（`K-AGCORE-004`, `K-AGCORE-015 ~ K-AGCORE-019`）
+4. `.nimi/spec/runtime/kernel/tables/runtime-memory-bank-scope.yaml`
+5. `.nimi/spec/runtime/kernel/tables/runtime-memory-replication-outcome.yaml`
+6. `.nimi/spec/runtime/kernel/index.md`（核对 Runtime Phase 2 Draft 面与契约入口）
+
 ## Desktop（当前）
 
 Desktop 规范采用 kernel + domain 的两层结构：

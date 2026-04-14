@@ -16,6 +16,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/memoryengine"
+	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -133,6 +134,161 @@ func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 		t.Fatalf("expected 0 history records after delete, got %d", len(historyAfterDelete.GetRecords()))
 	}
 
+}
+
+func TestMemoryServiceRetainSemanticDedupReusesExistingRecordOnEligibleBank(t *testing.T) {
+	t.Parallel()
+
+	svc, locator := newBoundSemanticDedupTestBank(t)
+	ctx := context.Background()
+	first := retainSemanticMemoryForTest(t, ctx, svc, locator, "Alice", "works_at", "Nimi")
+
+	svc.mu.RLock()
+	beforeSequence := svc.sequence
+	svc.mu.RUnlock()
+
+	secondResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_NONE,
+				Provenance: &runtimev1.MemoryProvenance{
+					SourceSystem:  "test",
+					SourceEventId: "evt-semantic-duplicate",
+				},
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   "Alice",
+						Predicate: "works_at",
+						Object:    "Nimi",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(second): %v", err)
+	}
+	if got := secondResp.GetRecords()[0].GetMemoryId(); got != first.GetMemoryId() {
+		t.Fatalf("expected dedup to reuse %s, got %s", first.GetMemoryId(), got)
+	}
+
+	svc.mu.RLock()
+	afterSequence := svc.sequence
+	svc.mu.RUnlock()
+	if afterSequence != beforeSequence {
+		t.Fatalf("expected dedup suppression not to publish a new event sequence, got %d -> %d", beforeSequence, afterSequence)
+	}
+
+	historyResp, err := svc.History(ctx, &runtimev1.HistoryRequest{
+		Bank:  locator,
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10},
+	})
+	if err != nil {
+		t.Fatalf("History: %v", err)
+	}
+	if len(historyResp.GetRecords()) != 1 {
+		t.Fatalf("expected one canonical row after dedup suppression, got %d", len(historyResp.GetRecords()))
+	}
+}
+
+func TestMemoryServiceRetainSemanticDedupNormalizesCaseAndWhitespace(t *testing.T) {
+	t.Parallel()
+
+	svc, locator := newBoundSemanticDedupTestBank(t)
+	ctx := context.Background()
+	first := retainSemanticMemoryForTest(t, ctx, svc, locator, "  Alice ", "WORKS_AT", " Nimi  ")
+
+	secondResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_NONE,
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   "alice",
+						Predicate: " works_at ",
+						Object:    "nimi",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(second): %v", err)
+	}
+	if got := secondResp.GetRecords()[0].GetMemoryId(); got != first.GetMemoryId() {
+		t.Fatalf("expected normalized semantic duplicate to reuse %s, got %s", first.GetMemoryId(), got)
+	}
+}
+
+func TestMemoryServiceRetainSemanticDedupDoesNotRunForNullProfileBanks(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	ctx := context.Background()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-null-profile-dedup"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Null Profile Bank", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+
+	first := retainSemanticMemoryForTest(t, ctx, svc, locator, "Alice", "works_at", "Nimi")
+	second := retainSemanticMemoryForTest(t, ctx, svc, locator, "Alice", "works_at", "Nimi")
+	if first.GetMemoryId() == second.GetMemoryId() {
+		t.Fatalf("expected null-profile bank not to dedup, both retains reused %s", first.GetMemoryId())
+	}
+}
+
+func TestMemoryServiceRetainSemanticDedupDoesNotRunForObservationalRecords(t *testing.T) {
+	t.Parallel()
+
+	svc, locator := newBoundSemanticDedupTestBank(t)
+	ctx := context.Background()
+	firstResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "Alice mentioned Nimi"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(first observational): %v", err)
+	}
+	secondResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "Alice mentioned Nimi"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(second observational): %v", err)
+	}
+	if got := secondResp.GetRecords()[0].GetMemoryId(); got == firstResp.GetRecords()[0].GetMemoryId() {
+		t.Fatalf("expected observational records not to dedup, reused %s", got)
+	}
 }
 
 func TestMemoryServiceCreateBankWithoutInstalledProvider(t *testing.T) {
@@ -902,6 +1058,46 @@ func TestMemoryServiceNarrativeEmbeddingDeletedWhenNarrativeBecomesStale(t *test
 	if beforeCount != 1 {
 		t.Fatalf("expected active narrative embedding row, got %d", beforeCount)
 	}
+	vector := marshalFloatVector(computeEmbeddingVector("semantic-key", 4))
+	if _, err := svc.PersistenceBackend().DB().Exec(`
+		UPDATE memory_narrative_embedding
+		SET vector_json = ?
+		WHERE locator_key = ? AND narrative_id = ?
+	`, vector, locatorKey(locator), "nar-stale-1"); err != nil {
+		t.Fatalf("update active narrative embedding: %v", err)
+	}
+	activeSemanticResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "semantic-key",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(active narrative semantic-only): %v", err)
+	}
+	if len(activeSemanticResp.GetNarrativeHits()) != 1 || activeSemanticResp.GetNarrativeHits()[0].GetNarrativeId() != "nar-stale-1" {
+		t.Fatalf("expected active narrative embedding hit before stale, got %#v", activeSemanticResp.GetNarrativeHits())
+	}
+	if _, err := svc.PersistenceBackend().DB().Exec(`
+		INSERT INTO memory_narrative_alias(bank_locator_key, narrative_id, alias_norm, alias_display, helpful_count, unhelpful_count, status, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, locatorKey(locator), "nar-stale-1", "semantic key", "semantic key", 3, 0, narrativeAliasStatusActive, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		t.Fatalf("insert active alias row: %v", err)
+	}
+	activeAliasResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "semantic key",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(active narrative alias-only): %v", err)
+	}
+	if len(activeAliasResp.GetNarrativeHits()) != 1 || activeAliasResp.GetNarrativeHits()[0].GetNarrativeId() != "nar-stale-1" {
+		t.Fatalf("expected active narrative alias hit before stale, got %#v", activeAliasResp.GetNarrativeHits())
+	}
 	if err := svc.CommitCanonicalReview(ctx, "review-narrative-stale", locator, record.GetMemoryId(), CanonicalReviewOutcomes{
 		Narratives: []NarrativeCandidate{
 			{
@@ -926,6 +1122,193 @@ func TestMemoryServiceNarrativeEmbeddingDeletedWhenNarrativeBecomesStale(t *test
 	}
 	if afterCount != 0 {
 		t.Fatalf("expected stale narrative embedding row to be removed, got %d", afterCount)
+	}
+	if err := svc.cleanupAcceleratorStateAt(ctx, time.Now().UTC()); err != nil {
+		t.Fatalf("cleanupAcceleratorStateAt: %v", err)
+	}
+	var aliasCount int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT COUNT(1)
+		FROM memory_narrative_alias
+		WHERE bank_locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), "nar-stale-1").Scan(&aliasCount); err != nil {
+		t.Fatalf("count stale narrative alias rows: %v", err)
+	}
+	if aliasCount != 0 {
+		t.Fatalf("expected stale narrative alias rows to be removed, got %d", aliasCount)
+	}
+	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "project direction",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(stale narrative): %v", err)
+	}
+	if len(recallResp.GetNarrativeHits()) != 1 || recallResp.GetNarrativeHits()[0].GetNarrativeId() != "nar-stale-1" {
+		t.Fatalf("expected stale narrative to remain recallable, got %#v", recallResp.GetNarrativeHits())
+	}
+	if !recallResp.GetNarrativeHits()[0].GetIsStale() {
+		t.Fatalf("expected stale narrative hit to keep stale marker, got %#v", recallResp.GetNarrativeHits()[0])
+	}
+	semanticResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "semantic-key",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(stale narrative semantic-only): %v", err)
+	}
+	if len(semanticResp.GetNarrativeHits()) != 0 {
+		t.Fatalf("expected stale narrative to lose embedding-only recall advantage, got %#v", semanticResp.GetNarrativeHits())
+	}
+	aliasResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "semantic key",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(stale narrative alias-only): %v", err)
+	}
+	if len(aliasResp.GetNarrativeHits()) != 0 {
+		t.Fatalf("expected stale narrative to lose alias acceleration advantage, got %#v", aliasResp.GetNarrativeHits())
+	}
+}
+
+func TestMemoryServiceDeleteMemoryCascadesDerivedState(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, record := newCanonicalTestMemoryRecord(t)
+	target := seedCanonicalCascadeFixture(t, svc, locator, record, "delete")
+	ctx := context.Background()
+
+	if _, err := svc.DeleteMemory(ctx, &runtimev1.DeleteMemoryRequest{
+		Bank:      locator,
+		MemoryIds: []string{record.GetMemoryId()},
+		Reason:    "cleanup",
+	}); err != nil {
+		t.Fatalf("DeleteMemory: %v", err)
+	}
+
+	assertNarrativeCascadeState(t, svc, locator, "nar-delete", "invalidated")
+	assertTruthCascadeState(t, svc, locator, "truth-delete", "invalidated")
+	assertRelationInactive(t, svc, locator, record.GetMemoryId(), target.GetMemoryId(), "thematic")
+
+	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "project direction",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(after delete cascade): %v", err)
+	}
+	if len(recallResp.GetNarrativeHits()) != 0 {
+		t.Fatalf("expected invalidated narrative hidden from recall, got %#v", recallResp.GetNarrativeHits())
+	}
+}
+
+func TestMemoryServiceReplicationInvalidationCascadesDerivedState(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, record := newCanonicalTestMemoryRecord(t)
+	target := seedCanonicalCascadeFixture(t, svc, locator, record, "replication")
+	ctx := context.Background()
+	observedAt := time.Now().UTC()
+
+	if err := svc.ApplyReplicationObservation(locator, record.GetMemoryId(), &runtimev1.MemoryReplicationState{
+		Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED,
+		LocalVersion: record.GetReplication().GetLocalVersion(),
+		BasisVersion: record.GetReplication().GetLocalVersion(),
+		Detail: &runtimev1.MemoryReplicationState_Invalidation{
+			Invalidation: &runtimev1.MemoryInvalidation{
+				InvalidationId:     "inv-derived-1",
+				InvalidatedVersion: record.GetReplication().GetLocalVersion(),
+				Authority:          "realm",
+				InvalidationReason: "moderation",
+				InvalidatedAt:      timestamppb.New(observedAt),
+			},
+		},
+	}, observedAt); err != nil {
+		t.Fatalf("ApplyReplicationObservation(invalidated): %v", err)
+	}
+
+	assertNarrativeCascadeState(t, svc, locator, "nar-replication", "invalidated")
+	assertTruthCascadeState(t, svc, locator, "truth-replication", "invalidated")
+	assertRelationInactive(t, svc, locator, record.GetMemoryId(), target.GetMemoryId(), "thematic")
+
+	recallResp, err := svc.Recall(ctx, &runtimev1.RecallRequest{
+		Bank: locator,
+		Query: &runtimev1.MemoryRecallQuery{
+			Query: "project direction",
+			Limit: 5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Recall(after replication cascade): %v", err)
+	}
+	if len(recallResp.GetNarrativeHits()) != 0 {
+		t.Fatalf("expected invalidated narrative hidden from recall, got %#v", recallResp.GetNarrativeHits())
+	}
+}
+
+func TestMemoryServiceTruthSupersessionMarksPriorTruthStale(t *testing.T) {
+	t.Parallel()
+
+	svc, locator, record := newCanonicalTestMemoryRecord(t)
+	ctx := context.Background()
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+
+	if err := svc.CommitCanonicalReview(ctx, "review-truth-old", locator, record.GetMemoryId(), CanonicalReviewOutcomes{
+		Truths: []TruthCandidate{
+			{
+				TruthID:         "truth-old",
+				Dimension:       "relational",
+				NormalizedKey:   "alice:works_at",
+				Statement:       "Alice works at Nimi.",
+				Confidence:      0.92,
+				ReviewCount:     1,
+				LastReviewAt:    now,
+				Status:          "admitted",
+				SourceMemoryIDs: []string{record.GetMemoryId()},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("CommitCanonicalReview(old truth): %v", err)
+	}
+	if err := svc.CommitCanonicalReview(ctx, "review-truth-new", locator, record.GetMemoryId(), CanonicalReviewOutcomes{
+		Truths: []TruthCandidate{
+			{
+				TruthID:           "truth-new",
+				Dimension:         "relational",
+				NormalizedKey:     "alice:role",
+				Statement:         "Alice is part of the core org.",
+				Confidence:        0.95,
+				ReviewCount:       2,
+				LastReviewAt:      now,
+				Status:            "admitted",
+				SupersedesTruthID: "truth-old",
+				SourceMemoryIDs:   []string{record.GetMemoryId()},
+			},
+		},
+	}); err != nil {
+		t.Fatalf("CommitCanonicalReview(new truth): %v", err)
+	}
+
+	assertTruthCascadeState(t, svc, locator, "truth-old", "stale")
+	truths, err := svc.ListAdmittedTruths(ctx, locator)
+	if err != nil {
+		t.Fatalf("ListAdmittedTruths: %v", err)
+	}
+	if len(truths) != 1 || truths[0].TruthID != "truth-new" {
+		t.Fatalf("expected only new truth admitted after supersession, got %#v", truths)
 	}
 }
 
@@ -2354,6 +2737,238 @@ func newCanonicalTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBank
 		t.Fatalf("Retain: %v", err)
 	}
 	return svc, locator, retainResp.GetRecords()[0]
+}
+
+func newBoundSemanticDedupTestBank(t *testing.T) (*Service, *runtimev1.MemoryBankLocator) {
+	t.Helper()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "nimi-embed",
+		Dimension:       4,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "nimi-embed",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	})
+
+	ctx := context.Background()
+	locator := &runtimev1.MemoryBankLocator{
+		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
+		Owner: &runtimev1.MemoryBankLocator_AgentCore{
+			AgentCore: &runtimev1.AgentCoreBankOwner{AgentId: "agent-semantic-dedup"},
+		},
+	}
+	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Semantic Dedup Bank", nil); err != nil {
+		t.Fatalf("EnsureCanonicalBank: %v", err)
+	}
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
+	}
+	return svc, locator
+}
+
+func retainSemanticMemoryForTest(t *testing.T, ctx context.Context, svc *Service, locator *runtimev1.MemoryBankLocator, subject string, predicate string, object string) *runtimev1.MemoryRecord {
+	t.Helper()
+
+	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_NONE,
+				Provenance: &runtimev1.MemoryProvenance{
+					SourceSystem:  "test",
+					SourceEventId: ulid.Make().String(),
+				},
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   subject,
+						Predicate: predicate,
+						Object:    object,
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(%s/%s/%s): %v", subject, predicate, object, err)
+	}
+	if len(retainResp.GetRecords()) != 1 {
+		t.Fatalf("expected one retained record, got %d", len(retainResp.GetRecords()))
+	}
+	return retainResp.GetRecords()[0]
+}
+
+func seedCanonicalCascadeFixture(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, sourceRecord *runtimev1.MemoryRecord, suffix string) *runtimev1.MemoryRecord {
+	t.Helper()
+
+	ctx := context.Background()
+	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
+		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
+	}
+	targetResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: locator,
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "astronomy telescope note"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain(target): %v", err)
+	}
+	target := targetResp.GetRecords()[0]
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if err := svc.CommitCanonicalReview(ctx, "review-cascade-"+suffix, locator, sourceRecord.GetMemoryId(), CanonicalReviewOutcomes{
+		Narratives: []NarrativeCandidate{
+			{
+				NarrativeID:     "nar-" + suffix,
+				Topic:           "project direction",
+				Content:         "memory redesign review quality",
+				SourceVersion:   "review-runtime",
+				Status:          "active",
+				SourceMemoryIDs: []string{sourceRecord.GetMemoryId()},
+			},
+		},
+		Truths: []TruthCandidate{
+			{
+				TruthID:         "truth-" + suffix,
+				Dimension:       "relational",
+				NormalizedKey:   "alice:" + suffix,
+				Statement:       "Alice remains connected to Nimi.",
+				Confidence:      0.93,
+				ReviewCount:     1,
+				LastReviewAt:    now,
+				Status:          "admitted",
+				SourceMemoryIDs: []string{sourceRecord.GetMemoryId()},
+			},
+		},
+		Relations: []RelationCandidate{
+			{
+				SourceID:     sourceRecord.GetMemoryId(),
+				TargetID:     target.GetMemoryId(),
+				RelationType: "thematic",
+				Confidence:   0.95,
+			},
+		},
+	}); err != nil {
+		t.Fatalf("CommitCanonicalReview(cascade fixture): %v", err)
+	}
+	if _, err := svc.PersistenceBackend().DB().Exec(`
+		INSERT INTO memory_narrative_alias(bank_locator_key, narrative_id, alias_norm, alias_display, helpful_count, unhelpful_count, status, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, locatorKey(locator), "nar-"+suffix, "project direction", "project direction", 3, 0, narrativeAliasStatusActive, now); err != nil {
+		t.Fatalf("insert active alias row: %v", err)
+	}
+	return target
+}
+
+func assertNarrativeCascadeState(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, narrativeID string, wantStatus string) {
+	t.Helper()
+
+	var status string
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT status
+		FROM memory_narrative
+		WHERE bank_locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), narrativeID).Scan(&status); err != nil {
+		t.Fatalf("load memory_narrative status: %v", err)
+	}
+	if status != wantStatus {
+		t.Fatalf("expected narrative status %q, got %q", wantStatus, status)
+	}
+	var activeSources int
+	var deactivatedSources int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT
+			COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN is_active = 0 AND deactivated_at IS NOT NULL THEN 1 ELSE 0 END), 0)
+		FROM narrative_source
+		WHERE bank_locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), narrativeID).Scan(&activeSources, &deactivatedSources); err != nil {
+		t.Fatalf("load narrative_source state: %v", err)
+	}
+	if activeSources != 0 || deactivatedSources == 0 {
+		t.Fatalf("expected narrative_source soft-deactivated, got active=%d deactivated=%d", activeSources, deactivatedSources)
+	}
+	var embeddingCount int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT COUNT(1)
+		FROM memory_narrative_embedding
+		WHERE locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), narrativeID).Scan(&embeddingCount); err != nil {
+		t.Fatalf("count memory_narrative_embedding rows: %v", err)
+	}
+	if embeddingCount != 0 {
+		t.Fatalf("expected no narrative embedding rows after cascade, got %d", embeddingCount)
+	}
+	var aliasCount int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT COUNT(1)
+		FROM memory_narrative_alias
+		WHERE bank_locator_key = ? AND narrative_id = ?
+	`, locatorKey(locator), narrativeID).Scan(&aliasCount); err != nil {
+		t.Fatalf("count memory_narrative_alias rows: %v", err)
+	}
+	if aliasCount != 0 {
+		t.Fatalf("expected no narrative alias rows after cascade, got %d", aliasCount)
+	}
+}
+
+func assertTruthCascadeState(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, truthID string, wantStatus string) {
+	t.Helper()
+
+	var status string
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT status
+		FROM agent_truth
+		WHERE bank_locator_key = ? AND truth_id = ?
+	`, locatorKey(locator), truthID).Scan(&status); err != nil {
+		t.Fatalf("load agent_truth status: %v", err)
+	}
+	if status != wantStatus {
+		t.Fatalf("expected truth status %q, got %q", wantStatus, status)
+	}
+	var activeSources int
+	var deactivatedSources int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT
+			COALESCE(SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN is_active = 0 AND deactivated_at IS NOT NULL THEN 1 ELSE 0 END), 0)
+		FROM truth_source
+		WHERE bank_locator_key = ? AND truth_id = ?
+	`, locatorKey(locator), truthID).Scan(&activeSources, &deactivatedSources); err != nil {
+		t.Fatalf("load truth_source state: %v", err)
+	}
+	if activeSources != 0 || deactivatedSources == 0 {
+		t.Fatalf("expected truth_source soft-deactivated, got active=%d deactivated=%d", activeSources, deactivatedSources)
+	}
+}
+
+func assertRelationInactive(t *testing.T, svc *Service, locator *runtimev1.MemoryBankLocator, sourceID string, targetID string, relationType string) {
+	t.Helper()
+
+	var active int
+	if err := svc.PersistenceBackend().DB().QueryRow(`
+		SELECT is_active
+		FROM memory_relation
+		WHERE bank_locator_key = ? AND source_id = ? AND target_id = ? AND relation_type = ?
+	`, locatorKey(locator), sourceID, targetID, relationType).Scan(&active); err != nil {
+		t.Fatalf("load memory_relation active state: %v", err)
+	}
+	if active != 0 {
+		t.Fatalf("expected memory_relation to deactivate, got is_active=%d", active)
+	}
 }
 
 type memoryEventCaptureStream struct {

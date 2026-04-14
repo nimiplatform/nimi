@@ -1,9 +1,5 @@
 import type { ConversationRuntimeTextMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
-  InvokeModLlmInput,
-  InvokeModLlmOutput,
-} from '@runtime/llm-adapter/execution';
-import type {
   buildRuntimeCallOptions,
   buildRuntimeRequestMetadata,
   buildRuntimeStreamOptions,
@@ -167,8 +163,10 @@ export type ChatAgentTranscribeRuntimeInvokeDeps = {
 };
 
 export type ChatAgentRuntimeInvokeDeps = {
-  invokeModLlmImpl?: (input: InvokeModLlmInput) => Promise<InvokeModLlmOutput>;
-  resolveInvokeInputImpl?: (input: ChatAgentRuntimeInvokeInput) => Promise<InvokeModLlmInput>;
+  resolveRouteInputImpl?: (input: ChatAgentRuntimeInvokeInput) => Promise<ResolvedAgentRuntimeRouteInput>;
+  buildRuntimeCallOptionsImpl?: typeof buildRuntimeCallOptions;
+  ensureRuntimeLocalModelWarmImpl?: typeof ensureRuntimeLocalModelWarm;
+  getRuntimeClientImpl?: typeof getRuntimeClient;
 };
 
 export type ResolvedAgentRuntimeRouteInput = {

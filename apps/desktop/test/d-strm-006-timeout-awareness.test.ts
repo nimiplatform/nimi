@@ -13,7 +13,7 @@ import { TEXT_GENERATE_TIMEOUT_MS } from '../src/runtime/llm-adapter/execution/t
 
 const SPEC_TIMEOUTS_PATH = resolve(
   import.meta.dirname,
-  '../../../spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
+  '../../../.nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
 );
 const HOST_CAPABILITIES_PATH = resolve(
   import.meta.dirname,

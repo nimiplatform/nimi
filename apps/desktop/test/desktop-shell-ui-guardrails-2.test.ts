@@ -28,8 +28,8 @@ const createPostModalPanelsSource = readSource('../src/shell/renderer/features/p
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
 const dialogPrimitiveSource = readSource('../../../kit/ui/src/components/dialog.tsx');
-const designSurfacesTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
-const designOverlaysTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-overlays.yaml');
+const designSurfacesTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
+const designOverlaysTable = readSource('../../../.nimi/spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
 test('top agent cards sanitize banner URLs before interpolating them into background images', () => {
   const previousWindow = globalThis.window;

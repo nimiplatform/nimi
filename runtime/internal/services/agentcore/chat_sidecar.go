@@ -85,6 +85,9 @@ func (s *Service) ApplyChatTrackSidecar(ctx context.Context, agentID string, sou
 	if err != nil {
 		return err
 	}
+	if err := validateCanonicalMemoryCandidateBatch(candidates); err != nil {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
 
 	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(candidates))
 	for _, candidate := range candidates {

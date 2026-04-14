@@ -10,6 +10,7 @@ import {
   recoverPlainTextAsEnvelope,
 } from './chat-agent-behavior-resolver-envelope';
 import {
+  buildAgentPreflightDiagnosticsFromError,
   parseAgentModelOutputDiagnostics,
   resolveAgentModelOutputEnvelope,
   toAgentModelOutputTurnError,
@@ -57,6 +58,7 @@ export function resolveAgentExperiencePolicy(input: {
 
 export {
   buildAgentResolvedOutputText,
+  buildAgentPreflightDiagnosticsFromError,
   parseAgentModelOutputDiagnostics,
   parseAgentResolvedMessageActionEnvelope,
   recoverPlainTextAsEnvelope,

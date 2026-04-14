@@ -336,7 +336,9 @@ export function RuntimeStreamFooter(props: {
 
   if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
     const showStreamingText = props.showStreamingText !== false;
-    const isPendingFirstBeat = !props.streamState.partialText && !props.streamState.partialReasoningText;
+    const isPendingFirstBeat = props.streamState.phase === 'waiting'
+      && !props.streamState.partialText
+      && !props.streamState.partialReasoningText;
     const visiblePartialText = showStreamingText
       ? (
         props.streamState.partialText
@@ -344,11 +346,7 @@ export function RuntimeStreamFooter(props: {
           ? (props.waitingLabel || '...')
           : '')
       )
-      : (
-        isPendingFirstBeat
-          ? (props.waitingLabel || '...')
-          : ''
-      );
+      : (props.waitingLabel || '...');
     const stopIcon = (
       <button
         type="button"
@@ -362,13 +360,6 @@ export function RuntimeStreamFooter(props: {
         </svg>
       </button>
     );
-    if (!showStreamingText && !isPendingFirstBeat) {
-      return (
-        <div className="flex items-center pl-0">
-          {stopIcon}
-        </div>
-      );
-    }
     return (
       <ChatStreamStatus
         mode="streaming"

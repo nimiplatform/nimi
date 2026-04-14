@@ -54,6 +54,7 @@ import { useAgentConversationCapabilityEffects } from './chat-agent-shell-capabi
 import { useSchedulingFeasibility } from './chat-execution-scheduling-guard';
 import { useAgentConversationHostActions } from './chat-agent-shell-host-actions';
 import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
+import { confirmDialog } from '@renderer/bridge/runtime-bridge/ui';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { clearPendingAttachments } from '../turns/turn-input-attachments';
 import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
@@ -64,6 +65,11 @@ import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
 } from '@renderer/infra/runtime-agent-memory';
+import {
+  createRuntimeAgentInspectAdapter,
+  type RuntimeAgentInspectEventSummary,
+  type RuntimeAgentInspectSnapshot,
+} from '@renderer/infra/runtime-agent-inspect';
 
 type UseAgentConversationModeHostInput = {
   authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
@@ -126,7 +132,14 @@ export function useAgentConversationModeHost(
   const pendingAttachmentsByThreadRef = useRef<Record<string, readonly PendingAttachment[]>>({});
   const [canonicalMemoryStatus, setCanonicalMemoryStatus] = useState<CanonicalMemoryBankStatus | null>(null);
   const [canonicalMemoryLoading, setCanonicalMemoryLoading] = useState(false);
+  const [runtimeInspect, setRuntimeInspect] = useState<RuntimeAgentInspectSnapshot | null>(null);
+  const [runtimeInspectLoading, setRuntimeInspectLoading] = useState(false);
+  const [recentRuntimeEvents, setRecentRuntimeEvents] = useState<readonly RuntimeAgentInspectEventSummary[]>([]);
+  const [mutationPendingAction, setMutationPendingAction] = useState<string | null>(null);
   const runtimeAgentMemory = useMemo(() => createRuntimeAgentMemoryAdapter({
+    getSubjectUserId: requireRuntimeSubjectUserId,
+  }), []);
+  const runtimeAgentInspect = useMemo(() => createRuntimeAgentInspectAdapter({
     getSubjectUserId: requireRuntimeSubjectUserId,
   }), []);
   const registry = useMemo(() => {
@@ -179,6 +192,38 @@ export function useAgentConversationModeHost(
     const copy = getChatThinkingUnsupportedCopy(thinkingSupport.reason);
     return t(copy.key, { defaultValue: copy.defaultValue });
   }, [t, thinkingSupport]);
+  const reloadRuntimeInspect = useCallback(async (
+    agentId: string,
+    options?: { surfaceErrors?: boolean },
+  ) => {
+    const normalizedAgentId = normalizeText(agentId);
+    if (!normalizedAgentId || input.authStatus !== 'authenticated') {
+      setRuntimeInspect(null);
+      setRuntimeInspectLoading(false);
+      return;
+    }
+    setRuntimeInspectLoading(true);
+    try {
+      const snapshot = await runtimeAgentInspect.getPublicInspect(normalizedAgentId);
+      setRuntimeInspect(snapshot);
+    } catch (error) {
+      setRuntimeInspect(null);
+      if (options?.surfaceErrors) {
+        reportHostError(error);
+      } else {
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+          },
+        });
+      }
+    } finally {
+      setRuntimeInspectLoading(false);
+    }
+  }, [input.authStatus, reportHostError, runtimeAgentInspect]);
 
   const setSelection = useCallback((selection: AgentConversationSelection) => {
     if (
@@ -259,6 +304,323 @@ export function useAgentConversationModeHost(
       cancelled = true;
     };
   }, [activeTarget?.agentId, input.authStatus, reportHostError, runtimeAgentMemory]);
+  useEffect(() => {
+    let cancelled = false;
+    const agentId = normalizeText(activeTarget?.agentId);
+    if (input.authStatus !== 'authenticated' || !agentId) {
+      setRuntimeInspect(null);
+      setRuntimeInspectLoading(false);
+      setRecentRuntimeEvents([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+    setRuntimeInspectLoading(true);
+    void runtimeAgentInspect.getPublicInspect(agentId)
+      .then((snapshot) => {
+        if (cancelled) {
+          return;
+        }
+        setRuntimeInspect(snapshot);
+        setRecentRuntimeEvents([]);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setRuntimeInspect(null);
+        logRendererEvent({
+          level: 'warn',
+          area: 'agent-chat-shell',
+          message: 'action:host-error',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+          },
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRuntimeInspectLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTarget?.agentId, input.authStatus, runtimeAgentInspect]);
+  useEffect(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    if (input.authStatus !== 'authenticated' || !agentId) {
+      return;
+    }
+    const controller = new AbortController();
+    void runtimeAgentInspect.subscribePublicEvents({
+      agentId,
+      signal: controller.signal,
+      onEvent: async (event) => {
+        setRecentRuntimeEvents((current) => {
+          const next = [event, ...current.filter((item) => item.sequence !== event.sequence)];
+          return next.slice(0, 8);
+        });
+        await reloadRuntimeInspect(agentId);
+      },
+    }).catch((error) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+      logRendererEvent({
+        level: 'warn',
+        area: 'agent-chat-shell',
+        message: 'action:host-error',
+        details: {
+          error: error instanceof Error ? error.message : String(error || ''),
+        },
+      });
+    });
+    return () => {
+      controller.abort();
+    };
+  }, [activeTarget?.agentId, input.authStatus, reloadRuntimeInspect, runtimeAgentInspect]);
+  const handleEnableAutonomy = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId) {
+      return;
+    }
+    setMutationPendingAction('Enabling autonomy…');
+    void runtimeAgentInspect.enableAutonomy(agentId)
+      .then(async () => {
+        await reloadRuntimeInspect(agentId);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.agentAutonomyEnabled', {
+            defaultValue: '{{name}} autonomy enabled.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch(reportHostError)
+      .finally(() => {
+        setMutationPendingAction(null);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleDisableAutonomy = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId) {
+      return;
+    }
+    void (async () => {
+      const confirmation = await confirmDialog({
+        title: t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' }),
+        description: t('Chat.disableAgentAutonomyConfirm', {
+          defaultValue: 'Disable runtime autonomy for {{name}}? Pending hooks remain visible but life-track execution will stop until autonomy is enabled again.',
+          name: targetName,
+        }),
+        level: 'warning',
+      });
+      if (!confirmation.confirmed) {
+        return;
+      }
+      setMutationPendingAction('Disabling autonomy…');
+      await runtimeAgentInspect.disableAutonomy({
+        agentId,
+        reason: 'desktop_agent_chat_diagnostics_disable',
+      });
+      await reloadRuntimeInspect(agentId);
+      setHostFeedback({
+        kind: 'success',
+        message: t('Chat.agentAutonomyDisabled', {
+          defaultValue: '{{name}} autonomy disabled.',
+          name: targetName,
+        }),
+      });
+    })().catch(reportHostError).finally(() => {
+      setMutationPendingAction(null);
+    });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleCancelPendingHook = useCallback((hookId: string) => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const normalizedHookId = normalizeText(hookId);
+    if (!agentId || !normalizedHookId) {
+      return;
+    }
+    void (async () => {
+      const confirmation = await confirmDialog({
+        title: t('Chat.cancelAgentHookTitle', { defaultValue: 'Cancel pending hook' }),
+        description: t('Chat.cancelAgentHookConfirm', {
+          defaultValue: 'Cancel pending hook {{hookId}} for this agent?',
+          hookId: normalizedHookId,
+        }),
+        level: 'warning',
+      });
+      if (!confirmation.confirmed) {
+        return;
+      }
+      setMutationPendingAction(`Canceling ${normalizedHookId}…`);
+      await runtimeAgentInspect.cancelHook({
+        agentId,
+        hookId: normalizedHookId,
+        reason: 'desktop_agent_chat_diagnostics_cancel',
+      });
+      await reloadRuntimeInspect(agentId);
+      setHostFeedback({
+        kind: 'success',
+        message: t('Chat.agentHookCanceled', {
+          defaultValue: 'Canceled pending hook {{hookId}}.',
+          hookId: normalizedHookId,
+        }),
+      });
+    })().catch(reportHostError).finally(() => {
+      setMutationPendingAction(null);
+    });
+  }, [activeTarget?.agentId, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleUpdateAutonomyConfig = useCallback((config: {
+    dailyTokenBudget: string;
+    maxTokensPerHook: string;
+  }) => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId) {
+      return;
+    }
+    setMutationPendingAction('Updating autonomy config…');
+    void runtimeAgentInspect.setAutonomyConfig({
+      agentId,
+      dailyTokenBudget: config.dailyTokenBudget,
+      maxTokensPerHook: config.maxTokensPerHook,
+    })
+      .then(async () => {
+        await reloadRuntimeInspect(agentId);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.agentAutonomyConfigUpdated', {
+            defaultValue: '{{name}} autonomy config updated.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch(reportHostError)
+      .finally(() => {
+        setMutationPendingAction(null);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleUpdateRuntimeState = useCallback((stateInput: {
+    statusText: string;
+    worldId: string;
+    userId: string;
+  }) => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId) {
+      return;
+    }
+    const nextStatusText = normalizeText(stateInput.statusText);
+    const nextWorldId = normalizeText(stateInput.worldId);
+    const nextUserId = normalizeText(stateInput.userId);
+    const currentStatusText = normalizeText(runtimeInspect?.statusText);
+    const currentWorldId = normalizeText(runtimeInspect?.activeWorldId);
+    const currentUserId = normalizeText(runtimeInspect?.activeUserId);
+    const payload: {
+      agentId: string;
+      statusText?: string;
+      worldId?: string;
+      userId?: string;
+    } = { agentId };
+    if (nextStatusText !== currentStatusText) {
+      payload.statusText = nextStatusText;
+    }
+    if (nextWorldId && nextWorldId !== currentWorldId) {
+      payload.worldId = nextWorldId;
+    }
+    if (nextUserId && nextUserId !== currentUserId) {
+      payload.userId = nextUserId;
+    }
+    if (!('statusText' in payload) && !('worldId' in payload) && !('userId' in payload)) {
+      setHostFeedback({
+        kind: 'info',
+        message: t('Chat.agentRuntimeStateUnchanged', {
+          defaultValue: 'No runtime state changes to apply for {{name}}.',
+          name: targetName,
+        }),
+      });
+      return;
+    }
+    setMutationPendingAction('Updating runtime state…');
+    void runtimeAgentInspect.updateState(payload)
+      .then(async () => {
+        await reloadRuntimeInspect(agentId);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.agentRuntimeStateUpdated', {
+            defaultValue: '{{name}} runtime state updated.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch(reportHostError)
+      .finally(() => {
+        setMutationPendingAction(null);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleClearWorldContext = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId || !normalizeText(runtimeInspect?.activeWorldId)) {
+      return;
+    }
+    setMutationPendingAction('Clearing world context…');
+    void runtimeAgentInspect.updateState({
+      agentId,
+      clearWorldContext: true,
+    })
+      .then(async () => {
+        await reloadRuntimeInspect(agentId);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.agentWorldContextCleared', {
+            defaultValue: '{{name}} world context cleared.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch(reportHostError)
+      .finally(() => {
+        setMutationPendingAction(null);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeAgentInspect, t]);
+  const handleClearDyadicContext = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    const targetName = normalizeText(activeTarget?.displayName) || agentId;
+    if (!agentId || !normalizeText(runtimeInspect?.activeUserId)) {
+      return;
+    }
+    setMutationPendingAction('Clearing dyadic context…');
+    void runtimeAgentInspect.updateState({
+      agentId,
+      clearDyadicContext: true,
+    })
+      .then(async () => {
+        await reloadRuntimeInspect(agentId);
+        setHostFeedback({
+          kind: 'success',
+          message: t('Chat.agentDyadicContextCleared', {
+            defaultValue: '{{name}} dyadic context cleared.',
+            name: targetName,
+          }),
+        });
+      })
+      .catch(reportHostError)
+      .finally(() => {
+        setMutationPendingAction(null);
+      });
+  }, [activeTarget?.agentId, activeTarget?.displayName, reloadRuntimeInspect, reportHostError, runtimeInspect, t]);
+  const handleRefreshRuntimeInspect = useCallback(() => {
+    const agentId = normalizeText(activeTarget?.agentId);
+    if (!agentId) {
+      return;
+    }
+    void reloadRuntimeInspect(agentId, { surfaceErrors: true });
+  }, [activeTarget?.agentId, reloadRuntimeInspect]);
   useAgentConversationCapabilityEffects({
     bootstrapReady,
     textCapabilityProjection,
@@ -493,6 +855,16 @@ export function useAgentConversationModeHost(
     composerReady,
     currentDraftTextRef,
     currentFooterHostState,
+    mutationPendingAction,
+    onCancelPendingHook: handleCancelPendingHook,
+    onClearDyadicContext: handleClearDyadicContext,
+    onClearWorldContext: handleClearWorldContext,
+    onDisableAutonomy: handleDisableAutonomy,
+    onEnableAutonomy: handleEnableAutonomy,
+    onRefreshInspect: handleRefreshRuntimeInspect,
+    onUpdateRuntimeState: handleUpdateRuntimeState,
+    onUpdateAutonomyConfig: handleUpdateAutonomyConfig,
+    recentRuntimeEvents,
     handleSubmit,
     hostFeedback,
     initialModelSelection,
@@ -508,6 +880,8 @@ export function useAgentConversationModeHost(
     renderMessageAccessory,
     renderMessageContent,
     routeReady: !activeTarget || agentRouteReady,
+    runtimeInspect,
+    runtimeInspectLoading,
     schedulingJudgement,
     selectedTargetId: activeTarget?.agentId || null,
     behaviorSettings,

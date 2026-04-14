@@ -2,7 +2,11 @@ import type {
   ConversationRuntimeTextMessage,
   ConversationTurnHistoryMessage,
 } from '@nimiplatform/nimi-kit/features/chat/headless';
-import type { TextMessageContentPart } from '@nimiplatform/sdk/runtime';
+import {
+  createNimiError,
+  type TextMessageContentPart,
+} from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
   AgentLocalBeatModality,
   AgentLocalTargetSnapshot,
@@ -18,6 +22,10 @@ const MAX_RECALL_ENTRIES = 6;
 const MAX_ARTIFACT_FACTS = 3;
 const MESSAGE_TOKEN_OVERHEAD = 6;
 const SYSTEM_TOKEN_OVERHEAD = 8;
+const IMAGE_CONTENT_TOKEN_OVERHEAD = 256;
+const VIDEO_CONTENT_TOKEN_OVERHEAD = 384;
+const AUDIO_CONTENT_TOKEN_OVERHEAD = 192;
+const ARTIFACT_REF_TOKEN_OVERHEAD = 48;
 const DEFAULT_BIO_CHAR_LIMIT = 480;
 const REDUCED_BIO_CHAR_LIMIT = 240;
 const CJK_RE = /[\u2E80-\u9FFF\uF900-\uFAFF]/gu;
@@ -154,6 +162,11 @@ type HistoryCandidate = {
   tokenEstimate: number;
 };
 
+type HistoryUnit = {
+  messages: HistoryCandidate[];
+  tokenEstimate: number;
+};
+
 type ContinuityReductionPlan = {
   memoryCount: number;
   recallCount: number;
@@ -222,8 +235,31 @@ export function estimateAgentLocalChatTokens(text: string): number {
 }
 
 function estimateRuntimeMessageTokens(message: ConversationRuntimeTextMessage): number {
+  const contentTokens = Array.isArray(message.content)
+    ? message.content.reduce((sum, part) => {
+      if (part.type === 'text') {
+        return sum + estimateAgentLocalChatTokens(part.text);
+      }
+      if (part.type === 'image_url') {
+        return sum + IMAGE_CONTENT_TOKEN_OVERHEAD;
+      }
+      if (part.type === 'video_url') {
+        return sum + VIDEO_CONTENT_TOKEN_OVERHEAD;
+      }
+      if (part.type === 'audio_url') {
+        return sum + AUDIO_CONTENT_TOKEN_OVERHEAD;
+      }
+      return sum
+        + ARTIFACT_REF_TOKEN_OVERHEAD
+        + estimateAgentLocalChatTokens(
+          [part.displayName, part.mimeType, part.artifactId, part.localArtifactId]
+            .filter((value) => normalizeText(value))
+            .join(' '),
+        );
+    }, 0)
+    : estimateAgentLocalChatTokens(message.text);
   return MESSAGE_TOKEN_OVERHEAD
-    + estimateAgentLocalChatTokens(message.text)
+    + contentTokens
     + (normalizeText(message.name) ? 2 : 0);
 }
 
@@ -464,6 +500,38 @@ function buildHistoryCandidates(history: readonly ConversationTurnHistoryMessage
     });
 }
 
+function buildHistoryUnits(history: readonly HistoryCandidate[]): HistoryUnit[] {
+  const units: HistoryUnit[] = [];
+  let current: HistoryCandidate[] = [];
+
+  const pushCurrent = () => {
+    if (current.length === 0) {
+      return;
+    }
+    units.push({
+      messages: current,
+      tokenEstimate: current.reduce((sum, item) => sum + item.tokenEstimate, 0),
+    });
+    current = [];
+  };
+
+  for (const candidate of history) {
+    if (candidate.message.role === 'user') {
+      pushCurrent();
+      current = [candidate];
+      continue;
+    }
+    if (current.length === 0) {
+      current = [candidate];
+      continue;
+    }
+    current.push(candidate);
+  }
+
+  pushCurrent();
+  return units;
+}
+
 function buildUserMessageContent(
   userText: string,
   attachments: readonly AgentChatUserAttachment[],
@@ -496,48 +564,51 @@ function packHistoryMessages(input: {
   trimmedLeadingAssistantMessages: number;
   droppedHistoryMessages: number;
 } {
-  const candidates = buildHistoryCandidates(input.history);
-  const retainedReverse: HistoryCandidate[] = [];
+  const units = buildHistoryUnits(buildHistoryCandidates(input.history));
+  const retainedReverse: HistoryUnit[] = [];
   let historyTokens = 0;
   let droppedHistoryMessages = 0;
 
-  for (let index = candidates.length - 1; index >= 0; index -= 1) {
-    const candidate = candidates[index];
-    if (!candidate) {
+  for (let index = units.length - 1; index >= 0; index -= 1) {
+    const unit = units[index];
+    if (!unit) {
       continue;
     }
-    if (historyTokens + candidate.tokenEstimate > input.historyBudgetTokens) {
-      droppedHistoryMessages += 1;
+    if (historyTokens + unit.tokenEstimate > input.historyBudgetTokens) {
+      droppedHistoryMessages += unit.messages.length;
       continue;
     }
-    retainedReverse.push(candidate);
-    historyTokens += candidate.tokenEstimate;
+    retainedReverse.push(unit);
+    historyTokens += unit.tokenEstimate;
   }
 
   const retained = retainedReverse.reverse();
   let trimmedLeadingAssistantMessages = 0;
   while (retained.length > 0) {
-    const leadingMessage = retained[0];
-    if (!leadingMessage || leadingMessage.message.role !== 'assistant') {
+    const leadingUnit = retained[0];
+    const leadingMessage = leadingUnit?.messages[0];
+    if (!leadingMessage || leadingMessage.message.role === 'user') {
       break;
     }
-    const removed = retained.shift();
-    if (!removed) {
+    const removedUnit = retained.shift();
+    if (!removedUnit) {
       break;
     }
-    historyTokens = Math.max(0, historyTokens - removed.tokenEstimate);
-    droppedHistoryMessages += 1;
-    trimmedLeadingAssistantMessages += 1;
+    historyTokens = Math.max(0, historyTokens - removedUnit.tokenEstimate);
+    droppedHistoryMessages += removedUnit.messages.length;
+    trimmedLeadingAssistantMessages += removedUnit.messages.filter((item) => item.message.role === 'assistant').length;
   }
+
+  const retainedMessages = retained.flatMap((unit) => unit.messages);
 
   return {
     messages: [
-      ...retained.map((candidate) => candidate.message),
+      ...retainedMessages.map((candidate) => candidate.message),
       input.userMessage,
     ],
-    transcriptLines: retained.map((candidate) => candidate.transcriptLine),
+    transcriptLines: retainedMessages.map((candidate) => candidate.transcriptLine),
     historyTokens,
-    retainedHistoryMessages: retained.length,
+    retainedHistoryMessages: retainedMessages.length,
     trimmedLeadingAssistantMessages,
     droppedHistoryMessages,
   };
@@ -578,6 +649,31 @@ function createInitialBudget(modelContextTokens: number): Omit<AgentLocalChatCon
     promptBudgetTokens,
     systemBudgetTokens,
   };
+}
+
+function createPromptOverflowError(input: {
+  prompt: string;
+  systemPrompt: string | null;
+  diagnostics: AgentLocalChatPromptDiagnostics;
+}): ReturnType<typeof createNimiError> {
+  return createNimiError({
+    message: 'Agent request exceeds the available input budget after prompt reduction.',
+    reasonCode: ReasonCode.AI_INPUT_INVALID,
+    actionHint: 'reduce_input',
+    source: 'runtime',
+    details: {
+      contextWindowSource: input.diagnostics.contextWindowSource,
+      promptOverflow: true,
+      requestPrompt: input.prompt,
+      requestSystemPrompt: input.systemPrompt || '',
+      maxOutputTokensRequested: input.diagnostics.maxOutputTokensRequested ?? 0,
+      totalInputTokens: input.diagnostics.estimate.totalInputTokens,
+      promptBudgetTokens: input.diagnostics.budget.promptBudgetTokens,
+      systemTokens: input.diagnostics.estimate.systemTokens,
+      historyTokens: input.diagnostics.estimate.historyTokens,
+      userTokens: input.diagnostics.estimate.userTokens,
+    },
+  });
 }
 
 export function buildAgentLocalChatExecutionTextRequest(
@@ -637,7 +733,7 @@ export function buildAgentLocalChatExecutionTextRequest(
     droppedArtifactFacts: reducedSystem.droppedArtifactFacts,
   };
 
-  return {
+  const request: AgentLocalChatExecutionTextRequest = {
     prompt,
     messages: packedHistory.messages,
     systemPrompt: reducedSystem.systemPrompt,
@@ -662,11 +758,21 @@ export function buildAgentLocalChatExecutionTextRequest(
       },
       maxOutputTokensRequested: Number.isFinite(Number(input.maxOutputTokensRequested))
         && Number(input.maxOutputTokensRequested) > 0
-        ? Math.floor(Number(input.maxOutputTokensRequested))
-        : null,
+      ? Math.floor(Number(input.maxOutputTokensRequested))
+      : null,
       promptOverflow: estimate.totalInputTokens > budget.promptBudgetTokens,
     },
   };
+
+  if (request.diagnostics.promptOverflow) {
+    throw createPromptOverflowError({
+      prompt: request.prompt,
+      systemPrompt: request.systemPrompt,
+      diagnostics: request.diagnostics,
+    });
+  }
+
+  return request;
 }
 
 export function inspectAgentLocalChatPromptDiagnostics(
