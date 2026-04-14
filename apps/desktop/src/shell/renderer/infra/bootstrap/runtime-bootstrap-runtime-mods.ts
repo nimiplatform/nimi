@@ -60,7 +60,17 @@ export async function registerBootstrapRuntimeMods(input: {
   const manifestCount = manifests.length;
   runtimeModFailures.push(...failures);
   appStore.setRuntimeModFailures([...injectedResult.failedMods, ...failures]);
-  await attachRuntimeModDeveloperHostSubscriptions();
+  void attachRuntimeModDeveloperHostSubscriptions().catch((error) => {
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:register-runtime-mods:developer-host-subscriptions-deferred',
+      flowId: input.flowId,
+      details: {
+        error: error instanceof Error ? error.message : String(error || ''),
+      },
+    });
+  });
 
   if (runtimeModFailures.length > 0) {
     logRendererEvent({

@@ -98,6 +98,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
         reasoningText: 'thinking',
         debugType: 'agent-text-turn',
         followUpTurn: true,
+        followUpInstruction: '如果对方还没回复，就轻轻追问一句。',
         followUpDelayMs: 400,
       },
     }],
@@ -117,6 +118,7 @@ test('agent shell view model resolves canonical messages with user/agent sender 
   assert.equal(messages[1]?.sessionId, 'thread-agent-1');
   assert.equal(messages[1]?.targetId, 'agent-1');
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpTurn, true);
+  assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpInstruction, '如果对方还没回复，就轻轻追问一句。');
   assert.equal((messages[1]?.metadata as Record<string, unknown>)?.followUpDelayMs, 400);
 });
 
@@ -163,6 +165,37 @@ test('agent shell view model maps image messages to canonical image kinds with m
   assert.equal(messages[0]?.kind, 'image');
   assert.equal((messages[0]?.metadata as Record<string, unknown>)?.mediaUrl, 'https://cdn.nimi.test/inn-scene.png');
   assert.equal(messages[1]?.kind, 'image-pending');
+});
+
+test('agent shell view model maps voice messages to canonical voice kinds and preserves transcript metadata', () => {
+  const messages = resolveAgentCanonicalMessages({
+    messages: [{
+      id: 'assistant-voice-1',
+      threadId: 'thread-agent-1',
+      role: 'assistant',
+      text: '',
+      createdAt: '2026-04-05T00:00:06.000Z',
+      updatedAt: '2026-04-05T00:00:06.000Z',
+      status: 'complete',
+      error: null,
+      metadata: {
+        kind: 'voice',
+        voiceUrl: 'file:///tmp/agent-voice.mp3',
+        voiceTranscript: '你好呀，我在这里。',
+      },
+    }],
+    activeThreadId: 'thread-agent-1',
+    activeTargetId: 'agent-1',
+    character: {
+      name: 'Companion',
+      avatarUrl: null,
+      handle: '@companion',
+    },
+  });
+
+  assert.equal(messages[0]?.kind, 'voice');
+  assert.equal((messages[0]?.metadata as Record<string, unknown>)?.voiceUrl, 'file:///tmp/agent-voice.mp3');
+  assert.equal((messages[0]?.metadata as Record<string, unknown>)?.voiceTranscript, '你好呀，我在这里。');
 });
 
 test('agent shell view model resolves selected target id fail-close', () => {

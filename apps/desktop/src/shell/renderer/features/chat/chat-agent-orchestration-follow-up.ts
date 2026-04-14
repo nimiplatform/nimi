@@ -80,22 +80,31 @@ function applyFollowUpChainDiagnostics(
 function buildNextFollowUpHistory(input: {
   history: ConversationTurnInput['history'];
   userMessage: ConversationTurnInput['userMessage'];
-  turnId: string;
   assistantText: string;
+  assistantTurnId: string;
+  includeUserMessage: boolean;
 }): ConversationTurnInput['history'] {
   return [
     ...input.history,
+    ...(input.includeUserMessage
+      ? [{
+        id: input.userMessage.id,
+        role: 'user' as const,
+        text: input.userMessage.text,
+      }]
+      : []),
     {
-      id: input.userMessage.id,
-      role: 'user',
-      text: input.userMessage.text,
-    },
-    {
-      id: `${input.turnId}:message:0`,
+      id: `${input.assistantTurnId}:message:0`,
       role: 'assistant',
       text: input.assistantText,
     },
   ];
+}
+
+function normalizeComparableText(value: unknown): string {
+  return String(value || '')
+    .replace(/\s+/gu, ' ')
+    .trim();
 }
 
 export async function* runScheduledFollowUpTurn(input: {
@@ -157,12 +166,12 @@ export async function* runScheduledFollowUpTurn(input: {
   }
 
   const followUpTurnId = randomIdV11('agent-turn');
-  const followUpUserMessageId = randomIdV11('agent-turn-followup');
   const followUpHistory = buildNextFollowUpHistory({
     history: input.baseInput.history,
     userMessage: input.baseInput.userMessage,
-    turnId: input.baseInput.turnId,
     assistantText: input.priorAssistantText,
+    assistantTurnId: input.chainContext.sourceTurnId,
+    includeUserMessage: input.chainContext.followUpDepth === 1,
   });
   const turnContext = await input.continuityAdapter.loadTurnContext({
     modeId: 'agent-local-chat-v1',
@@ -177,7 +186,9 @@ export async function* runScheduledFollowUpTurn(input: {
       systemPrompt: normalizeText(input.baseInput.systemPrompt) || null,
       targetSnapshot: input.metadata.targetSnapshot,
       history: followUpHistory,
-      userText: followUpPromptPayload.promptText,
+      userText: '',
+      omitUserMessageFromMessages: true,
+      followUpInstruction: followUpPromptPayload.promptText,
       userAttachments: [],
       context: turnContext,
       resolvedBehavior: null,
@@ -250,11 +261,26 @@ export async function* runScheduledFollowUpTurn(input: {
   const followUpEnvelope = resolvedOutput.envelope;
   let followUpDiagnostics = applyFollowUpChainDiagnostics(resolvedOutput.diagnostics, input.chainContext);
   const followUpOutputText = buildAgentResolvedOutputText(followUpEnvelope);
+  if (normalizeComparableText(followUpOutputText) === normalizeComparableText(input.priorAssistantText)) {
+    logRendererEvent({
+      level: 'info',
+      area: 'agent-chat-followup',
+      message: 'action:agent-local-chat-v1-follow-up-duplicate-suppressed',
+      details: {
+        chainId: input.chainContext.chainId,
+        followUpDepth: input.chainContext.followUpDepth,
+        sourceActionId: input.chainContext.followUpSourceActionId,
+        turnId: followUpTurnId,
+      },
+    });
+    return;
+  }
   const textMessageState = resolveCompletedTextMessageStateFromEnvelope({
     turnId: followUpTurnId,
     envelope: followUpEnvelope,
     metadataJson: buildAgentTextTurnDebugMetadata(followUpDiagnostics, {
       followUpTurn: true,
+      followUpInstruction: followUpPromptPayload.promptText,
       chainId: input.chainContext.chainId,
       followUpDepth: input.chainContext.followUpDepth,
       maxFollowUpTurns: input.chainContext.maxFollowUpTurns,
@@ -307,11 +333,6 @@ export async function* runScheduledFollowUpTurn(input: {
     baseInput: {
       ...input.baseInput,
       turnId: followUpTurnId,
-      userMessage: {
-        id: followUpUserMessageId,
-        text: input.followUpAction.promptPayload.promptText,
-        attachments: [],
-      },
       history: followUpHistory,
     },
     emittedEvents,
@@ -362,11 +383,6 @@ export async function* runScheduledFollowUpTurn(input: {
       baseInput: {
         ...input.baseInput,
         turnId: followUpTurnId,
-        userMessage: {
-          id: followUpUserMessageId,
-          text: followUpPromptPayload.promptText,
-          attachments: [],
-        },
         history: followUpHistory,
       },
       metadata: input.metadata,

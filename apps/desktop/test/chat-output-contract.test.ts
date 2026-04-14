@@ -6,7 +6,6 @@ import test from 'node:test';
 import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import {
   parseAgentResolvedMessageActionEnvelope,
-  recoverPlainTextAsEnvelope,
   resolveAgentModelOutputEnvelope,
 } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
 import {
@@ -85,23 +84,6 @@ test('desktop chat output contract helper exposes a minimal envelope skeleton', 
   assert.match(skeleton, /"actions": \[\]/);
 });
 
-test('recoverPlainTextAsEnvelope wraps plain text in a minimal single-message envelope', () => {
-  const envelope = recoverPlainTextAsEnvelope('我无法提供照片，但我可以描述一个舞蹈场景。');
-  assert.ok(envelope);
-  assert.equal(envelope.schemaId, AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID);
-  assert.equal(envelope.message.messageId, 'message-0');
-  assert.equal(envelope.message.text, '我无法提供照片，但我可以描述一个舞蹈场景。');
-  assert.deepEqual(envelope.actions, []);
-});
-
-test('recoverPlainTextAsEnvelope returns null for malformed JSON attempts', () => {
-  assert.equal(recoverPlainTextAsEnvelope('{"schemaId": "broken'), null);
-  assert.equal(recoverPlainTextAsEnvelope('[1, 2, 3]'), null);
-  assert.equal(recoverPlainTextAsEnvelope('```json\n{}```'), null);
-  assert.equal(recoverPlainTextAsEnvelope(''), null);
-  assert.equal(recoverPlainTextAsEnvelope('   '), null);
-});
-
 test('resolveAgentModelOutputEnvelope recovers fenced JSON output', () => {
   const modelOutput = `\uFEFF\`\`\`json\r\n${buildMinimalEnvelopeText('Recovered fenced output.')}\r\n\`\`\``;
   const resolved = resolveAgentModelOutputEnvelope({
@@ -152,7 +134,7 @@ test('resolveAgentModelOutputEnvelope recovers wrapper text around a single JSON
   assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
 });
 
-test('resolveAgentModelOutputEnvelope degrades pure plain text to a minimal envelope', () => {
+test('resolveAgentModelOutputEnvelope rejects pure plain text outputs', () => {
   const resolved = resolveAgentModelOutputEnvelope({
     modelOutput: '我可以先帮你整理下一步计划。',
     finishReason: 'stop',
@@ -160,14 +142,13 @@ test('resolveAgentModelOutputEnvelope degrades pure plain text to a minimal enve
     promptOverflow: false,
   });
 
-  assert.equal(resolved.ok, true);
-  if (!resolved.ok) {
-    assert.fail('expected plain text to recover');
+  assert.equal(resolved.ok, false);
+  if (resolved.ok) {
+    assert.fail('expected plain text to fail');
   }
-  assert.equal(resolved.envelope.message.text, '我可以先帮你整理下一步计划。');
-  assert.deepEqual(resolved.envelope.actions, []);
-  assert.equal(resolved.diagnostics.classification, 'plain-text');
-  assert.equal(resolved.diagnostics.recoveryPath, 'plain-text-envelope');
+  assert.equal(resolved.diagnostics.classification, 'invalid-json');
+  assert.equal(resolved.diagnostics.recoveryPath, 'none');
+  assert.equal(resolved.diagnostics.suspectedTruncation, false);
 });
 
 test('resolveAgentModelOutputEnvelope marks incomplete JSON as partial and suspected truncation', () => {

@@ -64,28 +64,28 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
-  test('D-BOOT-006: external agent bridge starts after runtime mod registration', () => {
+  test('D-BOOT-006: external agent bridge bootstrap is scheduled after runtime mod registration', () => {
     const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
     const tier1ActionsIndex = bootstrapSource.indexOf('registerExternalAgentTier1Actions(hookRuntime);');
-    const bridgeStartIndex = bootstrapSource.indexOf('await startExternalAgentActionBridge();');
-    const descriptorSyncIndex = bootstrapSource.indexOf('await resyncExternalAgentActionDescriptors();');
+    const bridgeStartIndex = bootstrapSource.indexOf("step: 'external agent action bridge startup'");
+    const descriptorSyncIndex = bootstrapSource.indexOf("step: 'external agent descriptor resync'");
     assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
     assert.ok(tier1ActionsIndex !== -1, 'registerExternalAgentTier1Actions(hookRuntime); must appear in bootstrap source');
-    assert.ok(bridgeStartIndex !== -1, 'await startExternalAgentActionBridge(); must appear in bootstrap source');
-    assert.ok(descriptorSyncIndex !== -1, 'await resyncExternalAgentActionDescriptors(); must appear in bootstrap source');
+    assert.ok(bridgeStartIndex !== -1, 'external agent bridge startup must be scheduled in bootstrap source');
+    assert.ok(descriptorSyncIndex !== -1, 'external agent descriptor resync must be scheduled in bootstrap source');
     assert.ok(runtimeModsIndex < tier1ActionsIndex, 'external agent tier-1 action registration must happen after runtime mod registration');
-    assert.ok(tier1ActionsIndex < bridgeStartIndex, 'action bridge must start after tier-1 action registration');
-    assert.ok(bridgeStartIndex < descriptorSyncIndex, 'descriptor sync must happen after action bridge startup');
+    assert.ok(tier1ActionsIndex < bridgeStartIndex, 'action bridge scheduling must happen after tier-1 action registration');
+    assert.ok(bridgeStartIndex < descriptorSyncIndex, 'descriptor resync scheduling must happen after bridge startup scheduling');
   });
 
   test('D-BOOT-007: auth bootstrap runs after runtime host work and before ready flag', () => {
-    const descriptorSyncIndex = bootstrapSource.indexOf('await resyncExternalAgentActionDescriptors();');
+    const registrationIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
     const authSessionIndex = bootstrapSource.indexOf('await bootstrapAuthSession({');
     const bootstrapReadyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
-    assert.ok(descriptorSyncIndex !== -1, 'await resyncExternalAgentActionDescriptors(); must appear in bootstrap source');
+    assert.ok(registrationIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
     assert.ok(authSessionIndex !== -1, 'await bootstrapAuthSession({ must appear in bootstrap source');
     assert.ok(bootstrapReadyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
-    assert.ok(descriptorSyncIndex < authSessionIndex, 'bootstrapAuthSession must run after runtime host setup and external agent sync');
+    assert.ok(registrationIndex < authSessionIndex, 'bootstrapAuthSession must run after runtime host setup');
     assert.ok(authSessionIndex < bootstrapReadyIndex, 'bootstrapAuthSession must complete before bootstrapReady is set');
   });
 
@@ -187,6 +187,47 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       successTail,
       /setStatusBanner\(\{\s*kind:\s*'warning'/,
       'runtime unavailable path must not emit a duplicate warning banner',
+    );
+  });
+
+  test('D-BOOT-014: auth bootstrap bounds remote session loading and does not block ready on warm loads', () => {
+    const authBootstrapPath = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts');
+    const authBootstrapSource = readFileSync(authBootstrapPath, 'utf-8');
+    assert.ok(
+      authBootstrapSource.includes('AUTO_LOGIN_USER_LOAD_TIMEOUT_MS'),
+      'bootstrap auth must define a bounded timeout for current-user loading',
+    );
+    assert.ok(
+      authBootstrapSource.includes("withBootstrapStepTimeout(\n      'bootstrap auth user load'"),
+      'bootstrap auth must wrap loadCurrentUser in a startup timeout',
+    );
+    assert.ok(
+      authBootstrapSource.includes("void withBootstrapStepTimeout(\n        'bootstrap auth warm loads'"),
+      'bootstrap auth warm loads must run in a detached timeout-bounded task',
+    );
+    assert.doesNotMatch(
+      authBootstrapSource,
+      /await Promise\.allSettled\(\[\s*dataSync\.loadChats\(\),\s*dataSync\.loadContacts\(\),?\s*\]\)/,
+      'bootstrap auth warm loads must not block bootstrap completion',
+    );
+  });
+
+  test('D-BOOT-015: non-critical runtime bootstrap work is timeout-bounded or deferred', () => {
+    assert.ok(
+      bootstrapSource.includes('NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS'),
+      'bootstrap must define a timeout for non-critical startup work',
+    );
+    assert.ok(
+      bootstrapSource.includes("withBootstrapStepTimeout(\n        'runtime mod bootstrap registration'"),
+      'runtime mod registration must be timeout-bounded',
+    );
+    assert.ok(
+      bootstrapSource.includes("step: 'external agent action bridge startup'"),
+      'external agent bridge startup must be treated as a non-critical deferred step',
+    );
+    assert.ok(
+      bootstrapSource.includes("step: 'external agent descriptor resync'"),
+      'external agent descriptor sync must be treated as a non-critical deferred step',
     );
   });
 });

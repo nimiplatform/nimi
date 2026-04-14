@@ -203,12 +203,16 @@ function buildImageProjectionMessage(
 
 function buildVoiceProjectionMessage(
   thread: AgentLocalThreadRecord,
-  voiceState: Extract<AgentLocalChatVoiceState, { status: 'pending' | 'complete' | 'error' }>,
+  voiceState: Extract<AgentLocalChatVoiceState, { status: 'pending' | 'complete' }>,
   committedAtMs: number,
 ) {
-  const metadataJson = 'metadata' in voiceState && voiceState.metadata
-    ? voiceState.metadata
-    : null;
+  const metadataJson = {
+    ...(('metadata' in voiceState && voiceState.metadata) ? voiceState.metadata : {}),
+    transcriptText: voiceState.transcriptText,
+    playbackPrompt: voiceState.prompt,
+    sourceMessageId: voiceState.sourceMessageId,
+    sourceActionId: voiceState.sourceActionId,
+  };
   const shouldRenderAsVoice = voiceState.status === 'complete'
     && Boolean(voiceState.mediaUrl);
   return {
@@ -223,14 +227,11 @@ function buildVoiceProjectionMessage(
     kind: shouldRenderAsVoice ? 'voice' as const : 'text' as const,
     contentText: voiceState.status === 'pending'
       ? voiceState.message
-      : voiceState.transcriptText,
+      : shouldRenderAsVoice
+        ? ''
+        : voiceState.transcriptText,
     reasoningText: null,
-    error: voiceState.status === 'pending' || voiceState.status === 'complete'
-      ? null
-      : {
-        code: 'AGENT_VOICE_FAILED',
-        message: voiceState.message,
-      },
+    error: null,
     traceId: null,
     parentMessageId: null,
     mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
@@ -265,7 +266,7 @@ export function createAgentLocalChatContinuityAdapter(
     const voiceState = input.voiceState || { status: 'none' as const };
     const projectionMessages = [
       ...buildTextProjectionMessages(thread, textMessages, input, committedAtMs),
-      ...((voiceState.status === 'pending' || voiceState.status === 'complete' || voiceState.status === 'error')
+      ...((voiceState.status === 'pending' || voiceState.status === 'complete')
         ? [buildVoiceProjectionMessage(thread, voiceState, committedAtMs)]
         : []),
       ...((imageState.status === 'complete' || imageState.status === 'error')
@@ -317,7 +318,9 @@ export function createAgentLocalChatContinuityAdapter(
             artifactId: voiceState.status === 'complete' ? voiceState.artifactId : null,
             mimeType: voiceState.status === 'complete' ? voiceState.mimeType : null,
             mediaUrl: voiceState.status === 'complete' ? voiceState.mediaUrl : null,
-            projectionMessageId: voiceState.projectionMessageId,
+            projectionMessageId: voiceState.status === 'error'
+              ? null
+              : voiceState.projectionMessageId,
             createdAtMs: committedAtMs,
             deliveredAtMs: voiceState.status === 'complete' && input.outcome === 'completed'
               ? committedAtMs

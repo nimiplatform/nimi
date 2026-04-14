@@ -83,14 +83,8 @@ test('runtime state refreshes unified unregistered assets and auto-imports high-
 
 test('unregistered model imports use orphan scaffold for all kinds while picked files stay on direct import', () => {
   assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphanAsset\(\{/);
-  assert.match(localModelCenterImportActionsSource, /const preflightImportPlan = useCallback/);
-  assert.match(localModelCenterImportActionsSource, /if \(assetKind !== 'image'\) \{\s*return;\s*\}/s);
-  assert.match(localModelCenterImportActionsSource, /localRuntime\.resolveInstallPlan\(\{/);
-  assert.match(localModelCenterImportActionsSource, /const sourceFileName = basenameFromRuntimePath\(sourcePath\)/);
-  assert.match(localModelCenterImportActionsSource, /if \(!sourceFileName\) \{\s*return;\s*\}/s);
-  assert.match(localModelCenterImportActionsSource, /entry: sourceFileName \|\| undefined/);
-  assert.match(localModelCenterImportActionsSource, /files: sourceFileName \? \[sourceFileName\] : undefined/);
-  assert.match(localModelCenterImportActionsSource, /if \(planBlocksCanonicalImageImport\(plan\)\) \{\s*throw new Error\(planBlockingHint\(plan\)\);\s*\}/s);
+  assert.doesNotMatch(localModelCenterImportActionsSource, /const preflightImportPlan = useCallback/);
+  assert.doesNotMatch(localModelCenterImportActionsSource, /localRuntime\.resolveInstallPlan\(\{/);
   assert.match(localModelCenterImportActionsSource, /importManagedModelAssetFromPath\(assetPath, declaration, endpoint\)/);
   assert.match(localModelCenterImportActionsSource, /await localRuntime\.importAssetFile\(\{/);
   assert.match(localModelCenterImportActionsSource, /const filePath = await localRuntime\.pickAssetFile\(\)/);

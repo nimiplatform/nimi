@@ -141,6 +141,55 @@ export function RuntimeImageMessageContent(props: {
   );
 }
 
+export function RuntimeVoiceMessageContent(props: {
+  message: ConversationCanonicalMessage;
+  voiceLabel: string;
+  transcriptLabel: string;
+  showTranscriptLabel: string;
+  hideTranscriptLabel: string;
+  transcriptUnavailableLabel: string;
+}) {
+  const metadata = (props.message.metadata as Record<string, unknown> | undefined) || {};
+  const voiceUrl = normalizeText(metadata.voiceUrl);
+  const transcript = normalizeText(metadata.voiceTranscript);
+  const [transcriptVisible, setTranscriptVisible] = useState(false);
+  const toggleTranscript = useCallback(() => setTranscriptVisible((previous) => !previous), []);
+
+  if (!voiceUrl) {
+    return transcript ? <p className="whitespace-pre-wrap">{transcript}</p> : null;
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,white)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+          {props.voiceLabel}
+        </div>
+        <button
+          type="button"
+          onClick={toggleTranscript}
+          className="rounded-full border border-[var(--nimi-border-subtle)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-secondary)] transition hover:bg-white"
+        >
+          {transcriptVisible ? props.hideTranscriptLabel : props.showTranscriptLabel}
+        </button>
+      </div>
+      <audio controls preload="metadata" className="w-full">
+        <source src={voiceUrl} />
+      </audio>
+      <div className="space-y-1">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+          {props.transcriptLabel}
+        </div>
+        {transcriptVisible ? (
+          <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--nimi-text-secondary)]">
+            {transcript || props.transcriptUnavailableLabel}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function RuntimeAgentDebugMessageAccessory(props: {
   message: ConversationCanonicalMessage;
   debugVisible: boolean;
@@ -148,6 +197,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
   copyLabel: string;
   copiedLabel: string;
   followUpLabel: string;
+  followUpInstructionLabel: string;
   promptLabel: string;
   systemPromptLabel: string;
   rawOutputLabel: string;
@@ -169,6 +219,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
       rawModelOutput: debugMetadata.rawModelOutput,
       normalizedModelOutput: debugMetadata.normalizedModelOutput,
       followUpTurn: debugMetadata.followUpTurn,
+      followUpInstruction: debugMetadata.followUpInstruction,
       chainId: debugMetadata.chainId,
       followUpDepth: debugMetadata.followUpDepth,
       maxFollowUpTurns: debugMetadata.maxFollowUpTurns,
@@ -187,6 +238,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
     debugMetadata.followUpDelayMs,
     debugMetadata.followUpDepth,
     debugMetadata.followUpCanceledByUser,
+    debugMetadata.followUpInstruction,
     debugMetadata.maxFollowUpTurns,
     debugMetadata.followUpSourceActionId,
     debugMetadata.followUpTurn,
@@ -242,6 +294,16 @@ export function RuntimeAgentDebugMessageAccessory(props: {
                 {debugMetadata.prompt}
               </pre>
             </div>
+            {debugMetadata.followUpInstruction ? (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
+                  {props.followUpInstructionLabel}
+                </div>
+                <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
+                  {debugMetadata.followUpInstruction}
+                </pre>
+              </div>
+            ) : null}
             {debugMetadata.rawModelOutput ? (
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">

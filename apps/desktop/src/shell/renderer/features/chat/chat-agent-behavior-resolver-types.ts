@@ -6,7 +6,6 @@ export const AGENT_MODEL_OUTPUT_CLASSIFICATIONS = [
     'strict-json',
     'json-fenced',
     'json-wrapper',
-    'plain-text',
     'partial-json',
     'invalid-json',
     'preflight-rejected',
@@ -15,7 +14,6 @@ export const AGENT_MODEL_OUTPUT_RECOVERY_PATHS = [
     'none',
     'strip-fence',
     'extract-json-object',
-    'plain-text-envelope',
 ] as const;
 
 export type AgentModelOutputClassification = (typeof AGENT_MODEL_OUTPUT_CLASSIFICATIONS)[number];

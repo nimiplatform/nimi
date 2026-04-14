@@ -231,18 +231,3 @@ export function parseAgentResolvedMessageActionEnvelope(modelOutput: string): Ag
 export function buildAgentResolvedOutputText(envelope: AgentResolvedMessageActionEnvelope): string {
     return envelope.message.text.trim();
 }
-
-export function recoverPlainTextAsEnvelope(rawModelOutput: string): AgentResolvedMessageActionEnvelope | null {
-    const text = rawModelOutput.trim();
-    if (!text || text.startsWith('{') || text.startsWith('[') || text.startsWith('`')) {
-        return null;
-    }
-    return {
-        schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-        message: {
-            messageId: 'message-0',
-            text,
-        },
-        actions: [],
-    };
-}

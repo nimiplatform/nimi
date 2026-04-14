@@ -1658,6 +1658,8 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /matchConversationTurnEvent/);
   assert.match(hostActionSubmitSource, /createInitialAgentSubmitDriverState/);
+  assert.match(hostActionSubmitSource, /previewUrl/);
+  assert.doesNotMatch(hostActionSubmitSource, /input\.payload\.attachments\.length === 0\s*\?/);
   assert.match(hostActionSubmitRunSource, /reduceAgentSubmitDriverEvent/);
   assert.match(hostActionSubmitRunSource, /resolveCompletedAgentSubmitDriverCheckpoint/);
   assert.match(hostActionSubmitSource, /resolveInterruptedAgentSubmitDriverCheckpoint/);

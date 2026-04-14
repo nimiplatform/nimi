@@ -115,6 +115,7 @@ export function createAgentLocalChatConversationProvider(
           targetSnapshot: metadata.targetSnapshot,
           history: input.history,
           userText,
+          currentUserMessageId: input.userMessage.id,
           userAttachments,
           context: turnContext,
           resolvedBehavior: metadata.resolvedBehavior,

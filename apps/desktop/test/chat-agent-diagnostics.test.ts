@@ -97,7 +97,7 @@ test('agent diagnostics view model shows recovered turn details', () => {
         contextWindowSource: 'route-profile',
         maxOutputTokensRequested: 512,
         promptOverflow: false,
-        requestPrompt: 'UserMessage:\n你好',
+        requestPrompt: 'Messages:\n[\n  {\n    "role": "user",\n    "content": "你好"\n  }\n]',
         requestSystemPrompt: 'Preset:\nBe warm.',
         rawModelOutputText: '```json\n{"schemaId":"nimi.agent.chat.message-action.v1"}\n```',
         normalizedModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"}',
@@ -119,7 +119,7 @@ test('agent diagnostics view model shows recovered turn details', () => {
   assert.equal(viewModel.turnCards[3]?.value, 'json-fenced');
   assert.match(viewModel.turnCards[4]?.detail || '', /maxOutputTokensRequested=512/);
   assert.equal(viewModel.turnCards[5]?.label, 'Prompt');
-  assert.match(viewModel.turnCards[5]?.detail || '', /UserMessage:/);
+  assert.match(viewModel.turnCards[5]?.detail || '', /Messages:/);
   assert.equal(viewModel.turnCards[6]?.label, 'Returned Data');
   assert.match(viewModel.turnCards[6]?.detail || '', /schemaId/);
 });
@@ -157,7 +157,7 @@ test('agent diagnostics view model shows truncation diagnostics for failed turns
         contextWindowSource: 'route-profile',
         maxOutputTokensRequested: 111,
         promptOverflow: true,
-        requestPrompt: 'UserMessage:\n继续说',
+        requestPrompt: 'Messages:\n[\n  {\n    "role": "user",\n    "content": "继续说"\n  }\n]',
         requestSystemPrompt: 'Preset:\nStay concise.',
         rawModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"',
         normalizedModelOutputText: '{"schemaId":"nimi.agent.chat.message-action.v1"',
@@ -204,7 +204,7 @@ test('agent diagnostics view model shows preflight rejection diagnostics for loc
         contextWindowSource: 'route-profile',
         maxOutputTokensRequested: 111,
         promptOverflow: true,
-        requestPrompt: 'UserMessage:\n继续说',
+        requestPrompt: 'Messages:\n[\n  {\n    "role": "user",\n    "content": "继续说"\n  }\n]',
         requestSystemPrompt: 'Preset:\nStay concise.',
         rawModelOutputText: null,
         normalizedModelOutputText: null,

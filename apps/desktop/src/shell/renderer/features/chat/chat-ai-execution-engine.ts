@@ -130,6 +130,7 @@ export type AgentChatContinuityDigest = {
 };
 
 export type AgentLocalChatExecutionTextRequest = {
+  // Debug-only preview of the actual message payload sent to runtime.
   prompt: string;
   messages: readonly ConversationRuntimeTextMessage[];
   systemPrompt: string | null;
@@ -149,7 +150,10 @@ export type BuildAgentLocalChatExecutionTextRequestInput = {
   targetSnapshot: AgentLocalTargetSnapshot;
   history: readonly ConversationTurnHistoryMessage[];
   userText: string;
+  currentUserMessageId?: string | null;
   userAttachments?: readonly AgentChatUserAttachment[];
+  omitUserMessageFromMessages?: boolean;
+  followUpInstruction?: string | null;
   context: AgentLocalTurnContext;
   resolvedBehavior?: AgentResolvedBehavior | null;
   modelContextTokens?: number | null;
@@ -158,7 +162,6 @@ export type BuildAgentLocalChatExecutionTextRequestInput = {
 
 type HistoryCandidate = {
   message: ConversationRuntimeTextMessage;
-  transcriptLine: string;
   tokenEstimate: number;
 };
 
@@ -267,17 +270,6 @@ function estimateSystemPromptTokens(systemPrompt: string | null): number {
   return normalizeText(systemPrompt)
     ? SYSTEM_TOKEN_OVERHEAD + estimateAgentLocalChatTokens(systemPrompt || '')
     : 0;
-}
-
-function formatHistoryLine(message: ConversationTurnHistoryMessage | ConversationRuntimeTextMessage): string {
-  const speaker = message.role === 'assistant'
-    ? 'Assistant'
-    : message.role === 'user'
-      ? 'User'
-      : message.role === 'system'
-        ? 'Preset'
-        : 'Tool';
-  return `${speaker}: ${message.text}`;
 }
 
 function normalizeSummaryKey(value: string): string {
@@ -398,14 +390,19 @@ function buildSystemPrompt(input: {
   targetSnapshot: AgentLocalTargetSnapshot;
   digest: AgentChatContinuityDigest;
   bioCharLimit: number;
+  followUpInstruction?: string | null;
   resolvedBehavior?: AgentResolvedBehavior | null;
 }): string | null {
   const resolvedBehaviorSection = buildResolvedBehaviorSection(input.resolvedBehavior);
+  const followUpInstruction = normalizeWhitespace(input.followUpInstruction);
   const sections = [
     normalizeText(input.systemPrompt) ? `Preset:\n${normalizeWhitespace(input.systemPrompt)}` : null,
     `Target:\n${buildTargetSection(input.targetSnapshot, input.bioCharLimit)}`,
     `Continuity:\n${buildContinuitySection(input.digest)}`,
     resolvedBehaviorSection ? `ResolvedBehavior:\n${resolvedBehaviorSection}` : null,
+    followUpInstruction
+      ? `FollowUpInstruction:\n${followUpInstruction}\n\nTreat this as an internal continuation cue, not a new user message. Continue naturally from the latest assistant turn. Add only net-new content. Do not restate the previous assistant reply. If no natural continuation is needed, return an empty actions array and do not repeat the prior message.`
+      : null,
     buildDesktopChatOutputContractSection(),
     `Instruction:\nReply as the target agent through the message-action envelope. The top-level object must include "schemaId", "message", and "actions". Begin exactly with {"schemaId":"${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}". Output raw JSON only: start with "{" and end with "}". Never emit backticks or Markdown. Use continuity as background truth. Keep internal planning private.`,
   ].filter(Boolean);
@@ -440,6 +437,7 @@ function reduceSystemPrompt(
       targetSnapshot: input.targetSnapshot,
       digest,
       bioCharLimit: plan.bioCharLimit,
+      followUpInstruction: input.followUpInstruction,
       resolvedBehavior: input.resolvedBehavior,
     });
     const systemTokens = estimateSystemPromptTokens(systemPrompt);
@@ -494,7 +492,6 @@ function buildHistoryCandidates(history: readonly ConversationTurnHistoryMessage
       };
       return {
         message: runtimeMessage,
-        transcriptLine: formatHistoryLine(message),
         tokenEstimate: estimateRuntimeMessageTokens(runtimeMessage),
       };
     });
@@ -552,13 +549,70 @@ function buildUserMessageContent(
   return content;
 }
 
+function buildRequestPreviewContent(message: ConversationRuntimeTextMessage): string | TextMessageContentPart[] {
+  if (Array.isArray(message.content) && message.content.length > 0) {
+    return message.content;
+  }
+  return message.text;
+}
+
+function buildRuntimeRequestPreview(messages: readonly ConversationRuntimeTextMessage[]): string {
+  return `Messages:\n${stringifyJson(messages.map((message) => ({
+    role: message.role,
+    name: normalizeText(message.name) || undefined,
+    content: buildRequestPreviewContent(message),
+  })))}`;
+}
+
+function shouldDropDuplicatedCurrentUserMessage(input: {
+  historyMessage: ConversationTurnHistoryMessage | undefined;
+  currentUserMessageId: string | null;
+  userText: string;
+  hasAttachments: boolean;
+}): boolean {
+  const historyMessage = input.historyMessage;
+  if (!historyMessage || historyMessage.role !== 'user') {
+    return false;
+  }
+  if (input.currentUserMessageId && normalizeText(historyMessage.id) === input.currentUserMessageId) {
+    return true;
+  }
+  if (input.hasAttachments) {
+    return false;
+  }
+  return normalizeWhitespace(historyMessage.text) === normalizeWhitespace(input.userText);
+}
+
+function normalizeHistoryForRuntime(input: {
+  history: readonly ConversationTurnHistoryMessage[];
+  currentUserMessageId: string | null;
+  userText: string;
+  hasAttachments: boolean;
+  omitUserMessageFromMessages: boolean;
+}): ConversationTurnHistoryMessage[] {
+  if (input.history.length === 0 || input.omitUserMessageFromMessages) {
+    return [...input.history];
+  }
+  const normalized = [...input.history];
+  const lastMessage = normalized.at(-1);
+  if (!shouldDropDuplicatedCurrentUserMessage({
+    historyMessage: lastMessage,
+    currentUserMessageId: input.currentUserMessageId,
+    userText: input.userText,
+    hasAttachments: input.hasAttachments,
+  })) {
+    return normalized;
+  }
+  normalized.pop();
+  return normalized;
+}
+
 function packHistoryMessages(input: {
   history: readonly ConversationTurnHistoryMessage[];
   userMessage: ConversationRuntimeTextMessage;
   historyBudgetTokens: number;
 }): {
   messages: ConversationRuntimeTextMessage[];
-  transcriptLines: string[];
   historyTokens: number;
   retainedHistoryMessages: number;
   trimmedLeadingAssistantMessages: number;
@@ -606,7 +660,6 @@ function packHistoryMessages(input: {
       ...retainedMessages.map((candidate) => candidate.message),
       input.userMessage,
     ],
-    transcriptLines: retainedMessages.map((candidate) => candidate.transcriptLine),
     historyTokens,
     retainedHistoryMessages: retainedMessages.length,
     trimmedLeadingAssistantMessages,
@@ -681,43 +734,47 @@ export function buildAgentLocalChatExecutionTextRequest(
 ): AgentLocalChatExecutionTextRequest {
   const modelContext = resolveModelContextTokens(input.modelContextTokens);
   const initialBudget = createInitialBudget(modelContext.value);
+  const omitUserMessageFromMessages = input.omitUserMessageFromMessages === true;
   const userAttachments = (input.userAttachments || []).filter((attachment) => (
     attachment.kind === 'image' && normalizeText(attachment.url)
   ));
-  const userContent = buildUserMessageContent(input.userText, userAttachments);
-  const userMessage: ConversationRuntimeTextMessage = {
-    role: 'user',
-    text: input.userText,
-    ...(Array.isArray(userContent) ? { content: userContent } : {}),
-  };
-  const userTokens = estimateRuntimeMessageTokens(userMessage);
+  const userMessage = omitUserMessageFromMessages
+    ? null
+    : (() => {
+      const userContent = buildUserMessageContent(input.userText, userAttachments);
+      return {
+        role: 'user' as const,
+        text: input.userText,
+        ...(Array.isArray(userContent) ? { content: userContent } : {}),
+      };
+    })();
+  const userTokens = userMessage ? estimateRuntimeMessageTokens(userMessage) : 0;
   const fullDigest = buildContinuityDigest(input.context);
   const reducedSystem = reduceSystemPrompt(input, fullDigest, initialBudget.systemBudgetTokens);
   const historyBudgetTokens = Math.max(
     0,
     initialBudget.promptBudgetTokens - reducedSystem.systemTokens - userTokens,
   );
-  const packedHistory = packHistoryMessages({
+  const normalizedHistory = normalizeHistoryForRuntime({
     history: input.history,
-    userMessage,
+    currentUserMessageId: normalizeText(input.currentUserMessageId) || null,
+    userText: input.userText,
+    hasAttachments: userAttachments.length > 0,
+    omitUserMessageFromMessages,
+  });
+  const packedHistory = packHistoryMessages({
+    history: normalizedHistory,
+    userMessage: userMessage || {
+      role: 'assistant',
+      text: '',
+      name: null,
+    },
     historyBudgetTokens,
   });
-  const promptSections = [
-    reducedSystem.systemPrompt,
-    packedHistory.transcriptLines.length > 0
-      ? `Transcript:\n${packedHistory.transcriptLines.join('\n')}`
-      : null,
-    userAttachments.length > 0
-      ? `UserAttachments:\n${stringifyJson(userAttachments.map((attachment) => ({
-        kind: attachment.kind,
-        name: attachment.name,
-        mimeType: attachment.mimeType,
-        resourceId: attachment.resourceId,
-      })))}`
-      : null,
-    `UserMessage:\nUser: ${input.userText || (userAttachments.length > 0 ? '[Image attachment]' : '')}`,
-  ].filter(Boolean);
-  const prompt = promptSections.join('\n\n');
+  const packedMessages = userMessage ? packedHistory.messages : packedHistory.messages.filter((message) => (
+    message.role !== 'assistant' || normalizeText(message.text)
+  ));
+  const prompt = buildRuntimeRequestPreview(packedMessages);
   const budget: AgentLocalChatContextBudget = {
     ...initialBudget,
     historyBudgetTokens,
@@ -735,7 +792,7 @@ export function buildAgentLocalChatExecutionTextRequest(
 
   const request: AgentLocalChatExecutionTextRequest = {
     prompt,
-    messages: packedHistory.messages,
+    messages: packedMessages,
     systemPrompt: reducedSystem.systemPrompt,
     diagnostics: {
       engineId: AI_CHAT_EXECUTION_ENGINE_ID,
@@ -753,7 +810,7 @@ export function buildAgentLocalChatExecutionTextRequest(
       },
       transcript: {
         retainedHistoryMessages: packedHistory.retainedHistoryMessages,
-        emittedMessages: packedHistory.messages.length,
+        emittedMessages: packedMessages.length,
         trimmedLeadingAssistantMessages: packedHistory.trimmedLeadingAssistantMessages,
       },
       maxOutputTokensRequested: Number.isFinite(Number(input.maxOutputTokensRequested))

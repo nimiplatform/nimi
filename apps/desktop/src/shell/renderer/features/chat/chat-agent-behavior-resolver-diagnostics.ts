@@ -4,7 +4,6 @@ import type {
 import {
     buildAgentResolvedOutputText,
     parseAgentResolvedMessageActionEnvelopeFromPayload,
-    recoverPlainTextAsEnvelope,
 } from './chat-agent-behavior-resolver-envelope';
 import {
     AGENT_MODEL_OUTPUT_CLASSIFICATIONS,
@@ -501,29 +500,6 @@ export function resolveAgentModelOutputEnvelope(
         }
     }
 
-    const plainTextEnvelope = recoverPlainTextAsEnvelope(normalizedModelOutput);
-    if (plainTextEnvelope) {
-        return {
-            ok: true,
-            envelope: plainTextEnvelope,
-            diagnostics: buildAgentModelOutputDiagnostics({
-                classification: 'plain-text',
-                recoveryPath: 'plain-text-envelope',
-                suspectedTruncation: false,
-                rawModelOutput,
-                normalizedModelOutput,
-                finishReason: input.finishReason,
-                trace: input.trace,
-                usage: input.usage,
-                contextWindowSource: input.contextWindowSource,
-                maxOutputTokensRequested: input.maxOutputTokensRequested,
-                promptOverflow: input.promptOverflow,
-                requestPrompt: input.requestPrompt,
-                requestSystemPrompt: input.requestSystemPrompt,
-            }),
-        };
-    }
-
     const parseErrorDetail = normalizeNullableText(strictCandidate.parseErrorDetail)
         || normalizeNullableText(
             fencedCandidateText ? tryParseEnvelopeCandidate(fencedCandidateText).parseErrorDetail : null,
@@ -557,5 +533,4 @@ export function resolveAgentModelOutputEnvelope(
 
 export {
     buildAgentResolvedOutputText,
-    recoverPlainTextAsEnvelope,
 };

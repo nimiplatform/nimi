@@ -68,6 +68,57 @@ let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
 let pendingRebootstrap = false;
+const NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS = 5_000;
+
+function createBootstrapStepTimeoutError(step: string, timeoutMs: number): Error {
+  return new Error(`${step} timed out after ${timeoutMs}ms`);
+}
+
+async function withBootstrapStepTimeout<T>(
+  step: string,
+  task: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      task,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(createBootstrapStepTimeoutError(step, timeoutMs));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function startNonCriticalBootstrapStep(input: {
+  flowId: string;
+  step: string;
+  task: Promise<unknown>;
+  timeoutMs?: number;
+}): void {
+  void withBootstrapStepTimeout(
+    input.step,
+    input.task,
+    input.timeoutMs ?? NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+  ).catch((error) => {
+    logRendererEvent({
+      level: 'warn',
+      area: 'renderer-bootstrap',
+      message: 'phase:bootstrap:non-critical-step-deferred',
+      flowId: input.flowId,
+      details: {
+        step: input.step,
+        error: safeErrorMessage(error),
+      },
+    });
+  });
+}
 
 function suspendRuntimeCallbacksForL2(): void {
   const hookRuntime = getRuntimeHookRuntime();
@@ -355,7 +406,25 @@ export function bootstrapRuntime(): Promise<void> {
       platformClient,
       createDesktopWorldEvolutionSelectorReadAdapter(),
     );
-    await reconcileLocalRuntimeBootstrapState({ flowId });
+    await withBootstrapStepTimeout(
+      'local runtime reconcile',
+      reconcileLocalRuntimeBootstrapState({ flowId }),
+      NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+    ).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'renderer-bootstrap',
+        message: 'phase:local-reconcile:deferred',
+        flowId,
+        details: {
+          error: safeErrorMessage(error),
+        },
+      });
+      return {
+        reconciled: [],
+        adopted: [],
+      };
+    });
     void pingDesktopMacosSmoke('bootstrap-platform-client-done', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
@@ -434,14 +503,43 @@ export function bootstrapRuntime(): Promise<void> {
       });
       await ensureCoreWorldDataCapabilitiesRegistered();
 
-      const runtimeModResult = await registerBootstrapRuntimeMods({
-        flowId,
+      const runtimeModResult = await withBootstrapStepTimeout(
+        'runtime mod bootstrap registration',
+        registerBootstrapRuntimeMods({
+          flowId,
+        }),
+        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      ).catch((error) => {
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:register-runtime-mods:deferred',
+          flowId,
+          details: {
+            error: safeErrorMessage(error),
+          },
+        });
+        appStore.setLocalManifestSummaries([]);
+        appStore.setRegisteredRuntimeModIds([]);
+        appStore.setRuntimeModFailures([]);
+        return {
+          runtimeModFailures: [] as RuntimeModRegisterFailure[],
+          manifestCount: 0,
+        };
       });
       runtimeModFailures = runtimeModResult.runtimeModFailures;
       manifestCount = runtimeModResult.manifestCount;
       registerExternalAgentTier1Actions(hookRuntime);
-      await startExternalAgentActionBridge();
-      await resyncExternalAgentActionDescriptors();
+      startNonCriticalBootstrapStep({
+        flowId,
+        step: 'external agent action bridge startup',
+        task: startExternalAgentActionBridge(),
+      });
+      startNonCriticalBootstrapStep({
+        flowId,
+        step: 'external agent descriptor resync',
+        task: resyncExternalAgentActionDescriptors(),
+      });
     } else {
       appStore.setLocalManifestSummaries([]);
       appStore.setRegisteredRuntimeModIds([]);

@@ -28,7 +28,6 @@ import {
 } from '../src/shell/renderer/features/chat/chat-ai-execution-engine.js';
 import { AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID } from '../src/shell/renderer/features/chat/chat-agent-behavior.js';
 import { resolveAgentChatBehavior } from '../src/shell/renderer/features/chat/chat-agent-behavior-resolver.js';
-import { buildDesktopChatOutputContractSection } from '../src/shell/renderer/features/chat/chat-output-contract.js';
 import {
   clearAllStreams,
   clearStream,
@@ -552,14 +551,12 @@ test('agent local chat prompt includes continuity and transcript context', () =>
     context: sampleTurnContext(),
   });
 
-  assert.match(prompt, /Preset:/);
-  assert.match(prompt, /Continuity:/);
-  assert.match(prompt, /"userPrefs": \{[\s\S]*"brevity": true/);
+  assert.match(prompt, /^Messages:\n\[/);
+  assert.match(prompt, /"role": "user"/);
+  assert.match(prompt, /"content": "What should we do next\?"/);
   assert.match(prompt, /What should we do next/);
-  assert.match(prompt, /Output Contract:/);
-  assert.match(prompt, /Return exactly one JSON object/);
-  assert.match(prompt, new RegExp(AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(prompt, new RegExp(buildDesktopChatOutputContractSection().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(prompt, /Preset:/);
+  assert.doesNotMatch(prompt, /Output Contract:/);
 });
 
 test('agent local chat execution seam shapes system prompt and transcript messages', () => {
@@ -605,8 +602,64 @@ test('agent local chat execution seam shapes system prompt and transcript messag
     role: 'user',
     text: 'What should we do next?',
   });
-  assert.doesNotMatch(request.prompt, /Transcript:/);
-  assert.match(request.prompt, /UserMessage:/);
+  assert.match(request.prompt, /^Messages:\n\[/);
+  assert.match(request.prompt, /"role": "user"/);
+  assert.match(request.prompt, /"content": "What should we do next\?"/);
+});
+
+test('agent local chat execution seam drops a duplicated current user turn from history and supports follow-up continuation inputs', () => {
+  const duplicatedUserHistory = [
+    {
+      id: 'history-assistant-1',
+      role: 'assistant' as const,
+      text: '先说一句欢迎。',
+    },
+    {
+      id: 'user-message-1',
+      role: 'user' as const,
+      text: '你好',
+    },
+  ];
+  const request = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: duplicatedUserHistory,
+    userText: '你好',
+    currentUserMessageId: 'user-message-1',
+    context: sampleTurnContext(),
+  });
+
+  assert.equal(request.messages.length, 1);
+  assert.equal(request.messages[0]?.role, 'user');
+  assert.equal(request.messages[0]?.text, '你好');
+  assert.equal((request.prompt.match(/"content": "你好"/g) || []).length, 1);
+
+  const followUpRequest = buildAgentLocalChatExecutionTextRequest({
+    systemPrompt: 'Be warm and concise.',
+    targetSnapshot: sampleTarget(),
+    history: [
+      {
+        id: 'user-message-1',
+        role: 'user',
+        text: '你好',
+      },
+      {
+        id: 'assistant-message-1',
+        role: 'assistant',
+        text: '你好呀，很高兴见到你。',
+      },
+    ],
+    userText: '',
+    omitUserMessageFromMessages: true,
+    followUpInstruction: '如果对方还没回复，就再轻轻问候一句，但不要重复上一句。',
+    context: sampleTurnContext(),
+  });
+
+  assert.deepEqual(followUpRequest.messages.map((message) => message.role), ['user', 'assistant']);
+  assert.equal(followUpRequest.messages.at(-1)?.text, '你好呀，很高兴见到你。');
+  assert.doesNotMatch(followUpRequest.prompt, /如果对方还没回复/);
+  assert.match(followUpRequest.systemPrompt || '', /FollowUpInstruction:/);
+  assert.match(followUpRequest.systemPrompt || '', /不要重复上一句/);
 });
 
 test('agent local chat execution seam compacts continuity and packs history by budget', () => {
@@ -802,8 +855,9 @@ test('agent local chat execution seam emits multimodal user content when image a
     type: 'text',
     text: 'Describe this image.',
   }]);
-  assert.match(request.prompt, /UserAttachments:/);
-  assert.match(request.prompt, /"resourceId": "resource-image-1"/);
+  assert.match(request.prompt, /"type": "image_url"/);
+  assert.match(request.prompt, /"imageUrl": "https:\/\/cdn\.nimi\.test\/uploads\/pasted-image\.png"/);
+  assert.doesNotMatch(request.prompt, /resource-image-1/);
   assert.ok(request.diagnostics.estimate.userTokens > textOnlyRequest.diagnostics.estimate.userTokens);
 });
 
@@ -836,7 +890,8 @@ test('agent local chat execution seam allows attachment-only turns and emits ima
     type: 'image_url',
     imageUrl: 'https://cdn.nimi.test/uploads/attachment-only.png',
   }]);
-  assert.match(request.prompt, /User: \[Image attachment\]/);
+  assert.match(request.prompt, /"type": "image_url"/);
+  assert.match(request.prompt, /attachment-only\.png/);
 });
 
 test('agent local chat execution seam fails close when irreducible input still exceeds budget', () => {
@@ -978,7 +1033,7 @@ test('agent local chat provider seals a single message before terminal and commi
   );
   assert.equal(committed.length, 1);
   assert.equal(committed[0]?.outcome, 'completed');
-  assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /UserMessage:/);
+  assert.match(String(committed[0]?.textMessageState?.metadataJson?.prompt || ''), /^Messages:\n\[/);
   assert.match(String(committed[0]?.textMessageState?.metadataJson?.rawModelOutput || ''), /schemaId/);
   assert.equal(committed[0]?.events.some((event) => event.type === 'message-sealed'), true);
   assert.equal(events.at(-1)?.type, 'turn-completed');
@@ -1092,8 +1147,11 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
         },
         async invokeText(request) {
           assert.equal(request.threadId, 'thread-1');
-          assert.equal(request.messages?.at(-1)?.role, 'user');
-          assert.equal(request.messages?.at(-1)?.text, '过一会儿我再补一句跟进。');
+          assert.equal(request.messages?.at(-1)?.role, 'assistant');
+          assert.equal(request.messages?.at(-1)?.text, '先给你一句短答。');
+          assert.doesNotMatch(request.prompt || '', /过一会儿我再补一句跟进/);
+          assert.match(request.systemPrompt || '', /FollowUpInstruction:/);
+          assert.match(request.systemPrompt || '', /过一会儿我再补一句跟进/);
           return {
             text: JSON.stringify({
               schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
@@ -1189,9 +1247,11 @@ test('agent local chat provider schedules a follow-up turn from the model envelo
     assert.equal(committed[0]?.outcome, 'completed');
     assert.equal(committed[1]?.outcome, 'completed');
     assert.equal(committed[1]?.textMessageState?.text, '过一会儿我再补一句跟进。');
-    assert.match(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /过一会儿我再补一句跟进/);
+    assert.match(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /先给你一句短答/);
+    assert.doesNotMatch(String(committed[1]?.textMessageState?.metadataJson?.prompt || ''), /过一会儿我再补一句跟进/);
     assert.match(String(committed[1]?.textMessageState?.metadataJson?.rawModelOutput || ''), /message-follow-up/);
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpTurn, true);
+    assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpInstruction, '过一会儿我再补一句跟进。');
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpSourceActionId, 'action-0');
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDelayMs, 400);
     assert.deepEqual(followUpRuntimeWrites, [{
@@ -1252,9 +1312,10 @@ test('agent local chat provider lets follow-up turns continue their own actions 
           return { stream: stream() };
         },
         async invokeText(request) {
-          invokedPrompts.push(String(request.messages?.at(-1)?.text || ''));
-          const latestPrompt = invokedPrompts.at(-1);
-          if (latestPrompt === '十秒后继续安慰一次。') {
+          invokedPrompts.push(String(request.systemPrompt || ''));
+          const latestPrompt = invokedPrompts.at(-1) || '';
+          assert.equal(request.messages?.at(-1)?.role, 'assistant');
+          if (latestPrompt.includes('十秒后继续安慰一次。')) {
             return {
               text: JSON.stringify({
                 schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
@@ -1296,7 +1357,7 @@ test('agent local chat provider lets follow-up turns continue their own actions 
               promptTraceId: 'prompt-follow-up-1',
             };
           }
-          assert.equal(latestPrompt, '如果你还没回复，我再轻轻问一句。');
+          assert.match(latestPrompt, /如果你还没回复，我再轻轻问一句。/);
           return {
             text: JSON.stringify({
               schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
@@ -1392,10 +1453,9 @@ test('agent local chat provider lets follow-up turns continue their own actions 
     const completion = await iterator.next();
     assert.equal(completion.done, true);
 
-    assert.deepEqual(invokedPrompts, [
-      '十秒后继续安慰一次。',
-      '如果你还没回复，我再轻轻问一句。',
-    ]);
+    assert.equal(invokedPrompts.length, 2);
+    assert.match(invokedPrompts[0] || '', /十秒后继续安慰一次。/);
+    assert.match(invokedPrompts[1] || '', /如果你还没回复，我再轻轻问一句。/);
     assert.deepEqual(imagePrompts, ['一张安慰氛围的小图'], JSON.stringify(committed[1]?.imageState));
     assert.equal(committed.length, 3);
     assert.equal(committed[1]?.textMessageState?.metadataJson?.followUpDepth, 1);
@@ -1408,6 +1468,96 @@ test('agent local chat provider lets follow-up turns continue their own actions 
       `${committed[1]?.turnId || ''}:我还在，继续陪你。`,
       `${committed[2]?.turnId || ''}:我还在这里，想说的时候随时告诉我。`,
     ]);
+  } finally {
+    fakeTimers.restore();
+  }
+});
+
+test('agent local chat provider suppresses duplicate follow-up text and stops the chain', async () => {
+  const fakeTimers = installFakeTimers();
+  const committed: AgentCommitInput[] = [];
+  let followUpInvocations = 0;
+  try {
+    const provider = createAgentLocalChatConversationProvider({
+      runtimeAdapter: createRuntimeAdapter({
+        async streamText() {
+          const envelopeText = createBeatActionEnvelopeText({
+            beats: [{
+              beatId: 'beat-primary',
+              beatIndex: 0,
+              text: '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？',
+            }, {
+              beatId: 'beat-follow-up',
+              beatIndex: 1,
+              text: '如果对方还没回复，就再轻轻问候一句。',
+              delayMs: 200,
+            }],
+          });
+          async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+            yield { type: 'start' };
+            yield { type: 'text-delta', textDelta: envelopeText };
+            yield {
+              type: 'finish',
+              finishReason: 'stop',
+              trace: {
+                traceId: 'trace-follow-up-root',
+                promptTraceId: 'prompt-follow-up-root',
+              },
+            };
+          }
+          return { stream: stream() };
+        },
+        async invokeText() {
+          followUpInvocations += 1;
+          return {
+            text: JSON.stringify({
+              schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
+              message: {
+                messageId: 'message-follow-up-duplicate',
+                text: '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？',
+              },
+              actions: [{
+                actionId: 'action-follow-up-again',
+                actionIndex: 0,
+                actionCount: 1,
+                modality: 'follow-up-turn',
+                operation: 'assistant.turn.schedule',
+                promptPayload: {
+                  kind: 'follow-up-turn',
+                  promptText: '重复问一句。',
+                  delayMs: 200,
+                },
+                sourceMessageId: 'message-follow-up-duplicate',
+                deliveryCoupling: 'after-message',
+              }],
+            }),
+            traceId: 'trace-follow-up-duplicate',
+            promptTraceId: 'prompt-follow-up-duplicate',
+          };
+        },
+      }),
+      continuityAdapter: createContinuityAdapter(committed, 'truth:153:t1:b1:s0:m0:r0'),
+    });
+
+    const iterator = provider.runTurn(sampleTurnInput())[Symbol.asyncIterator]();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+    await iterator.next();
+
+    const pendingFollowUpProjection = iterator.next();
+    await Promise.resolve();
+    const timerId = fakeTimers.getTimerIds().find((id) => fakeTimers.getTimerDelay(id) === 200);
+    assert.ok(timerId, 'expected duplicate follow-up timer');
+    fakeTimers.runTimer(timerId);
+
+    const followUpProjection = await pendingFollowUpProjection;
+    assert.equal(followUpProjection.done, true);
+    assert.equal(followUpProjection.value, undefined);
+    assert.equal(followUpInvocations, 1);
+    assert.equal(committed.length, 1);
+    assert.equal(committed[0]?.textMessageState?.text, '你好呀！很高兴见到你，我是翠翠。今天心情怎么样？');
   } finally {
     fakeTimers.restore();
   }
@@ -2370,7 +2520,7 @@ test('agent local chat provider completes fenced JSON outputs with recovery diag
   assert.equal(diagnostics?.contextWindowSource, 'route-profile');
   assert.equal(diagnostics?.maxOutputTokensRequested, 321);
   assert.equal(diagnostics?.promptOverflow, false);
-  assert.match(String(diagnostics?.requestPrompt || ''), /UserMessage:/);
+  assert.match(String(diagnostics?.requestPrompt || ''), /^Messages:\n\[/);
   assert.match(String(diagnostics?.requestSystemPrompt || ''), /Output Contract:/);
   assert.equal(diagnostics?.rawModelOutputText, rawModelOutput);
   assert.equal(diagnostics?.normalizedModelOutputText, rawModelOutput);
@@ -2420,6 +2570,55 @@ test('agent local chat provider completes wrapped JSON outputs with recovery dia
   assert.equal(diagnostics?.classification, 'json-wrapper');
   assert.equal(diagnostics?.recoveryPath, 'extract-json-object');
   assert.equal(diagnostics?.finishReason, 'stop');
+});
+
+test('agent local chat provider fails closed when the model emits scratchpad plain text', async () => {
+  const committed: AgentCommitInput[] = [];
+  const provider = createAgentLocalChatConversationProvider({
+    runtimeAdapter: createRuntimeAdapter({
+      async streamText() {
+        async function* stream(): AsyncIterable<ConversationRuntimeTextStreamPart> {
+          yield { type: 'start' };
+          yield {
+            type: 'text-delta',
+            textDelta: [
+              '*分析：用户连续发送了“在吗？”',
+              '',
+              '策略：先安抚，再确认状态。',
+              '',
+              '执行：回复一句自然问候。',
+            ].join('\n'),
+          };
+          yield {
+            type: 'finish',
+            finishReason: 'stop',
+            trace: {
+              traceId: 'trace-scratchpad',
+              promptTraceId: 'prompt-scratchpad',
+            },
+          };
+        }
+        return { stream: stream() };
+      },
+    }),
+    continuityAdapter: createContinuityAdapter(committed, 'truth:145a:t1:b1:s0:m0:r0'),
+  });
+
+  const events = await collectEvents(provider, sampleTurnInput());
+
+  assert.equal(committed[0]?.outcome, 'failed');
+  const failedEvent = events.at(-1);
+  assert.equal(failedEvent?.type, 'turn-failed');
+  if (failedEvent?.type !== 'turn-failed') {
+    assert.fail('expected a failed terminal event');
+  }
+  assert.match(failedEvent.error.message, /format was invalid/i);
+  const diagnostics = failedEvent.diagnostics as Record<string, unknown> | undefined;
+  assert.equal(diagnostics?.classification, 'invalid-json');
+  assert.equal(diagnostics?.recoveryPath, 'none');
+  assert.equal(diagnostics?.traceId, 'trace-scratchpad');
+  assert.equal(diagnostics?.promptTraceId, 'prompt-scratchpad');
+  assert.equal(events.some((event) => event.type === 'message-sealed'), false);
 });
 
 test('agent local chat provider fails partial JSON outputs with truncation diagnostics', async () => {
@@ -2531,7 +2730,7 @@ test('agent local chat provider fails close before runtime when prompt preflight
   assert.equal(diagnostics?.recoveryPath, 'none');
   assert.equal(diagnostics?.promptOverflow, true);
   assert.equal(diagnostics?.contextWindowSource, 'route-profile');
-  assert.match(String(diagnostics?.requestPrompt || ''), /UserMessage:/);
+  assert.match(String(diagnostics?.requestPrompt || ''), /^Messages:\n\[/);
   const preflight = diagnostics?.preflight as Record<string, unknown> | undefined;
   assert.equal(typeof preflight?.totalInputTokens, 'number');
   assert.equal(typeof preflight?.promptBudgetTokens, 'number');
@@ -2828,10 +3027,16 @@ test('agent local chat continuity adapter commits canonical voice projection mes
           threadId: 'thread-1',
           role: 'assistant',
           status: 'complete',
-          contentText: '晚安，记得早点休息。',
+          contentText: '',
           mediaUrl: 'file:///tmp/voice-turn-1.mp3',
           mediaMimeType: 'audio/mpeg',
           artifactId: 'voice-artifact-1',
+          metadataJson: {
+            playbackPrompt: '轻声说晚安',
+            sourceActionId: 'action-voice-1',
+            sourceMessageId: 'turn-voice-1:message:0',
+            transcriptText: '晚安，记得早点休息。',
+          },
           createdAtMs: 240,
           updatedAtMs: 240,
         }),
@@ -2876,4 +3081,139 @@ test('chat agent projection parser accepts voice messages', () => {
   assert.equal(projection.messages.length, 1);
   assert.equal(projection.messages[0]?.kind, 'voice');
   assert.equal(projection.messages[0]?.mediaMimeType, 'audio/mpeg');
+});
+
+test('agent local chat continuity adapter does not emit duplicate text projections for voice errors', async () => {
+  const commitCalls: unknown[] = [];
+  const adapter = createAgentLocalChatContinuityAdapter({
+    now: () => 260,
+    storeClient: {
+      async loadTurnContext() {
+        return sampleTurnContext();
+      },
+      async commitTurnResult(input) {
+        commitCalls.push(input);
+        return sampleCommitResult();
+      },
+      async cancelTurn() {
+        throw new Error('cancelTurn not expected');
+      },
+      async rebuildProjection(threadId) {
+        return {
+          bundle: {
+            thread: sampleThread(),
+            messages: [],
+            draft: null,
+          },
+          projectionVersion: `truth:${threadId}`,
+        };
+      },
+    },
+  });
+
+  await adapter.commitAgentTurnResult({
+    modeId: 'agent-local-chat-v1',
+    threadId: 'thread-1',
+    turnId: 'turn-voice-error-1',
+    outcome: 'completed',
+    outputText: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+    events: [{
+      type: 'turn-completed',
+      turnId: 'turn-voice-error-1',
+      outputText: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+      trace: {
+        traceId: 'trace-voice-error-1',
+        promptTraceId: 'prompt-voice-error-1',
+      },
+    }],
+    voiceState: {
+      status: 'error',
+      beatId: 'turn-voice-error-1:beat:1',
+      beatIndex: 1,
+      projectionMessageId: 'turn-voice-error-1:message:1',
+      prompt: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+      transcriptText: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+      message: 'Voice playback is unavailable because no voice route is configured.',
+      sourceMessageId: 'turn-voice-error-1:message:0',
+      sourceActionId: 'action-voice-error-1',
+    },
+  });
+
+  assert.equal(commitCalls.length, 1);
+  assert.deepEqual(commitCalls[0], {
+    threadId: 'thread-1',
+    turn: {
+      id: 'turn-voice-error-1',
+      threadId: 'thread-1',
+      role: 'assistant',
+      status: 'completed',
+      providerMode: 'agent-local-chat-v1',
+      traceId: 'trace-voice-error-1',
+      promptTraceId: 'prompt-voice-error-1',
+      startedAtMs: 260,
+      completedAtMs: 260,
+      abortedAtMs: null,
+    },
+    beats: [
+      {
+        ...createAgentTurnBeat({
+          id: 'turn-voice-error-1:beat:0',
+          turnId: 'turn-voice-error-1',
+          beatIndex: 0,
+          modality: 'text',
+          status: 'delivered',
+          textShadow: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+          artifactId: null,
+          mimeType: 'text/plain',
+          mediaUrl: null,
+          projectionMessageId: 'turn-voice-error-1:message:0',
+          createdAtMs: 260,
+          deliveredAtMs: 260,
+        }),
+      },
+      {
+        ...createAgentTurnBeat({
+          id: 'turn-voice-error-1:beat:1',
+          turnId: 'turn-voice-error-1',
+          beatIndex: 1,
+          modality: 'voice',
+          status: 'failed',
+          textShadow: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+          artifactId: null,
+          mimeType: null,
+          mediaUrl: null,
+          projectionMessageId: null,
+          createdAtMs: 260,
+          deliveredAtMs: null,
+        }),
+      },
+    ],
+    interactionSnapshot: null,
+    relationMemorySlots: [],
+    recallEntries: [],
+    projection: {
+      thread: {
+        id: 'thread-1',
+        title: 'Companion',
+        updatedAtMs: 260,
+        lastMessageAtMs: 260,
+        archivedAtMs: null,
+        targetSnapshot: sampleTarget(),
+      },
+      messages: [
+        createAgentTextMessage({
+          id: 'turn-voice-error-1:message:0',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          contentText: '你好呀！很高兴见到你，今天有什么想和我聊的吗？',
+          traceId: 'trace-voice-error-1',
+          createdAtMs: 260,
+          updatedAtMs: 260,
+        }),
+      ],
+      draft: null,
+      clearDraft: true,
+    },
+  });
 });

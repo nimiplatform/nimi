@@ -7,7 +7,6 @@ import type { AgentChatExperienceSettings } from './chat-settings-storage';
 import {
   buildAgentResolvedOutputText,
   parseAgentResolvedMessageActionEnvelope,
-  recoverPlainTextAsEnvelope,
 } from './chat-agent-behavior-resolver-envelope';
 import {
   buildAgentPreflightDiagnosticsFromError,
@@ -61,7 +60,6 @@ export {
   buildAgentPreflightDiagnosticsFromError,
   parseAgentModelOutputDiagnostics,
   parseAgentResolvedMessageActionEnvelope,
-  recoverPlainTextAsEnvelope,
   resolveAgentModelOutputEnvelope,
   toAgentModelOutputTurnError,
 };

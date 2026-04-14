@@ -10,6 +10,7 @@ import {
 } from '@runtime/local-runtime';
 import {
   basenameFromRuntimePath,
+  planCanonicalImageCompatibilityHint,
   planBlocksCanonicalImageImport,
   defaultAssetDeclaration,
   normalizeCapabilityOption,
@@ -599,7 +600,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
           return;
         }
         const required = planRequiresAttachedEndpointInput(plan);
-        const blocked = planBlocksCanonicalImageImport(plan);
+        const blocked = declaration.assetKind === 'image' ? false : planBlocksCanonicalImageImport(plan);
         setUnregisteredEndpointRequiredByPath((prev) => ({ ...prev, [asset.path]: required }));
         setUnregisteredEndpointHintByPath((prev) => ({
           ...prev,
@@ -607,7 +608,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         }));
         setUnregisteredCompatibilityHintByPath((prev) => ({
           ...prev,
-          [asset.path]: blocked ? planBlockingHint(plan) : '',
+          [asset.path]: declaration.assetKind === 'image'
+            ? planCanonicalImageCompatibilityHint(plan)
+            : blocked ? planBlockingHint(plan) : '',
         }));
         setUnregisteredImportAllowedByPath((prev) => ({ ...prev, [asset.path]: !blocked }));
       }).catch(() => {

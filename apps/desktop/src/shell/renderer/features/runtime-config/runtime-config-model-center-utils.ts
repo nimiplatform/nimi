@@ -237,6 +237,13 @@ export function planBlocksCanonicalImageImport(plan: LocalRuntimeInstallPlanDesc
   return reasonCode === ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE;
 }
 
+export function planCanonicalImageCompatibilityHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
+  if (!planBlocksCanonicalImageImport(plan)) {
+    return '';
+  }
+  return planBlockingHint(plan);
+}
+
 export function planBlockingHint(plan: LocalRuntimeInstallPlanDescriptor | null | undefined): string {
   if (planInstallAvailable(plan)) {
     return '';

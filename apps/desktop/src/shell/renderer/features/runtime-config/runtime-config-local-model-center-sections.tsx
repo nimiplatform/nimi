@@ -461,7 +461,6 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
           const canImport = Boolean(draft.assetKind)
             && (!requiresEngine || Boolean(String(draft.engine || '').trim()))
             && (!endpointRequired || Boolean(endpointValue))
-            && !compatibilityHint
             && props.importAllowedByPath[asset.path] !== false;
           const confidenceClass = asset.confidence === 'high'
             ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'

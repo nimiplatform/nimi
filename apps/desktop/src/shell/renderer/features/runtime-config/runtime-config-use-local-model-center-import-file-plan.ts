@@ -11,7 +11,7 @@ import {
   defaultEngineForAnyAssetKind,
 } from './runtime-config-use-local-model-center-helpers.js';
 import {
-  planBlocksCanonicalImageImport,
+  planCanonicalImageCompatibilityHint,
   planRequiresAttachedEndpointInput,
   type AssetEngineOption,
 } from './runtime-config-model-center-utils';
@@ -89,11 +89,10 @@ export function useLocalModelCenterImportFilePlan({
         return;
       }
       const required = planRequiresAttachedEndpointInput(plan);
-      const blocked = planBlocksCanonicalImageImport(plan);
       setImportEndpointRequired(required);
       setImportEndpointHint(required ? planAttachedEndpointHint(plan) : '');
-      setImportCompatibilityHint(blocked ? String(plan?.warnings[0] || '').trim() : '');
-      setImportPlanAvailable(!blocked);
+      setImportCompatibilityHint(planCanonicalImageCompatibilityHint(plan));
+      setImportPlanAvailable(true);
     }).catch(() => {
       if (cancelled) {
         return;

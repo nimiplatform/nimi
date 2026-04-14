@@ -126,12 +126,21 @@ export async function submitAgentConversationTurn(input: {
     const assistantTurnId = randomIdV11('agent-turn');
     const assistantMessageId = `${assistantTurnId}:message:0`;
     const createdAtMs = Date.now();
-    const optimisticUserProjection = input.payload.attachments.length === 0
+    const optimisticPreviewAttachments = input.payload.attachments
+      .filter((attachment) => attachment.kind === 'image' && normalizeText(attachment.previewUrl))
+      .map((attachment) => ({
+        kind: 'image' as const,
+        url: attachment.previewUrl,
+        mimeType: normalizeText(attachment.file.type) || null,
+        name: attachment.name,
+        resourceId: null,
+      }));
+    const optimisticUserProjection = submittedText || optimisticPreviewAttachments.length > 0
       ? buildAgentUserProjectionCommit({
         threadId: effectiveThreadId,
         turnId: userTurnId,
         submittedText,
-        uploadedAttachments: [],
+        uploadedAttachments: optimisticPreviewAttachments,
         createdAtMs,
       })
       : null;
@@ -184,6 +193,7 @@ export async function submitAgentConversationTurn(input: {
       uploadedAttachments,
       createdAtMs,
     });
+    const conversationHistoryBeforeSubmit = toConversationHistoryMessages(input.hostInput.bundle?.messages || []);
     const assistantPlaceholder: AgentLocalMessageRecord = {
       id: assistantMessageId,
       threadId: effectiveThreadId,
@@ -357,7 +367,7 @@ export async function submitAgentConversationTurn(input: {
       promise: Promise.resolve(),
     };
     input.activeSubmitsByThreadRef.current.set(effectiveThreadId, activeSubmit);
-    const history = toConversationHistoryMessages(userBundle.messages);
+    const history = conversationHistoryBeforeSubmit;
     const submitRunPromise = runActiveAgentSubmit({
       activeSubmit,
       input: input.hostInput,
@@ -399,7 +409,14 @@ export async function submitAgentConversationTurn(input: {
         assistantText: normalizeText(assistantMessage?.contentText),
         turnId: assistantTurnId,
         threadId: effectiveThreadId,
-        history,
+        history: [
+          ...history,
+          {
+            id: userProjection.firstMessageId,
+            role: 'user',
+            text: submittedText,
+          },
+        ],
       });
     } catch (error) {
       const streamSnapshot = getStreamState(effectiveThreadId);

@@ -188,9 +188,12 @@ test('import dialog exposes attached endpoint input when runtime requires it', (
   assert.match(localModelCenterUtilsSource, /export function planBlockingHint\(/);
   assert.match(localModelCenterUtilsSource, /export function basenameFromRuntimePath\(/);
   assert.match(localModelCenterUtilsSource, /export function planBlocksCanonicalImageImport\(/);
+  assert.match(localModelCenterUtilsSource, /export function planCanonicalImageCompatibilityHint\(/);
   assert.match(localModelCenterImportFilePlanSource, /canChooseImportFile = useMemo\(/);
   assert.match(localModelCenterSectionsSource, /compatibilityHint\?: string/);
   assert.match(localModelCenterImportFilePlanSource, /if \(importFileDeclaration\.assetKind === 'image'\) \{\s*setImportEndpointRequired\(false\);/s);
+  assert.match(localModelCenterImportFilePlanSource, /setImportCompatibilityHint\(planCanonicalImageCompatibilityHint\(plan\)\)/);
+  assert.match(localModelCenterImportFilePlanSource, /setImportPlanAvailable\(true\)/);
   assert.match(localModelCenterStateSource, /useLocalModelCenterImportFilePlan\(/);
 });
 
@@ -207,9 +210,12 @@ test('unregistered assets import flow also captures attached endpoints for media
   assert.match(localModelCenterStateSource, /const previewFileName = basenameFromRuntimePath\(asset\.path\)/);
   assert.match(localModelCenterStateSource, /entry: previewFileName/);
   assert.match(localModelCenterStateSource, /files: \[previewFileName\]/);
-  assert.match(localModelCenterStateSource, /const blocked = planBlocksCanonicalImageImport\(plan\)/);
+  assert.match(localModelCenterStateSource, /const blocked = declaration\.assetKind === 'image' \? false : planBlocksCanonicalImageImport\(plan\)/);
+  assert.match(localModelCenterStateSource, /\[asset\.path\]: declaration\.assetKind === 'image'/);
+  assert.match(localModelCenterStateSource, /planCanonicalImageCompatibilityHint\(plan\)/);
   assert.match(localModelCenterStateSource, /importActions\.importAssetFromPath\(\s*assetPath,\s*declaration,\s*String\(unregisteredEndpointByPath\[assetPath\] \|\| ''\)\.trim\(\) \|\| undefined,\s*\)/s);
   assert.match(localModelCenterSectionsSource, /&& props\.importAllowedByPath\[asset\.path\] !== false/);
+  assert.doesNotMatch(localModelCenterSectionsSource, /&& !compatibilityHint/);
 });
 
 test('scaffolded unregistered asset imports refresh installed asset sections immediately', () => {

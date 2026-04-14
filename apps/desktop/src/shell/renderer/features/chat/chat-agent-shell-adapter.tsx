@@ -30,6 +30,7 @@ import type { AgentConversationSelection } from './chat-shell-types';
 import {
   RuntimeAgentDebugMessageAccessory,
   RuntimeImageMessageContent,
+  RuntimeVoiceMessageContent,
   createReasoningMessageContentRenderer,
 } from './chat-runtime-stream-ui';
 import {
@@ -679,6 +680,18 @@ export function useAgentConversationModeHost(
           />
         );
       }
+      if (message.kind === 'voice') {
+        return (
+          <RuntimeVoiceMessageContent
+            message={message}
+            voiceLabel={t('Chat.voiceInspectTitle', { defaultValue: 'Voice inspect' })}
+            transcriptLabel={t('Chat.voiceInspectTranscriptTitle', { defaultValue: 'Transcript' })}
+            showTranscriptLabel={t('Chat.voiceTranscribe', { defaultValue: 'Transcribe voice' })}
+            hideTranscriptLabel={t('Chat.voiceCollapseTranscript', { defaultValue: 'Collapse transcript' })}
+            transcriptUnavailableLabel={t('Chat.voiceInspectTranscriptUnavailable', { defaultValue: 'No transcript available for this voice beat.' })}
+          />
+        );
+      }
       return renderReasoningMessageContent(message, context);
     }
   ), [renderReasoningMessageContent, t]);
@@ -695,6 +708,7 @@ export function useAgentConversationModeHost(
           copyLabel={t('Chat.agentDebugCopyLabel', { defaultValue: 'Copy' })}
           copiedLabel={t('Chat.agentDebugCopiedLabel', { defaultValue: 'Copied' })}
           followUpLabel={t('Chat.agentDebugFollowUpLabel', { defaultValue: 'Auto follow-up' })}
+          followUpInstructionLabel={t('Chat.agentDebugFollowUpInstructionLabel', { defaultValue: 'Follow-up instruction' })}
           promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
           systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
           rawOutputLabel={t('Chat.agentDebugRawOutputLabel', { defaultValue: 'Raw Model Output' })}

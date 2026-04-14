@@ -7,6 +7,7 @@ export type AgentTextTurnDebugMetadata = {
   systemPrompt: string | null;
   rawModelOutput: string | null;
   normalizedModelOutput: string | null;
+  followUpInstruction: string | null;
   followUpTurn: boolean;
   chainId: string | null;
   followUpDepth: number | null;
@@ -28,6 +29,7 @@ export function buildAgentTextTurnDebugMetadata(
   diagnostics: AgentModelOutputDiagnostics | null | undefined,
   options?: {
     followUpTurn?: boolean;
+    followUpInstruction?: string | null;
     chainId?: string | null;
     followUpDepth?: number | null;
     maxFollowUpTurns?: number | null;
@@ -46,6 +48,7 @@ export function buildAgentTextTurnDebugMetadata(
     systemPrompt: normalizeNullableText(diagnostics?.requestSystemPrompt),
     rawModelOutput: normalizeNullableText(diagnostics?.rawModelOutputText),
     normalizedModelOutput: normalizeNullableText(diagnostics?.normalizedModelOutputText),
+    followUpInstruction: normalizeNullableText(options?.followUpInstruction),
     followUpTurn: options?.followUpTurn === true,
     chainId: normalizeNullableText(options?.chainId ?? diagnostics?.chainId),
     followUpDepth: Number.isFinite(Number(options?.followUpDepth ?? diagnostics?.followUpDepth))
@@ -80,6 +83,7 @@ export function parseAgentTextTurnDebugMetadata(value: unknown): AgentTextTurnDe
     systemPrompt: normalizeNullableText(record.systemPrompt),
     rawModelOutput: normalizeNullableText(record.rawModelOutput),
     normalizedModelOutput: normalizeNullableText(record.normalizedModelOutput),
+    followUpInstruction: normalizeNullableText(record.followUpInstruction),
     followUpTurn: record.followUpTurn === true,
     chainId: normalizeNullableText(record.chainId),
     followUpDepth: Number.isFinite(Number(record.followUpDepth))

@@ -116,6 +116,7 @@ export function toConversationThreadSummary(
 export function toConversationMessageViewModel(
   message: AgentLocalMessageRecord,
 ): ConversationMessageViewModel {
+  const transcriptText = parseOptionalString(message.metadataJson?.transcriptText) || message.contentText;
   const metadata = {
     ...(message.metadataJson || {}),
     kind: message.kind,
@@ -126,7 +127,7 @@ export function toConversationMessageViewModel(
     voiceUrl: message.mediaUrl,
     mediaMimeType: message.mediaMimeType,
     artifactId: message.artifactId,
-    voiceTranscript: message.contentText,
+    voiceTranscript: transcriptText,
     mediaError: message.error?.message || null,
   };
   return {
