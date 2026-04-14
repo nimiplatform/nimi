@@ -5,11 +5,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localrouting"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -96,6 +98,14 @@ func (s *Service) resolveVoiceWorkflow(ctx context.Context, providerType string,
 	return s.speechCatalog.ResolveVoiceWorkflowForSubject(catalogSubjectUserIDFromContext(ctx), provider, modelResolved, workflowType)
 }
 
+func voiceWorkflowCatalogProviderType(modelResolved string, remoteTarget *nimillm.RemoteTarget, selected provider) string {
+	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_TTS)
+	if remoteTarget == nil && selected != nil && selected.Route() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL && localrouting.IsKnownProvider(providerType) {
+		return "local"
+	}
+	return providerType
+}
+
 func (s *Service) executeVoiceWorkflowJob(
 	ctx context.Context,
 	jobID string,
@@ -116,9 +126,51 @@ func (s *Service) executeVoiceWorkflowJob(
 
 	provider := strings.TrimSpace(strings.ToLower(resolution.Provider))
 
-	// local voice workflow: fail-close (no real local engine implementation).
 	if provider == "local" {
-		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, "local voice workflow engine not available")
+		localCfg := s.resolveLocalVoiceWorkflowAdapterConfig(req, resolution)
+		if strings.TrimSpace(localCfg.BaseURL) != "" && strings.EqualFold(strings.TrimSpace(resolution.WorkflowFamily), "voxcpm") {
+			result, err := executeVoiceWorkflowViaLocalSpeechHost(ctx, req, resolution, localCfg)
+			if err == nil {
+				if result.Metadata == nil {
+					result.Metadata = map[string]any{}
+				}
+				result.Metadata["voice_asset_id"] = voiceAssetID
+				result.Metadata["workflow_model_id"] = resolution.WorkflowModelID
+				result.Metadata["workflow_type"] = resolution.WorkflowType
+				result.Metadata["workflow_family"] = strings.TrimSpace(resolution.WorkflowFamily)
+				if strings.TrimSpace(resolution.HandlePolicyID) != "" {
+					result.Metadata["voice_handle_policy_id"] = strings.TrimSpace(resolution.HandlePolicyID)
+				}
+				if strings.TrimSpace(resolution.HandlePolicyPersistence) != "" {
+					result.Metadata["voice_handle_policy_persistence"] = strings.TrimSpace(resolution.HandlePolicyPersistence)
+				}
+				if strings.TrimSpace(resolution.HandlePolicyScope) != "" {
+					result.Metadata["voice_handle_policy_scope"] = strings.TrimSpace(resolution.HandlePolicyScope)
+				}
+				if strings.TrimSpace(resolution.HandlePolicyDefaultTTL) != "" {
+					result.Metadata["voice_handle_policy_default_ttl"] = strings.TrimSpace(resolution.HandlePolicyDefaultTTL)
+				}
+				if strings.TrimSpace(resolution.HandlePolicyDeleteSemantics) != "" {
+					result.Metadata["voice_handle_policy_delete_semantics"] = strings.TrimSpace(resolution.HandlePolicyDeleteSemantics)
+				}
+				if resolution.RuntimeReconciliationRequired {
+					result.Metadata["voice_handle_policy_runtime_reconciliation_required"] = true
+				}
+				s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
+				return
+			}
+			reasonCode := reasonCodeFromMediaError(err)
+			if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+				reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+			}
+			s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode))
+			return
+		}
+		detail := "local voice workflow engine not available"
+		if family := strings.TrimSpace(resolution.WorkflowFamily); family != "" {
+			detail = "local voice workflow family admitted in control plane but execution plane not materialized: " + family
+		}
+		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED, detail)
 		return
 	}
 
@@ -178,6 +230,80 @@ func (s *Service) executeVoiceWorkflowJob(
 	}
 
 	s.voiceAssets.completeJob(jobID, result.ProviderJobID, result.ProviderVoiceRef, result.Metadata, result.Usage)
+}
+
+func (s *Service) resolveLocalVoiceWorkflowAdapterConfig(req *runtimev1.SubmitScenarioJobRequest, resolution catalog.ResolveVoiceWorkflowResult) nimillm.MediaAdapterConfig {
+	if s == nil || s.selector == nil || req == nil {
+		return nimillm.MediaAdapterConfig{}
+	}
+	local, ok := s.selector.local.(*localProvider)
+	if !ok || local == nil {
+		return nimillm.MediaAdapterConfig{}
+	}
+	modelResolved := strings.TrimSpace(resolution.ModelID)
+	if modelResolved == "" {
+		modelResolved = strings.TrimSpace(req.GetHead().GetModelId())
+	}
+	backend, _, providerType := local.resolveMediaBackendForModal(modelResolved, runtimev1.Modal_MODAL_TTS)
+	if backend == nil || !strings.EqualFold(strings.TrimSpace(providerType), "speech") {
+		return nimillm.MediaAdapterConfig{}
+	}
+	return nimillm.MediaAdapterConfig{BaseURL: strings.TrimSpace(backend.Endpoint())}
+}
+
+func executeVoiceWorkflowViaLocalSpeechHost(
+	ctx context.Context,
+	req *runtimev1.SubmitScenarioJobRequest,
+	resolution catalog.ResolveVoiceWorkflowResult,
+	cfg nimillm.MediaAdapterConfig,
+) (voiceWorkflowExecutionResult, error) {
+	baseURL := strings.TrimSpace(cfg.BaseURL)
+	if baseURL == "" {
+		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
+	path := ""
+	switch strings.TrimSpace(resolution.WorkflowType) {
+	case "tts_v2v":
+		path = "/v1/voice/clone"
+	case "tts_t2v":
+		path = "/v1/voice/design"
+	default:
+		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
+	}
+	extPayload, err := resolveVoiceWorkflowExtensionPayload(req, "local")
+	if err != nil {
+		return voiceWorkflowExecutionResult{}, err
+	}
+	payload := buildVoiceWorkflowPayload(req, resolution, extPayload)
+	response := map[string]any{}
+	if err := nimillm.DoJSONRequestWithHeaders(ctx, http.MethodPost, nimillm.JoinURL(baseURL, path), "", payload, &response, nil); err != nil {
+		return voiceWorkflowExecutionResult{}, err
+	}
+	providerVoiceRef := strings.TrimSpace(nimillm.FirstNonEmpty(
+		nimillm.ValueAsString(response["voice_ref"]),
+		nimillm.ValueAsString(response["voice_id"]),
+	))
+	if providerVoiceRef == "" {
+		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	metadata := map[string]any{
+		"provider":          "local",
+		"workflow_type":     strings.TrimSpace(resolution.WorkflowType),
+		"workflow_model_id": strings.TrimSpace(resolution.WorkflowModelID),
+		"adapter":           "local_speech_workflow_host",
+		"endpoint":          strings.TrimSpace(path),
+	}
+	if hostMeta, ok := response["metadata"].(map[string]any); ok {
+		for key, value := range hostMeta {
+			metadata[key] = value
+		}
+	}
+	return voiceWorkflowExecutionResult{
+		ProviderJobID:    strings.TrimSpace(nimillm.ValueAsString(response["job_id"])),
+		ProviderVoiceRef: providerVoiceRef,
+		Metadata:         metadata,
+		Usage:            estimateVoiceWorkflowUsage(req),
+	}, nil
 }
 
 // executeVoiceWorkflowViaNimillm builds the nimillm voice workflow request

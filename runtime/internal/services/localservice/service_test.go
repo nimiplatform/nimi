@@ -3033,6 +3033,53 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 	}
 }
 
+func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-linux",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	entryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(entryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("expected unsupported-host image import to register unhealthy asset instead of failing, got %v", err)
+	}
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("expected supervised runtime mode, got %s", got)
+	}
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("status mismatch: got=%s", got)
+	}
+	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected compatibility detail, got %q", detail)
+	}
+}
+
 func TestImportLocalAssetAutoDetectsMMProjAndGemma4ArchitectureWithoutManifestFiles(t *testing.T) {
 	svc := newTestService(t)
 	tmpDir := t.TempDir()
@@ -3249,6 +3296,64 @@ func TestStartLocalAssetFailsClosedForUnsupportedSafetensorsNativeSelection(t *t
 	}
 }
 
+func TestStartLocalAssetFailsClosedForUnsupportedImportedGGUFImage(t *testing.T) {
+	svc := newTestServiceWithProbe(t, nil)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux-start", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-linux-start",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	imageEntryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(imageEntryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("import image asset: %v", err)
+	}
+
+	_, err = svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: imported.GetAsset().GetLocalAssetId(),
+	})
+	if err == nil {
+		t.Fatal("expected unsupported imported image start to fail-close")
+	}
+	assertGRPCReasonCode(t, err, "StartLocalAsset(unsupported imported gguf image)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if !strings.Contains(err.Error(), "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected compatibility detail to surface, got %v", err)
+	}
+
+	updated := svc.modelByID(imported.GetAsset().GetLocalAssetId())
+	if updated == nil {
+		t.Fatal("expected imported asset to remain available")
+	}
+	if updated.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unsupported imported image asset to stay unhealthy, got %s", updated.GetStatus())
+	}
+}
+
 func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -3375,6 +3480,64 @@ func TestCheckLocalAssetHealthFailsClosedForUnsupportedSafetensorsNativeSelectio
 	}
 	if strings.Contains(strings.ToLower(updated.GetHealthDetail()), "attached endpoint") {
 		t.Fatalf("unsupported safetensors native must not project to attached endpoint detail, got %q", updated.GetHealthDetail())
+	}
+}
+
+func TestCheckLocalAssetHealthFailsClosedForUnsupportedImportedGGUFImage(t *testing.T) {
+	svc := newTestServiceWithProbe(t, nil)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	tmpDir := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux-health", "asset.manifest.json")
+	rawManifest, err := json.Marshal(map[string]any{
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
+		"logical_model_id": "nimi/image-model-linux-health",
+		"engine":           "media",
+		"capabilities":     []string{"image"},
+		"entry":            "z_image_turbo-Q4_K.gguf",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
+		t.Fatalf("create manifest dir: %v", err)
+	}
+	imageEntryPath := filepath.Join(filepath.Dir(manifestPath), "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(imageEntryPath, validImageTestGGUF(), 0o600); err != nil {
+		t.Fatalf("write entry file: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, rawManifest, 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	imported, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
+		ManifestPath: manifestPath,
+	})
+	if err != nil {
+		t.Fatalf("import image asset: %v", err)
+	}
+
+	_, err = svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: imported.GetAsset().GetLocalAssetId(),
+	})
+	if err == nil {
+		t.Fatal("expected targeted health check for unsupported imported image to fail-close")
+	}
+	assertGRPCReasonCode(t, err, "CheckLocalAssetHealth(unsupported imported gguf image)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	if !strings.Contains(err.Error(), "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected compatibility detail to surface, got %v", err)
+	}
+
+	updated := svc.modelByID(imported.GetAsset().GetLocalAssetId())
+	if updated == nil {
+		t.Fatal("expected imported asset to remain available")
+	}
+	if updated.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unsupported imported image asset to stay unhealthy, got %s", updated.GetStatus())
 	}
 }
 

@@ -157,6 +157,118 @@ func TestValidateVideoGenerateAgainstCatalogRejectsInvalidModeAndRoles(t *testin
 	}
 }
 
+func TestValidateVideoGenerateAgainstCatalogAllowsSeedancePromptOnlyT2V(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "volcengine", "doubao-seedance-2-0-260128", &runtimev1.VideoGenerateScenarioSpec{
+		Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{
+			{
+				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+				Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+				Text: "A short cinematic sunrise.",
+			},
+		},
+		Options: &runtimev1.VideoGenerationOptions{
+			DurationSec: 4,
+			Ratio:       "16:9",
+			Resolution:  "480p",
+		},
+	})
+	if err != nil {
+		t.Fatalf("validateVideoGenerateAgainstCatalog seedance prompt-only t2v: %v", err)
+	}
+}
+
+func TestValidateVideoGenerateAgainstCatalogAllowsSeedanceReferenceVideoAndAudio(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "volcengine", "doubao-seedance-2-0-260128", &runtimev1.VideoGenerateScenarioSpec{
+		Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+		Content: []*runtimev1.VideoContentItem{
+			{
+				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+				Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+				Text: "fruit tea ad",
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+				ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/ref-1.png"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+				VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref-1.mp4"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO,
+				AudioUrl: &runtimev1.VideoContentAudioURL{Url: "https://example.com/ref-1.mp3"},
+			},
+		},
+		Options: &runtimev1.VideoGenerationOptions{
+			DurationSec:     11,
+			Ratio:           "16:9",
+			Resolution:      "720p",
+			GenerateAudio:   true,
+			ReturnLastFrame: true,
+		},
+	})
+	if err != nil {
+		t.Fatalf("validateVideoGenerateAgainstCatalog seedance multimodal reference: %v", err)
+	}
+}
+
+func TestValidateVideoGenerateAgainstCatalogRejectsSeedanceTooManyReferenceVideos(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	spec := &runtimev1.VideoGenerateScenarioSpec{
+		Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+		Content: []*runtimev1.VideoContentItem{
+			{
+				Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+				Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+				Text: "fruit tea ad",
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+				ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/ref-1.png"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+				VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref-1.mp4"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+				VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref-2.mp4"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+				VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref-3.mp4"},
+			},
+			{
+				Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+				Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+				VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref-4.mp4"},
+			},
+		},
+		Options: &runtimev1.VideoGenerationOptions{
+			DurationSec: 11,
+			Ratio:       "16:9",
+		},
+	}
+	err := svc.validateVideoGenerateAgainstCatalog(context.Background(), "volcengine", "doubao-seedance-2-0-260128", spec)
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED for too many reference videos, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+}
+
 func TestScenarioCatalogValidationHelpers(t *testing.T) {
 	if got := videoModeCatalogToken(runtimev1.VideoMode_VIDEO_MODE_T2V); got != "t2v" {
 		t.Fatalf("unexpected t2v token: %q", got)
@@ -204,6 +316,18 @@ func TestScenarioCatalogValidationHelpers(t *testing.T) {
 	}
 	if !sameStringSet([]string{"prompt", "first_frame"}, []string{"first_frame", "prompt"}) {
 		t.Fatalf("expected set equivalence")
+	}
+	if !sameStringSet(requiredVideoRolesForMode(runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST), []string{"first_frame", "last_frame"}) {
+		t.Fatalf("unexpected required role set for first/last mode")
+	}
+	if !videoScenarioUsesOnlyAllowedRoles([]string{"prompt"}, []string{"prompt", "reference_video"}) {
+		t.Fatalf("prompt should be allowed when optional reference roles exist")
+	}
+	if videoScenarioUsesOnlyAllowedRoles([]string{"prompt", "reference_image"}, []string{"prompt", "reference_video"}) {
+		t.Fatalf("unexpected role should be rejected")
+	}
+	if got := filterVideoRoles([]string{"prompt", "reference_video"}, []string{"prompt"}); !sameStringSet(got, []string{"prompt"}) {
+		t.Fatalf("unexpected filtered roles: %#v", got)
 	}
 
 	if err := ensureStringLimitContains([]any{"720p", 1080}, "720p"); err != nil {

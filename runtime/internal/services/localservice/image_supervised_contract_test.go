@@ -58,6 +58,53 @@ func TestDeriveCanonicalImageFactsWorkflowBundle(t *testing.T) {
 	}
 }
 
+func TestCanonicalSupervisedImageSelectionMatchesWindowsNvidiaGGUFHostProfile(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	selection := canonicalSupervisedImageSelection(
+		collectDeviceProfile(),
+		canonicalImageResolverFactsForImport(
+			"media",
+			[]string{"image"},
+			runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+			"z_image_turbo-Q4_K.gguf",
+			[]string{"z_image_turbo-Q4_K.gguf"},
+			nil,
+			nil,
+			"",
+			nil,
+		),
+	)
+	if selection.EntryID != "windows-x64-nvidia-gguf" {
+		t.Fatalf("expected windows/amd64/nvidia+cuda to resolve windows-x64-nvidia-gguf, got %q", selection.EntryID)
+	}
+}
+
+func TestCanonicalSupervisedImageSelectionMatchesAppleSiliconGGUFHostProfile(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+
+	selection := canonicalSupervisedImageSelection(
+		collectDeviceProfile(),
+		canonicalImageResolverFactsForImport(
+			"media",
+			[]string{"image"},
+			runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+			"z_image_turbo-Q4_K.gguf",
+			[]string{"z_image_turbo-Q4_K.gguf"},
+			nil,
+			nil,
+			"",
+			nil,
+		),
+	)
+	if selection.EntryID != "macos-apple-silicon-gguf" {
+		t.Fatalf("expected darwin/arm64/apple to resolve macos-apple-silicon-gguf, got %q", selection.EntryID)
+	}
+}
+
 func TestDeriveCanonicalImageFactsSingleFileSafetensors(t *testing.T) {
 	facts := canonicalImageResolverFactsForImport(
 		"media",

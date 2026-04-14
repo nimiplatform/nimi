@@ -58,7 +58,11 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 	}
 
 	actualRoles := videoScenarioInputRoles(spec)
-	if !sameStringSet(actualRoles, model.VideoGeneration.InputRoles[modeToken]) {
+	requiredRoles := requiredVideoRolesForMode(spec.GetMode())
+	if !sameStringSet(filterVideoRoles(actualRoles, requiredRoles), requiredRoles) {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if !videoScenarioUsesOnlyAllowedRoles(actualRoles, model.VideoGeneration.InputRoles[modeToken]) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
@@ -168,6 +172,20 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 			}
 		}
 	}
+	if referenceVideoCount := videoReferenceVideoCount(spec); referenceVideoCount > 0 {
+		if limit := model.VideoGeneration.Limits["reference_videos"]; limit != nil {
+			if err := ensureNumericRange(limit, int64(referenceVideoCount)); err != nil {
+				return err
+			}
+		}
+	}
+	if referenceAudioCount := videoReferenceAudioCount(spec); referenceAudioCount > 0 {
+		if limit := model.VideoGeneration.Limits["reference_audios"]; limit != nil {
+			if err := ensureNumericRange(limit, int64(referenceAudioCount)); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
@@ -220,6 +238,14 @@ func videoScenarioInputRoles(spec *runtimev1.VideoGenerateScenarioSpec) []string
 			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
 				roles["reference_image"] = struct{}{}
 			}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
+			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
+				roles["reference_video"] = struct{}{}
+			}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
+			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO {
+				roles["reference_audio"] = struct{}{}
+			}
 		}
 	}
 	out := make([]string, 0, len(roles))
@@ -228,6 +254,21 @@ func videoScenarioInputRoles(spec *runtimev1.VideoGenerateScenarioSpec) []string
 	}
 	sort.Strings(out)
 	return out
+}
+
+func requiredVideoRolesForMode(mode runtimev1.VideoMode) []string {
+	switch mode {
+	case runtimev1.VideoMode_VIDEO_MODE_T2V:
+		return []string{"prompt"}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME:
+		return []string{"first_frame"}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST:
+		return []string{"first_frame", "last_frame"}
+	case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
+		return []string{"reference_image"}
+	default:
+		return nil
+	}
 }
 
 func videoReferenceImageCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
@@ -247,6 +288,42 @@ func videoReferenceImageCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
 	return count
 }
 
+func videoReferenceVideoCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
+	count := 0
+	if spec == nil {
+		return count
+	}
+	for _, item := range spec.GetContent() {
+		if item == nil {
+			continue
+		}
+		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL &&
+			item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO &&
+			strings.TrimSpace(item.GetVideoUrl().GetUrl()) != "" {
+			count++
+		}
+	}
+	return count
+}
+
+func videoReferenceAudioCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
+	count := 0
+	if spec == nil {
+		return count
+	}
+	for _, item := range spec.GetContent() {
+		if item == nil {
+			continue
+		}
+		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL &&
+			item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO &&
+			strings.TrimSpace(item.GetAudioUrl().GetUrl()) != "" {
+			count++
+		}
+	}
+	return count
+}
+
 func sameStringSet(left []string, right []string) bool {
 	if len(left) != len(right) {
 		return false
@@ -260,6 +337,39 @@ func sameStringSet(left []string, right []string) bool {
 	}
 	for _, item := range right {
 		if _, ok := lset[strings.ToLower(strings.TrimSpace(item))]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func filterVideoRoles(actual []string, wanted []string) []string {
+	if len(actual) == 0 || len(wanted) == 0 {
+		return nil
+	}
+	wantedSet := make(map[string]struct{}, len(wanted))
+	for _, item := range wanted {
+		wantedSet[strings.ToLower(strings.TrimSpace(item))] = struct{}{}
+	}
+	filtered := make([]string, 0, len(actual))
+	for _, item := range actual {
+		if _, ok := wantedSet[strings.ToLower(strings.TrimSpace(item))]; ok {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func videoScenarioUsesOnlyAllowedRoles(actual []string, allowed []string) bool {
+	if len(actual) == 0 {
+		return len(allowed) == 0
+	}
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, item := range allowed {
+		allowedSet[strings.ToLower(strings.TrimSpace(item))] = struct{}{}
+	}
+	for _, item := range actual {
+		if _, ok := allowedSet[strings.ToLower(strings.TrimSpace(item))]; !ok {
 			return false
 		}
 	}

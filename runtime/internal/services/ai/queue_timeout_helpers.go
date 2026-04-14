@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"strings"
 	"time"
 )
 
@@ -103,6 +104,27 @@ func scenarioJobTimeoutDuration(
 		duration = time.Duration(timeoutMS) * time.Millisecond
 	}
 	return clampScenarioJobTimeoutDuration(duration, scenarioType, localRoute)
+}
+
+func scenarioJobUsesDetachedPolling(scenarioType runtimev1.ScenarioType, adapterName string) bool {
+	if scenarioType != runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE {
+		return false
+	}
+	switch strings.TrimSpace(adapterName) {
+	case adapterBytedanceARKTask,
+		adapterAlibabaNative,
+		adapterGeminiOperation,
+		adapterMiniMaxTask,
+		adapterGLMTask,
+		adapterKlingTask,
+		adapterLumaTask,
+		adapterPikaTask,
+		adapterRunwayTask,
+		adapterGoogleVeoOperation:
+		return true
+	default:
+		return false
+	}
 }
 
 func clampTimeoutDuration(duration time.Duration) time.Duration {

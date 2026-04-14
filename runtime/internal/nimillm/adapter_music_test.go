@@ -13,6 +13,9 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -199,6 +202,42 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 	}
 	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "mubert-audio" {
 		t.Fatalf("unexpected artifacts: %#v", artifacts)
+	}
+}
+
+func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/public/tracks":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "track-cancel-1"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+
+	_, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
+		BaseURL: server.URL,
+		Headers: map[string]string{
+			"customer-id":  "cust-1",
+			"access-token": "acc-1",
+		},
+	}, nil, "job-mubert-cancel", newMusicJobRequest("mubert-track-v3", "cancel me"), "mubert/mubert-track-v3")
+	if providerJobID != "track-cancel-1" {
+		t.Fatalf("unexpected provider job id: %q", providerJobID)
+	}
+	if status.Code(err) != codes.Canceled {
+		t.Fatalf("expected canceled status, got %v err=%v", status.Code(err), err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected ACTION_EXECUTED cancel reason, got err=%v reason=%v ok=%v", err, reason, ok)
 	}
 }
 

@@ -92,7 +92,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selectedProvider, scenarioModalFromType(req.GetScenarioType()))
+	providerType := voiceWorkflowCatalogProviderType(modelResolved, remoteTarget, selectedProvider)
 	if err := s.validateCatalogAwareScenarioSupport(ctx, req.GetScenarioType(), providerType, modelResolved, req.GetSpec()); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,14 @@ func (s *Service) submitVoiceWorkflowJob(
 		ModelResolved:     modelResolved,
 		Provider:          workflowResolution.Provider,
 		WorkflowModelID:   workflowResolution.WorkflowModelID,
+		WorkflowFamily:    workflowResolution.WorkflowFamily,
 		OutputPersistence: workflowResolution.OutputPersistence,
+		HandlePolicyID:    workflowResolution.HandlePolicyID,
+		HandlePersistence: workflowResolution.HandlePolicyPersistence,
+		HandleScope:       workflowResolution.HandlePolicyScope,
+		HandleDefaultTTL:  workflowResolution.HandlePolicyDefaultTTL,
+		HandleDeleteSem:   workflowResolution.HandlePolicyDeleteSemantics,
+		RuntimeReconcile:  workflowResolution.RuntimeReconciliationRequired,
 		IgnoredExtensions: ignored,
 	})
 	if job == nil || asset == nil {
@@ -454,13 +461,26 @@ func (s *Service) submitScenarioAsyncJob(
 		modelResolved,
 		routeInfo,
 	)
+	providerType := ""
+	if remoteTarget != nil {
+		providerType = remoteTarget.ProviderType
+	} else {
+		providerType = inferMediaProviderTypeFromSelectedBackend(selectedProvider, modelResolved, scenarioModalFromType(req.GetScenarioType()))
+	}
+	adapterName := resolveMediaAdapterName(req.GetHead().GetModelId(), modelResolved, scenarioModalFromType(req.GetScenarioType()), providerType)
 
 	jobID := ulid.Make().String()
 	traceID := ulid.Make().String()
-	timeout := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(req.GetScenarioType()), remoteTarget == nil)
 	jobCtx := context.Background()
 	var cancel context.CancelFunc
-	if timeout > 0 {
+	timeout := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(req.GetScenarioType()), remoteTarget == nil)
+	if scenarioJobUsesDetachedPolling(req.GetScenarioType(), adapterName) {
+		if timeout > 0 {
+			jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
+		} else {
+			jobCtx, cancel = context.WithCancel(jobCtx)
+		}
+	} else if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
 	} else {
 		jobCtx, cancel = context.WithCancel(jobCtx)
@@ -678,6 +698,9 @@ func (s *Service) executeScenarioAsyncJob(
 	}
 
 	if err != nil {
+		if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+			return
+		}
 		reasonCode := reasonCodeFromMediaError(err)
 		statusValue := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 		eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
@@ -701,6 +724,9 @@ func (s *Service) executeScenarioAsyncJob(
 		return
 	}
 
+	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
+		return
+	}
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.ScenarioType = req.GetScenarioType()
 		job.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB

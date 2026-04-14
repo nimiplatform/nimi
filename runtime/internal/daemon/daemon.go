@@ -109,7 +109,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
 	defer cancelBackground()
 	var backgroundWG sync.WaitGroup
-	backgroundWG.Add(2)
+	backgroundWG.Add(3)
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleRuntimeResource(backgroundCtx)
@@ -168,6 +168,12 @@ func (d *Daemon) Run(ctx context.Context) error {
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleAIProviderHealth(backgroundCtx)
+	}()
+	go func() {
+		defer backgroundWG.Done()
+		if aiSvc := d.grpc.AIService(); aiSvc != nil {
+			aiSvc.RunVoiceAssetDeleteReconciliationLoop(backgroundCtx)
+		}
 	}()
 
 	var serveErr error

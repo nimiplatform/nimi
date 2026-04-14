@@ -132,6 +132,38 @@ func TestValidateScenarioCapabilityRejectsUnsupportedLocalLlamaVideo(t *testing.
 	}
 }
 
+func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	if err := svc.validateScenarioCapability(
+		context.Background(),
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		"speech/voxcpm2",
+		nil,
+		nil,
+	); err != nil {
+		t.Fatalf("expected local voxcpm voice clone to stay admitted, got %v", err)
+	}
+
+	err := svc.validateScenarioCapability(
+		context.Background(),
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		"qwen3-tts-local",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected generic local voice workflow family to fail-close")
+	}
+	reasonCode, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reasonCode != runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reasonCode.String(), runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED.String())
+	}
+}
+
 func TestRequiredTextGenerateCapabilitiesEmpty(t *testing.T) {
 	if caps := requiredTextGenerateCapabilities(nil); len(caps) != 0 {
 		t.Fatalf("expected no required capabilities, got %#v", caps)

@@ -20,6 +20,7 @@ import uvicorn
 MODELS_ROOT_ENV = "NIMI_RUNTIME_LOCAL_MODELS_PATH"
 KOKORO_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_KOKORO_CMD"
 WHISPERCPP_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_WHISPERCPP_CMD"
+VOXCPM_DRIVER_ENV = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
 DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DEFAULT_DRIVER_TIMEOUT_MS = 60_000
 DEFAULT_MODELS_ROOT = os.path.expanduser("~/.nimi/data/models")
@@ -31,6 +32,7 @@ PLAIN_SPEECH_CAPABILITIES = [
     "audio.synthesize",
     "audio.transcribe",
 ]
+VOXCPM_PREFLIGHT_CACHE: dict[tuple[str, str], tuple[bool, str]] = {}
 
 
 @dataclasses.dataclass
@@ -59,6 +61,9 @@ class HostState:
     whispercpp_configured: bool
     whispercpp_ready: bool
     whispercpp_detail: str
+    voxcpm_configured: bool
+    voxcpm_ready: bool
+    voxcpm_detail: str
 
 
 def default_models_root() -> str:
@@ -173,6 +178,8 @@ def infer_runtime_native_driver(
     normalized_entry = pathlib.Path(entry_path).name.strip().lower()
     normalized_files = [item.strip().lower() for item in declared_files]
     if capability == "audio.synthesize":
+        if "voxcpm" in normalized_model or "voxcpm" in normalized_entry or any("voxcpm" in item for item in normalized_files):
+            return "voxcpm"
         if "kokoro" in normalized_model or "kokoro" in normalized_entry or any("kokoro" in item for item in normalized_files):
             return "kokoro"
         return ""
@@ -203,10 +210,53 @@ def voices_file_valid(bundle_dir: str) -> tuple[bool, str]:
     return True, ""
 
 
+def load_entry_payload(entry_path: str) -> dict[str, Any]:
+    if not entry_path:
+        return {}
+    try:
+        payload = json.loads(pathlib.Path(entry_path).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def voxcpm_driver_preflight(command: list[str], model_id: str, entry_path: str) -> tuple[bool, str]:
+    entry_payload = load_entry_payload(entry_path)
+    model_ref = str(entry_payload.get("model_ref") or "").strip() or model_id.strip()
+    cache_key = (" ".join(command), model_ref)
+    cached = VOXCPM_PREFLIGHT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        response = run_driver_command(
+            command,
+            {
+                "driver": "voxcpm",
+                "operation": "driver.preflight",
+                "model": model_id,
+                "model_ref": model_ref,
+                "entry_path": entry_path,
+            },
+        )
+    except Exception as error:
+        result = (False, f"voxcpm driver preflight failed: {error}")
+        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        return result
+    driver_family = str(response.get("driver_family") or "").strip()
+    if driver_family and driver_family != "voxcpm":
+        result = (False, f"voxcpm driver preflight invalid family: {driver_family}")
+        VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+        return result
+    result = (True, "voxcpm driver ready")
+    VOXCPM_PREFLIGHT_CACHE[cache_key] = result
+    return result
+
+
 def manifest_speech_model_state(
     manifest_path: pathlib.Path,
     kokoro_driver_state: tuple[list[str], bool, str],
     whispercpp_driver_state: tuple[list[str], bool, str],
+    voxcpm_driver_state: tuple[list[str], bool, str],
 ) -> SpeechModelState | None:
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -257,6 +307,20 @@ def manifest_speech_model_state(
             continue
         capability_drivers[capability] = driver_kind
         if capability == "audio.synthesize":
+            if driver_kind == "voxcpm":
+                if not voxcpm_driver_state[1]:
+                    problems.append(voxcpm_driver_state[2])
+                    continue
+                voxcpm_ready, voxcpm_detail = voxcpm_driver_preflight(
+                    voxcpm_driver_state[0],
+                    model_id,
+                    resolved_entry,
+                )
+                if not voxcpm_ready:
+                    problems.append(voxcpm_detail)
+                    continue
+                ready_capabilities.append(capability)
+                continue
             if driver_kind != "kokoro":
                 problems.append(f"audio.synthesize requires unsupported driver {driver_kind}")
                 continue
@@ -298,6 +362,7 @@ def discover_speech_models(
     models_root: str,
     kokoro_driver_state: tuple[list[str], bool, str],
     whispercpp_driver_state: tuple[list[str], bool, str],
+    voxcpm_driver_state: tuple[list[str], bool, str],
 ) -> list[SpeechModelState]:
     resolved_root = pathlib.Path(models_root) / "resolved"
     if not resolved_root.exists():
@@ -306,7 +371,7 @@ def discover_speech_models(
     for manifest_path in sorted(resolved_root.glob("**/asset.manifest.json")):
         if not manifest_path.is_file():
             continue
-        state = manifest_speech_model_state(manifest_path, kokoro_driver_state, whispercpp_driver_state)
+        state = manifest_speech_model_state(manifest_path, kokoro_driver_state, whispercpp_driver_state, voxcpm_driver_state)
         if state is not None:
             models.append(state)
     return models
@@ -315,13 +380,14 @@ def discover_speech_models(
 def build_host_state() -> HostState:
     kokoro_driver_state = driver_command_state(KOKORO_DRIVER_ENV, "kokoro")
     whispercpp_driver_state = driver_command_state(WHISPERCPP_DRIVER_ENV, "whispercpp")
-    models = discover_speech_models(default_models_root(), kokoro_driver_state, whispercpp_driver_state)
+    voxcpm_driver_state = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
+    models = discover_speech_models(default_models_root(), kokoro_driver_state, whispercpp_driver_state, voxcpm_driver_state)
     ready_models = [model for model in models if model.ready]
     if ready_models:
         detail = f"{len(ready_models)} ready local speech model(s) discovered"
         status = "ok"
         ready = True
-    elif not kokoro_driver_state[0] and not whispercpp_driver_state[0]:
+    elif not kokoro_driver_state[0] and not whispercpp_driver_state[0] and not voxcpm_driver_state[0]:
         detail = "no runtime-native speech drivers configured"
         status = "not_ready"
         ready = False
@@ -333,6 +399,21 @@ def build_host_state() -> HostState:
         detail = "speech drivers configured but managed speech bundles are not ready"
         status = "not_ready"
         ready = False
+    voxcpm_ready = voxcpm_driver_state[1]
+    voxcpm_detail = voxcpm_driver_state[2]
+    voxcpm_models = [
+        model for model in models if model.capability_drivers.get("audio.synthesize", "").strip() == "voxcpm"
+    ]
+    if voxcpm_models:
+        ready_voxcpm_models = [
+            model for model in voxcpm_models if model.ready and "audio.synthesize" in model.ready_capabilities
+        ]
+        if ready_voxcpm_models:
+            voxcpm_ready = True
+            voxcpm_detail = "voxcpm driver ready"
+        else:
+            voxcpm_ready = False
+            voxcpm_detail = voxcpm_models[0].detail
     return HostState(
         ready=ready,
         status=status,
@@ -344,6 +425,9 @@ def build_host_state() -> HostState:
         whispercpp_configured=bool(whispercpp_driver_state[0]),
         whispercpp_ready=whispercpp_driver_state[1],
         whispercpp_detail=whispercpp_driver_state[2],
+        voxcpm_configured=bool(voxcpm_driver_state[0]),
+        voxcpm_ready=voxcpm_ready,
+        voxcpm_detail=voxcpm_detail,
     )
 
 
@@ -407,11 +491,16 @@ def run_driver_command(command: list[str], request_payload: dict[str, Any]) -> d
 
 def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> tuple[bytes, str]:
     driver_kind = model.capability_drivers.get("audio.synthesize", "").strip()
-    if driver_kind != "kokoro":
+    if driver_kind == "voxcpm":
+        command, ready, detail = driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")
+        if not ready:
+            raise RuntimeError(detail)
+    elif driver_kind == "kokoro":
+        command, ready, detail = driver_command_state(KOKORO_DRIVER_ENV, "kokoro")
+        if not ready:
+            raise RuntimeError(detail)
+    else:
         raise RuntimeError(f"audio.synthesize runtime-native driver unavailable: {driver_kind or 'unset'}")
-    command, ready, detail = driver_command_state(KOKORO_DRIVER_ENV, "kokoro")
-    if not ready:
-        raise RuntimeError(detail)
     response = run_driver_command(command, request_payload)
     if isinstance(response.get("audio_base64"), str) and response["audio_base64"].strip():
         try:
@@ -441,6 +530,56 @@ def transcribe_with_driver(model: SpeechModelState, request_payload: dict[str, A
     if not text:
         raise RuntimeError("speech driver response missing transcription text")
     return text
+
+
+def infer_workflow_family(target_model_id: str, workflow_model_id: str) -> str:
+    normalized_target = target_model_id.strip().lower()
+    normalized_workflow = workflow_model_id.strip().lower()
+    if "voxcpm" in normalized_target or "voxcpm" in normalized_workflow:
+        return "voxcpm"
+    return ""
+
+
+def workflow_execution_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "message": detail,
+                "reason": reason,
+                "operation": operation,
+            }
+        },
+    )
+
+
+def local_workflow_not_admitted_response(operation: str, workflow_family: str) -> JSONResponse:
+    family = workflow_family.strip()
+    suffix = f": {family}" if family else ""
+    return JSONResponse(
+        status_code=501,
+        content={
+            "detail": {
+                "message": f"local speech workflow family not admitted for {operation}{suffix}",
+                "reason": "speech_workflow_family_not_admitted",
+                "admission_state": "workflow_not_admitted",
+                "workflow_family": family,
+            }
+        },
+    )
+
+
+def voice_workflow_result_from_driver(response: dict[str, Any]) -> dict[str, Any]:
+    voice_id = str(response.get("voice_id") or response.get("voice_ref") or "").strip()
+    if not voice_id:
+        raise RuntimeError("speech workflow driver response missing voice_id")
+    result = {"voice_id": voice_id}
+    job_id = str(response.get("job_id") or "").strip()
+    if job_id:
+        result["job_id"] = job_id
+    if isinstance(response.get("metadata"), dict):
+        result["metadata"] = response["metadata"]
+    return result
 
 
 class SpeechSynthesizeRequest:
@@ -504,6 +643,9 @@ def create_app() -> FastAPI:
                 "whispercpp_driver": state.whispercpp_configured,
                 "whispercpp_driver_ready": state.whispercpp_ready,
                 "whispercpp_driver_detail": state.whispercpp_detail,
+                "voxcpm_driver": state.voxcpm_configured,
+                "voxcpm_driver_ready": state.voxcpm_ready,
+                "voxcpm_driver_detail": state.voxcpm_detail,
                 "models_ready": len([model for model in state.models if model.ready]),
             },
         }
@@ -633,12 +775,74 @@ def create_app() -> FastAPI:
         return {"text": text}
 
     @app.post("/v1/voice/clone")
-    def clone_voice():
-        return workflow_not_admitted_response("voice clone")
+    def clone_voice(payload: dict[str, Any]):
+        workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
+        target_model_id = str(payload.get("target_model_id") or "").strip()
+        workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
+        if workflow_family != "voxcpm":
+            return local_workflow_not_admitted_response("voice clone", workflow_family)
+        try:
+            model = find_ready_model(target_model_id, "audio.synthesize")
+            response = run_driver_command(
+                driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")[0],
+                {
+                    "driver": "voxcpm",
+                    "operation": "voice.clone",
+                    "workflow_type": "tts_v2v",
+                    "workflow_model_id": workflow_model_id,
+                    "target_model_id": model.model_id,
+                    "manifest_path": model.manifest_path,
+                    "bundle_dir": model.bundle_dir,
+                    "entry_path": model.entry_path,
+                    "declared_files": model.declared_files,
+                    "input": payload.get("input") if isinstance(payload.get("input"), dict) else {},
+                    "extensions": payload.get("extensions") if isinstance(payload.get("extensions"), dict) else {},
+                },
+            )
+            return voice_workflow_result_from_driver(response)
+        except HTTPException:
+            raise
+        except Exception as error:
+            return workflow_execution_unavailable_response(
+                "voice clone",
+                f"local voxcpm workflow execution failed: {error}",
+                "speech_workflow_execution_failed",
+            )
 
     @app.post("/v1/voice/design")
-    def design_voice():
-        return workflow_not_admitted_response("voice design")
+    def design_voice(payload: dict[str, Any]):
+        workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
+        target_model_id = str(payload.get("target_model_id") or "").strip()
+        workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
+        if workflow_family != "voxcpm":
+            return local_workflow_not_admitted_response("voice design", workflow_family)
+        try:
+            model = find_ready_model(target_model_id, "audio.synthesize")
+            response = run_driver_command(
+                driver_command_state(VOXCPM_DRIVER_ENV, "voxcpm")[0],
+                {
+                    "driver": "voxcpm",
+                    "operation": "voice.design",
+                    "workflow_type": "tts_t2v",
+                    "workflow_model_id": workflow_model_id,
+                    "target_model_id": model.model_id,
+                    "manifest_path": model.manifest_path,
+                    "bundle_dir": model.bundle_dir,
+                    "entry_path": model.entry_path,
+                    "declared_files": model.declared_files,
+                    "input": payload.get("input") if isinstance(payload.get("input"), dict) else {},
+                    "extensions": payload.get("extensions") if isinstance(payload.get("extensions"), dict) else {},
+                },
+            )
+            return voice_workflow_result_from_driver(response)
+        except HTTPException:
+            raise
+        except Exception as error:
+            return workflow_execution_unavailable_response(
+                "voice design",
+                f"local voxcpm workflow execution failed: {error}",
+                "speech_workflow_execution_failed",
+            )
 
     return app
 

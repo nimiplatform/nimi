@@ -272,6 +272,37 @@ func TestImportLocalImageModelFileSupportsAppleSiliconManagedImageHost(t *testin
 	}
 }
 
+func TestImportLocalImageModelFileUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("expected unsupported-host image import to register unhealthy asset instead of failing, got %v", err)
+	}
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("status mismatch: got=%s", got)
+	}
+	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected compatibility detail, got %q", detail)
+	}
+}
+
 func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
@@ -346,6 +377,40 @@ func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *te
 	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), resp.GetAsset().GetLogicalModelId())
 	if _, statErr := os.Stat(manifestPath); statErr != nil {
 		t.Fatalf("managed manifest should be materialized after orphan scaffold, stat err=%v", statErr)
+	}
+}
+
+func TestScaffoldOrphanImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
+	svc := newTestService(t)
+	setLocalRuntimePlatformForTest(t, "linux", "amd64")
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
+	if err := os.WriteFile(sourcePath, validImageTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write source model: %v", err)
+	}
+
+	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
+		Path:   sourcePath,
+		Kind:   runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+		Engine: "media",
+	})
+	if err != nil {
+		t.Fatalf("expected unsupported-host orphan image import to register unhealthy asset instead of failing, got %v", err)
+	}
+	if got := svc.modelRuntimeMode(resp.GetAsset().GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("runtime mode mismatch: got=%s", got)
+	}
+	if got := resp.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("status mismatch: got=%s", got)
+	}
+	if detail := resp.GetAsset().GetHealthDetail(); !strings.Contains(detail, "no published runtime-owned managed image backend package") {
+		t.Fatalf("expected compatibility detail, got %q", detail)
+	}
+	if _, statErr := os.Stat(sourcePath); !os.IsNotExist(statErr) {
+		t.Fatalf("expected orphan source to move into runtime-managed storage, stat err=%v", statErr)
 	}
 }
 

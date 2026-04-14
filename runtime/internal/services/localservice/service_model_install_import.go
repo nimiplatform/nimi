@@ -85,14 +85,9 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		endpoint,
 		collectDeviceProfile(),
 	)
+	binding = normalizeLocalImportRuntimeBinding(engine, capabilities, kind, binding)
 	deviceProfile := collectDeviceProfile()
-	if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, capabilities, kind); detail != "" &&
-		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
-		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "use_supported_supervised_image_host",
-		})
-	}
+	importCompatibilityDetail := ""
 	if isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
 		manifestFacts := canonicalImageResolverFactsForImport(
 			engine,
@@ -106,10 +101,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			engineConfig,
 		)
 		if !canonicalSupervisedImageSelectionSupported(deviceProfile, manifestFacts) {
-			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    strings.TrimSpace(canonicalSupervisedImageSelection(deviceProfile, manifestFacts).CompatibilityDetail),
-				ActionHint: "use_supported_supervised_image_host",
-			})
+			importCompatibilityDetail = strings.TrimSpace(canonicalSupervisedImageSelection(deviceProfile, manifestFacts).CompatibilityDetail)
 		}
 	}
 	if isRunnableKind(kind) && normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
@@ -228,6 +220,10 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		if err != nil {
 			return nil, err
 		}
+		record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
+		if err != nil {
+			return nil, err
+		}
 		return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
 	}
 	record, err := s.installLocalAssetRecord(
@@ -258,5 +254,23 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if err != nil {
 		return nil, err
 	}
+	record, err = s.finalizeImportedCanonicalImageRecord(record, importCompatibilityDetail)
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.ImportLocalAssetResponse{Asset: record}, nil
+}
+
+func (s *Service) finalizeImportedCanonicalImageRecord(record *runtimev1.LocalAssetRecord, compatibilityDetail string) (*runtimev1.LocalAssetRecord, error) {
+	if record == nil {
+		return nil, nil
+	}
+	if strings.TrimSpace(compatibilityDetail) == "" {
+		return record, nil
+	}
+	return s.updateModelStatus(
+		record.GetLocalAssetId(),
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		strings.TrimSpace(compatibilityDetail),
+	)
 }

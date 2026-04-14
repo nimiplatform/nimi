@@ -553,8 +553,12 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		TimingMode:       spec.GetTimingMode(),
 		VoiceRenderHints: spec.GetVoiceRenderHints(),
 	}
+	effectiveSpeechSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, speechSpec)
+	if err != nil {
+		return failAndStop(err)
+	}
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, speechSpec, scenarioExtensions)
+	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions)
 	if synthErr != nil {
 		return failAndStop(synthErr)
 	}

@@ -258,10 +258,14 @@ func executeBackendSyncMedia(
 		if spec == nil {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
+		effectiveSpec, err := s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
 		if err := validateConnectorTTSModelSupport(ctx, logger, req, backendModelID, remoteTarget, cloudProvider, voiceCatalog); err != nil {
 			return nil, nil, "", err
 		}
-		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, spec, scenarioExtensions)
+		payload, usage, err := backend.SynthesizeSpeech(ctx, backendModelID, effectiveSpec, scenarioExtensions)
 		if err != nil {
 			return nil, nil, "", err
 		}
@@ -271,6 +275,9 @@ func executeBackendSyncMedia(
 			"language":     strings.TrimSpace(spec.GetLanguage()),
 			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
 			"emotion":      strings.TrimSpace(spec.GetEmotion()),
+		}
+		if resolvedVoiceRef := resolveScenarioVoiceRef(effectiveSpec); resolvedVoiceRef != "" && resolvedVoiceRef != artifactMeta["voice_ref"] {
+			artifactMeta["resolved_voice_ref"] = resolvedVoiceRef
 		}
 		if len(scenarioExtensions) > 0 {
 			artifactMeta["extensions"] = scenarioExtensions

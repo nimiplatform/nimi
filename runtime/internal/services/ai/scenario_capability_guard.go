@@ -32,6 +32,9 @@ func inferScenarioProviderType(modelResolved string, remoteTarget *nimillm.Remot
 			return candidate
 		}
 	}
+	if providerType := inferVoiceAssetProvider(modelResolved); providerType != "" {
+		return providerType
+	}
 	return ""
 }
 
@@ -101,10 +104,12 @@ func (s *Service) validateScenarioCapability(
 		return nil
 	}
 	if localrouting.IsKnownProvider(providerType) {
-		if capability, ok := localScenarioCapability(scenarioType); ok && !localrouting.ProviderSupportsCapability(providerType, capability) {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		if capability, ok := localScenarioCapability(scenarioType); ok {
+			if !localrouting.ProviderSupportsCapability(providerType, capability) {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+			}
+			return nil
 		}
-		return nil
 	}
 	if !providerregistry.Contains(providerType) {
 		return nil

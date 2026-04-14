@@ -235,37 +235,12 @@ func (s *Service) importLocalModelFile(
 		strings.TrimSpace(req.GetEndpoint()),
 		collectDeviceProfile(),
 	)
-	deviceProfile := collectDeviceProfile()
-	if detail := canonicalSupervisedImageAttachedEndpointDetail(engine, capabilities, inferAssetKindFromCapabilities(capabilities)); detail != "" &&
-		normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
-		err := grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    detail,
-			ActionHint: "use_supported_supervised_image_host",
-		})
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
-	}
-	if isCanonicalSupervisedImageAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities)) {
-		importFacts := canonicalImageResolverFactsForImport(
-			engine,
-			capabilities,
-			inferAssetKindFromCapabilities(capabilities),
-			filepath.Base(sourcePath),
-			[]string{filepath.Base(sourcePath)},
-			nil,
-			nil,
-			"",
-			nil,
-		)
-		if !canonicalSupervisedImageSelectionSupported(deviceProfile, importFacts) {
-			err := grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-				Message:    strings.TrimSpace(canonicalSupervisedImageSelection(deviceProfile, importFacts).CompatibilityDetail),
-				ActionHint: "use_supported_supervised_image_host",
-			})
-			s.failTransfer(transferID, err.Error(), false)
-			return nil, err
-		}
-	}
+	binding = normalizeLocalImportRuntimeBinding(
+		engine,
+		capabilities,
+		inferAssetKindFromCapabilities(capabilities),
+		binding,
+	)
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
 		err := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 		if detail := attachedEndpointRequiredDetailForAsset(engine, capabilities, inferAssetKindFromCapabilities(capabilities), collectDeviceProfile()); detail != "" {

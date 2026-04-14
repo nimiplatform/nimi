@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -13,14 +14,73 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-const maxProviderPollAttempts int32 = 120
+const providerPollInterval = 500 * time.Millisecond
+const maxProviderPollAttempts int32 = int32(defaultHTTPTimeout / providerPollInterval)
 
-func providerPollRetryLimitReached(retryCount int32) bool {
+func providerPollRetryLimitReached(ctx context.Context, retryCount int32) bool {
+	if ctx == nil {
+		return retryCount >= maxProviderPollAttempts
+	}
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		return false
+	}
 	return retryCount >= maxProviderPollAttempts
 }
 
 func providerPollTimeoutError() error {
 	return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+}
+
+func providerPollContextError(err error) error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, context.Canceled):
+		return grpcerr.WithReasonCode(codes.Canceled, runtimev1.ReasonCode_ACTION_EXECUTED)
+	case errors.Is(err, context.DeadlineExceeded):
+		return providerPollTimeoutError()
+	default:
+		return MapProviderRequestError(err)
+	}
+}
+
+func providerPollDelay(retryCount int32) time.Duration {
+	switch {
+	case retryCount <= 1:
+		return 2 * time.Second
+	case retryCount <= 3:
+		return 5 * time.Second
+	case retryCount <= 10:
+		return 10 * time.Second
+	default:
+		return 30 * time.Second
+	}
+}
+
+func sleepWithContext(ctx context.Context, delay time.Duration) error {
+	if delay <= 0 {
+		return nil
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func bestEffortDeleteProviderAsyncTask(adapter string, baseURL string, apiKey string, providerJobID string) {
+	if strings.TrimSpace(adapter) == "" || strings.TrimSpace(providerJobID) == "" {
+		return
+	}
+	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = DeleteProviderAsyncTask(cleanupCtx, adapter, providerJobID, MediaAdapterConfig{
+		BaseURL: baseURL,
+		APIKey:  apiKey,
+	})
 }
 
 // PollProviderTaskForArtifact polls a provider's async task endpoint until
@@ -41,11 +101,13 @@ func PollProviderTaskForArtifact(
 	applyMetadata func(*runtimev1.ScenarioArtifact),
 	extraArtifactMeta map[string]any,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+	initialDelay := providerPollDelay(0)
+	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
 	retryCount := int32(0)
 	for {
 		if ctx.Err() != nil {
-			return nil, nil, providerJobID, MapProviderRequestError(ctx.Err())
+			bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
 		pollResp := map[string]any{}
@@ -55,12 +117,16 @@ func PollProviderTaskForArtifact(
 		}
 		statusText := ResolveAsyncTaskStatus(pollResp)
 		if IsAsyncTaskPendingStatus(statusText) {
-			if providerPollRetryLimitReached(retryCount) {
+			if providerPollRetryLimitReached(ctx, retryCount) {
 				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 				return nil, nil, providerJobID, providerPollTimeoutError()
 			}
-			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
-			time.Sleep(500 * time.Millisecond)
+			delay := providerPollDelay(retryCount)
+			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
+			if err := sleepWithContext(ctx, delay); err != nil {
+				bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+				return nil, nil, providerJobID, providerPollContextError(err)
+			}
 			continue
 		}
 		if IsAsyncTaskCanceledStatus(statusText) {

@@ -22,6 +22,11 @@ const liveSmokeMatrixAppID = "nimi.live-smoke.matrix"
 const liveSmokeMatrixUserID = "smoke-user"
 const liveSmokeVoiceDesignInstruction = "Warm, calm, natural narrator voice with steady pacing, clear diction, low background noise, gentle emotional range, and a polished studio delivery for long-form spoken content."
 const liveSmokeVoiceCloneText = "Hello from Nimi live voice clone."
+const liveSmokeVolcengineSeedancePrompt = "Keep the framing grounded in the supplied references. Show a short first-person fruit tea product ad with clean motion, clear cup detail, and natural lighting."
+const liveSmokeVolcengineReferenceImage1 = "https://ark-project.tos-cn-beijing.volces.com/doc_image/r2v_tea_pic1.jpg"
+const liveSmokeVolcengineReferenceImage2 = "https://ark-project.tos-cn-beijing.volces.com/doc_image/r2v_tea_pic2.jpg"
+const liveSmokeVolcengineReferenceVideo1 = "https://ark-project.tos-cn-beijing.volces.com/doc_video/r2v_tea_video1.mp4"
+const liveSmokeVolcengineReferenceAudio1 = "https://ark-project.tos-cn-beijing.volces.com/doc_audio/r2v_tea_audio1.mp3"
 
 func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 	for _, providerID := range providerregistry.SourceProviders {
@@ -62,12 +67,12 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
 				})
 			}
-			if record.SupportsTTSV2V {
+			if record.SupportsTTSV2V && providerID != "local" {
 				t.Run("voice_clone", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
 				})
 			}
-			if record.SupportsTTST2V {
+			if record.SupportsTTST2V && providerID != "local" {
 				t.Run("voice_design", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
 				})
@@ -150,12 +155,15 @@ func newLiveSmokeServiceForProvider(t *testing.T, providerID string, record prov
 	if providerID == "local" {
 		baseURL := requiredLiveEnv(t, "NIMI_LIVE_LOCAL_BASE_URL")
 		apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY"))
+		speechBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_BASE_URL"))
+		speechAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY"))
 		sidecarBaseURL := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_BASE_URL"))
 		sidecarAPIKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SIDECAR_API_KEY"))
 		return newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 			LocalProviders: map[string]nimillm.ProviderCredentials{
 				"llama":   {BaseURL: baseURL, APIKey: apiKey},
 				"media":   {BaseURL: baseURL, APIKey: apiKey},
+				"speech":  {BaseURL: firstNonEmptyString(speechBaseURL, baseURL), APIKey: firstNonEmptyString(speechAPIKey, apiKey)},
 				"sidecar": {BaseURL: firstNonEmptyString(sidecarBaseURL, baseURL), APIKey: firstNonEmptyString(sidecarAPIKey, apiKey)},
 			},
 		})
@@ -212,6 +220,104 @@ func qualifyLocalSidecarLiveModelID(modelID string) string {
 	}
 }
 
+func qualifyLocalSpeechLiveModelID(modelID string) string {
+	normalized := strings.TrimSpace(modelID)
+	lower := strings.ToLower(normalized)
+	switch {
+	case normalized == "":
+		return ""
+	case strings.HasPrefix(lower, "speech/"):
+		return normalized
+	case strings.Contains(normalized, "/"):
+		return normalized
+	default:
+		return "speech/" + normalized
+	}
+}
+
+func isAdmittedLocalVoxCPMWorkflowModelID(modelID string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(modelID))
+	return normalized != "" && strings.Contains(normalized, "voxcpm")
+}
+
+func localSpeechHealthURL(baseURL string) string {
+	normalized := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if strings.HasSuffix(normalized, "/v1") {
+		return strings.TrimSuffix(normalized, "/v1") + "/healthz"
+	}
+	return normalized + "/healthz"
+}
+
+func localSpeechCatalogURL(baseURL string) string {
+	normalized := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if strings.HasSuffix(normalized, "/v1") {
+		return normalized + "/catalog"
+	}
+	return normalized + "/v1/catalog"
+}
+
+func runLocalSpeechHostPreflight(t *testing.T, baseURL string, apiKey string, modelID string) {
+	t.Helper()
+
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, localSpeechHealthURL(baseURL), nil)
+	if err != nil {
+		t.Fatalf("build local speech health request: %v", err)
+	}
+	if strings.TrimSpace(apiKey) != "" {
+		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("local speech health preflight failed: %v", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("local speech health preflight status=%d", response.StatusCode)
+	}
+	var healthPayload map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&healthPayload); err != nil {
+		t.Fatalf("decode local speech health preflight: %v", err)
+	}
+	if ready, _ := healthPayload["ready"].(bool); !ready {
+		t.Fatalf("local speech health preflight not ready: %#v", healthPayload)
+	}
+
+	catalogRequest, err := http.NewRequestWithContext(context.Background(), http.MethodGet, localSpeechCatalogURL(baseURL), nil)
+	if err != nil {
+		t.Fatalf("build local speech catalog request: %v", err)
+	}
+	if strings.TrimSpace(apiKey) != "" {
+		catalogRequest.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	}
+	catalogResponse, err := http.DefaultClient.Do(catalogRequest)
+	if err != nil {
+		t.Fatalf("local speech catalog preflight failed: %v", err)
+	}
+	defer catalogResponse.Body.Close()
+	if catalogResponse.StatusCode != http.StatusOK {
+		t.Fatalf("local speech catalog preflight status=%d", catalogResponse.StatusCode)
+	}
+	var catalogPayload map[string]any
+	if err := json.NewDecoder(catalogResponse.Body).Decode(&catalogPayload); err != nil {
+		t.Fatalf("decode local speech catalog preflight: %v", err)
+	}
+	if ready, _ := catalogPayload["ready"].(bool); !ready {
+		t.Fatalf("local speech catalog preflight not ready: %#v", catalogPayload)
+	}
+	models, _ := catalogPayload["models"].([]any)
+	for _, item := range models {
+		entry, _ := item.(map[string]any)
+		if strings.TrimSpace(nimillm.ValueAsString(entry["id"])) != modelID {
+			continue
+		}
+		if ready, _ := entry["ready"].(bool); !ready {
+			t.Fatalf("local speech catalog model %q not ready: %#v", modelID, entry)
+		}
+		return
+	}
+	t.Fatalf("local speech catalog missing ready model %q: %#v", modelID, catalogPayload)
+}
+
 func resolveLiveTTSVoiceRef(t *testing.T, svc *Service, providerID string, modelID string) string {
 	t.Helper()
 	if svc == nil || svc.speechCatalog == nil {
@@ -253,6 +359,30 @@ func liveEnvFirst(keys ...string) string {
 		}
 	}
 	return ""
+}
+
+func liveEnvFirstOrDefault(defaultValue string, keys ...string) string {
+	if value := liveEnvFirst(keys...); value != "" {
+		return value
+	}
+	return strings.TrimSpace(defaultValue)
+}
+
+func liveSmokeTimeoutMS(scenarioType runtimev1.ScenarioType) int32 {
+	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		return 300_000
+	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
+		return 45_000
+	default:
+		return 120_000
+	}
+}
+
+func liveSmokeShouldOnlyVerifyAsyncAcceptance(providerID string, scenarioType runtimev1.ScenarioType) bool {
+	return scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE &&
+		strings.EqualFold(strings.TrimSpace(providerID), "volcengine")
 }
 
 func firstNonEmptyString(values ...string) string {
@@ -499,13 +629,12 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A tiny planet above the sea."}}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
 		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "VIDEO_MODEL_ID", "MODEL_ID"))
-		spec.Spec = &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
-			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
-			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short cinematic scene of sunrise."}},
-			Options: &runtimev1.VideoGenerationOptions{DurationSec: 1},
-		}}
+		spec.Spec = &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: liveSmokeVideoGenerateSpec(providerID, modelID)}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "TTS_MODEL_ID", "MODEL_ID"))
+		if providerID == "local" {
+			modelID = qualifyLocalSpeechLiveModelID(modelID)
+		}
 		speechSpec := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello from Nimi live smoke."}
 		if voiceRef := resolveLiveTTSVoiceRef(t, svc, providerID, modelID); voiceRef != "" {
 			speechSpec.VoiceRef = &runtimev1.VoiceReference{
@@ -518,6 +647,9 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: speechSpec}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		modelID = qualifyLiveModelIDForRoute(providerID, envModelIDForProvider(t, providerID, "STT_MODEL_ID", "MODEL_ID"))
+		if providerID == "local" {
+			modelID = qualifyLocalSpeechLiveModelID(modelID)
+		}
 		audioSource, mimeType := resolveLiveTranscriptionAudioSource(t)
 		spec.Spec = &runtimev1.ScenarioSpec_SpeechTranscribe{SpeechTranscribe: &runtimev1.SpeechTranscribeScenarioSpec{
 			MimeType:    mimeType,
@@ -543,7 +675,7 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 			ModelId:       modelID,
 			RoutePolicy:   routePolicyForProvider(providerID),
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
-			TimeoutMs:     120_000,
+			TimeoutMs:     liveSmokeTimeoutMS(scenarioType),
 		},
 		ScenarioType:  scenarioType,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -554,11 +686,411 @@ func runLiveSmokeMediaForProvider(t *testing.T, providerID string, record provid
 		maybeSkipStepFunQuotaBlocked(t, providerID, err, "")
 		t.Fatalf("submit scenario job failed: %v", err)
 	}
+	if liveSmokeShouldOnlyVerifyAsyncAcceptance(providerID, scenarioType) {
+		job := waitLiveSmokeScenarioJobAccepted(t, svc, submitResp.GetJob().GetJobId(), 45*time.Second)
+		switch job.GetStatus() {
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED:
+			return
+		default:
+			t.Fatalf("scenario job did not enter async accepted state: status=%s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+		}
+	}
 	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		maybeSkipFishAudioBalanceBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		maybeSkipStepFunQuotaBlocked(t, providerID, errors.New(job.GetReasonDetail()), job.GetReasonDetail())
 		t.Fatalf("scenario job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+	}
+}
+
+func liveSmokeVideoGenerateSpec(providerID string, modelID string) *runtimev1.VideoGenerateScenarioSpec {
+	if strings.EqualFold(strings.TrimSpace(providerID), "volcengine") &&
+		strings.Contains(strings.ToLower(strings.TrimSpace(modelID)), "seedance") {
+		return &runtimev1.VideoGenerateScenarioSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+			Content: []*runtimev1.VideoContentItem{
+				{
+					Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT,
+					Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT,
+					Text: liveEnvFirstOrDefault(liveSmokeVolcengineSeedancePrompt, "NIMI_LIVE_VOLCENGINE_VIDEO_PROMPT", "NIMI_LIVE_VOLCENGINE_SEEDANCE_PROMPT"),
+				},
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: liveEnvFirstOrDefault(liveSmokeVolcengineReferenceImage1, "NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_IMAGE_1_URL")},
+				},
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE,
+					ImageUrl: &runtimev1.VideoContentImageURL{Url: liveEnvFirstOrDefault(liveSmokeVolcengineReferenceImage2, "NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_IMAGE_2_URL")},
+				},
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO,
+					VideoUrl: &runtimev1.VideoContentVideoURL{Url: liveEnvFirstOrDefault(liveSmokeVolcengineReferenceVideo1, "NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_VIDEO_1_URL")},
+				},
+				{
+					Type:     runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL,
+					Role:     runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO,
+					AudioUrl: &runtimev1.VideoContentAudioURL{Url: liveEnvFirstOrDefault(liveSmokeVolcengineReferenceAudio1, "NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_AUDIO_1_URL")},
+				},
+			},
+			Options: &runtimev1.VideoGenerationOptions{
+				DurationSec:     11,
+				Ratio:           "16:9",
+				Resolution:      "480p",
+				GenerateAudio:   true,
+				ReturnLastFrame: true,
+				Watermark:       false,
+			},
+		}
+	}
+
+	return &runtimev1.VideoGenerateScenarioSpec{
+		Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
+		Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short cinematic scene of sunrise."}},
+		Options: &runtimev1.VideoGenerationOptions{DurationSec: 4},
+	}
+}
+
+func TestLiveSmokeVideoGenerateSpecVolcengineUsesBuiltInFallbacks(t *testing.T) {
+	t.Setenv("NIMI_LIVE_VOLCENGINE_VIDEO_PROMPT", "")
+	t.Setenv("NIMI_LIVE_VOLCENGINE_SEEDANCE_PROMPT", "")
+	t.Setenv("NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_IMAGE_1_URL", "")
+	t.Setenv("NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_IMAGE_2_URL", "")
+	t.Setenv("NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_VIDEO_1_URL", "")
+	t.Setenv("NIMI_LIVE_VOLCENGINE_VIDEO_REFERENCE_AUDIO_1_URL", "")
+
+	spec := liveSmokeVideoGenerateSpec("volcengine", "volcengine/doubao-seedance-2-0-260128")
+	if spec == nil {
+		t.Fatal("expected volcengine live smoke video spec")
+	}
+	if got := strings.TrimSpace(spec.GetContent()[0].GetText()); got == "" {
+		t.Fatal("expected built-in fallback prompt")
+	}
+	if got := strings.TrimSpace(spec.GetContent()[1].GetImageUrl().GetUrl()); got == "" {
+		t.Fatal("expected built-in fallback reference image 1")
+	}
+	if got := strings.TrimSpace(spec.GetContent()[2].GetImageUrl().GetUrl()); got == "" {
+		t.Fatal("expected built-in fallback reference image 2")
+	}
+	if got := strings.TrimSpace(spec.GetContent()[3].GetVideoUrl().GetUrl()); got == "" {
+		t.Fatal("expected built-in fallback reference video")
+	}
+	if got := strings.TrimSpace(spec.GetContent()[4].GetAudioUrl().GetUrl()); got == "" {
+		t.Fatal("expected built-in fallback reference audio")
+	}
+}
+
+func TestQualifyLocalSpeechLiveModelID(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{in: "", want: ""},
+		{in: "voxcpm2", want: "speech/voxcpm2"},
+		{in: "speech/voxcpm2", want: "speech/voxcpm2"},
+		{in: "local/voxcpm2", want: "local/voxcpm2"},
+	}
+	for _, tc := range cases {
+		if got := qualifyLocalSpeechLiveModelID(tc.in); got != tc.want {
+			t.Fatalf("qualifyLocalSpeechLiveModelID(%q)=%q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestLiveSmokeLocalVoxCPMSynthesize(t *testing.T) {
+	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
+	if baseURL == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local voxcpm synth live smoke")
+	}
+	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst("NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID", "NIMI_LIVE_LOCAL_TTS_MODEL_ID"))
+	if modelID == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID or NIMI_LIVE_LOCAL_TTS_MODEL_ID to run local voxcpm synth live smoke")
+	}
+	if !isAdmittedLocalVoxCPMWorkflowModelID(modelID) {
+		t.Skip("local voxcpm synth smoke only accepts admitted voxcpm family model ids")
+	}
+	apiKey := firstNonEmptyString(
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
+	)
+	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
+
+	record, ok := providerregistry.Lookup("local")
+	if !ok || !record.SupportsTTS {
+		t.Skip("local provider does not advertise speech synthesis support")
+	}
+	t.Setenv("NIMI_LIVE_LOCAL_TTS_MODEL_ID", modelID)
+	runLiveSmokeMediaForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE)
+}
+
+func TestLiveSmokeLocalVoxCPMVoiceDesign(t *testing.T) {
+	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
+	if baseURL == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local voxcpm voice design live smoke")
+	}
+	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
+		"NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID",
+		"NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID",
+		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
+	))
+	if modelID == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID or NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID to run local voxcpm voice design live smoke")
+	}
+	if !isAdmittedLocalVoxCPMWorkflowModelID(modelID) {
+		t.Skip("local voxcpm voice design smoke only accepts admitted voxcpm family model ids")
+	}
+	apiKey := firstNonEmptyString(
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
+	)
+	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
+
+	record, ok := providerregistry.Lookup("local")
+	if !ok || !record.SupportsTTST2V {
+		t.Skip("local provider does not advertise the admitted voxcpm voice design slice")
+	}
+	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
+	t.Setenv("NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID", modelID)
+	t.Setenv("NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID", modelID)
+	runLiveSmokeVoiceWorkflowForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
+}
+
+func TestLiveSmokeLocalVoxCPMVoiceClone(t *testing.T) {
+	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
+	if baseURL == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local voxcpm voice clone live smoke")
+	}
+	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
+		"NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID",
+		"NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID",
+		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
+	))
+	if modelID == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID or NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID to run local voxcpm voice clone live smoke")
+	}
+	if !isAdmittedLocalVoxCPMWorkflowModelID(modelID) {
+		t.Skip("local voxcpm voice clone smoke only accepts admitted voxcpm family model ids")
+	}
+	apiKey := firstNonEmptyString(
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
+	)
+	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
+
+	record, ok := providerregistry.Lookup("local")
+	if !ok || !record.SupportsTTSV2V {
+		t.Skip("local provider does not advertise the admitted voxcpm voice clone slice")
+	}
+	if liveEnvFirst("NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH", "NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI") == "" {
+		t.Skip("set NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH or NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI to run local voxcpm voice clone live smoke")
+	}
+	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
+	t.Setenv("NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID", modelID)
+	t.Setenv("NIMI_LIVE_LOCAL_VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID", modelID)
+	runLiveSmokeVoiceWorkflowForProvider(t, "local", record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
+}
+
+func TestLiveSmokeLocalVoxCPMVoiceAssetLifecycle(t *testing.T) {
+	baseURL := liveEnvFirst("NIMI_LIVE_LOCAL_SPEECH_BASE_URL", "NIMI_LIVE_LOCAL_BASE_URL")
+	if baseURL == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_SPEECH_BASE_URL or NIMI_LIVE_LOCAL_BASE_URL to run local voxcpm voice asset lifecycle live smoke")
+	}
+	modelID := qualifyLocalSpeechLiveModelID(liveEnvFirst(
+		"NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID",
+		"NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID",
+		"NIMI_LIVE_LOCAL_TTS_MODEL_ID",
+	))
+	if modelID == "" {
+		t.Skip("set NIMI_LIVE_LOCAL_VOICE_DESIGN_MODEL_ID or NIMI_LIVE_LOCAL_VOXCPM_TTS_MODEL_ID to run local voxcpm voice asset lifecycle live smoke")
+	}
+	if !isAdmittedLocalVoxCPMWorkflowModelID(modelID) {
+		t.Skip("local voxcpm voice asset lifecycle smoke only accepts admitted voxcpm family model ids")
+	}
+	apiKey := firstNonEmptyString(
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_SPEECH_API_KEY")),
+		strings.TrimSpace(os.Getenv("NIMI_LIVE_LOCAL_API_KEY")),
+	)
+	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
+
+	record, ok := providerregistry.Lookup("local")
+	if !ok || !record.SupportsTTST2V || !record.SupportsTTS {
+		t.Skip("local provider does not advertise required voxcpm speech workflow capabilities")
+	}
+
+	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
+	svc := newLiveSmokeServiceForProvider(t, "local", record)
+	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         liveSmokeMatrixAppID,
+			SubjectUserId: liveSmokeMatrixUserID,
+			ModelId:       modelID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+				TargetModelId: modelID,
+				Input:         &runtimev1.VoiceT2VInput{InstructionText: liveSmokeVoiceDesignInstruction},
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit local voxcpm voice design for asset lifecycle failed: %v", err)
+	}
+	if submitResp.GetAsset() == nil || strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId()) == "" {
+		t.Fatalf("voice design must return voice asset")
+	}
+
+	job := waitLiveSmokeScenarioJob(t, svc, submitResp.GetJob().GetJobId())
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("voice design asset lifecycle seed job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+	}
+
+	voiceAssetID := strings.TrimSpace(submitResp.GetAsset().GetVoiceAssetId())
+	assetResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	if err != nil {
+		t.Fatalf("GetVoiceAsset(%s): %v", voiceAssetID, err)
+	}
+	asset := assetResp.GetAsset()
+	if asset == nil {
+		t.Fatalf("GetVoiceAsset(%s) returned nil asset", voiceAssetID)
+	}
+	if asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE {
+		t.Fatalf("voice asset status=%s, want ACTIVE", asset.GetStatus().String())
+	}
+	if got := strings.TrimSpace(asset.GetProviderVoiceRef()); got == "" {
+		t.Fatalf("voice asset %s missing provider_voice_ref", voiceAssetID)
+	}
+	if got := strings.TrimSpace(asset.GetMetadata().GetFields()["workflow_family"].GetStringValue()); got != "voxcpm" {
+		t.Fatalf("workflow_family=%q, want voxcpm", got)
+	}
+	if got := strings.TrimSpace(asset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue()); got != "runtime_authoritative_delete" {
+		t.Fatalf("voice_handle_policy_delete_semantics=%q, want runtime_authoritative_delete", got)
+	}
+
+	listResp, err := svc.ListVoiceAssets(context.Background(), &runtimev1.ListVoiceAssetsRequest{
+		AppId:         liveSmokeMatrixAppID,
+		SubjectUserId: liveSmokeMatrixUserID,
+		PageSize:      20,
+	})
+	if err != nil {
+		t.Fatalf("ListVoiceAssets: %v", err)
+	}
+	found := false
+	for _, candidate := range listResp.GetAssets() {
+		if strings.TrimSpace(candidate.GetVoiceAssetId()) == voiceAssetID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("ListVoiceAssets missing created voice asset %s", voiceAssetID)
+	}
+
+	synthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         liveSmokeMatrixAppID,
+			SubjectUserId: liveSmokeMatrixUserID,
+			ModelId:       modelID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "Hello from Nimi live voice asset lifecycle smoke.",
+					VoiceRef: &runtimev1.VoiceReference{
+						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+						Reference: &runtimev1.VoiceReference_VoiceAssetId{
+							VoiceAssetId: voiceAssetID,
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit local voxcpm synth via voice asset failed: %v", err)
+	}
+	synthJob := waitLiveSmokeScenarioJob(t, svc, synthResp.GetJob().GetJobId())
+	if synthJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("voice asset synth job status not completed: %s reason=%s detail=%s", synthJob.GetStatus().String(), synthJob.GetReasonCode().String(), synthJob.GetReasonDetail())
+	}
+	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{
+		JobId: synthJob.GetJobId(),
+	})
+	if err != nil {
+		t.Fatalf("GetScenarioArtifacts(%s): %v", synthJob.GetJobId(), err)
+	}
+	if len(artifactsResp.GetArtifacts()) == 0 {
+		t.Fatalf("voice asset synth returned no artifacts")
+	}
+	firstArtifact := artifactsResp.GetArtifacts()[0]
+	if len(firstArtifact.GetBytes()) == 0 && strings.TrimSpace(firstArtifact.GetUri()) == "" {
+		t.Fatalf("voice asset synth artifact must contain bytes or uri")
+	}
+
+	deleteResp, err := svc.DeleteVoiceAsset(context.Background(), &runtimev1.DeleteVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	if err != nil {
+		t.Fatalf("DeleteVoiceAsset(%s): %v", voiceAssetID, err)
+	}
+	if deleteResp.GetAck() == nil || !deleteResp.GetAck().GetOk() {
+		t.Fatalf("DeleteVoiceAsset(%s) ack must be ok", voiceAssetID)
+	}
+
+	deletedResp, err := svc.GetVoiceAsset(context.Background(), &runtimev1.GetVoiceAssetRequest{VoiceAssetId: voiceAssetID})
+	if err != nil {
+		t.Fatalf("GetVoiceAsset(after delete %s): %v", voiceAssetID, err)
+	}
+	if deletedResp.GetAsset() == nil || deletedResp.GetAsset().GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+		t.Fatalf("voice asset status after delete=%v, want DELETED", deletedResp.GetAsset().GetStatus())
+	}
+
+	failedSynthResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         liveSmokeMatrixAppID,
+			SubjectUserId: liveSmokeMatrixUserID,
+			ModelId:       modelID,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     120_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "This synth must fail after delete.",
+					VoiceRef: &runtimev1.VoiceReference{
+						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET,
+						Reference: &runtimev1.VoiceReference_VoiceAssetId{
+							VoiceAssetId: voiceAssetID,
+						},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit local voxcpm synth after delete failed: %v", err)
+	}
+	failedJob := waitLiveSmokeScenarioJob(t, svc, failedSynthResp.GetJob().GetJobId())
+	if failedJob.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		t.Fatalf("expected failed synth job after delete, got status=%s", failedJob.GetStatus().String())
+	}
+	if failedJob.GetReasonCode() != runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND {
+		t.Fatalf("expected AI_VOICE_ASSET_NOT_FOUND after delete, got %s", failedJob.GetReasonCode().String())
 	}
 }
 
@@ -638,7 +1170,7 @@ func runLiveSmokeVoiceWorkflowForProvider(t *testing.T, providerID string, recor
 
 func waitLiveSmokeScenarioJob(t *testing.T, svc *Service, jobID string) *runtimev1.ScenarioJob {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Minute)
+	deadline := time.Now().Add(6 * time.Minute)
 	for {
 		resp, err := svc.GetScenarioJob(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioJobRequest{JobId: jobID})
 		if err != nil {
@@ -657,6 +1189,35 @@ func waitLiveSmokeScenarioJob(t *testing.T, svc *Service, jobID string) *runtime
 		}
 		if time.Now().After(deadline) {
 			t.Fatalf("scenario job %s did not reach terminal state before deadline, last_status=%s", jobID, job.GetStatus().String())
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func waitLiveSmokeScenarioJobAccepted(t *testing.T, svc *Service, jobID string, maxWait time.Duration) *runtimev1.ScenarioJob {
+	t.Helper()
+	deadline := time.Now().Add(maxWait)
+	for {
+		resp, err := svc.GetScenarioJob(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		if err != nil {
+			t.Fatalf("GetScenarioJob(%s): %v", jobID, err)
+		}
+		job := resp.GetJob()
+		if job == nil {
+			t.Fatalf("GetScenarioJob(%s) returned nil job", jobID)
+		}
+		if strings.TrimSpace(job.GetProviderJobId()) != "" || job.GetNextPollAt() != nil {
+			return job
+		}
+		switch job.GetStatus() {
+		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED,
+			runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT:
+			return job
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("scenario job %s did not expose async acceptance state before deadline, last_status=%s", jobID, job.GetStatus().String())
 		}
 		time.Sleep(500 * time.Millisecond)
 	}

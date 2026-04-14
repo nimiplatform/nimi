@@ -35,6 +35,8 @@ func TestScenarioModalFromType(t *testing.T) {
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:    runtimev1.Modal_MODAL_VIDEO,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE: runtimev1.Modal_MODAL_TTS,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE: runtimev1.Modal_MODAL_STT,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:       runtimev1.Modal_MODAL_TTS,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:      runtimev1.Modal_MODAL_TTS,
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:     runtimev1.Modal_MODAL_UNSPECIFIED,
 	}
 	for in, expect := range cases {
@@ -100,6 +102,24 @@ func TestValidateSubmitScenarioAsyncJobRequest(t *testing.T) {
 			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
 			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Text: "a running cat"}},
 			Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+		}}}
+		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("video valid multimodal reference inputs", func(t *testing.T) {
+		req := baseScenarioJobRequest()
+		req.ScenarioType = runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+		req.Spec = &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+			Mode: runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE,
+			Content: []*runtimev1.VideoContentItem{
+				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Text: "fruit tea"},
+				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE, ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.com/ref.png"}},
+				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO, VideoUrl: &runtimev1.VideoContentVideoURL{Url: "https://example.com/ref.mp4"}},
+				{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO, AudioUrl: &runtimev1.VideoContentAudioURL{Url: "https://example.com/ref.mp3"}},
+			},
+			Options: &runtimev1.VideoGenerationOptions{DurationSec: 11, Ratio: "16:9"},
 		}}}
 		if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 			t.Fatalf("unexpected error: %v", err)

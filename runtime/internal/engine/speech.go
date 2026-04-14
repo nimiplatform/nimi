@@ -14,11 +14,13 @@ const speechPythonVersion = "3.12"
 var nimiSpeechPackages = []string{
 	"fastapi==0.121.1",
 	"uvicorn[standard]==0.38.0",
+	"python-multipart",
 }
 
 var speechPassThroughEnvKeys = []string{
 	"NIMI_RUNTIME_SPEECH_KOKORO_CMD",
 	"NIMI_RUNTIME_SPEECH_WHISPERCPP_CMD",
+	"NIMI_RUNTIME_SPEECH_VOXCPM_CMD",
 	"NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS",
 }
 
@@ -39,6 +41,10 @@ func speechCommandEnv() map[string]string {
 	return env
 }
 
+func speechDependencyStampContents() []byte {
+	return []byte(strings.Join(nimiSpeechPackages, "\n") + "\n")
+}
+
 func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
 	root := engineVersionDir(baseDir, EngineSpeech, cfg.Version)
 	uvRoot := filepath.Join(baseDir, "uv")
@@ -57,11 +63,15 @@ func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (Engine
 	}
 
 	stampPath := filepath.Join(root, ".deps-installed")
-	if _, statErr := os.Stat(stampPath); statErr != nil {
+	stampCurrent := false
+	if stampRaw, readErr := os.ReadFile(stampPath); readErr == nil {
+		stampCurrent = string(stampRaw) == string(speechDependencyStampContents())
+	}
+	if !stampCurrent {
 		if installErr := uvPipInstall(ctx, uvPath, pythonPath, nimiSpeechPackages); installErr != nil {
 			return cfg, fmt.Errorf("install speech dependencies: %w", installErr)
 		}
-		if writeErr := os.WriteFile(stampPath, []byte("fastapi\nuvicorn\n"), 0o644); writeErr != nil {
+		if writeErr := os.WriteFile(stampPath, speechDependencyStampContents(), 0o644); writeErr != nil {
 			return cfg, fmt.Errorf("write speech dependency stamp: %w", writeErr)
 		}
 	}

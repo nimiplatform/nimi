@@ -211,6 +211,7 @@ class SpeechServerTests(unittest.TestCase):
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
             old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
             old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
                 os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = synth_driver
@@ -229,6 +230,10 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
 
             self.assertTrue(state.ready)
             self.assertEqual(len(state.models), 2)
@@ -260,6 +265,7 @@ class SpeechServerTests(unittest.TestCase):
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
             old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
             old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
                 os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = f"{sys.executable} -c pass"
@@ -278,6 +284,10 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
 
             self.assertFalse(state.ready)
             self.assertEqual(len(state.models), 1)
@@ -301,6 +311,7 @@ class SpeechServerTests(unittest.TestCase):
             old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
             old_tts = os.environ.get(SPEECH_SERVER.KOKORO_DRIVER_ENV)
             old_stt = os.environ.get(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
             try:
                 os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
                 os.environ[SPEECH_SERVER.KOKORO_DRIVER_ENV] = "totally_missing_kokoro_driver --serve"
@@ -319,11 +330,200 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ.pop(SPEECH_SERVER.WHISPERCPP_DRIVER_ENV, None)
                 else:
                     os.environ[SPEECH_SERVER.WHISPERCPP_DRIVER_ENV] = old_stt
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
 
             self.assertFalse(state.ready)
             self.assertFalse(state.kokoro_ready)
             self.assertEqual(state.kokoro_detail, "kokoro driver executable unresolved")
             self.assertIn("kokoro driver executable unresolved", state.models[0].detail)
+
+    def test_build_host_state_discovers_ready_voxcpm_model(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "nimi/tts-voxcpm",
+                "speech/voxcpm2",
+                ["audio.synthesize"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-voxcpm"},
+                "model.safetensors",
+            )
+            voxcpm_driver = write_driver_script(
+                root / "voxcpm_driver.py",
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env python3
+                    import argparse, json, pathlib
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    request = json.loads(pathlib.Path(args.request).read_text())
+                    if request["operation"] == "driver.preflight":
+                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "voxcpm"}))
+                    else:
+                        pathlib.Path(args.response).write_text(json.dumps({"voice_id": "voice-local-001"}))
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = voxcpm_driver
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                if old_models_root is None:
+                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+
+            self.assertEqual(len(state.models), 1)
+            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "voxcpm")
+            self.assertTrue(state.models[0].ready)
+
+    def test_build_host_state_rejects_voxcpm_model_when_preflight_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "nimi/tts-voxcpm",
+                "speech/voxcpm2",
+                ["audio.synthesize"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-voxcpm"},
+                "model.safetensors",
+            )
+            voxcpm_driver = write_driver_script(
+                root / "voxcpm_driver.py",
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env python3
+                    import argparse, json, pathlib, sys
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    request = json.loads(pathlib.Path(args.request).read_text())
+                    if request["operation"] == "driver.preflight":
+                        sys.stderr.write("model type voxcpm2 not supported\\n")
+                        raise SystemExit(1)
+                    pathlib.Path(args.response).write_text(json.dumps({"voice_id": "voice-local-001"}))
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = voxcpm_driver
+                SPEECH_SERVER.VOXCPM_PREFLIGHT_CACHE.clear()
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                if old_models_root is None:
+                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+                SPEECH_SERVER.VOXCPM_PREFLIGHT_CACHE.clear()
+
+            self.assertFalse(state.ready)
+            self.assertFalse(state.voxcpm_ready)
+            self.assertIn("voxcpm driver preflight failed", state.voxcpm_detail)
+            self.assertFalse(state.models[0].ready)
+            self.assertIn("voxcpm driver preflight failed", state.models[0].detail)
+
+    def test_voxcpm_workflow_routes_execute_clone_and_design(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "nimi/tts-voxcpm",
+                "speech/voxcpm2",
+                ["audio.synthesize"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-voxcpm"},
+                "model.safetensors",
+            )
+            driver = write_driver_script(
+                root / "voxcpm_driver.py",
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env python3
+                    import argparse, json, pathlib
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    request = json.loads(pathlib.Path(args.request).read_text())
+                    op = request["operation"]
+                    if op == "driver.preflight":
+                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "voxcpm"}))
+                    elif op == "voice.clone":
+                        assert request["input"]["preferred_name"] == "clone-voice"
+                        assert request["input"]["reference_audio_base64"]
+                        pathlib.Path(args.response).write_text(json.dumps({"voice_id": "clone-voice-001", "job_id": "job-clone-001"}))
+                    elif op == "voice.design":
+                        assert request["input"]["instruction_text"] == "warm narrator"
+                        pathlib.Path(args.response).write_text(json.dumps({"voice_id": "design-voice-001"}))
+                    else:
+                        raise SystemExit("unexpected operation")
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_voxcpm = os.environ.get(SPEECH_SERVER.VOXCPM_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = driver
+                app = SPEECH_SERVER.create_app()
+                clone_handler = next(fn for method, path, fn in app.routes if method == "POST" and path == "/v1/voice/clone")
+                design_handler = next(fn for method, path, fn in app.routes if method == "POST" and path == "/v1/voice/design")
+
+                clone_result = clone_handler(
+                    {
+                        "workflow_model_id": "voxcpm-local-voice-clone",
+                        "target_model_id": "speech/voxcpm2",
+                        "input": {
+                            "preferred_name": "clone-voice",
+                            "reference_audio_base64": base64.b64encode(b"voice-audio").decode("ascii"),
+                        },
+                    }
+                )
+                design_result = design_handler(
+                    {
+                        "workflow_model_id": "voxcpm-local-voice-design",
+                        "target_model_id": "speech/voxcpm2",
+                        "input": {
+                            "instruction_text": "warm narrator",
+                            "preferred_name": "design-voice",
+                        },
+                    }
+                )
+            finally:
+                if old_models_root is None:
+                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
+                if old_voxcpm is None:
+                    os.environ.pop(SPEECH_SERVER.VOXCPM_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.VOXCPM_DRIVER_ENV] = old_voxcpm
+
+            self.assertEqual(clone_result["voice_id"], "clone-voice-001")
+            self.assertEqual(clone_result["job_id"], "job-clone-001")
+            self.assertEqual(design_result["voice_id"], "design-voice-001")
 
     def test_synthesize_with_driver_returns_audio_payload(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

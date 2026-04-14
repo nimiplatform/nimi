@@ -5,6 +5,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -198,6 +199,11 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return runtimev1.Modal_MODAL_STT
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
+		// Voice workflow targets a synthesis model even when the workflow
+		// capability itself remains a separate authority surface.
+		return runtimev1.Modal_MODAL_TTS
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return runtimev1.Modal_MODAL_MUSIC
 	default:
@@ -583,6 +589,51 @@ func resolveScenarioVoiceRef(spec *runtimev1.SpeechSynthesizeScenarioSpec) strin
 	default:
 		return ""
 	}
+}
+
+func (s *Service) resolveSynthesizeSpeechSpecVoiceRef(
+	modelResolved string,
+	spec *runtimev1.SpeechSynthesizeScenarioSpec,
+) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {
+	if spec == nil || spec.GetVoiceRef() == nil {
+		return spec, nil
+	}
+	ref := spec.GetVoiceRef()
+	if ref.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_VOICE_ASSET {
+		return spec, nil
+	}
+	voiceAssetID := strings.TrimSpace(ref.GetVoiceAssetId())
+	if voiceAssetID == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	if s == nil || s.voiceAssets == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	asset, ok := s.voiceAssets.getAsset(voiceAssetID)
+	if !ok || asset == nil || asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
+	}
+	if asset.GetStatus() == runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	if targetModelID := strings.TrimSpace(asset.GetTargetModelId()); targetModelID != "" && strings.TrimSpace(modelResolved) != "" && !strings.EqualFold(targetModelID, strings.TrimSpace(modelResolved)) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_TARGET_MODEL_MISMATCH)
+	}
+	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
+	if providerVoiceRef == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
+	}
+	cloned, ok := proto.Clone(spec).(*runtimev1.SpeechSynthesizeScenarioSpec)
+	if !ok || cloned == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	cloned.VoiceRef = &runtimev1.VoiceReference{
+		Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+		Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
+			ProviderVoiceRef: providerVoiceRef,
+		},
+	}
+	return cloned, nil
 }
 
 func (s *Service) UpdatePollState(

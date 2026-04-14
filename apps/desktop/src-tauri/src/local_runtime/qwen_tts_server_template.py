@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Local OpenAI-compatible gateway for Qwen3-TTS VoiceDesign.
+Experimental local OpenAI-compatible gateway for Qwen3-TTS reference bundles.
+
+This file remains a Desktop/Tauri local-runtime reference path only. It is not
+the current admitted workflow truth inside `runtime-speech`; current bounded
+local workflow admission remains family-scoped to `voxcpm`, while this template
+is retained for synthesize-first experimentation and compatibility.
 
 Routes:
   - GET  /healthz

@@ -288,6 +288,60 @@ func TestResolveVoiceWorkflowStepFunClone(t *testing.T) {
 	}
 }
 
+func TestResolveVoiceWorkflowLocalVoxCPMClone(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "voxcpm2-local", "tts_v2v")
+	if err != nil {
+		t.Fatalf("ResolveVoiceWorkflow: %v", err)
+	}
+	if resolved.Provider != "local" {
+		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
+	}
+	if resolved.WorkflowModelID != "voxcpm-local-voice-clone" {
+		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
+	}
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "voxcpm" {
+		t.Fatalf("workflow family mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyID); got != "local_runtime_session_ephemeral_default" {
+		t.Fatalf("handle policy mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyPersistence); got != "session_ephemeral" {
+		t.Fatalf("handle persistence mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.HandlePolicyDeleteSemantics); got != "runtime_authoritative_delete" {
+		t.Fatalf("delete semantics mismatch: got=%q", got)
+	}
+	if resolved.RuntimeReconciliationRequired {
+		t.Fatalf("local session-ephemeral workflow should not require runtime reconciliation")
+	}
+}
+
+func TestResolveVoiceWorkflowLocalVoxCPMDesign(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/voxcpm2", "tts_t2v")
+	if err != nil {
+		t.Fatalf("ResolveVoiceWorkflow: %v", err)
+	}
+	if resolved.Provider != "local" {
+		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
+	}
+	if resolved.WorkflowModelID != "voxcpm-local-voice-design" {
+		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
+	}
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "voxcpm" {
+		t.Fatalf("workflow family mismatch: got=%q", got)
+	}
+}
+
 func TestResolveVoiceWorkflowUnsupportedReturnsError(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {
@@ -312,6 +366,21 @@ func TestResolveVoiceWorkflowLocalUnsupportedReturnsError(t *testing.T) {
 	_, err = resolver.ResolveVoiceWorkflow("local", "qwen3-tts-local", "tts_v2v")
 	if err == nil {
 		t.Fatalf("expected local voice workflow unsupported error")
+	}
+	if err != ErrVoiceWorkflowUnsupported {
+		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
+	}
+}
+
+func TestResolveVoiceWorkflowLocalUnsupportedDesignReturnsError(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	_, err = resolver.ResolveVoiceWorkflow("local", "qwen3-tts-local", "tts_t2v")
+	if err == nil {
+		t.Fatalf("expected local voice design unsupported error")
 	}
 	if err != ErrVoiceWorkflowUnsupported {
 		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)

@@ -127,12 +127,13 @@ func ExecuteGeminiOperation(
 	if providerJobID == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
+	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(providerPollDelay(0))), "")
 	retryCount := int32(0)
 
 	for {
 		if ctx.Err() != nil {
-			return nil, nil, providerJobID, MapProviderRequestError(ctx.Err())
+			bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
 		pollResp := map[string]any{}
@@ -142,12 +143,16 @@ func ExecuteGeminiOperation(
 		}
 		done := ValueAsBool(pollResp["done"])
 		if !done {
-			if providerPollRetryLimitReached(retryCount) {
+			if providerPollRetryLimitReached(ctx, retryCount) {
 				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 				return nil, nil, providerJobID, providerPollTimeoutError()
 			}
-			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
-			time.Sleep(500 * time.Millisecond)
+			delay := providerPollDelay(retryCount)
+			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
+			if err := sleepWithContext(ctx, delay); err != nil {
+				bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+				return nil, nil, providerJobID, providerPollContextError(err)
+			}
 			continue
 		}
 		statusText := strings.ToLower(strings.TrimSpace(FirstNonEmpty(

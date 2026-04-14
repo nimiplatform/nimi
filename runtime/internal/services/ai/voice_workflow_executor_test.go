@@ -741,6 +741,219 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 	}
 }
 
+func TestSubmitScenarioJobLocalVoxCPMWorkflowReturnsAssetWithHandlePolicyMetadata(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, `{"ok":true}`)
+	}))
+	defer server.Close()
+	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId: "local-voxcpm2-001",
+			AssetId:      "speech/voxcpm2",
+			Engine:       "speech",
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			Endpoint:     server.URL + "/v1",
+		}},
+	}}}
+
+	resp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "speech/voxcpm2",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{
+				VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+					TargetModelId: "speech/voxcpm2",
+					Input: &runtimev1.VoiceV2VInput{
+						ReferenceAudioBytes: []byte("voice-audio"),
+						ReferenceAudioMime:  "audio/wav",
+						Text:                "clone me",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SubmitScenarioJob(local voxcpm): %v", err)
+	}
+	if resp.GetAsset() == nil {
+		t.Fatalf("expected workflow asset")
+	}
+	metadata := resp.GetAsset().GetMetadata().GetFields()
+	if got := metadata["workflow_family"].GetStringValue(); got != "voxcpm" {
+		t.Fatalf("workflow_family=%q, want voxcpm", got)
+	}
+	if got := metadata["voice_handle_policy_id"].GetStringValue(); got != "local_runtime_session_ephemeral_default" {
+		t.Fatalf("voice_handle_policy_id=%q", got)
+	}
+	if got := metadata["voice_handle_policy_persistence"].GetStringValue(); got != "session_ephemeral" {
+		t.Fatalf("voice_handle_policy_persistence=%q", got)
+	}
+	if got := metadata["voice_handle_policy_delete_semantics"].GetStringValue(); got != "runtime_authoritative_delete" {
+		t.Fatalf("voice_handle_policy_delete_semantics=%q", got)
+	}
+}
+
+func TestExecuteVoiceWorkflowJobLocalVoxCPMFailCloseUsesFamilySpecificDetail(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	req := voiceCloneRequest()
+	req.Head.ModelId = "speech/voxcpm2"
+	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	req.Spec.GetVoiceClone().TargetModelId = "speech/voxcpm2"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/voxcpm2", "tts_v2v")
+	if err != nil {
+		t.Fatalf("resolveVoiceWorkflow(local voxcpm): %v", err)
+	}
+	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head:              req.GetHead(),
+		ScenarioType:      req.GetScenarioType(),
+		Spec:              req.GetSpec(),
+		ModelResolved:     "speech/voxcpm2",
+		Provider:          "local",
+		WorkflowModelID:   resolution.WorkflowModelID,
+		WorkflowFamily:    resolution.WorkflowFamily,
+		OutputPersistence: resolution.OutputPersistence,
+		HandlePolicyID:    resolution.HandlePolicyID,
+		HandlePersistence: resolution.HandlePolicyPersistence,
+		HandleScope:       resolution.HandlePolicyScope,
+		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
+		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
+		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("submit should create workflow job and asset")
+	}
+
+	svc.executeVoiceWorkflowJob(
+		context.Background(),
+		job.GetJobId(),
+		asset.GetVoiceAssetId(),
+		resolution,
+		req,
+		nimillm.MediaAdapterConfig{},
+	)
+
+	storedJob, ok := svc.voiceAssets.getJob(job.GetJobId())
+	if !ok {
+		t.Fatalf("expected stored job")
+	}
+	if got := storedJob.GetReasonDetail(); !strings.Contains(got, "execution plane not materialized: voxcpm") {
+		t.Fatalf("reason detail mismatch: %q", got)
+	}
+	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("expected stored asset")
+	}
+	if got := storedAsset.GetMetadata().GetFields()["voice_handle_policy_id"].GetStringValue(); got != "local_runtime_session_ephemeral_default" {
+		t.Fatalf("stored asset voice_handle_policy_id=%q", got)
+	}
+}
+
+func TestExecuteVoiceWorkflowJobLocalVoxCPMSucceedsViaSpeechHost(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/voice/clone" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		payload := map[string]any{}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			t.Fatalf("unmarshal body: %v", err)
+		}
+		if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "speech/voxcpm2" {
+			t.Fatalf("unexpected target_model_id: %q", got)
+		}
+		input, ok := payload["input"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected canonical input map")
+		}
+		if got := strings.TrimSpace(nimillm.ValueAsString(input["preferred_name"])); got != "test-clone-voice" {
+			t.Fatalf("unexpected preferred_name: %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"voice_id":"voice-local-voxcpm-001","job_id":"job-local-voxcpm-001","metadata":{"host_family":"voxcpm"}}`)
+	}))
+	defer server.Close()
+
+	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
+	req := voiceCloneRequest()
+	req.Head.ModelId = "speech/voxcpm2"
+	req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+	req.Spec.GetVoiceClone().TargetModelId = "speech/voxcpm2"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioBytes = []byte("voice-audio")
+	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
+	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
+
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/voxcpm2", "tts_v2v")
+	if err != nil {
+		t.Fatalf("resolveVoiceWorkflow(local voxcpm): %v", err)
+	}
+	job, asset := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head:              req.GetHead(),
+		ScenarioType:      req.GetScenarioType(),
+		Spec:              req.GetSpec(),
+		ModelResolved:     "speech/voxcpm2",
+		Provider:          "local",
+		WorkflowModelID:   resolution.WorkflowModelID,
+		WorkflowFamily:    resolution.WorkflowFamily,
+		OutputPersistence: resolution.OutputPersistence,
+		HandlePolicyID:    resolution.HandlePolicyID,
+		HandlePersistence: resolution.HandlePolicyPersistence,
+		HandleScope:       resolution.HandlePolicyScope,
+		HandleDefaultTTL:  resolution.HandlePolicyDefaultTTL,
+		HandleDeleteSem:   resolution.HandlePolicyDeleteSemantics,
+		RuntimeReconcile:  resolution.RuntimeReconciliationRequired,
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("submit should create workflow job and asset")
+	}
+
+	svc.executeVoiceWorkflowJob(
+		context.Background(),
+		job.GetJobId(),
+		asset.GetVoiceAssetId(),
+		resolution,
+		req,
+		nimillm.MediaAdapterConfig{},
+	)
+
+	storedJob, ok := svc.voiceAssets.getJob(job.GetJobId())
+	if !ok {
+		t.Fatalf("expected stored job")
+	}
+	if got := storedJob.GetStatus(); got != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("job status = %v", got)
+	}
+	storedAsset, ok := svc.voiceAssets.getAsset(asset.GetVoiceAssetId())
+	if !ok {
+		t.Fatalf("expected stored asset")
+	}
+	if got := storedAsset.GetProviderVoiceRef(); got != "voice-local-voxcpm-001" {
+		t.Fatalf("provider voice ref = %q", got)
+	}
+	if got := storedAsset.GetMetadata().GetFields()["host_family"].GetStringValue(); got != "voxcpm" {
+		t.Fatalf("host_family metadata = %q", got)
+	}
+	if got := storedAsset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue(); got != "runtime_authoritative_delete" {
+		t.Fatalf("voice_handle_policy_delete_semantics = %q", got)
+	}
+}
+
 func voiceCloneRequest() *runtimev1.SubmitScenarioJobRequest {
 	return &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{

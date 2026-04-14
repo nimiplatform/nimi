@@ -103,6 +103,8 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	firstFrameCount := 0
 	lastFrameCount := 0
 	referenceImageCount := 0
+	referenceVideoCount := 0
+	referenceAudioCount := 0
 	for _, item := range content {
 		if item == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
@@ -127,9 +129,24 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 			default:
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
+			if strings.TrimSpace(item.GetVideoUrl().GetUrl()) == "" ||
+				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+			referenceVideoCount++
+		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
+			if strings.TrimSpace(item.GetAudioUrl().GetUrl()) == "" ||
+				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+			}
+			referenceAudioCount++
 		default:
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
+	}
+	if referenceAudioCount > 0 && referenceVideoCount == 0 && firstFrameCount == 0 && lastFrameCount == 0 && referenceImageCount == 0 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 
 	switch mode {
@@ -149,7 +166,7 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
-		if referenceImageCount < 1 || referenceImageCount > 4 || firstFrameCount != 0 || lastFrameCount != 0 {
+		if referenceImageCount < 1 || firstFrameCount != 0 || lastFrameCount != 0 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	default:

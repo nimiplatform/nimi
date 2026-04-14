@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	maxVoiceAssetEventBacklog      = 128
-	maxRetainedTerminalVoiceJobs   = 1024
-	voiceAssetStoreRetentionWindow = 30 * time.Minute
+	maxVoiceAssetEventBacklog        = 128
+	maxRetainedTerminalVoiceJobs     = 1024
+	voiceAssetStoreRetentionWindow   = 30 * time.Minute
+	voiceAssetDeleteRetryCooldown    = 30 * time.Second
+	maxVoiceAssetDeleteRetryAttempts = 4
 )
 
 type voiceScenarioJobRecord struct {
@@ -40,7 +42,14 @@ type voiceWorkflowSubmitInput struct {
 	ModelResolved     string
 	Provider          string
 	WorkflowModelID   string
+	WorkflowFamily    string
 	OutputPersistence string
+	HandlePolicyID    string
+	HandlePersistence string
+	HandleScope       string
+	HandleDefaultTTL  string
+	HandleDeleteSem   string
+	RuntimeReconcile  bool
 	IgnoredExtensions []*runtimev1.IgnoredScenarioExtension
 }
 
@@ -48,6 +57,19 @@ type voiceAssetStore struct {
 	mu     sync.RWMutex
 	jobs   map[string]*voiceScenarioJobRecord
 	assets map[string]*runtimev1.VoiceAsset
+}
+
+type voiceAssetDeleteResult struct {
+	Attempted              bool
+	Succeeded              bool
+	ReconciliationRequired bool
+	PendingReconciliation  bool
+	Exhausted              bool
+	DeleteSemantics        string
+	LastError              string
+	LastAttemptAt          time.Time
+	NextRetryAfter         time.Time
+	RetryAttemptCount      int
 }
 
 func newVoiceAssetStore() *voiceAssetStore {
@@ -167,19 +189,48 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}
-	workflowFamily := inferVoiceWorkflowFamily(
-		input.WorkflowModelID,
-		input.ModelResolved,
-		targetModelID,
-		head.GetModelId(),
-	)
-	if strings.TrimSpace(input.WorkflowModelID) != "" || workflowFamily != "" || strings.TrimSpace(input.ModelResolved) != "" {
+	workflowFamily := strings.TrimSpace(input.WorkflowFamily)
+	if workflowFamily == "" {
+		workflowFamily = inferVoiceWorkflowFamily(
+			input.WorkflowModelID,
+			input.ModelResolved,
+			targetModelID,
+			head.GetModelId(),
+		)
+	}
+	if strings.TrimSpace(input.WorkflowModelID) != "" ||
+		workflowFamily != "" ||
+		strings.TrimSpace(input.ModelResolved) != "" ||
+		strings.TrimSpace(input.HandlePolicyID) != "" ||
+		strings.TrimSpace(input.HandlePersistence) != "" ||
+		strings.TrimSpace(input.HandleScope) != "" ||
+		strings.TrimSpace(input.HandleDefaultTTL) != "" ||
+		strings.TrimSpace(input.HandleDeleteSem) != "" ||
+		input.RuntimeReconcile {
 		metadata := map[string]any{
 			"workflow_model_id": strings.TrimSpace(input.WorkflowModelID),
 			"model_resolved":    strings.TrimSpace(input.ModelResolved),
 		}
 		if workflowFamily != "" {
 			metadata["workflow_family"] = workflowFamily
+		}
+		if strings.TrimSpace(input.HandlePolicyID) != "" {
+			metadata["voice_handle_policy_id"] = strings.TrimSpace(input.HandlePolicyID)
+		}
+		if strings.TrimSpace(input.HandlePersistence) != "" {
+			metadata["voice_handle_policy_persistence"] = strings.TrimSpace(input.HandlePersistence)
+		}
+		if strings.TrimSpace(input.HandleScope) != "" {
+			metadata["voice_handle_policy_scope"] = strings.TrimSpace(input.HandleScope)
+		}
+		if strings.TrimSpace(input.HandleDefaultTTL) != "" {
+			metadata["voice_handle_policy_default_ttl"] = strings.TrimSpace(input.HandleDefaultTTL)
+		}
+		if strings.TrimSpace(input.HandleDeleteSem) != "" {
+			metadata["voice_handle_policy_delete_semantics"] = strings.TrimSpace(input.HandleDeleteSem)
+		}
+		if input.RuntimeReconcile {
+			metadata["voice_handle_policy_runtime_reconciliation_required"] = true
 		}
 		asset.Metadata = structFromMap(metadata)
 	}
@@ -455,6 +506,10 @@ func (s *voiceAssetStore) listAssets(req *runtimev1.ListVoiceAssetsRequest) []*r
 }
 
 func (s *voiceAssetStore) deleteAsset(voiceAssetID string) bool {
+	return s.deleteAssetWithResult(voiceAssetID, voiceAssetDeleteResult{})
+}
+
+func (s *voiceAssetStore) deleteAssetWithResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
 	id := strings.TrimSpace(voiceAssetID)
 	if id == "" {
 		return false
@@ -466,9 +521,74 @@ func (s *voiceAssetStore) deleteAsset(voiceAssetID string) bool {
 		return false
 	}
 	asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED
-	asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+	nowTime := time.Now().UTC()
+	asset.UpdatedAt = timestamppb.New(nowTime)
+	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
 	s.mu.Unlock()
 	return true
+}
+
+func (s *voiceAssetStore) updateDeletedAssetReconciliationResult(voiceAssetID string, result voiceAssetDeleteResult) bool {
+	id := strings.TrimSpace(voiceAssetID)
+	if id == "" {
+		return false
+	}
+	s.mu.Lock()
+	asset, ok := s.assets[id]
+	if !ok || asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+		s.mu.Unlock()
+		return false
+	}
+	nowTime := time.Now().UTC()
+	asset.UpdatedAt = timestamppb.New(nowTime)
+	applyVoiceAssetDeleteResultMetadata(asset, result, nowTime)
+	s.mu.Unlock()
+	return true
+}
+
+func (s *voiceAssetStore) listPendingDeleteReconciliationAssets(appID string, subjectUserID string, now time.Time, limit int) []*runtimev1.VoiceAsset {
+	if limit <= 0 {
+		return nil
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	items := make([]*runtimev1.VoiceAsset, 0, limit)
+	for _, asset := range s.assets {
+		if asset == nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED {
+			continue
+		}
+		if strings.TrimSpace(appID) != "" && asset.GetAppId() != strings.TrimSpace(appID) {
+			continue
+		}
+		if strings.TrimSpace(subjectUserID) != "" && asset.GetSubjectUserId() != strings.TrimSpace(subjectUserID) {
+			continue
+		}
+		fields := asset.GetMetadata().GetFields()
+		if !fields["provider_delete_reconciliation_pending"].GetBoolValue() {
+			continue
+		}
+		if fields["provider_delete_reconciliation_exhausted"].GetBoolValue() {
+			continue
+		}
+		if !fields["voice_handle_policy_runtime_reconciliation_required"].GetBoolValue() {
+			continue
+		}
+		if nextRetry := strings.TrimSpace(fields["provider_delete_next_retry_at"].GetStringValue()); nextRetry != "" {
+			if parsed, err := time.Parse(time.RFC3339Nano, nextRetry); err == nil && now.Before(parsed.UTC()) {
+				continue
+			}
+		}
+		if lastAttempt := strings.TrimSpace(fields["provider_delete_last_attempt_at"].GetStringValue()); lastAttempt != "" {
+			if parsed, err := time.Parse(time.RFC3339Nano, lastAttempt); err == nil && now.Sub(parsed.UTC()) < voiceAssetDeleteRetryCooldown {
+				continue
+			}
+		}
+		items = append(items, cloneVoiceAsset(asset))
+		if len(items) >= limit {
+			break
+		}
+	}
+	return items
 }
 
 func (s *voiceAssetStore) publishLocked(record *voiceScenarioJobRecord, eventType runtimev1.ScenarioJobEventType) {
@@ -611,6 +731,71 @@ func structFromMap(values map[string]any) *structpb.Struct {
 		return nil
 	}
 	return out
+}
+
+func metadataMap(input *structpb.Struct) map[string]any {
+	if input == nil {
+		return map[string]any{}
+	}
+	out := make(map[string]any, len(input.GetFields()))
+	for key, value := range input.GetFields() {
+		out[key] = value.AsInterface()
+	}
+	return out
+}
+
+func mergeStructFields(existing *structpb.Struct, values map[string]any) *structpb.Struct {
+	merged := metadataMap(existing)
+	for key, value := range values {
+		merged[key] = value
+	}
+	return structFromMap(merged)
+}
+
+func applyVoiceAssetDeleteResultMetadata(asset *runtimev1.VoiceAsset, result voiceAssetDeleteResult, now time.Time) {
+	if asset == nil {
+		return
+	}
+	fields := metadataMap(asset.GetMetadata())
+	if strings.TrimSpace(anyString(fields["deleted_at"])) == "" {
+		fields["deleted_at"] = now.Format(time.RFC3339Nano)
+	}
+	fields["provider_delete_attempted"] = result.Attempted
+	fields["provider_delete_succeeded"] = result.Succeeded
+	fields["provider_delete_reconciliation_pending"] = result.PendingReconciliation
+	fields["provider_delete_reconciliation_exhausted"] = result.Exhausted
+	if strings.TrimSpace(result.DeleteSemantics) != "" {
+		fields["provider_delete_semantics_effective"] = strings.TrimSpace(result.DeleteSemantics)
+	}
+	if !result.LastAttemptAt.IsZero() {
+		fields["provider_delete_last_attempt_at"] = result.LastAttemptAt.UTC().Format(time.RFC3339Nano)
+	}
+	if result.RetryAttemptCount > 0 {
+		fields["provider_delete_retry_attempt_count"] = float64(result.RetryAttemptCount)
+	}
+	if !result.NextRetryAfter.IsZero() {
+		fields["provider_delete_next_retry_at"] = result.NextRetryAfter.UTC().Format(time.RFC3339Nano)
+	} else {
+		delete(fields, "provider_delete_next_retry_at")
+	}
+	if strings.TrimSpace(result.LastError) != "" {
+		fields["provider_delete_last_error"] = strings.TrimSpace(result.LastError)
+	} else {
+		delete(fields, "provider_delete_last_error")
+	}
+	if result.ReconciliationRequired {
+		fields["provider_delete_runtime_reconciliation_required"] = true
+	}
+	asset.Metadata = structFromMap(fields)
+}
+
+func anyString(value any) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	default:
+		return ""
+	}
 }
 
 func isTerminalScenarioJobStatus(status runtimev1.ScenarioJobStatus) bool {

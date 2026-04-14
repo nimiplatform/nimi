@@ -242,7 +242,8 @@ func ExecuteMubertMusic(
 	retryCount := int32(0)
 	for {
 		if ctx.Err() != nil {
-			return nil, nil, trackID, MapProviderRequestError(ctx.Err())
+			bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+			return nil, nil, trackID, providerPollContextError(ctx.Err())
 		}
 		current := submitResp
 		if retryCount > 0 {
@@ -265,16 +266,25 @@ func ExecuteMubertMusic(
 			return nil, nil, trackID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		retryCount++
-		if providerPollRetryLimitReached(retryCount) {
+		if providerPollRetryLimitReached(ctx, retryCount) {
 			if updater != nil {
 				updater.UpdatePollState(jobID, trackID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
 			}
 			return nil, nil, trackID, providerPollTimeoutError()
 		}
 		if updater != nil {
-			updater.UpdatePollState(jobID, trackID, retryCount, timestamppb.New(time.Now().UTC().Add(1*time.Second)), statusText)
+			delay := providerPollDelay(retryCount)
+			updater.UpdatePollState(jobID, trackID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), statusText)
+			if err := sleepWithContext(ctx, delay); err != nil {
+				bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+				return nil, nil, trackID, providerPollContextError(err)
+			}
+			continue
 		}
-		time.Sleep(1 * time.Second)
+		if err := sleepWithContext(ctx, providerPollDelay(retryCount)); err != nil {
+			bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+			return nil, nil, trackID, providerPollContextError(err)
+		}
 	}
 }
 

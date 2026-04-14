@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -24,40 +25,42 @@ import (
 const (
 	// minStreamChunkBytes is the minimum buffered bytes before flushing a
 	// streaming text delta to the client. (K-STREAM-006)
-	minStreamChunkBytes         = 32
-	defaultGenerateTimeout      = 120 * time.Second
-	defaultStreamFirstTimeout   = 60 * time.Second
-	defaultStreamIdleTimeout    = 30 * time.Second
-	defaultStreamTotalTimeout   = 120 * time.Second
-	defaultEmbedTimeout         = 20 * time.Second
-	defaultGenerateImageTimeout = 120 * time.Second
-	defaultGenerateVideoTimeout = 300 * time.Second
-	defaultSynthesizeTimeout    = 45 * time.Second
-	defaultTranscribeTimeout    = 90 * time.Second
-	defaultGenerateMusicTimeout = 300 * time.Second
+	minStreamChunkBytes                           = 32
+	defaultGenerateTimeout                        = 120 * time.Second
+	defaultStreamFirstTimeout                     = 60 * time.Second
+	defaultStreamIdleTimeout                      = 30 * time.Second
+	defaultStreamTotalTimeout                     = 120 * time.Second
+	defaultEmbedTimeout                           = 20 * time.Second
+	defaultGenerateImageTimeout                   = 120 * time.Second
+	defaultGenerateVideoTimeout                   = 300 * time.Second
+	defaultSynthesizeTimeout                      = 45 * time.Second
+	defaultTranscribeTimeout                      = 90 * time.Second
+	defaultGenerateMusicTimeout                   = 300 * time.Second
+	defaultVoiceAssetDeleteReconciliationInterval = 15 * time.Second
 )
 
 // Service implements RuntimeAiService with deterministic in-memory behavior.
 type Service struct {
 	runtimev1.UnimplementedRuntimeAiServiceServer
 	runtimev1.UnimplementedRuntimeAiRealtimeServiceServer
-	logger                   *slog.Logger
-	config                   Config
-	selector                 *routeSelector
-	audit                    *auditlog.Store
-	registry                 *modelregistry.Registry
-	registryPath             string
-	scheduler                *scheduler.Scheduler
-	scenarioJobs             *scenarioJobStore
-	realtimeSessions         *realtimeSessionStore
-	voiceAssets              *voiceAssetStore
-	connStore                *connector.ConnectorStore
-	localModel               localModelLister
-	localImageProfile        localImageProfileResolver
-	speechCatalog            *catalog.Resolver
-	allowLoopback            bool
-	streamFirstPacketTimeout time.Duration
-	streamIdleTimeout        time.Duration
+	logger                                 *slog.Logger
+	config                                 Config
+	selector                               *routeSelector
+	audit                                  *auditlog.Store
+	registry                               *modelregistry.Registry
+	registryPath                           string
+	scheduler                              *scheduler.Scheduler
+	scenarioJobs                           *scenarioJobStore
+	realtimeSessions                       *realtimeSessionStore
+	voiceAssets                            *voiceAssetStore
+	connStore                              *connector.ConnectorStore
+	localModel                             localModelLister
+	localImageProfile                      localImageProfileResolver
+	speechCatalog                          *catalog.Resolver
+	allowLoopback                          bool
+	streamFirstPacketTimeout               time.Duration
+	streamIdleTimeout                      time.Duration
+	voiceAssetDeleteReconciliationInterval time.Duration
 }
 
 // New creates a Service with all dependencies.
@@ -134,18 +137,19 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		)
 	})
 	svc := &Service{
-		logger:                   logger,
-		config:                   cfg,
-		selector:                 newRouteSelectorWithRegistry(cfg, registry, aiHealth),
-		audit:                    auditStore,
-		registry:                 registry,
-		scheduler:                scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
-		scenarioJobs:             newScenarioJobStore(),
-		realtimeSessions:         realtimeSessions,
-		voiceAssets:              newVoiceAssetStore(),
-		connStore:                connStore,
-		streamFirstPacketTimeout: defaultStreamFirstTimeout,
-		streamIdleTimeout:        defaultStreamIdleTimeout,
+		logger:                                 logger,
+		config:                                 cfg,
+		selector:                               newRouteSelectorWithRegistry(cfg, registry, aiHealth),
+		audit:                                  auditStore,
+		registry:                               registry,
+		scheduler:                              scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
+		scenarioJobs:                           newScenarioJobStore(),
+		realtimeSessions:                       realtimeSessions,
+		voiceAssets:                            newVoiceAssetStore(),
+		connStore:                              connStore,
+		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
+		streamIdleTimeout:                      defaultStreamIdleTimeout,
+		voiceAssetDeleteReconciliationInterval: defaultVoiceAssetDeleteReconciliationInterval,
 	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
 	if err != nil {
@@ -227,6 +231,26 @@ func (s *Service) CloudProvider() *nimillm.CloudProvider {
 // runtime services (for example connector config surfaces).
 func (s *Service) SpeechCatalogResolver() *catalog.Resolver {
 	return s.speechCatalog
+}
+
+func (s *Service) RunVoiceAssetDeleteReconciliationLoop(ctx context.Context) {
+	if s == nil {
+		return
+	}
+	interval := s.voiceAssetDeleteReconciliationInterval
+	if interval <= 0 {
+		interval = defaultVoiceAssetDeleteReconciliationInterval
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.reconcilePendingVoiceAssetDeletes(ctx, "", "", maxVoiceAssetReconciliationSweep)
+		}
+	}
 }
 
 func (s *Service) recordStreamFallbackSimulated(appID string, subjectUserID string, requestedModelID string, resolvedModelID string) {

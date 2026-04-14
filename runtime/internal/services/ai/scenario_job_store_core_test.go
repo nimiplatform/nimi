@@ -2,9 +2,14 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -108,6 +113,272 @@ func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 	}
 	if len(artResp.GetArtifacts()) != 1 || artResp.GetTraceId() != "trace-1" {
 		t.Fatalf("unexpected artifacts response: %#v", artResp)
+	}
+}
+
+func TestScenarioJobStoreCancelPreservesCanceledStateForDetachedVideoJob(t *testing.T) {
+	var deleteCount int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1"})
+		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1", "status": "queued"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/contents/generations/tasks/task-1":
+			atomic.AddInt32(&deleteCount, 1)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+	ctx := scenarioJobContext("nimi.desktop")
+
+	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+				VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+					Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+					Content: []*runtimev1.VideoContentItem{
+						{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."},
+					},
+					Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit detached video scenario job: %v", err)
+	}
+	jobID := submitResp.GetJob().GetJobId()
+	if strings.TrimSpace(jobID) == "" {
+		t.Fatal("expected job id")
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		job, ok := svc.scenarioJobs.get(jobID)
+		if ok && strings.TrimSpace(job.GetProviderJobId()) != "" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("expected provider job id to be recorded before cancel")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	cancelResp, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID, Reason: "user-stop"})
+	if err != nil {
+		t.Fatalf("cancel detached video scenario job: %v", err)
+	}
+	if cancelResp.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("expected canceled status, got=%v", cancelResp.GetJob().GetStatus())
+	}
+	if cancelResp.GetJob().GetReasonDetail() != "user-stop" {
+		t.Fatalf("expected cancel reason detail to be preserved, got=%q", cancelResp.GetJob().GetReasonDetail())
+	}
+
+	deadline = time.Now().Add(2 * time.Second)
+	for {
+		job, ok := svc.scenarioJobs.get(jobID)
+		if ok && atomic.LoadInt32(&deleteCount) == 1 && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+			if job.GetReasonDetail() != "user-stop" {
+				t.Fatalf("expected canceled job detail to remain user-stop, got=%q", job.GetReasonDetail())
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			job, _ := svc.scenarioJobs.get(jobID)
+			t.Fatalf("expected canceled terminal state with provider delete, delete_count=%d job=%#v", atomic.LoadInt32(&deleteCount), job)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestScenarioJobStoreDetachedVideoJobPublishesPollingMetadataAndRemainsQueryable(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1"})
+		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-1":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-1", "status": "queued"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/contents/generations/tasks/task-1":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+	ctx := scenarioJobContext("nimi.desktop")
+
+	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+				VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+					Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+					Content: []*runtimev1.VideoContentItem{
+						{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."},
+					},
+					Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit detached video scenario job: %v", err)
+	}
+	jobID := submitResp.GetJob().GetJobId()
+
+	var accepted *runtimev1.ScenarioJob
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		getResp, getErr := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		if getErr != nil {
+			t.Fatalf("GetScenarioJob before cancel: %v", getErr)
+		}
+		job := getResp.GetJob()
+		if job != nil && strings.TrimSpace(job.GetProviderJobId()) != "" && job.GetNextPollAt() != nil {
+			accepted = job
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("expected polling metadata before cancel, last_job=%#v", job)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if accepted.GetRetryCount() < 0 {
+		t.Fatalf("unexpected retry count: %d", accepted.GetRetryCount())
+	}
+
+	_, err = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID, Reason: "user-stop"})
+	if err != nil {
+		t.Fatalf("CancelScenarioJob: %v", err)
+	}
+
+	deadline = time.Now().Add(2 * time.Second)
+	for {
+		getResp, getErr := svc.GetScenarioJob(ctx, &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		if getErr != nil {
+			t.Fatalf("GetScenarioJob after cancel: %v", getErr)
+		}
+		job := getResp.GetJob()
+		if job != nil && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+			if job.GetReasonDetail() != "user-stop" {
+				t.Fatalf("expected cancel reason detail to be preserved, got=%q", job.GetReasonDetail())
+			}
+			if got := strings.TrimSpace(job.GetProviderJobId()); got != strings.TrimSpace(accepted.GetProviderJobId()) {
+				t.Fatalf("expected provider job id to remain stable, got=%q want=%q", got, accepted.GetProviderJobId())
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("expected canceled job to remain queryable, last_job=%#v", job)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestScenarioJobStoreDetachedVideoJobStillTimesOut(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/contents/generations/tasks":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-timeout-1"})
+		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/task-timeout-1":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-timeout-1", "status": "queued"})
+		case r.Method == http.MethodDelete && r.URL.Path == "/contents/generations/tasks/task-timeout-1":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
+		},
+	})
+	ctx := scenarioJobContext("nimi.desktop")
+
+	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "volcengine/doubao-seedance-2-0-260128",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     100,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VideoGenerate{
+				VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
+					Mode: runtimev1.VideoMode_VIDEO_MODE_T2V,
+					Content: []*runtimev1.VideoContentItem{
+						{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."},
+					},
+					Options: &runtimev1.VideoGenerationOptions{DurationSec: 4, Ratio: "16:9"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit detached video scenario job: %v", err)
+	}
+	jobID := submitResp.GetJob().GetJobId()
+	if strings.TrimSpace(jobID) == "" {
+		t.Fatal("expected job id")
+	}
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		job, ok := svc.scenarioJobs.get(jobID)
+		if ok && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {
+			if job.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+				t.Fatalf("expected timeout reason code, got=%s", job.GetReasonCode().String())
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			job, _ := svc.scenarioJobs.get(jobID)
+			t.Fatalf("expected detached video scenario job to time out, last_job=%#v", job)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
 

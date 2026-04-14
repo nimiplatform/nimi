@@ -2,9 +2,11 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -13,9 +15,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const maxListVoiceAssetsPageSize = 200
+const maxVoiceAssetReconciliationSweep = 8
 
 func (s *Service) GetVoiceAsset(_ context.Context, req *runtimev1.GetVoiceAssetRequest) (*runtimev1.GetVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
@@ -28,10 +33,11 @@ func (s *Service) GetVoiceAsset(_ context.Context, req *runtimev1.GetVoiceAssetR
 	return &runtimev1.GetVoiceAssetResponse{Asset: asset}, nil
 }
 
-func (s *Service) ListVoiceAssets(_ context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {
+func (s *Service) ListVoiceAssets(ctx context.Context, req *runtimev1.ListVoiceAssetsRequest) (*runtimev1.ListVoiceAssetsResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetAppId()) == "" || strings.TrimSpace(req.GetSubjectUserId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	s.reconcilePendingVoiceAssetDeletes(ctx, req.GetAppId(), req.GetSubjectUserId(), maxVoiceAssetReconciliationSweep)
 	items := s.voiceAssets.listAssets(req)
 	sort.Slice(items, func(i, j int) bool {
 		return strings.Compare(items[i].GetVoiceAssetId(), items[j].GetVoiceAssetId()) < 0
@@ -64,6 +70,24 @@ func (s *Service) ListVoiceAssets(_ context.Context, req *runtimev1.ListVoiceAss
 	}, nil
 }
 
+func (s *Service) reconcilePendingVoiceAssetDeletes(ctx context.Context, appID string, subjectUserID string, limit int) {
+	if s == nil || s.voiceAssets == nil || limit <= 0 {
+		return
+	}
+	assets := s.voiceAssets.listPendingDeleteReconciliationAssets(appID, subjectUserID, time.Now().UTC(), limit)
+	for _, asset := range assets {
+		if asset == nil {
+			continue
+		}
+		result := s.deleteProviderPersistentVoiceAsset(ctx, asset)
+		if !result.Attempted {
+			continue
+		}
+		s.voiceAssets.updateDeletedAssetReconciliationResult(asset.GetVoiceAssetId(), result)
+		s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete_reconcile_retry", result)
+	}
+}
+
 func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoiceAssetRequest) (*runtimev1.DeleteVoiceAssetResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetVoiceAssetId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -72,10 +96,11 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
-	s.deleteProviderPersistentVoiceAsset(ctx, asset)
-	if ok := s.voiceAssets.deleteAsset(req.GetVoiceAssetId()); !ok {
+	deleteResult := s.deleteProviderPersistentVoiceAsset(ctx, asset)
+	if ok := s.voiceAssets.deleteAssetWithResult(req.GetVoiceAssetId(), deleteResult); !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_VOICE_ASSET_NOT_FOUND)
 	}
+	s.recordVoiceAssetDeleteAudit(asset, "voice_asset.delete", deleteResult)
 	return &runtimev1.DeleteVoiceAssetResponse{
 		Ack: &runtimev1.Ack{
 			Ok:         true,
@@ -84,28 +109,145 @@ func (s *Service) DeleteVoiceAsset(ctx context.Context, req *runtimev1.DeleteVoi
 	}, nil
 }
 
-func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset) {
-	if s == nil || asset == nil {
+func (s *Service) recordVoiceAssetDeleteAudit(asset *runtimev1.VoiceAsset, operation string, result voiceAssetDeleteResult) {
+	if s == nil || s.audit == nil || asset == nil {
 		return
 	}
+	payload, _ := structpb.NewStruct(map[string]any{
+		"voice_asset_id":                           strings.TrimSpace(asset.GetVoiceAssetId()),
+		"provider":                                 strings.TrimSpace(asset.GetProvider()),
+		"delete_semantics":                         strings.TrimSpace(result.DeleteSemantics),
+		"provider_delete_attempted":                result.Attempted,
+		"provider_delete_succeeded":                result.Succeeded,
+		"provider_delete_reconciliation_pending":   result.PendingReconciliation,
+		"provider_delete_reconciliation_exhausted": result.Exhausted,
+		"provider_delete_retry_attempt_count":      result.RetryAttemptCount,
+	})
+	if !result.LastAttemptAt.IsZero() {
+		payload.Fields["provider_delete_last_attempt_at"], _ = structpb.NewValue(result.LastAttemptAt.UTC().Format(time.RFC3339Nano))
+	}
+	if !result.NextRetryAfter.IsZero() {
+		payload.Fields["provider_delete_next_retry_at"], _ = structpb.NewValue(result.NextRetryAfter.UTC().Format(time.RFC3339Nano))
+	}
+	if strings.TrimSpace(result.LastError) != "" {
+		payload.Fields["provider_delete_last_error"], _ = structpb.NewValue(strings.TrimSpace(result.LastError))
+	}
+	s.audit.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:       ulid.Make().String(),
+		AppId:         strings.TrimSpace(asset.GetAppId()),
+		SubjectUserId: strings.TrimSpace(asset.GetSubjectUserId()),
+		Domain:        "runtime.ai",
+		Operation:     strings.TrimSpace(operation),
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:       ulid.Make().String(),
+		Timestamp:     timestamppb.New(time.Now().UTC()),
+		Payload:       payload,
+	})
+}
+
+func (s *Service) deleteProviderPersistentVoiceAsset(ctx context.Context, asset *runtimev1.VoiceAsset) voiceAssetDeleteResult {
+	result := voiceAssetDeleteResult{}
+	if asset != nil && asset.GetMetadata() != nil {
+		result.DeleteSemantics = strings.TrimSpace(asset.GetMetadata().GetFields()["voice_handle_policy_delete_semantics"].GetStringValue())
+		if asset.GetMetadata().GetFields()["voice_handle_policy_runtime_reconciliation_required"].GetBoolValue() {
+			result.ReconciliationRequired = true
+		}
+	}
+	if s == nil || asset == nil {
+		return result
+	}
 	if asset.GetPersistence() != runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT {
-		return
+		if result.DeleteSemantics == "" {
+			result.DeleteSemantics = "runtime_authoritative_delete"
+		}
+		return result
 	}
 	provider := strings.TrimSpace(strings.ToLower(asset.GetProvider()))
 	providerVoiceRef := strings.TrimSpace(asset.GetProviderVoiceRef())
 	if provider == "" || providerVoiceRef == "" || !nimillm.SupportsProviderVoiceDelete(provider) {
-		return
+		if result.DeleteSemantics == "" {
+			result.DeleteSemantics = "best_effort_provider_delete"
+		}
+		return result
+	}
+	result.RetryAttemptCount = nextVoiceAssetDeleteRetryAttempt(asset)
+	result.Attempted = true
+	result.LastAttemptAt = time.Now().UTC()
+	if result.DeleteSemantics == "" {
+		result.DeleteSemantics = "best_effort_provider_delete"
 	}
 	cfg := s.resolveNativeAdapterConfig(provider, nil)
 	extPayload := nimillm.StructToMap(asset.GetMetadata())
-	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg, extPayload); err != nil && s.logger != nil {
-		s.logger.Warn("provider voice delete failed; local asset delete continues",
-			"provider", provider,
-			"voice_asset_id", strings.TrimSpace(asset.GetVoiceAssetId()),
-			"provider_voice_ref", providerVoiceRef,
-			"error", err,
-		)
+	if err := nimillm.DeleteProviderVoice(ctx, provider, providerVoiceRef, cfg, extPayload); err != nil {
+		result.Succeeded = false
+		if result.ReconciliationRequired || result.DeleteSemantics == "best_effort_provider_delete" {
+			result.PendingReconciliation = true
+		}
+		if result.RetryAttemptCount >= maxVoiceAssetDeleteRetryAttempts {
+			result.PendingReconciliation = false
+			result.Exhausted = true
+		} else if result.PendingReconciliation {
+			result.NextRetryAfter = nextVoiceAssetDeleteRetryAt(result.LastAttemptAt, result.RetryAttemptCount)
+		}
+		result.LastError = summarizeVoiceDeleteError(err)
+		if s.logger != nil {
+			s.logger.Warn("provider voice delete failed; local asset delete continues",
+				"provider", provider,
+				"voice_asset_id", strings.TrimSpace(asset.GetVoiceAssetId()),
+				"provider_voice_ref", providerVoiceRef,
+				"error", err,
+			)
+		}
+		return result
 	}
+	result.Succeeded = true
+	result.PendingReconciliation = false
+	result.Exhausted = false
+	return result
+}
+
+func nextVoiceAssetDeleteRetryAttempt(asset *runtimev1.VoiceAsset) int {
+	if asset == nil || asset.GetMetadata() == nil {
+		return 1
+	}
+	previous := int(asset.GetMetadata().GetFields()["provider_delete_retry_attempt_count"].GetNumberValue())
+	if previous < 0 {
+		previous = 0
+	}
+	return previous + 1
+}
+
+func nextVoiceAssetDeleteRetryAt(lastAttempt time.Time, attempt int) time.Time {
+	if lastAttempt.IsZero() {
+		lastAttempt = time.Now().UTC()
+	}
+	if attempt < 1 {
+		attempt = 1
+	}
+	backoff := voiceAssetDeleteRetryCooldown
+	for i := 1; i < attempt; i++ {
+		backoff *= 2
+		if backoff > 5*time.Minute {
+			backoff = 5 * time.Minute
+			break
+		}
+	}
+	return lastAttempt.UTC().Add(backoff)
+}
+
+func summarizeVoiceDeleteError(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := strings.TrimSpace(err.Error())
+	if message == "" {
+		return ""
+	}
+	const maxLen = 240
+	if len(message) > maxLen {
+		return fmt.Sprintf("%s...", message[:maxLen])
+	}
+	return message
 }
 
 func (s *Service) ListPresetVoices(ctx context.Context, req *runtimev1.ListPresetVoicesRequest) (*runtimev1.ListPresetVoicesResponse, error) {

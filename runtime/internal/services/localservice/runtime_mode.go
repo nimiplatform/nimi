@@ -12,6 +12,22 @@ type localRuntimeBinding struct {
 	autoRecommended bool
 }
 
+func normalizeLocalImportRuntimeBinding(
+	engine string,
+	capabilities []string,
+	kind runtimev1.LocalAssetKind,
+	binding localRuntimeBinding,
+) localRuntimeBinding {
+	if !isCanonicalSupervisedImageAsset(engine, capabilities, kind) {
+		return binding
+	}
+	return localRuntimeBinding{
+		mode:            runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+		endpoint:        "",
+		autoRecommended: binding.autoRecommended,
+	}
+}
+
 func normalizeRuntimeMode(mode runtimev1.LocalEngineRuntimeMode) runtimev1.LocalEngineRuntimeMode {
 	if mode == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED {
 		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT

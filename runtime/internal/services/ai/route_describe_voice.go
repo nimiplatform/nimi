@@ -135,7 +135,7 @@ func (s *Service) describeVoiceWorkflowRouteMetadata(
 	if workflowType == "" || capability == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
-	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
+	providerType := voiceWorkflowCatalogProviderType(modelResolved, remoteTarget, selected)
 	resolution, err := s.resolveVoiceWorkflow(ctx, providerType, modelResolved, workflowType)
 	if err != nil {
 		switch {
