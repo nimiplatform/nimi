@@ -39,6 +39,18 @@ function normalizeNullableText(value: unknown): string | null {
     return normalized || null;
 }
 
+function buildErrorOutputPreview(value: unknown): string | null {
+    const normalized = normalizeNullableText(value);
+    if (!normalized) {
+        return null;
+    }
+    const limit = 400;
+    if (normalized.length <= limit) {
+        return normalized;
+    }
+    return `${normalized.slice(0, limit).trimEnd()}…`;
+}
+
 function normalizeContextWindowSource(value: unknown): AgentPromptContextWindowSource | null {
     const normalized = normalizeNullableText(value);
     return normalized === 'route-profile' || normalized === 'default-estimate'
@@ -168,21 +180,14 @@ function stripFencedJsonBlock(rawModelOutput: string): string | null {
     return normalizeModelOutputText(match[1] || '');
 }
 
-function extractSingleWrappedJsonObject(rawModelOutput: string): string | null {
-    let startIndex = -1;
-    let curlyDepth = 0;
-    let squareDepth = 0;
+function extractWrappedJsonObjectCandidates(rawModelOutput: string): string[] {
+    const candidates: string[] = [];
+    const seen = new Set<string>();
+    const objectStartIndexes: number[] = [];
     let inString = false;
     let escaped = false;
     for (let index = 0; index < rawModelOutput.length; index += 1) {
         const char = rawModelOutput[index];
-        if (startIndex === -1) {
-            if (char === '{') {
-                startIndex = index;
-                curlyDepth = 1;
-            }
-            continue;
-        }
         if (inString) {
             if (escaped) {
                 escaped = false;
@@ -202,30 +207,29 @@ function extractSingleWrappedJsonObject(rawModelOutput: string): string | null {
             continue;
         }
         if (char === '{') {
-            curlyDepth += 1;
+            objectStartIndexes.push(index);
             continue;
         }
-        if (char === '}') {
-            curlyDepth -= 1;
-            if (curlyDepth === 0 && squareDepth === 0) {
-                const before = rawModelOutput.slice(0, startIndex).trim();
-                const after = rawModelOutput.slice(index + 1).trim();
-                if (!before && !after) {
-                    return null;
-                }
-                return normalizeModelOutputText(rawModelOutput.slice(startIndex, index + 1));
-            }
+        if (char !== '}' || objectStartIndexes.length === 0) {
             continue;
         }
-        if (char === '[') {
-            squareDepth += 1;
+        const startIndex = objectStartIndexes.pop();
+        if (startIndex === undefined) {
             continue;
         }
-        if (char === ']') {
-            squareDepth = Math.max(0, squareDepth - 1);
+        const before = rawModelOutput.slice(0, startIndex).trim();
+        const after = rawModelOutput.slice(index + 1).trim();
+        if (!before && !after) {
+            continue;
         }
+        const candidate = normalizeModelOutputText(rawModelOutput.slice(startIndex, index + 1));
+        if (!candidate || seen.has(candidate)) {
+            continue;
+        }
+        seen.add(candidate);
+        candidates.push(candidate);
     }
-    return null;
+    return candidates;
 }
 
 function hasUnbalancedJsonDelimiters(rawModelOutput: string): boolean {
@@ -409,9 +413,14 @@ export function toAgentModelOutputTurnError(
     diagnostics: AgentModelOutputDiagnostics,
 ): { code: string; message: string } {
     if (diagnostics.suspectedTruncation) {
+        const preview = buildErrorOutputPreview(
+            diagnostics.rawModelOutputText || diagnostics.normalizedModelOutputText,
+        );
         return {
             code: 'AGENT_OUTPUT_INVALID',
-            message: 'Agent response was truncated before the structured reply completed.',
+            message: preview
+                ? `Agent response was truncated before the structured reply completed.\n\nPartial output:\n${preview}`
+                : 'Agent response was truncated before the structured reply completed.',
         };
     }
     return {
@@ -474,8 +483,8 @@ export function resolveAgentModelOutputEnvelope(
         }
     }
 
-    const wrappedJsonObject = extractSingleWrappedJsonObject(normalizedModelOutput);
-    if (wrappedJsonObject) {
+    const wrappedJsonObjects = extractWrappedJsonObjectCandidates(normalizedModelOutput);
+    for (const wrappedJsonObject of wrappedJsonObjects) {
         const wrappedCandidate = tryParseEnvelopeCandidate(wrappedJsonObject);
         if (wrappedCandidate.envelope) {
             return {
@@ -504,9 +513,8 @@ export function resolveAgentModelOutputEnvelope(
         || normalizeNullableText(
             fencedCandidateText ? tryParseEnvelopeCandidate(fencedCandidateText).parseErrorDetail : null,
         )
-        || normalizeNullableText(
-            wrappedJsonObject ? tryParseEnvelopeCandidate(wrappedJsonObject).parseErrorDetail : null,
-        );
+        || normalizeNullableText(wrappedJsonObjects.map((candidate) => tryParseEnvelopeCandidate(candidate).parseErrorDetail)
+            .find((detail) => normalizeNullableText(detail)));
     const suspectedTruncation = normalizeNullableText(input.finishReason) === 'length'
         || Boolean(parseErrorDetail && isLikelyPartialJsonDetail(parseErrorDetail))
         || hasUnbalancedJsonDelimiters(normalizedModelOutput);

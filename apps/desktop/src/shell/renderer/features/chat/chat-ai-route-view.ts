@@ -16,6 +16,8 @@ export type AiConversationRouteOption = {
   detail: string;
 };
 
+const MIN_AGENT_CHAT_REQUEST_MAX_OUTPUT_TOKENS = 512;
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -144,6 +146,18 @@ export function findRuntimeRouteModelProfile(
   return connector.modelProfiles?.find((profile) => (
     normalizeText(profile.model) === targetModel
   )) || null;
+}
+
+export function resolveAgentChatRequestedMaxOutputTokens(
+  profile: RuntimeRouteModelProfile | null | undefined,
+): number | null {
+  const maxOutputTokens = Number(profile?.maxOutputTokens);
+  // Route profile ceilings are capability metadata, not a reliable per-turn target.
+  // Very small ceilings routinely truncate the message-action envelope before it closes.
+  if (!Number.isFinite(maxOutputTokens) || maxOutputTokens < MIN_AGENT_CHAT_REQUEST_MAX_OUTPUT_TOKENS) {
+    return null;
+  }
+  return Math.floor(maxOutputTokens);
 }
 
 function setupDetailForReasonCode(

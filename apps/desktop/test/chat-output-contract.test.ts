@@ -134,6 +134,27 @@ test('resolveAgentModelOutputEnvelope recovers wrapper text around a single JSON
   assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
 });
 
+test('resolveAgentModelOutputEnvelope recovers the envelope when wrapper text contains other braces', () => {
+  const resolved = resolveAgentModelOutputEnvelope({
+    modelOutput: [
+      'Status note: {model added commentary before the contract output}',
+      buildMinimalEnvelopeText('Recovered after noisy wrapper braces.'),
+      'Tail note: {postscript}',
+    ].join('\n'),
+    finishReason: 'stop',
+    contextWindowSource: 'default-estimate',
+    promptOverflow: false,
+  });
+
+  assert.equal(resolved.ok, true);
+  if (!resolved.ok) {
+    assert.fail('expected wrapped JSON with stray braces to recover');
+  }
+  assert.equal(resolved.envelope.message.text, 'Recovered after noisy wrapper braces.');
+  assert.equal(resolved.diagnostics.classification, 'json-wrapper');
+  assert.equal(resolved.diagnostics.recoveryPath, 'extract-json-object');
+});
+
 test('resolveAgentModelOutputEnvelope rejects pure plain text outputs', () => {
   const resolved = resolveAgentModelOutputEnvelope({
     modelOutput: '我可以先帮你整理下一步计划。',

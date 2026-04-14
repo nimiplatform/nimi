@@ -141,8 +141,8 @@ export function useSchedulingFeasibility(): AISchedulingJudgement | null {
       const result = await surface.aiConfig.probeFeasibility(scopeRef);
       return result.schedulingJudgement ?? null;
     },
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   return data ?? null;

@@ -62,6 +62,7 @@ import { ChatAgentHistoryPanel } from './chat-agent-history-panel';
 import { useAgentConversationVoiceSession } from './chat-agent-shell-adapter-voice';
 import { useAgentConversationShellState } from './chat-agent-shell-adapter-state';
 import { useAgentConversationMessageMenu } from './chat-agent-shell-adapter-menu';
+import { resolveAgentChatRequestedMaxOutputTokens } from './chat-ai-route-view';
 import {
   createRuntimeAgentMemoryAdapter,
   type CanonicalMemoryBankStatus,
@@ -357,12 +358,11 @@ export function useAgentConversationModeHost(
     void runtimeAgentInspect.subscribePublicEvents({
       agentId,
       signal: controller.signal,
-      onEvent: async (event) => {
+      onEvent: (event) => {
         setRecentRuntimeEvents((current) => {
           const next = [event, ...current.filter((item) => item.sequence !== event.sequence)];
           return next.slice(0, 8);
         });
-        await reloadRuntimeInspect(agentId);
       },
     }).catch((error) => {
       if (controller.signal.aborted) {
@@ -380,7 +380,7 @@ export function useAgentConversationModeHost(
     return () => {
       controller.abort();
     };
-  }, [activeTarget?.agentId, input.authStatus, reloadRuntimeInspect, runtimeAgentInspect]);
+  }, [activeTarget?.agentId, input.authStatus, runtimeAgentInspect]);
   const handleEnableAutonomy = useCallback(() => {
     const agentId = normalizeText(activeTarget?.agentId);
     const targetName = normalizeText(activeTarget?.displayName) || agentId;
@@ -820,7 +820,7 @@ export function useAgentConversationModeHost(
           runtimeFields: input.runtimeFields,
           reasoningPreference: behaviorSettings.thinkingPreference,
           textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-          textMaxOutputTokensRequested: textRouteModelProfile?.maxOutputTokens ?? null,
+          textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile),
           resolvedBehavior: resolveAgentChatBehavior({
             userText: turnInput.userMessage.text,
             settings: behaviorSettings,
@@ -848,7 +848,7 @@ export function useAgentConversationModeHost(
     threads,
     threadsReady,
     textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-    textMaxOutputTokensRequested: textRouteModelProfile?.maxOutputTokens ?? null,
+    textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile),
   });
   const {
     auxiliaryOverlayContent,

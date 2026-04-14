@@ -1,23 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  CanonicalConversationShell,
-  type ConversationSetupAction,
-} from '@nimiplatform/nimi-kit/features/chat';
+import { useCallback, useEffect, useState } from 'react';
+import type { ConversationSetupAction } from '@nimiplatform/nimi-kit/features/chat';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { dispatchRuntimeConfigOpenPage } from '@renderer/features/runtime-config/runtime-config-navigation-events';
-import { useRuntimeConfigPanelController } from '@renderer/features/runtime-config/runtime-config-panel-controller';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { createDesktopConversationModeRegistry, resolveDesktopConversationModeHost } from './chat-mode-registry';
-import { useHumanConversationModeHost } from './chat-human-adapter';
-import { useAiConversationModeHost } from './chat-ai-shell-adapter';
-import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatContactsSidebar } from './chat-contacts-sidebar';
-import { ChatAiSessionListPanel } from './chat-ai-session-list-panel';
-import { ChatRightPanelCharacterRail } from './chat-right-panel-character-rail';
-import { ChatRightPanelSettings } from './chat-right-panel-settings';
 import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
+import { useChatTargetsForSidebar } from './chat-sidebar-targets';
+import { ChatHumanModeContent } from './chat-human-mode-content';
+import { ChatAiModeContent } from './chat-ai-mode-content';
+import { ChatAgentModeContent } from './chat-agent-mode-content';
 
 const ICON_PANEL = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -126,138 +119,43 @@ export function ChatPage() {
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
-  const setChatViewMode = useAppStore((state) => state.setChatViewMode);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const selectedChatId = useAppStore((state) => state.selectedChatId);
-  const setSelectedChatId = useAppStore((state) => state.setSelectedChatId);
-  const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
-  const runtimeFields = useAppStore((state) => state.runtimeFields);
-  const lastSelectedAiThread = useAppStore((state) => state.lastSelectedThreadByMode.ai ?? null);
-  const lastSelectedAgentThread = useAppStore((state) => state.lastSelectedThreadByMode.agent ?? null);
-  const lastSelectedHumanThread = useAppStore((state) => state.lastSelectedThreadByMode.human ?? null);
-  const aiConversationSelection = useAppStore((state) => state.aiConversationSelection);
-  const setAiConversationSelection = useAppStore((state) => state.setAiConversationSelection);
-  const agentConversationSelection = useAppStore((state) => state.agentConversationSelection);
-  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const currentSetupState = useAppStore((state) => state.chatSetupState[state.chatMode] ?? null);
-  const setChatSetupState = useAppStore((state) => state.setChatSetupState);
   const [rightPanelMode, setRightPanelMode] = useState<'auto' | 'settings'>('auto');
   const [rightPanelFolded, setRightPanelFolded] = useState(false);
+
+  const allTargets = useChatTargetsForSidebar(authStatus);
+
   const toggleRightPanelFold = useCallback(() => {
     setRightPanelFolded((prev) => !prev);
   }, []);
 
-  const runtimeConfigController = useRuntimeConfigPanelController();
-  const humanHost = useHumanConversationModeHost({
-    authStatus,
-    selectedChatId,
-    setSelectedChatId,
-    setChatProfilePanelTarget,
-  });
-  const { host: aiHost } = useAiConversationModeHost({
-    runtimeConfigState: runtimeConfigController.state,
-    runtimeFields,
-    selection: aiConversationSelection,
-    lastSelectedThreadId: lastSelectedAiThread,
-    setSelection: setAiConversationSelection,
-  });
-  const agentHost = useAgentConversationModeHost({
-    authStatus,
-    runtimeConfigState: runtimeConfigController.state,
-    runtimeFields,
-    selection: agentConversationSelection,
-    lastSelectedThreadId: lastSelectedAgentThread,
-    setSelection: setAgentConversationSelection,
-  });
-
-  const registry = useMemo(() => createDesktopConversationModeRegistry({
-    authStatus,
-    aiHost,
-    humanHost,
-    agentHost,
-  }), [agentHost, aiHost, authStatus, humanHost]);
-  const activeHost = useMemo(
-    () => resolveDesktopConversationModeHost(registry, chatMode),
-    [chatMode, registry],
-  );
-
-  useEffect(() => {
-    if (!activeHost) {
-      return;
-    }
-    if (chatMode !== activeHost.mode) {
-      setChatMode(activeHost.mode);
-    }
-  }, [activeHost, chatMode, setChatMode]);
-
-  useEffect(() => {
-    if (chatMode !== 'human') {
-      return;
-    }
-    if (selectedChatId || !lastSelectedHumanThread) {
-      return;
-    }
-    setSelectedChatId(lastSelectedHumanThread);
-  }, [chatMode, lastSelectedHumanThread, selectedChatId, setSelectedChatId]);
-
-  useEffect(() => {
-    if (!activeHost) {
-      return;
-    }
-    if (currentSetupState === activeHost.adapter.setupState) {
-      return;
-    }
-    setChatSetupState(activeHost.mode, activeHost.adapter.setupState);
-  }, [activeHost, currentSetupState, setChatSetupState]);
-
-  // Collect all targets from all hosts for the sidebar
-  const allTargets = useMemo(
-    () => registry.hosts.flatMap((host) => host.targets || []),
-    [registry.hosts],
-  );
-
-  const selectedTargetId = storeSelectedTargetId || activeHost?.selectedTargetId || null;
-  const selectedTarget = useMemo(
-    () => selectedTargetId
-      ? allTargets.find((target) => target.id === selectedTargetId) || null
-      : null,
-    [allTargets, selectedTargetId],
-  );
-
-  useEffect(() => {
-    if (!activeHost?.selectedTargetId || storeSelectedTargetId) {
-      return;
-    }
-    setSelectedTargetForSource(activeHost.mode, activeHost.selectedTargetId);
-  }, [activeHost, setSelectedTargetForSource, storeSelectedTargetId]);
+  const toggleRightPanelSettings = useCallback(() => {
+    setRightPanelMode((prev) => (prev === 'settings' ? 'auto' : 'settings'));
+  }, []);
 
   // If selected target disappeared (e.g. logout), clear it
   useEffect(() => {
-    if (!selectedTargetId || selectedTarget) {
+    if (!storeSelectedTargetId) {
       return;
     }
-    // Target not found — if not logged in, fall back to AI
+    const targetExists = allTargets.some((target) => target.id === storeSelectedTargetId);
+    if (targetExists) {
+      return;
+    }
     if (authStatus !== 'authenticated') {
       setChatMode('ai');
       setSelectedTargetForSource('ai', 'ai:assistant');
     } else {
       setSelectedTargetForSource(chatMode, null);
     }
-  }, [authStatus, chatMode, selectedTarget, selectedTargetId, setChatMode, setSelectedTargetForSource]);
+  }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
 
   // Close transient panels on target/mode change
   useEffect(() => {
     setRightPanelMode('auto');
-  }, [chatMode, selectedTargetId]);
+  }, [chatMode, storeSelectedTargetId]);
 
-  const currentViewModeKey = selectedTarget
-    ? `${selectedTarget.source}:${selectedTarget.id}`
-    : `${chatMode}:landing`;
-  const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[currentViewModeKey] || 'chat');
-
-  const canonicalMessages = activeHost?.messages || [];
-
-  const handleSetupAction = (action: ConversationSetupAction) => {
+  const handleSetupAction = useCallback((action: ConversationSetupAction) => {
     if (action.kind === 'sign-in') {
       setChatMode(action.returnToMode || chatMode);
       setActiveTab('chat');
@@ -266,8 +164,6 @@ export function ChatPage() {
       });
       return;
     }
-    // AI/Agent mode: open the settings drawer (which contains the route picker)
-    // instead of navigating away to the runtime config page.
     if (chatMode === 'ai' || chatMode === 'agent' || action.returnToMode === 'ai' || action.returnToMode === 'agent') {
       setChatMode(action.returnToMode || chatMode);
       setRightPanelMode('settings');
@@ -276,142 +172,55 @@ export function ChatPage() {
     setChatMode(action.returnToMode || chatMode);
     setActiveTab('runtime');
     dispatchRuntimeConfigOpenPage(toRuntimePageId(action.targetId));
-  };
+  }, [chatMode, navigate, setActiveTab, setChatMode]);
 
-  // Simplified target selection — sidebar drives this
   const handleSelectTarget = useCallback((targetId: string) => {
-    const ownerHost = registry.hosts.find(
-      (host) => (host.targets || []).some((target) => target.id === targetId),
-    );
-    if (!ownerHost) {
+    const target = allTargets.find((t) => t.id === targetId);
+    if (!target) {
       return;
     }
-    if (chatMode !== ownerHost.mode) {
-      setChatMode(ownerHost.mode);
+    const targetMode = target.source;
+    if (chatMode !== targetMode) {
+      setChatMode(targetMode);
     }
-    setSelectedTargetForSource(ownerHost.mode, targetId);
-    ownerHost.onSelectTarget?.(targetId);
-    if (!ownerHost.onSelectTarget && ownerHost.onSelectThread) {
-      ownerHost.onSelectThread(targetId);
-    }
-  }, [chatMode, registry.hosts, setChatMode, setSelectedTargetForSource]);
+    setSelectedTargetForSource(targetMode, targetId);
+  }, [allTargets, chatMode, setChatMode, setSelectedTargetForSource]);
 
-  // Shell's onSelectTarget allows clearing (back button)
   const handleShellSelectTarget = useCallback((targetId: string | null) => {
     if (!targetId) {
-      // Back button pressed — don't clear, just ignore (sidebar controls navigation)
       return;
     }
     handleSelectTarget(targetId);
   }, [handleSelectTarget]);
 
-  const toggleRightPanelSettings = useCallback(() => {
-    setRightPanelMode((prev) => (prev === 'settings' ? 'auto' : 'settings'));
-  }, []);
-
-  // Compute right panel content based on mode
-  const rightPanelNode = useMemo(() => {
-    if (!activeHost || !selectedTarget) {
-      return null;
-    }
-    if (rightPanelFolded) {
-      return null;
-    }
-    const settingsActive = rightPanelMode === 'settings';
-    if (settingsActive) {
-      return (
-        <ChatRightPanelSettings onToggleSettings={toggleRightPanelSettings} thinkingState={activeHost.thinkingState} onThinkingToggle={activeHost.onThinkingToggle}>
-          {activeHost.settingsContent ?? null}
-        </ChatRightPanelSettings>
-      );
-    }
-    // Auto mode: AI shows session list, Human/Agent shows character rail
-    if (activeHost.mode === 'ai') {
-      const threadSummaries = activeHost.adapter.threadAdapter.listThreads();
-      const threads = Array.isArray(threadSummaries) ? threadSummaries : [];
-      return (
-        <ChatAiSessionListPanel
-          threads={threads}
-          activeThreadId={activeHost.activeThreadId}
-          onSelectThread={(threadId) => activeHost.onSelectThread?.(threadId)}
-          onCreateThread={activeHost.onCreateThread ? () => void activeHost.onCreateThread!() : undefined}
-          onArchiveThread={activeHost.onArchiveThread ? (id) => void activeHost.onArchiveThread!(id) : undefined}
-          onRenameThread={activeHost.onRenameThread}
-          onToggleSettings={toggleRightPanelSettings}
-          settingsActive={false}
-          thinkingState={activeHost.thinkingState}
-          onThinkingToggle={activeHost.onThinkingToggle}
-          onToggleFold={toggleRightPanelFold}
-        />
-      );
-    }
-    // Human/Agent: use host-provided rightPanelContent, or fall back to CharacterRail
-    if (activeHost.rightPanelContent) {
-      return activeHost.rightPanelContent;
-    }
-    return (
-      <ChatRightPanelCharacterRail
-        selectedTarget={selectedTarget}
-        characterData={activeHost.characterData}
-        onToggleSettings={toggleRightPanelSettings}
-        settingsActive={false}
-        thinkingState={activeHost.thinkingState}
-        onThinkingToggle={activeHost.onThinkingToggle}
-        onToggleFold={toggleRightPanelFold}
-        handsFreeState={activeHost.handsFreeState}
-      />
-    );
-  }, [activeHost, selectedTarget, rightPanelMode, rightPanelFolded, toggleRightPanelSettings, toggleRightPanelFold]);
-
-  if (!activeHost) {
-    return <div className="flex min-h-0 flex-1" />;
-  }
+  const sharedProps = {
+    allTargets,
+    rightPanelMode,
+    rightPanelFolded,
+    onToggleRightPanelFold: toggleRightPanelFold,
+    onToggleRightPanelSettings: toggleRightPanelSettings,
+    onSetupAction: handleSetupAction,
+    onSelectTarget: handleShellSelectTarget,
+  } as const;
 
   return (
     <div data-testid={E2E_IDS.chatPage} className="relative flex min-h-0 flex-1">
-      <CanonicalConversationShell
-        className="min-h-0 flex-1"
-        hideTargetPane
-        hideCharacterRail
-        rightPanel={rightPanelNode}
-        sourceFilter="all"
-        targets={allTargets}
-        selectedTargetId={selectedTargetId}
-        selectedTarget={selectedTarget}
-        onSelectTarget={handleShellSelectTarget}
-        viewMode={currentViewMode}
-        onViewModeChange={(mode) => {
-          if (!selectedTarget) {
-            return;
-          }
-          setChatViewMode(chatMode, selectedTarget.id, mode);
-        }}
-        setupState={activeHost.adapter.setupState}
-        setupDescription={activeHost.setupDescription}
-        onSetupAction={handleSetupAction}
-        characterData={activeHost.characterData}
-        messages={canonicalMessages}
-        transcriptProps={activeHost.transcriptProps}
-        stagePanelProps={activeHost.stagePanelProps}
-        topContent={activeHost.topContent}
-        composer={activeHost.composerContent}
-        auxiliaryOverlayContent={activeHost.auxiliaryOverlayContent}
-      />
-      {rightPanelFolded && activeHost ? (
+      {chatMode === 'human' ? <ChatHumanModeContent {...sharedProps} /> : null}
+      {chatMode === 'ai' ? <ChatAiModeContent {...sharedProps} /> : null}
+      {chatMode === 'agent' ? <ChatAgentModeContent {...sharedProps} /> : null}
+      {rightPanelFolded ? (
         <FoldedPanelFloatingBar
           onUnfold={toggleRightPanelFold}
           onToggleSettings={() => {
             setRightPanelFolded(false);
             setRightPanelMode('settings');
           }}
-          thinkingState={activeHost.thinkingState}
-          onThinkingToggle={activeHost.onThinkingToggle}
         />
       ) : null}
       {authStatus === 'authenticated' ? (
         <ChatContactsSidebar
           targets={allTargets}
-          selectedTargetId={selectedTargetId}
+          selectedTargetId={storeSelectedTargetId}
           onSelectTarget={handleSelectTarget}
         />
       ) : null}

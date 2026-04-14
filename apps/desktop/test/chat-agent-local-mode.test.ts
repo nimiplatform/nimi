@@ -11,7 +11,10 @@ import {
   streamChatAgentRuntime,
   synthesizeChatAgentVoiceRuntime,
 } from '../src/shell/renderer/features/chat/chat-agent-runtime.js';
-import { findRuntimeRouteModelProfile } from '../src/shell/renderer/features/chat/chat-ai-route-view.js';
+import {
+  findRuntimeRouteModelProfile,
+  resolveAgentChatRequestedMaxOutputTokens,
+} from '../src/shell/renderer/features/chat/chat-ai-route-view.js';
 import { resolveAgentTurnTotalTimeoutMs } from '../src/shell/renderer/features/chat/chat-agent-timeouts.js';
 import {
   findAgentConversationThreadByAgentId,
@@ -640,6 +643,22 @@ test('agent route view finds cloud model profiles by connector and model', () =>
     maxContextTokens: 128000,
     maxOutputTokens: 4096,
   });
+});
+
+test('agent route view ignores undersized max output token ceilings for structured chat requests', () => {
+  assert.equal(resolveAgentChatRequestedMaxOutputTokens(null), null);
+  assert.equal(resolveAgentChatRequestedMaxOutputTokens({
+    model: 'gpt-5.4-mini',
+    maxOutputTokens: 256,
+  }), null);
+  assert.equal(resolveAgentChatRequestedMaxOutputTokens({
+    model: 'gpt-5.4-mini',
+    maxOutputTokens: 512,
+  }), 512);
+  assert.equal(resolveAgentChatRequestedMaxOutputTokens({
+    model: 'gpt-5.4-mini',
+    maxOutputTokens: 4096,
+  }), 4096);
 });
 
 test('agent local runtime invoke falls back to resolved endpoint when provider-specific endpoints are absent', async () => {

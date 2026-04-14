@@ -12,6 +12,9 @@ function readRepo(relativePath: string): string {
 }
 
 const chatPageSource = readWorkspace('src/shell/renderer/features/chat/chat-page.tsx');
+const chatAiModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-ai-mode-content.tsx');
+const chatAgentModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
+const chatHumanModeContentSource = readWorkspace('src/shell/renderer/features/chat/chat-human-mode-content.tsx');
 const chatContactsSidebarSource = readWorkspace('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
 const contactsViewSource = readWorkspace('src/shell/renderer/features/contacts/contacts-view.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
@@ -66,9 +69,14 @@ test('governed sidebar modules import and use the shared sidebar primitive', () 
 });
 
 test('chat surface composes the canonical shell with an app-owned contact rail', () => {
-  assert.match(chatPageSource, /CanonicalConversationShell/);
   assert.match(chatPageSource, /ChatContactsSidebar/);
+  assert.match(chatPageSource, /ChatHumanModeContent/);
+  assert.match(chatPageSource, /ChatAiModeContent/);
+  assert.match(chatPageSource, /ChatAgentModeContent/);
   assert.match(chatPageSource, /E2E_IDS\.chatPage/);
+  for (const source of [chatHumanModeContentSource, chatAiModeContentSource, chatAgentModeContentSource]) {
+    assert.match(source, /CanonicalConversationShell/);
+  }
   assert.match(chatContactsSidebarSource, /E2E_IDS\.chatList/);
   assert.match(chatContactsSidebarSource, /E2E_IDS\.chatRow/);
   assert.doesNotMatch(chatContactsSidebarSource, /components\/sidebar\.js/);
