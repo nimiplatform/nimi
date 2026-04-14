@@ -125,7 +125,7 @@ func providersForNormalizedCapability(capability string) []string {
 	switch capability {
 	case "image.generate", "image.edit", "video.generate", "i2v":
 		return supportedProvidersInOrder(capability, "media")
-	case "audio.synthesize", "audio.transcribe", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+	case "audio.synthesize", "audio.transcribe":
 		return supportedProvidersInOrder(capability, "speech")
 	case "text.generate", "text.embed", "image.understand", "audio.understand":
 		return supportedProvidersInOrder(capability, "llama")
@@ -143,7 +143,7 @@ func providerSupportsNormalizedCapability(provider string, capability string) bo
 	case "media":
 		return capability == "image.generate" || capability == "image.edit" || capability == "video.generate" || capability == "i2v"
 	case "speech":
-		return capability == "audio.synthesize" || capability == "audio.transcribe" || capability == "voice_workflow.tts_v2v" || capability == "voice_workflow.tts_t2v"
+		return capability == "audio.synthesize" || capability == "audio.transcribe"
 	case "sidecar":
 		return capability == "music.generate"
 	default:
