@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
-import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
+import { computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { insertMeasurement, getMeasurements, saveAttachment, getAttachments, deleteAttachment } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow, AttachmentRow } from '../../bridge/sqlite-bridge.js';
@@ -46,7 +46,6 @@ function getDisplayInfo(typeId: string) {
 export default function ReportUploadPage() {
   const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
-  const navigate = useNavigate();
 
   const [runtimeAvailable, setRuntimeAvailable] = useState<boolean | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -471,7 +470,6 @@ export default function ReportUploadPage() {
                 // Categorize items
                 const categories = new Map<string, MeasurementRow[]>();
                 for (const item of group.items) {
-                  const std = GROWTH_STANDARDS.find((s) => s.typeId === item.typeId);
                   const cat = item.typeId.startsWith('lab-') ? '血检' :
                     item.typeId.includes('vision') || item.typeId.includes('axial') || item.typeId.includes('refraction') || item.typeId.includes('corneal') || item.typeId.includes('iop') || item.typeId.includes('acd') || item.typeId.includes('lt-') ? '眼科' :
                     item.typeId === 'bone-age' ? '骨龄' : '生长';

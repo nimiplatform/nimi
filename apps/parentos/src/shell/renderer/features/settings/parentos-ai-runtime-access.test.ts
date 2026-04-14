@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { PARENTOS_AI_SCOPE_REF } from './parentos-ai-config.js';
-import { resolveParentosBinding } from './parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  resolveParentosBinding,
+  resolveParentosTextSurfaceConfig,
+} from './parentos-ai-runtime.js';
 
 describe('parentos-ai-runtime access helpers', () => {
   beforeEach(() => {
@@ -63,6 +67,44 @@ describe('parentos-ai-runtime access helpers', () => {
       model: 'gpt-5.4',
       route: 'cloud',
       connectorId: 'openai-main',
+    });
+  });
+
+  it('builds stable ParentOS runtime metadata for governed surfaces', () => {
+    expect(buildParentosRuntimeMetadata('parentos.advisor')).toEqual({
+      callerKind: 'third-party-app',
+      callerId: 'app.nimi.parentos',
+      surfaceId: 'parentos.advisor',
+    });
+  });
+
+  it('keeps governed surfaces local even when a cloud binding is present', () => {
+    useAppStore.setState({
+      aiConfig: {
+        scopeRef: PARENTOS_AI_SCOPE_REF,
+        capabilities: {
+          selectedBindings: {
+            'text.generate': {
+              source: 'cloud',
+              connectorId: 'openai-main',
+              model: 'gpt-5.4',
+            },
+          },
+          localProfileRefs: {},
+          selectedParams: {},
+        },
+        profileOrigin: null,
+      },
+    });
+
+    expect(resolveParentosTextSurfaceConfig('parentos.report')).toEqual({
+      model: 'auto',
+      route: 'local',
+      connectorId: undefined,
+      temperature: undefined,
+      topP: undefined,
+      maxTokens: undefined,
+      timeoutMs: undefined,
     });
   });
 });

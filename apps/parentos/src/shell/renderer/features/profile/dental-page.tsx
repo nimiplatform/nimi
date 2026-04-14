@@ -9,7 +9,6 @@ import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { generateDentalFollowup } from '../../engine/smart-alerts.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 
@@ -28,7 +27,6 @@ const EVENT_TYPES = [
   { key: 'checkup', label: '口腔检查', emoji: '🔍', desc: '常规检查', minAge: 0 },
 ] as const;
 
-const EVENT_LABEL: Record<string, string> = Object.fromEntries(EVENT_TYPES.map((e) => [e.key, e.label]));
 const SEVERITY_LABELS: Record<string, string> = { mild: '轻度', moderate: '中度', severe: '重度' };
 const NEEDS_SEVERITY = new Set(['caries']);
 const NEEDS_TOOTH = new Set(['eruption', 'loss', 'caries', 'filling', 'sealant']);

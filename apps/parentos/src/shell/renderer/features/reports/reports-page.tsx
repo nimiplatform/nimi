@@ -5,7 +5,7 @@ import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { useAppStore } from '../../app-shell/app-store.js';
 import {
   getGrowthReports, getJournalEntries, getMeasurements, getMilestoneRecords,
-  getReminderStates, getSleepRecords, getVaccineRecords, insertGrowthReport,
+  getReminderStates, getVaccineRecords, insertGrowthReport,
   updateGrowthReportContent,
 } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';

@@ -5,9 +5,16 @@ import type {
   MilestoneRecordRow,
   VaccineRecordRow,
 } from '../../bridge/sqlite-bridge.js';
+import {
+  getJournalEntries,
+  getMeasurements,
+  getMilestoneRecords,
+  getVaccineRecords,
+} from '../../bridge/sqlite-bridge.js';
 
 export interface AdvisorSnapshot {
   child: {
+    childId: string;
     displayName: string;
     gender: string;
     birthDate: string;
@@ -19,6 +26,21 @@ export interface AdvisorSnapshot {
   milestones: MilestoneRecordRow[];
   journalEntries: JournalEntryRow[];
 }
+
+export interface BuildAdvisorSnapshotInput {
+  childId: string;
+  displayName: string;
+  gender: string;
+  birthDate: string;
+  nurtureMode: string;
+  ageMonths: number;
+}
+
+export type AdvisorPromptStrategy =
+  | 'reviewed-advice'
+  | 'needs-review-descriptive'
+  | 'unknown-clarifier'
+  | 'generic-chat';
 
 const DOMAIN_KEYWORDS: Record<string, string[]> = {
   sensitivity: ['敏感期', '蒙氏敏感期', 'sensitive period'],
@@ -34,6 +56,17 @@ const DOMAIN_KEYWORDS: Record<string, string[]> = {
   dental: ['牙', '口腔', '龋', 'dental'],
   observation: ['观察', '日记', '专注', '情绪', '互动', 'observation'],
 };
+
+const GENERIC_RUNTIME_PATTERNS = [
+  /你的模型/i,
+  /你是什么模型/i,
+  /你是谁/i,
+  /你能做什么/i,
+  /介绍一下你自己/i,
+  /在吗/i,
+  /测试/i,
+  /^(你好|您好|hello|hi|hey)[！!,.，。?？]*$/i,
+] as const;
 
 function normalize(text: string) {
   return text.toLowerCase();
@@ -94,6 +127,43 @@ function summarizeJournal(journalEntries: JournalEntryRow[]) {
   return `最近记录于 ${latest.recordedAt.slice(0, 10)}，内容类型 ${latest.contentType}`;
 }
 
+export async function buildAdvisorSnapshot(input: BuildAdvisorSnapshotInput): Promise<AdvisorSnapshot> {
+  const [measurements, vaccines, milestones, journalEntries] = await Promise.all([
+    getMeasurements(input.childId),
+    getVaccineRecords(input.childId),
+    getMilestoneRecords(input.childId),
+    getJournalEntries(input.childId, 20),
+  ]);
+
+  return {
+    child: {
+      childId: input.childId,
+      displayName: input.displayName,
+      gender: input.gender,
+      birthDate: input.birthDate,
+      nurtureMode: input.nurtureMode,
+    },
+    ageMonths: input.ageMonths,
+    measurements,
+    vaccines,
+    milestones,
+    journalEntries,
+  };
+}
+
+export function serializeAdvisorSnapshot(snapshot: AdvisorSnapshot): string {
+  return JSON.stringify(snapshot);
+}
+
+export function parseAdvisorSnapshot(raw: string): AdvisorSnapshot {
+  const parsed = JSON.parse(raw) as AdvisorSnapshot;
+  if (!parsed?.child?.childId || !Array.isArray(parsed.measurements) || !Array.isArray(parsed.vaccines)
+    || !Array.isArray(parsed.milestones) || !Array.isArray(parsed.journalEntries)) {
+    throw new Error('advisor snapshot payload is malformed');
+  }
+  return parsed;
+}
+
 export function inferRequestedDomains(question: string): string[] {
   const normalized = normalize(question);
   return Object.entries(DOMAIN_KEYWORDS)
@@ -102,7 +172,31 @@ export function inferRequestedDomains(question: string): string[] {
 }
 
 export function canUseAdvisorRuntime(domains: string[]) {
-  return domains.length === 0 || domains.every((domain) => REVIEWED_DOMAINS.includes(domain));
+  return domains.length > 0 && domains.every((domain) => REVIEWED_DOMAINS.includes(domain));
+}
+
+export function canUseAdvisorGenericRuntime(question: string, domains: string[]) {
+  if (domains.length > 0) {
+    return false;
+  }
+  const normalized = question.trim();
+  if (!normalized) {
+    return false;
+  }
+  return GENERIC_RUNTIME_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+export function resolveAdvisorPromptStrategy(question: string, domains: string[]): AdvisorPromptStrategy {
+  if (canUseAdvisorGenericRuntime(question, domains)) {
+    return 'generic-chat';
+  }
+  if (domains.length === 0) {
+    return 'unknown-clarifier';
+  }
+  if (canUseAdvisorRuntime(domains)) {
+    return 'reviewed-advice';
+  }
+  return 'needs-review-descriptive';
 }
 
 export function appendAdvisorSources(text: string, domains: string[]) {
@@ -114,10 +208,65 @@ export function appendAdvisorSources(text: string, domains: string[]) {
   return `${text.trim()}\n\n来源：${sources.join('；')}`;
 }
 
+export function buildAdvisorRuntimeUserMessage(
+  question: string,
+  domains: string[],
+  snapshot: AdvisorSnapshot,
+) {
+  return [
+    '请仅基于以下 ParentOS 本地结构化快照回答。',
+    '如果快照中没有足够证据，就明确说当前仅能根据本地记录描述事实。',
+    `问题：${question}`,
+    `已判定领域：${domains.join('、')}`,
+    `本地快照：${serializeAdvisorSnapshot(snapshot)}`,
+  ].join('\n');
+}
+
+export function buildAdvisorGenericRuntimeUserMessage(question: string) {
+  return [
+    '当前消息属于 ParentOS 顾问中的泛闲聊或产品能力澄清，不是具体育儿领域咨询。',
+    '你可以正常回应问候、测试、身份说明、能力边界和下一步引导。',
+    '不要把回答扩展成针对孩子的个性化建议；如果用户转向育儿问题，先请对方明确主题方向。',
+    `用户消息：${question}`,
+  ].join('\n');
+}
+
+export function buildAdvisorNeedsReviewRuntimeUserMessage(
+  question: string,
+  domains: string[],
+  snapshot: AdvisorSnapshot,
+) {
+  return [
+    '当前消息涉及 needs-review 或 mixed domains，只能走描述型回答策略。',
+    '你只能基于 ParentOS 本地结构化快照整理、重述、澄清事实。',
+    '不得提供诊断、治疗、用药、风险评级、因果判断或权威结论。',
+    '如果用户在追问判断或建议，只能说明当前范围限于本地记录描述，并建议咨询专业人士。',
+    `问题：${question}`,
+    `涉及领域：${domains.join('、')}`,
+    `本地快照：${serializeAdvisorSnapshot(snapshot)}`,
+  ].join('\n');
+}
+
+export function buildAdvisorUnknownClarifierRuntimeUserMessage(
+  question: string,
+  snapshot: AdvisorSnapshot,
+) {
+  return [
+    '当前消息尚未明确到具体顾问主题，先走澄清型回答策略。',
+    '不要直接给出个性化育儿结论，只做简短澄清和话题引导。',
+    '你可以结合当前孩子已有本地记录类别，提示用户可继续追问的方向。',
+    `用户消息：${question}`,
+    `当前本地记录概况：生长 ${snapshot.measurements.length} 条，疫苗 ${snapshot.vaccines.length} 条，里程碑 ${snapshot.milestones.length} 条，日记 ${snapshot.journalEntries.length} 条`,
+  ].join('\n');
+}
+
 export function buildStructuredAdvisorFallback(
   question: string,
   domains: string[],
   snapshot: AdvisorSnapshot,
+  options: {
+    note?: string;
+  } = {},
 ) {
   const allDomains = domains.length > 0 ? domains : ['profile'];
   const sourceLabels = getSourceLabels(domains);
@@ -152,12 +301,19 @@ export function buildStructuredAdvisorFallback(
   if (domains.some((domain) => NEEDS_REVIEW_DOMAINS.includes(domain))) {
     lines.push('当前问题涉及 needs-review 领域，Phase 1 仅返回结构化事实和来源标注，不提供自由知识解释。');
     lines.push('如需进一步判断，建议咨询专业人士。');
+  } else if (domains.length === 0) {
+    lines.push('当前问题尚未明确到已审核领域，先返回本地结构化事实。');
+    lines.push(`如需继续，请尽量明确想了解的方向，例如：${REVIEWED_DOMAINS.join('、')}。`);
   } else {
     lines.push('当前无法安全调用自由生成解释，先返回本地结构化事实。');
   }
 
   if (sourceLabels.length > 0) {
     lines.push(`来源：${sourceLabels.join('；')}`);
+  }
+
+  if (options.note) {
+    lines.push(options.note);
   }
 
   return lines.join('\n');

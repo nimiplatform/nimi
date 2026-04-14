@@ -53,5 +53,7 @@ describe('AiSettingsPage', () => {
       expect(screen.getByText('AI 对话')).toBeTruthy();
       expect(screen.getByText('语音')).toBeTruthy();
     });
+
+    expect(screen.queryByText('AI Profile')).toBeNull();
   });
 });

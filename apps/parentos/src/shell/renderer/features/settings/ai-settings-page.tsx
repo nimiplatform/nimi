@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ModelConfigPanel,
-  type ModelConfigProfileCopy,
   type ModelConfigSection,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
@@ -19,7 +18,6 @@ import {
   ParentosSpeechTranscribeParamsEditor,
   ParentosTextGenerateParamsEditor,
 } from './parentos-model-config-editors.js';
-import { useParentosModelConfigProfileController } from './parentos-model-config-profile-controller.js';
 import { getParentosRouteModelPickerProvider } from './parentos-route-model-picker-provider.js';
 import {
   parentosAISettingsAvailabilityBannerCopy,
@@ -45,26 +43,6 @@ function useCapabilityProviders(runtimeReady: boolean): Record<string, RouteMode
   }, [runtimeReady]);
 }
 
-function createProfileCopy(): ModelConfigProfileCopy {
-  return {
-    sectionTitle: 'AI Profile',
-    summaryLabel: '运行时配置模板',
-    emptySummaryLabel: '未应用模板',
-    applyButtonLabel: '应用模板',
-    changeButtonLabel: '更换模板',
-    manageButtonTitle: '运行时模板',
-    modalTitle: '应用 AI Profile',
-    modalHint: '应用模板会一次性覆盖 ParentOS 当前的模型绑定和能力参数设置。',
-    loadingLabel: '正在加载运行时模板...',
-    emptyLabel: '当前没有可用的运行时模板。',
-    currentBadgeLabel: '当前',
-    cancelLabel: '取消',
-    confirmLabel: '确认并应用',
-    applyingLabel: '应用中...',
-    reloadLabel: '刷新',
-  };
-}
-
 export default function AiSettingsPage() {
   const config = useAppStore((state) => state.aiConfig) ?? createEmptyParentosAIConfig();
   const surface = useMemo(() => getParentosAIConfigService(), []);
@@ -74,14 +52,6 @@ export default function AiSettingsPage() {
   const pickerUnavailableHint = parentosAISettingsAvailabilityHint(availability);
   const runtimeStatusLabel = parentosAISettingsAvailabilityLabel(availability);
   const bannerCopy = parentosAISettingsAvailabilityBannerCopy(availability);
-
-  const profile = useParentosModelConfigProfileController({
-    scopeRef: PARENTOS_AI_SCOPE_REF,
-    currentOrigin: config.profileOrigin
-      ? { profileId: config.profileOrigin.profileId, title: config.profileOrigin.title }
-      : null,
-    copy: createProfileCopy(),
-  });
 
   useEffect(() => {
     let cancelled = false;
@@ -250,7 +220,7 @@ export default function AiSettingsPage() {
         )}
 
         <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <ModelConfigPanel profile={profile} sections={sections} />
+          <ModelConfigPanel sections={sections} />
         </div>
       </div>
     </div>

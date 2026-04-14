@@ -137,10 +137,6 @@ export function AppSelect({ value, onChange, options, placeholder, className, st
     closeMenu();
   }, [onChange, closeMenu]);
 
-  const handleTransitionEnd = useCallback(() => {
-    if (!open) setMounted(false);
-  }, [open]);
-
   // Listen for transition end on the portal panel
   useEffect(() => {
     if (!mounted || open) return;

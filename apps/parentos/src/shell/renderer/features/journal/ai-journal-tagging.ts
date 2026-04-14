@@ -1,7 +1,11 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { TextMessage } from '@nimiplatform/sdk/runtime/types-media.js';
 import type { ObservationDimension } from '../../knowledge-base/index.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 
 export interface JournalTagSuggestion {
   dimensionId: string | null;
@@ -134,16 +138,16 @@ export async function suggestJournalTags(input: {
     throw new Error('ParentOS journal AI tagging runtime is unavailable');
   }
 
-  const aiParams = resolveParentosTextGenerateConfig({ temperature: 0, maxTokens: 500 });
+  const aiParams = await resolveParentosTextRuntimeConfig('parentos.journal.ai-tagging', { temperature: 0, maxTokens: 500 });
+  await ensureParentosLocalRuntimeReady({
+    route: aiParams.route,
+    localModelId: aiParams.localModelId,
+    timeoutMs: 60_000,
+  });
   const output = await client.runtime.ai.text.generate({
     ...aiParams,
-    route: aiParams.route ?? 'local',
     input: buildInput(draftText, candidateDimensions),
-    metadata: {
-      callerKind: 'third-party-app',
-      callerId: 'app.nimi.parentos',
-      surfaceId: 'parentos.journal.ai-tagging',
-    },
+    metadata: buildParentosRuntimeMetadata('parentos.journal.ai-tagging'),
   });
 
   return parseJournalTagSuggestion(output.text, input.candidateDimensions);

@@ -91,8 +91,24 @@ export default function AllergyPage() {
   const activeRecords = records.filter((r) => r.status === 'active');
   const otherRecords = records.filter((r) => r.status !== 'active');
 
-  const toggleSymptom = (key: string) => setFormSymptoms((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
-  const toggleTreatment = (t: string) => setFormTreatments((prev) => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
+  const toggleSymptom = (key: string) => setFormSymptoms((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    return next;
+  });
+  const toggleTreatment = (t: string) => setFormTreatments((prev) => {
+    const next = new Set(prev);
+    if (next.has(t)) {
+      next.delete(t);
+    } else {
+      next.add(t);
+    }
+    return next;
+  });
 
   const resetForm = () => {
     setFormAllergen(''); setFormCategory('food'); setFormSeverity(''); setFormDiagnosedAt(new Date().toISOString().slice(0, 10));
@@ -158,8 +174,6 @@ export default function AllergyPage() {
   };
 
   const sevColor = (s: string) => s === 'severe' ? '#dc2626' : s === 'moderate' ? '#d97706' : '#94A533';
-  const statusBg = (s: string) => s === 'active' ? { background: '#fef2f2', color: '#dc2626' } : s === 'outgrown' ? { background: '#f0fdf4', color: '#16a34a' } : { background: '#f5f3ef', color: S.sub };
-
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">

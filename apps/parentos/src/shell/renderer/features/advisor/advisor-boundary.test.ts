@@ -1,13 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   appendAdvisorSources,
+  buildAdvisorGenericRuntimeUserMessage,
+  buildAdvisorNeedsReviewRuntimeUserMessage,
+  buildAdvisorUnknownClarifierRuntimeUserMessage,
+  buildAdvisorRuntimeUserMessage,
   buildStructuredAdvisorFallback,
+  canUseAdvisorGenericRuntime,
   canUseAdvisorRuntime,
   inferRequestedDomains,
+  parseAdvisorSnapshot,
+  resolveAdvisorPromptStrategy,
+  serializeAdvisorSnapshot,
 } from './advisor-boundary.js';
 
 const snapshot = {
   child: {
+    childId: 'child-1',
     displayName: 'Mimi',
     gender: 'female',
     birthDate: '2024-01-15',
@@ -85,9 +94,34 @@ describe('advisor boundary', () => {
     expect(inferRequestedDomains('Need help with sleep and sensitive period routines')).toEqual(
       expect.arrayContaining(['sleep', 'sensitivity']),
     );
-    expect(canUseAdvisorRuntime([])).toBe(true);
+    expect(canUseAdvisorRuntime([])).toBe(false);
     expect(canUseAdvisorRuntime(['sleep', 'digital'])).toBe(true);
     expect(canUseAdvisorRuntime(['sleep', 'growth'])).toBe(false);
+  });
+
+  it('allows generic advisor chat without opening the unknown-domain path', () => {
+    expect(canUseAdvisorRuntime([])).toBe(false);
+    expect(canUseAdvisorGenericRuntime('你好，测试，你的模型是？', [])).toBe(true);
+    expect(canUseAdvisorGenericRuntime('最近怎么样？', [])).toBe(false);
+    expect(resolveAdvisorPromptStrategy('你好，测试，你的模型是？', [])).toBe('generic-chat');
+    expect(resolveAdvisorPromptStrategy('最近怎么样？', [])).toBe('unknown-clarifier');
+    expect(resolveAdvisorPromptStrategy('How is growth going?', ['growth'])).toBe('needs-review-descriptive');
+    expect(resolveAdvisorPromptStrategy('Need help with sleep', ['sleep'])).toBe('reviewed-advice');
+
+    const message = buildAdvisorGenericRuntimeUserMessage('你好，测试，你的模型是？');
+    expect(message).toContain('泛闲聊或产品能力澄清');
+    expect(message).toContain('用户消息：你好，测试，你的模型是？');
+  });
+
+  it('builds descriptive and clarifier runtime prompts for non-reviewed paths', () => {
+    const descriptive = buildAdvisorNeedsReviewRuntimeUserMessage('How is growth going?', ['growth'], snapshot);
+    expect(descriptive).toContain('描述型回答策略');
+    expect(descriptive).toContain('涉及领域：growth');
+    expect(descriptive).toContain('"childId":"child-1"');
+
+    const clarifier = buildAdvisorUnknownClarifierRuntimeUserMessage('最近怎么样？', snapshot);
+    expect(clarifier).toContain('澄清型回答策略');
+    expect(clarifier).toContain('当前本地记录概况');
   });
 
   it('forces mixed reviewed and needs-review questions back to structured facts', () => {
@@ -114,5 +148,17 @@ describe('advisor boundary', () => {
     expect(text).toContain('Safe answer');
     expect(text).toContain('来源：');
     expect(text).toContain('sleep:');
+  });
+
+  it('serializes and parses a frozen advisor snapshot', () => {
+    const serialized = serializeAdvisorSnapshot(snapshot);
+    expect(parseAdvisorSnapshot(serialized)).toEqual(snapshot);
+  });
+
+  it('builds runtime user content from the frozen local snapshot', () => {
+    const message = buildAdvisorRuntimeUserMessage('最近睡眠怎么样？', ['sleep'], snapshot);
+    expect(message).toContain('问题：最近睡眠怎么样？');
+    expect(message).toContain('已判定领域：sleep');
+    expect(message).toContain('"childId":"child-1"');
   });
 });

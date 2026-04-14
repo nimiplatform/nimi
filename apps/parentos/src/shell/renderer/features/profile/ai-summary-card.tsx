@@ -11,7 +11,11 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { getAppSetting, setAppSetting } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 
 interface AISummaryCardProps {
   /** Unique domain key, e.g. 'growth', 'vaccine', 'vision' */
@@ -98,15 +102,17 @@ export function AISummaryCard(props: AISummaryCardProps) {
     setError(false);
     try {
       const client = getPlatformClient();
-      const aiParams = resolveParentosTextGenerateConfig({ temperature: 0.3, maxTokens: 400 });
+      const surfaceId = `parentos.profile.summary.${domain}` as const;
+      const aiParams = await resolveParentosTextRuntimeConfig(surfaceId, { temperature: 0.3, maxTokens: 400 });
+      await ensureParentosLocalRuntimeReady({
+        route: aiParams.route,
+        localModelId: aiParams.localModelId,
+        timeoutMs: 60_000,
+      });
       const output = await client.runtime.ai.text.generate({
         ...aiParams,
         input: [{ role: 'user', content: buildPrompt(props) }],
-        metadata: {
-          callerKind: 'third-party-app' as const,
-          callerId: 'app.nimi.parentos',
-          surfaceId: `parentos.profile.summary.${domain}`,
-        },
+        metadata: buildParentosRuntimeMetadata(surfaceId),
       });
 
       const filtered = filterAIResponse(output.text);

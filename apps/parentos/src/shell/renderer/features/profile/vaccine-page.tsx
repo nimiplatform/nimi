@@ -21,8 +21,8 @@ function fmtDate(d: string) { return d.split('T')[0]; }
    RECORD MODAL
    ================================================================ */
 
-function VaccineRecordModal({ rule, childId, birthDate, ageMonths, onSave, onClose }: {
-  rule: ReminderRule; childId: string; birthDate: string; ageMonths: number;
+function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
+  rule: ReminderRule; childId: string; birthDate: string;
   onSave: (ruleId: string) => void; onClose: () => void;
 }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -133,7 +133,6 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
     setSaving(true);
     try {
       const ruleId = `custom-vac-${ulid()}`;
-      const notes = remindMonths > 0 ? `[remind:${remindMonths}m]` : null;
       await insertVaccineRecord({
         recordId: ulid(), childId, ruleId,
         vaccineName: name.trim(), vaccinatedAt: date,
@@ -594,7 +593,6 @@ export default function VaccinePage() {
 
           {ageBuckets.map((bucket) => {
             const isCurrent = ageMonths >= bucket.startMonth && ageMonths <= bucket.endMonth;
-            const isPast = ageMonths > bucket.endMonth;
             const isFuture = ageMonths < bucket.startMonth;
             const bucketComplete = bucket.rules.every((r) => recordedRuleIds.has(r.ruleId));
 
@@ -704,7 +702,6 @@ export default function VaccinePage() {
           rule={recordingRule}
           childId={child.childId}
           birthDate={child.birthDate}
-          ageMonths={ageMonths}
           onSave={(ruleId) => {
             void completeReminderByRule({ childId: child.childId, ruleId }).then(() => {
               reload();

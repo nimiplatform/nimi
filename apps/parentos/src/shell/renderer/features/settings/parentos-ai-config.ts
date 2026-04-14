@@ -12,7 +12,7 @@ import { isoNow } from '../../bridge/ulid.js';
 export const PARENTOS_AI_SCOPE_REF: AIScopeRef = {
   kind: 'app',
   ownerId: 'parentos',
-  surfaceId: 'advisor',
+  surfaceId: 'parentos.ai',
 };
 
 const PARENTOS_AI_CONFIG_SETTING_KEY = 'parentos.ai.config';
@@ -40,7 +40,15 @@ export function isParentosAIScopeRef(scopeRef: AIScopeRef | null | undefined): b
 }
 
 export function bindingFromConfig(config: AIConfig, capabilityId: ParentosCapabilityId): RuntimeRouteBinding | null {
-  return (config.capabilities.selectedBindings[capabilityId] || null) as RuntimeRouteBinding | null;
+  const binding = (config.capabilities.selectedBindings[capabilityId] || null) as RuntimeRouteBinding | null;
+  if (!binding) {
+    return null;
+  }
+  return {
+    ...binding,
+    source: 'local',
+    connectorId: '',
+  };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -137,7 +145,11 @@ function normalizeSelectedBindings(
     if (!binding) {
       continue;
     }
-    normalized[capabilityId] = binding;
+    normalized[capabilityId] = {
+      ...binding,
+      source: 'local',
+      connectorId: '',
+    };
   }
   return normalized;
 }

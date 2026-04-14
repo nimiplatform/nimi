@@ -98,9 +98,9 @@ export function parentosAISettingsAvailabilityHint(
     return '';
   }
   if (availability.kind === 'daemon-unavailable') {
-    return '当前未检测到 nimi runtime daemon，请确认 runtime 已启动后再使用模型选择器。你仍可手动填写 route、model 和 connector。';
+    return '当前未检测到 nimi runtime daemon，请确认 runtime 已启动后再使用模型选择器。你仍可手动填写本地 model id。';
   }
-  return `runtime route snapshot 读取失败：${availability.detail}。你仍可手动填写 route、model 和 connector。`;
+  return `runtime route snapshot 读取失败：${availability.detail}。你仍可手动填写本地 model id。`;
 }
 
 export function parentosAISettingsAvailabilityBannerCopy(

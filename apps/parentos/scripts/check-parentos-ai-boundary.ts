@@ -6,7 +6,7 @@
  * - journal AI tagging stays on local closed-set extraction
  * - voice STT stays on the typed local transcription surface
  * - profile AI surfaces stay inside the admitted local summary / OCR boundaries
- * - advisor chat retains reviewed-domain gating and structured fallback markers
+ * - advisor chat retains prompt-strategy selection, local runtime use, and structured fallback markers
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -37,10 +37,6 @@ export interface SourceFile {
   content: string;
 }
 
-function uniqueSorted(values: Iterable<string>) {
-  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
-}
-
 function relativeToRoot(path: string, rootPath: string) {
   return path.replace(rootPath + '/', '').replace(rootPath + '\\', '');
 }
@@ -51,12 +47,12 @@ function fileHasRuntimeCall(content: string) {
     || content.includes('media.stt.transcribe');
 }
 
-function extractQuotedSurfaceIds(content: string) {
-  const surfaces: string[] = [];
-  for (const match of content.matchAll(/surfaceId:\s*(['"])([^'"]+)\1/g)) {
-    if (match[2]) surfaces.push(match[2]);
-  }
-  return uniqueSorted(surfaces);
+function hasSurfaceMarker(content: string, surfaceId: string) {
+  return content.includes(`surfaceId: '${surfaceId}'`)
+    || content.includes(`surfaceId: "${surfaceId}"`)
+    || content.includes(`buildParentosRuntimeMetadata('${surfaceId}')`)
+    || content.includes(`buildParentosRuntimeMetadata("${surfaceId}")`)
+    || content.includes(`buildParentosRuntimeMetadata(\`${surfaceId}\`)`);
 }
 
 export function collectTsFiles(dir: string): string[] {
@@ -150,16 +146,19 @@ export function findReportsBoundaryErrors(input: {
     const usesRuntime = file.content.includes('runtime.ai.text.generate') || file.content.includes('runtime.ai.text.stream');
     if (!usesRuntime) continue;
 
-    const hasReportSurfaceMarker =
-      file.content.includes("surfaceId: 'parentos.report'")
-      || file.content.includes('surfaceId: "parentos.report"');
-
-    if (!hasReportSurfaceMarker) {
+    if (!hasSurfaceMarker(file.content, 'parentos.report')) {
       errors.push(`${file.path} uses report runtime without the parentos.report surface marker`);
     }
 
     if (!file.content.includes('filterAIResponse')) {
       errors.push(`${file.path} uses report runtime without AI safety filtering`);
+    }
+
+    if (!file.content.includes("resolveParentosTextRuntimeConfig('parentos.report'")) {
+      errors.push(`${file.path} must resolve report runtime params through the governed surface helper`);
+    }
+    if (!file.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push(`${file.path} must warm governed local runtime assets before report generation`);
     }
   }
 
@@ -177,11 +176,14 @@ export function findJournalBoundaryErrors(journalAiSource: string) {
     errors.push('journal AI tagging must stay on closed-set extraction only');
   }
 
-  if (!/route:\s*aiParams\.route\s*\?\?\s*['"]local['"]/.test(journalAiSource)) {
-    errors.push('journal AI tagging must default to route: local');
+  if (!journalAiSource.includes("resolveParentosTextRuntimeConfig('parentos.journal.ai-tagging'")) {
+    errors.push('journal AI tagging must resolve runtime params through the governed local surface helper');
+  }
+  if (!journalAiSource.includes('ensureParentosLocalRuntimeReady')) {
+    errors.push('journal AI tagging must warm governed local runtime assets before extraction');
   }
 
-  if (!journalAiSource.includes("surfaceId: 'parentos.journal.ai-tagging'")) {
+  if (!hasSurfaceMarker(journalAiSource, 'parentos.journal.ai-tagging')) {
     errors.push('journal AI tagging is missing the parentos.journal.ai-tagging surface marker');
   }
 
@@ -203,13 +205,17 @@ export function findVoiceBoundaryErrors(voiceObservationSource: string) {
 
   for (const marker of [
     'media.stt.transcribe',
-    "surfaceId: 'parentos.journal.voice-observation'",
-    "route: aiParams.route ?? 'local'",
+    "resolveParentosSpeechTranscribeRuntimeConfig('parentos.journal.voice-observation'",
+    'ensureParentosLocalRuntimeReady',
     'missing transcript text',
   ]) {
     if (!voiceObservationSource.includes(marker)) {
       errors.push(`voice observation runtime is missing boundary marker: ${marker}`);
     }
+  }
+
+  if (!hasSurfaceMarker(voiceObservationSource, 'parentos.journal.voice-observation')) {
+    errors.push('voice observation runtime is missing the parentos.journal.voice-observation surface marker');
   }
 
   return errors;
@@ -225,7 +231,8 @@ export function findProfileBoundaryErrors(input: {
     admittedRuntimeFiles: [
       'src/shell/renderer/features/profile/ai-summary-card.tsx',
       'src/shell/renderer/features/profile/checkup-ocr.ts',
-      'src/shell/renderer/features/profile/medical-events-page.tsx',
+      'src/shell/renderer/features/profile/medical-events-page-insights.ts',
+      'src/shell/renderer/features/profile/medical-events-page-form-state.ts',
     ],
     label: 'profile',
   });
@@ -239,6 +246,12 @@ export function findProfileBoundaryErrors(input: {
     if (!summaryFile.content.includes('parentos.profile.summary.')) {
       errors.push('ai-summary-card.tsx is missing the parentos.profile.summary.* surface marker');
     }
+    if (!summaryFile.content.includes('resolveParentosTextRuntimeConfig(surfaceId')) {
+      errors.push('ai-summary-card.tsx must resolve runtime params through the governed surface helper');
+    }
+    if (!summaryFile.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push('ai-summary-card.tsx must warm governed local runtime assets before summary generation');
+    }
     if (!summaryFile.content.includes('filterAIResponse')) {
       errors.push('ai-summary-card.tsx uses runtime summaries without AI safety filtering');
     }
@@ -249,8 +262,14 @@ export function findProfileBoundaryErrors(input: {
 
   const checkupOcrFile = relFiles.get('src/shell/renderer/features/profile/checkup-ocr.ts');
   if (checkupOcrFile?.content.includes('runtime.ai.text.generate')) {
-    if (!checkupOcrFile.content.includes("surfaceId: 'parentos.profile.checkup-ocr'")) {
+    if (!hasSurfaceMarker(checkupOcrFile.content, 'parentos.profile.checkup-ocr')) {
       errors.push('checkup-ocr.ts is missing the parentos.profile.checkup-ocr surface marker');
+    }
+    if (!checkupOcrFile.content.includes("resolveParentosTextRuntimeConfig('parentos.profile.checkup-ocr'")) {
+      errors.push('checkup-ocr.ts must resolve runtime params through the governed surface helper');
+    }
+    if (!checkupOcrFile.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push('checkup-ocr.ts must warm governed local runtime assets before OCR generation');
     }
     if (!checkupOcrFile.content.includes("type: 'image_url'")) {
       errors.push('checkup-ocr.ts must keep image OCR on the explicit image_url input path');
@@ -260,42 +279,53 @@ export function findProfileBoundaryErrors(input: {
     }
   }
 
-  const medicalEventsFile = relFiles.get('src/shell/renderer/features/profile/medical-events-page.tsx');
-  if (medicalEventsFile?.content.includes('runtime.ai.text.generate')) {
-    const runtimeCallCount = (medicalEventsFile.content.match(/runtime\.ai\.text\.generate\(/g) ?? []).length;
-    const surfaceIds = extractQuotedSurfaceIds(medicalEventsFile.content)
-      .filter((surfaceId) => surfaceId.startsWith('parentos.medical.'));
-    const allowedSurfaceIds = new Set([
+  const medicalInsightsFile = relFiles.get('src/shell/renderer/features/profile/medical-events-page-insights.ts');
+  if (medicalInsightsFile?.content.includes('runtime.ai.text.generate')) {
+    for (const surfaceId of [
       'parentos.medical.smart-insight',
-      'parentos.medical.ocr-intake',
       'parentos.medical.event-analysis',
-    ]);
-
-    if (surfaceIds.length !== runtimeCallCount) {
-      errors.push('medical-events-page.tsx must tag every runtime call with an admitted parentos.medical.* surfaceId');
-    }
-
-    for (const surfaceId of surfaceIds) {
-      if (!allowedSurfaceIds.has(surfaceId)) {
-        errors.push(`medical-events-page.tsx uses unadmitted medical AI surface ${surfaceId}`);
+    ]) {
+      if (!hasSurfaceMarker(medicalInsightsFile.content, surfaceId)) {
+        errors.push(`medical-events-page-insights.ts is missing the ${surfaceId} surface marker`);
       }
     }
+    if (!medicalInsightsFile.content.includes('resolveParentosTextRuntimeConfig(')) {
+      errors.push('medical-events-page-insights.ts must resolve runtime params through the governed surface helper');
+    }
+    if (!medicalInsightsFile.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push('medical-events-page-insights.ts must warm governed local runtime assets before generation');
+    }
+    if (!medicalInsightsFile.content.includes('filterAIResponse')) {
+      errors.push('medical-events-page-insights.ts uses medical AI summaries without AI safety filtering');
+    }
+  }
 
-    if (!medicalEventsFile.content.includes('filterAIResponse')) {
-      errors.push('medical-events-page.tsx uses medical AI summaries without AI safety filtering');
+  const medicalFormStateFile = relFiles.get('src/shell/renderer/features/profile/medical-events-page-form-state.ts');
+  if (medicalFormStateFile?.content.includes('runtime.ai.text.generate')) {
+    if (!hasSurfaceMarker(medicalFormStateFile.content, 'parentos.medical.ocr-intake')) {
+      errors.push('medical-events-page-form-state.ts is missing the parentos.medical.ocr-intake surface marker');
     }
-    if (!medicalEventsFile.content.includes("type: 'image_url'")) {
-      errors.push('medical-events-page.tsx OCR intake must keep explicit image_url input');
+    if (!medicalFormStateFile.content.includes("resolveParentosTextRuntimeConfig('parentos.medical.ocr-intake'")) {
+      errors.push('medical-events-page-form-state.ts must resolve runtime params through the governed surface helper');
     }
-    if (!medicalEventsFile.content.includes('JSON.parse')) {
-      errors.push('medical-events-page.tsx OCR intake must parse structured JSON output before prefilling');
+    if (!medicalFormStateFile.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push('medical-events-page-form-state.ts must warm governed local runtime assets before OCR intake');
+    }
+    if (!medicalFormStateFile.content.includes("type: 'image_url'")) {
+      errors.push('medical-events-page-form-state.ts OCR intake must keep explicit image_url input');
+    }
+    if (!medicalFormStateFile.content.includes('JSON.parse')) {
+      errors.push('medical-events-page-form-state.ts OCR intake must parse structured JSON output before prefilling');
     }
   }
 
   return errors;
 }
 
-export function findAdvisorBoundaryErrors(advisorPageSource: string) {
+export function findAdvisorBoundaryErrors(input: {
+  advisorPageSource: string;
+  advisorBoundarySource: string;
+}) {
   const errors: string[] = [];
 
   for (const marker of [
@@ -303,21 +333,79 @@ export function findAdvisorBoundaryErrors(advisorPageSource: string) {
     'NEEDS_REVIEW_DOMAINS',
     'filterAIResponse',
     'inferRequestedDomains',
-    'canUseAdvisorRuntime',
+    'resolveAdvisorPromptStrategy',
+    'buildAdvisorSnapshot',
+    'serializeAdvisorSnapshot',
+    'buildAdvisorRuntimeUserMessage',
+    'buildAdvisorNeedsReviewRuntimeUserMessage',
+    'buildAdvisorUnknownClarifierRuntimeUserMessage',
+    'buildAdvisorGenericRuntimeUserMessage',
     'buildStructuredAdvisorFallback',
     'appendAdvisorSources',
   ]) {
-    if (!advisorPageSource.includes(marker)) {
+    if (!input.advisorPageSource.includes(marker)) {
       errors.push(`advisor-page.tsx is missing AI boundary marker: ${marker}`);
     }
   }
 
   const hasReviewedDomainRuntimePath =
-    advisorPageSource.includes('runtime.ai.text.stream')
-    || advisorPageSource.includes('rt.ai.text.stream');
+    input.advisorPageSource.includes('runtime.ai.text.stream')
+    || input.advisorPageSource.includes('rt.ai.text.stream');
 
   if (!hasReviewedDomainRuntimePath) {
     errors.push('advisor-page.tsx is missing reviewed-domain runtime generation path');
+  }
+
+  for (const marker of [
+    "resolveParentosTextRuntimeConfig('parentos.advisor'",
+    'ensureParentosLocalRuntimeReady',
+    "buildParentosRuntimeMetadata('parentos.advisor')",
+    'contextSnapshot: snapshotJson',
+    'buildAdvisorRuntimeInput(',
+    'shouldAppendAdvisorSources(',
+    '运行时响应触发了安全过滤',
+  ]) {
+    if (!input.advisorPageSource.includes(marker)) {
+      errors.push(`advisor-page.tsx is missing fail-close advisor marker: ${marker}`);
+    }
+  }
+
+  for (const marker of [
+    "export type AdvisorPromptStrategy",
+    "return 'generic-chat';",
+    "return 'unknown-clarifier';",
+    "return 'reviewed-advice';",
+    "return 'needs-review-descriptive';",
+  ]) {
+    if (!input.advisorBoundarySource.includes(marker)) {
+      errors.push(`advisor-boundary.ts is missing advisor prompt-strategy marker: ${marker}`);
+    }
+  }
+
+  return errors;
+}
+
+export function findSettingsPrivacyErrors(input: {
+  settingsPageSource: string;
+  modelEditorsSource: string;
+  aiConfigSource: string;
+}) {
+  const errors: string[] = [];
+
+  if (input.settingsPageSource.includes('不上传至云端')) {
+    for (const disallowedMarker of [
+      "value: 'cloud'",
+      'Connector ID',
+      'route、model 和 connector',
+    ]) {
+      if (input.modelEditorsSource.includes(disallowedMarker)) {
+        errors.push(`AI settings must stay local-only while privacy copy says no cloud upload (${disallowedMarker})`);
+      }
+    }
+  }
+
+  if (!input.aiConfigSource.includes("surfaceId: 'parentos.ai'")) {
+    errors.push('ParentOS AI config scope must be app-wide (surfaceId: parentos.ai)');
   }
 
   return errors;
@@ -400,14 +488,21 @@ export function runAiBoundaryCheck() {
       ],
       label: 'advisor',
     }),
-    ...findAdvisorBoundaryErrors(
-      readFileSync(resolve(SRC, 'features/advisor/advisor-page.tsx'), 'utf-8'),
-    ),
+    ...findAdvisorBoundaryErrors({
+      advisorPageSource: readFileSync(resolve(SRC, 'features/advisor/advisor-page.tsx'), 'utf-8'),
+      advisorBoundarySource: readFileSync(resolve(SRC, 'features/advisor/advisor-boundary.ts'), 'utf-8'),
+    }),
   ];
 
   const profileErrors = findProfileBoundaryErrors({
     profileFiles,
     rootPath: ROOT,
+  });
+
+  const settingsErrors = findSettingsPrivacyErrors({
+    settingsPageSource: readFileSync(resolve(SRC, 'features/settings/settings-page.tsx'), 'utf-8'),
+    modelEditorsSource: readFileSync(resolve(SRC, 'features/settings/parentos-model-config-editors.tsx'), 'utf-8'),
+    aiConfigSource: readFileSync(resolve(SRC, 'features/settings/parentos-ai-config.ts'), 'utf-8'),
   });
 
   const ksData = parseYaml(
@@ -437,6 +532,7 @@ export function runAiBoundaryCheck() {
     voiceErrors,
     advisorErrors,
     profileErrors,
+    settingsErrors,
     reviewed,
     needsReview,
     knowledgeSourceError,
@@ -480,7 +576,7 @@ if (isMainModule()) {
 
   console.log('\n=== Advisor Boundary Implementation ===\n');
   if (result.advisorErrors.length === 0) {
-    pass('advisor chat retains reviewed-domain gating and structured fallback markers');
+    pass('advisor chat retains prompt-strategy routing, local runtime use, and structured fallback markers');
   } else {
     for (const message of result.advisorErrors) fail(message);
   }
@@ -490,6 +586,13 @@ if (isMainModule()) {
     pass('profile AI surfaces stay inside admitted local summary and OCR boundaries');
   } else {
     for (const message of result.profileErrors) fail(message);
+  }
+
+  console.log('\n=== Settings / Privacy Consistency ===\n');
+  if (result.settingsErrors.length === 0) {
+    pass('AI settings stay aligned with ParentOS local-only privacy posture');
+  } else {
+    for (const message of result.settingsErrors) fail(message);
   }
 
   console.log('\n=== Knowledge Source Boundary ===\n');
@@ -505,6 +608,7 @@ if (isMainModule()) {
     + result.voiceErrors.length
     + result.advisorErrors.length
     + result.profileErrors.length
+    + result.settingsErrors.length
     + (result.knowledgeSourceError ? 1 : 0);
 
   console.log(`\n${errorCount === 0 ? 'All checks passed.' : `${errorCount} error(s) found.`}\n`);

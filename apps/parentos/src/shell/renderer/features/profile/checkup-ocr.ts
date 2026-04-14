@@ -1,6 +1,10 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { TextMessage } from '@nimiplatform/sdk/runtime/types-media.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 
 export type OCRImportTypeId = Extract<GrowthTypeId,
@@ -145,16 +149,16 @@ export async function analyzeCheckupSheetOCR(input: {
     throw new Error('ParentOS checkup OCR runtime is unavailable');
   }
 
-  const aiParams = resolveParentosTextGenerateConfig({ temperature: 0, maxTokens: 800 });
+  const aiParams = await resolveParentosTextRuntimeConfig('parentos.profile.checkup-ocr', { temperature: 0, maxTokens: 800 });
+  await ensureParentosLocalRuntimeReady({
+    route: aiParams.route,
+    localModelId: aiParams.localModelId,
+    timeoutMs: 60_000,
+  });
   const output = await client.runtime.ai.text.generate({
     ...aiParams,
-    route: aiParams.route ?? 'local',
     input: buildOCRInput(imageUrl),
-    metadata: {
-      callerKind: 'third-party-app',
-      callerId: 'app.nimi.parentos',
-      surfaceId: 'parentos.profile.checkup-ocr',
-    },
+    metadata: buildParentosRuntimeMetadata('parentos.profile.checkup-ocr'),
   });
 
   return parseOCRMeasurementExtraction(output.text);

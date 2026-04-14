@@ -19,9 +19,6 @@ import type {
 import { useAppStore } from '../app-shell/app-store.js';
 import { describeError, logRendererEvent } from './telemetry/renderer-log.js';
 
-const CONNECTOR_KIND_REMOTE_MANAGED = 2;
-const CONNECTOR_MODELS_PAGE_SIZE = 200;
-const CONNECTOR_MODELS_MAX_PAGES = 200;
 const LOCAL_ASSETS_PAGE_SIZE = 100;
 const LOCAL_ASSETS_MAX_PAGES = 20;
 
@@ -36,17 +33,6 @@ type LocalAssetRecord = {
   capabilities: string[];
   kind?: string;
   logicalModelId?: string;
-};
-
-type ConnectorRecord = {
-  connectorId: string;
-  provider: string;
-  label: string;
-};
-
-type ConnectorModelRecord = {
-  modelId: string;
-  capabilities: string[];
 };
 
 function unsupportedCapabilityError(capability: string): Error {
@@ -85,10 +71,6 @@ function asStringArray(value: unknown): string[] {
 function localAssetSupportsCapability(asset: LocalAssetRecord, capability: SupportedParentosCapability): boolean {
   return runtimeRouteModelSupportsCapability(asset.capabilities, capability)
     || runtimeRouteLocalKindSupportsCapability(asset.kind, capability);
-}
-
-function connectorModelSupportsCapability(model: ConnectorModelRecord, capability: SupportedParentosCapability): boolean {
-  return runtimeRouteModelSupportsCapability(model.capabilities, capability);
 }
 
 function statusRank(value: string | undefined): number {
@@ -168,35 +150,6 @@ function parseLocalAsset(value: unknown): LocalAssetRecord | null {
   };
 }
 
-function parseConnector(value: unknown): ConnectorRecord | null {
-  const record = asRecord(value);
-  const connectorId = asString(record.connectorId);
-  const provider = asString(record.provider);
-  if (!connectorId || !provider) {
-    return null;
-  }
-  return {
-    connectorId,
-    provider,
-    label: asString(record.label) || provider,
-  };
-}
-
-function parseConnectorModel(value: unknown): ConnectorModelRecord | null {
-  const record = asRecord(value);
-  if (!record.available) {
-    return null;
-  }
-  const modelId = asString(record.modelId);
-  if (!modelId) {
-    return null;
-  }
-  return {
-    modelId,
-    capabilities: asStringArray(record.capabilities),
-  };
-}
-
 async function listLocalAssets(): Promise<LocalAssetRecord[]> {
   const runtime = getPlatformClient().runtime.local;
   const assets: LocalAssetRecord[] = [];
@@ -224,52 +177,6 @@ async function listLocalAssets(): Promise<LocalAssetRecord[]> {
     deduped.set(asset.localAssetId, asset);
   }
   return [...deduped.values()];
-}
-
-async function listManagedConnectors(): Promise<ConnectorRecord[]> {
-  const response = await getPlatformClient().domains.runtimeAdmin.listConnectors({
-    pageSize: 0,
-    pageToken: '',
-    kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
-    statusFilter: 0,
-    providerFilter: '',
-  });
-  const record = asRecord(response);
-  const connectors = Array.isArray(record.connectors)
-    ? record.connectors.map(parseConnector).filter((item): item is ConnectorRecord => item !== null)
-    : [];
-  return connectors;
-}
-
-async function listConnectorModels(connectorId: string): Promise<ConnectorModelRecord[]> {
-  const runtimeAdmin = getPlatformClient().domains.runtimeAdmin;
-  const models: ConnectorModelRecord[] = [];
-  const seen = new Set<string>();
-  let pageToken = '';
-  for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
-    const response = await runtimeAdmin.listConnectorModels({
-      connectorId,
-      forceRefresh: pageIndex === 0,
-      pageSize: CONNECTOR_MODELS_PAGE_SIZE,
-      pageToken,
-    });
-    const record = asRecord(response);
-    const pageModels = Array.isArray(record.models)
-      ? record.models.map(parseConnectorModel).filter((item): item is ConnectorModelRecord => item !== null)
-      : [];
-    for (const model of pageModels) {
-      if (seen.has(model.modelId)) {
-        continue;
-      }
-      seen.add(model.modelId);
-      models.push(model);
-    }
-    pageToken = asString(record.nextPageToken);
-    if (!pageToken) {
-      break;
-    }
-  }
-  return models;
 }
 
 function toLocalRouteOption(
@@ -320,9 +227,8 @@ export async function loadParentosRuntimeRouteOptions(
     ? asString(runtimeDefaults?.runtime.localOpenAiEndpoint)
     : asString(runtimeDefaults?.runtime.localProviderEndpoint || runtimeDefaults?.runtime.localOpenAiEndpoint);
 
-  let localAssets: LocalAssetRecord[] = [];
-  try {
-    localAssets = (await listLocalAssets())
+  const localAssets = await listLocalAssets()
+    .then((assets) => assets
       .filter((asset) => String(asset.status || '').trim().toLowerCase() !== 'removed')
       .filter((asset) => localAssetSupportsCapability(asset, capability))
       .sort((left, right) => {
@@ -331,69 +237,21 @@ export async function loadParentosRuntimeRouteOptions(
           return rankDelta;
         }
         return left.assetId.localeCompare(right.assetId);
-      });
-  } catch (error) {
-    logRendererEvent({
-      level: 'warn',
-      area: 'runtime.route-options.local-assets',
-      message: 'action:list-local-assets-failed',
-      details: {
-        capability,
-        error: describeError(error),
-      },
-    });
-    localAssets = [];
-  }
-  const localModels = localAssets.map((asset) => toLocalRouteOption(asset, capability));
-
-  let connectors: ConnectorRecord[] = [];
-  try {
-    connectors = await listManagedConnectors();
-  } catch (error) {
-    logRendererEvent({
-      level: 'warn',
-      area: 'runtime.route-options.connectors',
-      message: 'action:list-connectors-failed',
-      details: {
-        capability,
-        error: describeError(error),
-      },
-    });
-    connectors = [];
-  }
-  const connectorOptions: RuntimeRouteConnectorOption[] = [];
-  for (const connector of connectors) {
-    let models: ConnectorModelRecord[] = [];
-    try {
-      models = await listConnectorModels(connector.connectorId);
-    } catch (error) {
+      }))
+    .catch((error) => {
       logRendererEvent({
         level: 'warn',
-        area: 'runtime.route-options.connector-models',
-        message: 'action:list-connector-models-failed',
+        area: 'runtime.route-options.local-assets',
+        message: 'action:list-local-assets-failed',
         details: {
           capability,
-          connectorId: connector.connectorId,
           error: describeError(error),
         },
       });
-      models = [];
-    }
-    const matchingModels = models.filter((model) => connectorModelSupportsCapability(model, capability));
-    if (matchingModels.length <= 0) {
-      continue;
-    }
-    connectorOptions.push({
-      id: connector.connectorId,
-      label: connector.label,
-      provider: connector.provider,
-      models: matchingModels.map((model) => model.modelId),
-      modelCapabilities: Object.fromEntries(
-        matchingModels.map((model) => [model.modelId, model.capabilities]),
-      ),
+      return [] as LocalAssetRecord[];
     });
-  }
-  connectorOptions.sort((left, right) => left.label.localeCompare(right.label));
+  const localModels = localAssets.map((asset) => toLocalRouteOption(asset, capability));
+  const connectorOptions: RuntimeRouteConnectorOption[] = [];
 
   const selectedBinding = readSelectedBinding(capability);
   const snapshot = buildRuntimeRouteOptionsSnapshot({

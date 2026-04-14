@@ -6,12 +6,10 @@ import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shel
 import { parseReportContent } from '../reports/structured-report.js';
 import {
   C,
-  DOMAIN_ROUTES,
   buildQuickLinks,
   describeNurtureMode,
   fmtRel,
   formatAgeLabel,
-  type DataGapAlertItem,
   type GrowthTrendItem,
   type MonthlyReportSummary,
   type RecentChangeItem,

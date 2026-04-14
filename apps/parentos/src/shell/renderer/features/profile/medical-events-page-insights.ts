@@ -9,7 +9,11 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { analyzeMedicalEvents } from '../../engine/smart-alerts.js';
 import type { MedicalAnalysis } from '../../engine/smart-alerts.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 import { EVENT_TYPE_LABELS, SEVERITY_LABELS } from './medical-events-page-shared.js';
 import type { MedicalEventsChildContext } from './medical-events-page-types.js';
 
@@ -61,11 +65,12 @@ export function useMedicalEventsInsights(
 
       const ageMonths = computeAgeMonths(child.birthDate);
       const prompt = [
-        '你是一位专业的儿童健康管理顾问。',
-        '请根据以下就医记录摘要，为家长提供一段综合健康分析（3-5句话）。',
+        '你是一位儿童健康记录整理助手。',
+        '请根据以下就医记录摘要，为家长生成一段描述性总结（3-5句话）。',
         '要求：',
-        '- 重点分析诊断规律、用药合理性、就医频率',
-        '- 如发现值得关注的模式，给出具体建议',
+        '- 仅描述记录中可见的就医频率、重复出现的主题和照护记录概况',
+        '- 如果存在值得留意的模式，只能说“可以继续留意”或“建议咨询专业人士”',
+        '- 不给出用药合理性判断、治疗建议、复查建议或具体护理方案',
         '- 使用客观温和的语气，不使用焦虑性词汇',
         '- 仅输出分析文本',
         '',
@@ -78,15 +83,16 @@ export function useMedicalEventsInsights(
       ].join('\n');
 
       const client = getPlatformClient();
-      const insightParams = resolveParentosTextGenerateConfig({ temperature: 0.3, maxTokens: 600 });
+      const insightParams = await resolveParentosTextRuntimeConfig('parentos.medical.smart-insight', { temperature: 0.3, maxTokens: 600 });
+      await ensureParentosLocalRuntimeReady({
+        route: insightParams.route,
+        localModelId: insightParams.localModelId,
+        timeoutMs: 60_000,
+      });
       const output = await client.runtime.ai.text.generate({
         ...insightParams,
         input: [{ role: 'user', content: prompt }],
-        metadata: {
-          callerKind: 'third-party-app' as const,
-          callerId: 'app.nimi.parentos',
-          surfaceId: 'parentos.medical.smart-insight',
-        },
+        metadata: buildParentosRuntimeMetadata('parentos.medical.smart-insight'),
       });
 
       const filtered = filterAIResponse(output.text);
@@ -112,8 +118,8 @@ export function useMedicalEventsInsights(
     try {
       const ageMonths = computeAgeMonths(child.birthDate);
       const prompt = [
-        '你是一位专业的儿童健康顾问。请根据以下单次就医记录，给出简短的分析建议（2-3句话）。',
-        '要求：客观温和，关注是否需要复查、用药注意事项、日常护理建议。仅输出分析文本。',
+        '你是一位儿童健康记录整理助手。请根据以下单次就医记录，给出简短的描述性总结（2-3句话）。',
+        '要求：客观温和，仅概括本次记录中的症状、处理经过和已记录照护信息；不要给出复查建议、用药注意事项、治疗建议或护理方案。仅输出分析文本。',
         '',
         `孩子：${child.displayName}，${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`,
         `就诊类型：${EVENT_TYPE_LABELS[event.eventType] ?? event.eventType}`,
@@ -126,15 +132,16 @@ export function useMedicalEventsInsights(
       ].filter(Boolean).join('\n');
 
       const client = getPlatformClient();
-      const eventParams = resolveParentosTextGenerateConfig({ temperature: 0.3, maxTokens: 300 });
+      const eventParams = await resolveParentosTextRuntimeConfig('parentos.medical.event-analysis', { temperature: 0.3, maxTokens: 300 });
+      await ensureParentosLocalRuntimeReady({
+        route: eventParams.route,
+        localModelId: eventParams.localModelId,
+        timeoutMs: 60_000,
+      });
       const output = await client.runtime.ai.text.generate({
         ...eventParams,
         input: [{ role: 'user', content: prompt }],
-        metadata: {
-          callerKind: 'third-party-app' as const,
-          callerId: 'app.nimi.parentos',
-          surfaceId: 'parentos.medical.event-analysis',
-        },
+        metadata: buildParentosRuntimeMetadata('parentos.medical.event-analysis'),
       });
 
       const filtered = filterAIResponse(output.text);

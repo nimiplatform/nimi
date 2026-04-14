@@ -1,6 +1,12 @@
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '../../app-shell/app-store.js';
 import type { ParentosCapabilityId } from './parentos-ai-config.js';
+import {
+  getParentosAISurfacePolicy,
+  type ParentosAISurfaceId,
+} from './parentos-ai-surface-policy.js';
+import { loadParentosRuntimeRouteOptions } from '../../infra/parentos-runtime-route-options.js';
 
 export type ParentosCallParams = {
   model: string;
@@ -41,6 +47,14 @@ export function resolveParentosBinding(capabilityId: ParentosCapabilityId): Pare
   };
 }
 
+export function buildParentosRuntimeMetadata(surfaceId: ParentosAISurfaceId) {
+  return {
+    callerKind: 'third-party-app' as const,
+    callerId: 'app.nimi.parentos',
+    surfaceId,
+  };
+}
+
 export type ParentosTextGenerateParams = ParentosCallParams & {
   temperature?: number;
   topP?: number;
@@ -56,6 +70,14 @@ export type ParentosSpeechTranscribeParams = ParentosCallParams & {
   speakerCount?: number;
   prompt?: string;
   timeoutMs?: number;
+};
+
+export type ParentosResolvedTextRuntimeParams = ParentosTextGenerateParams & {
+  localModelId?: string;
+};
+
+export type ParentosResolvedSpeechTranscribeParams = ParentosSpeechTranscribeParams & {
+  localModelId?: string;
 };
 
 function getCapabilityParams(capabilityId: ParentosCapabilityId): Record<string, unknown> {
@@ -82,6 +104,59 @@ function readBoolean(value: unknown, fallback: boolean | undefined): boolean | u
   return typeof value === 'boolean' ? value : fallback;
 }
 
+function normalizeModelSelector(value: string): string {
+  return String(value || '').trim();
+}
+
+function isQualifiedModelSelector(value: string): boolean {
+  const normalized = normalizeModelSelector(value);
+  return normalized.includes('/');
+}
+
+function inferLocalModelNamespace(provider: unknown): 'llama' | 'media' | 'speech' | 'sidecar' | 'local' {
+  const normalized = String(provider || '').trim().toLowerCase();
+  if (normalized.includes('speech') || normalized.includes('stt') || normalized.includes('tts')) return 'speech';
+  if (normalized.includes('media')) return 'media';
+  if (normalized.includes('sidecar')) return 'sidecar';
+  if (normalized.includes('llama') || normalized.includes('local')) return 'llama';
+  return 'local';
+}
+
+function qualifyRuntimeModel(input: {
+  model: string;
+  route?: 'local' | 'cloud';
+  provider?: unknown;
+}): string {
+  const normalizedModel = normalizeModelSelector(input.model);
+  if (!normalizedModel) {
+    return '';
+  }
+  if (isQualifiedModelSelector(normalizedModel)) {
+    return normalizedModel;
+  }
+  if (input.route === 'cloud') {
+    return `cloud/${normalizedModel}`;
+  }
+  return `${inferLocalModelNamespace(input.provider)}/${normalizedModel}`;
+}
+
+async function resolveLocalRuntimeModel(capability: ParentosCapabilityId, fallbackModel: string) {
+  const snapshot = await loadParentosRuntimeRouteOptions(capability);
+  const binding = snapshot.selected ?? snapshot.resolvedDefault;
+  const model = qualifyRuntimeModel({
+    model: String(binding?.model || fallbackModel || '').trim(),
+    route: 'local',
+    provider: binding?.provider || binding?.engine,
+  });
+  if (!model) {
+    throw new Error(`ParentOS ${capability} local model is not configured`);
+  }
+  return {
+    model,
+    localModelId: String(binding?.localModelId || binding?.goRuntimeLocalModelId || '').trim() || undefined,
+  };
+}
+
 export function resolveParentosTextGenerateConfig(defaults: {
   temperature?: number;
   topP?: number;
@@ -95,6 +170,58 @@ export function resolveParentosTextGenerateConfig(defaults: {
     topP: readFiniteNumber(params.topP, defaults.topP),
     maxTokens: readPositiveInteger(params.maxTokens, defaults.maxTokens),
     timeoutMs: readPositiveInteger(params.timeoutMs, defaults.timeoutMs),
+  };
+}
+
+export function resolveParentosTextSurfaceConfig(
+  surfaceId: ParentosAISurfaceId,
+  defaults: {
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    timeoutMs?: number;
+  } = {},
+): ParentosTextGenerateParams {
+  const resolved = resolveParentosTextGenerateConfig(defaults);
+  const policy = getParentosAISurfacePolicy(surfaceId);
+  if (!policy.localOnly) {
+    return resolved;
+  }
+  return {
+    ...resolved,
+    model: resolved.route === 'cloud' ? 'auto' : resolved.model,
+    route: 'local',
+    connectorId: undefined,
+  };
+}
+
+export async function resolveParentosTextRuntimeConfig(
+  surfaceId: ParentosAISurfaceId,
+  defaults: {
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+    timeoutMs?: number;
+  } = {},
+): Promise<ParentosResolvedTextRuntimeParams> {
+  const resolved = resolveParentosTextSurfaceConfig(surfaceId, defaults);
+  if (resolved.route !== 'local') {
+    return {
+      ...resolved,
+      model: qualifyRuntimeModel({
+        model: resolved.model,
+        route: 'cloud',
+      }),
+    };
+  }
+
+  const local = await resolveLocalRuntimeModel('text.generate', resolved.model);
+  return {
+    ...resolved,
+    model: local.model,
+    route: 'local',
+    connectorId: undefined,
+    localModelId: local.localModelId,
   };
 }
 
@@ -118,4 +245,83 @@ export function resolveParentosSpeechTranscribeConfig(defaults: {
     prompt: readTrimmedString(params.prompt, defaults.prompt),
     timeoutMs: readPositiveInteger(params.timeoutMs, defaults.timeoutMs),
   };
+}
+
+export function resolveParentosSpeechTranscribeSurfaceConfig(
+  surfaceId: ParentosAISurfaceId,
+  defaults: {
+    language?: string;
+    responseFormat?: string;
+    timestamps?: boolean;
+    diarization?: boolean;
+    speakerCount?: number;
+    prompt?: string;
+    timeoutMs?: number;
+  } = {},
+): ParentosSpeechTranscribeParams {
+  const resolved = resolveParentosSpeechTranscribeConfig(defaults);
+  const policy = getParentosAISurfacePolicy(surfaceId);
+  if (!policy.localOnly) {
+    return resolved;
+  }
+  return {
+    ...resolved,
+    model: resolved.route === 'cloud' ? 'auto' : resolved.model,
+    route: 'local',
+    connectorId: undefined,
+  };
+}
+
+export async function resolveParentosSpeechTranscribeRuntimeConfig(
+  surfaceId: ParentosAISurfaceId,
+  defaults: {
+    language?: string;
+    responseFormat?: string;
+    timestamps?: boolean;
+    diarization?: boolean;
+    speakerCount?: number;
+    prompt?: string;
+    timeoutMs?: number;
+  } = {},
+): Promise<ParentosResolvedSpeechTranscribeParams> {
+  const resolved = resolveParentosSpeechTranscribeSurfaceConfig(surfaceId, defaults);
+  if (resolved.route !== 'local') {
+    return {
+      ...resolved,
+      model: qualifyRuntimeModel({
+        model: resolved.model,
+        route: 'cloud',
+      }),
+    };
+  }
+
+  const local = await resolveLocalRuntimeModel('audio.transcribe', resolved.model);
+  return {
+    ...resolved,
+    model: local.model,
+    route: 'local',
+    connectorId: undefined,
+    localModelId: local.localModelId,
+  };
+}
+
+export async function ensureParentosLocalRuntimeReady(input: {
+  route?: 'local' | 'cloud';
+  localModelId?: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  if (input.route !== 'local') {
+    return;
+  }
+  const localModelId = String(input.localModelId || '').trim();
+  if (!localModelId) {
+    return;
+  }
+  const timeoutMs = typeof input.timeoutMs === 'number' && Number.isFinite(input.timeoutMs) && input.timeoutMs > 0
+    ? Math.trunc(input.timeoutMs)
+    : 60_000;
+  await getPlatformClient().runtime.local.warmLocalAsset({
+    localAssetId: localModelId,
+    timeoutMs,
+  });
 }

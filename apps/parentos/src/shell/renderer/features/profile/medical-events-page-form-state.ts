@@ -8,7 +8,11 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 import { EVENT_TYPE_LABELS, LAB_ITEMS, parseLabReport, type LabReportData } from './medical-events-page-shared.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 import type {
   MedicalEventsChildContext,
   MedicalEventsFormMedication,
@@ -97,7 +101,12 @@ export function useMedicalEventsFormState(
         '- 仅输出 JSON，不要输出其他内容。',
       ].join('\n');
 
-      const ocrParams = resolveParentosTextGenerateConfig({ temperature: 0, maxTokens: 1000 });
+      const ocrParams = await resolveParentosTextRuntimeConfig('parentos.medical.ocr-intake', { temperature: 0, maxTokens: 1000 });
+      await ensureParentosLocalRuntimeReady({
+        route: ocrParams.route,
+        localModelId: ocrParams.localModelId,
+        timeoutMs: 60_000,
+      });
       const output = await client.runtime.ai.text.generate({
         ...ocrParams,
         input: [{
@@ -107,11 +116,7 @@ export function useMedicalEventsFormState(
             { type: 'image_url', imageUrl, detail: 'high' },
           ],
         }],
-        metadata: {
-          callerKind: 'third-party-app' as const,
-          callerId: 'app.nimi.parentos',
-          surfaceId: 'parentos.medical.ocr-intake',
-        },
+        metadata: buildParentosRuntimeMetadata('parentos.medical.ocr-intake'),
       });
 
       const jsonMatch = output.text.match(/\{[\s\S]*\}/);

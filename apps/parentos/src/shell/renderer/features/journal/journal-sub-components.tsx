@@ -75,7 +75,7 @@ export interface PhotoBarProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
-export function PhotoBar({ drafts, onAdd, onRemove, inputRef }: PhotoBarProps) {
+export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       {/* Photo previews */}

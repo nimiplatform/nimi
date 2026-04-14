@@ -44,12 +44,6 @@ const PHOTO_SLOTS = [
   { key: 'side', label: '侧面站立' },
 ] as const;
 
-const FOOT_ARCH_OPTIONS = [
-  { value: 'normal', label: '正常' },
-  { value: 'flat', label: '扁平足' },
-  { value: 'high-arch', label: '高弓足' },
-  { value: 'monitoring', label: '观察中' },
-] as const;
 const FOOT_ARCH_LABELS: Record<string, string> = { normal: '正常', flat: '扁平足', 'high-arch': '高弓足', monitoring: '观察中' };
 const FOOT_ARCH_COLORS: Record<string, string> = { normal: '#22c55e', flat: '#f59e0b', 'high-arch': '#f59e0b', monitoring: '#3b82f6' };
 
@@ -137,7 +131,6 @@ export default function PosturePage() {
   const [formKnee, setFormKnee] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [formPhotos, setFormPhotos] = useState<Record<string, string>>({});
-  const [photoHover, setPhotoHover] = useState<string | null>(null);
   const [postureTab, setPostureTab] = useState<PostureTab>('back');
   const photoInputRef = useRef<HTMLInputElement>(null);
   const photoSlotRef = useRef<string | null>(null);
@@ -165,7 +158,7 @@ export default function PosturePage() {
     setFormHip(''); setFormLeg(''); setFormHeel('');
     setFormNeck(''); setFormPelvis(''); setFormKnee('');
     setFormNotes(''); setFormPhotos({});
-    setPhotoHover(null); setPostureTab('back'); setShowForm(false);
+    setPostureTab('back'); setShowForm(false);
   };
 
   const handleSubmit = async () => {

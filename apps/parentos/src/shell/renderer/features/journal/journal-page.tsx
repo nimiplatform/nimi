@@ -43,7 +43,7 @@ import {
   blobToBase64,
   parseSelectedTags,
 } from './journal-page-helpers.js';
-import { AutoTagBar, PhotoBar, VoiceCapture } from './journal-sub-components.js';
+import { PhotoBar, VoiceCapture } from './journal-sub-components.js';
 import { JournalEntryTimeline } from './journal-entry-timeline.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
 import { getGuidedPrompts, type GuidedPromptContext } from './journal-guided-prompts.js';
@@ -301,11 +301,9 @@ export default function JournalPage() {
   const [voiceRuntimeAvailable, setVoiceRuntimeAvailable] = useState<boolean | null>(null);
   const [taggingRuntimeAvailable, setTaggingRuntimeAvailable] = useState<boolean | null>(null);
   const [tagSuggestionStatus, setTagSuggestionStatus] = useState<TagSuggestionStatus>('idle');
-  const [tagSuggestionError, setTagSuggestionError] = useState<string | null>(null);
   const [confirmedSuggestion, setConfirmedSuggestion] = useState<JournalTagSuggestion | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showClassify, setShowClassify] = useState(false);
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([]);
   const [entryFilter, setEntryFilter] = useState<'all' | 'keepsake'>('all');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -408,7 +406,6 @@ export default function JournalPage() {
       }, 1500);
     }
     return () => { if (autoSuggestTimer.current) clearTimeout(autoSuggestTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftTextForTagging, tagSuggestionStatus, taggingRuntimeAvailable]);
 
   useEffect(() => {
@@ -436,7 +433,6 @@ export default function JournalPage() {
         setSubjectiveNotes('');
         setSubmitError(null);
         setTagSuggestionStatus('idle');
-        setTagSuggestionError(null);
         setConfirmedSuggestion(null);
         recorderSessionRef.current?.cancel();
         recorderSessionRef.current = null;
@@ -463,7 +459,6 @@ export default function JournalPage() {
     setLastSavedDraftSignature(storedDraft
       ? serializeJournalLocalDraft(toJournalLocalDraftPayload(storedDraft))
       : null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [child?.childId, editingEntryId]);
 
   useEffect(() => {
@@ -568,7 +563,6 @@ export default function JournalPage() {
 
   const resetSuggestionMetadata = () => {
     setTagSuggestionStatus('idle');
-    setTagSuggestionError(null);
     setConfirmedSuggestion(null);
   };
 
@@ -594,7 +588,6 @@ export default function JournalPage() {
       if (!prev || prev.dimensionId !== nextDimensionId) return null;
       return { dimensionId: prev.dimensionId, tags: prev.tags.filter((tag) => allowedTags.has(tag)) };
     });
-    setTagSuggestionError(null);
     setTagSuggestionStatus((prev) => (prev === 'failed' ? 'idle' : prev));
   };
 
@@ -898,8 +891,11 @@ export default function JournalPage() {
   const handleSuggestTags = async () => {
     if (!draftTextForTagging) return;
     const candidateDimensions = selectedDimension && currentDimension ? [currentDimension] : activeDimensions;
-    if (candidateDimensions.length === 0) { setTagSuggestionStatus('failed'); setTagSuggestionError('当前年龄段暂时没有可用的成长关键词。'); return; }
-    setTagSuggestionStatus('suggesting'); setTagSuggestionError(null);
+    if (candidateDimensions.length === 0) {
+      setTagSuggestionStatus('failed');
+      return;
+    }
+    setTagSuggestionStatus('suggesting');
     try {
       const suggestion = await suggestJournalTags({ draftText: draftTextForTagging, candidateDimensions });
       if (suggestion.dimensionId) {
@@ -914,12 +910,7 @@ export default function JournalPage() {
       setTagSuggestionStatus('ready');
     } catch {
       setConfirmedSuggestion(null); setTagSuggestionStatus('failed');
-      setTagSuggestionError('AI 成长关键词建议失败。');
     }
-  };
-
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   };
 
   const canSaveText = captureMode === 'text' && (
@@ -929,7 +920,6 @@ export default function JournalPage() {
     || parseSelectedTags(editingEntry?.photoPaths ?? null).length > 0
   );
   const canSaveVoice = captureMode === 'voice' && Boolean(voiceDraft.blob) && voiceDraft.status !== 'recording' && voiceDraft.status !== 'transcribing';
-  const canSuggestTags = draftTextForTagging.length > 0 && tagSuggestionStatus !== 'suggesting' && taggingRuntimeAvailable !== false;
   const editingEntryLabel = editingEntry
     ? `${editingEntry.recordedAt.split('T')[0]} ${editingEntry.recordedAt.split('T')[1]?.slice(0, 5) ?? ''}`.trim()
     : null;

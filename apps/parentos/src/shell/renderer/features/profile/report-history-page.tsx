@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
-import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
+import { useAppStore } from '../../app-shell/app-store.js';
 import { getGrowthReports } from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';

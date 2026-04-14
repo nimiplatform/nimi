@@ -18,7 +18,6 @@ const SOURCE_LABELS: Record<string, string> = {
   self: '自测',
 };
 
-const FOOT_ARCH_OPTIONS = ['normal', 'flat', 'high-arch', 'monitoring'] as const;
 const FOOT_ARCH_LABELS: Record<string, string> = {
   normal: '正常',
   flat: '扁平足',
@@ -26,7 +25,6 @@ const FOOT_ARCH_LABELS: Record<string, string> = {
   monitoring: '观察中',
 };
 
-const GRADE_OPTIONS = ['excellent', 'good', 'pass', 'fail'] as const;
 const GRADE_LABELS: Record<string, string> = {
   excellent: '优秀',
   good: '良好',

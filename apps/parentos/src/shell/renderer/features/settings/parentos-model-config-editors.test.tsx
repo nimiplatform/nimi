@@ -27,7 +27,7 @@ describe('parentos-model-config-editors', () => {
       </TooltipProvider>,
     );
 
-    const modelInput = screen.getByPlaceholderText('例如 gpt-5.4 / whisper-large-v3');
+    const modelInput = screen.getByPlaceholderText('例如 local/Gemma-4-27B-it-Q4_K_M');
     fireEvent.change(modelInput, { target: { value: 'local/Gemma-4-27B-it-Q6_K' } });
 
     expect(onBindingChange).toHaveBeenLastCalledWith({

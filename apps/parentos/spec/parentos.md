@@ -11,7 +11,7 @@ Current public surfaces include:
 - timeline and reminders
 - child profile plus health subpages
 - journal with text, photo, voice, and closed-set AI tag suggestion
-- advisor chat with reviewed-domain runtime gating
+- advisor chat with prompt-strategy routing over a local runtime path
 - reports with structured-local and narrative report payloads
 - settings for children, nurture mode, reminder frequency, and AI model/runtime preferences
 
@@ -32,7 +32,7 @@ The authority details live in [kernel/profile-contract.md](kernel/profile-contra
 At a product level:
 
 - profile sub-pages may use bounded runtime summaries from current local records, and admitted OCR surfaces may extract structured candidates from one selected local image
-- advisor chat may use runtime free-form generation only for domains marked `reviewed`
+- advisor chat always uses the local runtime when available, but switches between generic-chat, reviewed-advice, needs-review-descriptive, and unknown-clarifier strategies
 - reports may generate narrative content from local child records, but must stay descriptive and pass safety filtering
 - journal AI tagging is a closed-set extraction surface only
 - diagnosis, treatment, ranking, and alarmist wording remain outside scope

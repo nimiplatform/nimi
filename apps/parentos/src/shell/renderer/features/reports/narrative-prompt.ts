@@ -1,6 +1,10 @@
 import { computeAgeMonthsAt, formatAge, type ChildProfile } from '../../app-shell/app-store.js';
 import type { TextStreamInput, TextStreamOutput } from '@nimiplatform/sdk/runtime/types-media.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 import type {
   AllergyRecordRow, DentalRecordRow, FitnessAssessmentRow, JournalEntryRow,
   MeasurementRow, MedicalEventRow, MilestoneRecordRow, ReminderStateRow,
@@ -233,13 +237,18 @@ export async function generateNarrativeReport(
   const snapshot = buildReportDataSnapshot(child, period, data);
   const monthLabel = new Date(period.end).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
 
-  const aiParams = resolveParentosTextGenerateConfig({ temperature: 0.7, maxTokens: 2048 });
+  const aiParams = await resolveParentosTextRuntimeConfig('parentos.report', { temperature: 0.7, maxTokens: 2048 });
+  await ensureParentosLocalRuntimeReady({
+    route: aiParams.route,
+    localModelId: aiParams.localModelId,
+    timeoutMs: 60_000,
+  });
   const out = await runtime.ai.text.stream({
     ...aiParams,
     input: [{ role: 'user', content: buildReportUserMessage(child.displayName, monthLabel, snapshot) }],
     system: buildReportSystemPrompt(child.displayName),
     signal,
-    metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.report' },
+    metadata: buildParentosRuntimeMetadata('parentos.report'),
   });
 
   let full = '';

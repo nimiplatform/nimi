@@ -2,8 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../app-shell/app-store.js';
 
 const listLocalAssetsMock = vi.fn();
-const listConnectorsMock = vi.fn();
-const listConnectorModelsMock = vi.fn();
 const logRendererEventMock = vi.fn();
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -15,8 +13,8 @@ vi.mock('@nimiplatform/sdk', () => ({
     },
     domains: {
       runtimeAdmin: {
-        listConnectors: listConnectorsMock,
-        listConnectorModels: listConnectorModelsMock,
+        listConnectors: vi.fn(),
+        listConnectorModels: vi.fn(),
       },
     },
   }),
@@ -32,8 +30,6 @@ const { loadParentosRuntimeRouteOptions } = await import('./parentos-runtime-rou
 describe('parentos-runtime-route-options', () => {
   beforeEach(() => {
     listLocalAssetsMock.mockReset();
-    listConnectorsMock.mockReset();
-    listConnectorModelsMock.mockReset();
     logRendererEventMock.mockReset();
     useAppStore.setState({
       runtimeDefaults: {
@@ -93,22 +89,6 @@ describe('parentos-runtime-route-options', () => {
       }],
       nextPageToken: '',
     });
-    listConnectorsMock.mockResolvedValue({
-      connectors: [{
-        connectorId: 'connector-openai',
-        provider: 'openai',
-        label: 'OpenAI',
-      }],
-    });
-    listConnectorModelsMock.mockResolvedValue({
-      models: [{
-        available: true,
-        modelId: 'gpt-5.4',
-        capabilities: ['chat'],
-      }],
-      nextPageToken: '',
-    });
-
     const snapshot = await loadParentosRuntimeRouteOptions('text.generate');
 
     expect(snapshot).toEqual({
@@ -153,15 +133,7 @@ describe('parentos-runtime-route-options', () => {
           capabilities: ['text.generate'],
         }],
       },
-      connectors: [{
-        id: 'connector-openai',
-        label: 'OpenAI',
-        provider: 'openai',
-        models: ['gpt-5.4'],
-        modelCapabilities: {
-          'gpt-5.4': ['chat'],
-        },
-      }],
+      connectors: [],
     });
   });
 
@@ -170,10 +142,6 @@ describe('parentos-runtime-route-options', () => {
       assets: [],
       nextPageToken: '',
     });
-    listConnectorsMock.mockResolvedValue({
-      connectors: [],
-    });
-
     const snapshot = await loadParentosRuntimeRouteOptions('audio.transcribe');
 
     expect(snapshot).toEqual({
@@ -185,51 +153,6 @@ describe('parentos-runtime-route-options', () => {
         models: [],
       },
       connectors: [],
-    });
-  });
-
-  it('keeps connector-based route options available when local asset inventory fails', async () => {
-    listLocalAssetsMock.mockRejectedValue(new Error('/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets'));
-    listConnectorsMock.mockResolvedValue({
-      connectors: [{
-        connectorId: 'connector-openai',
-        provider: 'openai',
-        label: 'OpenAI',
-      }],
-    });
-    listConnectorModelsMock.mockResolvedValue({
-      models: [{
-        available: true,
-        modelId: 'gpt-5.4',
-        capabilities: ['chat'],
-      }],
-      nextPageToken: '',
-    });
-
-    const snapshot = await loadParentosRuntimeRouteOptions('text.generate');
-
-    expect(snapshot).toEqual({
-      capability: 'text.generate',
-      selected: null,
-      resolvedDefault: {
-        source: 'cloud',
-        connectorId: 'connector-openai',
-        model: 'gpt-5.4',
-        provider: 'openai',
-      },
-      local: {
-        defaultEndpoint: 'http://127.0.0.1:1234/v1',
-        models: [],
-      },
-      connectors: [{
-        id: 'connector-openai',
-        label: 'OpenAI',
-        provider: 'openai',
-        models: ['gpt-5.4'],
-        modelCapabilities: {
-          'gpt-5.4': ['chat'],
-        },
-      }],
     });
   });
 
@@ -245,10 +168,6 @@ describe('parentos-runtime-route-options', () => {
       }],
       nextPageToken: '',
     });
-    listConnectorsMock.mockResolvedValue({
-      connectors: [],
-    });
-
     const snapshot = await loadParentosRuntimeRouteOptions('text.generate');
 
     expect(snapshot.local.models).toEqual([{

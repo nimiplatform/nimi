@@ -86,10 +86,12 @@ export function describeError(error: unknown): JsonObject {
 }
 
 function consoleMethod(level: ParentosRendererLogLevel): (...args: unknown[]) => void {
-  if (level === 'error') return console.error.bind(console);
-  if (level === 'warn') return console.warn.bind(console);
-  if (level === 'debug') return console.debug.bind(console);
-  return console.info.bind(console);
+  const logger = globalThis.console;
+  if (!logger) return () => {};
+  if (level === 'error') return logger.error.bind(logger);
+  if (level === 'warn') return logger.warn.bind(logger);
+  if (level === 'debug') return logger.debug.bind(logger);
+  return logger.info.bind(logger);
 }
 
 export function logRendererEvent(input: {
@@ -121,7 +123,7 @@ export function logRendererEvent(input: {
   }
 
   void invokeTauri('log_renderer_event', { payload }).catch((error: unknown) => {
-    console.warn('[parentos:renderer-log] action:tauri-log-forward-failed', describeError(error));
+    consoleMethod('warn')('[parentos:renderer-log] action:tauri-log-forward-failed', describeError(error));
   });
 }
 

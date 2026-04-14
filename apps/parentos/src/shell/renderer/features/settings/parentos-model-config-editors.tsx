@@ -153,10 +153,15 @@ function EditorShell(props: { title: string; hint: string; children: ReactNode }
 }
 
 function normalizeBinding(binding: RuntimeRouteBinding | null): RuntimeRouteBinding {
-  return binding || {
+  const current = binding || {
     source: 'local',
     connectorId: '',
     model: '',
+  };
+  return {
+    ...current,
+    source: 'local',
+    connectorId: '',
   };
 }
 
@@ -170,6 +175,8 @@ function patchBinding(
     ...current,
     ...patch,
   } satisfies RuntimeRouteBinding;
+  next.source = 'local';
+  next.connectorId = '';
 
   if (nextSource !== 'local') {
     next.localModelId = undefined;
@@ -206,37 +213,16 @@ function BindingEditor(props: {
     <EditorShell
       title="模型绑定"
       hint={props.pickerAvailable
-        ? '你可以使用上方选择器选模型；这里也可以直接手动改 route、model 和 connector。'
-        : (props.pickerUnavailableHint || '当前 runtime 路由列表不可用，请直接手动填写 route、model 和 connector。')}
+        ? 'ParentOS 只允许本地运行时模型。你可以使用上方选择器，或直接手动填写本地 model id。'
+        : (props.pickerUnavailableHint || '当前 runtime 本地模型列表不可用，请直接手动填写本地 model id。')}
     >
-      <div className="grid grid-cols-2 gap-3">
-        <FieldRow label="Route Source" tooltip="本地模型或云端连接器。">
-          <FieldSelect
-            value={current.source}
-            onChange={(value) => update({ source: value === 'cloud' ? 'cloud' : 'local' })}
-            options={[
-              { value: 'local', label: 'local' },
-              { value: 'cloud', label: 'cloud' },
-            ]}
-          />
-        </FieldRow>
-        <FieldRow label="Model" tooltip="运行时实际使用的 model id。">
-          <FieldInput
-            value={current.model}
-            onChange={(value) => update({ model: value })}
-            placeholder="例如 gpt-5.4 / whisper-large-v3"
-          />
-        </FieldRow>
-      </div>
-      {current.source === 'cloud' ? (
-        <FieldRow label="Connector ID" tooltip="云端路由需要指定 connectorId。">
-          <FieldInput
-            value={current.connectorId}
-            onChange={(value) => update({ connectorId: value })}
-            placeholder="例如 openai-main"
-          />
-        </FieldRow>
-      ) : null}
+      <FieldRow label="Model" tooltip="本地运行时实际使用的 model id。">
+        <FieldInput
+          value={current.model}
+          onChange={(value) => update({ model: value })}
+          placeholder="例如 local/Gemma-4-27B-it-Q4_K_M"
+        />
+      </FieldRow>
     </EditorShell>
   );
 }

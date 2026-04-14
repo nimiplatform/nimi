@@ -60,12 +60,12 @@ describe('parentos-ai-config persistence', () => {
       scopeRef: PARENTOS_AI_SCOPE_REF,
       capabilities: {
         selectedBindings: {
-          'text.generate': {
-            source: 'cloud',
-            connectorId: 'connector-1',
+          'text.generate': expect.objectContaining({
+            source: 'local',
+            connectorId: '',
             model: 'gpt-5.4',
             provider: 'openai',
-          },
+          }),
           'audio.transcribe': null,
         },
         localProfileRefs: {
@@ -143,5 +143,29 @@ describe('parentos-ai-config persistence', () => {
       }),
       '2026-04-10T10:00:00.000Z',
     );
+  });
+
+  it('normalizes persisted cloud bindings back to local-only ParentOS config', () => {
+    const parsed = parsePersistedParentosAIConfig(JSON.stringify({
+      scopeRef: PARENTOS_AI_SCOPE_REF,
+      capabilities: {
+        selectedBindings: {
+          'text.generate': {
+            source: 'cloud',
+            connectorId: 'openai-main',
+            model: 'gpt-5.4',
+          },
+        },
+        localProfileRefs: {},
+        selectedParams: {},
+      },
+      profileOrigin: null,
+    }));
+
+    expect(parsed?.capabilities.selectedBindings['text.generate']).toEqual({
+      source: 'local',
+      connectorId: '',
+      model: 'gpt-5.4',
+    });
   });
 });

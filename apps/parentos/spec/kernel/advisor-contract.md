@@ -4,7 +4,7 @@
 
 ## Scope
 
-This contract governs the AI growth advisor boundary, local snapshot assembly, reviewed-domain advisor chat, reports generation and persistence, and report-specific runtime narration.
+This contract governs the AI growth advisor boundary, local snapshot assembly, advisor prompt strategy selection, reports generation and persistence, and report-specific runtime narration.
 
 Covered features from `feature-matrix.yaml`:
 
@@ -47,19 +47,32 @@ Reports may additionally consume reminder states and the profile-side health rec
 
 The message-level `contextSnapshot` stored in `ai_messages` must freeze the request-time snapshot and must not be retroactively mutated when local records change later.
 
-## PO-ADVS-002 Advisor Chat Runtime Eligibility Gate
+## PO-ADVS-002 Advisor Prompt Strategy Selection
 
-Advisor chat free-form generation is allowed only when every inferred requested domain is `reviewed` in `knowledge-source-readiness.yaml`.
+Advisor chat may enter the local runtime whenever request-time snapshot assembly and persistence succeed. The runtime prompt strategy must be selected from exactly one of:
 
-- `reviewed` domains may enter the advisor runtime prompt
-- `needs-review` domains must not enter advisor prompt assembly
-- mixed-domain questions must be treated as not runtime-eligible
+- `generic-chat`
+- `reviewed-advice`
+- `needs-review-descriptive`
+- `unknown-clarifier`
 
-This gate applies to advisor chat even when a local structured record exists for the domain.
+Selection rules:
+
+- `reviewed-advice` is allowed only when every inferred requested domain is `reviewed` in `knowledge-source-readiness.yaml`
+- any `needs-review` or mixed-domain question must use `needs-review-descriptive`
+- child-specific questions with no resolved domain must use `unknown-clarifier`
+- greetings, capability questions, model-identity questions, and other meta/product chat may use `generic-chat`
+
+Boundary rules:
+
+- `needs-review` domains must not enter the `reviewed-advice` prompt path
+- `needs-review-descriptive` may only describe local facts, restate record context, clarify scope, and advise consulting a professional
+- `unknown-clarifier` must not skip directly to child-specific conclusions
+- all advisor strategies must remain local-only and must not bypass snapshot grounding for child-data turns
 
 ## PO-ADVS-003 Structured Advisor Fallback
 
-When advisor chat runtime generation is not allowed, the advisor must return a structured fallback composed from local facts.
+When advisor chat runtime is unavailable, snapshot assembly fails, persistence fails, runtime output violates safety checks, or the runtime call itself fails, the advisor must return a structured fallback composed from local facts.
 
 The fallback must:
 
@@ -89,9 +102,9 @@ For anomalous structured data, the advisor or report surface may state the objec
 
 ## PO-ADVS-005 Source Attribution
 
-When an answer references reviewed-domain knowledge, the advisor must append source labels projected from `knowledge-source-readiness.yaml`.
+When an answer uses the `reviewed-advice` strategy, the advisor must append source labels projected from `knowledge-source-readiness.yaml`.
 
-When no reviewed-domain source applies, the advisor must return the structured local summary without invented citations.
+When the strategy is `generic-chat`, `needs-review-descriptive`, or `unknown-clarifier`, the advisor must not invent citations or imply reviewed-domain authority that has not been admitted.
 
 ## PO-ADVS-006 Conversation Persistence
 
@@ -182,7 +195,7 @@ Trend analysis must stay tied to local evidence lines.
 
 The advisor layer must fail closed when:
 
-- an advisor chat request attempts to send `needs-review` knowledge into the runtime prompt
+- an advisor chat request attempts to send `needs-review` knowledge into the `reviewed-advice` prompt path
 - a generated answer violates banned wording checks
 - a typed advisor snapshot cannot be assembled from local rows
 - conversation persistence returns malformed typed data
@@ -196,5 +209,5 @@ The following remain outside this contract:
 
 - broad `PO-FEAT-013` observation-pattern generation
 - diagnosis, treatment guidance, or comparative ranking
-- promotion of advisor chat runtime into `needs-review` domains
+- promotion of `needs-review` domains into reviewed-advice or expert-style guidance
 - orphan report types or pages that are not admitted by `routes.yaml` and `local-storage.yaml`

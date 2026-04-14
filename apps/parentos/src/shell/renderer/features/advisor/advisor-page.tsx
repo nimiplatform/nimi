@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { asNimiError } from '@nimiplatform/sdk/runtime';
+import { ChatMarkdownRenderer } from '@nimiplatform/nimi-kit/features/chat/ui';
 import { Link, useSearchParams } from 'react-router-dom';
 import { S } from '../../app-shell/page-style.js';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
@@ -8,26 +10,66 @@ import {
   createConversation,
   getAiMessages,
   getConversations,
-  getJournalEntries,
-  getMeasurements,
-  getMilestoneRecords,
-  getVaccineRecords,
   insertAiMessage,
 } from '../../bridge/sqlite-bridge.js';
 import type { AiMessageRow, ConversationRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import {
   appendAdvisorSources,
+  buildAdvisorGenericRuntimeUserMessage,
+  buildAdvisorNeedsReviewRuntimeUserMessage,
+  buildAdvisorUnknownClarifierRuntimeUserMessage,
+  buildAdvisorRuntimeUserMessage,
+  buildAdvisorSnapshot,
   buildStructuredAdvisorFallback,
-  canUseAdvisorRuntime,
   inferRequestedDomains,
+  resolveAdvisorPromptStrategy,
+  serializeAdvisorSnapshot,
+  type AdvisorPromptStrategy,
 } from './advisor-boundary.js';
-import { resolveParentosTextGenerateConfig } from '../settings/parentos-ai-runtime.js';
+import {
+  buildParentosRuntimeMetadata,
+  ensureParentosLocalRuntimeReady,
+  resolveParentosTextRuntimeConfig,
+} from '../settings/parentos-ai-runtime.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 
 /* design tokens imported from shared page-style */
 
 type StreamingState = 'idle' | 'streaming';
+
+function padDateSegment(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+function parseAdvisorDisplayDate(value: string): Date | null {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatAdvisorConversationDate(value: string) {
+  const date = parseAdvisorDisplayDate(value);
+  if (!date) {
+    return value.split('T')[0] ?? value;
+  }
+  return [
+    String(date.getFullYear()),
+    padDateSegment(date.getMonth() + 1),
+    padDateSegment(date.getDate()),
+  ].join('-');
+}
+
+function formatAdvisorMessageTime(value: string) {
+  const date = parseAdvisorDisplayDate(value);
+  if (!date) {
+    return value.split('T')[1]?.split('.')[0] ?? value;
+  }
+  return [
+    padDateSegment(date.getHours()),
+    padDateSegment(date.getMinutes()),
+    padDateSegment(date.getSeconds()),
+  ].join(':');
+}
 
 /* ── contextual opening message for reminder topics ──────── */
 
@@ -55,11 +97,8 @@ function buildSystemPrompt(
   ageMonths: number,
   gender: string,
   nurtureMode: string,
-  domains: string[],
+  _domains: string[],
 ): string {
-  const genericChatGuard = domains.length === 0
-    ? '\n褰撶敤鎴疯緭鍏ュ彧鏄棶鍊欍€侀棽鑱婃垨鏆傛椂鏃犳硶鍒ゆ柇鍏蜂綋棰嗗煙鏃讹紝鍙互姝ｅ父鑱婂ぉ鍜屽洖搴旀嫑鍛硷紝浣嗚涓诲姩寮曞瀹堕暱璇存槑鎯充簡瑙ｇ殑鍏蜂綋鏂归潰锛堝鐫＄湢銆佺柅鑻椼€佺敓闀裤€侀噷绋嬬銆佽瀵熻褰曠瓑锛夈€備笉瑕佸湪棰嗗煙鏈槑纭椂鐩存帴缁欏嚭涓€у寲鑲插効寤鸿鎴栭珮椋庨櫓鍒ゆ柇銆?'
-    : '';
   return `你是"成长底稿"的 AI 成长顾问，只能在已审核知识领域内提供解释。
 
 当前孩子信息：
@@ -87,15 +126,74 @@ function buildAdvisorSystemPrompt(
   ageMonths: number,
   gender: string,
   nurtureMode: string,
+  strategy: AdvisorPromptStrategy,
   domains: string[],
 ): string {
   const basePrompt = buildSystemPrompt(childName, ageMonths, gender, nurtureMode, domains);
-  if (domains.length > 0) {
-    return basePrompt;
+  if (strategy === 'reviewed-advice') {
+    return `${basePrompt}
+
+当前策略：reviewed-advice
+- 可以基于本地快照和已审核领域给出解释、归纳、温和建议。
+- 不要输出诊断、药物、治疗或惊吓式表述。`;
+  }
+  if (strategy === 'needs-review-descriptive') {
+    return `${basePrompt}
+
+当前策略：needs-review-descriptive
+- 只允许基于本地快照做描述、整理、重述和范围说明。
+- 不要给出诊断、治疗、用药、风险评级、因果解释或专家式判断。
+- 如用户索要结论或建议，只能说明当前先基于本地记录描述事实，并建议咨询专业人士。`;
+  }
+  if (strategy === 'unknown-clarifier') {
+    return `${basePrompt}
+
+当前策略：unknown-clarifier
+- 用户意图还不明确。
+- 只做简短澄清和方向引导，不直接给个性化育儿结论。
+- 优先把问题收敛到睡眠、敏感期、性教育、数字使用，或本地记录查看方向。`;
   }
   return `${basePrompt}
 
-用户如果只是问候、闲聊，或暂时没说清具体话题，可以正常聊天并主动追问想了解的方向，例如睡眠、疫苗、生长、里程碑或观察记录；在领域未明确前，不直接给个性化育儿判断或高风险建议。`;
+当前策略：generic-chat
+- 用户如果只是问候、闲聊、测试、询问你是谁或你能做什么，可以正常聊天。
+- 可以主动追问想了解的方向，例如睡眠、疫苗、生长、里程碑或观察记录。
+- 在领域未明确前，不直接给个性化育儿判断或高风险建议。`;
+}
+
+function buildAdvisorRuntimeInput(
+  strategy: AdvisorPromptStrategy,
+  question: string,
+  domains: string[],
+  snapshot: Awaited<ReturnType<typeof buildAdvisorSnapshot>>,
+) {
+  switch (strategy) {
+    case 'generic-chat':
+      return buildAdvisorGenericRuntimeUserMessage(question);
+    case 'needs-review-descriptive':
+      return buildAdvisorNeedsReviewRuntimeUserMessage(question, domains, snapshot);
+    case 'unknown-clarifier':
+      return buildAdvisorUnknownClarifierRuntimeUserMessage(question, snapshot);
+    case 'reviewed-advice':
+    default:
+      return buildAdvisorRuntimeUserMessage(question, domains, snapshot);
+  }
+}
+
+function shouldAppendAdvisorSources(strategy: AdvisorPromptStrategy, domains: string[]) {
+  return strategy === 'reviewed-advice' && domains.length > 0;
+}
+
+function buildAdvisorRuntimeFailureNote(error: unknown) {
+  const normalized = asNimiError(error, { source: 'runtime' });
+  const providerMessage = typeof normalized.details?.provider_message === 'string'
+    ? normalized.details.provider_message.trim()
+    : '';
+  const detail = providerMessage || String(normalized.message || '').trim();
+  if (detail) {
+    return `补充说明：运行时响应失败（${normalized.reasonCode}：${detail}），已退回本地结构化事实。`;
+  }
+  return `补充说明：运行时响应失败（${normalized.reasonCode}），已退回本地结构化事实。`;
 }
 
 export default function AdvisorPage() {
@@ -114,9 +212,108 @@ export default function AdvisorPage() {
   const abortRef = useRef<AbortController | null>(null);
   const topicHandledRef = useRef<string | null>(null);
 
-  const saveAssistantMsg = async (convId: string, content: string) => {
-    await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot: null, now: isoNow() });
+  const saveAssistantMsg = async (convId: string, content: string, contextSnapshot: string | null) => {
+    await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now: isoNow() });
     setMessages(await getAiMessages(convId));
+  };
+
+  const runAdvisorTurn = async (params: {
+    conversationId: string;
+    question: string;
+    ageMonthsAtRequest: number;
+  }) => {
+    if (!child) {
+      return;
+    }
+    const activeChild = child;
+    const domains = inferRequestedDomains(params.question);
+    const strategy = resolveAdvisorPromptStrategy(params.question, domains);
+    const snapshot = await buildAdvisorSnapshot({
+      childId: activeChild.childId,
+      displayName: activeChild.displayName,
+      gender: activeChild.gender,
+      birthDate: activeChild.birthDate,
+      nurtureMode: activeChild.nurtureMode,
+      ageMonths: params.ageMonthsAtRequest,
+    });
+    const snapshotJson = serializeAdvisorSnapshot(snapshot);
+
+    await insertAiMessage({
+      messageId: ulid(),
+      conversationId: params.conversationId,
+      role: 'user',
+      content: params.question,
+      contextSnapshot: snapshotJson,
+      now: isoNow(),
+    });
+    setMessages(await getAiMessages(params.conversationId));
+
+    if (!runtimeAvailable) {
+      await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot), snapshotJson);
+      return;
+    }
+
+    setStreamingState('streaming');
+    setStreamingContent('');
+    try {
+      const { getPlatformClient } = await import('@nimiplatform/sdk');
+      const client = getPlatformClient();
+      const rt = client.runtime;
+      const ac = new AbortController();
+      abortRef.current = ac;
+      const aiParams = await resolveParentosTextRuntimeConfig('parentos.advisor', { temperature: 0.5, maxTokens: 1024 });
+      await ensureParentosLocalRuntimeReady({
+        route: aiParams.route,
+        localModelId: aiParams.localModelId,
+        timeoutMs: 60_000,
+      });
+      const out = await rt.ai.text.stream({
+        ...aiParams,
+        input: [{
+          role: 'user',
+          content: buildAdvisorRuntimeInput(strategy, params.question, domains, snapshot),
+        }],
+        system: buildAdvisorSystemPrompt(
+          activeChild.displayName,
+          params.ageMonthsAtRequest,
+          activeChild.gender,
+          activeChild.nurtureMode,
+          strategy,
+          domains,
+        ),
+        signal: ac.signal,
+        metadata: buildParentosRuntimeMetadata('parentos.advisor'),
+      });
+      let full = '';
+      for await (const part of out.stream) {
+        if (part.type === 'delta') {
+          full += part.text;
+          setStreamingContent(full);
+        } else if (part.type === 'error') {
+          throw new Error(String(part.error));
+        }
+      }
+      const filtered = filterAIResponse(full);
+      if (!filtered.safe) {
+        await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot, {
+          note: '补充说明：运行时响应触发了安全过滤，已退回本地结构化事实。',
+        }), snapshotJson);
+        return;
+      }
+      const finalContent = shouldAppendAdvisorSources(strategy, domains)
+        ? appendAdvisorSources(filtered.filtered, domains)
+        : filtered.filtered.trim();
+      await saveAssistantMsg(params.conversationId, finalContent, snapshotJson);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot, {
+        note: buildAdvisorRuntimeFailureNote(err),
+      }), snapshotJson);
+    } finally {
+      setStreamingState('idle');
+      setStreamingContent('');
+      abortRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -138,7 +335,7 @@ export default function AdvisorPage() {
       try {
         const { getPlatformClient } = await import('@nimiplatform/sdk');
         const client = getPlatformClient();
-        setRuntimeAvailable(Boolean(client.runtime && client.runtime.appId));
+        setRuntimeAvailable(Boolean(client.runtime?.appId && client.runtime?.ai?.text?.stream));
       } catch { setRuntimeAvailable(false); }
     }
     checkRuntime();
@@ -166,41 +363,11 @@ export default function AdvisorPage() {
         setActiveConvId(convId);
         setConversations(await getConversations(child.childId));
 
-        await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'user', content: opening, contextSnapshot: JSON.stringify({ childId: child.childId, ageMonths: am, nurtureMode: child.nurtureMode }), now: isoNow() });
-        const msgs = await getAiMessages(convId);
-        setMessages(msgs);
-
-        const domains = inferRequestedDomains(opening);
-        const snapshot = {
-          child: { displayName: child.displayName, gender: child.gender, birthDate: child.birthDate, nurtureMode: child.nurtureMode },
-          ageMonths: am, measurements: await getMeasurements(child.childId), vaccines: await getVaccineRecords(child.childId),
-          milestones: await getMilestoneRecords(child.childId), journalEntries: await getJournalEntries(child.childId, 20),
-        };
-
-        if (!runtimeAvailable || !canUseAdvisorRuntime(domains)) {
-          await saveAssistantMsg(convId, buildStructuredAdvisorFallback(opening, domains, snapshot));
-          return;
-        }
-
-        setStreamingState('streaming'); setStreamingContent('');
-        try {
-          const { getPlatformClient } = await import('@nimiplatform/sdk');
-          const rt = getPlatformClient().runtime;
-          const ac = new AbortController(); abortRef.current = ac;
-          const aiParams = resolveParentosTextGenerateConfig({ temperature: 0.5, maxTokens: 1024 });
-          const out = await rt.ai.text.stream({
-            ...aiParams, input: msgs.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-            system: buildAdvisorSystemPrompt(child.displayName, am, child.gender, child.nurtureMode, domains),
-            signal: ac.signal,
-            metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' },
-          });
-          let full = '';
-          for await (const p of out.stream) { if (p.type === 'delta') { full += p.text; setStreamingContent(full); } else if (p.type === 'error') throw new Error(String(p.error)); }
-          await saveAssistantMsg(convId, appendAdvisorSources(filterAIResponse(full).filtered, domains));
-        } catch (err) {
-          if (err instanceof DOMException && err.name === 'AbortError') return;
-          await saveAssistantMsg(convId, `${buildStructuredAdvisorFallback(opening, domains, snapshot)}\n\n补充说明：运行时响应失败，已退回本地结构化事实。`);
-        } finally { setStreamingState('idle'); setStreamingContent(''); abortRef.current = null; }
+        await runAdvisorTurn({
+          conversationId: convId,
+          question: opening,
+          ageMonthsAtRequest: am,
+        });
       } catch { /* bridge */ }
     })();
   }, [searchParams, child, runtimeAvailable]);
@@ -222,25 +389,11 @@ export default function AdvisorPage() {
     if (!input.trim() || !activeConvId || streamingState === 'streaming') return;
     const q = input.trim(); setInput('');
     try {
-      await insertAiMessage({ messageId: ulid(), conversationId: activeConvId, role: 'user', content: q, contextSnapshot: JSON.stringify({ childId: child.childId, ageMonths, nurtureMode: child.nurtureMode }), now: isoNow() });
-      const updated = await getAiMessages(activeConvId); setMessages(updated);
-      const domains = inferRequestedDomains(q);
-      const snapshot = { child: { displayName: child.displayName, gender: child.gender, birthDate: child.birthDate, nurtureMode: child.nurtureMode }, ageMonths, measurements: await getMeasurements(child.childId), vaccines: await getVaccineRecords(child.childId), milestones: await getMilestoneRecords(child.childId), journalEntries: await getJournalEntries(child.childId, 20) };
-      if (!runtimeAvailable || !canUseAdvisorRuntime(domains)) { await saveAssistantMsg(activeConvId, buildStructuredAdvisorFallback(q, domains, snapshot)); return; }
-
-      setStreamingState('streaming'); setStreamingContent('');
-      try {
-          const { getPlatformClient } = await import('@nimiplatform/sdk');
-          const rt = getPlatformClient().runtime; const ac = new AbortController(); abortRef.current = ac;
-        const aiParams2 = resolveParentosTextGenerateConfig({ temperature: 0.5, maxTokens: 1024 });
-        const out = await rt.ai.text.stream({ ...aiParams2, input: updated.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })), system: buildAdvisorSystemPrompt(child.displayName, ageMonths, child.gender, child.nurtureMode, domains), signal: ac.signal, metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' } });
-        let full = '';
-        for await (const p of out.stream) { if (p.type === 'delta') { full += p.text; setStreamingContent(full); } else if (p.type === 'error') throw new Error(String(p.error)); }
-        await saveAssistantMsg(activeConvId, appendAdvisorSources(filterAIResponse(full).filtered, domains));
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        await saveAssistantMsg(activeConvId, `${buildStructuredAdvisorFallback(q, domains, snapshot)}\n\n补充说明：运行时响应失败，已退回本地结构化事实。`);
-      } finally { setStreamingState('idle'); setStreamingContent(''); abortRef.current = null; }
+      await runAdvisorTurn({
+        conversationId: activeConvId,
+        question: q,
+        ageMonthsAtRequest: ageMonths,
+      });
     } catch { /* bridge */ }
   };
 
@@ -259,7 +412,7 @@ export default function AdvisorPage() {
               className={`w-full text-left px-3 py-2.5 rounded-xl text-[12px] transition-colors ${activeConvId === conv.conversationId ? 'text-white' : 'hover:bg-black/[0.04]'}`}
               style={activeConvId === conv.conversationId ? { background: S.blue, color: '#fff' } : { color: S.text }}>
               <p className="truncate font-medium">{conv.title ?? '新对话'}</p>
-              <p className="text-[10px] mt-0.5 opacity-60">{conv.lastMessageAt.split('T')[0]}</p>
+              <p className="text-[10px] mt-0.5 opacity-60">{formatAdvisorConversationDate(conv.lastMessageAt)}</p>
             </button>
           ))}
         </div>
@@ -288,15 +441,19 @@ export default function AdvisorPage() {
                 <div key={msg.messageId} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] ${S.radius} px-4 py-3 text-[13px] leading-relaxed`}
                     style={msg.role === 'user' ? { background: S.blue, color: '#fff' } : { background: S.card, color: S.text, boxShadow: S.shadow }}>
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                    <p className="text-[10px] mt-1.5 opacity-50">{msg.createdAt.split('T')[1]?.split('.')[0]}</p>
+                    {msg.role === 'user' ? (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <ChatMarkdownRenderer content={msg.content} appearance="canonical" />
+                    )}
+                    <p className="text-[10px] mt-1.5 opacity-50">{formatAdvisorMessageTime(msg.createdAt)}</p>
                   </div>
                 </div>
               ))}
               {streamingState === 'streaming' && streamingContent && (
                 <div className="flex justify-start">
                   <div className={`max-w-[75%] ${S.radius} px-4 py-3 text-[13px] leading-relaxed`} style={{ background: S.card, color: S.text, boxShadow: S.shadow }}>
-                    <p className="whitespace-pre-wrap">{streamingContent}</p>
+                    <ChatMarkdownRenderer content={streamingContent} appearance="canonical" />
                     <p className="text-[10px] mt-1.5 animate-pulse" style={{ color: S.blue }}>生成中...</p>
                   </div>
                 </div>

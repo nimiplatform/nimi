@@ -2,16 +2,51 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '../../app-shell/app-store.js';
 import { hasVoiceTranscriptionRuntime, transcribeVoiceObservation } from './voice-observation-runtime.js';
 
-const getPlatformClientMock = vi.fn();
-const transcribeMock = vi.fn();
+const {
+  getPlatformClientMock,
+  transcribeMock,
+  warmLocalAssetMock,
+  loadParentosRuntimeRouteOptionsMock,
+} = vi.hoisted(() => ({
+  getPlatformClientMock: vi.fn(),
+  transcribeMock: vi.fn(),
+  warmLocalAssetMock: vi.fn(async () => ({})),
+  loadParentosRuntimeRouteOptionsMock: vi.fn(async () => ({
+    capability: 'audio.transcribe',
+    selected: null,
+    resolvedDefault: {
+      source: 'local',
+      connectorId: '',
+      model: 'whisper-large-v3',
+      modelId: 'whisper-large-v3',
+      localModelId: 'local-whisper-large-v3',
+      provider: 'speech',
+      engine: 'speech',
+      endpoint: 'http://127.0.0.1:1234/v1',
+      goRuntimeLocalModelId: 'local-whisper-large-v3',
+      goRuntimeStatus: 'active',
+    },
+    local: {
+      defaultEndpoint: 'http://127.0.0.1:1234/v1',
+      models: [],
+    },
+    connectors: [],
+  })),
+}));
 
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => getPlatformClientMock(),
 }));
 
+vi.mock('../../infra/parentos-runtime-route-options.js', () => ({
+  loadParentosRuntimeRouteOptions: loadParentosRuntimeRouteOptionsMock,
+}));
+
 describe('voice observation runtime', () => {
   beforeEach(() => {
     transcribeMock.mockReset();
+    warmLocalAssetMock.mockReset();
+    loadParentosRuntimeRouteOptionsMock.mockClear();
     getPlatformClientMock.mockReset();
     useAppStore.setState({ aiConfig: null });
   });
@@ -20,6 +55,9 @@ describe('voice observation runtime', () => {
     getPlatformClientMock.mockReturnValue({
       runtime: {
         appId: 'app.nimi.parentos',
+        local: {
+          warmLocalAsset: warmLocalAssetMock,
+        },
         media: {
           stt: {
             transcribe: transcribeMock,
@@ -40,6 +78,9 @@ describe('voice observation runtime', () => {
     getPlatformClientMock.mockReturnValue({
       runtime: {
         appId: 'app.nimi.parentos',
+        local: {
+          warmLocalAsset: warmLocalAssetMock,
+        },
         media: {
           stt: {
             transcribe: transcribeMock,
@@ -54,7 +95,7 @@ describe('voice observation runtime', () => {
     });
 
     expect(transcribeMock).toHaveBeenCalledWith(expect.objectContaining({
-      model: 'auto',
+      model: 'speech/whisper-large-v3',
       route: 'local',
       mimeType: 'audio/webm',
       metadata: expect.objectContaining({
@@ -62,6 +103,10 @@ describe('voice observation runtime', () => {
         surfaceId: 'parentos.journal.voice-observation',
       }),
     }));
+    expect(warmLocalAssetMock).toHaveBeenCalledWith({
+      localAssetId: 'local-whisper-large-v3',
+      timeoutMs: 60000,
+    });
     expect(result.transcript).toBe('观察到他愿意轮流搭积木。');
     expect(result.trace.routeDecision).toBe('local');
   });
@@ -75,6 +120,9 @@ describe('voice observation runtime', () => {
     getPlatformClientMock.mockReturnValue({
       runtime: {
         appId: 'app.nimi.parentos',
+        local: {
+          warmLocalAsset: warmLocalAssetMock,
+        },
         media: {
           stt: {
             transcribe: transcribeMock,

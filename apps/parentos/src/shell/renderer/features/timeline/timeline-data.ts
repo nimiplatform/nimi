@@ -11,7 +11,7 @@ import {
   getVaccineRecords,
 } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow, SleepRecordRow, VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
-import type { ActiveReminder, ReminderAgenda } from '../../engine/reminder-engine.js';
+import type { ReminderAgenda } from '../../engine/reminder-engine.js';
 import { mapReminderStateRow, type ReminderState } from '../../engine/reminder-engine.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
 

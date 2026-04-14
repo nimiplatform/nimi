@@ -347,7 +347,6 @@ export default function MilestonePage() {
           </div>
           <div className="space-y-2">
             {upcoming.map((m) => {
-              const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
               const rec = recordMap.get(m.milestoneId);
               const achieved = !!rec?.achievedAt;
               return (
@@ -433,7 +432,6 @@ export default function MilestonePage() {
                   {bucket.milestones.map((m) => {
                     const rec = recordMap.get(m.milestoneId);
                     const achieved = !!rec?.achievedAt;
-                    const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
                     return (
                       <div key={m.milestoneId}
                         className={`flex items-center gap-2.5 p-2.5 ${S.radiusSm}`}
@@ -651,7 +649,6 @@ export default function MilestonePage() {
                     {currentBucket.milestones.map((m) => {
                       const rec = recordMap.get(m.milestoneId);
                       const achieved = !!rec?.achievedAt;
-                      const dm = DOMAIN_MAP.get(m.domain as MilestoneDomain);
                       return (
                         <div key={m.milestoneId}
                           className={`group flex items-center gap-2.5 p-2.5 ${S.radiusSm} transition-all duration-150 hover:shadow-sm`}

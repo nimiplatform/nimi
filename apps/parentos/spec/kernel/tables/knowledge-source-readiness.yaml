@@ -18,7 +18,7 @@ field_contract:
     type: enum
     values: [reviewed, needs-review]
     required: true
-    description: "reviewed may enter AI free-form prompt paths; needs-review is limited to rules, charts, and structured factual displays."
+    description: "reviewed may enter advisor reviewed-advice prompt paths; needs-review is limited to descriptive-only, clarifying, or non-expert prompt paths."
   owner:
     type: string
     required: true
@@ -35,7 +35,7 @@ field_contract:
 constraints:
   - "domain must be unique across all entries"
   - "status=reviewed entries must include lastReviewedAt"
-  - "status=needs-review domains must not enter free-form AI prompt generation in ParentOS"
+  - "status=needs-review domains must not enter advisor reviewed-advice prompt generation in ParentOS"
   - "new domains must update the narrative projection in parentos.md section 8.2"
 
 sources:
@@ -133,4 +133,4 @@ sources:
     status: needs-review
     owner: product
     lastReviewedAt: null
-    notes: "Observation remains needs-review for free-form generation. Phase 2 only allows local closed-set dimension/tag suggestion against spec-backed quickTags after parent confirmation."
+    notes: "Observation remains needs-review for expert-style generation. Advisor may only use descriptive-only local-fact prompts; Phase 2 tag suggestion remains local closed-set against spec-backed quickTags after parent confirmation."
