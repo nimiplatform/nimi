@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
@@ -58,6 +59,7 @@ type Service struct {
 	logger    *slog.Logger
 	statePath string
 	backend   *runtimepersistence.Backend
+	now       func() time.Time
 
 	mu                      sync.RWMutex
 	banks                   map[string]*bankState
@@ -73,6 +75,10 @@ type Service struct {
 	replicationBridgeAdapter ReplicationBridgeAdapter
 	replicationLoopCancel    context.CancelFunc
 	replicationLoopDone      chan struct{}
+
+	acceleratorCleanupMu       sync.Mutex
+	lastAcceleratorCleanupAt   time.Time
+	acceleratorCleanupCooldown time.Duration
 }
 
 func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
@@ -84,18 +90,21 @@ func New(logger *slog.Logger, cfg config.Config) (*Service, error) {
 		return nil, err
 	}
 	svc := &Service{
-		logger:                   logger,
-		statePath:                memoryStatePath(cfg.LocalStatePath),
-		backend:                  backend,
-		banks:                    make(map[string]*bankState),
-		replicationBacklog:       make(map[string]*ReplicationBacklogItem),
-		subscribers:              make(map[uint64]*subscriber),
-		observers:                make(map[uint64]func(*runtimev1.MemoryEvent)),
-		replicationBridgeAdapter: unavailableReplicationBridgeAdapter{},
+		logger:                     logger,
+		statePath:                  memoryStatePath(cfg.LocalStatePath),
+		backend:                    backend,
+		now:                        time.Now,
+		banks:                      make(map[string]*bankState),
+		replicationBacklog:         make(map[string]*ReplicationBacklogItem),
+		subscribers:                make(map[uint64]*subscriber),
+		observers:                  make(map[uint64]func(*runtimev1.MemoryEvent)),
+		replicationBridgeAdapter:   unavailableReplicationBridgeAdapter{},
+		acceleratorCleanupCooldown: time.Minute,
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err
 	}
+	svc.runAcceleratorCleanupBestEffort(context.Background())
 	return svc, nil
 }
 

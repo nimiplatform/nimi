@@ -226,10 +226,11 @@ func (s sqliteCanonicalReviewStore) CommitCanonicalReview(ctx context.Context, r
 			}
 		}
 		for _, relation := range req.Outcomes.Relations {
+			relationID := canonicalReviewRelationCommitID(locatorKeyValue, relation.SourceID, relation.TargetID, relation.RelationType)
 			if _, err := tx.ExecContext(ctx, `
 				INSERT OR REPLACE INTO memory_relation(relation_id, bank_locator_key, source_id, target_id, relation_type, confidence, created_by, is_active, created_at)
 				VALUES (?, ?, ?, ?, ?, ?, ?, 1, COALESCE((SELECT created_at FROM memory_relation WHERE relation_id = ?), ?))
-			`, relation.RelationID, locatorKeyValue, relation.SourceID, relation.TargetID, relation.RelationType, relation.Confidence, relation.CreatedBy, relation.RelationID, now); err != nil {
+			`, relationID, locatorKeyValue, relation.SourceID, relation.TargetID, relation.RelationType, relation.Confidence, relation.CreatedBy, relationID, now); err != nil {
 				return err
 			}
 		}
@@ -308,4 +309,14 @@ func minInt(left int, right int) int {
 		return left
 	}
 	return right
+}
+
+func canonicalReviewRelationCommitID(locatorKeyValue string, sourceID string, targetID string, relationType string) string {
+	hash := sha256.Sum256([]byte(strings.Join([]string{
+		strings.TrimSpace(locatorKeyValue),
+		strings.TrimSpace(sourceID),
+		strings.TrimSpace(targetID),
+		strings.ToLower(strings.TrimSpace(relationType)),
+	}, "|")))
+	return fmt.Sprintf("rel_%x", hash[:8])
 }

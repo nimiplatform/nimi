@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -59,16 +60,24 @@ func (s *Service) CommitCanonicalReview(ctx context.Context, reviewRunID string,
 	if strings.TrimSpace(reviewRunID) == "" || locator == nil {
 		return fmt.Errorf("review_run_id and locator are required")
 	}
+	outcomes.Relations = normalizeCanonicalReviewRelations(locator, outcomes.Relations)
 	scope, err := memoryengine.ScopeFromMemoryBankLocator(locator)
 	if err != nil {
 		return err
 	}
-	return s.CanonicalReviewStore().CommitCanonicalReview(ctx, memoryengine.CommitCanonicalReviewRequest{
+	if err := s.CanonicalReviewStore().CommitCanonicalReview(ctx, memoryengine.CommitCanonicalReviewRequest{
 		ReviewRunID:     reviewRunID,
 		Scope:           scope,
 		CheckpointBasis: checkpointBasis,
 		Outcomes:        outcomes,
-	})
+	}); err != nil {
+		return err
+	}
+	if err := s.upsertNarrativeEmbeddings(ctx, locator, outcomes.Narratives); err != nil {
+		return err
+	}
+	s.maybeRunAcceleratorCleanup(ctx)
+	return nil
 }
 
 func (s *Service) ftsRecallScores(bank *runtimev1.MemoryBank, query string) map[string]float32 {
@@ -135,11 +144,64 @@ func (s *Service) searchNarratives(ctx context.Context, locator *runtimev1.Memor
 	if locator == nil {
 		return nil, nil
 	}
-	scope, err := memoryengine.ScopeFromMemoryBankLocator(locator)
+	bankState, err := s.bankForLocator(locator)
 	if err != nil {
 		return nil, err
 	}
-	return s.CanonicalReviewStore().ListNarrativeContext(ctx, scope, query, limit)
+	candidates, err := s.loadNarrativeRecallCandidates(locator)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 || limit > len(candidates) {
+		limit = len(candidates)
+	}
+	semanticScores := s.narrativeEmbeddingRecallScores(bankState.Bank, query)
+	targetIDs := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		targetIDs = append(targetIDs, candidate.NarrativeID)
+	}
+	feedbackBiases := s.recallFeedbackBiases(locatorKey(locator), recallFeedbackTargetNarrative, targetIDs)
+	aliasBonuses := s.narrativeAliasBonuses(locatorKey(locator), query, targetIDs)
+	type scoredNarrative struct {
+		candidate   narrativeRecallCandidate
+		finalScore  float64
+		lexicalSeen bool
+	}
+	scored := make([]scoredNarrative, 0, len(candidates))
+	for _, candidate := range candidates {
+		lexical := lexicalNarrativeScore(candidate.Topic, candidate.Content, query)
+		semantic := semanticScores[candidate.NarrativeID]
+		finalScore := lexical + semantic + feedbackBiases[candidate.NarrativeID] + aliasBonuses[candidate.NarrativeID]
+		if finalScore <= 0 {
+			continue
+		}
+		scored = append(scored, scoredNarrative{
+			candidate:   candidate,
+			finalScore:  finalScore,
+			lexicalSeen: lexical > 0,
+		})
+	}
+	sort.Slice(scored, func(i, j int) bool {
+		if scored[i].finalScore == scored[j].finalScore {
+			return scored[i].candidate.NarrativeID < scored[j].candidate.NarrativeID
+		}
+		return scored[i].finalScore > scored[j].finalScore
+	})
+	out := make([]*runtimev1.NarrativeRecallHit, 0, minInt(limit, len(scored)))
+	for _, item := range scored {
+		out = append(out, &runtimev1.NarrativeRecallHit{
+			NarrativeId:     item.candidate.NarrativeID,
+			Topic:           item.candidate.Topic,
+			Content:         item.candidate.Content,
+			SourceMemoryIds: append([]string(nil), item.candidate.SourceMemoryIDs...),
+			IsStale:         strings.ToLower(strings.TrimSpace(item.candidate.Status)) == "stale",
+			RelevanceScore:  item.finalScore,
+		})
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
 }
 
 func mathAbs(input float64) float64 {

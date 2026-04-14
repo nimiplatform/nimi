@@ -72,30 +72,33 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 		limit = len(records)
 	}
 	type scoredHit struct {
-		record *runtimev1.MemoryRecord
-		score  float32
-		reason string
+		record     *runtimev1.MemoryRecord
+		baseScore  float64
+		finalScore float64
+		reason     string
 	}
 	vectorScores := s.embeddingRecallScores(bankState.Bank, req.GetQuery().GetQuery())
 	ftsScores := s.ftsRecallScores(bankState.Bank, req.GetQuery().GetQuery())
+	recordFeedback := s.recallFeedbackBiases(locatorKey(bankState.Bank.GetLocator()), recallFeedbackTargetRecord, stateOrderIDs(bankState))
 	scored := make([]scoredHit, 0, len(records))
 	for _, record := range records {
 		score, reason, ok := localRecallScore(record, req.GetQuery())
 		if !ok {
 			continue
 		}
+		baseScore := float64(score)
 		if ftsScore, ok := ftsScores[record.GetMemoryId()]; ok {
-			score += ftsScore
+			baseScore += float64(ftsScore)
 			reason = firstNonEmpty(reason, "fts5")
 		}
 		if vectorScore, ok := vectorScores[record.GetMemoryId()]; ok {
-			score += float32(vectorScore)
+			baseScore += vectorScore
 			reason = firstNonEmpty(reason, "hybrid_embedding")
 		}
-		scored = append(scored, scoredHit{record: record, score: score, reason: reason})
+		scored = append(scored, scoredHit{record: record, baseScore: baseScore, finalScore: baseScore, reason: reason})
 	}
 	sort.Slice(scored, func(i, j int) bool {
-		if scored[i].score == scored[j].score {
+		if scored[i].baseScore == scored[j].baseScore {
 			leftUpdated := scored[i].record.GetUpdatedAt().AsTime()
 			rightUpdated := scored[j].record.GetUpdatedAt().AsTime()
 			if !leftUpdated.Equal(rightUpdated) {
@@ -103,13 +106,44 @@ func (s *Service) Recall(ctx context.Context, req *runtimev1.RecallRequest) (*ru
 			}
 			return scored[i].record.GetMemoryId() < scored[j].record.GetMemoryId()
 		}
-		return scored[i].score > scored[j].score
+		return scored[i].baseScore > scored[j].baseScore
+	})
+	topSources := make([]string, 0, minInt(relationExpansionLimit, len(scored)))
+	scoredIndex := make(map[string]int, len(scored))
+	for idx := range scored {
+		scoredIndex[scored[idx].record.GetMemoryId()] = idx
+		if idx < relationExpansionLimit {
+			topSources = append(topSources, scored[idx].record.GetMemoryId())
+		}
+	}
+	for _, relation := range s.relationExpansions(locatorKey(bankState.Bank.GetLocator()), topSources) {
+		sourceIdx, sourceOK := scoredIndex[relation.SourceID]
+		targetIdx, targetOK := scoredIndex[relation.TargetID]
+		if !sourceOK || !targetOK {
+			continue
+		}
+		scored[targetIdx].finalScore += relationExpansionWeight * scored[sourceIdx].baseScore * relation.Confidence
+		scored[targetIdx].reason = firstNonEmpty(scored[targetIdx].reason, "relation_"+relation.RelationType)
+	}
+	for idx := range scored {
+		scored[idx].finalScore += recordFeedback[scored[idx].record.GetMemoryId()]
+	}
+	sort.Slice(scored, func(i, j int) bool {
+		if scored[i].finalScore == scored[j].finalScore {
+			leftUpdated := scored[i].record.GetUpdatedAt().AsTime()
+			rightUpdated := scored[j].record.GetUpdatedAt().AsTime()
+			if !leftUpdated.Equal(rightUpdated) {
+				return leftUpdated.After(rightUpdated)
+			}
+			return scored[i].record.GetMemoryId() < scored[j].record.GetMemoryId()
+		}
+		return scored[i].finalScore > scored[j].finalScore
 	})
 	hits := make([]*runtimev1.MemoryRecallHit, 0, minInt(limit, len(scored)))
 	for _, item := range scored {
 		hits = append(hits, &runtimev1.MemoryRecallHit{
 			Record:         cloneRecord(item.record),
-			RelevanceScore: float64(item.score),
+			RelevanceScore: item.finalScore,
 			MatchReason:    item.reason,
 		})
 		if len(hits) >= limit {
@@ -202,6 +236,17 @@ func memoryProviderUnavailableError() error {
 		Message:    "no runtime memory provider is installed in this build",
 		ActionHint: "install_or_attach_memory_provider",
 	})
+}
+
+func stateOrderIDs(state *bankState) []string {
+	if state == nil || len(state.Order) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(state.Order))
+	for _, recordID := range state.Order {
+		out = append(out, recordID)
+	}
+	return out
 }
 
 func (s *Service) historyRecords(state *bankState, query *runtimev1.MemoryHistoryQuery) []*runtimev1.MemoryRecord {

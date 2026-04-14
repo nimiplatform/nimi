@@ -496,7 +496,7 @@ func (s *Service) persistSnapshot(snapshot persistedMemoryState) error {
 				`, record.GetMemoryId(), item.LocatorKey, searchText, searchTokens); err != nil {
 					return fmt.Errorf("insert memory_record_fts %s: %w", record.GetMemoryId(), err)
 				}
-				if bank.GetEmbeddingProfile() != nil && s.embeddingAvailableForProfile(bank.GetEmbeddingProfile()) {
+				if bank.GetEmbeddingProfile() != nil && embeddingProfilesMatch(s.managedEmbeddingProfile, bank.GetEmbeddingProfile()) {
 					vector := computeEmbeddingVectorForRecord(&record, bank.GetEmbeddingProfile().GetDimension())
 					if _, err := tx.Exec(`
 						INSERT OR REPLACE INTO memory_record_embedding(memory_id, locator_key, dimension, vector_json, updated_at)
@@ -631,6 +631,10 @@ func (s *Service) resetImportedState() error {
 		statements := []string{
 			`DELETE FROM memory_record_fts`,
 			`DELETE FROM memory_record_embedding`,
+			`DELETE FROM memory_narrative_embedding`,
+			`DELETE FROM memory_narrative_alias`,
+			`DELETE FROM memory_recall_feedback_event`,
+			`DELETE FROM memory_recall_feedback_summary`,
 			`DELETE FROM memory_replication_backlog`,
 			`DELETE FROM memory_record`,
 			`DELETE FROM memory_bank`,

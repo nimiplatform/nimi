@@ -12,6 +12,7 @@ type TruthRecord struct {
 	NormalizedKey     string
 	Statement         string
 	Confidence        float64
+	SourceCount       int32
 	ReviewCount       int32
 	FirstReviewAt     string
 	LastReviewAt      string

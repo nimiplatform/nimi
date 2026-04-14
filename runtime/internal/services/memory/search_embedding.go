@@ -164,8 +164,14 @@ func (s *Service) embeddingAvailableForProfile(profile *runtimev1.MemoryEmbeddin
 	if profile == nil {
 		return false
 	}
-	managed := s.ManagedEmbeddingProfile()
-	if managed == nil {
+	s.mu.RLock()
+	managed := cloneEmbeddingProfile(s.managedEmbeddingProfile)
+	s.mu.RUnlock()
+	return embeddingProfilesMatch(managed, profile)
+}
+
+func embeddingProfilesMatch(managed *runtimev1.MemoryEmbeddingProfile, profile *runtimev1.MemoryEmbeddingProfile) bool {
+	if managed == nil || profile == nil {
 		return false
 	}
 	return managed.GetProvider() == profile.GetProvider() &&

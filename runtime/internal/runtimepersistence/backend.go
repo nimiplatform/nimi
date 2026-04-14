@@ -277,6 +277,26 @@ func (b *Backend) ensureSchema() error {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS memory_narrative_embedding (
+			locator_key TEXT NOT NULL,
+			narrative_id TEXT NOT NULL,
+			embedding_profile_json TEXT NOT NULL,
+			vector_json TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY (locator_key, narrative_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS memory_narrative_alias (
+			bank_locator_key TEXT NOT NULL,
+			narrative_id TEXT NOT NULL,
+			alias_norm TEXT NOT NULL,
+			alias_display TEXT NOT NULL,
+			helpful_count INTEGER NOT NULL DEFAULT 0,
+			unhelpful_count INTEGER NOT NULL DEFAULT 0,
+			status TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			PRIMARY KEY (bank_locator_key, narrative_id, alias_norm)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_memory_narrative_alias_lookup ON memory_narrative_alias(bank_locator_key, alias_norm, status)`,
 		`CREATE TABLE IF NOT EXISTS narrative_source (
 			narrative_id TEXT NOT NULL,
 			memory_id TEXT NOT NULL,
@@ -296,6 +316,25 @@ func (b *Backend) ensureSchema() error {
 			created_by TEXT NOT NULL,
 			is_active INTEGER NOT NULL DEFAULT 1,
 			created_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS memory_recall_feedback_event (
+			feedback_id TEXT PRIMARY KEY,
+			bank_locator_key TEXT NOT NULL,
+			target_kind TEXT NOT NULL,
+			target_id TEXT NOT NULL,
+			polarity TEXT NOT NULL,
+			query_text TEXT NOT NULL,
+			source_system TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS memory_recall_feedback_summary (
+			bank_locator_key TEXT NOT NULL,
+			target_kind TEXT NOT NULL,
+			target_id TEXT NOT NULL,
+			helpful_count INTEGER NOT NULL DEFAULT 0,
+			unhelpful_count INTEGER NOT NULL DEFAULT 0,
+			last_feedback_at TEXT NOT NULL,
+			PRIMARY KEY (bank_locator_key, target_kind, target_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS agent_truth (
 			truth_id TEXT PRIMARY KEY,

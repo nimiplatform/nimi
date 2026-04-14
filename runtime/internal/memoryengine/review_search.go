@@ -41,6 +41,10 @@ func buildReviewSearchTokens(raw string) string {
 	return strings.Join(dedupeStrings(parts), " ")
 }
 
+func BuildReviewSearchTokens(raw string) string {
+	return buildReviewSearchTokens(raw)
+}
+
 func narrativeMatchScore(content string, queryTokens []string) float64 {
 	if len(queryTokens) == 0 {
 		return 0
@@ -59,6 +63,10 @@ func narrativeMatchScore(content string, queryTokens []string) float64 {
 		return 0
 	}
 	return hits / float64(len(queryTokens))
+}
+
+func NarrativeMatchScore(content string, queryTokens []string) float64 {
+	return narrativeMatchScore(content, queryTokens)
 }
 
 func isCJKRune(r rune) bool {
