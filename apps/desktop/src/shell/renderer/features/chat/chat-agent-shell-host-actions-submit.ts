@@ -45,7 +45,7 @@ import { resolveAgentTurnTotalTimeoutMs } from './chat-agent-timeouts';
 import { ensureAgentConversationSubmitRouteReady } from './conversation-submit-readiness';
 import { buildAgentUserProjectionCommit } from './chat-agent-user-projection';
 import {
-  writeDesktopAgentAssistantTurnMemory,
+  runDesktopAgentAssistantTurnRuntimeFollowUp,
   writeDesktopAgentUserTurnMemory,
 } from './chat-agent-runtime-memory';
 import {
@@ -392,13 +392,14 @@ export async function submitAgentConversationTurn(input: {
         throw new Error('agent-local-chat-v1 assistant commit did not return a projection bundle');
       }
       const assistantMessage = committedBundle.messages.find((message) => message.id === assistantMessageId) || null;
-      await writeDesktopAgentAssistantTurnMemory({
+      await runDesktopAgentAssistantTurnRuntimeFollowUp({
         agentId: activeTarget.agentId,
         displayName: activeTarget.displayName,
         worldId: activeTarget.worldId,
         assistantText: normalizeText(assistantMessage?.contentText),
         turnId: assistantTurnId,
         threadId: effectiveThreadId,
+        history,
       });
     } catch (error) {
       const streamSnapshot = getStreamState(effectiveThreadId);

@@ -7,6 +7,7 @@ import {
   MemoryRecordKind,
   MemoryBankScope,
   type CanonicalMemoryView,
+  toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { bindAgentMemoryStandard } from '@renderer/bridge/runtime-bridge/agent-memory';
@@ -76,6 +77,19 @@ type RuntimeDyadicObservationInput = RuntimeAgentContext & {
   traceId: string;
   authorId?: string;
   policyReason: string;
+};
+
+export type RuntimeChatTrackMessage = {
+  role: string;
+  content: string;
+  name?: string;
+};
+
+type RuntimeChatTrackSidecarInput = {
+  agentId: string;
+  sourceEventId: string;
+  threadId: string;
+  messages: RuntimeChatTrackMessage[];
 };
 
 type RuntimeAgentSession = {
@@ -545,6 +559,40 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         }
         throw error;
       }
+    },
+
+    async sendChatTrackSidecarInput(input: RuntimeChatTrackSidecarInput): Promise<void> {
+      const agentId = normalizeText(input.agentId);
+      const sourceEventId = normalizeText(input.sourceEventId);
+      const threadId = normalizeText(input.threadId);
+      const messages = Array.isArray(input.messages)
+        ? input.messages
+          .map((message) => ({
+            role: normalizeText(message.role),
+            content: normalizeText(message.content),
+            ...(normalizeText(message.name) ? { name: normalizeText(message.name) } : {}),
+          }))
+          .filter((message) => message.role && message.content)
+        : [];
+      if (!agentId || !sourceEventId || !threadId || messages.length === 0) {
+        throw new Error('CHAT_TRACK_SIDECAR_INPUT_INVALID');
+      }
+
+      const runtime = getRuntime();
+      const subjectUserId = await resolveSubjectUserId();
+      await getProtectedAccess().withScopes(['runtime.app.send.cross_app'], (options) => runtime.app.sendMessage({
+        fromAppId: runtime.appId,
+        toAppId: 'runtime.agentcore',
+        subjectUserId,
+        messageType: 'agent.chat_track.sidecar_input.v1',
+        payload: toProtoStruct({
+          agent_id: agentId,
+          source_event_id: sourceEventId,
+          thread_id: threadId,
+          messages,
+        }),
+        requireAck: false,
+      }, options));
     },
   };
 }

@@ -15,6 +15,7 @@ function createRuntimeMock() {
   const calls = {
     registerApp: [] as Array<Record<string, unknown>>,
     authorizeExternalPrincipal: [] as Array<Record<string, unknown>>,
+    sendAppMessage: [] as Array<Record<string, unknown>>,
     getBank: [] as Array<Record<string, unknown>>,
     getAgent: [] as Array<Record<string, unknown>>,
     initializeAgent: [] as Array<Record<string, unknown>>,
@@ -37,6 +38,16 @@ function createRuntimeMock() {
         return {
           tokenId: 'protected-token-id',
           secret: 'protected-token-secret',
+        };
+      },
+    },
+    app: {
+      sendMessage: async (input: Record<string, unknown>, options?: Record<string, unknown>) => {
+        calls.sendAppMessage.push({ ...input, __options: options });
+        return {
+          messageId: 'app-msg-1',
+          accepted: true,
+          reasonCode: 'ACTION_EXECUTED',
         };
       },
     },
@@ -574,6 +585,62 @@ test('runtime agent memory adapter binds canonical bank standard through the des
     embeddingProfileModelId: 'local/embed-alpha',
   });
   assert.deepEqual(bindCalls, [{ agentId: 'agent-1' }]);
+});
+
+test('runtime agent memory adapter forwards chat sidecar input through app messaging only', async () => {
+  const { runtime, calls } = createRuntimeMock();
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  await adapter.sendChatTrackSidecarInput({
+    agentId: 'agent-1',
+    sourceEventId: 'turn-1',
+    threadId: 'thread-1',
+    messages: [
+      { role: 'user', content: 'hello' },
+      { role: 'assistant', content: 'hi there' },
+    ],
+  });
+
+  assert.equal(calls.sendAppMessage.length, 1);
+  assert.equal(calls.writeMemory.length, 0);
+  assert.equal(calls.updateAgentState.length, 0);
+  const request = calls.sendAppMessage[0];
+  assert.ok(request);
+  assert.equal(request.fromAppId, 'desktop-test');
+  assert.equal(request.toAppId, 'runtime.agentcore');
+  assert.equal(request.subjectUserId, 'user-1');
+  assert.equal(request.messageType, 'agent.chat_track.sidecar_input.v1');
+  assert.equal(request.requireAck, false);
+  assert.deepEqual((request.__options as Record<string, unknown>).protectedAccessToken, {
+    tokenId: 'protected-token-id',
+    secret: 'protected-token-secret',
+  });
+  const payload = request.payload as {
+    fields: Record<string, {
+      kind?: {
+        stringValue?: string;
+        listValue?: {
+          values: Array<{
+            kind?: {
+              structValue?: {
+                fields: Record<string, { kind?: { stringValue?: string } }>;
+              };
+            };
+          }>;
+        };
+      };
+    }>;
+  };
+  assert.equal(payload.fields.agent_id?.kind?.stringValue, 'agent-1');
+  assert.equal(payload.fields.source_event_id?.kind?.stringValue, 'turn-1');
+  assert.equal(payload.fields.thread_id?.kind?.stringValue, 'thread-1');
+  const messageValues = payload.fields.messages?.kind?.listValue?.values || [];
+  assert.equal(messageValues.length, 2);
+  assert.equal(messageValues[0]?.kind?.structValue?.fields.role?.kind?.stringValue, 'user');
+  assert.equal(messageValues[1]?.kind?.structValue?.fields.content?.kind?.stringValue, 'hi there');
 });
 
 test('canonical memory view compatibility projection stays runtime-owned', async () => {

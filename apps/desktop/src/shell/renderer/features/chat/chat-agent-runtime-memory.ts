@@ -2,14 +2,17 @@ import {
   MemoryCanonicalClass,
   type CanonicalMemoryView,
 } from '@nimiplatform/sdk/runtime';
+import type { ConversationTurnHistoryMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type {
   AgentLocalRecallEntryRecord,
   AgentLocalRelationMemorySlotRecord,
   AgentLocalTurnContext,
 } from '@renderer/bridge/runtime-bridge/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { logRendererEvent } from '@renderer/bridge/runtime-bridge/logging';
 import {
   createRuntimeAgentMemoryAdapter,
+  type RuntimeChatTrackMessage,
   summarizeCanonicalMemoryView,
 } from '@renderer/infra/runtime-agent-memory';
 
@@ -155,6 +158,84 @@ export async function writeDesktopAgentAssistantTurnMemory(input: {
     syncDyadicContext: true,
     syncWorldContext: true,
   });
+}
+
+export async function sendDesktopAgentChatTrackSidecarInput(input: {
+  agentId: string;
+  turnId: string;
+  threadId: string;
+  history: readonly ConversationTurnHistoryMessage[];
+  assistantText: string;
+}): Promise<void> {
+  const assistantText = normalizeText(input.assistantText);
+  if (!assistantText) {
+    return;
+  }
+  const messages: RuntimeChatTrackMessage[] = input.history
+    .map((message) => ({
+      role: normalizeText(message.role),
+      content: normalizeText(message.text),
+    }))
+    .filter((message) => message.role && message.content);
+  messages.push({
+    role: 'assistant',
+    content: assistantText,
+  });
+  await runtimeAgentMemory.sendChatTrackSidecarInput({
+    agentId: input.agentId,
+    sourceEventId: input.turnId,
+    threadId: input.threadId,
+    messages,
+  });
+}
+
+export async function runDesktopAgentAssistantTurnRuntimeFollowUp(input: {
+  agentId: string;
+  displayName: string;
+  worldId: string | null;
+  assistantText: string;
+  turnId: string;
+  threadId: string;
+  history: readonly ConversationTurnHistoryMessage[];
+}, deps: {
+  writeAssistantTurnMemory?: typeof writeDesktopAgentAssistantTurnMemory;
+  sendChatTrackSidecarInput?: typeof sendDesktopAgentChatTrackSidecarInput;
+  log?: typeof logRendererEvent;
+} = {}): Promise<void> {
+  const writeAssistantTurnMemory = deps.writeAssistantTurnMemory ?? writeDesktopAgentAssistantTurnMemory;
+  const sendChatTrackSidecarInput = deps.sendChatTrackSidecarInput ?? sendDesktopAgentChatTrackSidecarInput;
+  const log = deps.log ?? logRendererEvent;
+
+  await writeAssistantTurnMemory({
+    agentId: input.agentId,
+    displayName: input.displayName,
+    worldId: input.worldId,
+    assistantText: input.assistantText,
+    turnId: input.turnId,
+    threadId: input.threadId,
+  });
+
+  try {
+    await sendChatTrackSidecarInput({
+      agentId: input.agentId,
+      turnId: input.turnId,
+      threadId: input.threadId,
+      history: input.history,
+      assistantText: input.assistantText,
+    });
+  } catch (error) {
+    await log({
+      level: 'warn',
+      area: 'agent-chat-sidecar',
+      message: 'action:agent-chat-sidecar-forwarding-failed',
+      details: {
+        agentId: input.agentId,
+        turnId: input.turnId,
+        threadId: input.threadId,
+        error,
+      },
+    });
+  }
 }
 
 export async function loadDesktopAgentRuntimeMemoryContext(
