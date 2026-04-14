@@ -47,10 +47,13 @@ export interface ReminderEngineContext {
   birthDate: string;
   gender: 'male' | 'female';
   ageMonths: number;
+  profileCreatedAt: string;
   localToday: string;
   nurtureMode: NurtureMode;
   domainOverrides: Record<string, NurtureMode> | null;
 }
+
+export type ReminderDeliveryDisposition = 'normal' | 'cold_start';
 
 export interface ActiveReminder {
   rule: GenReminderRule;
@@ -65,6 +68,7 @@ export interface ActiveReminder {
   overdueDays: number;
   daysUntilStart: number;
   daysUntilEnd: number;
+  deliveryDisposition: ReminderDeliveryDisposition;
   state: ReminderState | null;
 }
 
@@ -76,6 +80,14 @@ export interface ReminderAgenda {
   localToday: string;
   todayLimit: number;
   todayFocus: ActiveReminder[];
+  p0Overflow: {
+    count: number;
+    items: ActiveReminder[];
+  };
+  onboardingCatchup: {
+    count: number;
+    items: ActiveReminder[];
+  };
   thisWeek: ActiveReminder[];
   stageFocus: ActiveReminder[];
   history: ReminderHistoryItem[];
@@ -87,6 +99,11 @@ export interface ReminderAgenda {
 
 const PRIORITY_ORDER: Record<ReminderPriority, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
 const DAY_MS = 24 * 60 * 60 * 1000;
+const P0_TODAY_LIMIT = 3;
+
+type ReminderRuleWithExpiryOverride = GenReminderRule & {
+  expiryMonths?: number;
+};
 
 export function reminderKey(ruleId: string, repeatIndex: number) {
   return `${ruleId}:${repeatIndex}`;
@@ -214,23 +231,42 @@ function canResurface(state: ReminderState | null, localToday: string) {
   return diffDays(localToday, state.lastSurfacedAt.slice(0, 10)) >= resurfacingGap(state.surfaceCount);
 }
 
+function getRuleExpiryOverride(rule: GenReminderRule) {
+  const expiryMonths = (rule as ReminderRuleWithExpiryOverride).expiryMonths;
+  if (typeof expiryMonths !== 'number' || !Number.isFinite(expiryMonths) || expiryMonths < 0) {
+    return null;
+  }
+  return expiryMonths;
+}
+
+function deriveExpiryMonths(rule: GenReminderRule, intervalMonths?: number) {
+  const override = getRuleExpiryOverride(rule);
+  if (override != null) return override;
+  if (rule.triggerAge.endMonths === -1) return null;
+
+  const baseWindowMonths = rule.repeatRule
+    ? intervalMonths ?? rule.repeatRule.intervalMonths
+    : Math.max(rule.triggerAge.endMonths - rule.triggerAge.startMonths, 0);
+
+  return Math.max(baseWindowMonths * 2, 3);
+}
+
 function isEligibleRepeatInstance(
   triggerAge: number,
-  intervalMonths: number,
+  effectiveEndMonths: number,
+  expiryMonths: number | null,
   ageMonths: number,
   hasPersistedState: boolean,
 ) {
-  // If there's a persisted state, always show
   if (hasPersistedState) return true;
-  // Only show if within the current window: not too far in the past, and not too far in the future
-  return triggerAge <= ageMonths + 1 && triggerAge >= ageMonths - Math.max(intervalMonths, OVERDUE_EXPIRY_MONTHS);
+  if (ageMonths < triggerAge - 1) return false;
+  if (expiryMonths != null && ageMonths > effectiveEndMonths + expiryMonths) return false;
+  return true;
 }
 
 /** Max months past the trigger window to keep showing an un-actioned reminder.
  *  Beyond this, the item silently expires — a 12-year-old should not see newborn vaccines. */
-const OVERDUE_EXPIRY_MONTHS = 12;
-
-function isEligibleNonRepeat(rule: GenReminderRule, kind: ReminderKind, ageMonths: number, hasPersistedState: boolean) {
+function isEligibleNonRepeat(rule: GenReminderRule, ageMonths: number, hasPersistedState: boolean, expiryMonths: number | null) {
   // If there's a persisted state (completed, dismissed, snoozed, etc.) always show it
   if (hasPersistedState) return true;
 
@@ -240,9 +276,22 @@ function isEligibleNonRepeat(rule: GenReminderRule, kind: ReminderKind, ageMonth
   if (ageMonths < rule.triggerAge.startMonths - 1) return false;
 
   // Past the trigger window + expiry buffer → silently expire
-  if (ageMonths > endAge + OVERDUE_EXPIRY_MONTHS) return false;
+  if (expiryMonths != null && ageMonths > endAge + expiryMonths) return false;
 
   return true;
+}
+
+function isColdStartReminder(
+  rule: GenReminderRule,
+  kind: ReminderKind,
+  state: ReminderState | null,
+  effectiveEndDate: string,
+  profileCreatedAt: string,
+) {
+  if (kind !== 'task') return false;
+  if (state) return false;
+  if (rule.triggerAge.endMonths === -1) return false;
+  return effectiveEndDate < profileCreatedAt.slice(0, 10);
 }
 
 function toLifecycle(reminder: Omit<ActiveReminder, 'lifecycle'>, localToday: string): ReminderLifecycle {
@@ -292,21 +341,29 @@ export function computeEligibleReminders(
     const kind = toReminderKind(rule);
 
     if (rule.repeatRule) {
-      const intervalMonths = override?.intervalMonths || rule.repeatRule.intervalMonths;
+      const intervalMonths = override?.intervalMonths ?? rule.repeatRule.intervalMonths;
       const { maxRepeats } = rule.repeatRule;
       const maxCount = maxRepeats === -1 ? 100 : maxRepeats;
       const absoluteEndAge = rule.triggerAge.endMonths === -1 ? 216 : rule.triggerAge.endMonths;
+      const expiryMonths = deriveExpiryMonths(rule, intervalMonths);
 
       for (let repeatIndex = 0; repeatIndex <= maxCount; repeatIndex += 1) {
         const triggerAge = rule.triggerAge.startMonths + repeatIndex * intervalMonths;
         if (triggerAge > absoluteEndAge) break;
 
         const state = stateMap.get(reminderKey(rule.ruleId, repeatIndex)) ?? null;
-        if (!isEligibleRepeatInstance(triggerAge, intervalMonths, context.ageMonths, Boolean(state))) continue;
+        const effectiveEndMonths = Math.min(triggerAge + intervalMonths - 1, absoluteEndAge);
+        if (!isEligibleRepeatInstance(triggerAge, effectiveEndMonths, expiryMonths, context.ageMonths, Boolean(state))) continue;
 
         const effectiveStartDate = addMonths(birthDate, triggerAge);
-        const effectiveEndMonths = Math.min(triggerAge + intervalMonths - 1, absoluteEndAge);
         const effectiveEndDate = addMonths(birthDate, effectiveEndMonths);
+        const deliveryDisposition = isColdStartReminder(
+          rule,
+          kind,
+          state,
+          effectiveEndDate,
+          context.profileCreatedAt,
+        ) ? 'cold_start' : 'normal';
         const baseReminder = {
           rule,
           visibility,
@@ -319,6 +376,7 @@ export function computeEligibleReminders(
           overdueDays: Math.max(0, diffDays(context.localToday, effectiveEndDate)),
           daysUntilStart: diffDays(effectiveStartDate, context.localToday),
           daysUntilEnd: diffDays(effectiveEndDate, context.localToday),
+          deliveryDisposition,
           state,
         } satisfies Omit<ActiveReminder, 'lifecycle'>;
 
@@ -331,10 +389,18 @@ export function computeEligibleReminders(
     }
 
     const state = stateMap.get(reminderKey(rule.ruleId, 0)) ?? null;
-    if (!isEligibleNonRepeat(rule, kind, context.ageMonths, Boolean(state))) continue;
+    const expiryMonths = deriveExpiryMonths(rule);
+    if (!isEligibleNonRepeat(rule, context.ageMonths, Boolean(state), expiryMonths)) continue;
 
     const effectiveStartDate = addMonths(birthDate, rule.triggerAge.startMonths);
     const effectiveEndDate = addMonths(birthDate, rule.triggerAge.endMonths === -1 ? 216 : rule.triggerAge.endMonths);
+    const deliveryDisposition = isColdStartReminder(
+      rule,
+      kind,
+      state,
+      effectiveEndDate,
+      context.profileCreatedAt,
+    ) ? 'cold_start' : 'normal';
     const baseReminder = {
       rule,
       visibility,
@@ -347,6 +413,7 @@ export function computeEligibleReminders(
       overdueDays: Math.max(0, diffDays(context.localToday, effectiveEndDate)),
       daysUntilStart: diffDays(effectiveStartDate, context.localToday),
       daysUntilEnd: diffDays(effectiveEndDate, context.localToday),
+      deliveryDisposition,
       state,
     } satisfies Omit<ActiveReminder, 'lifecycle'>;
 
@@ -441,28 +508,39 @@ export function buildReminderAgenda(
   freqOverrides?: FreqOverrideMap,
 ): ReminderAgenda {
   const eligible = computeEligibleReminders(rules, context, states, freqOverrides);
+  const normalEligible = eligible.filter((reminder) => reminder.deliveryDisposition === 'normal');
+  const onboardingCatchupItems = eligible
+    .filter((reminder) => reminder.deliveryDisposition === 'cold_start')
+    .sort(compareTodayReminder);
   const stateMap = new Map(states.map((state) => [reminderKey(state.ruleId, state.repeatIndex), state]));
   const todayLimit = todayCap(context.nurtureMode);
 
-  const preserved = eligible
+  const preserved = normalEligible
     .filter((reminder) => reminder.state?.plannedForDate === context.localToday && reminder.state?.surfaceRank != null)
     .filter((reminder) => isTaskTodayCandidate(reminder, context.localToday))
     .sort((a, b) => (a.state?.surfaceRank ?? 999) - (b.state?.surfaceRank ?? 999));
 
   const preservedKeys = new Set(preserved.map((reminder) => reminderKey(reminder.rule.ruleId, reminder.repeatIndex)));
-  const allP0Today = eligible
+  const allP0Today = normalEligible
     .filter((reminder) => reminder.rule.priority === 'P0' && isTaskTodayCandidate(reminder, context.localToday))
     .sort(compareTodayReminder);
 
   const todayFocus: ActiveReminder[] = [];
   const todayKeys = new Set<string>();
+  const p0OverflowItems: ActiveReminder[] = [];
 
   for (const reminder of allP0Today) {
     const key = reminderKey(reminder.rule.ruleId, reminder.repeatIndex);
     if (todayKeys.has(key)) continue;
-    todayFocus.push(reminder);
-    todayKeys.add(key);
+    if (todayFocus.filter((item) => item.rule.priority === 'P0').length < P0_TODAY_LIMIT) {
+      todayFocus.push(reminder);
+      todayKeys.add(key);
+      continue;
+    }
+    p0OverflowItems.push(reminder);
   }
+
+  const p0OverflowKeys = new Set(p0OverflowItems.map((reminder) => reminderKey(reminder.rule.ruleId, reminder.repeatIndex)));
 
   const nonP0Preserved = preserved
     .filter((reminder) => reminder.rule.priority !== 'P0')
@@ -482,7 +560,7 @@ export function buildReminderAgenda(
     todayKeys.add(key);
   }
 
-  const nonP0Candidates = eligible
+  const nonP0Candidates = normalEligible
     .filter((reminder) => reminder.rule.priority !== 'P0')
     .filter((reminder) => !preservedKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
     .filter((reminder) => isTaskTodayCandidate(reminder, context.localToday))
@@ -498,13 +576,14 @@ export function buildReminderAgenda(
     todayKeys.add(key);
   }
 
-  const thisWeek = eligible
+  const thisWeek = normalEligible
     .filter((reminder) => isTaskThisWeekCandidate(reminder))
     .filter((reminder) => !todayKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
+    .filter((reminder) => !p0OverflowKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
     .sort(compareWeekReminder)
     .slice(0, 12);
 
-  const stageFocus = eligible
+  const stageFocus = normalEligible
     .filter((reminder) => isStageFocusCandidate(reminder))
     .sort(compareTodayReminder)
     .slice(0, stageCap(context.nurtureMode));
@@ -543,6 +622,7 @@ export function buildReminderAgenda(
       overdueDays: Math.max(0, diffDays(context.localToday, effectiveEndDate)),
       daysUntilStart: diffDays(effectiveStartDate, context.localToday),
       daysUntilEnd: diffDays(effectiveEndDate, context.localToday),
+      deliveryDisposition: 'normal',
       state,
     } satisfies Omit<ActiveReminder, 'lifecycle'>;
     history.push({
@@ -553,10 +633,11 @@ export function buildReminderAgenda(
   }
   history.sort(compareHistoryReminder);
 
-  const overdueSummaryItems = eligible
+  const overdueSummaryItems = normalEligible
     .filter((reminder) => reminder.kind === 'task')
     .filter((reminder) => reminder.lifecycle === 'overdue')
     .filter((reminder) => !todayKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
+    .filter((reminder) => !p0OverflowKeys.has(reminderKey(reminder.rule.ruleId, reminder.repeatIndex)))
     .sort(compareTodayReminder);
 
   return {
@@ -570,6 +651,14 @@ export function buildReminderAgenda(
       }
       return compareTodayReminder(a, b);
     }),
+    p0Overflow: {
+      count: p0OverflowItems.length,
+      items: p0OverflowItems,
+    },
+    onboardingCatchup: {
+      count: onboardingCatchupItems.length,
+      items: onboardingCatchupItems,
+    },
     thisWeek,
     stageFocus,
     history,

@@ -4,7 +4,7 @@
 
 ## Scope
 
-This contract governs the reminder agenda engine, timeline projection, sensitive-period guidance, and timeline-driven monthly report trigger.
+This contract governs the reminder agenda engine, timeline home projection, sensitive-period guidance, and timeline-driven monthly report trigger.
 
 Covered features from `feature-matrix.yaml`:
 
@@ -18,6 +18,11 @@ Governing fact sources:
 - `tables/reminder-rules.yaml`
 - `tables/nurture-modes.yaml`
 - `tables/sensitive-periods.yaml`
+- `tables/local-storage.yaml#measurements`
+- `tables/local-storage.yaml#vaccine_records`
+- `tables/local-storage.yaml#milestone_records`
+- `tables/local-storage.yaml#journal_entries`
+- `tables/local-storage.yaml#sleep_records`
 - `tables/local-storage.yaml#reminder_states`
 - `tables/local-storage.yaml#growth_reports`
 - `tables/routes.yaml#/timeline`
@@ -31,6 +36,7 @@ Reminder computation must consume only structured inputs:
 | `childId` | `string` | selected child |
 | `birthDate` | `ISO 8601 date string` | child profile |
 | `ageMonths` | `integer` | derived from `birthDate` and the evaluation date |
+| `profileCreatedAt` | `ISO 8601 datetime string` | `children.createdAt` |
 | `nurtureMode` | `relaxed \| balanced \| advanced` | child record |
 | `ruleCatalog` | `ReminderRule[]` | compiled from `reminder-rules.yaml` |
 | `reminderStates` | `ReminderStateRow[]` | SQLite |
@@ -82,19 +88,45 @@ This invariant is enforced by `check-parentos-nurture-mode-safety`.
 
 ## PO-TIME-004 Timeline Output Shape
 
-The timeline and reminders views must project reminders into structured agenda buckets only.
+The timeline home and reminders views must project current state into two display layers:
 
-Required bucket semantics:
+- reminder agenda buckets
+- timeline-home display buckets
+
+Reminder agenda bucket semantics:
 
 | Bucket | Meaning |
 |---|---|
 | `todayFocus` | reminders worth acting on today |
+| `p0Overflow` | `P0` reminders that stay visible but exceed the first-screen cap |
+| `onboardingCatchup` | pre-registration stale task reminders gathered into a dedicated catch-up entry |
 | `thisWeek` | task reminders that matter soon but do not need immediate action |
 | `stageFocus` | guidance reminders for the current developmental stage |
 | `history` | completed, scheduled, snoozed, and not-applicable records |
 | `overdueSummary` | compressed summary for stale overdue reminders |
 
 Agenda bucket assignment must be recomputed from structured inputs on every evaluation.
+
+Timeline-home display buckets are display-only projections and must not persist synthetic rows:
+
+| Bucket | Meaning |
+|---|---|
+| `recentChanges` | top recent structured changes from local records, limited to the last 7 days and capped for first-screen display |
+| `dataGapAlert` | a constrained freshness hint for key growth measurements when no visible reminder already covers the same need |
+
+Timeline-home display bucket constraints:
+
+- `recentChanges` may only derive from admitted structured local records such as measurements, vaccine records, milestone records, sleep records, and journal entries
+- `recentChanges` must not invent diagnosis, treatment, or causal interpretation
+- `recentChanges` must dedupe by domain for first-screen display and cap the total count
+- `dataGapAlert` is display-only and must not mutate `reminder_states`
+- `dataGapAlert` must respect nurture mode visibility and suppress itself when a visible growth/checkup reminder already covers the same need
+
+Cold-start suppression must obey these invariants:
+
+- it may move a reminder into `onboardingCatchup`, but must not mutate reminder priority
+- it must not persist any synthetic state row
+- it must not weaken the `P0` push invariant from `PO-TIME-003`
 
 ## PO-TIME-005 Sensitive Period Projection
 
@@ -123,6 +155,15 @@ The timeline layer must fail closed when:
 - a reminder references an invalid nurture-mode projection
 - a persisted reminder row contains agenda metadata that cannot be interpreted deterministically
 - a report trigger path attempts to persist malformed report payloads
+
+## PO-TIME-008 Timeline vs Profile Boundary
+
+The timeline and profile surfaces serve complementary mandates. The authoritative boundary definition lives in `profile-contract.md#PO-PROF-021`. Timeline-side invariants:
+
+- Timeline owns the action/agenda surface: reminders, recent changes, data freshness alerts, and sensitive-period guidance.
+- Timeline must not serve as a record browsing, history exploration, or archive completeness surface. Those are profile concerns.
+- Timeline may link to profile sub-pages for deep record access.
+- Timeline may display recent-change snippets (PO-TIME-004 `recentChanges` bucket) but must not duplicate the profile's record-count or last-updated summary projection.
 
 ## Exclusions
 

@@ -43,7 +43,7 @@ export function JournalEntryList({ child, entries, onEdit }: JournalEntryListPro
               ) : null}
               {dimension ? (
                 <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
-                  {dimension.displayName}
+                  成长方向 · {dimension.displayName}
                 </span>
               ) : null}
               {entry.voicePath ? (
@@ -65,6 +65,7 @@ export function JournalEntryList({ child, entries, onEdit }: JournalEntryListPro
             <p className="text-sm text-gray-800">{bodyText}</p>
             {tags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
+                <span className="mr-1 text-xs text-gray-400">成长关键词</span>
                 {tags.map((tag) => (
                   <span key={tag} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
                     {tag}

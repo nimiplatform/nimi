@@ -102,7 +102,7 @@ export function inferRequestedDomains(question: string): string[] {
 }
 
 export function canUseAdvisorRuntime(domains: string[]) {
-  return domains.length > 0 && domains.every((domain) => REVIEWED_DOMAINS.includes(domain));
+  return domains.length === 0 || domains.every((domain) => REVIEWED_DOMAINS.includes(domain));
 }
 
 export function appendAdvisorSources(text: string, domains: string[]) {

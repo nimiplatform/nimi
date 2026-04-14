@@ -85,6 +85,7 @@ describe('advisor boundary', () => {
     expect(inferRequestedDomains('Need help with sleep and sensitive period routines')).toEqual(
       expect.arrayContaining(['sleep', 'sensitivity']),
     );
+    expect(canUseAdvisorRuntime([])).toBe(true);
     expect(canUseAdvisorRuntime(['sleep', 'digital'])).toBe(true);
     expect(canUseAdvisorRuntime(['sleep', 'growth'])).toBe(false);
   });

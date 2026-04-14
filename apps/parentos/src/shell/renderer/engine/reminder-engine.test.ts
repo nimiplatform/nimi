@@ -40,6 +40,19 @@ function makeState(overrides: Partial<ReminderState>): ReminderState {
   };
 }
 
+function makeContext(overrides?: Partial<Parameters<typeof computeEligibleReminders>[1]>) {
+  return {
+    birthDate: '2025-04-01',
+    gender: 'male' as const,
+    ageMonths: 12,
+    profileCreatedAt: '2025-04-01T00:00:00.000Z',
+    localToday: '2026-04-08',
+    nurtureMode: 'balanced' as const,
+    domainOverrides: null,
+    ...overrides,
+  };
+}
+
 describe('reminder engine eligibility', () => {
   it('keeps every P0 rule on push visibility in every nurture mode', () => {
     const p0Rule: ReminderRule = {
@@ -51,14 +64,7 @@ describe('reminder engine eligibility', () => {
     };
 
     for (const mode of ['relaxed', 'balanced', 'advanced'] as const) {
-      const reminders = computeEligibleReminders([p0Rule], {
-        birthDate: '2025-04-01',
-        gender: 'male',
-        ageMonths: 12,
-        localToday: '2026-04-08',
-        nurtureMode: mode,
-        domainOverrides: null,
-      }, []);
+      const reminders = computeEligibleReminders([p0Rule], makeContext({ nurtureMode: mode }), []);
       expect(reminders).toHaveLength(1);
       expect(reminders[0]?.visibility).toBe('push');
     }
@@ -73,16 +79,49 @@ describe('reminder engine eligibility', () => {
       triggerAge: { startMonths: 12, endMonths: 15 },
     };
 
-    const reminders = computeEligibleReminders([repeatRule], {
-      birthDate: '2025-04-01',
-      gender: 'male',
+    const reminders = computeEligibleReminders([repeatRule], makeContext({
       ageMonths: 13,
       localToday: '2026-05-08',
-      nurtureMode: 'balanced',
-      domainOverrides: null,
-    }, []);
+    }), []);
 
     expect(reminders.map((item) => item.repeatIndex)).toEqual([2]);
+  });
+
+  it('moves pre-registration stale tasks into cold-start disposition', () => {
+    const reminders = computeEligibleReminders([
+      {
+        ...baseRule,
+        ruleId: 'PO-REM-TEST-210',
+        domain: 'vaccine',
+        priority: 'P0',
+        actionType: 'go_hospital',
+        triggerAge: { startMonths: 0, endMonths: 1 },
+      },
+    ], makeContext({
+      ageMonths: 4,
+      localToday: '2025-08-08',
+      profileCreatedAt: '2025-08-01T00:00:00.000Z',
+    }), []);
+
+    expect(reminders).toHaveLength(1);
+    expect(reminders[0]?.deliveryDisposition).toBe('cold_start');
+  });
+
+  it('keeps override expiry when provided by a future rule payload', () => {
+    const customExpiryRule = {
+      ...baseRule,
+      ruleId: 'PO-REM-TEST-211',
+      actionType: 'record_data',
+      triggerAge: { startMonths: 12, endMonths: 12 },
+      expiryMonths: 1,
+    } as ReminderRule & { expiryMonths: number };
+
+    const reminders = computeEligibleReminders([customExpiryRule], makeContext({
+      ageMonths: 14,
+      localToday: '2026-06-08',
+    }), []);
+
+    expect(reminders).toHaveLength(0);
   });
 
   it('derives reminder kind only from actionType', () => {
@@ -92,23 +131,19 @@ describe('reminder engine eligibility', () => {
 });
 
 describe('reminder engine orchestration', () => {
-  it('lets all concurrent P0 tasks into today focus', () => {
+  it('keeps only the top three concurrent P0 tasks in today focus and overflows the rest', () => {
     const rules: ReminderRule[] = [
       { ...baseRule, ruleId: 'PO-REM-TEST-301', priority: 'P0', actionType: 'go_hospital', domain: 'vaccine' },
       { ...baseRule, ruleId: 'PO-REM-TEST-302', priority: 'P0', actionType: 'go_hospital', domain: 'vaccine', title: 'Second' },
       { ...baseRule, ruleId: 'PO-REM-TEST-303', priority: 'P0', actionType: 'go_hospital', domain: 'vaccine', title: 'Third' },
+      { ...baseRule, ruleId: 'PO-REM-TEST-304', priority: 'P0', actionType: 'go_hospital', domain: 'checkup', title: 'Fourth' },
     ];
 
-    const agenda = buildReminderAgenda(rules, {
-      birthDate: '2025-04-01',
-      gender: 'male',
-      ageMonths: 12,
-      localToday: '2026-04-08',
-      nurtureMode: 'relaxed',
-      domainOverrides: null,
-    }, []);
+    const agenda = buildReminderAgenda(rules, makeContext({ nurtureMode: 'relaxed' }), []);
 
     expect(agenda.todayFocus).toHaveLength(3);
+    expect(agenda.p0Overflow.count).toBe(1);
+    expect(agenda.p0Overflow.items[0]?.rule.ruleId).toBe('PO-REM-TEST-304');
   });
 
   it('limits non-P0 today items and keeps overflow in thisWeek', () => {
@@ -118,14 +153,7 @@ describe('reminder engine orchestration', () => {
       { ...baseRule, ruleId: 'PO-REM-TEST-403', domain: 'dental', actionType: 'record_data', title: 'Dental task' },
     ];
 
-    const agenda = buildReminderAgenda(rules, {
-      birthDate: '2025-04-01',
-      gender: 'male',
-      ageMonths: 12,
-      localToday: '2026-04-08',
-      nurtureMode: 'relaxed',
-      domainOverrides: null,
-    }, []);
+    const agenda = buildReminderAgenda(rules, makeContext({ nurtureMode: 'relaxed' }), []);
 
     expect(agenda.todayFocus).toHaveLength(2);
     expect(agenda.thisWeek).toHaveLength(1);
@@ -142,14 +170,7 @@ describe('reminder engine orchestration', () => {
       makeState({ ruleId: 'PO-REM-TEST-502', stateId: 'state-2', plannedForDate: '2026-04-08', surfaceRank: 1, lastSurfacedAt: '2026-04-08T08:00:00.000Z', surfaceCount: 1 }),
     ];
 
-    const agenda = buildReminderAgenda(rules, {
-      birthDate: '2025-04-01',
-      gender: 'male',
-      ageMonths: 12,
-      localToday: '2026-04-08',
-      nurtureMode: 'balanced',
-      domainOverrides: null,
-    }, states);
+    const agenda = buildReminderAgenda(rules, makeContext(), states);
 
     expect(agenda.todayFocus.map((item) => item.rule.ruleId)).toContain('PO-REM-TEST-503');
     expect(agenda.todayFocus.map((item) => item.rule.ruleId)).toContain('PO-REM-TEST-501');
@@ -166,14 +187,10 @@ describe('reminder engine orchestration', () => {
       makeState({ ruleId: 'PO-REM-TEST-602', stateId: 'state-2', scheduledDate: '2026-03-01' }),
     ];
 
-    const agenda = buildReminderAgenda(rules, {
+    const agenda = buildReminderAgenda(rules, makeContext({
       birthDate: '2024-01-01',
-      gender: 'male',
       ageMonths: 27,
-      localToday: '2026-04-08',
-      nurtureMode: 'balanced',
-      domainOverrides: null,
-    }, states);
+    }), states);
 
     expect(agenda.todayFocus.map((item) => item.rule.ruleId)).not.toContain('PO-REM-TEST-601');
     expect(agenda.overdueSummary.count).toBeGreaterThanOrEqual(1);
@@ -191,14 +208,10 @@ describe('reminder engine orchestration', () => {
       },
     ];
 
-    const agenda = buildReminderAgenda(rules, {
-      birthDate: '2025-04-01',
-      gender: 'male',
+    const agenda = buildReminderAgenda(rules, makeContext({
       ageMonths: 18,
       localToday: '2026-10-01',
-      nurtureMode: 'balanced',
-      domainOverrides: null,
-    }, [], new Map([
+    }), [], new Map([
       ['PO-REM-TEST-603', { intervalMonths: 6, disabled: false, modifiedAt: '2026-09-01T00:00:00.000Z' }],
     ]));
 
@@ -206,6 +219,23 @@ describe('reminder engine orchestration', () => {
       ...agenda.todayFocus.map((item) => item.repeatIndex),
       ...agenda.thisWeek.map((item) => item.repeatIndex),
     ]).toContain(1);
+  });
+
+  it('routes cold-start items away from today, this week, and overdue summary', () => {
+    const rules: ReminderRule[] = [
+      { ...baseRule, ruleId: 'PO-REM-TEST-604', domain: 'checkup', priority: 'P1', actionType: 'go_hospital', triggerAge: { startMonths: 1, endMonths: 2 } },
+    ];
+
+    const agenda = buildReminderAgenda(rules, makeContext({
+      ageMonths: 4,
+      localToday: '2025-08-08',
+      profileCreatedAt: '2025-08-01T00:00:00.000Z',
+    }), []);
+
+    expect(agenda.onboardingCatchup.count).toBe(1);
+    expect(agenda.todayFocus).toHaveLength(0);
+    expect(agenda.thisWeek).toHaveLength(0);
+    expect(agenda.overdueSummary.count).toBe(0);
   });
 });
 
@@ -224,14 +254,7 @@ describe('reminder engine presentation', () => {
       makeState({ ruleId: 'PO-REM-TEST-704', stateId: 'state-4', notApplicable: 1 }),
     ];
 
-    const agenda = buildReminderAgenda(rules, {
-      birthDate: '2025-04-01',
-      gender: 'male',
-      ageMonths: 12,
-      localToday: '2026-04-08',
-      nurtureMode: 'balanced',
-      domainOverrides: null,
-    }, states);
+    const agenda = buildReminderAgenda(rules, makeContext(), states);
 
     expect(agenda.history.map((item) => item.historyType).sort()).toEqual([
       'completed',

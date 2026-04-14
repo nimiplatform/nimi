@@ -4,8 +4,51 @@
 @import "@nimiplatform/nimi-kit/ui/themes/desktop-accent.css";
 @import 'tailwindcss';
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * ParentOS (成长底稿) Typography Specification
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *
+ * Design Language: Premium Chinese Health & Parenting
+ *
+ * Font Families
+ * ─────────────
+ *   --font-sans (UI/Body)
+ *     "Noto Sans SC"          Web font (Google Fonts CDN, unicode-range subsetting)
+ *     "Inter"                 Web font (Google Fonts CDN, Latin/numbers)
+ *     "PingFang SC"           macOS system fallback
+ *     "Microsoft YaHei UI"    Windows system fallback
+ *     system-ui, sans-serif   Ultimate fallback
+ *
+ *   --font-display (Titles/Hero)
+ *     Same stack, relies on heavier weight + tighter letter-spacing
+ *
+ *   --font-mono (Data/Code)
+ *     Inherited from nimi-kit (JetBrains Mono → SF Mono → Fira Code)
+ *
+ * Weight Scale
+ * ────────────
+ *   300 Light     Timestamps, secondary captions, muted metadata
+ *   400 Regular   Body text, descriptions, form inputs
+ *   500 Medium    Labels, navigation items, emphasized text
+ *   600 Semibold  Section titles, card headers, buttons
+ *   700 Bold      Page titles, hero text, key metrics
+ *
+ * Chinese Optimizations
+ * ─────────────────────
+ *   - Noto Sans SC first: ensures CJK & Latin glyphs are visually harmonized
+ *   - Body line-height 1.7: Chinese characters need more vertical breathing
+ *   - Body letter-spacing 0.02em: slight spacing improves CJK readability
+ *   - Title letter-spacing -0.01em: tighter tracking creates density/impact
+ *   - Subpixel antialiasing: sharper rendering on high-DPI screens
+ *
+ * Loaded Weights (Google Fonts CDN)
+ * ─────────────────────────────────
+ *   Noto Sans SC:  300, 400, 500, 700
+ *   Inter:         300, 400, 500, 600, 700
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-sans: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
 }
 
 :root {
@@ -23,14 +66,33 @@
   --color-accent: #c5e84d;
   --color-bg-dashboard: #ececee;
   --color-navy: #1e3a5f;
+
+  /* ParentOS font overrides — Chinese-first premium stack */
+  --font-display: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+  --nimi-font-sans: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+
+  /* Chinese-optimized typography overrides */
+  --nimi-type-body-line-height: 1.7;
+  --nimi-type-body-letter-spacing: 0.02em;
+  --nimi-type-body-sm-line-height: 1.6;
+  --nimi-type-body-sm-letter-spacing: 0.01em;
+  --nimi-type-caption-line-height: 1.5;
+  --nimi-type-label-line-height: 1.4;
+  --nimi-type-page-title-letter-spacing: -0.01em;
+  --nimi-type-section-title-line-height: 1.35;
 }
 
 html, body, #root {
   height: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: "Noto Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
   color: var(--color-text-primary);
   background: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
 /* Thin blue scrollbar — hidden by default, visible on hover */

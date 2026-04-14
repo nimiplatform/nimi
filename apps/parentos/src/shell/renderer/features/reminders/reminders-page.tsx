@@ -80,24 +80,24 @@ function useReminderStates(childId: string | null) {
 function primaryAction(reminder: ActiveReminder) {
   if (reminder.kind === 'guidance') {
     return {
-      label: reminder.rule.actionType === 'observe' ? '去记录' : '开始关注',
+      label: '打开笔记',
       to: `/journal?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}`,
     };
   }
 
   if (reminder.rule.domain === 'vaccine') {
     return {
-      label: reminder.rule.actionType === 'go_hospital' ? '去记录' : '去记录',
+      label: '记录疫苗',
       to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}`,
     };
   }
 
   if (reminder.rule.domain === 'growth' || reminder.rule.actionType === 'record_data') {
-    return { label: '去记录', to: '/profile/growth' };
+    return { label: '记录数据', to: '/profile/growth' };
   }
 
   return {
-    label: reminder.rule.actionType === 'go_hospital' ? '去记录' : '查看详情',
+    label: reminder.rule.actionType === 'go_hospital' ? '查看详情' : '查看档案',
     to: '/profile',
   };
 }
@@ -112,14 +112,6 @@ function reminderTone(reminder: ActiveReminder) {
   return { bg: C.accentSoft, fg: C.accent, edge: '#dbe8b4' };
 }
 
-function reminderIcon(reminder: ActiveReminder) {
-  if (reminder.rule.domain === 'vaccine') return '💉';
-  if (reminder.lifecycle === 'overdue') return '⏰';
-  if (reminder.kind === 'guidance') return '🌱';
-  if (reminder.rule.actionType === 'go_hospital') return '🗓️';
-  return '📝';
-}
-
 function statusLabel(reminder: ActiveReminder) {
   switch (reminder.lifecycle) {
     case 'completed':
@@ -127,13 +119,13 @@ function statusLabel(reminder: ActiveReminder) {
     case 'scheduled':
       return reminder.state?.scheduledDate ? `已安排 ${reminder.state.scheduledDate}` : '已安排';
     case 'snoozed':
-      return reminder.state?.snoozedUntil ? `稍后提醒 ${reminder.state.snoozedUntil}` : '已暂缓';
+      return reminder.state?.snoozedUntil ? `已推迟至 ${reminder.state.snoozedUntil}` : '已推迟';
     case 'overdue':
-      return reminder.overdueDays > 0 ? `已逾期 ${reminder.overdueDays} 天` : '已逾期';
+      return reminder.overdueDays > 0 ? `逾期${reminder.overdueDays}天` : '已逾期';
     case 'due':
-      return '今天处理';
+      return '今天到期';
     default:
-      return reminder.daysUntilStart > 0 ? `${reminder.daysUntilStart} 天后` : '本周关注';
+      return reminder.daysUntilStart > 0 ? `${reminder.daysUntilStart}天后开始` : '本周';
   }
 }
 
@@ -144,20 +136,10 @@ function historyLabel(item: ReminderHistoryItem) {
     case 'scheduled':
       return item.state?.scheduledDate ? `已安排 ${item.state.scheduledDate}` : '已安排';
     case 'snoozed':
-      return item.state?.snoozedUntil ? `暂缓到 ${item.state.snoozedUntil}` : '已暂缓';
+      return item.state?.snoozedUntil ? `已推迟至 ${item.state.snoozedUntil}` : '已推迟';
     case 'not_applicable':
       return '不适用';
   }
-}
-
-function reasonLine(reminder: ActiveReminder) {
-  if (reminder.lifecycle === 'overdue') {
-    return '已经过了建议窗口，优先把这件事补上，避免继续被旧事项反复打扰。';
-  }
-  if (reminder.kind === 'task') {
-    return reminder.rule.description;
-  }
-  return '这是当前阶段值得观察或记录的主题，不需要今天完成，但本周最好留意一次。';
 }
 
 function SummaryTile({
@@ -219,10 +201,10 @@ function TodayHero({
   if (!reminder) {
     return (
       <div className="rounded-[20px] p-5 border" style={{ background: '#fff', borderColor: C.border }}>
-        <p className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: C.accent }}>TODAY'S AGENDA</p>
-        <h2 className="text-[22px] font-bold mt-2" style={{ color: C.text }}>今天节奏比较轻</h2>
+        <p className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: C.accent }}>今日</p>
+        <h2 className="text-[22px] font-bold mt-2" style={{ color: C.text }}>今天没有待办</h2>
         <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>
-          没有新的硬性任务压着你，可以把时间留给陪伴、观察和补记录。
+          当前没有需要立即处理的事项。
         </p>
       </div>
     );
@@ -232,29 +214,21 @@ function TodayHero({
   const primary = primaryAction(reminder);
   return (
     <div className="rounded-[20px] p-5 border" style={{ background: '#fff', borderColor: C.border }}>
-      <p className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: tone.fg }}>TODAY'S AGENDA</p>
-      <h2 className="text-[22px] font-bold mt-2" style={{ color: C.text }}>今天最值得先处理的事</h2>
-      <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>
-        先把这一项推进就够了。P0 事项不会被隐藏，其他任务已经按优先级帮你做过降噪。
-      </p>
-
-      <div className="mt-4 rounded-[18px] p-4" style={{ background: tone.bg }}>
-        <div className="flex items-center gap-2 text-[11px] font-medium" style={{ color: tone.fg }}>
-          <span>{reminderIcon(reminder)}</span>
-          <span>{statusLabel(reminder)}</span>
-        </div>
-        <p className="text-[16px] font-semibold mt-2" style={{ color: C.text }}>{reminder.rule.title}</p>
-        <p className="text-[12px] mt-1 leading-relaxed" style={{ color: C.sub }}>{reasonLine(reminder)}</p>
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <Link to={primary.to} className="px-3.5 py-2 rounded-full text-[11px] font-medium text-white" style={{ background: C.accent }}>
-            {primary.label}
-          </Link>
-          <button type="button" title="标记完成" onClick={() => onComplete(reminder)}
-            className="w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors hover:bg-[#f0f5e6]"
-            style={{ borderColor: '#c0bdb8', color: '#c0bdb8' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-          </button>
-        </div>
+      <p className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: tone.fg }}>今日</p>
+      <h2 className="text-[22px] font-bold mt-2" style={{ color: C.text }}>{reminder.rule.title}</h2>
+      <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>{statusLabel(reminder)}</p>
+      <div className="flex flex-wrap items-center gap-2 mt-4">
+        <Link to={primary.to} className="px-3.5 py-2 rounded-full text-[11px] font-medium text-white" style={{ background: C.accent }}>
+          {primary.label}
+        </Link>
+        <button
+          type="button"
+          onClick={() => onComplete(reminder)}
+          className="px-3.5 py-2 rounded-full text-[11px] font-medium"
+          style={{ background: '#f3f5f1', color: C.text }}
+        >
+          标记完成
+        </button>
       </div>
     </div>
   );
@@ -273,75 +247,49 @@ function ReminderRow({
   onSnooze: (reminder: ActiveReminder) => void;
   onSchedule: (reminder: ActiveReminder) => void;
   onNotApplicable: (reminder: ActiveReminder) => void;
-  onAdjustFrequency?: (reminder: ActiveReminder) => void;
+  onAdjustFrequency: (reminder: ActiveReminder) => void;
 }) {
+  const tone = reminderTone(reminder);
   const primary = primaryAction(reminder);
   const domain = DOMAIN_LABELS[reminder.rule.domain] ?? reminder.rule.domain;
-  const tone = reminderTone(reminder);
 
   return (
-    <div className="rounded-[18px] border p-4 relative overflow-hidden" style={{ borderColor: tone.edge, background: '#fbfcfa' }}>
-      <div className="absolute left-0 top-0 bottom-0 w-[4px]" style={{ background: tone.fg }} />
-      <div className="flex items-start justify-between gap-3 pl-1">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-full" style={{ background: tone.bg, color: tone.fg }}>
-              <span>{reminderIcon(reminder)}</span>
+    <div className="rounded-[18px] p-4 border" style={{ borderColor: tone.edge, background: '#fbfcfa' }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] px-2.5 py-1 rounded-full" style={{ background: tone.bg, color: tone.fg }}>
               {domain}
             </span>
             <span className="text-[10px]" style={{ color: C.sub }}>{statusLabel(reminder)}</span>
-            <span className="text-[10px] font-semibold" style={{ color: tone.fg }}>{reminder.rule.priority}</span>
           </div>
-          <h3 className="text-[14px] font-semibold leading-snug" style={{ color: C.text }}>{reminder.rule.title}</h3>
-          <p className="text-[12px] mt-1.5 leading-relaxed" style={{ color: C.sub }}>{reasonLine(reminder)}</p>
+          <p className="text-[14px] font-semibold" style={{ color: C.text }}>{reminder.rule.title}</p>
+          <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>{reminder.rule.description}</p>
         </div>
-        <button type="button" title="标记完成" onClick={() => onComplete(reminder)}
-          className="w-7 h-7 shrink-0 rounded-full flex items-center justify-center border-2 transition-colors hover:bg-[#f0f5e6]"
-          style={{ borderColor: '#c0bdb8', color: '#c0bdb8' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-        </button>
       </div>
-
-      <div className="flex flex-wrap items-center gap-2 mt-3 pl-1">
-        <Link to={primary.to} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-white" style={{ background: C.accent }}>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <Link to={primary.to} className="px-3 py-1.5 rounded-full text-[11px] font-medium" style={{ background: tone.bg, color: tone.fg }}>
           {primary.label}
         </Link>
-        {reminder.kind === 'task' && (
-          <button
-            type="button"
-            onClick={() => onSchedule(reminder)}
-            className="px-3 py-1.5 rounded-full text-[11px]"
-            style={{ background: '#f7f7f5', color: C.sub }}
-          >
-            已安排
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => onSnooze(reminder)}
-          className="px-3 py-1.5 rounded-full text-[11px]"
-          style={{ background: '#f7f7f5', color: C.sub }}
-        >
-          稍后提醒
+        <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f3f5f1', color: C.text }}>
+          完成
         </button>
-        {reminder.rule.repeatRule && onAdjustFrequency && (
-          <button
-            type="button"
-            onClick={() => onAdjustFrequency(reminder)}
-            className="px-3 py-1.5 rounded-full text-[11px]"
-            style={{ background: '#f7f7f5', color: C.sub }}
-          >
-            调整频率
+        <button type="button" onClick={() => onSnooze(reminder)} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: C.sub }}>
+          推迟
+        </button>
+        {reminder.kind === 'task' && (
+          <button type="button" onClick={() => onSchedule(reminder)} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: C.sub }}>
+            安排
           </button>
         )}
         {canMarkNotApplicable(reminder) && (
-          <button
-            type="button"
-            onClick={() => onNotApplicable(reminder)}
-            className="px-3 py-1.5 rounded-full text-[11px]"
-            style={{ background: '#f7f7f5', color: '#a16b5d' }}
-          >
-            {reminder.kind === 'task' ? '不打算做' : '不适用'}
+          <button type="button" onClick={() => onNotApplicable(reminder)} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: '#a16b5d' }}>
+            不适用
+          </button>
+        )}
+        {reminder.rule.repeatRule && (
+          <button type="button" onClick={() => onAdjustFrequency(reminder)} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: C.sub }}>
+            调整
           </button>
         )}
       </div>
@@ -354,9 +302,9 @@ export default function RemindersPage() {
   const child = childList.find((item) => item.childId === activeChildId);
   const { states, loading, reload } = useReminderStates(activeChildId);
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
+  const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const localToday = getLocalToday();
-  const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const repeatableRuleIds = useMemo(
     () => REMINDER_RULES.filter((rule) => rule.repeatRule).map((rule) => rule.ruleId),
     [],
@@ -381,6 +329,7 @@ export default function RemindersPage() {
       birthDate: child.birthDate,
       gender: child.gender,
       ageMonths,
+      profileCreatedAt: child.createdAt,
       localToday,
       nurtureMode: child.nurtureMode,
       domainOverrides: child.nurtureModeOverrides,
@@ -390,9 +339,7 @@ export default function RemindersPage() {
   useEffect(() => {
     if (!child || !agenda) return;
     persistAgendaPlan(child.childId, agenda, states).then((didPersist) => {
-      if (didPersist) {
-        void reload();
-      }
+      if (didPersist) void reload();
     }).catch(catchLog('reminders', 'action:persist-agenda-plan-failed'));
   }, [child, agenda, states, reload]);
 
@@ -415,7 +362,7 @@ export default function RemindersPage() {
 
   const handleSchedule = useCallback((reminder: ActiveReminder) => {
     const suggestion = reminder.state?.scheduledDate ?? localToday;
-    const scheduledDate = window.prompt('请输入已安排日期（YYYY-MM-DD）', suggestion);
+    const scheduledDate = window.prompt('安排日期 (YYYY-MM-DD)', suggestion);
     if (!scheduledDate) return;
     void handleAction(reminder, 'schedule', scheduledDate);
   }, [handleAction, localToday]);
@@ -423,7 +370,7 @@ export default function RemindersPage() {
   if (!child) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: C.sub }}>
-        <p className="text-lg font-medium">请先添加孩子</p>
+        <p className="text-lg font-medium">尚未选择孩子</p>
         <Link to="/timeline" className="text-sm hover:underline" style={{ color: C.text }}>返回首页</Link>
       </div>
     );
@@ -447,9 +394,9 @@ export default function RemindersPage() {
             </svg>
           </Link>
           <div>
-            <h1 className="text-[20px] font-bold" style={{ color: C.text }}>提醒事项</h1>
+            <h1 className="text-[20px] font-bold" style={{ color: C.text }}>提醒中心</h1>
             <p className="text-[12px] mt-1" style={{ color: C.sub }}>
-              今天重点 {agenda.todayFocus.length} 项，本周安排 {agenda.thisWeek.length} 项，历史 {agenda.history.length} 项
+              今天 {agenda.todayFocus.length} 项，本周 {agenda.thisWeek.length} 项，历史 {agenda.history.length} 项
             </p>
           </div>
         </div>
@@ -461,17 +408,23 @@ export default function RemindersPage() {
               onComplete={(item) => void handleAction(item, item.kind === 'guidance' ? 'acknowledge' : 'complete')}
             />
             <div className="grid grid-cols-1 gap-3">
-              <SummaryTile label="今日重点" value={String(agenda.todayFocus.length)} hint="需要今天决定或推进的事项" tone={{ bg: C.accentSoft, fg: C.accent }} />
-              <SummaryTile label="本周安排" value={String(agenda.thisWeek.length)} hint="先安排起来，别等到临门一脚" tone={{ bg: C.skySoft, fg: '#4f7ca9' }} />
-              <SummaryTile label="逾期摘要" value={String(agenda.overdueSummary.count)} hint="旧事项已收折，不再压满主视图" tone={{ bg: C.warmSoft, fg: C.warm }} />
+              {agenda.p0Overflow.count > 0 && (
+                <SummaryTile label="更多重要" value={String(agenda.p0Overflow.count)} hint="超出首屏的高优先级提醒。" tone={{ bg: '#fff6df', fg: '#b7791f' }} />
+              )}
+              {agenda.onboardingCatchup.count > 0 && (
+                <SummaryTile label="历史补录" value={String(agenda.onboardingCatchup.count)} hint="在档案创建前已过期的事项。" tone={{ bg: '#f3eefc', fg: '#7b61a8' }} />
+              )}
+              <SummaryTile label="今天" value={String(agenda.todayFocus.length)} hint="今天值得处理的事项。" tone={{ bg: C.accentSoft, fg: C.accent }} />
+              <SummaryTile label="本周" value={String(agenda.thisWeek.length)} hint="近期重要，但不急于今天。" tone={{ bg: C.skySoft, fg: '#4f7ca9' }} />
+              <SummaryTile label="逾期汇总" value={String(agenda.overdueSummary.count)} hint="较早的逾期事项折叠在这里。" tone={{ bg: C.warmSoft, fg: C.warm }} />
             </div>
           </div>
         </section>
 
-        <SectionCard count={agenda.todayFocus.length} title="今日重点" hint="真正值得今天处理的事项。P0 会全部出现，其他事项按模式做过限流。">
+        <SectionCard count={agenda.todayFocus.length} title="今日重点" hint="今天最值得处理的事项。">
           <div className="space-y-3">
             {agenda.todayFocus.length === 0 ? (
-              <p className="text-[12px]" style={{ color: C.sub }}>今天没有新的重点事项。</p>
+              <p className="text-[12px]" style={{ color: C.sub }}>今天没有需要立即处理的事项。</p>
             ) : agenda.todayFocus.map((reminder) => (
               <ReminderRow
                 key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`}
@@ -486,10 +439,46 @@ export default function RemindersPage() {
           </div>
         </SectionCard>
 
-        <SectionCard count={agenda.thisWeek.length} title="本周安排" hint="快到窗口、但不需要今天立刻处理的任务。先安排起来会更轻松。">
+        {agenda.p0Overflow.count > 0 && (
+          <SectionCard count={agenda.p0Overflow.count} title="更多重要事项" hint="高优先级事项始终可见，超出首屏容量后折叠到这里。">
+            <div className="space-y-3">
+              {agenda.p0Overflow.items.map((reminder) => (
+                <ReminderRow
+                  key={`p0-${reminder.rule.ruleId}-${reminder.repeatIndex}`}
+                  reminder={reminder}
+                  onComplete={(item) => void handleAction(item, item.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                  onSnooze={(item) => void handleAction(item, 'snooze', defaultSnoozeUntil(item.kind, localToday))}
+                  onSchedule={handleSchedule}
+                  onNotApplicable={(item) => void handleAction(item, 'mark_not_applicable')}
+                  onAdjustFrequency={(item) => setFreqModalReminder(item)}
+                />
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {agenda.onboardingCatchup.count > 0 && (
+          <SectionCard count={agenda.onboardingCatchup.count} title="历史补录" hint="这些提醒在档案创建前已过期，不会进入主待办列表。">
+            <div className="space-y-3">
+              {agenda.onboardingCatchup.items.map((reminder) => (
+                <ReminderRow
+                  key={`cold-${reminder.rule.ruleId}-${reminder.repeatIndex}`}
+                  reminder={reminder}
+                  onComplete={(item) => void handleAction(item, item.kind === 'guidance' ? 'acknowledge' : 'complete')}
+                  onSnooze={(item) => void handleAction(item, 'snooze', defaultSnoozeUntil(item.kind, localToday))}
+                  onSchedule={handleSchedule}
+                  onNotApplicable={(item) => void handleAction(item, 'mark_not_applicable')}
+                  onAdjustFrequency={(item) => setFreqModalReminder(item)}
+                />
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        <SectionCard count={agenda.thisWeek.length} title="本周" hint="即将到来，但今天不急。">
           <div className="space-y-3">
             {agenda.thisWeek.length === 0 ? (
-              <p className="text-[12px]" style={{ color: C.sub }}>本周没有待安排的新任务。</p>
+              <p className="text-[12px]" style={{ color: C.sub }}>本周没有新的事项需要安排。</p>
             ) : agenda.thisWeek.map((reminder) => (
               <ReminderRow
                 key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`}
@@ -504,64 +493,38 @@ export default function RemindersPage() {
           </div>
         </SectionCard>
 
-        <SectionCard count={agenda.stageFocus.length} title="阶段关注" hint="这些是本阶段值得观察或记录的主题，不是必须今天完成的待办。">
+        <SectionCard count={agenda.stageFocus.length} title="阶段重点" hint="当前发育阶段的观察和指导事项。">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agenda.stageFocus.length === 0 ? (
-              <p className="text-[12px]" style={{ color: C.sub }}>当前阶段没有额外的关注主题。</p>
-            ) : agenda.stageFocus.map((reminder) => {
-              const primary = primaryAction(reminder);
-              const domain = DOMAIN_LABELS[reminder.rule.domain] ?? reminder.rule.domain;
-              const tone = reminderTone(reminder);
-              return (
-                <div key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`} className="rounded-[18px] p-4 border" style={{ borderColor: tone.edge, background: '#fbfcfa' }}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] px-2.5 py-1 rounded-full inline-flex items-center gap-1" style={{ background: tone.bg, color: tone.fg }}>
-                      <span>{reminderIcon(reminder)}</span>
-                      {domain}
-                    </span>
-                    <span className="text-[10px]" style={{ color: C.sub }}>{statusLabel(reminder)}</span>
-                  </div>
-                  <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{reminder.rule.title}</h3>
-                  <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>{reasonLine(reminder)}</p>
-                  <div className="mt-3 rounded-[14px] px-3 py-2" style={{ background: '#fff' }}>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.06em]" style={{ color: tone.fg }}>Why This Week</p>
-                    <p className="text-[11px] mt-1 leading-relaxed" style={{ color: C.sub }}>{reminder.rule.description}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Link to={primary.to} className="px-3 py-1.5 rounded-full text-[11px] font-medium" style={{ background: tone.bg, color: tone.fg }}>
-                      {primary.label}
-                    </Link>
-                    <button type="button" onClick={() => void handleAction(reminder, 'snooze', defaultSnoozeUntil(reminder.kind, localToday))} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: C.sub }}>
-                      稍后提醒
-                    </button>
-                    <button type="button" onClick={() => void handleAction(reminder, 'mark_not_applicable')} className="px-3 py-1.5 rounded-full text-[11px]" style={{ background: '#f7f7f5', color: '#a16b5d' }}>
-                      不适用
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+              <p className="text-[12px]" style={{ color: C.sub }}>当前没有额外的阶段指导。</p>
+            ) : agenda.stageFocus.map((reminder) => (
+              <div key={`${reminder.rule.ruleId}-${reminder.repeatIndex}`} className="rounded-[18px] p-4 border" style={{ borderColor: reminderTone(reminder).edge, background: '#fbfcfa' }}>
+                <p className="text-[14px] font-semibold" style={{ color: C.text }}>{reminder.rule.title}</p>
+                <p className="text-[12px] mt-2 leading-relaxed" style={{ color: C.sub }}>{reminder.rule.description}</p>
+              </div>
+            ))}
           </div>
         </SectionCard>
 
-        <SectionCard count={agenda.history.length} title="历史" hint="已完成、已安排、暂缓或不适用的事项会归档到这里。">
+        <SectionCard count={agenda.history.length} title="历史记录" hint="已完成、已安排、已推迟和不适用的提醒都在这里。">
           <div className="space-y-2">
             {agenda.history.length === 0 ? (
-              <p className="text-[12px]" style={{ color: C.sub }}>还没有历史记录。</p>
+              <p className="text-[12px]" style={{ color: C.sub }}>暂无提醒历史。</p>
             ) : agenda.history.map((item) => (
               <div key={`${item.rule.ruleId}-${item.repeatIndex}`} className="flex items-center justify-between gap-3 rounded-[14px] px-4 py-3 border" style={{ borderColor: C.border, background: '#fcfdfb' }}>
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium truncate" style={{ color: C.text }}>{item.rule.title}</p>
                   <p className="text-[11px] mt-1" style={{ color: C.sub }}>{historyLabel(item)}</p>
                 </div>
-                <span className="text-[10px] px-2 py-1 rounded-full" style={{ color: C.sub, background: '#f3f5f1' }}>{DOMAIN_LABELS[item.rule.domain] ?? item.rule.domain}</span>
+                <span className="text-[10px] px-2 py-1 rounded-full" style={{ color: C.sub, background: '#f3f5f1' }}>
+                  {DOMAIN_LABELS[item.rule.domain] ?? item.rule.domain}
+                </span>
               </div>
             ))}
           </div>
         </SectionCard>
       </div>
 
-      {/* Frequency adjustment modal */}
       {freqModalReminder && child && freqModalReminder.rule.repeatRule && (
         <FrequencyModal
           childId={child.childId}

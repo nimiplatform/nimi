@@ -29,7 +29,7 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   if (status === 'failed') {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <span className="text-[10px]" style={{ color: S.sub }}>AI 标签暂不可用</span>
+        <span className="text-[10px]" style={{ color: S.sub }}>AI 成长关键词暂不可用</span>
         <button onClick={onRetry} className="text-[10px] underline" style={{ color: S.accent }}>重试</button>
       </div>
     );
@@ -50,7 +50,7 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
       {selectedDimension !== suggestion.dimensionId && (
         <span className="text-[10px] rounded-full px-1.5 py-0.5 font-medium"
           style={{ background: S.accent + '20', color: S.accent }}>
-          {dim.displayName}
+          成长方向 · {dim.displayName}
         </span>
       )}
       {suggestedTags.map((tag) => (

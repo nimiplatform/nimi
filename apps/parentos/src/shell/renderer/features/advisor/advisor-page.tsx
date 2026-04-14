@@ -50,7 +50,16 @@ function buildTopicOpening(
 3. 需要注意哪些事项`;
 }
 
-function buildSystemPrompt(childName: string, ageMonths: number, gender: string, nurtureMode: string): string {
+function buildSystemPrompt(
+  childName: string,
+  ageMonths: number,
+  gender: string,
+  nurtureMode: string,
+  domains: string[],
+): string {
+  const genericChatGuard = domains.length === 0
+    ? '\n褰撶敤鎴疯緭鍏ュ彧鏄棶鍊欍€侀棽鑱婃垨鏆傛椂鏃犳硶鍒ゆ柇鍏蜂綋棰嗗煙鏃讹紝鍙互姝ｅ父鑱婂ぉ鍜屽洖搴旀嫑鍛硷紝浣嗚涓诲姩寮曞瀹堕暱璇存槑鎯充簡瑙ｇ殑鍏蜂綋鏂归潰锛堝鐫＄湢銆佺柅鑻椼€佺敓闀裤€侀噷绋嬬銆佽瀵熻褰曠瓑锛夈€備笉瑕佸湪棰嗗煙鏈槑纭椂鐩存帴缁欏嚭涓€у寲鑲插効寤鸿鎴栭珮椋庨櫓鍒ゆ柇銆?'
+    : '';
   return `你是"成长底稿"的 AI 成长顾问，只能在已审核知识领域内提供解释。
 
 当前孩子信息：
@@ -72,6 +81,22 @@ function buildSystemPrompt(childName: string, ageMonths: number, gender: string,
 }
 
 /* ── page ─────────────────────────────────────────────────── */
+
+function buildAdvisorSystemPrompt(
+  childName: string,
+  ageMonths: number,
+  gender: string,
+  nurtureMode: string,
+  domains: string[],
+): string {
+  const basePrompt = buildSystemPrompt(childName, ageMonths, gender, nurtureMode, domains);
+  if (domains.length > 0) {
+    return basePrompt;
+  }
+  return `${basePrompt}
+
+用户如果只是问候、闲聊，或暂时没说清具体话题，可以正常聊天并主动追问想了解的方向，例如睡眠、疫苗、生长、里程碑或观察记录；在领域未明确前，不直接给个性化育儿判断或高风险建议。`;
+}
 
 export default function AdvisorPage() {
   const { activeChildId, children } = useAppStore();
@@ -165,7 +190,7 @@ export default function AdvisorPage() {
           const aiParams = resolveParentosTextGenerateConfig({ temperature: 0.5, maxTokens: 1024 });
           const out = await rt.ai.text.stream({
             ...aiParams, input: msgs.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-            system: buildSystemPrompt(child.displayName, am, child.gender, child.nurtureMode),
+            system: buildAdvisorSystemPrompt(child.displayName, am, child.gender, child.nurtureMode, domains),
             signal: ac.signal,
             metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' },
           });
@@ -208,7 +233,7 @@ export default function AdvisorPage() {
           const { getPlatformClient } = await import('@nimiplatform/sdk');
           const rt = getPlatformClient().runtime; const ac = new AbortController(); abortRef.current = ac;
         const aiParams2 = resolveParentosTextGenerateConfig({ temperature: 0.5, maxTokens: 1024 });
-        const out = await rt.ai.text.stream({ ...aiParams2, input: updated.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })), system: buildSystemPrompt(child.displayName, ageMonths, child.gender, child.nurtureMode), signal: ac.signal, metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' } });
+        const out = await rt.ai.text.stream({ ...aiParams2, input: updated.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })), system: buildAdvisorSystemPrompt(child.displayName, ageMonths, child.gender, child.nurtureMode, domains), signal: ac.signal, metadata: { callerKind: 'third-party-app', callerId: 'app.nimi.parentos', surfaceId: 'parentos.advisor' } });
         let full = '';
         for await (const p of out.stream) { if (p.type === 'delta') { full += p.text; setStreamingContent(full); } else if (p.type === 'error') throw new Error(String(p.error)); }
         await saveAssistantMsg(activeConvId, appendAdvisorSources(filterAIResponse(full).filtered, domains));
@@ -222,7 +247,7 @@ export default function AdvisorPage() {
   return (
     <div className="flex h-full" style={{ paddingTop: S.topPad }}>
       {/* Conversation sidebar */}
-      <div className="w-56 p-3 flex flex-col" style={{ borderRight: `1px solid ${S.border}`, background: S.bg }}>
+      <div className="w-56 p-3 flex flex-col" style={{ borderRight: `1px solid ${S.border}`, background: '#fafbfa' }}>
         <button onClick={handleNewConversation}
           className="w-full px-3 py-2.5 text-[13px] text-white rounded-xl font-medium hover:opacity-90 mb-3"
           style={{ background: S.blue, boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }}>
