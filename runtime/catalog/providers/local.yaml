@@ -995,3 +995,17 @@ model_workflow_bindings:
     workflow_types:
       - tts_v2v
       - tts_t2v
+voice_handle_policies:
+  - policy_id: local_runtime_session_ephemeral_default
+    applies_to_workflow_types:
+      - tts_v2v
+      - tts_t2v
+    persistence: session_ephemeral
+    default_ttl: session
+    scope: user_scoped
+    delete_semantics: runtime_authoritative_delete
+    runtime_reconciliation_required: false
+    source_ref:
+      url: https://huggingface.co/openbmb/VoxCPM2
+      retrieved_at: 2026-04-14
+      note: VoxCPM2 model card covering local synthesize, voice design, and voice clone workflow semantics.

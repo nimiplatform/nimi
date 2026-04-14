@@ -678,6 +678,56 @@ function generateProviderCatalog(doc) {
     });
   }
 
+  const voiceHandlePoliciesOut = [];
+  for (const policy of Array.isArray(doc?.voice_handle_policies) ? doc.voice_handle_policies : []) {
+    const policyID = normalizeString(policy?.policy_id);
+    if (!policyID) {
+      throw new Error(`${provider} voice_handle_policies entry missing policy_id`);
+    }
+
+    const appliesToWorkflowTypes = normalizeStringArray(policy?.applies_to_workflow_types)
+      .map((value) => normalizeWorkflowType(value));
+    if (appliesToWorkflowTypes.length === 0) {
+      throw new Error(`${provider} voice handle policy ${policyID} must include applies_to_workflow_types`);
+    }
+
+    const persistence = normalizeString(policy?.persistence);
+    if (!persistence) {
+      throw new Error(`${provider} voice handle policy ${policyID} missing persistence`);
+    }
+
+    const defaultTTL = normalizeString(policy?.default_ttl);
+    if (!defaultTTL) {
+      throw new Error(`${provider} voice handle policy ${policyID} missing default_ttl`);
+    }
+
+    const scope = normalizeString(policy?.scope);
+    if (!scope) {
+      throw new Error(`${provider} voice handle policy ${policyID} missing scope`);
+    }
+
+    const deleteSemantics = normalizeString(policy?.delete_semantics);
+    if (!deleteSemantics) {
+      throw new Error(`${provider} voice handle policy ${policyID} missing delete_semantics`);
+    }
+
+    const entry = {
+      policy_id: policyID,
+      applies_to_workflow_types: appliesToWorkflowTypes,
+      persistence,
+      default_ttl: defaultTTL,
+      scope,
+      delete_semantics: deleteSemantics,
+      runtime_reconciliation_required: Boolean(policy?.runtime_reconciliation_required),
+      source_ref: resolveSourceRef(policy?.source_ids, sourceIndex, fallbackSourceRef),
+    };
+    voiceHandlePoliciesOut.push(entry);
+  }
+
+  if (workflowModelsOut.length > 0 && voiceHandlePoliciesOut.length === 0) {
+    throw new Error(`${provider} voice_workflow_models require voice_handle_policies`);
+  }
+
   const result = {
     version: 1,
     provider,
@@ -691,6 +741,9 @@ function generateProviderCatalog(doc) {
   }
   if (modelWorkflowBindingsOut.length > 0) {
     result.model_workflow_bindings = modelWorkflowBindingsOut;
+  }
+  if (voiceHandlePoliciesOut.length > 0) {
+    result.voice_handle_policies = voiceHandlePoliciesOut;
   }
   return result;
 }
