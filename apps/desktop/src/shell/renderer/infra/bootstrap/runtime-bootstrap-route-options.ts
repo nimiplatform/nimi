@@ -45,34 +45,6 @@ function extractModelDisplayName(assetId: string): string {
 }
 
 const LOCAL_SNAPSHOT_TIMEOUT_MS = 3500;
-let localRoutePlatformForTests: 'windows' | 'darwin' | 'linux' | 'unknown' | null = null;
-
-function resolveLocalRoutePlatform(): 'windows' | 'darwin' | 'linux' | 'unknown' {
-    if (localRoutePlatformForTests) {
-        return localRoutePlatformForTests;
-    }
-    const globalProcess = (globalThis as { process?: { platform?: string } }).process;
-    const processPlatform = String(globalProcess?.platform || '').trim().toLowerCase();
-    if (processPlatform === 'win32')
-        return 'windows';
-    if (processPlatform === 'darwin')
-        return 'darwin';
-    if (processPlatform === 'linux')
-        return 'linux';
-    const nav = globalThis as { navigator?: { platform?: string; userAgent?: string } };
-    const navigatorPlatform = `${String(nav.navigator?.platform || '').trim().toLowerCase()} ${String(nav.navigator?.userAgent || '').trim().toLowerCase()}`;
-    if (navigatorPlatform.includes('win'))
-        return 'windows';
-    if (navigatorPlatform.includes('mac'))
-        return 'darwin';
-    if (navigatorPlatform.includes('linux'))
-        return 'linux';
-    return 'unknown';
-}
-
-export function setLocalRoutePlatformForTests(value: 'windows' | 'darwin' | 'linux' | 'unknown' | null): void {
-    localRoutePlatformForTests = value;
-}
 
 function mapCanonicalCapabilityToLocalCapability(capability: RuntimeCanonicalCapability): 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | undefined {
     if (capability === 'text.generate')

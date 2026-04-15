@@ -8,7 +8,6 @@ import {
   buildSelectedBinding,
   loadRuntimeRouteOptions,
   pickPreferredRuntimeLocalModel,
-  setLocalRoutePlatformForTests,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
 test('pickPreferredRuntimeLocalModel ignores removed entries and prefers active state', () => {
@@ -218,19 +217,14 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
 });
 
 test('buildSelectedBinding keeps selection missing instead of inventing a local fallback when runtime metadata is unavailable', () => {
-  setLocalRoutePlatformForTests('windows');
-  try {
-    const selected = buildSelectedBinding({
-      capability: 'text.generate',
-      localModels: [],
-      connectors: [],
-      localMetadataDegraded: true,
-    });
+  const selected = buildSelectedBinding({
+    capability: 'text.generate',
+    localModels: [],
+    connectors: [],
+    localMetadataDegraded: true,
+  });
 
-    assert.equal(selected, null);
-  } finally {
-    setLocalRoutePlatformForTests(null);
-  }
+  assert.equal(selected, null);
 });
 
 test('buildSelectedBinding infers speech engine for local audio.synthesize bindings without explicit engine', () => {

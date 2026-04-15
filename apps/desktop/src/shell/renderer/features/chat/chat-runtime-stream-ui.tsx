@@ -396,9 +396,6 @@ export function RuntimeStreamFooter(props: {
 
   if (props.streamState && (props.streamState.phase === 'waiting' || props.streamState.phase === 'streaming')) {
     const showStreamingText = props.showStreamingText !== false;
-    const isPendingFirstBeat = props.streamState.phase === 'waiting'
-      && !props.streamState.partialText
-      && !props.streamState.partialReasoningText;
     const visiblePartialText = showStreamingText
       ? (
         props.streamState.partialText

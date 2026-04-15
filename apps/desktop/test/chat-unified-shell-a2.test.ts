@@ -43,7 +43,8 @@ test('chat unified shell a2: AI host stays enterable and submit-time route gatin
   assert.doesNotMatch(chatAiAdapterSource, /resolveAiConversationSetupStateFromProjection/);
   assert.match(chatAiAdapterSource, /toRuntimeRouteBindingFromPickerSelection/);
   assert.match(chatAiAdapterSource, /handleModelSelectionChange/);
-  assert.match(chatAiModeContentSource, /useRuntimeConfigPanelController/);
+  assert.match(chatAiModeContentSource, /ChatRightPanelSettings/);
+  assert.match(chatAiModeContentSource, /host\.settingsContent/);
   assert.match(chatAiModeContentSource, /setChatSetupState/);
   assert.doesNotMatch(chatPageSource, /aiRouteReadinessPending/);
   assert.doesNotMatch(chatPageSource, /Loading AI routes\.\.\./);

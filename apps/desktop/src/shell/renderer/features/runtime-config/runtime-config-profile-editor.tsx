@@ -114,9 +114,6 @@ const CAPABILITY_SECTIONS: CapabilitySectionDef[] = [
   { key: 'video', label: 'Video', subtitle: 'Video generation & editing', sdkCapability: 'video.generate', group: 'video', iconColor: 'text-purple-600', iconBg: 'bg-purple-50', icon: CAP_ICONS.video, hasConfigPage: true },
 ];
 
-/** Capabilities that have a dedicated config page. */
-const CONFIG_PAGE_CAPS = new Set(['image.generate', 'video.generate']);
-
 // SVG icons used in cards
 const GEAR_ICON = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -325,23 +322,6 @@ function TagsEditor(props: { tags: string[]; onChange: (tags: string[]) => void 
 // CapabilityConfigPage — Page 2 (dedicated config for image/video)
 // ---------------------------------------------------------------------------
 
-type ConfigPageSection = { id: string; label: string };
-
-const IMAGE_CONFIG_SECTIONS: ConfigPageSection[] = [
-  { id: 'base-model', label: 'Base Model' },
-  { id: 'companion-models', label: 'Companion Models' },
-  { id: 'parameters', label: 'Parameters' },
-  { id: 'api-advanced', label: 'API & Advanced' },
-  { id: 'danger-zone', label: 'Danger Zone' },
-];
-
-const VIDEO_CONFIG_SECTIONS: ConfigPageSection[] = [
-  { id: 'base-model', label: 'Base Model' },
-  { id: 'parameters', label: 'Parameters' },
-  { id: 'api-advanced', label: 'API & Advanced' },
-  { id: 'danger-zone', label: 'Danger Zone' },
-];
-
 function CapabilityConfigPage(props: {
   capKey: string;
   capLabel: string;
@@ -364,7 +344,6 @@ function CapabilityConfigPage(props: {
 }) {
   const { t } = useTranslation();
   const isImage = props.capKey === 'image.generate';
-  const sections = isImage ? IMAGE_CONFIG_SECTIONS : VIDEO_CONFIG_SECTIONS;
 
   // Model picker
   const providerRef = useRef<RouteModelPickerDataProvider | null>(null);

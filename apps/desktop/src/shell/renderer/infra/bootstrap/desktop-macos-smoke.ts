@@ -55,21 +55,6 @@ type DesktopMacosSmokeFailureReportPayload = {
   htmlSnapshot: string;
 };
 
-async function waitForText(
-  readText: () => Promise<string>,
-  expected: string,
-  timeoutMs = SMOKE_STEP_TIMEOUT_MS,
-): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if ((await readText()).trim() === expected) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error(`expected text ${expected}`);
-}
-
 async function waitForMemoryMode(
   deps: Pick<DesktopMacosSmokeDriverDeps, 'readAttributeByTestId' | 'readTextByTestId'>,
   expected: 'baseline' | 'standard',
