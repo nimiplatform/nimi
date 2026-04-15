@@ -140,6 +140,40 @@ Desktop agent chat may consume `runtime.agentCore` state and memory projections,
 - legacy `profiles` / `stats` / offset-style pagination 等若无 admitted runtime 等价面，
   必须 fail-close；不得拼凑近似值、伪分页、或 provider-derived pseudo-success
 
+## D-LLM-026b — Group Execution Boundary
+
+Desktop agent execution in GROUP context must use a group-safe execution path that enforces the following isolation boundaries.
+
+Memory isolation:
+
+- Group execution must NOT write DYADIC memory (user-turn or assistant-turn).
+- Group execution must NOT read DYADIC memory or inject continuity digest.
+- Group execution must NOT dispatch sidecar inputs.
+- Rationale: DYADIC memory is isolated by `(agentId, userId)` per R-MEM-003. Group context is multi-party; injecting DYADIC memory risks cross-user leakage in group-visible responses. Memory admission in group context is deferred and requires explicit future admission with addressed-user attribution, anti-leak guards, and provenance.
+
+Private resource isolation:
+
+- Group execution must NOT auto-inject outputs from owner-private MCP connectors, owner-private knowledge bases, or owner-local file system access.
+- Any such extension requires separate admission with explicit per-group or per-invocation user consent.
+
+AI scope isolation:
+
+- Group dispatcher and group execution must NOT create thread-scoped, group-scoped, or per-message `AIScopeRef` instances. Group execution consumes the existing desktop feature/app scope per P-AISC-002.
+
+Truth boundary:
+
+- Group participant presence, dispatcher diagnostics, group context preamble, and agent availability status are runtime/projection evidence. They must NOT write back to Agent truth (`AgentRule`) per R-TRUTH-003.
+
+Failure semantics:
+
+- All group execution failures default to agent silence. No retry storm, no auto-substitution, no deferred reply queue.
+- Dispatcher process crash, evaluation timeout, LLM routing failure, agent execution failure, and post-to-Realm failure all result in the affected agent staying silent.
+
+Relationship to D-LLM-025:
+
+- D-LLM-025 single-message semantics is preserved in group context. Each agent response in a group turn is exactly one message.
+- A single incoming group message may trigger zero, one, or multiple agent responses (fan-out across different agents), but each individual agent response remains a single message.
+
 ## Fact Sources
 
 - `.nimi/spec/desktop/kernel/agent-chat-message-action-contract.md` — D-LLM-027 ~ D-LLM-033 message/action authority boundary
@@ -157,3 +191,7 @@ Desktop agent chat may consume `runtime.agentCore` state and memory projections,
 - `nimi-mods/runtime/local-chat/src/hooks/turn-send/turn-mode-resolver.ts` — turn-mode classifier evidence
 - `.local/**` — local preflight evidence for desktop agent chat behavior authority / defer decisions (non-authoritative supporting material only)
 - `.local/**` — local execution-engine boundary audit for AI chat non-owner framing (non-authoritative supporting material only)
+- `.nimi/spec/realm/kernel/chat-contract.md` — R-CHAT-002a GROUP thread type, R-CHAT-006 GROUP admin, R-CHAT-007 GROUP post-auth
+- `.nimi/spec/realm/kernel/agent-memory-contract.md` — R-MEM-003 DYADIC isolation (referenced by D-LLM-026b)
+- `.nimi/spec/platform/kernel/ai-scope-contract.md` — P-AISC-002 scope lifecycle (referenced by D-LLM-026b)
+- `.nimi/spec/realm/kernel/truth-contract.md` — R-TRUTH-003 Agent truth boundary (referenced by D-LLM-026b)
