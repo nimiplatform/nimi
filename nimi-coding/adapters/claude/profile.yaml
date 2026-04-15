@@ -1,0 +1,57 @@
+version: 1
+adapter_profile:
+  id: claude
+  host_class: inline_coding_host
+  upstream_seed_profile: external_ai_host
+  purpose: >
+    Constrain Claude Code to act as an inline coding host for nimicoding
+    methodology execution, with AGENTS.md authority injected via PreToolUse
+    hooks and CLAUDE.md as the native entrypoint, without promoting Claude
+    operational state into semantic truth.
+  semantic_owner:
+    - .nimi/methodology
+    - .nimi/spec
+    - .nimi/contracts
+    - .nimi/config
+  operational_owner:
+    - .claude
+    - .nimi/local
+    - .nimi/cache
+  admitted_skill_surfaces:
+    - spec_reconstruction
+    - doc_spec_audit
+    - high_risk_execution
+    - inline_review
+  context_integration:
+    native_entrypoint: CLAUDE.md
+    module_context_channel: PreToolUse_hook_agents_md_injection
+    managed_block_marker: "nimicoding:managed:claude"
+    hook_matcher: Read|Edit|Write
+    hook_script: .claude/hooks/inject-agents-md.sh
+    agents_md_authority: >
+      AGENTS.md files remain the authoritative module-level rules.
+      CLAUDE.md defers to AGENTS.md on conflict. The hook injects the
+      nearest AGENTS.md as additionalContext on Read/Edit/Write tool
+      calls. Grep/Glob/Bash do not trigger injection.
+  prompt_handoff:
+    bootstrap_surface:
+      - nimicoding handoff --skill spec_reconstruction --prompt
+      - nimicoding handoff --skill doc_spec_audit --prompt
+      - nimicoding handoff --skill high_risk_execution --prompt
+    future_surface:
+      status: active_via_hooks
+      commands: []
+      channel: CLAUDE.md managed block + PreToolUse AGENTS.md hooks
+  output_handoff:
+    worker_output_target: .nimi/local/outputs/** candidate artifact
+    evidence_target: .nimi/local/evidence/** candidate artifact
+    closeout_target: local-only closeout payload unless later admitted
+  hard_constraints:
+    - claude_must_not_become_semantic_owner
+    - claude_must_not_write_canonical_.nimi/spec_truth_directly_without_validator_admission
+    - claude_must_not_define_acceptance_disposition_or_finding_judgment
+    - claude_operational_state_must_remain_operational_only
+    - claude_hooks_must_not_replace_agents_md_authority
+    - unresolved_authority_or_missing_context_must_fail_closed
+  current_gaps:
+    - automatic_semantic_admission_automation_not_packaged_in_standalone

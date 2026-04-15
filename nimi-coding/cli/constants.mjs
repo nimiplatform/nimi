@@ -62,6 +62,7 @@ export const WORKER_OUTPUT_SCHEMA_REF = ".nimi/contracts/worker-output.schema.ya
 export const ACCEPTANCE_SCHEMA_REF = ".nimi/contracts/acceptance.schema.yaml";
 export const ADAPTER_PACKAGE_PROFILE_REFS = {
   oh_my_codex: "adapters/oh-my-codex/profile.yaml",
+  claude: "adapters/claude/profile.yaml",
 };
 export const EXTERNAL_HOST_COMPATIBILITY_REQUIRED_BEHAVIOR = [
   "consume_handoff_json_as_authoritative_contract",

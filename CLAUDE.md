@@ -9,11 +9,11 @@
 - Keep solutions simple and direct.
 - User instructions always override this file.
 
-> AGENTS.md files are authoritative. A PreToolUse hook auto-injects the nearest module `AGENTS.md` before every Edit/Write.
+> AGENTS.md files are authoritative. A PreToolUse hook auto-injects the nearest module `AGENTS.md` before every Read/Edit/Write.
 
 ## Pre-Task Protocol
 
-Before editing files in a module, Read that module's `AGENTS.md` first. The hook covers Edit/Write, but exploration and planning also need module context.
+The hook covers Read/Edit/Write, so module AGENTS.md context is injected automatically for file-level operations. For search-based exploration (Grep, Glob, Bash), Read the relevant module's AGENTS.md manually before acting on results.
 
 When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml` before designing a new app-local shell.
 

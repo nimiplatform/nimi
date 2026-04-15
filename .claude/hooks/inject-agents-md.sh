@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse hook: auto-inject nearest module AGENTS.md into Claude's context
-# when Edit or Write is called on files within this repo.
+# when Read, Edit, or Write is called on files within this repo.
 set -euo pipefail
 
 INPUT=$(cat)

@@ -4,6 +4,7 @@ host_adapter:
   selected_adapter_id: none
   admitted_adapter_ids:
     - oh_my_codex
+    - claude
   handoff_mode: prompt_output_evidence_handoff
   evidence_mode: candidate_only
   semantic_review_owner: nimicoding_manager

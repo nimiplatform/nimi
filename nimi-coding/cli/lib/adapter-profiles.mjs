@@ -9,6 +9,47 @@ import { parseYamlText } from "./yaml-helpers.mjs";
 const PACKAGE_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 const ADAPTER_PROFILE_EXPECTATIONS = {
+  claude: {
+    hostClass: "inline_coding_host",
+    upstreamSeedProfile: "external_ai_host",
+    semanticOwner: [
+      ".nimi/methodology",
+      ".nimi/spec",
+      ".nimi/contracts",
+      ".nimi/config",
+    ],
+    operationalOwner: [
+      ".claude",
+      ".nimi/local",
+      ".nimi/cache",
+    ],
+    admittedSkillSurfaces: [
+      "spec_reconstruction",
+      "doc_spec_audit",
+      "high_risk_execution",
+      "inline_review",
+    ],
+    promptBootstrapSurface: [
+      "nimicoding handoff --skill spec_reconstruction --prompt",
+      "nimicoding handoff --skill doc_spec_audit --prompt",
+      "nimicoding handoff --skill high_risk_execution --prompt",
+    ],
+    promptFutureSurface: [],
+    promptFutureSurfaceStatus: "active_via_hooks",
+    outputHandoff: {
+      workerOutputTarget: ".nimi/local/outputs/** candidate artifact",
+      evidenceTarget: ".nimi/local/evidence/** candidate artifact",
+      closeoutTarget: "local-only closeout payload unless later admitted",
+    },
+    hardConstraints: [
+      "claude_must_not_become_semantic_owner",
+      "claude_must_not_write_canonical_.nimi/spec_truth_directly_without_validator_admission",
+      "claude_must_not_define_acceptance_disposition_or_finding_judgment",
+      "claude_operational_state_must_remain_operational_only",
+      "claude_hooks_must_not_replace_agents_md_authority",
+      "unresolved_authority_or_missing_context_must_fail_closed",
+    ],
+  },
   oh_my_codex: {
     hostClass: "external_execution_host",
     upstreamSeedProfile: "external_ai_host",
