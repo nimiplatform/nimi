@@ -1,3 +1,9 @@
+fn build_health_probe_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .build()
+        .map_err(|error| format!("LOCAL_AI_SERVICE_HEALTH_HTTP_CLIENT_FAILED: {error}"))
+}
+
 fn normalize_optional(input: Option<String>) -> Option<String> {
     input
         .map(|value| value.trim().to_string())
@@ -135,6 +141,48 @@ fn refresh_state_capability_matrix_with_provider_probe(
     state: &mut LocalAiRuntimeState,
 ) {
     let probe_models = collect_probe_models_by_service(state);
+    let profile = collect_device_profile(app);
+    refresh_state_capability_matrix_with_probe_and_device(state, &probe_models, Some(&profile));
+}
+
+async fn collect_probe_models_by_service_async(
+    state: &LocalAiRuntimeState,
+) -> BTreeMap<String, Vec<String>> {
+    let client = match build_health_probe_client() {
+        Ok(c) => c,
+        Err(_) => return BTreeMap::new(),
+    };
+    let mut output = BTreeMap::<String, Vec<String>>::new();
+    for service in &state.services {
+        if service.status == LocalAiServiceStatus::Removed {
+            continue;
+        }
+        let endpoint = service
+            .endpoint
+            .as_deref()
+            .map(|value| value.trim())
+            .unwrap_or_default();
+        if endpoint.is_empty() {
+            continue;
+        }
+        if let Ok(payload) =
+            probe_service_capability_models_async(service.service_id.as_str(), endpoint, &client)
+                .await
+        {
+            let ids = extract_probe_model_ids(&payload);
+            if !ids.is_empty() {
+                output.insert(service.service_id.clone(), ids);
+            }
+        }
+    }
+    output
+}
+
+async fn refresh_state_capability_matrix_with_provider_probe_async(
+    app: &AppHandle,
+    state: &mut LocalAiRuntimeState,
+) {
+    let probe_models = collect_probe_models_by_service_async(state).await;
     let profile = collect_device_profile(app);
     refresh_state_capability_matrix_with_probe_and_device(state, &probe_models, Some(&profile));
 }

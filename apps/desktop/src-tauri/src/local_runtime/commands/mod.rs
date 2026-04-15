@@ -48,7 +48,7 @@ use super::service_lifecycle::{
     bootstrap_service_artifact, build_service_descriptor, is_managed_service,
     normalize_service_descriptor, preflight_dependency, preflight_service_artifact,
     probe_service_capability_models, probe_service_capability_models_async,
-    probe_service_endpoint_health, probe_service_endpoint_health_async, resolve_node_host_service,
+    probe_service_endpoint_health_async, resolve_node_host_service,
     start_managed_service, stop_managed_service,
 };
 use super::store::{load_state, runtime_models_dir, save_state};

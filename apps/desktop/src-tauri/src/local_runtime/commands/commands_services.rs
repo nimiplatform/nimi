@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn runtime_local_profiles_apply(
+pub async fn runtime_local_profiles_apply(
     app: AppHandle,
     payload: LocalAiProfilesApplyPayload,
 ) -> Result<LocalAiProfileApplyResult, String> {
@@ -16,7 +16,7 @@ pub fn runtime_local_profiles_apply(
             "assetEntryCount": payload.plan.asset_entries.len(),
         })),
     );
-    match run_dependency_apply(&app, &payload.plan.execution_plan) {
+    match run_dependency_apply(&app, &payload.plan.execution_plan).await {
         Ok(execution_result) => {
             let execution_reason_code = execution_result.reason_code.clone();
             let mut warnings = payload.plan.warnings.clone();
@@ -257,7 +257,7 @@ pub fn runtime_local_services_install(
 }
 
 #[tauri::command]
-pub fn runtime_local_services_start(
+pub async fn runtime_local_services_start(
     app: AppHandle,
     payload: LocalAiServiceIdPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
@@ -277,7 +277,7 @@ pub fn runtime_local_services_start(
     {
         service = upsert_service_descriptor(&app, service)?;
     }
-    let detail = start_service_runtime(&app, &service)?;
+    let detail = start_service_runtime(&app, &service).await?;
     update_service_status(
         &app,
         service_id.as_str(),
@@ -447,7 +447,7 @@ pub fn runtime_local_services_remove(
 }
 
 #[tauri::command]
-pub fn runtime_local_nodes_catalog_list(
+pub async fn runtime_local_nodes_catalog_list(
     app: AppHandle,
     payload: Option<LocalAiNodesCatalogListPayload>,
 ) -> Result<Vec<LocalAiNodeDescriptor>, String> {
@@ -466,7 +466,7 @@ pub fn runtime_local_nodes_catalog_list(
         .map(|item| item.to_ascii_lowercase());
 
     let previous_matrix_fingerprint = json_fingerprint(&state.capability_matrix);
-    refresh_state_capability_matrix_with_provider_probe(&app, &mut state);
+    refresh_state_capability_matrix_with_provider_probe_async(&app, &mut state).await;
     if json_fingerprint(&state.capability_matrix) != previous_matrix_fingerprint {
         save_state(&app, &state)?;
     }

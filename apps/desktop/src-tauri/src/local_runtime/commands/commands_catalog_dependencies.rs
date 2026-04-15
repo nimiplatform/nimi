@@ -181,7 +181,7 @@ pub fn runtime_local_models_catalog_resolve_install_plan(
 }
 
 #[tauri::command]
-pub fn runtime_local_profiles_resolve(
+pub async fn runtime_local_profiles_resolve(
     app: AppHandle,
     payload: LocalAiProfilesResolvePayload,
 ) -> Result<LocalAiProfileResolutionPlan, String> {
@@ -199,7 +199,7 @@ pub fn runtime_local_profiles_resolve(
             "hasDeviceProfile": payload.device_profile.is_some(),
         })),
     );
-    match resolve_profile_plan(&app, &payload) {
+    match resolve_profile_plan(&app, &payload).await {
         Ok(plan) => Ok(plan),
         Err(error) => {
             append_app_audit_event_non_blocking(

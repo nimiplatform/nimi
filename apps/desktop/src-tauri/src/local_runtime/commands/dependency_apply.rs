@@ -1,4 +1,4 @@
-fn run_dependency_apply(
+async fn run_dependency_apply(
     app: &AppHandle,
     plan: &LocalAiDependencyResolutionPlan,
 ) -> Result<LocalAiDependencyApplyResult, LocalAiDependencyApplyFailure> {
@@ -258,7 +258,7 @@ fn run_dependency_apply(
                     "LOCAL_AI_SERVICE_NOT_FOUND: serviceId={service_id}"
                 ))
             })?;
-        let detail = match start_service_runtime(app, &service_snapshot) {
+        let detail = match start_service_runtime(app, &service_snapshot).await {
             Ok(value) => value,
             Err(error) => {
                 let rollback_applied = rollback_dependency_apply_runtime(app, &started_service_ids);
@@ -308,10 +308,16 @@ fn run_dependency_apply(
                 ))
             })?;
         let health_detail = match resolve_service_runtime_start_target(&service_snapshot) {
-            ServiceRuntimeStartTarget::Endpoint(endpoint) => probe_service_endpoint_health(
-                service_snapshot.service_id.as_str(),
-                endpoint.as_str(),
-            ),
+            ServiceRuntimeStartTarget::Endpoint(endpoint) => {
+                let client = build_health_probe_client()
+                    .map_err(LocalAiDependencyApplyFailure::without_rollback)?;
+                probe_service_endpoint_health_async(
+                    service_snapshot.service_id.as_str(),
+                    endpoint.as_str(),
+                    &client,
+                )
+                .await
+            }
             ServiceRuntimeStartTarget::Missing => {
                 Err(service_target_missing_reason(&service_snapshot))
             }
@@ -347,7 +353,7 @@ fn run_dependency_apply(
 
     let refreshed_matrix_entries = {
         let mut state = load_state(app).map_err(LocalAiDependencyApplyFailure::without_rollback)?;
-        refresh_state_capability_matrix_with_provider_probe(app, &mut state);
+        refresh_state_capability_matrix_with_provider_probe_async(app, &mut state).await;
         let count = state.capability_matrix.len();
         save_state(app, &state).map_err(LocalAiDependencyApplyFailure::without_rollback)?;
         count

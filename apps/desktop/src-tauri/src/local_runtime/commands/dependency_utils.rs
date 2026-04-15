@@ -145,7 +145,7 @@ fn next_profile_plan_id(mod_id: &str, profile_id: &str) -> String {
     )
 }
 
-fn resolve_profile_plan(
+async fn resolve_profile_plan(
     app: &AppHandle,
     payload: &LocalAiProfilesResolvePayload,
 ) -> Result<LocalAiProfileResolutionPlan, String> {
@@ -164,7 +164,7 @@ fn resolve_profile_plan(
         bridge_profile_to_dependency_declaration(&payload.profile, capability_filter.as_deref());
     let mut state = load_state(app)?;
     if state.capability_matrix.is_empty() {
-        refresh_state_capability_matrix_with_provider_probe(app, &mut state);
+        refresh_state_capability_matrix_with_provider_probe_async(app, &mut state).await;
         let _ = save_state(app, &state);
     }
     let resolved = resolve_dependencies(&DependencyResolveInput {
@@ -361,7 +361,7 @@ fn service_target_missing_reason(service: &LocalAiServiceDescriptor) -> String {
     )
 }
 
-fn start_service_runtime(
+async fn start_service_runtime(
     app: &AppHandle,
     service: &LocalAiServiceDescriptor,
 ) -> Result<String, String> {
@@ -376,7 +376,13 @@ fn start_service_runtime(
                     return Ok(detail);
                 }
             }
-            probe_service_endpoint_health(service.service_id.as_str(), endpoint.as_str())
+            let client = build_health_probe_client()?;
+            probe_service_endpoint_health_async(
+                service.service_id.as_str(),
+                endpoint.as_str(),
+                &client,
+            )
+            .await
         }
         ServiceRuntimeStartTarget::Missing => Err(service_target_missing_reason(service)),
     }
