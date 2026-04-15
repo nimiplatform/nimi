@@ -50,6 +50,7 @@ current_truth:
   admitted_files:
     - .nimi/methodology/core.yaml
     - .nimi/methodology/spec-reconstruction.yaml
+    - .nimi/methodology/topic-lifecycle-report.yaml
     - .nimi/methodology/skill-runtime.yaml
     - .nimi/methodology/skill-installer-result.yaml
     - .nimi/methodology/skill-installer-summary-projection.yaml

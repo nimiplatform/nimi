@@ -162,6 +162,23 @@ Canonical constraints:
 - `.local/work/**` is no longer the primary methodology workspace for
   human-authored topic execution materials
 
+Development rhythm:
+
+- a topic is the canonical home for one major iteration line, not a micro
+  requirement backlog
+- waves are the bounded execution unit inside a topic
+- entering `ongoing` requires a topic-local `preflight.md` with one selected
+  next execution target, a bounded stop line, consumed inputs/contexts, expected
+  closeout checks, and explicit forbidden reopenings
+- each wave should own one primary closure goal and end in a bounded result such
+  as an authority cut, implementation packet, bounded re-audit, or explicit
+  pause/defer note
+- planning-only waves may harden one execution target, but they must not chain
+  indefinitely; if no bounded closure is reached after a planning wave, pause or
+  re-preflight instead of opening unbounded new planning waves
+- closeout stays layered: context closure, wave closeout, and final topic
+  closeout are distinct evidence surfaces
+
 Avoid the older `slug-YYYY-MM-DD.md` shape because it sorts poorly and makes
 cross-report navigation harder. Stable machine report artifacts that are meant
 to behave like a current snapshot, such as `blueprint-equivalence-audit.json`,
