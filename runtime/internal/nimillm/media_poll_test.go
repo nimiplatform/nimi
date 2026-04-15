@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -221,6 +222,245 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	for _, call := range updater.calls {
 		if strings.TrimSpace(call.providerJobID) != "task-1" {
 			t.Fatalf("unexpected provider job id in poll state: %#v", call)
+		}
+	}
+}
+
+func TestIsDetachedPollContext(t *testing.T) {
+	if isDetachedPollContext(nil) {
+		t.Fatal("nil context should not be detached")
+	}
+	if !isDetachedPollContext(context.Background()) {
+		t.Fatal("background context (no deadline) should be detached")
+	}
+	cancelCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if !isDetachedPollContext(cancelCtx) {
+		t.Fatal("cancel-only context (no deadline) should be detached")
+	}
+	deadlineCtx, deadlineCancel := context.WithTimeout(context.Background(), time.Minute)
+	defer deadlineCancel()
+	if isDetachedPollContext(deadlineCtx) {
+		t.Fatal("context with deadline should NOT be detached")
+	}
+}
+
+// TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached verifies
+// that in detached polling mode (cancel-only context), a transient HTTP failure
+// during a poll tick is retried rather than immediately terminating the job.
+// The provider returns errors for the first 2 poll attempts, then succeeds.
+func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testing.T) {
+	var requestCount int32
+	updater := &recordingJobStateUpdater{}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-retry-1" {
+			http.NotFound(w, r)
+			return
+		}
+		current := atomic.AddInt32(&requestCount, 1)
+		if current <= 2 {
+			// Simulate transient server error on first 2 poll requests.
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": "temporary failure"})
+			return
+		}
+		if current == 3 {
+			// Third poll: still running.
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "task-retry-1", "status": "running"})
+			return
+		}
+		// Fourth poll: succeeded with artifact.
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id":     "task-retry-1",
+			"status": "succeeded",
+			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes-retry")),
+		})
+	}))
+	defer server.Close()
+
+	// Cancel-only context: no deadline → detached polling.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
+		ctx,
+		updater,
+		"job-retry-1",
+		server.URL,
+		"",
+		AdapterBytedanceARKTask,
+		"task-retry-1",
+		"/contents/generations/tasks",
+		"/contents/generations/tasks/{task_id}",
+		"video/mp4",
+		420,
+		"prompt",
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("PollProviderTaskForArtifact failed: %v", err)
+	}
+	if providerJobID != "task-retry-1" {
+		t.Fatalf("unexpected provider job id: %q", providerJobID)
+	}
+	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes-retry" {
+		t.Fatalf("unexpected artifacts: %#v", artifacts)
+	}
+	totalRequests := atomic.LoadInt32(&requestCount)
+	if totalRequests < 4 {
+		t.Fatalf("expected at least 4 requests (2 errors + running + success), got=%d", totalRequests)
+	}
+	// Verify that poll state updates include error entries from the transient failures.
+	hasErrorEntry := false
+	for _, call := range updater.calls {
+		if strings.Contains(call.lastError, "500") || strings.Contains(call.lastError, "Internal Server Error") || call.lastError != "" {
+			hasErrorEntry = true
+			break
+		}
+	}
+	if !hasErrorEntry {
+		t.Fatal("expected at least one poll state update with error from transient failure")
+	}
+}
+
+// TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline verifies
+// that when a deadline-based context is used (non-detached), a poll HTTP error
+// still immediately terminates the poll loop — existing behavior preserved.
+func TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline(t *testing.T) {
+	var requestCount int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-deadline-1" {
+			http.NotFound(w, r)
+			return
+		}
+		atomic.AddInt32(&requestCount, 1)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "server error"})
+	}))
+	defer server.Close()
+
+	// Context with deadline: NOT detached → immediate exit on error.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	_, _, _, err := PollProviderTaskForArtifact(
+		ctx,
+		noopJobStateUpdater{},
+		"job-deadline-1",
+		server.URL,
+		"",
+		AdapterBytedanceARKTask,
+		"task-deadline-1",
+		"/contents/generations/tasks",
+		"/contents/generations/tasks/{task_id}",
+		"video/mp4",
+		420,
+		"prompt",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected error from poll with deadline context")
+	}
+	if got := atomic.LoadInt32(&requestCount); got != 1 {
+		t.Fatalf("expected exactly 1 request (immediate exit), got=%d", got)
+	}
+}
+
+func TestIsTransientPollError(t *testing.T) {
+	transient := []runtimev1.ReasonCode{
+		runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+		runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL,
+	}
+	for _, rc := range transient {
+		err := grpcerr.WithReasonCode(codes.Unavailable, rc)
+		if !isTransientPollError(err) {
+			t.Errorf("isTransientPollError(%s) = false, want true", rc.String())
+		}
+	}
+
+	permanent := []runtimev1.ReasonCode{
+		runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+		runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
+		runtimev1.ReasonCode_AI_INPUT_INVALID,
+		runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED,
+		runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED,
+		runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+		runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID,
+		runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
+	}
+	for _, rc := range permanent {
+		err := grpcerr.WithReasonCode(codes.InvalidArgument, rc)
+		if isTransientPollError(err) {
+			t.Errorf("isTransientPollError(%s) = true, want false", rc.String())
+		}
+	}
+
+	if isTransientPollError(nil) {
+		t.Error("isTransientPollError(nil) = true, want false")
+	}
+	if isTransientPollError(errors.New("plain error without reason code")) {
+		t.Error("isTransientPollError(plain error) = true, want false")
+	}
+}
+
+// TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached verifies
+// that permanent provider errors (e.g. 401 auth failure) immediately terminate
+// the job even in detached polling mode — no retry.
+func TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached(t *testing.T) {
+	var requestCount int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/contents/generations/tasks/task-perm-1" {
+			http.NotFound(w, r)
+			return
+		}
+		atomic.AddInt32(&requestCount, 1)
+		// Permanent auth failure on first poll request.
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": "invalid api key"})
+	}))
+	defer server.Close()
+
+	// Cancel-only context: detached mode.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, _, _, err := PollProviderTaskForArtifact(
+		ctx,
+		noopJobStateUpdater{},
+		"job-perm-1",
+		server.URL,
+		"bad-key",
+		AdapterBytedanceARKTask,
+		"task-perm-1",
+		"/contents/generations/tasks",
+		"/contents/generations/tasks/{task_id}",
+		"video/mp4",
+		420,
+		"prompt",
+		nil,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected error from permanent auth failure")
+	}
+	// Must exit after exactly 1 request — no retry on permanent error.
+	if got := atomic.LoadInt32(&requestCount); got != 1 {
+		t.Fatalf("permanent error must fail fast with 1 request, got=%d", got)
+	}
+	// Verify the error carries a permanent reason code, not transient.
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		if reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT ||
+			reason == runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE ||
+			reason == runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
+			t.Fatalf("permanent auth error should not map to transient reason, got=%s", reason.String())
 		}
 	}
 }

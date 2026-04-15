@@ -175,7 +175,7 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 		if err := authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
-		return &runtimev1.GetScenarioJobResponse{Job: job}, nil
+		return &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}, nil
 	}
 	job, ok := s.voiceAssets.getJob(jobID)
 	if !ok {
@@ -248,7 +248,7 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 	if ok {
 		defer s.scenarioJobs.unsubscribe(jobID, subID)
 		for _, event := range backlog {
-			if err := stream.Send(event); err != nil {
+			if err := stream.Send(sanitizeScenarioJobEventForResponse(event)); err != nil {
 				return err
 			}
 		}
@@ -266,7 +266,7 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 				if !open {
 					return nil
 				}
-				if err := stream.Send(event); err != nil {
+				if err := stream.Send(sanitizeScenarioJobEventForResponse(event)); err != nil {
 					return err
 				}
 				if isTerminalScenarioJobEvent(event.GetEventType()) {
@@ -319,10 +319,11 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 		if err := authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
-		output := buildScenarioOutputFromArtifacts(job, artifacts)
+		responseArtifacts := sanitizeScenarioArtifactsForResponse(job, artifacts)
+		output := buildScenarioOutputFromArtifacts(job, responseArtifacts)
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
-			Artifacts: artifacts,
+			Artifacts: responseArtifacts,
 			TraceId:   traceID,
 			Output:    output,
 		}, nil
@@ -475,11 +476,13 @@ func (s *Service) submitScenarioAsyncJob(
 	var cancel context.CancelFunc
 	timeout := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(req.GetScenarioType()), remoteTarget == nil)
 	if scenarioJobUsesDetachedPolling(req.GetScenarioType(), adapterName) {
-		if timeout > 0 {
-			jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
-		} else {
-			jobCtx, cancel = context.WithCancel(jobCtx)
-		}
+		// Detached polling jobs (cloud async video, etc.) derive their terminal
+		// state from the provider, not from a runtime execution deadline.
+		// Cancel-only context: the poll loop runs until a provider terminal
+		// state (succeeded/failed/expired/canceled) or an explicit user cancel.
+		// Individual poll HTTP requests are bounded by the HTTP client's own
+		// Timeout (defaultHTTPTimeout), not by this context.
+		jobCtx, cancel = context.WithCancel(jobCtx)
 	} else if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
 	} else {

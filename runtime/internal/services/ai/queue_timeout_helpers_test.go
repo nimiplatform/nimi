@@ -123,3 +123,38 @@ func TestScenarioJobTimeoutDurationKeepsRuntimeCapForRemoteImageJobs(t *testing.
 		t.Fatalf("scenarioJobTimeoutDuration(remote image 10m) = %s, want %s", got, maxRuntimeRequestTimeout)
 	}
 }
+
+func TestScenarioJobUsesDetachedPollingForVideoAdapters(t *testing.T) {
+	videoType := runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
+	imageType := runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE
+
+	detachedAdapters := []string{
+		"bytedance_ark_task_adapter",
+		"alibaba_native_adapter",
+		"gemini_operation_adapter",
+		"minimax_task_adapter",
+		"glm_task_adapter",
+		"kling_task_adapter",
+		"luma_task_adapter",
+		"pika_task_adapter",
+		"runway_task_adapter",
+		"google_veo_operation_adapter",
+	}
+	for _, adapter := range detachedAdapters {
+		if !scenarioJobUsesDetachedPolling(videoType, adapter) {
+			t.Errorf("scenarioJobUsesDetachedPolling(VIDEO, %q) = false, want true", adapter)
+		}
+	}
+
+	// Non-video scenario types must not use detached polling.
+	for _, adapter := range detachedAdapters {
+		if scenarioJobUsesDetachedPolling(imageType, adapter) {
+			t.Errorf("scenarioJobUsesDetachedPolling(IMAGE, %q) = true, want false", adapter)
+		}
+	}
+
+	// Unknown adapters must not use detached polling.
+	if scenarioJobUsesDetachedPolling(videoType, "openai_compat_adapter") {
+		t.Error("scenarioJobUsesDetachedPolling(VIDEO, openai_compat) = true, want false")
+	}
+}

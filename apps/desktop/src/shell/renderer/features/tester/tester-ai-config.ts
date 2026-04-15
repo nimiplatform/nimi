@@ -17,6 +17,9 @@ export function bindingFromTesterConfig(config: AIConfig, capabilityId: Capabili
   if (capabilityId === 'image.create-job') {
     return (config.capabilities.selectedBindings['image.generate'] || null) as RuntimeRouteBinding | null;
   }
+  if (capabilityId === 'video.create-job') {
+    return (config.capabilities.selectedBindings['video.generate'] || null) as RuntimeRouteBinding | null;
+  }
   if (capabilityId === 'text.stream') {
     return (config.capabilities.selectedBindings['text.generate'] || null) as RuntimeRouteBinding | null;
   }

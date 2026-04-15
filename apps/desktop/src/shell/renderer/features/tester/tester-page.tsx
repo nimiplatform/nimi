@@ -31,7 +31,7 @@ import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, createEmptyTesterAIConfig
 
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
-  { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.generate'] },
+  { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.create-job'] },
   { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice.clone', 'voice.design'] },
 ];
 
@@ -203,7 +203,9 @@ export function TesterPage() {
   }, [aiConfigSurface]);
 
   const handleSettingsBindingChange = useCallback((capabilityId: CapabilityId, binding: RuntimeRouteBinding | null) => {
-    const targetCapability = capabilityId === 'image.create-job' ? 'image.generate' : capabilityId;
+    const targetCapability = capabilityId === 'image.create-job' ? 'image.generate'
+      : capabilityId === 'video.create-job' ? 'video.generate'
+      : capabilityId;
     persistTesterConfig((current) => ({
       ...current,
       capabilities: {
@@ -298,13 +300,15 @@ export function TesterPage() {
             onStateChange={(updater) => updateCapabilityState('image.create-job', updater)}
           />
         );
+      case 'video.create-job':
       case 'video.generate':
         return (
           <VideoGeneratePanel
-            state={activeState}
+            mode="job"
+            state={mergeBindingIntoState(states[activeCapability], bindingFromTesterConfig(testerConfig, 'video.generate'))}
             params={currentVideoParams}
             onParamsChange={(next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>)}
-            onStateChange={(updater) => updateCapabilityState('video.generate', updater)}
+            onStateChange={(updater) => updateCapabilityState(activeCapability, updater)}
           />
         );
       case 'audio.synthesize':

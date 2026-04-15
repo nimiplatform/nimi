@@ -17,6 +17,53 @@ import (
 const providerPollInterval = 500 * time.Millisecond
 const maxProviderPollAttempts int32 = int32(defaultHTTPTimeout / providerPollInterval)
 
+// maxDetachedPollConsecutiveErrors is the number of consecutive transient poll
+// request failures tolerated for detached (cancel-only) polling before the job
+// gives up. At 30 s backoff per retry this tolerates ~5 minutes of provider
+// endpoint downtime. Only applies when the context has no deadline.
+const maxDetachedPollConsecutiveErrors int32 = 10
+
+// isDetachedPollContext returns true when the context has no deadline, meaning
+// the caller intended the poll to run indefinitely until a provider terminal
+// state or an explicit cancel. In this mode, transient per-request failures
+// should be retried rather than immediately terminating the job.
+func isDetachedPollContext(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	_, hasDeadline := ctx.Deadline()
+	return !hasDeadline
+}
+
+// isTransientPollError returns true when an error from DoJSONRequest represents
+// a transient infrastructure failure that is safe to retry during detached
+// polling. Only network-level and server-side failures qualify:
+//   - AI_PROVIDER_TIMEOUT  (HTTP client timeout, gateway timeout)
+//   - AI_PROVIDER_UNAVAILABLE (connection refused, 502, 503)
+//   - AI_PROVIDER_INTERNAL (500)
+//
+// Permanent provider errors (auth, not-found, bad-request, content-filter,
+// rate-limit, output-invalid) are NOT transient and must fail the job
+// immediately even in detached mode.
+func isTransientPollError(err error) bool {
+	if err == nil {
+		return false
+	}
+	reasonCode, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		// Cannot classify — treat as non-transient to fail fast.
+		return false
+	}
+	switch reasonCode {
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
+		runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		runtimev1.ReasonCode_AI_PROVIDER_INTERNAL:
+		return true
+	default:
+		return false
+	}
+}
+
 func providerPollRetryLimitReached(ctx context.Context, retryCount int32) bool {
 	if ctx == nil {
 		return retryCount >= maxProviderPollAttempts
@@ -104,6 +151,8 @@ func PollProviderTaskForArtifact(
 	initialDelay := providerPollDelay(0)
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(initialDelay)), "")
 	retryCount := int32(0)
+	consecutiveErrors := int32(0)
+	detached := isDetachedPollContext(ctx)
 	for {
 		if ctx.Err() != nil {
 			bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
@@ -113,8 +162,27 @@ func PollProviderTaskForArtifact(
 		pollResp := map[string]any{}
 		pollPath := ResolveTaskQueryPath(queryPathTemplate, providerJobID)
 		if err := DoJSONRequest(ctx, http.MethodGet, JoinURL(baseURL, pollPath), apiKey, nil, &pollResp); err != nil {
+			// For detached polling (cancel-only ctx), transient infrastructure
+			// failures (timeout, 5xx, connection errors) are retried with
+			// backoff. Permanent provider errors (auth, not-found, bad-request,
+			// content-filter) fail the job immediately.
+			if detached && ctx.Err() == nil && isTransientPollError(err) {
+				consecutiveErrors++
+				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
+					updater.UpdatePollState(jobID, providerJobID, retryCount, nil, err.Error())
+					return nil, nil, providerJobID, err
+				}
+				delay := providerPollDelay(retryCount)
+				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
+				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
+					bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+					return nil, nil, providerJobID, providerPollContextError(sleepErr)
+				}
+				continue
+			}
 			return nil, nil, providerJobID, err
 		}
+		consecutiveErrors = 0
 		statusText := ResolveAsyncTaskStatus(pollResp)
 		if IsAsyncTaskPendingStatus(statusText) {
 			if providerPollRetryLimitReached(ctx, retryCount) {

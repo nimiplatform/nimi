@@ -129,6 +129,8 @@ func ExecuteGeminiOperation(
 	}
 	updater.UpdatePollState(jobID, providerJobID, 0, timestamppb.New(time.Now().UTC().Add(providerPollDelay(0))), "")
 	retryCount := int32(0)
+	consecutiveErrors := int32(0)
+	detached := isDetachedPollContext(ctx)
 
 	for {
 		if ctx.Err() != nil {
@@ -139,8 +141,23 @@ func ExecuteGeminiOperation(
 		pollResp := map[string]any{}
 		pollPath := JoinURL(baseURL, path.Join("/operations", url.PathEscape(providerJobID)))
 		if err := DoJSONRequest(ctx, http.MethodGet, pollPath, apiKey, nil, &pollResp); err != nil {
+			if detached && ctx.Err() == nil && isTransientPollError(err) {
+				consecutiveErrors++
+				if consecutiveErrors >= maxDetachedPollConsecutiveErrors {
+					updater.UpdatePollState(jobID, providerJobID, retryCount, nil, err.Error())
+					return nil, nil, providerJobID, err
+				}
+				delay := providerPollDelay(retryCount)
+				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
+				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
+					bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+					return nil, nil, providerJobID, providerPollContextError(sleepErr)
+				}
+				continue
+			}
 			return nil, nil, providerJobID, err
 		}
+		consecutiveErrors = 0
 		done := ValueAsBool(pollResp["done"])
 		if !done {
 			if providerPollRetryLimitReached(ctx, retryCount) {
