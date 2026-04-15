@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
@@ -20,8 +20,12 @@ import type {
   WorldRecommendedAgent,
   WorldSemanticData,
 } from './world-detail-types.js';
-import { TimeFlowDynamics } from './time-flow-dynamics';
-import { WorldScoringMatrix } from './world-scoring-matrix';
+const TimeFlowDynamics = lazy(() => import('./time-flow-dynamics').then((module) => ({
+  default: module.TimeFlowDynamics,
+})));
+const WorldScoringMatrix = lazy(() => import('./world-scoring-matrix').then((module) => ({
+  default: module.WorldScoringMatrix,
+})));
 
 export { WorldCoreRulesSection } from './world-detail-core-rules-section.js';
 
@@ -607,47 +611,76 @@ export function WorldDashboardSection({
               data-testid="world-detail-score-matrix-card"
               className="h-full overflow-hidden rounded-[22px] border border-[#4ECCA3]/15 bg-[#0f1612]/82 backdrop-blur-sm"
             >
-              <CanvasCrashBoundary
-                fallback={
-                  <div className="flex min-h-[620px] flex-col gap-4 p-6">
-                    <div className="text-xs font-semibold uppercase tracking-widest text-[#4ECCA3]">
-                      {t('WorldDetail.section.scores', { defaultValue: 'World Scoring Matrix' })}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {([
-                        { label: t('WorldDetail.activity', { defaultValue: 'Activity' }), value: world.scoreA },
-                        { label: t('WorldDetail.consensus', { defaultValue: 'Consensus' }), value: world.scoreC },
-                        { label: t('WorldDetail.quality', { defaultValue: 'Quality' }), value: world.scoreQ },
-                        { label: t('WorldDetail.engagement', { defaultValue: 'Engagement' }), value: world.scoreE },
-                      ] as Array<{ label: string; value: number }>).map(({ label, value }) => (
-                        <div key={label} className="rounded-xl border border-[#4ECCA3]/18 bg-[#0a1210]/60 p-4 text-center">
-                          <div className="text-2xl font-bold text-[#4ECCA3]">{(value ?? 0).toFixed(0)}</div>
-                          <div className="mt-1 text-[10px] uppercase tracking-widest text-[#86f0ca]/60">{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-auto rounded-xl border border-[#4ECCA3]/10 bg-[#0a1210]/40 p-4">
-                      <div className="text-[10px] uppercase tracking-widest text-[#4ECCA3]/70">
-                        {t('WorldDetail.comprehensiveIndex', { defaultValue: 'Comprehensive Index' })}
+              <Suspense fallback={(
+                <div className="flex min-h-[620px] flex-col gap-4 p-6">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-[#4ECCA3]">
+                    {t('WorldDetail.section.scores', { defaultValue: 'World Scoring Matrix' })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      { label: t('WorldDetail.activity', { defaultValue: 'Activity' }), value: world.scoreA },
+                      { label: t('WorldDetail.consensus', { defaultValue: 'Consensus' }), value: world.scoreC },
+                      { label: t('WorldDetail.quality', { defaultValue: 'Quality' }), value: world.scoreQ },
+                      { label: t('WorldDetail.engagement', { defaultValue: 'Engagement' }), value: world.scoreE },
+                    ] as Array<{ label: string; value: number }>).map(({ label, value }) => (
+                      <div key={label} className="rounded-xl border border-[#4ECCA3]/18 bg-[#0a1210]/60 p-4 text-center">
+                        <div className="text-2xl font-bold text-[#4ECCA3]">{(value ?? 0).toFixed(0)}</div>
+                        <div className="mt-1 text-[10px] uppercase tracking-widest text-[#86f0ca]/60">{label}</div>
                       </div>
-                      <div className="mt-1 text-2xl font-bold text-[#4ECCA3]">
-                        {(world.scoreEwma ?? 0).toFixed(2)}
-                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-auto rounded-xl border border-[#4ECCA3]/10 bg-[#0a1210]/40 p-4">
+                    <div className="text-[10px] uppercase tracking-widest text-[#4ECCA3]/70">
+                      {t('WorldDetail.comprehensiveIndex', { defaultValue: 'Comprehensive Index' })}
+                    </div>
+                    <div className="mt-1 text-2xl font-bold text-[#4ECCA3]">
+                      {(world.scoreEwma ?? 0).toFixed(2)}
                     </div>
                   </div>
-                }
-              >
-                <WorldScoringMatrix
-                  data={{
-                    scoreA: world.scoreA,
-                    scoreC: world.scoreC,
-                    scoreQ: world.scoreQ,
-                    scoreE: world.scoreE,
-                    scoreEwma: world.scoreEwma,
-                  }}
-                  className="min-h-[620px]"
-                />
-              </CanvasCrashBoundary>
+                </div>
+              )}>
+                <CanvasCrashBoundary
+                  fallback={
+                    <div className="flex min-h-[620px] flex-col gap-4 p-6">
+                      <div className="text-xs font-semibold uppercase tracking-widest text-[#4ECCA3]">
+                        {t('WorldDetail.section.scores', { defaultValue: 'World Scoring Matrix' })}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { label: t('WorldDetail.activity', { defaultValue: 'Activity' }), value: world.scoreA },
+                          { label: t('WorldDetail.consensus', { defaultValue: 'Consensus' }), value: world.scoreC },
+                          { label: t('WorldDetail.quality', { defaultValue: 'Quality' }), value: world.scoreQ },
+                          { label: t('WorldDetail.engagement', { defaultValue: 'Engagement' }), value: world.scoreE },
+                        ] as Array<{ label: string; value: number }>).map(({ label, value }) => (
+                          <div key={label} className="rounded-xl border border-[#4ECCA3]/18 bg-[#0a1210]/60 p-4 text-center">
+                            <div className="text-2xl font-bold text-[#4ECCA3]">{(value ?? 0).toFixed(0)}</div>
+                            <div className="mt-1 text-[10px] uppercase tracking-widest text-[#86f0ca]/60">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-auto rounded-xl border border-[#4ECCA3]/10 bg-[#0a1210]/40 p-4">
+                        <div className="text-[10px] uppercase tracking-widest text-[#4ECCA3]/70">
+                          {t('WorldDetail.comprehensiveIndex', { defaultValue: 'Comprehensive Index' })}
+                        </div>
+                        <div className="mt-1 text-2xl font-bold text-[#4ECCA3]">
+                          {(world.scoreEwma ?? 0).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  }
+                >
+                  <WorldScoringMatrix
+                    data={{
+                      scoreA: world.scoreA,
+                      scoreC: world.scoreC,
+                      scoreQ: world.scoreQ,
+                      scoreE: world.scoreE,
+                      scoreEwma: world.scoreEwma,
+                    }}
+                    className="min-h-[620px]"
+                  />
+                </CanvasCrashBoundary>
+              </Suspense>
             </section>
           </div>
 
@@ -660,20 +693,31 @@ export function WorldDashboardSection({
                 dataTestId="world-detail-time-flow-card"
               >
                 <div className="flex h-full min-h-[220px] items-center justify-center">
-                  <CanvasCrashBoundary
-                    fallback={
-                      <div className="flex h-[200px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[#4ECCA3]/15 bg-[#0f1612]/40">
-                        <span className="font-mono text-4xl font-black text-[#4ECCA3]">
-                          {(world.flowRatio || 1).toFixed(1)}x
-                        </span>
-                        <span className="text-xs uppercase tracking-widest text-[#86f0ca]/50">
-                          {t('WorldDetail.xianxia.v2.visuals.timeFlowTitle')}
-                        </span>
-                      </div>
-                    }
-                  >
-                    <TimeFlowDynamics ratio={world.flowRatio || 1} className="h-[200px] w-full" />
-                  </CanvasCrashBoundary>
+                  <Suspense fallback={(
+                    <div className="flex h-[200px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[#4ECCA3]/15 bg-[#0f1612]/40">
+                      <span className="font-mono text-4xl font-black text-[#4ECCA3]">
+                        {(world.flowRatio || 1).toFixed(1)}x
+                      </span>
+                      <span className="text-xs uppercase tracking-widest text-[#86f0ca]/50">
+                        {t('WorldDetail.xianxia.v2.visuals.timeFlowTitle')}
+                      </span>
+                    </div>
+                  )}>
+                    <CanvasCrashBoundary
+                      fallback={
+                        <div className="flex h-[200px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[#4ECCA3]/15 bg-[#0f1612]/40">
+                          <span className="font-mono text-4xl font-black text-[#4ECCA3]">
+                            {(world.flowRatio || 1).toFixed(1)}x
+                          </span>
+                          <span className="text-xs uppercase tracking-widest text-[#86f0ca]/50">
+                            {t('WorldDetail.xianxia.v2.visuals.timeFlowTitle')}
+                          </span>
+                        </div>
+                      }
+                    >
+                      <TimeFlowDynamics ratio={world.flowRatio || 1} className="h-[200px] w-full" />
+                    </CanvasCrashBoundary>
+                  </Suspense>
                 </div>
               </SectionShell>
               {hasChronology ? <WorldChronologyCard world={world} /> : null}
