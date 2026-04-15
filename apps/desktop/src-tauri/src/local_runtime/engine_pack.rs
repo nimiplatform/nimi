@@ -578,14 +578,9 @@ mod tests {
         copy_bundle_to_cache, now_nanos, resolve_existing_llama_cpp_binary, write_bundle_manifest,
     };
     use crate::local_runtime::engine_pack_download::asset_score;
+    use crate::test_support::test_guard;
     use std::fs;
     use std::path::PathBuf;
-    use std::sync::{Mutex, OnceLock};
-
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
 
     fn temp_dir(label: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("nimi-engine-pack-{label}-{}", now_nanos()));
@@ -611,7 +606,7 @@ mod tests {
 
     #[test]
     fn copy_bundle_to_cache_preserves_runtime_files_and_writes_manifest() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let source_dir = temp_dir("source");
         let cache_dir = temp_dir("cache");
         let binary = source_dir.join(binary_name());
@@ -647,7 +642,7 @@ mod tests {
 
     #[test]
     fn resolve_existing_binary_rejects_partial_cached_bundle() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let runtime_root = temp_dir("runtime-root");
         std::env::set_var(
             "NIMI_LOCAL_AI_RUNTIME_ROOT",
@@ -668,7 +663,7 @@ mod tests {
 
     #[test]
     fn resolve_existing_binary_accepts_manifest_complete_bundle() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let runtime_root = temp_dir("runtime-root-valid");
         std::env::set_var(
             "NIMI_LOCAL_AI_RUNTIME_ROOT",

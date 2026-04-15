@@ -235,11 +235,11 @@ mod tests {
     use crate::local_runtime::types::{
         LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiIntegrityMode,
     };
+    use crate::test_support::test_guard;
     use std::collections::HashMap;
     use std::fs;
     use std::net::TcpListener;
     use std::path::PathBuf;
-    use std::sync::{Mutex, OnceLock};
 
     fn model_fixture(engine: &str, status: LocalAiAssetStatus) -> LocalAiAssetRecord {
         LocalAiAssetRecord {
@@ -322,11 +322,6 @@ mod tests {
         rendered
     }
 
-    fn env_lock() -> &'static Mutex<()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(()))
-    }
-
     fn bundle_manifest_fixture(runtime_files: &[&str]) -> String {
         let binary_name = if cfg!(target_os = "windows") {
             "llama-server.exe"
@@ -342,7 +337,7 @@ mod tests {
 
     #[test]
     fn llama_cpp_without_binary_only_fails_on_start() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama-cpp", LocalAiAssetStatus::Installed);
@@ -372,7 +367,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_without_running_process_stays_installed() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama", LocalAiAssetStatus::Installed);
@@ -383,7 +378,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_unhealthy_without_running_process_recovers_to_installed() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama", LocalAiAssetStatus::Unhealthy);
@@ -393,7 +388,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_with_invalid_bundle_is_unhealthy() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         let runtime_root = temp_dir("invalid-bundle");
         std::env::set_var(
@@ -431,7 +426,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_start_args_use_resolved_model_path_and_endpoint_bind() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let models_root = temp_dir("llama-models-root");
         std::env::set_var(
             "NIMI_LOCAL_AI_MODELS_DIR",
@@ -475,7 +470,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_start_args_include_mmproj_when_configured() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let models_root = temp_dir("llama-mmproj-root");
         std::env::set_var(
             "NIMI_LOCAL_AI_MODELS_DIR",
@@ -512,7 +507,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_start_args_fail_when_mmproj_is_missing() {
-        let _guard = env_lock().lock().expect("lock env");
+        let _guard = test_guard();
         let models_root = temp_dir("llama-mmproj-missing");
         std::env::set_var(
             "NIMI_LOCAL_AI_MODELS_DIR",
@@ -533,6 +528,7 @@ mod tests {
 
     #[test]
     fn canonical_llama_active_without_running_process_is_unhealthy() {
+        let _guard = test_guard();
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         let model = model_fixture("llama", LocalAiAssetStatus::Active);
         let health = check_engine_health(&model);
