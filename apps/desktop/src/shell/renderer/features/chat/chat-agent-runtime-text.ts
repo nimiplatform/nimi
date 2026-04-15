@@ -14,8 +14,8 @@ import {
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import {
-  resolveAgentChatThinkingSupport,
   resolveChatThinkingConfig,
+  resolveTextExecutionSnapshotThinkingSupport,
 } from './chat-thinking';
 import { toChatUserFacingRuntimeError } from './chat-runtime-error-message';
 import type {
@@ -159,7 +159,9 @@ export async function streamChatAgentRuntime(
       : undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
-      resolveAgentChatThinkingSupport(),
+      resolveTextExecutionSnapshotThinkingSupport(
+        input.executionSnapshot?.conversationCapabilitySlice as Parameters<typeof resolveTextExecutionSnapshotThinkingSupport>[0],
+      ),
     ),
     timeoutMs: callOptions.timeoutMs,
     signal: callOptions.signal,
@@ -208,7 +210,9 @@ export async function invokeChatAgentRuntime(
       : undefined,
     reasoning: resolveChatThinkingConfig(
       input.reasoningPreference,
-      resolveAgentChatThinkingSupport(),
+      resolveTextExecutionSnapshotThinkingSupport(
+        input.executionSnapshot?.conversationCapabilitySlice as Parameters<typeof resolveTextExecutionSnapshotThinkingSupport>[0],
+      ),
     ),
     timeoutMs: callOptions.timeoutMs,
     metadata: callOptions.metadata,

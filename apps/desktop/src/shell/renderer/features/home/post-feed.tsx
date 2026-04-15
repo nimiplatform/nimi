@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ReactNode } from 'react';
 import { i18n } from '@renderer/i18n';
@@ -24,7 +25,12 @@ type PostFeedProps = {
   emptyText?: string;
   renderItem?: (item: FeedItem, index: number) => ReactNode;
   className?: string;
+  scrollRef?: RefObject<HTMLElement | null>;
 };
+
+const POST_ESTIMATED_HEIGHT = 280;
+const POST_GAP = 24;
+const VIRTUALIZER_OVERSCAN = 4;
 
 const PostSkeleton = () => (
   <div className="mb-6 rounded-[2rem] border border-border bg-card p-5 shadow-sm">
@@ -62,7 +68,7 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFeedProps) {
+export function PostFeed({ fetchPage, emptyText, renderItem, className, scrollRef }: PostFeedProps) {
   const [posts, setPosts] = useState<FeedItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -205,6 +211,30 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFe
     return () => observer.disconnect();
   }, [cursor, hasMore, loadingMore, load]);
 
+  // Virtualization is opt-in: only activate when the caller provides a scroll
+  // container ref (single-column feeds like HomeView). Grid callers (ExploreView)
+  // omit scrollRef and get the original full-render path with their layout intact.
+  const useVirtual = scrollRef != null && posts.length > 0;
+
+  const virtualizer = useVirtualizer({
+    count: useVirtual ? posts.length : 0,
+    getScrollElement: () => scrollRef?.current ?? null,
+    estimateSize: () => POST_ESTIMATED_HEIGHT + POST_GAP,
+    overscan: VIRTUALIZER_OVERSCAN,
+    enabled: useVirtual,
+  });
+
+  const renderPostItem = (post: FeedItem, index: number) =>
+    renderItem ? (
+      <Fragment key={post.id}>{renderItem(post, index)}</Fragment>
+    ) : (
+      <div key={post.id} className="rounded-[10px] border border-gray-200 bg-white p-4">
+        <p className="text-sm text-gray-700">
+          {post.caption ?? i18n.t('Home.noContent', { defaultValue: 'No content' })}
+        </p>
+      </div>
+    );
+
   return (
     <>
       {error ? (
@@ -213,25 +243,43 @@ export function PostFeed({ fetchPage, emptyText, renderItem, className }: PostFe
         </div>
       ) : null}
 
-      <div className={className ?? 'space-y-6'}>
-        {posts.map((post, index) =>
-          renderItem ? (
-            <Fragment key={post.id}>{renderItem(post, index)}</Fragment>
-          ) : (
-            <div key={post.id} className="rounded-[10px] border border-gray-200 bg-white p-4">
-              <p className="text-sm text-gray-700">
-                {post.caption ?? i18n.t('Home.noContent', { defaultValue: 'No content' })}
-              </p>
-            </div>
-          ),
-        )}
+      {useVirtual ? (
+        <div
+          style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const post = posts[virtualRow.index];
+            if (!post) return null;
+            return (
+              <div
+                key={post.id}
+                ref={virtualizer.measureElement}
+                data-index={virtualRow.index}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                  paddingBottom: POST_GAP,
+                }}
+              >
+                {renderPostItem(post, virtualRow.index)}
+              </div>
+            );
+          })}
+        </div>
+      ) : posts.length > 0 ? (
+        <div className={className ?? 'space-y-6'}>
+          {posts.map((post, index) => renderPostItem(post, index))}
+        </div>
+      ) : null}
 
-        {!loadingInitial && posts.length === 0 && !error ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            {emptyText ?? i18n.t('Home.noPosts', { defaultValue: 'No posts yet' })}
-          </div>
-        ) : null}
-      </div>
+      {!loadingInitial && posts.length === 0 && !error ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          {emptyText ?? i18n.t('Home.noPosts', { defaultValue: 'No posts yet' })}
+        </div>
+      ) : null}
 
       <div ref={loadMoreRef} className="h-10" />
 

@@ -150,7 +150,13 @@ export function findRuntimeRouteModelProfile(
 
 export function resolveAgentChatRequestedMaxOutputTokens(
   profile: RuntimeRouteModelProfile | null | undefined,
+  userOverride?: number | null,
 ): number | null {
+  // User override takes precedence when it satisfies the minimum floor.
+  const overrideValue = Number(userOverride);
+  if (Number.isFinite(overrideValue) && overrideValue >= MIN_AGENT_CHAT_REQUEST_MAX_OUTPUT_TOKENS) {
+    return Math.floor(overrideValue);
+  }
   const maxOutputTokens = Number(profile?.maxOutputTokens);
   // Route profile ceilings are capability metadata, not a reliable per-turn target.
   // Very small ceilings routinely truncate the message-action envelope before it closes.

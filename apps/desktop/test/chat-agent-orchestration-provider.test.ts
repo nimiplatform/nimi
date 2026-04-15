@@ -564,6 +564,7 @@ test('agent local chat execution seam shapes system prompt and transcript messag
     userText: 'What should we do next?',
     settings: {
       thinkingPreference: 'off',
+      maxOutputTokensOverride: null,
     },
   });
   const request = buildAgentLocalChatExecutionTextRequest({
@@ -825,6 +826,7 @@ test('agent local chat execution seam emits multimodal user content when image a
       userText: 'Describe this image.',
       settings: {
         thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
       },
     }),
   });
@@ -845,6 +847,7 @@ test('agent local chat execution seam emits multimodal user content when image a
       userText: 'Describe this image.',
       settings: {
         thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
       },
     }),
   });
@@ -883,6 +886,7 @@ test('agent local chat execution seam allows attachment-only turns and emits ima
       userText: '',
       settings: {
         thinkingPreference: 'off',
+        maxOutputTokensOverride: null,
       },
     }),
   });

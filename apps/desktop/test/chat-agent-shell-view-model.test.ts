@@ -218,6 +218,7 @@ test('agent behavior resolver produces a canonical resolved behavior object from
     userText: '我今天有点难过，想你了',
     settings: {
       thinkingPreference: 'on',
+      maxOutputTokensOverride: null,
     },
   });
 
@@ -232,6 +233,7 @@ test('agent behavior resolver keeps explicit-media turns single-message without 
     userText: '发张图给我看看',
     settings: {
       thinkingPreference: 'off',
+      maxOutputTokensOverride: null,
     },
   });
 

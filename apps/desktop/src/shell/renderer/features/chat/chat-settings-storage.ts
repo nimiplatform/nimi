@@ -5,11 +5,18 @@ export const AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY = 'nimi.chat.settings.agen
 
 export type AgentChatExperienceSettings = {
   thinkingPreference: ChatThinkingPreference;
+  maxOutputTokensOverride: number | null;
 };
 
 const DEFAULT_AGENT_CHAT_EXPERIENCE_SETTINGS: AgentChatExperienceSettings = {
   thinkingPreference: 'off',
+  maxOutputTokensOverride: null,
 };
+
+function normalizeMaxOutputTokensOverride(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : null;
+}
 
 export function normalizeAgentChatExperienceSettings(value: unknown): AgentChatExperienceSettings {
   if (!value || typeof value !== 'object') {
@@ -18,6 +25,7 @@ export function normalizeAgentChatExperienceSettings(value: unknown): AgentChatE
   const record = value as Record<string, unknown>;
   return {
     thinkingPreference: normalizeChatThinkingPreference(record.thinkingPreference),
+    maxOutputTokensOverride: normalizeMaxOutputTokensOverride(record.maxOutputTokensOverride),
   };
 }
 

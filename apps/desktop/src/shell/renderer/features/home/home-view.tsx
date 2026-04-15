@@ -86,6 +86,7 @@ export function HomeView(props: HomeViewProps) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const createPostRequestRef = useRef<number>(props.createPostRequestKey ?? 0);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
   const postFeedKey = `moments-${refreshKey}`;
 
   const fetchPage = useCallback(
@@ -133,6 +134,7 @@ export function HomeView(props: HomeViewProps) {
         className="flex-1 bg-gray-50"
         viewportClassName="bg-gray-50"
         contentClassName="mx-auto max-w-2xl px-6 py-0"
+        viewportRef={feedScrollRef}
       >
           {/* Create Post Prompt */}
           <Surface
@@ -168,6 +170,7 @@ export function HomeView(props: HomeViewProps) {
             <PostFeed
               key={postFeedKey}
               fetchPage={fetchPage}
+              scrollRef={feedScrollRef}
               emptyText={t('PostsTab.noPosts', { defaultValue: 'No posts yet' })}
               renderItem={(post) => (
                 <PostCard

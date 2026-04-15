@@ -32,18 +32,36 @@ function joinDetails(parts: Array<string | null | undefined>): string | null {
   return normalized.length > 0 ? normalized.join('\n') : null;
 }
 
+function formatTokenCount(value: unknown): string | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toLocaleString() : null;
+}
+
 function formatUsage(input: AgentTurnLifecycleState['usage']): string | null {
   if (!input) {
     return null;
   }
   const details: string[] = [];
-  if (Number.isFinite(Number(input.inputTokens))) {
-    details.push(`inputTokens=${Number(input.inputTokens)}`);
+  const inputStr = formatTokenCount(input.inputTokens);
+  if (inputStr) {
+    details.push(`Input: ${inputStr} tokens`);
   }
-  if (Number.isFinite(Number(input.outputTokens))) {
-    details.push(`outputTokens=${Number(input.outputTokens)}`);
+  const outputStr = formatTokenCount(input.outputTokens);
+  if (outputStr) {
+    details.push(`Output: ${outputStr} tokens`);
   }
   return details.length > 0 ? details.join(' · ') : null;
+}
+
+function formatContextWindowSource(source: string | undefined | null): string {
+  switch (source) {
+  case 'route-profile':
+    return 'Model profile';
+  case 'default-estimate':
+    return 'Default estimate';
+  default:
+    return '-';
+  }
 }
 
 function hasRecentTurn(lifecycle: AgentTurnLifecycleState | null): boolean {
@@ -124,11 +142,24 @@ function buildTraceCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCar
   };
 }
 
+function formatFinishReason(reason: string | null | undefined): string {
+  switch (reason) {
+  case 'stop':
+    return 'Completed';
+  case 'length':
+    return 'Reached token limit';
+  case 'content_filter':
+    return 'Filtered by provider';
+  default:
+    return reason || '-';
+  }
+}
+
 function buildFinishCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData {
   return {
     key: 'turn-finish',
-    label: 'Finish',
-    value: lifecycle.diagnostics?.finishReason || '-',
+    label: 'Result',
+    value: formatFinishReason(lifecycle.diagnostics?.finishReason),
     detail: formatUsage(lifecycle.usage),
   };
 }
@@ -151,31 +182,50 @@ function buildOutputCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCa
 
 function buildBudgetCard(lifecycle: AgentTurnLifecycleState): AgentDiagnosticsCardData {
   const diagnostics = lifecycle.diagnostics;
+  const preflight = diagnostics?.preflight;
+  const overflow = diagnostics?.promptOverflow === true;
+
+  const value = overflow
+    ? 'Context limit exceeded'
+    : formatContextWindowSource(diagnostics?.contextWindowSource);
+
+  const details: Array<string | null> = [];
+  const maxOutput = formatTokenCount(diagnostics?.maxOutputTokensRequested);
+  if (maxOutput) {
+    details.push(`Max output: ${maxOutput} tokens`);
+  }
+  const usageStr = formatUsage(lifecycle.usage);
+  if (usageStr) {
+    details.push(usageStr);
+  }
+  if (preflight) {
+    const totalInput = formatTokenCount(preflight.totalInputTokens);
+    const budget = formatTokenCount(preflight.promptBudgetTokens);
+    if (totalInput && budget) {
+      details.push(`Prompt: ${totalInput} / ${budget} tokens`);
+    }
+    const system = formatTokenCount(preflight.systemTokens);
+    if (system) {
+      details.push(`System: ${system} tokens`);
+    }
+    const history = formatTokenCount(preflight.historyTokens);
+    if (history) {
+      details.push(`History: ${history} tokens`);
+    }
+    const user = formatTokenCount(preflight.userTokens);
+    if (user) {
+      details.push(`User: ${user} tokens`);
+    }
+  }
+  if (overflow) {
+    details.push('The prompt exceeded the available context window.');
+  }
+
   return {
     key: 'turn-budget',
-    label: 'Budget',
-    value: diagnostics?.contextWindowSource || '-',
-    detail: joinDetails([
-      diagnostics
-        ? `maxOutputTokensRequested=${diagnostics.maxOutputTokensRequested ?? '-'}`
-        : null,
-      diagnostics ? `promptOverflow=${diagnostics.promptOverflow}` : null,
-      diagnostics?.preflight?.totalInputTokens !== null && diagnostics?.preflight?.totalInputTokens !== undefined
-        ? `totalInputTokens=${diagnostics.preflight.totalInputTokens}`
-        : null,
-      diagnostics?.preflight?.promptBudgetTokens !== null && diagnostics?.preflight?.promptBudgetTokens !== undefined
-        ? `promptBudgetTokens=${diagnostics.preflight.promptBudgetTokens}`
-        : null,
-      diagnostics?.preflight?.systemTokens !== null && diagnostics?.preflight?.systemTokens !== undefined
-        ? `systemTokens=${diagnostics.preflight.systemTokens}`
-        : null,
-      diagnostics?.preflight?.historyTokens !== null && diagnostics?.preflight?.historyTokens !== undefined
-        ? `historyTokens=${diagnostics.preflight.historyTokens}`
-        : null,
-      diagnostics?.preflight?.userTokens !== null && diagnostics?.preflight?.userTokens !== undefined
-        ? `userTokens=${diagnostics.preflight.userTokens}`
-        : null,
-    ]),
+    label: 'Context',
+    value,
+    detail: joinDetails(details),
   };
 }
 

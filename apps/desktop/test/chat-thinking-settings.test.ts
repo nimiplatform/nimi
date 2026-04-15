@@ -69,18 +69,22 @@ test('agent chat behavior settings persist as one canonical feature-local record
   try {
     assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
       thinkingPreference: 'off',
+      maxOutputTokensOverride: null,
     });
 
     persistStoredAgentChatExperienceSettings({
       thinkingPreference: 'on',
+      maxOutputTokensOverride: null,
     });
 
     assert.deepEqual(JSON.parse(localStorageMock.getItem(AGENT_CHAT_BEHAVIOR_SETTINGS_STORAGE_KEY) || 'null'), {
       thinkingPreference: 'on',
+      maxOutputTokensOverride: null,
     });
     assert.equal(localStorageMock.getItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY), 'on');
     assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
       thinkingPreference: 'on',
+      maxOutputTokensOverride: null,
     });
   } finally {
     Object.defineProperty(globalThis, 'localStorage', {
@@ -102,6 +106,7 @@ test('agent chat behavior settings migrate the legacy thinking preference when n
     localStorageMock.setItem(CHAT_THINKING_PREFERENCE_STORAGE_KEY, 'on');
     assert.deepEqual(loadStoredAgentChatExperienceSettings(), {
       thinkingPreference: 'on',
+      maxOutputTokensOverride: null,
     });
   } finally {
     Object.defineProperty(globalThis, 'localStorage', {

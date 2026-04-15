@@ -107,12 +107,6 @@ export function resolveTextExecutionSnapshotThinkingSupport(
 export function resolveAgentThinkingSupportFromProjection(
   projection: ConversationCapabilityProjection | null | undefined,
 ): ChatThinkingSupport {
-  if (!projection?.resolvedBinding) {
-    return resolveAgentChatThinkingSupport();
-  }
-  if (projection.metadata?.metadataKind !== 'text.generate') {
-    return resolveAgentChatThinkingSupport();
-  }
   return resolveTextProjectionThinkingSupport(projection);
 }
 

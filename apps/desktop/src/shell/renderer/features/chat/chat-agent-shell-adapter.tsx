@@ -837,7 +837,7 @@ export function useAgentConversationModeHost(
           runtimeFields: input.runtimeFields,
           reasoningPreference: behaviorSettings.thinkingPreference,
           textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-          textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile),
+          textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
           resolvedBehavior: resolveAgentChatBehavior({
             userText: turnInput.userMessage.text,
             settings: behaviorSettings,
@@ -865,7 +865,7 @@ export function useAgentConversationModeHost(
     threads,
     threadsReady,
     textModelContextTokens: textRouteModelProfile?.maxContextTokens ?? null,
-    textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile),
+    textMaxOutputTokensRequested: resolveAgentChatRequestedMaxOutputTokens(textRouteModelProfile, behaviorSettings.maxOutputTokensOverride),
   });
   const {
     auxiliaryOverlayContent,
